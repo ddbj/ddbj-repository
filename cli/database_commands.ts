@@ -4,7 +4,7 @@ import { delay } from 'std/async/mod.ts';
 import { Command } from 'cliffy/command/mod.ts';
 import { colorize } from 'json_colorize/mod.ts';
 
-import dbs from './db.json' with { type: 'json' };
+import dbs from '../schema/db.json' with { type: 'json' };
 import { Config } from './config.ts';
 import { ensureSuccess } from './util.ts';
 
