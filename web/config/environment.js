@@ -1,9 +1,6 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-
-const yaml = require('yaml');
+const dbs = require('../../schema/db.json');
 
 module.exports = function (environment) {
   const ENV = {
@@ -25,8 +22,7 @@ module.exports = function (environment) {
     },
 
     apiURL: process.env.API_URL,
-
-    dbs: yaml.parse(fs.readFileSync(path.join(__dirname, '../../config/db.yml'), 'utf8')),
+    dbs,
   };
 
   if (environment === 'development') {

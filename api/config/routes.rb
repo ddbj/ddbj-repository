@@ -1,11 +1,7 @@
-dbs = DB.map { _1[:id].downcase }
-
 Rails.application.routes.draw do
   concern :via_file do
     collection do
-      scope ':db', db: Regexp.union(*dbs) do
-        resource :via_file, only: %i(create), path: 'via-file'
-      end
+      resource :via_file, only: %i(create), path: 'via-file'
     end
   end
 

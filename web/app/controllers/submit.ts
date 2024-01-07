@@ -37,7 +37,7 @@ export default class SubmitController extends Controller {
       }
     }
 
-    const url = `${ENV.apiURL}/${formData.get('resource')}/${this.selectedDb!.id.toLowerCase()}/via-file`;
+    const url = `${ENV.apiURL}/${formData.get('resource')}/via-file`;
 
     const res = await fetch(url, {
       method: 'POST',

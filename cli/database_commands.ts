@@ -87,6 +87,7 @@ type Obj = {
 
 async function createRequest(endpoint: string, apiKey: string, resource: string, db: Db, opts: Record<string, any>) {
   const body = new FormData();
+  body.set('db', db.id);
 
   const promises = db.objects.map((obj) => {
     return [obj, opts[obj.id.toLowerCase()]];
@@ -106,7 +107,7 @@ async function createRequest(endpoint: string, apiKey: string, resource: string,
   await Promise.all(promises);
 
   const res = await fetch(
-    `${endpoint}/${resource}/${db.id.toLowerCase()}/via-file`,
+    `${endpoint}/${resource}/via-file`,
     {
       method: 'post',
       headers: {
