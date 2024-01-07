@@ -7,6 +7,6 @@ updates:
       interval: daily
 
   - package-ecosystem: bundler
-    directory: /
+    directory: /api
     schedule:
       interval: daily

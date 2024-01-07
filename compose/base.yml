@@ -25,7 +25,8 @@ services:
 
   rails: &rails
     build:
-      context: ..
+      context: ../
+      dockerfile: api/Dockerfile
 
       args:
         APP_GID:

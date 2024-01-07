@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:1
 
 ARG RUBY_VERSION
-FROM registry.docker.com/library/ruby:${RUBY_VERSION:?}-slim as base
+FROM ruby:${RUBY_VERSION:?}-slim as base
 
 # Rails app lives here
 WORKDIR /rails
@@ -13,7 +13,7 @@ ARG APP_UID
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development" \
+    BUNDLE_WITHOUT="development:test" \
     TZ=Japan
 
 
@@ -25,13 +25,13 @@ RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential git libpq-dev libvips pkg-config
 
 # Install application gems
-COPY Gemfile Gemfile.lock .ruby-version ./
+COPY api/Gemfile api/Gemfile.lock api/.ruby-version ./
 RUN bundle install && \
     rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
     bundle exec bootsnap precompile --gemfile
 
 # Copy application code
-COPY . .
+COPY api/ .
 
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
@@ -48,6 +48,7 @@ RUN apt-get update -qq && \
 # Copy built artifacts: gems, application
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY --from=build /rails /rails
+COPY schema/db.yml /rails/schema/
 
 # Run and own only the runtime files as a non-root user for security
 RUN mkdir /.local
