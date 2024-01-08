@@ -1,0 +1,77 @@
+<div class="card mb-3">
+  <div class="card-header">
+    {{@object.id}}
+  </div>
+
+  {{#let (if @object.multiple (concat @object.id '[]') @object.id) as |name|}}
+    <div class="card-body">
+      <div class="form-check form-check-inline">
+        {{#let (unique-id) as |id|}}
+          <input type="radio" checked={{eq this.source 'file'}} name="_{{name}}[source]" value="" id={{id}} {{on 'click' (fn (set this 'source') 'file')}} />
+          <label class="form-check-label" for={{id}}>File</label>
+        {{/let}}
+      </div>
+
+      <div class="form-check form-check-inline">
+        {{#let (unique-id) as |id|}}
+          <input type="radio" checked={{eq this.source 'path'}} name="_{{name}}[source]" value="" id={{id}} {{on 'click' (fn (set this 'source') 'path')}} />
+          <label class="form-check-label" for={{id}}>Path</label>
+        {{/let}}
+      </div>
+    </div>
+
+    <ul class="list-group list-group-flush">
+      {{#each this.instances as |instance|}}
+        <li class="list-group-item">
+          <div class="mb-3">
+            {{#let (unique-id) (or (not @object.optional) @object.multiple) as |id required|}}
+              {{#if (eq this.source 'file')}}
+                <label for={{id}} class="form-label">
+                  File
+
+                  {{#if required}}
+                    <span class="text-danger">*</span>
+                  {{/if}}
+                </label>
+
+                <input type="file" name="{{name}}[file]" id={{id}} class="form-control" required={{required}} />
+              {{else if (eq this.source 'path')}}
+                <label for={{id}} class="form-label">
+                  Path
+
+                  {{#if required}}
+                    <span class="text-danger">*</span>
+                  {{/if}}
+                </label>
+
+                <input type="text" name="{{name}}[path]" id={{id}} class="form-control" required={{required}} />
+              {{/if}}
+            {{/let}}
+          </div>
+
+          <div class="mb-3">
+            <label for="{{name}}[destination]" class="form-label">
+              Destination
+            </label>
+
+            <input type="text" name="{{name}}[destination]" id="{{name}}[destination]" class="form-control" />
+          </div>
+
+          {{#if @object.multiple}}
+            <div class="text-end mb-3">
+              <button type="button" disabled={{and (not @object.optional) (eq this.instances.length 1)}} class="btn btn-outline-danger" {{on 'click' (fn this.remove instance)}}>Remove</button>
+            </div>
+          {{/if}}
+        </li>
+      {{else}}
+        <li class="list-group-item py-3">No items.</li>
+      {{/each}}
+    </ul>
+
+    {{#if @object.multiple}}
+      <div class="card-body text-end">
+        <button type="button" class="btn btn-outline-primary" {{on 'click' this.add}}>Add</button>
+      </div>
+    {{/if}}
+  {{/let}}
+</div>
