@@ -86,66 +86,81 @@ RSpec.describe 'requests', type: :request, authorized: true do
     end
 
     describe 'pagination' do
-      before_all do
-        create :request, id: 100
-        create :request, id: 101
-        create :request, id: 102
-        create :request, id: 103
-        create :request, id: 104
+      context 'paginated' do
+        before_all do
+          create :request, id: 100
+          create :request, id: 101
+          create :request, id: 102
+          create :request, id: 103
+          create :request, id: 104
+        end
+
+        before do
+          stub_const 'Pagy::DEFAULT', Pagy::DEFAULT.merge(items: 2)
+        end
+
+        example 'page=1' do
+          get '/api/requests'
+
+          expect(response).to conform_schema(200)
+          expect(response.parsed_body.map { _1['id'] }).to eq([104, 103])
+
+          expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
+            '<http://www.example.com/api/requests?page=1>; rel="first"',
+            '<http://www.example.com/api/requests?page=3>; rel="last"',
+            '<http://www.example.com/api/requests?page=2>; rel="next"'
+          )
+        end
+
+        example 'page=2' do
+          get '/api/requests?page=2'
+
+          expect(response).to conform_schema(200)
+          expect(response.parsed_body.map { _1['id'] }).to eq([102, 101])
+
+          expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
+            '<http://www.example.com/api/requests?page=1>; rel="first"',
+            '<http://www.example.com/api/requests?page=3>; rel="last"',
+            '<http://www.example.com/api/requests?page=1>; rel="prev"',
+            '<http://www.example.com/api/requests?page=3>; rel="next"'
+          )
+        end
+
+        example 'page=3' do
+          get '/api/requests?page=3'
+
+          expect(response).to conform_schema(200)
+          expect(response.parsed_body.map { _1['id'] }).to eq([100])
+
+          expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
+            '<http://www.example.com/api/requests?page=1>; rel="first"',
+            '<http://www.example.com/api/requests?page=3>; rel="last"',
+            '<http://www.example.com/api/requests?page=2>; rel="prev"'
+          )
+        end
+
+        example 'out of range' do
+          get '/api/requests?page=4'
+
+          expect(response).to conform_schema(400)
+
+          expect(response.parsed_body.deep_symbolize_keys).to eq(
+            error: 'expected :page in 1..3; got 4'
+          )
+        end
       end
 
-      before do
-        stub_const 'Pagy::DEFAULT', Pagy::DEFAULT.merge(items: 2)
-      end
+      context 'single page' do
+        before_all do
+          create :request, id: 100
+        end
 
-      example 'page=1' do
-        get '/api/requests'
+        example do
+          get '/api/requests'
 
-        expect(response).to conform_schema(200)
-        expect(response.parsed_body.map { _1['id'] }).to eq([104, 103])
-
-        expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
-          '<http://www.example.com/api/requests?page=1>; rel="first"',
-          '<http://www.example.com/api/requests?page=3>; rel="last"',
-          '<http://www.example.com/api/requests?page=2>; rel="next"'
-        )
-      end
-
-      example 'page=2' do
-        get '/api/requests?page=2'
-
-        expect(response).to conform_schema(200)
-        expect(response.parsed_body.map { _1['id'] }).to eq([102, 101])
-
-        expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
-          '<http://www.example.com/api/requests?page=1>; rel="first"',
-          '<http://www.example.com/api/requests?page=3>; rel="last"',
-          '<http://www.example.com/api/requests?page=1>; rel="prev"',
-          '<http://www.example.com/api/requests?page=3>; rel="next"'
-        )
-      end
-
-      example 'page=3' do
-        get '/api/requests?page=3'
-
-        expect(response).to conform_schema(200)
-        expect(response.parsed_body.map { _1['id'] }).to eq([100])
-
-        expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
-          '<http://www.example.com/api/requests?page=1>; rel="first"',
-          '<http://www.example.com/api/requests?page=3>; rel="last"',
-          '<http://www.example.com/api/requests?page=2>; rel="prev"'
-        )
-      end
-
-      example 'out of range' do
-        get '/api/requests?page=4'
-
-        expect(response).to conform_schema(400)
-
-        expect(response.parsed_body.deep_symbolize_keys).to eq(
-          error: 'expected :page in 1..3; got 4'
-        )
+          expect(response).to conform_schema(200)
+          expect(response.headers['Link']).to be_nil
+        end
       end
     end
   end
