@@ -1,8 +1,7 @@
 {
   "tasks": {
-    "run": "deno task gen_db && deno run --allow-read --allow-write --allow-env --allow-net --allow-run --allow-ffi --unstable run.ts",
-    "install": "deno task gen_db && deno install --allow-read --allow-write --allow-env --allow-net --allow-run --allow-ffi --unstable --config=deno.json --name ddbj-repository --force run.ts",
-    "gen_db": "deno run --allow-read=../config/db.yml https://deno.land/x/y2j@v2.0.0/y2j.ts ../config/db.yml > db.json"
+    "run": "deno run --allow-read --allow-write --allow-env --allow-net --allow-run --allow-ffi --unstable run.ts",
+    "install": "deno install --allow-read --allow-write --allow-env --allow-net --allow-run --allow-ffi --unstable --config=deno.json --name ddbj-repository --force run.ts"
   },
   "imports": {
     "cliffy/": "https://deno.land/x/cliffy@v1.0.0-rc.3/",

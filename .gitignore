@@ -32,6 +32,7 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
-/cli/dist/*
 /compose/*.env
 !/compose/local.env
+
+/schema/*.json
