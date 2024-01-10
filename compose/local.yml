@@ -1,6 +1,3 @@
-volumes:
-  repository:
-
 services:
   rails: &rails-local
     environment:
@@ -12,7 +9,7 @@ services:
 
     volumes:
       - ../tmp/home:/data/home
-      - repository:/data/repository
+      - ../tmp/repository:/data/repository
 
   sidekiq:
     <<: *rails-local

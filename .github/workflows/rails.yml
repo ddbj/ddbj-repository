@@ -23,6 +23,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    defaults:
+      run:
+        working-directory: api
+
     env:
       BUNDLE_WITHOUT: development
       PGHOST: localhost
@@ -36,6 +40,7 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+          working-directory: api
 
       - run: bundle exec submission-excel2xml download_xsd
 

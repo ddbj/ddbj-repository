@@ -10,7 +10,7 @@ export COMPOSE_FILE=$dir/base.yml:$dir/$STAGE.yml
 export COMPOSE_PROJECT_NAME=ddbj-repository-$STAGE
 export DOCKER_BUILDKIT=1
 
-export RUBY_VERSION=$(cat $dir/../.ruby-version)
+export RUBY_VERSION=$(cat $dir/../api/.ruby-version)
 
 set -o allexport
 source $dir/$STAGE.env
