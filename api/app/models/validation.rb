@@ -1,5 +1,6 @@
-class Request < ApplicationRecord
+class Validation < ApplicationRecord
   belongs_to :user
+
   has_one :submission, dependent: :restrict_with_exception
 
   has_many :objs, dependent: :destroy do
@@ -9,9 +10,9 @@ class Request < ApplicationRecord
   end
 
   enum :status, %w(waiting processing finished canceled).index_by(&:to_sym)
-  enum :purpose, %w(validate submit).index_by(&:to_sym), prefix: true
 
   validates :db, inclusion: {in: DB.map { _1[:id] }}
+  validates :finished_at, presence: true, if: ->(validation) { validation.finished? || validation.canceled? }
 
   def validity
     if objs.all?(&:validity_valid?)

@@ -1,1 +1,0 @@
-render partial: 'request', collection: @requests, as: :request

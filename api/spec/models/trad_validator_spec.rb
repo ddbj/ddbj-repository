@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe TradValidator, type: :model do
-  def create_seq(request, name: 'foo.fasta', content: <<~SEQ)
+  def create_seq(validation, name: 'foo.fasta', content: <<~SEQ)
     >CLN01
     ggacaggctgccgcaggagccaggccgggagcaggaagaggcttcgggggagccggagaa
     ctgggccagatgcgcttcgtgggcgaagcctgaggaaaaagagagtgaggcaggagaatc
@@ -14,25 +14,25 @@ RSpec.describe TradValidator, type: :model do
     //
   SEQ
 
-    create(:obj, request:, _id: 'Sequence', file: uploaded_file(name:, content:))
+    create(:obj, validation:, _id: 'Sequence', file: uploaded_file(name:, content:))
   end
 
-  def create_ann(request, name: 'foo.ann', content: <<~ANN)
+  def create_ann(validation, name: 'foo.ann', content: <<~ANN)
     COMMON	SUBMITTER		contact	Alice Liddell
     			email	alice@example.com
     			institute	Wonderland Inc.
   ANN
 
-    create(:obj, request:, _id: 'Annotation', file: uploaded_file(name:, content:))
+    create(:obj, validation:, _id: 'Annotation', file: uploaded_file(name:, content:))
   end
 
-  let(:request) { create(:request, db: 'Trad') }
+  let(:validation) { create(:validation, db: 'Trad') }
 
   example 'ok' do
-    seq = create_seq(request)
-    ann = create_ann(request)
+    seq = create_seq(validation)
+    ann = create_ann(validation)
 
-    TradValidator.new.validate request
+    TradValidator.new.validate validation
     [seq, ann].each &:reload
 
     expect(seq).to have_attributes(
@@ -48,10 +48,10 @@ RSpec.describe TradValidator, type: :model do
 
   describe 'ext' do
     example do
-      seq = create_seq(request, name: 'foo.bar')
-      ann = create_ann(request, name: 'foo.baz')
+      seq = create_seq(validation, name: 'foo.bar')
+      ann = create_ann(validation, name: 'foo.baz')
 
-      TradValidator.new.validate request
+      TradValidator.new.validate validation
       [seq, ann].each &:reload
 
       expect(seq).to have_attributes(
@@ -76,10 +76,10 @@ RSpec.describe TradValidator, type: :model do
 
   describe 'pairwise' do
     example 'not paired' do
-      seq = create_seq(request, name: 'foo.fasta')
-      ann = create_ann(request, name: 'bar.ann')
+      seq = create_seq(validation, name: 'foo.fasta')
+      ann = create_ann(validation, name: 'bar.ann')
 
-      TradValidator.new.validate request
+      TradValidator.new.validate validation
       [seq, ann].each &:reload
 
       expect(seq).to have_attributes(
@@ -102,11 +102,11 @@ RSpec.describe TradValidator, type: :model do
     end
 
     example 'duplicate seq' do
-      seq1 = create_seq(request, name: 'foo.fasta')
-      seq2 = create_seq(request, name: 'foo.seq')
-      ann  = create_ann(request, name: 'foo.ann')
+      seq1 = create_seq(validation, name: 'foo.fasta')
+      seq2 = create_seq(validation, name: 'foo.seq')
+      ann  = create_ann(validation, name: 'foo.ann')
 
-      TradValidator.new.validate request
+      TradValidator.new.validate validation
       [seq1, seq2, ann].each &:reload
 
       expect(seq1).to have_attributes(
@@ -134,10 +134,10 @@ RSpec.describe TradValidator, type: :model do
     end
 
     example 'combined' do
-      seq1 = create_seq(request, name: 'foo.fasta')
-      seq2 = create_seq(request, name: 'foo.seq')
+      seq1 = create_seq(validation, name: 'foo.fasta')
+      seq2 = create_seq(validation, name: 'foo.seq')
 
-      TradValidator.new.validate request
+      TradValidator.new.validate validation
       [seq1, seq2].each &:reload
 
       expect(seq1).to have_attributes(
@@ -174,10 +174,10 @@ RSpec.describe TradValidator, type: :model do
 
   describe 'seq' do
     example 'no entries' do
-      seq = create_seq(request, content: '')
-      ann = create_ann(request)
+      seq = create_seq(validation, content: '')
+      ann = create_ann(validation)
 
-      TradValidator.new.validate request
+      TradValidator.new.validate validation
       seq.reload
 
       expect(seq).to have_attributes(
@@ -193,10 +193,10 @@ RSpec.describe TradValidator, type: :model do
 
   describe 'ann' do
     example 'missing contact person' do
-      seq = create_seq(request)
-      ann = create_ann(request, content: '')
+      seq = create_seq(validation)
+      ann = create_ann(validation, content: '')
 
-      TradValidator.new.validate request
+      TradValidator.new.validate validation
       ann.reload
 
       expect(ann).to have_attributes(
@@ -210,14 +210,14 @@ RSpec.describe TradValidator, type: :model do
     end
 
     example 'missing contact person (partial)' do
-      seq = create_seq(request)
+      seq = create_seq(validation)
 
-      ann = create_ann(request, content: <<~ANN)
+      ann = create_ann(validation, content: <<~ANN)
         COMMON	SUBMITTER		contact	Alice Liddell
         			email	alice@example.com
       ANN
 
-      TradValidator.new.validate request
+      TradValidator.new.validate validation
       ann.reload
 
       expect(ann).to have_attributes(
