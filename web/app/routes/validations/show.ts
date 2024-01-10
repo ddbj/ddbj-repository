@@ -5,13 +5,13 @@ import ENV from 'ddbj-repository/config/environment';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 
-export default class RequestsShowRoute extends Route {
+export default class ValidationsShowRoute extends Route {
   @service declare currentUser: CurrentUserService;
 
   timer?: number;
 
   async model({ id }: { id: string }) {
-    const res = await fetch(`${ENV.apiURL}/requests/${id}`, {
+    const res = await fetch(`${ENV.apiURL}/validations/${id}`, {
       headers: this.currentUser.authorizationHeader,
     });
 

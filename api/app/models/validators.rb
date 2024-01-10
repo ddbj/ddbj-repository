@@ -1,27 +1,27 @@
 class Validators
-  def self.validate(request, &on_finish)
+  def self.validate(validation, &on_finish)
     ActiveRecord::Base.transaction do
-      request.processing!
+      validation.processing!
 
-      db        = DB.find { _1[:id] == request.db }
+      db        = DB.find { _1[:id] == validation.db }
       validator = db.fetch(:validator).constantize.new
 
       Rails.error.handle do
         begin
-          validator.validate request
+          validator.validate validation
         rescue => e
-          request.objs.base.update! validity: 'error', validation_details: {error: e.message}
+          validation.objs.base.update! validity: 'error', validation_details: {error: e.message}
 
           raise
         else
-          request.objs.base.validity_valid! unless request.objs.base.validity
+          validation.objs.base.validity_valid! unless validation.objs.base.validity
         end
       end
 
-      raise ActiveRecord::Rollback if request.reload.canceled?
+      raise ActiveRecord::Rollback if validation.reload.canceled?
     ensure
-      unless request.canceled?
-        request.finished!
+      unless validation.canceled?
+        validation.update! status: 'finished', finished_at: Time.current
 
         on_finish&.call
       end

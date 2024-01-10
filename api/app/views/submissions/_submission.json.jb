@@ -1,11 +1,5 @@
 {
   id:         submission.public_id,
-  url:        submission_url(submission),
   created_at: submission.created_at,
-  db:         submission.request.db,
-
-  objects: render(partial: 'requests/objs', locals: {
-    objs:     submission.request.objs.group_by(&:_id).except('_base'),
-    resource: submission
-  })
+  validation: render('validations/validation', validation: submission.validation)
 }

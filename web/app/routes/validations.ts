@@ -4,7 +4,7 @@ import { service } from '@ember/service';
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type Transition from '@ember/routing/transition';
 
-export default class RequestsRoute extends Route {
+export default class ValidationsRoute extends Route {
   @service declare currentUser: CurrentUserService;
 
   beforeModel(transition: Transition) {

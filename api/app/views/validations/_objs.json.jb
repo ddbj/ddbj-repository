@@ -1,0 +1,12 @@
+validation.objs.group_by(&:_id).except('_base').map {|id, objs|
+  {
+    id:,
+
+    files: objs.map {|obj|
+      {
+        path: obj.path,
+        url:  url_for([validation, :file, path: obj.path, only_path: false])
+      }
+    }
+  }
+}

@@ -99,10 +99,10 @@ paths:
 
   /validations/via-file:
     post:
-      description: Run validation.
+      description: Validate submission files.
 
       tags:
-        - Run
+        - Validation
 
       requestBody:
         $ref: '#/components/requestBodies/ViaFile'
@@ -120,35 +120,12 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
-  /submissions/via-file:
-    post:
-      description: Submit files.
-
-      tags:
-        - Run
-
-      requestBody:
-        $ref: '#/components/requestBodies/ViaFile'
-
-      responses:
-        '201':
-          $ref: '#/components/responses/CreateResponseCreated'
-
-        '400':
-          $ref: '#/components/responses/CreateResponseBadRequest'
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
-  /requests:
+  /validations:
     get:
-      description: Get your requests.
+      description: Get your validations.
 
       tags:
-        - Request
+        - Validation
 
       parameters:
         - in: query
@@ -159,7 +136,7 @@ paths:
 
       responses:
         '200':
-          description: Return your requests.
+          description: Return your validations.
 
           headers:
             Link:
@@ -174,11 +151,11 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/Request'
+                  $ref: '#/components/schemas/Validation'
 
               example:
                 - id: 100
-                  url: https://repository.ddbj.nig.ac.jp/api/requests/100
+                  url: https://repository.ddbj.nig.ac.jp/api/validations/100
                   created_at: '2024-01-01T00:00:00.000Z'
                   purpose: submit
                   db: BioProject
@@ -189,7 +166,7 @@ paths:
                     - id: BioProject
                       files:
                         - path: mybioproject.xml
-                          url: https://repository.ddbj.nig.ac.jp/api/requests/100/files/mybioproject.xml
+                          url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
 
                   validation_reports:
                     - object_id: _base
@@ -210,7 +187,7 @@ paths:
                     url: https://repository.ddbj.nig.ac.jp/api/submissions/X-200
 
                 - id: 101
-                  url: https://repository.ddbj.nig.ac.jp/api/requests/101
+                  url: https://repository.ddbj.nig.ac.jp/api/validations/101
                   created_at: '2024-01-01T01:00:00.000Z'
                   purpose: validate
                   db: BioSample
@@ -221,7 +198,7 @@ paths:
                     - id: BioSample
                       files:
                         - path: mybiosample.xml
-                          url: https://repository.ddbj.nig.ac.jp/api/requests/101/files/mybiosample.xml
+                          url: https://repository.ddbj.nig.ac.jp/api/validations/101/files/mybiosample.xml
 
                   validation_reports:
                     - object_id: _base
@@ -237,12 +214,12 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /requests/{id}:
+  /validations/{id}:
     get:
-      description: Get the request.
+      description: Get the validation.
 
       tags:
-        - Request
+        - Validation
 
       parameters:
         - name: id
@@ -256,16 +233,16 @@ paths:
 
       responses:
         '200':
-          description: Return the request.
+          description: Return the validation.
 
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Request'
+                $ref: '#/components/schemas/Validation'
 
               example:
                 id: 42
-                url: https://repository.ddbj.nig.ac.jp/api/requests/42
+                url: https://repository.ddbj.nig.ac.jp/api/validations/42
                 status: finished
                 validity: valid
 
@@ -291,10 +268,10 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
     delete:
-      description: Cancel the request.
+      description: Cancel the validation.
 
       tags:
-        - Request
+        - Validation
 
       parameters:
         - name: id
@@ -308,7 +285,7 @@ paths:
 
       responses:
         '200':
-          description: Request canceled successfully.
+          description: Validation canceled successfully.
 
           content:
             application/json:
@@ -325,19 +302,19 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
         '409':
-          description: Request already canceled or finished.
+          description: Validation already canceled or finished.
 
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /requests/{id}/files/{path}:
+  /validations/{id}/files/{path}:
     get:
       description: Get the submission file content.
 
       tags:
-        - Request
+        - Validation
 
       parameters:
         - name: id
@@ -404,6 +381,42 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+    post:
+      description: Submit the validation.
+
+      tags:
+        - Submission
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [validation_id]
+
+              properties:
+                validation_id:
+                  type: integer
+
+      responses:
+        '201':
+          description: Submitted successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submission'
+
+        '400':
+          $ref: '#/components/responses/CreateResponseBadRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   /submissions/{id}:
     get:
       description: Get the submission.
@@ -433,41 +446,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /submissions/{id}/files/{path}:
-    get:
-      description: Get the submission file content.
-
-      tags:
-        - Submission
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: string
-
-          example: X-42
-
-        - name: path
-          in: path
-          required: true
-          style: matrix
-          explode: true
-
-          schema:
-            type: string
-
-          example: dest/mybiosample.xml
-
-      responses:
-        '302':
-          description: Redirect to the file.
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
 components:
   securitySchemes:
     BearerAuth:
@@ -475,10 +453,10 @@ components:
       scheme: bearer
 
   schemas:
-    Request:
+    Validation:
       type: object
       additionalProperties: false
-      required: [id, url, created_at, purpose, db, objects, status, validity, validation_reports, submission]
+      required: [id, url, created_at, finished_at, db, objects, status, validity, validation_reports, submission]
 
       properties:
         id:
@@ -492,12 +470,12 @@ components:
           type: string
           format: date-time
 
-        purpose:
-          type: string
+        finished_at:
+          type:
+            - string
+            - 'null'
 
-          enum:
-            - validate
-            - submit
+          format: date-time
 
         db:
           type: string
@@ -558,34 +536,18 @@ components:
     Submission:
       type: object
       additionalProperties: false
-      required: [id, url, created_at, db, objects]
+      required: [id, created_at, validation]
 
       properties:
         id:
           type: string
 
-        url:
-          type: string
-          format: uri
-
         created_at:
           type: string
           format: date-time
 
-        db:
-          type: string
-
-          enum:
-            - BioProject
-            - BioSample
-            - Trad
-            - DRA
-            - GEA
-            - MetaboBank
-            - JVar
-
-        objects:
-          $ref: '#/components/schemas/Objects'
+        validation:
+          $ref: '#/components/schemas/Validation'
 
     Objects:
       type: array
@@ -1225,28 +1187,7 @@ components:
       content:
         application/json:
           schema:
-            type: object
-            additionalProperties: false
-            required: [request]
-
-            properties:
-              request:
-                type: object
-                additionalProperties: false
-                required: [id, url]
-
-                properties:
-                  id:
-                    type: integer
-
-                  url:
-                    type: string
-                    format: uri
-
-          example:
-            request:
-              id: 42
-              url: http://www.example.com/api/requests/42
+            $ref: '#/components/schemas/Validation'
 
     CreateResponseBadRequest:
       description: The requested process could not be initiated.

@@ -1,0 +1,22 @@
+{
+  id:                 validation.id,
+  url:                validation_url(validation),
+  created_at:         validation.created_at,
+  finished_at:        validation.finished_at,
+  db:                 validation.db,
+  objects:            render('validations/objs', validation:),
+  status:             validation.status,
+  validity:           validation.validity,
+  validation_reports: validation.validation_reports,
+
+  submission: validation.submission.then {|submission|
+    if submission
+      {
+        id:  submission.public_id,
+        url: submission_url(submission)
+      }
+    else
+      nil
+    end
+  }
+}
