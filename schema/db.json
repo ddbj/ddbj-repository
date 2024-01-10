@@ -1,0 +1,157 @@
+[
+  {
+    "id": "BioProject",
+    "validator": "DdbjValidator",
+    "objects": [
+      {
+        "id": "BioProject",
+        "ext": "xml"
+      }
+    ]
+  },
+  {
+    "id": "BioSample",
+    "validator": "DdbjValidator",
+    "objects": [
+      {
+        "id": "BioSample",
+        "ext": "xml"
+      }
+    ]
+  },
+  {
+    "id": "Trad",
+    "validator": "TradValidator",
+    "objects": [
+      {
+        "id": "Sequence",
+        "ext": "fasta",
+        "multiple": true
+      },
+      {
+        "id": "Annotation",
+        "ext": "ann",
+        "multiple": true
+      }
+    ]
+  },
+  {
+    "id": "DRA",
+    "validator": "DraValidator",
+    "objects": [
+      {
+        "id": "Submission",
+        "ext": "xml"
+      },
+      {
+        "id": "Experiment",
+        "ext": "xml"
+      },
+      {
+        "id": "Run",
+        "ext": "xml"
+      },
+      {
+        "id": "RunFile",
+        "ext": "fastq",
+        "multiple": true
+      },
+      {
+        "id": "Analysis",
+        "ext": "xml",
+        "optional": true
+      },
+      {
+        "id": "AnalysisFile",
+        "ext": "raw",
+        "optional": true,
+        "multiple": true
+      }
+    ]
+  },
+  {
+    "id": "GEA",
+    "validator": "PassthroughValidator",
+    "objects": [
+      {
+        "id": "IDF",
+        "ext": "idf.txt"
+      },
+      {
+        "id": "SDRF",
+        "ext": "sdrf.txt"
+      },
+      {
+        "id": "ADF",
+        "ext": "adf.txt",
+        "optional": true,
+        "multiple": true
+      },
+      {
+        "id": "RawDataFile",
+        "ext": "raw",
+        "optional": true,
+        "multiple": true
+      },
+      {
+        "id": "ProcessedDataFile",
+        "ext": "raw",
+        "optional": true,
+        "multiple": true
+      }
+    ]
+  },
+  {
+    "id": "MetaboBank",
+    "validator": "MetabobankValidator",
+    "objects": [
+      {
+        "id": "IDF",
+        "ext": "idf.txt"
+      },
+      {
+        "id": "SDRF",
+        "ext": "sdrf.txt"
+      },
+      {
+        "id": "MAF",
+        "ext": "maf.txt",
+        "optional": true,
+        "multiple": true
+      },
+      {
+        "id": "RawDataFile",
+        "ext": "raw",
+        "optional": true,
+        "multiple": true
+      },
+      {
+        "id": "ProcessedDataFile",
+        "ext": "raw",
+        "optional": true,
+        "multiple": true
+      },
+      {
+        "id": "BioSample",
+        "ext": "tsv",
+        "optional": true
+      }
+    ]
+  },
+  {
+    "id": "JVar",
+    "validator": "PassthroughValidator",
+    "objects": [
+      {
+        "id": "Excel",
+        "ext": "xlsx"
+      },
+      {
+        "id": "VariantCallFile",
+        "ext": "vcf",
+        "optional": true,
+        "multiple": true
+      }
+    ]
+  }
+]
