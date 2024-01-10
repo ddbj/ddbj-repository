@@ -1,0 +1,39 @@
+{{page-title "DDBJ Repository"}}
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <LinkTo @route="index" class="navbar-brand">DDBJ Repository</LinkTo>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <LinkTo @route="submit" class="nav-link">Submit</LinkTo>
+        </li>
+
+        <li class="nav-item">
+          <LinkTo @route="requests" class="nav-link">Requests</LinkTo>
+        </li>
+      </ul>
+
+      {{#if this.currentUser.isLoggedIn}}
+        <ul class="navbar-nav">
+          <li class="nav-item dropdown">
+            <button type="button" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              {{this.currentUser.uid}}
+            </button>
+
+            <ul class="dropdown-menu">
+              <li>
+                <button type="button" class="dropdown-item" {{on 'click' this.logout}}>Logout</button>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      {{/if}}
+    </div>
+  </div>
+</nav>
+
+<main class="container py-4">
+  {{outlet}}
+</main>

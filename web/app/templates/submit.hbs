@@ -1,0 +1,46 @@
+{{page-title "Submit"}}
+
+<h1 class="display-6 mb-4">Submit</h1>
+
+<ul class="nav nav-tabs mb-3" role="tablist">
+  {{#each this.dbs as |db|}}
+    <li class="nav-item" role="presentation">
+      <button
+        type="button"
+        class="nav-link {{if (eq db this.selectedDb) 'active' ''}}"
+        aria-current={{if (eq db this.selectedDb) 'page' ''}}
+        {{on 'click' (fn (set this 'selectedDb') db)}}
+      >
+        {{db.id}}
+      </button>
+    </li>
+  {{/each}}
+</ul>
+
+<form {{on 'submit' this.submit}}>
+  {{#each this.selectedDb.objects as |obj|}}
+    <ObjectField @object={{obj}} />
+  {{/each}}
+
+  <div class="d-flex gap-3 align-items-center mt-3">
+    <div class="d-flex border rounded">
+      <div class="px-3 py-1 border-end">
+        <div class="form-check">
+          <input type="radio" name="resource" required id="resource-validations" value="validations" class="form-check-input" />
+          <label for="resource-validations" class="form-check-label"> Validate </label>
+        </div>
+      </div>
+
+      <div class="px-3 py-1">
+        <div class="form-check">
+          <input type="radio" name="resource" required id="resource-submissions" value="submissions" class="form-check-input" />
+          <label for="resource-submissions" class="form-check-label"> Submit </label>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary">Execute</button>
+    </div>
+  </div>
+</form>
