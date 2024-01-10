@@ -18,6 +18,8 @@
 </ul>
 
 <form {{on 'submit' this.submit}}>
+  <input type='hidden' name='db' value={{this.selectedDb.id}} />
+
   {{#each this.selectedDb.objects as |obj|}}
     <ObjectField @object={{obj}} />
   {{/each}}

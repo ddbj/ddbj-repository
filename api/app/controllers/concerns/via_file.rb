@@ -7,7 +7,10 @@ module ViaFile
 
   def create_request_from_params(user, params, purpose:)
     ActiveRecord::Base.transaction {
-      db      = DB.find { _1[:id].downcase == params.require(:db) }
+      unless db = DB.find { _1[:id] == params.require(:db) }
+        raise BadRequest, "unknown db: #{params[:db]}"
+      end
+
       request = user.requests.create!(db: db[:id], purpose:, status: 'waiting')
 
       request.objs.create! _id: '_base'

@@ -97,16 +97,15 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  <%- dbs.each do |db| -%>
-  /validations/<%= db[:id].downcase %>/via-file:
+  /validations/via-file:
     post:
-      description: Run validation for <%= db[:id] %>.
+      description: Run validation.
 
       tags:
         - Run
 
       requestBody:
-        $ref: '#/components/requestBodies/<%= db[:id] %>ViaFile'
+        $ref: '#/components/requestBodies/ViaFile'
 
       responses:
         '201':
@@ -121,15 +120,15 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
-  /submissions/<%= db[:id].downcase %>/via-file:
+  /submissions/via-file:
     post:
-      description: Submit files to <%= db[:id] %>.
+      description: Submit files.
 
       tags:
         - Run
 
       requestBody:
-        $ref: '#/components/requestBodies/<%= db[:id] %>ViaFile'
+        $ref: '#/components/requestBodies/ViaFile'
 
       responses:
         '201':
@@ -144,7 +143,6 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
-  <%- end -%>
   /requests:
     get:
       description: Get your requests.
@@ -671,63 +669,82 @@ components:
         error:
           type: string
 
-  requestBodies:
     <%- dbs.each do |db| -%>
     <%= db[:id] %>ViaFile:
+      type: object
+      additionalProperties: false
+
+      allOf:
+        <%- db[:objects].each do |obj| -%>
+        <%- unless obj[:optional] -%>
+        - oneOf:
+          - required:
+            - <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[file]
+          - required:
+            - <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[path]
+        <%- end -%>
+        <%- end -%>
+
+      properties:
+        db:
+          type: string
+          enum: [<%= db[:id] %>]
+
+        <%- db[:objects].each do |obj| -%>
+        <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[file]:
+          <%- if obj[:multiple] -%>
+          type: array
+          minItems: <%= obj[:optional] ? 0 : 1 %>
+
+          items:
+            $ref: '#/components/schemas/File'
+          <%- else -%>
+          $ref: '#/components/schemas/File'
+          <%- end -%>
+
+        <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[path]:
+          <%- if obj[:multiple] -%>
+          type: array
+          minItems: <%= obj[:optional] ? 0 : 1 %>
+
+          items:
+            $ref: '#/components/schemas/Path'
+          <%- else -%>
+          $ref: '#/components/schemas/Path'
+          <%- end -%>
+
+        <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[destination]:
+          <%- if obj[:multiple] -%>
+          type: array
+          minItems: <%= obj[:optional] ? 0 : 1 %>
+
+          items:
+            $ref: '#/components/schemas/Destination'
+          <%- else -%>
+          $ref: '#/components/schemas/Destination'
+          <%- end -%>
+
+        <%- end -%>
+      <%- end -%>
+
+  requestBodies:
+    ViaFile:
       content:
         multipart/form-data:
           schema:
-            type: object
-            additionalProperties: false
-
-            allOf:
-              <%- db[:objects].each do |obj| -%>
-              <%- unless obj[:optional] -%>
-              - oneOf:
-                - required:
-                  - <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[file]
-                - required:
-                  - <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[path]
-              <%- end -%>
+            oneOf:
+              <%- dbs.each do |db| -%>
+              - $ref: '#/components/schemas/<%= db[:id] %>ViaFile'
               <%- end -%>
 
-            properties:
-              <%- db[:objects].each do |obj| -%>
-              <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[file]:
-                <%- if obj[:multiple] -%>
-                type: array
-                minItems: <%= obj[:optional] ? 0 : 1 %>
+            discriminator:
+              propertyName: db
 
-                items:
-                  $ref: '#/components/schemas/File'
-                <%- else -%>
-                $ref: '#/components/schemas/File'
+              mapping:
+                <%- dbs.each do |db| -%>
+                <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>ViaFile'
                 <%- end -%>
 
-              <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[path]:
-                <%- if obj[:multiple] -%>
-                type: array
-                minItems: <%= obj[:optional] ? 0 : 1 %>
-
-                items:
-                  $ref: '#/components/schemas/Path'
-                <%- else -%>
-                $ref: '#/components/schemas/Path'
-                <%- end -%>
-
-              <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[destination]:
-                <%- if obj[:multiple] -%>
-                type: array
-                minItems: <%= obj[:optional] ? 0 : 1 %>
-
-                items:
-                  $ref: '#/components/schemas/Destination'
-                <%- else -%>
-                $ref: '#/components/schemas/Destination'
-                <%- end -%>
-
-              <%- end -%>
-    <%- end -%>
   responses:
     CreateResponseCreated:
       description: The requested process initiated successfully.

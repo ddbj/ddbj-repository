@@ -9,7 +9,7 @@ RSpec.describe ViaFile, type: :controller do
 
   example 'simple' do
     params = ActionController::Parameters.new(
-      db: 'biosample',
+      db: 'BioSample',
 
       BioSample: {
         file: uploaded_file(name: 'mybiosample.xml')
@@ -23,7 +23,7 @@ RSpec.describe ViaFile, type: :controller do
 
   example 'if path is directory, read recursive' do
     params = ActionController::Parameters.new(
-      db: 'metabobank',
+      db: 'MetaboBank',
 
       IDF: {
         file: uploaded_file(name: 'myidf.txt')
@@ -68,7 +68,7 @@ RSpec.describe ViaFile, type: :controller do
 
   example 'if path is duplicated' do
     params = ActionController::Parameters.new(
-      db:   'metabobank',
+      db:   'MetaboBank',
       IDF:  {file: uploaded_file(name: 'idf.txt')},
       SDRF: {file: uploaded_file(name: 'idf.txt')}
     )

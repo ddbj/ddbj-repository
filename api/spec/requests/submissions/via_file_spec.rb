@@ -1,12 +1,13 @@
 require 'rails_helper'
 
-RSpec.describe 'MetaboBank: submit via file', type: :request, authorized: true do
+RSpec.describe 'submit via file', type: :request, authorized: true do
   before do
     create :user, api_key: 'API_KEY'
   end
 
   example do
-    post '/api/submissions/metabobank/via-file', params: {
+    post '/api/submissions/via-file', params: {
+      db:   'MetaboBank',
       IDF:  {file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')},
       SDRF: {file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')}
     }

@@ -233,9 +233,6 @@ devDependencies:
   webpack:
     specifier: ^5.89.0
     version: 5.89.0
-  yaml:
-    specifier: ^2.3.4
-    version: 2.3.4
 
 packages:
 
@@ -12669,11 +12666,6 @@ packages:
     dependencies:
       fs-extra: 4.0.3
       lodash.merge: 4.6.2
-    dev: true
-
-  /yaml@2.3.4:
-    resolution: {integrity: sha512-8aAvwVUSHpfEqTQ4w/KMlf3HcRdt50E5ODIQJBw1fQ5RL34xabzxtUlzTXVqc4rkZsPbvrXKWnABCD7kWSmocA==}
-    engines: {node: '>= 14'}
     dev: true
 
   /yargs-parser@20.2.9:
