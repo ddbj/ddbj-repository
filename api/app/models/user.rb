@@ -1,6 +1,6 @@
 class User < ApplicationRecord
-  has_many :requests
-  has_many :submissions, through: :requests
+  has_many :validations
+  has_many :submissions, through: :validations
 
   before_create do |user|
     user.api_key ||= self.class.generate_api_key

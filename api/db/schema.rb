@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2023_12_26_071449) do
+ActiveRecord::Schema[7.1].define(version: 2024_01_15_064852) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -43,31 +43,21 @@ ActiveRecord::Schema[7.1].define(version: 2023_12_26_071449) do
   end
 
   create_table "objs", force: :cascade do |t|
-    t.bigint "request_id", null: false
+    t.bigint "validation_id", null: false
     t.string "_id", null: false
     t.string "validity"
     t.jsonb "validation_details"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "destination"
-    t.index ["request_id"], name: "index_objs_on_request_id"
-  end
-
-  create_table "requests", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.string "db", null: false
-    t.string "status", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "purpose", null: false
-    t.index ["user_id"], name: "index_requests_on_user_id"
+    t.index ["validation_id"], name: "index_objs_on_validation_id"
   end
 
   create_table "submissions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "request_id", null: false
-    t.index ["request_id"], name: "index_submissions_on_request_id"
+    t.bigint "validation_id", null: false
+    t.index ["validation_id"], name: "index_submissions_on_validation_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -80,9 +70,19 @@ ActiveRecord::Schema[7.1].define(version: 2023_12_26_071449) do
     t.index ["uid"], name: "index_users_on_uid", unique: true
   end
 
+  create_table "validations", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "db", null: false
+    t.string "status", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "finished_at"
+    t.index ["user_id"], name: "index_validations_on_user_id"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "objs", "requests"
-  add_foreign_key "requests", "users"
-  add_foreign_key "submissions", "requests"
+  add_foreign_key "objs", "validations"
+  add_foreign_key "submissions", "validations"
+  add_foreign_key "validations", "users"
 end

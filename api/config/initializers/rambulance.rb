@@ -2,8 +2,9 @@ require 'rambulance/exceptions_app'
 
 Rambulance.setup do |config|
   config.rescue_responses = {
-    'FileDownload::NotFound' => :not_found,
-    'ViaFile::BadRequest'    => :bad_request
+    'SubmissionsController::UnprocessableEntity'  => :unprocessable_entity,
+    'Validations::FilesController::NotFound'      => :not_found,
+    'Validations::ViaFilesController::BadRequest' => :bad_request
   }
 end
 
