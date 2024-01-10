@@ -9,6 +9,8 @@ Rails.application.routes.draw do
     get 'files/*path' => 'files#show', format: false, as: 'file'
   end
 
+  root to: redirect('/web/')
+
   resource :auth, only: %i() do
     get :login
     get :callback
@@ -44,6 +46,8 @@ Rails.application.routes.draw do
       end
     end
   end
+
+  get 'web/*paths', to: 'webs#show'
 
   get 'up' => 'rails/health#show', as: :rails_health_check
 end

@@ -1,10 +1,28 @@
 # syntax = docker/dockerfile:1
 
+ARG NODE_VERSION
 ARG RUBY_VERSION
+
+FROM node:${NODE_VERSION:?} as web
+
+ARG API_URL
+ENV API_URL=${API_URL:?}
+
+WORKDIR /app/web
+
+COPY web ./
+COPY schema /app/schema
+
+RUN corepack enable
+RUN corepack prepare pnpm@latest --activate
+RUN pnpm install --frozen-lockfile
+RUN pnpm build
+
+
 FROM ruby:${RUBY_VERSION:?}-slim as base
 
 # Rails app lives here
-WORKDIR /app/rails
+WORKDIR /app/api
 
 ARG APP_GID
 ARG APP_UID
@@ -47,7 +65,9 @@ RUN apt-get update -qq && \
 
 # Copy built artifacts: gems, application
 COPY --from=build /usr/local/bundle /usr/local/bundle
-COPY --from=build /app/rails /app/rails
+COPY --from=build /app/api /app/api
+COPY --from=web /app/web/dist /app/api/public/web
+
 COPY schema /app/schema
 
 # Run and own only the runtime files as a non-root user for security
@@ -58,7 +78,7 @@ USER ${APP_UID}:${APP_GID}
 RUN bundle exec submission-excel2xml download_xsd
 
 # Entrypoint prepares the database.
-ENTRYPOINT ["/app/rails/bin/docker-entrypoint"]
+ENTRYPOINT ["/app/api/bin/docker-entrypoint"]
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
