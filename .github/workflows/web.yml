@@ -1,0 +1,51 @@
+name: Web
+
+on: push
+
+concurrency:
+  group: web-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: "Lint"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ursm/action-setup-pnpm@node-version-file
+        with:
+          node-version-file: web/package.json
+          cache-dependency-path: web/pnpm-lock.yaml
+          working-directory: web
+
+      - name: Lint
+        run: pnpm lint
+
+  test:
+    name: "Test"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ursm/action-setup-pnpm@node-version-file
+        with:
+          node-version-file: web/package.json
+          cache-dependency-path: web/pnpm-lock.yaml
+          working-directory: web
+
+      - name: Run Tests
+        run: pnpm test
+        working-directory: web

@@ -1,9 +1,14 @@
-name: rails
+name: API
 
 on: push
 
+concurrency:
+  group: api-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
 
     services:
