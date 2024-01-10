@@ -34,6 +34,6 @@ class RequestsController < ApplicationController
   private
 
   def requests
-    current_user.requests.includes(:submission)
+    current_user.requests.includes(:submission, :objs => :file_blob)
   end
 end
