@@ -1,0 +1,18 @@
+name: Docker
+
+on: push
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    env:
+      APP_GID: 1000
+      APP_UID: 1000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: compose/local up --build --detach
+      - run: docker run --rm --network container:ddbj-repository-local-rails-1 curlimages/curl --fail --retry 10 --retry-delay 3 --retry-all-errors http://localhost:3000/up
