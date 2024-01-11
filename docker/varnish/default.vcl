@@ -23,7 +23,7 @@ sub vcl_recv {
 }
 
 sub vcl_backend_response {
-  if (bereq.url ~ "^/assets/") {
+  if (bereq.url ~ "^/web/assets/") {
     set beresp.ttl                = 1d;
     set beresp.http.Cache-Control = "public, max-age=31536000";
   }
