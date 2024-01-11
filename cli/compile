@@ -7,5 +7,5 @@ for arch in x86_64-unknown-linux-gnu x86_64-pc-windows-msvc x86_64-apple-darwin 
 
   deno compile --allow-read --allow-write --allow-env --allow-net --allow-run --config=deno.json --target=$arch --output=dist/$arch/ddbj-repository run.ts
 
-  zip -j -r dist/$arch.zip dist/$arch
+  zip -j -r dist/ddbj-repository-cli-$arch.zip dist/$arch
 done
