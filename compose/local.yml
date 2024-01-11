@@ -8,8 +8,8 @@ services:
       - ddbj-repository.localhost:host-gateway
 
     volumes:
-      - ../tmp/home:/data/home
-      - ../tmp/repository:/data/repository
+      - ../api/tmp/home:/data/home
+      - ../api/tmp/repository:/data/repository
 
   sidekiq:
     <<: *rails-local
