@@ -1,23 +1,25 @@
 import { Command, CompletionsCommand } from 'cliffy/command/mod.ts';
 
-import AuthCommand from './auth_command.ts';
-import RequestCommand from './request_command.ts';
-import SubmissionCommand from './submission_command.ts';
-import { SubmitCommand, ValidateCommand } from './database_commands.ts';
-import { defaultConfig, readConfig } from './config.ts';
+import authCommand from './auth_command.ts';
+import requestCommand from './request_command.ts';
+import submissionCommand from './submission_command.ts';
+import { submitCommand, validateCommand } from './database_commands.ts';
 
-const config = Object.assign({}, defaultConfig, await readConfig());
+type Options = {
+  apiUrl?: string;
+};
 
-const main: Command = new Command()
+const main: Command<Options> = new Command<Options>()
   .name('ddbj-repository')
   .version('0.1.0')
   .description('Command-line client for DDBJ Repository API')
+  .env('DDBJ_REPOSITORY_API_URL=<url:string>', 'API endpoint URL', { global: true, prefix: 'DDBJ_REPOSITORY_' })
   .action(() => main.showHelp())
-  .command('auth', new AuthCommand(config))
-  .command('validate', new ValidateCommand(config))
-  .command('submit', new SubmitCommand(config))
-  .command('request', new RequestCommand(config))
-  .command('submission', new SubmissionCommand(config))
+  .command('auth', authCommand)
+  .command('validate', validateCommand)
+  .command('submit', submitCommand)
+  .command('request', requestCommand)
+  .command('submission', submissionCommand)
   .command('completion', new CompletionsCommand())
   .reset();
 

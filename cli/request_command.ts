@@ -4,49 +4,57 @@ import { colorize } from 'json_colorize/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 
 import paginatedFetch from './paginated_fetch.ts';
-import { Config } from './config.ts';
-import { ensureSuccess, requireLogin } from './util.ts';
+import { defaultApiUrl, ensureLogin, ensureSuccess } from './util.ts';
 
-export default class extends Command {
-  constructor({ endpoint, apiKey }: Config) {
-    super();
+type Options = {
+  apiUrl?: string;
+};
 
-    return this
-      .description('Manage requests.')
-      .action(() => this.showHelp())
-      .command('list')
-      .description('Get your requests.')
-      .action(() => {
-        if (!apiKey) requireLogin();
+const listCommand = new Command<Options>()
+  .description('Get your requests.')
+  .action(({ apiUrl }) => {
+    const apiKey = ensureLogin();
 
-        listRequests(endpoint, apiKey!);
-      })
-      .command('show')
-      .description('Get the request.')
-      .arguments('<id:number>')
-      .action((_opts, id) => {
-        if (!apiKey) requireLogin();
+    listRequests(apiUrl || defaultApiUrl, apiKey);
+  });
 
-        showRequest(endpoint, apiKey!, id);
-      })
-      .command('get-file')
-      .description('Get the content of submission file.')
-      .arguments('<id:string> <path:string>')
-      .action((_opts, id, path) => {
-        if (!apiKey) requireLogin();
+const showCommand = new Command<Options>()
+  .description('Get the request.')
+  .arguments('<id:number>')
+  .action(({ apiUrl }, id) => {
+    const apiKey = ensureLogin();
 
-        getFile(endpoint, apiKey!, id, path);
-      })
-      .command('cancel')
-      .description('Cancel the request.')
-      .arguments('<id:number>')
-      .action((_opts, id) => {
-        if (!apiKey) requireLogin();
+    showRequest(apiUrl || defaultApiUrl, apiKey, id);
+  });
 
-        cancelRequest(endpoint, apiKey!, id);
-      });
-  }
-}
+const getFileCommand = new Command<void, void, Options, [string, string]>()
+  .description('Get the content of submission file.')
+  .arguments('<id:string> <path:string>')
+  .action(({ apiUrl }, id, path) => {
+    const apiKey = ensureLogin();
+
+    getFile(apiUrl || defaultApiUrl, apiKey, id, path);
+  });
+
+const cancelCommand = new Command<void, void, Options, [string]>()
+  .description('Cancel the request.')
+  .arguments('<id:number>')
+  .action(({ apiUrl }, id) => {
+    const apiKey = ensureLogin();
+
+    cancelRequest(apiUrl || defaultApiUrl, apiKey, id);
+  });
+
+const requestCommand: Command<Options> = new Command<Options>()
+  .description('Manage requests.')
+  .action(() => requestCommand.showHelp())
+  .command('list', listCommand)
+  .command('show', showCommand)
+  .command('get-file', getFileCommand)
+  .command('cancel', cancelCommand)
+  .reset();
+
+export default requestCommand;
 
 type Request = {
   id: number;
@@ -61,13 +69,13 @@ type Request = {
   };
 };
 
-async function listRequests(endpoint: string, apiKey: string) {
+async function listRequests(apiUrl: string, apiKey: string) {
   const headers = ['ID', 'Created', 'Purpose', 'DB', 'Status', 'Validity', 'Submission'];
   const table = Table.from([headers.map(colors.bold.yellow)]);
 
   table.push(headers.map((header) => colors.bold.yellow('-'.repeat(header.length))));
 
-  await paginatedFetch(`${endpoint}/requests`, apiKey, async (res) => {
+  await paginatedFetch(`${apiUrl}/requests`, apiKey, async (res) => {
     await ensureSuccess(res);
 
     const requests: Request[] = await res.json();
@@ -88,11 +96,9 @@ async function listRequests(endpoint: string, apiKey: string) {
   table.render();
 }
 
-async function showRequest(endpoint: string, apiKey: string, id: number) {
-  const res = await fetch(`${endpoint}/requests/${id}`, {
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-    },
+async function showRequest(apiUrl: string, apiKey: string, id: number) {
+  const res = await fetch(`${apiUrl}/requests/${id}`, {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
   });
 
   await ensureSuccess(res);
@@ -102,11 +108,9 @@ async function showRequest(endpoint: string, apiKey: string, id: number) {
   colorize(JSON.stringify(payload, null, 2));
 }
 
-async function getFile(endpoint: string, apiKey: string, id: string, path: string) {
-  const res = await fetch(`${endpoint}/requests/${id}/files/${path}`, {
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-    },
+async function getFile(apiUrl: string, apiKey: string, id: string, path: string) {
+  const res = await fetch(`${apiUrl}/requests/${id}/files/${path}`, {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
   });
 
   await ensureSuccess(res);
@@ -114,13 +118,10 @@ async function getFile(endpoint: string, apiKey: string, id: string, path: strin
   console.log(await res.text());
 }
 
-async function cancelRequest(endpoint: string, apiKey: string, id: number) {
-  const res = await fetch(`${endpoint}/requests/${id}`, {
+async function cancelRequest(apiUrl: string, apiKey: string, id: number) {
+  const res = await fetch(`${apiUrl}/requests/${id}`, {
     method: 'DELETE',
-
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-    },
+    headers: { 'Authorization': `Bearer ${apiKey}` },
   });
 
   await ensureSuccess(res);
