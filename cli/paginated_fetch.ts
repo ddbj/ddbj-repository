@@ -1,8 +1,6 @@
 export default async function paginatedFetch(url: string, apiKey: string, callback: (res: Response) => Promise<void>) {
   const res = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-    },
+    headers: { 'Authorization': `Bearer ${apiKey}` },
   });
 
   await callback(res);

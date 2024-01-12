@@ -3,48 +3,58 @@ import { colors } from 'cliffy/ansi/colors.ts';
 import { keypress } from 'cliffy/keypress/mod.ts';
 import { open } from 'https://deno.land/x/open@v0.0.6/index.ts';
 
-import { Config, writeConfig } from './config.ts';
-import { ensureSuccess } from './util.ts';
+import { defaultApiUrl, ensureSuccess } from './util.ts';
+import { read, remove, write } from './api_key.ts';
 
-export default class extends Command {
-  constructor({ endpoint, apiKey }: Config) {
-    super();
+type Options = {
+  apiUrl?: string;
+};
 
-    return this
-      .action(() => this.showHelp())
-      .command('whoami')
-      .action(async () => {
-        if (apiKey) {
-          const uid = await fetchUid(endpoint, apiKey);
+const whoamiCommand = new Command<Options>()
+  .action(async ({ apiUrl }) => {
+    const apiKey = read();
 
-          console.log(`Logged in as ${colors.bold(uid)}.`);
-        } else {
-          console.log('Not logged in.');
-        }
-      })
-      .command('login')
-      .arguments('[api-key:string]')
-      .action(async (_opts, apiKey) => {
-        if (apiKey) {
-          const uid = await fetchUid(endpoint, apiKey);
+    if (apiKey) {
+      const uid = await fetchUid(apiUrl || defaultApiUrl, apiKey);
 
-          console.log(`Logged in as ${colors.bold(uid)}.`);
+      console.log(`Logged in as ${colors.bold(uid)}.`);
+    } else {
+      console.log('Not logged in.');
+    }
+  });
 
-          await writeConfig({ apiKey });
-        } else {
-          await openLoginURL(endpoint);
-        }
-      })
-      .command('logout')
-      .action(async () => {
-        await writeConfig({ apiKey: undefined });
-      })
-      .reset();
-  }
-}
+const loginCommand = new Command<void, void, Options, [string?]>()
+  .arguments('[api-key:string]')
+  .action(async ({ apiUrl }, apiKey) => {
+    apiUrl = apiUrl || defaultApiUrl;
 
-async function openLoginURL(endpoint: string) {
-  const res = await fetch(`${endpoint}/api-key`);
+    if (apiKey) {
+      const uid = await fetchUid(apiUrl, apiKey);
+
+      console.log(`Logged in as ${colors.bold(uid)}.`);
+
+      write(apiKey);
+    } else {
+      await openLoginURL(apiUrl);
+    }
+  });
+
+const logoutCommand = new Command()
+  .action(() => {
+    remove();
+  });
+
+const authCommand: Command<Options> = new Command<Options>()
+  .action(() => authCommand.showHelp())
+  .command('whoami', whoamiCommand)
+  .command('login', loginCommand)
+  .command('logout', logoutCommand)
+  .reset();
+
+export default authCommand;
+
+async function openLoginURL(apiUrl: string) {
+  const res = await fetch(`${apiUrl}/api-key`);
   const { login_url } = await res.json();
 
   console.log(colors.bold('cli: Press any key to open up the browser to login or q to exit:'));
@@ -65,11 +75,9 @@ async function openLoginURL(endpoint: string) {
   await open(login_url);
 }
 
-async function fetchUid(endpoint: string, apiKey: string) {
-  const res = await fetch(`${endpoint}/me`, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
+async function fetchUid(apiUrl: string, apiKey: string) {
+  const res = await fetch(`${apiUrl}/me`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
   });
 
   await ensureSuccess(res);
