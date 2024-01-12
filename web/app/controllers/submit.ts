@@ -41,11 +41,7 @@ export default class SubmitController extends Controller {
 
     const res = await fetch(url, {
       method: 'POST',
-
-      headers: {
-        Authorization: `Bearer ${this.currentUser.apiKey}`,
-      },
-
+      headers: this.currentUser.authorizationHeader,
       body: formData,
     });
 

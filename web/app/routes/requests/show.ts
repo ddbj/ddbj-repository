@@ -8,24 +8,27 @@ import type CurrentUserService from 'ddbj-repository/services/current-user';
 export default class RequestsShowRoute extends Route {
   @service declare currentUser: CurrentUserService;
 
+  timer?: number;
+
   async model({ id }: { id: string }) {
-    return await waitForRequestFinished(`${ENV.apiURL}/requests/${id}`, this.currentUser.apiKey!);
+    const res = await fetch(`${ENV.apiURL}/requests/${id}`, {
+      headers: this.currentUser.authorizationHeader,
+    });
+
+    return await res.json();
   }
-}
 
-async function waitForRequestFinished(url: string, apiKey: string) {
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-  });
+  afterModel({ status }: { status: string }) {
+    if (status !== 'finished' && status !== 'canceled') {
+      this.timer = setTimeout(() => {
+        this.refresh();
+      }, 1000);
+    }
+  }
 
-  const payload = await res.json();
-  const { status } = payload;
-
-  if (status === 'finished' || status === 'canceled') return payload;
-
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  return waitForRequestFinished(url, apiKey);
+  deactivate() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+    }
+  }
 }
