@@ -1,0 +1,24 @@
+<div class="card mx-auto" {{style width='32rem'}}>
+  <div class="card-body">
+    <form {{on 'submit' this.login}}>
+      <div class="mb-3">
+        <label for="apiKey" class="form-label">API key</label>
+        <input type="text" name="apiKey" id="apiKey" class="form-control" required />
+      </div>
+
+      <div class="d-flex gap-3 align-items-center">
+        <button type="submit" class="btn btn-primary mb-3">Login</button>
+
+        {{#if this.errorMessage}}
+          <p class="text-danger">{{this.errorMessage}}</p>
+        {{/if}}
+      </div>
+
+      <p class="mb-0">
+        <a href={{@loginURL}} target="_blank" rel="noopener noreferrer">
+          Your API key can be obtained here.
+        </a>
+      </p>
+    </form>
+  </div>
+</div>
