@@ -3,15 +3,28 @@ version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
+
     schedule:
       interval: daily
 
   - package-ecosystem: bundler
     directory: /api
+
     schedule:
       interval: daily
 
+    labels:
+      - dependencies
+      - ruby
+      - api
+
   - package-ecosystem: npm
     directory: /web
+
     schedule:
       interval: daily
+
+    labels:
+      - dependencies
+      - javascript
+      - web

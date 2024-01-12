@@ -1,0 +1,17 @@
+changelog:
+  categories:
+    - title: API Changes
+      labels:
+        - api
+
+    - title: Web UI Changes
+      labels:
+        - web
+
+    - title: CLI Changes
+      labels:
+        - cli
+
+    - title: Other Changes
+      labels:
+        - '*'
