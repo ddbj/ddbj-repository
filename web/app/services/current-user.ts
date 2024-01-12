@@ -17,6 +17,10 @@ export default class CurrentUserService extends Service {
     return !!this.apiKey;
   }
 
+  get authorizationHeader() {
+    return { Authorization: `Bearer ${this.apiKey}` };
+  }
+
   ensureLogin() {
     if (!this.isLoggedIn) {
       this.router.transitionTo('login');
@@ -32,6 +36,9 @@ export default class CurrentUserService extends Service {
   async login(apiKey: string) {
     localStorage.setItem('apiKey', apiKey);
 
+    this.apiKey = apiKey;
+    this.uid = undefined;
+
     await this.restore();
 
     this.router.transitionTo('index');
@@ -40,32 +47,36 @@ export default class CurrentUserService extends Service {
   async logout() {
     localStorage.removeItem('apiKey');
 
+    this.apiKey = this.uid = undefined;
+
     await this.restore();
 
     this.router.transitionTo('index');
   }
 
   async restore() {
-    this.apiKey = localStorage.getItem('apiKey') || undefined;
+    if (!this.apiKey) {
+      this.apiKey = localStorage.getItem('apiKey') || undefined;
+    }
 
     if (this.apiKey) {
-      const res = await fetch(`${ENV.apiURL}/me`, {
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-      });
+      if (!this.uid) {
+        const res = await fetch(`${ENV.apiURL}/me`, {
+          headers: this.authorizationHeader,
+        });
 
-      if (!res.ok) {
-        localStorage.removeItem('apiKey');
+        if (!res.ok) {
+          localStorage.removeItem('apiKey');
 
-        this.apiKey = this.uid = undefined;
+          this.apiKey = this.uid = undefined;
 
-        throw new LoginError();
+          throw new LoginError();
+        }
+
+        const { uid } = await res.json();
+
+        this.uid = uid;
       }
-
-      const { uid } = await res.json();
-
-      this.uid = uid;
     } else {
       this.uid = undefined;
     }

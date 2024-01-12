@@ -10,9 +10,7 @@ export default class RequestsShowController extends Controller {
   @action
   async downloadFile(url: string) {
     const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${this.currentUser.apiKey}`,
-      },
+      headers: this.currentUser.authorizationHeader,
     });
 
     location.href = res.url;

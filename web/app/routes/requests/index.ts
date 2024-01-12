@@ -10,9 +10,7 @@ export default class RequestsRoute extends Route {
 
   async model() {
     const res = await fetch(`${ENV.apiURL}/requests`, {
-      headers: {
-        Authorization: `Bearer ${this.currentUser.apiKey}`,
-      },
+      headers: this.currentUser.authorizationHeader,
     });
 
     return await res.json();
