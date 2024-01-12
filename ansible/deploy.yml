@@ -1,0 +1,15 @@
+- hosts: at025
+
+  vars_prompt:
+    - name: stage
+      prompt: stage
+      private: no
+
+  tasks:
+    - git:
+        repo: https://github.com/ddbj/ddbj-repository.git
+        dest: ~/ddbj-repository/deploy
+
+    - command: compose/{{ stage }} up --build --detach
+      args:
+        chdir: ~/ddbj-repository/deploy/
