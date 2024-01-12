@@ -5,6 +5,8 @@ import ENV from 'ddbj-repository/config/environment';
 
 import type Router from '@ember/routing/router';
 
+export class LoginError extends Error {}
+
 export default class CurrentUserService extends Service {
   @service declare router: Router;
 
@@ -52,6 +54,14 @@ export default class CurrentUserService extends Service {
           Authorization: `Bearer ${this.apiKey}`,
         },
       });
+
+      if (!res.ok) {
+        localStorage.removeItem('apiKey');
+
+        this.apiKey = this.uid = undefined;
+
+        throw new LoginError();
+      }
 
       const { uid } = await res.json();
 
