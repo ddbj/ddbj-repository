@@ -17,7 +17,7 @@
   {{/each}}
 </ul>
 
-<form {{on 'submit' this.submit}}>
+<form {{on 'submit' (perform this.submit)}}>
   <input type='hidden' name='db' value={{this.selectedDb.id}} />
 
   {{#each this.selectedDb.objects as |obj|}}
@@ -42,7 +42,14 @@
     </div>
 
     <div>
-      <button type="submit" class="btn btn-primary">Execute</button>
+      <button type="submit" class="btn btn-primary" disabled={{this.submit.isRunning}}>
+        {{#if this.submit.isRunning}}
+          <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          <span role="status">Uploading...</span>
+        {{else}}
+          Execute
+        {{/if}}
+      </button>
     </div>
   </div>
 </form>

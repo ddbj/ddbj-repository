@@ -1,7 +1,8 @@
 import Controller from '@ember/controller';
-import { action } from '@ember/object';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
+
+import { task } from 'ember-concurrency';
 
 import ENV from 'ddbj-repository/config/environment';
 
@@ -16,8 +17,7 @@ export default class SubmitController extends Controller {
 
   @tracked selectedDb = this.dbs[0];
 
-  @action
-  async submit(e: Event) {
+  submit = task({ drop: true }, async (e: Event) => {
     e.preventDefault();
 
     const formData = new FormData(e.target as HTMLFormElement);
@@ -48,5 +48,5 @@ export default class SubmitController extends Controller {
     const { request } = await res.json();
 
     this.router.transitionTo('requests.show', request.id);
-  }
+  });
 }
