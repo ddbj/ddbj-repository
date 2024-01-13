@@ -4,6 +4,7 @@ import { tracked } from '@glimmer/tracking';
 import ENV from 'ddbj-repository/config/environment';
 
 import type Router from '@ember/routing/router';
+import type Transition from '@ember/routing/transition';
 
 export class LoginError extends Error {}
 
@@ -13,6 +14,8 @@ export default class CurrentUserService extends Service {
   @tracked apiKey?: string;
   @tracked uid?: string;
 
+  previousTransition?: Transition;
+
   get isLoggedIn() {
     return !!this.apiKey;
   }
@@ -21,8 +24,10 @@ export default class CurrentUserService extends Service {
     return { Authorization: `Bearer ${this.apiKey}` };
   }
 
-  ensureLogin() {
+  ensureLogin(transition: Transition) {
     if (!this.isLoggedIn) {
+      this.previousTransition = transition;
+
       this.router.transitionTo('login');
     }
   }
@@ -41,7 +46,12 @@ export default class CurrentUserService extends Service {
 
     await this.restore();
 
-    this.router.transitionTo('index');
+    if (this.previousTransition) {
+      this.previousTransition.retry();
+      this.previousTransition = undefined;
+    } else {
+      this.router.transitionTo('index');
+    }
   }
 
   async logout() {
