@@ -15,6 +15,10 @@ export default class LoginRoute extends Route {
   async model() {
     const res = await fetch(`${ENV.apiURL}/api-key`);
 
+    if (!res.ok) {
+      throw new Error(res.statusText);
+    }
+
     return await res.json();
   }
 }

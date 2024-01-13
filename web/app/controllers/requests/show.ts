@@ -13,6 +13,10 @@ export default class RequestsShowController extends Controller {
       headers: this.currentUser.authorizationHeader,
     });
 
+    if (!res.ok) {
+      throw new Error(res.statusText);
+    }
+
     location.href = res.url;
   }
 }

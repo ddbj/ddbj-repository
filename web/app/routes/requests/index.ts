@@ -27,6 +27,10 @@ export default class RequestsRoute extends Route {
       headers: this.currentUser.authorizationHeader,
     });
 
+    if (!res.ok) {
+      throw new Error(res.statusText);
+    }
+
     return {
       requests: await res.json(),
       lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
