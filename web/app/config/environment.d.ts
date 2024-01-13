@@ -10,16 +10,7 @@ declare const config: {
   rootURL: string;
   APP: Record<string, unknown>;
   apiURL: string;
-
-  dbs: {
-    id: string;
-
-    objects: {
-      id: string;
-      optional: boolean;
-      multiple: boolean;
-    }[];
-  }[];
+  dbs: DBSchema[];
 };
 
 export default config;
