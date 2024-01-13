@@ -32,7 +32,11 @@ class AuthsController < ApplicationController
     oidc_client.authorization_code = params.require(:code)
 
     access_token = oidc_client.access_token!(code_verifier:)
-    user         = upsert_user_by_access_token(access_token)
+    userinfo     = access_token.userinfo!
+
+    user = User.find_or_initialize_by(uid: userinfo.preferred_username).tap {|user|
+      user.update! ddbj_member: userinfo.raw_attributes['account_type_number'] == 3
+    }
 
     render plain: <<~TEXT
       Logged in as #{user.uid}.
@@ -41,19 +45,6 @@ class AuthsController < ApplicationController
     TEXT
   rescue Rack::OAuth2::Client::Error => e
     render plain: "Error: #{e.message}", status: :bad_request
-  end
-
-  def login_by_access_token
-    access_token = OpenIDConnect::AccessToken.new(
-      access_token: request.body.read,
-      client:       oidc_client
-    )
-
-    user = upsert_user_by_access_token(access_token)
-
-    render json: {
-      api_key: user.api_key
-    }
   end
 
   private
@@ -66,14 +57,6 @@ class AuthsController < ApplicationController
       OpenSSL::Digest::SHA256.digest(code_verifier),
       padding: false
     )
-  end
-
-  def upsert_user_by_access_token(access_token)
-    userinfo = access_token.userinfo!
-
-    User.find_or_initialize_by(uid: userinfo.preferred_username).tap {|user|
-      user.update! ddbj_member: userinfo.raw_attributes['account_type_number'] == 3
-    }
   end
 
   def oidc_client
