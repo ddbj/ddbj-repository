@@ -6,9 +6,11 @@ import { tracked } from '@glimmer/tracking';
 import { LoginError } from 'ddbj-repository/services/current-user';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type ErrorModalService from 'ddbj-repository/services/error-modal';
 
 export default class LoginFormComponent extends Component {
   @service declare currentUser: CurrentUserService;
+  @service declare errorModal: ErrorModalService;
 
   @tracked errorMessage?: string;
 
@@ -23,9 +25,11 @@ export default class LoginFormComponent extends Component {
     try {
       await this.currentUser.login(formData.get('apiKey') as string);
     } catch (err) {
-      if (!(err instanceof LoginError)) throw err;
-
-      this.errorMessage = 'Login failed, please check your API key.';
+      if (err instanceof LoginError) {
+        this.errorMessage = 'Login failed, please check your API key.';
+      } else {
+        this.errorModal.show(err as object);
+      }
     }
   }
 }

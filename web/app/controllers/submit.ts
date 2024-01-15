@@ -7,10 +7,12 @@ import { task } from 'ember-concurrency';
 import ENV from 'ddbj-repository/config/environment';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type ErrorModalService from 'ddbj-repository/services/error-modal';
 import type Router from '@ember/routing/router';
 
 export default class SubmitController extends Controller {
   @service declare currentUser: CurrentUserService;
+  @service declare errorModal: ErrorModalService;
   @service declare router: Router;
 
   dbs = ENV.dbs;
@@ -46,7 +48,7 @@ export default class SubmitController extends Controller {
     });
 
     if (!res.ok) {
-      throw new Error(res.statusText);
+      this.errorModal.show(new Error(res.statusText));
     }
 
     const { request } = await res.json();

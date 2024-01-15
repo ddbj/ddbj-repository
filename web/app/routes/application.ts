@@ -20,9 +20,11 @@ export default class ApplicationRoute extends Route {
     try {
       await this.currentUser.restore();
     } catch (err) {
-      if (!(err instanceof LoginError)) throw err;
-
-      this.router.transitionTo('login');
+      if (err instanceof LoginError) {
+        this.router.transitionTo('login');
+      } else {
+        throw err;
+      }
     }
   }
 

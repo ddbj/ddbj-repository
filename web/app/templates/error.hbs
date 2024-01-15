@@ -1,13 +1,3 @@
 <h1 class="display-6">Error</h1>
 
-<p>Something went wrong. Please try again later.</p>
-
-<details>
-  <summary>Details</summary>
-
-  {{#if @model.message}}
-    <p>{{@model.message}}</p>
-  {{/if}}
-
-  <pre class="text-bg-dark text-pre-wrap p-3"><code>{{to-json @model}}</code></pre>
-</details>
+<ErrorMessage @error={{@model}} />
