@@ -34,6 +34,12 @@
   </div>
 </nav>
 
+{{#if this.isLoading}}
+  <div class="loading-bar" aria-busy="true">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+{{/if}}
+
 <main class="container py-4">
   {{outlet}}
 </main>
