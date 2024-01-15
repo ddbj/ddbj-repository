@@ -19,10 +19,10 @@ export default class RequestsShowRoute extends Route {
   }
 
   afterModel({ status }: { status: string }) {
-    if (status !== 'finished' && status !== 'canceled') {
+    if (status === 'waiting' || status === 'running') {
       this.timer = setTimeout(() => {
         this.refresh();
-      }, 1000);
+      }, 2000);
     }
   }
 

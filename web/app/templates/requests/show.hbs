@@ -29,11 +29,12 @@
 
   <div>
     <dt>Status</dt>
-    <dd>{{@model.status}}</dd>
+    <dd><StatusLabel @status={{@model.status}} /></dd>
   </div>
 
   <div>
     <dt>Validity</dt>
+
     <dd><ValidityBadge @validity={{@model.validity}} /></dd>
   </div>
 
@@ -61,7 +62,7 @@
   </thead>
 
   <tbody>
-    {{#each @model.objects as |obj|}}
+    {{#each @model.objects key="id" as |obj|}}
       <tr>
         <td>{{obj.id}}</td>
 
@@ -92,7 +93,7 @@
   </thead>
 
   <tbody>
-    {{#each @model.validation_reports as |report|}}
+    {{#each @model.validation_reports key="object_id" as |report|}}
       <tr>
         <td>{{report.object_id}}</td>
 

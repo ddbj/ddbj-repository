@@ -16,7 +16,7 @@
   </thead>
 
   <tbody>
-    {{#each @model.requests as |req|}}
+    {{#each @model.requests key="id" as |req|}}
       <tr>
         <td>
           <LinkTo @route="requests.show" @model={{req}}>{{req.id}}</LinkTo>
@@ -25,7 +25,7 @@
         <td>{{format-datetime req.created_at}}</td>
         <td>{{req.purpose}}</td>
         <td>{{req.db}}</td>
-        <td>{{req.status}}</td>
+        <td><StatusLabel @status={{req.status}} /></td>
         <td><ValidityBadge @validity={{req.validity}} /></td>
 
         <td>
