@@ -45,6 +45,10 @@ export default class SubmitController extends Controller {
       body: formData,
     });
 
+    if (!res.ok) {
+      throw new Error(res.statusText);
+    }
+
     const { request } = await res.json();
 
     this.router.transitionTo('requests.show', request.id);

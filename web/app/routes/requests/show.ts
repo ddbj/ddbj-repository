@@ -15,6 +15,10 @@ export default class RequestsShowRoute extends Route {
       headers: this.currentUser.authorizationHeader,
     });
 
+    if (!res.ok) {
+      throw new Error(res.statusText);
+    }
+
     return await res.json();
   }
 
