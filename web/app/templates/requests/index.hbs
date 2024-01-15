@@ -16,21 +16,21 @@
   </thead>
 
   <tbody>
-    {{#each @model as |res|}}
+    {{#each @model.requests as |req|}}
       <tr>
         <td>
-          <LinkTo @route="requests.show" @model={{res}}>{{res.id}}</LinkTo>
+          <LinkTo @route="requests.show" @model={{req}}>{{req.id}}</LinkTo>
         </td>
 
-        <td>{{format-datetime res.created_at}}</td>
-        <td>{{res.purpose}}</td>
-        <td>{{res.db}}</td>
-        <td>{{res.status}}</td>
-        <td><ValidityBadge @validity={{res.validity}} /></td>
+        <td>{{format-datetime req.created_at}}</td>
+        <td>{{req.purpose}}</td>
+        <td>{{req.db}}</td>
+        <td>{{req.status}}</td>
+        <td><ValidityBadge @validity={{req.validity}} /></td>
 
         <td>
-          {{#if res.submission}}
-            {{res.submission.id}}
+          {{#if req.submission}}
+            {{req.submission.id}}
           {{else}}
             -
           {{/if}}
@@ -39,3 +39,7 @@
     {{/each}}
   </tbody>
 </table>
+
+{{#if @model.lastPage}}
+  <Pagination @route="requests.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
+{{/if}}

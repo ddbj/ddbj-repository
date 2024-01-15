@@ -1,0 +1,35 @@
+<nav class="d-flex justify-content-center" ...attributes>
+  <ul class="pagination">
+    <li class="page-item {{unless this.prev 'disabled' ''}}" data-test-prev>
+      {{#if this.prev}}
+        <LinkTo @route={{@route}} @query={{hash page=(if (eq this.prev 1) undefined this.prev)}} class="page-link" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span>
+        </LinkTo>
+      {{else}}
+        <a href="#" class="page-link" aria-label="Previous">
+          <span aria-hidden="true">&laquo;</span>
+        </a>
+      {{/if}}
+    </li>
+
+    {{#each this.pages as |page|}}
+      <li class="page-item {{if (eq page @current) 'active' ''}}" data-test-page={{page}}>
+        <LinkTo @route={{@route}} @query={{hash page=(if (eq page 1) undefined page)}} class="page-link">
+          {{page}}
+        </LinkTo>
+      </li>
+    {{/each}}
+
+    <li class="page-item {{unless this.next 'disabled' ''}}" data-test-next>
+      {{#if this.next}}
+        <LinkTo @route={{@route}} @query={{hash page=this.next}} class="page-link" aria-label="Previous">
+          <span aria-hidden="true">&raquo;</span>
+        </LinkTo>
+      {{else}}
+        <a href="#" class="page-link" aria-label="Next">
+          <span aria-hidden="true">&raquo;</span>
+        </a>
+      {{/if}}
+    </li>
+  </ul>
+</nav>
