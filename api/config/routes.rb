@@ -21,10 +21,6 @@ Rails.application.routes.draw do
       post :regenerate
     end
 
-    resource :auth, only: %i() do
-      post :login_by_access_token
-    end
-
     resource :me, only: %i(show)
 
     resources :validations, only: %i() do
