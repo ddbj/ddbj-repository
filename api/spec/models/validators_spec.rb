@@ -14,20 +14,17 @@ RSpec.describe Validators, type: :model do
   end
 
   example 'cancel validation' do
-    allow(validator).to receive(:validate) { validation.update! status: 'canceled', finished_at: Time.current }
+    allow(validator).to receive(:validate) {
+      validation.update! status: 'canceled', finished_at: '2024-01-02 03:04:56'
+    }
 
-    on_finish_called = false
-
-    Validators.validate validation do
-      on_finish_called = true
-    end
+    Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:   'canceled',
-      validity: nil
+      status:      'canceled',
+      validity:    nil,
+      finished_at: Time.zone.parse('2024-01-02 03:04:56')
     )
-
-    expect(on_finish_called).to eq(false)
   end
 
   example 'if error occured during validation, validity is error' do
