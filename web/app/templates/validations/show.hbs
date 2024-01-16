@@ -19,6 +19,7 @@
 
   <div>
     <dt>Finished</dt>
+
     <dd>
       {{#if @model.finished_at}}
         {{format-datetime @model.finished_at}}
@@ -40,7 +41,6 @@
 
   <div>
     <dt>Validity</dt>
-
     <dd><ValidityBadge @validity={{@model.validity}} /></dd>
   </div>
 
