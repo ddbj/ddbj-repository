@@ -48,8 +48,8 @@ export default submissionCommand;
 
 type Submission = {
   id: string;
-  created_at: string;
   db: string;
+  created_at: string;
 
   objects: Array<{
     id: string;
@@ -61,7 +61,7 @@ type Submission = {
 };
 
 async function listSubmissions(apiUrl: string, apiKey: string) {
-  const headers = ['ID', 'Created', 'DB'];
+  const headers = ['ID', 'DB', 'Created'];
   const table = Table.from([headers.map(colors.bold.yellow)]);
 
   table.push(headers.map((header) => colors.bold.yellow('-'.repeat(header.length))));
@@ -74,8 +74,8 @@ async function listSubmissions(apiUrl: string, apiKey: string) {
     submissions.forEach((submission) => {
       table.push([
         colors.bold(submission.id),
-        submission.created_at,
         submission.db,
+        submission.created_at,
       ]);
     });
   });
