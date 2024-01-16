@@ -1,6 +1,8 @@
 class Submission < ApplicationRecord
   belongs_to :validation
 
+  validates :validation_id, uniqueness: {message: 'is already submitted'}
+
   validate :validation_must_be_valid
   validate :validation_finished_at_must_be_in_24_hours
 
