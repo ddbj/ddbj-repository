@@ -156,9 +156,9 @@ paths:
               example:
                 - id: 100
                   url: https://repository.ddbj.nig.ac.jp/api/validations/100
-                  created_at: '2024-01-01T00:00:00.000Z'
-                  purpose: submit
                   db: BioProject
+                  created_at: '2024-01-01T00:00:00.000Z'
+                  finished_at: '2024-01-01T00:01:00.000Z'
                   progress: finished
                   validity: valid
 
@@ -188,9 +188,9 @@ paths:
 
                 - id: 101
                   url: https://repository.ddbj.nig.ac.jp/api/validations/101
-                  created_at: '2024-01-01T01:00:00.000Z'
-                  purpose: validate
                   db: BioSample
+                  created_at: '2024-01-01T01:00:00.000Z'
+                  finished_at: '2024-01-01T01:01:00.000Z'
                   progress: waiting
                   validity: null
 
@@ -456,7 +456,7 @@ components:
     Validation:
       type: object
       additionalProperties: false
-      required: [id, url, created_at, finished_at, db, objects, progress, validity, validation_reports, submission]
+      required: [id, url, db, created_at, finished_at, progress, validity, objects, validation_reports, submission]
 
       properties:
         id:
@@ -465,6 +465,14 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          type: string
+
+          enum:
+            <%- dbs.each do |db| -%>
+            - <%= db[:id] %>
+            <%- end -%>
 
         created_at:
           type: string
@@ -476,17 +484,6 @@ components:
             - 'null'
 
           format: date-time
-
-        db:
-          type: string
-
-          enum:
-            <%- dbs.each do |db| -%>
-            - <%= db[:id] %>
-            <%- end -%>
-
-        objects:
-          $ref: '#/components/schemas/Objects'
 
         progress:
           type: string
@@ -507,6 +504,9 @@ components:
             - invalid
             - error
             - null
+
+        objects:
+          $ref: '#/components/schemas/Objects'
 
         validation_reports:
           type: array

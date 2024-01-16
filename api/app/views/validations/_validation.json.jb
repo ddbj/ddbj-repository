@@ -1,12 +1,12 @@
 {
   id:                 validation.id,
   url:                validation_url(validation),
+  db:                 validation.db,
   created_at:         validation.created_at,
   finished_at:        validation.finished_at,
-  db:                 validation.db,
-  objects:            render('validations/objs', validation:),
   progress:           validation.progress,
   validity:           validation.validity,
+  objects:            render('validations/objs', validation:),
   validation_reports: validation.validation_reports,
 
   submission: validation.submission.then {|submission|

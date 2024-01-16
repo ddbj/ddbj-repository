@@ -13,6 +13,11 @@
   </div>
 
   <div>
+    <dt>DB</dt>
+    <dd>{{@model.db}}</dd>
+  </div>
+
+  <div>
     <dt>Started</dt>
     <dd>{{format-datetime @model.created_at}}</dd>
   </div>
@@ -27,11 +32,6 @@
         -
       {{/if}}
     </dd>
-  </div>
-
-  <div>
-    <dt>DB</dt>
-    <dd>{{@model.db}}</dd>
   </div>
 
   <div>
