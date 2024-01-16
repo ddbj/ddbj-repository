@@ -1,5 +1,5 @@
 class Validators
-  def self.validate(validation, &on_finish)
+  def self.validate(validation)
     ActiveRecord::Base.transaction do
       validation.processing!
 
@@ -22,8 +22,6 @@ class Validators
     ensure
       unless validation.canceled?
         validation.update! status: 'finished', finished_at: Time.current
-
-        on_finish&.call
       end
     end
   end
