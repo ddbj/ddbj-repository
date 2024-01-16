@@ -39,7 +39,7 @@ export default class SubmitFormConponent extends Component<Signature> {
 
     const { request } = await res.json();
 
-    this.router.transitionTo('requests.show', request.id);
+    this.router.transitionTo('validations.show', request.id);
   });
 }
 

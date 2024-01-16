@@ -10,7 +10,7 @@ Router.map(function () {
   this.route('login');
   this.route('submit');
 
-  this.route('requests', function () {
+  this.route('validations', function () {
     this.route('show', { path: ':id' });
   });
 });

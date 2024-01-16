@@ -1,13 +1,13 @@
-{{page-title "Requests"}}
+{{page-title "Validations"}}
 
-<h1 class="display-6 mb-4">Requests</h1>
+<h1 class="display-6 mb-4">Validations</h1>
 
 <table class="table">
   <thead>
     <tr>
       <th>ID</th>
       <th>Created</th>
-      <th>Purpose</th>
+      <th>Finished</th>
       <th>DB</th>
       <th>Status</th>
       <th>Validity</th>
@@ -16,14 +16,20 @@
   </thead>
 
   <tbody>
-    {{#each @model.requests key="id" as |req|}}
+    {{#each @model.validations key="id" as |req|}}
       <tr>
         <td>
-          <LinkTo @route="requests.show" @model={{req}}>{{req.id}}</LinkTo>
+          <LinkTo @route="validations.show" @model={{req}}>{{req.id}}</LinkTo>
         </td>
 
         <td>{{format-datetime req.created_at}}</td>
-        <td>{{req.purpose}}</td>
+        <td>
+          {{#if @model.finished_at}}
+            {{format-datetime req.finished_at}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
         <td>{{req.db}}</td>
         <td><StatusLabel @status={{req.status}} /></td>
         <td><ValidityBadge @validity={{req.validity}} /></td>
@@ -41,5 +47,5 @@
 </table>
 
 {{#if @model.lastPage}}
-  <Pagination @route="requests.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
+  <Pagination @route="validations.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
 {{/if}}

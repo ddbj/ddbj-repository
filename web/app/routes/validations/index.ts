@@ -5,7 +5,7 @@ import ENV from 'ddbj-repository/config/environment';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 
-export default class RequestsRoute extends Route {
+export default class ValidationsRoute extends Route {
   @service declare currentUser: CurrentUserService;
 
   timer?: number;
@@ -17,7 +17,7 @@ export default class RequestsRoute extends Route {
   };
 
   async model(params: { page?: string }) {
-    const url = new URL(`${ENV.apiURL}/requests`);
+    const url = new URL(`${ENV.apiURL}/validations`);
 
     if (params.page) {
       url.searchParams.set('page', params.page);
@@ -32,13 +32,13 @@ export default class RequestsRoute extends Route {
     }
 
     return {
-      requests: await res.json(),
+      validations: await res.json(),
       lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
     };
   }
 
-  afterModel(model: { requests: { status: string }[] }) {
-    if (model.requests.some((req) => req.status === 'waiting' || req.status === 'running')) {
+  afterModel(model: { validations: { status: string }[] }) {
+    if (model.validations.some((req) => req.status === 'waiting' || req.status === 'running')) {
       this.timer = setTimeout(() => {
         this.refresh();
       }, 2000);
