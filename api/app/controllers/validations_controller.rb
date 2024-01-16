@@ -2,7 +2,7 @@ class ValidationsController < ApplicationController
   include Pagination
 
   def index
-    pagy, @validations = pagy(validations.order(id: :desc), page: params[:page])
+    pagy, @validations = pagy(validations, page: params[:page])
 
     headers['Link'] = pagination_link_header(pagy, :validations)
   rescue Pagy::OverflowError => e
@@ -34,6 +34,6 @@ class ValidationsController < ApplicationController
   private
 
   def validations
-    current_user.validations.includes(:submission, :objs => :file_blob)
+    current_user.validations.includes(:submission, :objs => :file_blob).order(id: :desc, 'objs.id': :asc)
   end
 end

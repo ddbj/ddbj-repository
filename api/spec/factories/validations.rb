@@ -4,7 +4,10 @@ FactoryBot.define do
 
     db       { DB.map { _1[:id] }.sample }
     progress { 'waiting' }
-    objs     { [build(:obj, _id: '_base', file: nil)] }
+
+    after :create do |validation|
+      create :obj, validation:, _id: '_base', file: nil
+    end
 
     trait :valid do
       progress    { 'finished' }
