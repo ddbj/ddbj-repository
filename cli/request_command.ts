@@ -58,9 +58,9 @@ export default requestCommand;
 
 type Request = {
   id: number;
+  db: string;
   created_at: string;
   purpose: string;
-  db: string;
   progress: string;
   validity: string;
 
@@ -70,7 +70,7 @@ type Request = {
 };
 
 async function listRequests(apiUrl: string, apiKey: string) {
-  const headers = ['ID', 'Started', 'Purpose', 'DB', 'Progress', 'Validity', 'Submission'];
+  const headers = ['ID', 'DB', 'Started', 'Purpose', 'Progress', 'Validity', 'Submission'];
   const table = Table.from([headers.map(colors.bold.yellow)]);
 
   table.push(headers.map((header) => colors.bold.yellow('-'.repeat(header.length))));
@@ -83,9 +83,9 @@ async function listRequests(apiUrl: string, apiKey: string) {
     requests.forEach((req) => {
       table.push([
         colors.bold(req.id.toString()),
+        req.db,
         req.created_at,
         req.purpose,
-        req.db,
         req.progress,
         req.validity,
         req.submission?.id || '',

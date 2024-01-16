@@ -14,7 +14,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
           create :obj, validation:, _id: 'IDF', file: uploaded_file(name: 'myidf.txt'), validity: 'valid'
         end
 
-        create :validation, id: 101, db: 'MetaboBank', progress: 'waiting', created_at: '2024-01-02 03:04:58'
+        create :validation, id: 101, db: 'MetaboBank', created_at: '2024-01-02 03:04:58', progress: 'waiting'
       end
 
       example do
@@ -26,12 +26,12 @@ RSpec.describe 'validations', type: :request, authorized: true do
           {
             id:          101,
             url:         'http://www.example.com/api/validations/101',
+            db:          'MetaboBank',
             created_at:  '2024-01-02T03:04:58.000Z',
             finished_at: nil,
-            db:          'MetaboBank',
-            objects:     [],
             progress:    'waiting',
             validity:    nil,
+            objects:     [],
 
             validation_reports: [
               {
@@ -47,9 +47,11 @@ RSpec.describe 'validations', type: :request, authorized: true do
           {
             id:          100,
             url:         'http://www.example.com/api/validations/100',
+            db:          'GEA',
             created_at:  '2024-01-02T03:04:56.000Z',
             finished_at: '2024-01-02T03:04:57.000Z',
-            db:          'GEA',
+            progress:    'finished',
+            validity:    'valid',
 
             objects: [
               id: 'IDF',
@@ -59,9 +61,6 @@ RSpec.describe 'validations', type: :request, authorized: true do
                 url:  'http://www.example.com/api/validations/100/files/myidf.txt'
               ]
             ],
-
-            progress: 'finished',
-            validity: 'valid',
 
             validation_reports: [
               {
@@ -184,12 +183,12 @@ RSpec.describe 'validations', type: :request, authorized: true do
       expect(response.parsed_body.deep_symbolize_keys).to eq(
         id:          100,
         url:         'http://www.example.com/api/validations/100',
+        db:          'BioSample',
         created_at:  '2024-01-02T03:04:56.000Z',
         finished_at: '2024-01-02T03:04:57.000Z',
-        db:          'BioSample',
-        objects:     [],
         progress:    'finished',
         validity:    'valid',
+        objects:     [],
 
         validation_reports: [
           {
