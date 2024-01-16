@@ -11,45 +11,10 @@
         aria-current={{if (eq db this.selectedDb) 'page' ''}}
         {{on 'click' (fn (set this 'selectedDb') db)}}
       >
-        {{db.id}}
+        {{db.schema.id}}
       </button>
     </li>
   {{/each}}
 </ul>
 
-<form {{on 'submit' (perform this.submit)}}>
-  <input type='hidden' name='db' value={{this.selectedDb.id}} />
-
-  {{#each this.selectedDb.objects as |obj|}}
-    <ObjectField @object={{obj}} />
-  {{/each}}
-
-  <div class="d-flex gap-3 align-items-center mt-3">
-    <div class="d-flex border rounded">
-      <div class="px-3 py-1 border-end">
-        <div class="form-check">
-          <input type="radio" name="resource" required id="resource-validations" value="validations" class="form-check-input" />
-          <label for="resource-validations" class="form-check-label"> Validate </label>
-        </div>
-      </div>
-
-      <div class="px-3 py-1">
-        <div class="form-check">
-          <input type="radio" name="resource" required id="resource-submissions" value="submissions" class="form-check-input" />
-          <label for="resource-submissions" class="form-check-label"> Submit </label>
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <button type="submit" class="btn btn-primary" disabled={{this.submit.isRunning}}>
-        {{#if this.submit.isRunning}}
-          <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
-          <span role="status">Uploading...</span>
-        {{else}}
-          Execute
-        {{/if}}
-      </button>
-    </div>
-  </div>
-</form>
+<SubmitForm @db={{this.selectedDb}} />
