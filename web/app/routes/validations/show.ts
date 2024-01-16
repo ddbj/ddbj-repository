@@ -22,8 +22,8 @@ export default class ValidationsShowRoute extends Route {
     return await res.json();
   }
 
-  afterModel({ status }: { status: string }) {
-    if (status === 'waiting' || status === 'running') {
+  afterModel({ progress }: { progress: string }) {
+    if (progress === 'waiting' || progress === 'running') {
       this.timer = setTimeout(() => {
         this.refresh();
       }, 2000);

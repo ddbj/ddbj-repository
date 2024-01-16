@@ -5,7 +5,7 @@
   finished_at:        validation.finished_at,
   db:                 validation.db,
   objects:            render('validations/objs', validation:),
-  status:             validation.status,
+  progress:           validation.progress,
   validity:           validation.validity,
   validation_reports: validation.validation_reports,
 

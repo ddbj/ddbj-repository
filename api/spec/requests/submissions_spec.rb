@@ -35,7 +35,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
         created_at:  '2024-01-02T03:04:56.000Z',
         finished_at: '2024-01-02T03:04:57.000Z',
         db:          'JVar',
-        status:      'finished',
+        progress:    'finished',
         validity:    'valid',
 
         objects: [
