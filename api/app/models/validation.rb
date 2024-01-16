@@ -9,7 +9,7 @@ class Validation < ApplicationRecord
     end
   end
 
-  enum :status, %w(waiting processing finished canceled).index_by(&:to_sym)
+  enum :progress, %w(waiting processing finished canceled).index_by(&:to_sym)
 
   validates :db, inclusion: {in: DB.map { _1[:id] }}
   validates :finished_at, presence: true, if: ->(validation) { validation.finished? || validation.canceled? }

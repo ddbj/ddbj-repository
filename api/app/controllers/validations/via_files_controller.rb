@@ -19,7 +19,7 @@ class Validations::ViaFilesController < ApplicationController
         raise BadRequest, "unknown db: #{params[:db]}"
       end
 
-      validation = current_user.validations.create!(db: db[:id], status: 'waiting')
+      validation = current_user.validations.create!(db: db[:id], progress: 'waiting')
 
       validation.objs.create! _id: '_base'
 

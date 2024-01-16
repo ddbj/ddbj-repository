@@ -15,13 +15,13 @@ RSpec.describe Validators, type: :model do
 
   example 'cancel validation' do
     allow(validator).to receive(:validate) {
-      validation.update! status: 'canceled', finished_at: '2024-01-02 03:04:56'
+      validation.update! progress: 'canceled', finished_at: '2024-01-02 03:04:56'
     }
 
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:      'canceled',
+      progress:    'canceled',
       validity:    nil,
       finished_at: Time.zone.parse('2024-01-02 03:04:56')
     )
@@ -35,7 +35,7 @@ RSpec.describe Validators, type: :model do
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:   'finished',
+      progress: 'finished',
       validity: 'error'
     )
 

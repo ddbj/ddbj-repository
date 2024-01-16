@@ -14,7 +14,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
           create :obj, validation:, _id: 'IDF', file: uploaded_file(name: 'myidf.txt'), validity: 'valid'
         end
 
-        create :validation, id: 101, db: 'MetaboBank', status: 'waiting', created_at: '2024-01-02 03:04:58'
+        create :validation, id: 101, db: 'MetaboBank', progress: 'waiting', created_at: '2024-01-02 03:04:58'
       end
 
       example do
@@ -30,7 +30,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
             finished_at: nil,
             db:          'MetaboBank',
             objects:     [],
-            status:      'waiting',
+            progress:    'waiting',
             validity:    nil,
 
             validation_reports: [
@@ -60,7 +60,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
               ]
             ],
 
-            status:   'finished',
+            progress: 'finished',
             validity: 'valid',
 
             validation_reports: [
@@ -188,7 +188,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
         finished_at: '2024-01-02T03:04:57.000Z',
         db:          'BioSample',
         objects:     [],
-        status:      'finished',
+        progress:    'finished',
         validity:    'valid',
 
         validation_reports: [
@@ -210,8 +210,8 @@ RSpec.describe 'validations', type: :request, authorized: true do
 
   describe 'DELETE /api/validations/:id' do
     before do
-      create :validation, id: 100, status: 'waiting'
-      create :validation, id: 101, status: 'finished', finished_at: Time.current
+      create :validation, id: 100, progress: 'waiting'
+      create :validation, id: 101, progress: 'finished', finished_at: Time.current
     end
 
     example 'if validation is waiting' do

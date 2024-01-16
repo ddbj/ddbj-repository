@@ -121,9 +121,9 @@ async function waitForRequestFinished(url: string, apiKey: string) {
   await ensureSuccess(res);
 
   const payload = await res.json();
-  const { status } = payload;
+  const { progress } = payload;
 
-  if (status === 'finished' || status === 'canceled') return payload;
+  if (progress === 'finished' || progress === 'canceled') return payload;
 
   await delay(1000);
 

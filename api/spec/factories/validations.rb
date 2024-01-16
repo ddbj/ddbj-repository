@@ -2,12 +2,12 @@ FactoryBot.define do
   factory :validation do
     user
 
-    db     { DB.map { _1[:id] }.sample }
-    status { 'waiting' }
-    objs   { [build(:obj, _id: '_base', file: nil)] }
+    db       { DB.map { _1[:id] }.sample }
+    progress { 'waiting' }
+    objs     { [build(:obj, _id: '_base', file: nil)] }
 
     trait :valid do
-      status      { 'finished' }
+      progress    { 'finished' }
       finished_at { Time.current }
 
       after :create do |validation|

@@ -39,7 +39,7 @@ RSpec.describe DdbjValidator, type: :model do
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:   'finished',
+      progress: 'finished',
       validity: 'valid'
     )
 
@@ -73,7 +73,7 @@ RSpec.describe DdbjValidator, type: :model do
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:   'finished',
+      progress: 'finished',
       validity: 'error'
     )
 

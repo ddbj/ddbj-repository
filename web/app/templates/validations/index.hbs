@@ -9,7 +9,7 @@
       <th>Started</th>
       <th>Finished</th>
       <th>DB</th>
-      <th>Status</th>
+      <th>Progress</th>
       <th>Validity</th>
       <th>Submission</th>
     </tr>
@@ -31,7 +31,7 @@
           {{/if}}
         </td>
         <td>{{req.db}}</td>
-        <td><StatusLabel @status={{req.status}} /></td>
+        <td><ProgressLabel @progress={{req.progress}} /></td>
         <td><ValidityBadge @validity={{req.validity}} /></td>
 
         <td>
