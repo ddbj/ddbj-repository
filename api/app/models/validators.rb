@@ -21,7 +21,7 @@ class Validators
       raise ActiveRecord::Rollback if validation.reload.canceled?
     ensure
       unless validation.canceled?
-        validation.update! status: 'finished', finished_at: Time.current
+        validation.update! progress: 'finished', finished_at: Time.current
       end
     end
   end

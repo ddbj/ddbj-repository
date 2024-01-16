@@ -12,7 +12,7 @@ RSpec.describe DraValidator, type: :model do
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:   'finished',
+      progress: 'finished',
       validity: 'valid'
     )
 
@@ -61,7 +61,7 @@ RSpec.describe DraValidator, type: :model do
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:   'finished',
+      progress: 'finished',
       validity: 'invalid'
     )
 
@@ -116,7 +116,7 @@ RSpec.describe DraValidator, type: :model do
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status: 'finished',
+      progress: 'finished',
       validity: 'error'
     )
 
@@ -146,7 +146,7 @@ RSpec.describe DraValidator, type: :model do
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:   'finished',
+      progress: 'finished',
       validity: 'valid'
     )
 
@@ -178,7 +178,7 @@ RSpec.describe DraValidator, type: :model do
     Validators.validate validation
 
     expect(validation).to have_attributes(
-      status:   'finished',
+      progress: 'finished',
       validity: 'valid'
     )
 

@@ -61,7 +61,7 @@ type Request = {
   created_at: string;
   purpose: string;
   db: string;
-  status: string;
+  progress: string;
   validity: string;
 
   submission?: {
@@ -70,7 +70,7 @@ type Request = {
 };
 
 async function listRequests(apiUrl: string, apiKey: string) {
-  const headers = ['ID', 'Started', 'Purpose', 'DB', 'Status', 'Validity', 'Submission'];
+  const headers = ['ID', 'Started', 'Purpose', 'DB', 'Progress', 'Validity', 'Submission'];
   const table = Table.from([headers.map(colors.bold.yellow)]);
 
   table.push(headers.map((header) => colors.bold.yellow('-'.repeat(header.length))));
@@ -86,7 +86,7 @@ async function listRequests(apiUrl: string, apiKey: string) {
         req.created_at,
         req.purpose,
         req.db,
-        req.status,
+        req.progress,
         req.validity,
         req.submission?.id || '',
       ]);

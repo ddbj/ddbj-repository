@@ -159,7 +159,7 @@ paths:
                   created_at: '2024-01-01T00:00:00.000Z'
                   purpose: submit
                   db: BioProject
-                  status: finished
+                  progress: finished
                   validity: valid
 
                   objects:
@@ -191,7 +191,7 @@ paths:
                   created_at: '2024-01-01T01:00:00.000Z'
                   purpose: validate
                   db: BioSample
-                  status: waiting
+                  progress: waiting
                   validity: null
 
                   objects:
@@ -243,7 +243,7 @@ paths:
               example:
                 id: 42
                 url: https://repository.ddbj.nig.ac.jp/api/validations/42
-                status: finished
+                progress: finished
                 validity: valid
 
                 validation_reports:
@@ -456,7 +456,7 @@ components:
     Validation:
       type: object
       additionalProperties: false
-      required: [id, url, created_at, finished_at, db, objects, status, validity, validation_reports, submission]
+      required: [id, url, created_at, finished_at, db, objects, progress, validity, validation_reports, submission]
 
       properties:
         id:
@@ -488,7 +488,7 @@ components:
         objects:
           $ref: '#/components/schemas/Objects'
 
-        status:
+        progress:
           type: string
 
           enum:
