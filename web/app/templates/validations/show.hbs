@@ -1,9 +1,9 @@
-{{page-title (concat "Request #" @model.id)}}
+{{page-title (concat "Validation #" @model.id)}}
 
-<h1 class="display-6 mb-4">Request #{{@model.id}}</h1>
+<h1 class="display-6 mb-4">Validation #{{@model.id}}</h1>
 
 <div class="mb-3">
-  <LinkTo @route="requests.index">&laquo; Back</LinkTo>
+  <LinkTo @route="validations.index">&laquo; Back</LinkTo>
 </div>
 
 <dl class="d-flex flex-wrap justify-content-between row-gap-1 column-gap-2">
@@ -18,8 +18,14 @@
   </div>
 
   <div>
-    <dt>Purpose</dt>
-    <dd>{{@model.purpose}}</dd>
+    <dt>Finished</dt>
+    <dd>
+      {{#if @model.finished_at}}
+        {{format-datetime @model.finished_at}}
+      {{else}}
+        -
+      {{/if}}
+    </dd>
   </div>
 
   <div>

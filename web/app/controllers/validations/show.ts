@@ -4,7 +4,7 @@ import { service } from '@ember/service';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 
-export default class RequestsShowController extends Controller {
+export default class ValidationsShowController extends Controller {
   @service declare currentUser: CurrentUserService;
 
   @action
