@@ -34,3 +34,8 @@ updates:
       - dependencies
       - javascript
       - web
+
+    groups:
+      types:
+        patterns:
+          - '@types/*'
