@@ -5,7 +5,7 @@ volumes:
 
 services:
   varnish:
-    build: ../docker/varnish
+    build: varnish
     user: root # https://github.com/varnish/docker-varnish/issues/53
 
     environment:
