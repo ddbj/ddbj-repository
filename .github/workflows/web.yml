@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ursm/action-setup-pnpm@node-version-file
+      - uses: ursm/action-setup-pnpm@subdirectory
         with:
           node-version-file: web/package.json
           cache-dependency-path: web/pnpm-lock.yaml
@@ -39,7 +39,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ursm/action-setup-pnpm@node-version-file
+      - uses: ursm/action-setup-pnpm@subdirectory
         with:
           node-version-file: web/package.json
           cache-dependency-path: web/pnpm-lock.yaml
