@@ -1,12 +1,6 @@
 version: 2
 
 updates:
-  - package-ecosystem: docker
-    directory: /
-
-    schedule:
-      interval: daily
-
   - package-ecosystem: github-actions
     directory: /
 
@@ -23,6 +17,12 @@ updates:
       - dependencies
       - ruby
       - api
+
+  - package-ecosystem: docker
+    directory: /compose/varnish
+
+    schedule:
+      interval: daily
 
   - package-ecosystem: npm
     directory: /web
