@@ -335,7 +335,7 @@ GEM
       rufus-scheduler (~> 3.2)
       sidekiq (>= 6, < 8)
       tilt (>= 1.4.0)
-    skooma (0.2.2)
+    skooma (0.2.3)
       json_skooma (~> 0.2.0)
       zeitwerk (~> 2.6)
     stringio (3.1.0)
