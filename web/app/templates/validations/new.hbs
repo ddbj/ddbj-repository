@@ -1,6 +1,6 @@
-{{page-title "Submit"}}
+{{page-title "New Validation"}}
 
-<h1 class="display-6 mb-4">Submit</h1>
+<h1 class="display-6 mb-4">New Validation</h1>
 
 <ul class="nav nav-tabs mb-3" role="tablist">
   {{#each this.dbs as |db|}}
@@ -17,4 +17,4 @@
   {{/each}}
 </ul>
 
-<SubmitForm @db={{this.selectedDb}} />
+<CreateValidationForm @db={{this.selectedDb}} />

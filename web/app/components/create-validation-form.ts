@@ -17,12 +17,12 @@ type Signature = {
   };
 };
 
-export default class SubmitFormConponent extends Component<Signature> {
+export default class CreateValidationFormConponent extends Component<Signature> {
   @service declare currentUser: CurrentUserService;
   @service declare errorModal: ErrorModalService;
   @service declare router: Router;
 
-  submit = task({ drop: true }, async (e: Event) => {
+  create = task({ drop: true }, async (e: Event) => {
     const { db } = this.args;
 
     e.preventDefault();

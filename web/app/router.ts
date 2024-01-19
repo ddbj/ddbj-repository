@@ -8,9 +8,9 @@ export default class Router extends EmberRouter {
 
 Router.map(function () {
   this.route('login');
-  this.route('submit');
 
   this.route('validations', function () {
+    this.route('new');
     this.route('show', { path: ':id' });
   });
 });
