@@ -1,3 +1,5 @@
+import type { DBSchema } from 'ddbj-repository/models/schema';
+
 /**
  * Type declarations for
  *    import config from 'ddbj-repository/config/environment'

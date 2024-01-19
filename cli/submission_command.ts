@@ -4,7 +4,9 @@ import { colorize } from 'json_colorize/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 
 import paginatedFetch from './paginated_fetch.ts';
-import { defaultApiUrl, ensureLogin, ensureSuccess } from './util.ts';
+import { defaultApiUrl, ensureLogin, ensureSuccess, formatDatetime } from './util.ts';
+
+import type { components } from '../schema/openapi.d.ts';
 
 type Options = {
   apiUrl?: string;
@@ -46,19 +48,7 @@ const submissionCommand: Command<Options> = new Command<Options>()
 
 export default submissionCommand;
 
-type Submission = {
-  id: string;
-  db: string;
-  created_at: string;
-
-  objects: Array<{
-    id: string;
-
-    files: Array<{
-      path: string;
-    }>;
-  }>;
-};
+type Submission = components['schemas']['Submission'];
 
 async function listSubmissions(apiUrl: string, apiKey: string) {
   const headers = ['ID', 'DB', 'Created'];
@@ -74,8 +64,8 @@ async function listSubmissions(apiUrl: string, apiKey: string) {
     submissions.forEach((submission) => {
       table.push([
         colors.bold(submission.id),
-        submission.db,
-        submission.created_at,
+        submission.validation.db,
+        formatDatetime(submission.created_at)!,
       ]);
     });
   });

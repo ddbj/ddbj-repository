@@ -1,3 +1,5 @@
+import { format } from 'std/datetime/mod.ts';
+
 import { colorize } from 'json_colorize/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 
@@ -30,4 +32,10 @@ export async function ensureSuccess(res: Response) {
   }
 
   Deno.exit(1);
+}
+
+export function formatDatetime(date: string | null) {
+  if (!date) return undefined;
+
+  return format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
 }
