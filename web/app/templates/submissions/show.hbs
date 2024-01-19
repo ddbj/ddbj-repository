@@ -1,0 +1,61 @@
+{{page-title (concat "Submission " @model.id)}}
+
+<h1 class="display-6 mb-4">Submission {{@model.id}}</h1>
+
+<div class="mb-3">
+  <LinkTo @route="submissions.index">&laquo; Back</LinkTo>
+</div>
+
+<dl class="d-flex flex-wrap row-gap-1 column-gap-5">
+  <div>
+    <dt>ID</dt>
+    <dd>{{@model.id}}</dd>
+  </div>
+
+  <div>
+    <dt>DB</dt>
+    <dd>{{@model.validation.db}}</dd>
+  </div>
+
+  <div>
+    <dt>Created</dt>
+    <dd>{{format-datetime @model.created_at}}</dd>
+  </div>
+
+  <div>
+    <dt>Validation</dt>
+
+    <dd>
+      <LinkTo @route="validations.show" @model={{@model.validation.id}}>#{{@model.validation.id}}</LinkTo>
+    </dd>
+  </div>
+</dl>
+
+<h2>Objects</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Files</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{#each @model.validation.objects key="id" as |obj|}}
+      <tr>
+        <td>{{obj.id}}</td>
+
+        <td>
+          <ul class="list-unstyled mb-0">
+            {{#each obj.files as |file|}}
+              <li>
+                <button type="button" class="btn btn-link p-0" {{on 'click' (fn this.downloadFile file.url)}}>{{file.path}}</button>
+              </li>
+            {{/each}}
+          </ul>
+        </td>
+      </tr>
+    {{/each}}
+  </tbody>
+</table>

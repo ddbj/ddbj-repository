@@ -6,10 +6,8 @@ import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 
-export default class ValidationsRoute extends Route {
+export default class SubmissionsIndexRoute extends Route {
   @service declare currentUser: CurrentUserService;
-
-  timer?: number;
 
   queryParams = {
     page: {
@@ -18,7 +16,7 @@ export default class ValidationsRoute extends Route {
   };
 
   async model(params: { page?: string }) {
-    const url = new URL(`${ENV.apiURL}/validations`);
+    const url = new URL(`${ENV.apiURL}/submissions`);
 
     if (params.page) {
       url.searchParams.set('page', params.page);
@@ -33,22 +31,8 @@ export default class ValidationsRoute extends Route {
     }
 
     return {
-      validations: await res.json(),
+      submissions: await res.json(),
       lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
     };
-  }
-
-  afterModel(model: { validations: { progress: string }[] }) {
-    if (model.validations.some(({ progress }) => progress === 'waiting' || progress === 'running')) {
-      this.timer = setTimeout(() => {
-        this.refresh();
-      }, 2000);
-    }
-  }
-
-  deactivate() {
-    if (this.timer) {
-      clearTimeout(this.timer);
-    }
   }
 }
