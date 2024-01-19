@@ -1,8 +1,6 @@
 class SubmissionsController < ApplicationController
   include Pagination
 
-  class UnprocessableEntity < StandardError; end
-
   def index
     pagy, @submissions = pagy(submissions.order(id: :desc), page: params[:page])
 
@@ -18,13 +16,8 @@ class SubmissionsController < ApplicationController
   end
 
   def create
-    validation = current_user.validations.find(params.require(:validation_id))
-
-    ActiveRecord::Base.transaction do
-      raise UnprocessableEntity, 'Validation failed: Validation is already submitted' if validation.submission
-
-      @submission = validation.create_submission!
-    end
+    validation  = current_user.validations.find(params.require(:validation_id))
+    @submission = Submission.create!(validation:)
 
     render status: :created
   end
