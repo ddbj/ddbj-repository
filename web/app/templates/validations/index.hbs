@@ -6,9 +6,9 @@
   <thead>
     <tr>
       <th>ID</th>
+      <th>DB</th>
       <th>Started</th>
       <th>Finished</th>
-      <th>DB</th>
       <th>Progress</th>
       <th>Validity</th>
       <th>Submission</th>
@@ -22,6 +22,8 @@
           <LinkTo @route="validations.show" @model={{req}}>{{req.id}}</LinkTo>
         </td>
 
+        <td>{{req.db}}</td>
+
         <td>{{format-datetime req.created_at}}</td>
         <td>
           {{#if @model.finished_at}}
@@ -30,7 +32,7 @@
             -
           {{/if}}
         </td>
-        <td>{{req.db}}</td>
+
         <td><ProgressLabel @progress={{req.progress}} /></td>
         <td><ValidityBadge @validity={{req.validity}} /></td>
 
