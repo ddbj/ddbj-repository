@@ -231,7 +231,7 @@ GEM
       tzinfo
       validate_url
       webfinger (~> 2.0)
-    pagy (6.4.2)
+    pagy (6.4.3)
     parallel (1.24.0)
     pg (1.5.4)
     psych (5.1.2)
