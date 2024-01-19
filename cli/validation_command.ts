@@ -7,7 +7,9 @@ import { colors } from 'cliffy/ansi/colors.ts';
 
 import createCommand from './validation_create_command.ts';
 import paginatedFetch from './paginated_fetch.ts';
-import { defaultApiUrl, ensureLogin, ensureSuccess } from './util.ts';
+import { defaultApiUrl, ensureLogin, ensureSuccess, formatDatetime } from './util.ts';
+
+import type { components } from '../schema/openapi.d.ts';
 
 type Options = {
   apiUrl?: string;
@@ -60,18 +62,7 @@ const validationCommand: Command<Options> = new Command<Options>()
 
 export default validationCommand;
 
-type Validation = {
-  id: number;
-  db: string;
-  created_at: string;
-  finished_at: string;
-  progress: string;
-  validity: string;
-
-  submission?: {
-    id: string;
-  };
-};
+type Validation = components['schemas']['Validation'];
 
 async function listValidations(apiUrl: string, apiKey: string) {
   const headers = ['ID', 'DB', 'Started', 'Finished', 'Progress', 'Validity', 'Submission'];
@@ -88,11 +79,11 @@ async function listValidations(apiUrl: string, apiKey: string) {
       table.push([
         colors.bold(req.id.toString()),
         req.db,
-        formatDatetime(req.created_at) || '',
-        formatDatetime(req.finished_at) || '',
+        formatDatetime(req.created_at)!,
+        formatDatetime(req.finished_at) || '-',
         req.progress,
-        req.validity,
-        req.submission?.id || '',
+        req.validity || '-',
+        req.submission?.id || '-',
       ]);
     });
   });
@@ -133,10 +124,4 @@ async function cancelValidation(apiUrl: string, apiKey: string, id: number) {
   const payload = await res.json();
 
   colorize(JSON.stringify(payload, null, 2));
-}
-
-function formatDatetime(date?: string) {
-  if (!date) return undefined;
-
-  return format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
 }

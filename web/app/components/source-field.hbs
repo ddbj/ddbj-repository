@@ -20,7 +20,7 @@
           {{/if}}
         </label>
 
-        <input type='text' value={{@source.path}} id={{id}} class="form-control" required={{@source.required}} {{on 'change' (pick 'target.value' (set @source 'path'))}} />
+        <input type='text' value={{@source.path}} id={{id}} class="form-control" required={{@source.required}} {{on 'change' this.setPath}} />
       {{/if}}
     {{/let}}
   </div>
@@ -31,7 +31,7 @@
         Destination
       </label>
 
-      <input type="text" value={{@source.destination}} id={{id}} class="form-control" {{on 'change' (pick 'target.value' (set @source 'destination'))}} />
+      <input type="text" value={{@source.destination}} id={{id}} class="form-control" {{on 'change' this.setDestination}} />
     {{/let}}
   </div>
 

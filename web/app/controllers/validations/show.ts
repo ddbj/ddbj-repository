@@ -1,5 +1,6 @@
 import Controller from '@ember/controller';
 import { action } from '@ember/object';
+import { modifier } from 'ember-modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
@@ -11,18 +12,11 @@ import downloadFile from 'ddbj-repository/utils/download-file';
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type ErrorModalService from 'ddbj-repository/services/error-modal';
 import type Router from '@ember/routing/router';
+import type { components } from 'schema/openapi';
+
+type Validation = components['schemas']['Validation'];
 
 const oneDay = 24 * 60 * 60 * 1000;
-
-type Validation = {
-  id: number;
-  validity?: string;
-  finished_at?: string;
-
-  submission?: {
-    id: string;
-  };
-};
 
 export default class ValidationsShowController extends Controller {
   @service declare currentUser: CurrentUserService;
@@ -31,22 +25,24 @@ export default class ValidationsShowController extends Controller {
 
   @tracked currentTime = new Date();
 
-  timer: number;
+  declare model: Validation;
 
-  constructor(owner: object | undefined) {
-    super(owner);
-
-    this.timer = setInterval(() => {
+  tickCurrentTime = modifier(() => {
+    const timer = setInterval(() => {
       this.currentTime = new Date();
     }, 1000);
-  }
+
+    return () => {
+      clearInterval(timer);
+    };
+  });
 
   get canSubmit() {
     return !this.cannotSubmitReason;
   }
 
   get cannotSubmitReason() {
-    const { validity, finished_at, submission } = this.model as Validation;
+    const { validity, finished_at, submission } = this.model;
 
     if (submission) {
       return 'Validation is already submitted.';
@@ -65,7 +61,7 @@ export default class ValidationsShowController extends Controller {
   }
 
   submit = task({ drop: true }, async () => {
-    const { id } = this.model as Validation;
+    const { id } = this.model;
 
     const res = await fetch(`${ENV.apiURL}/submissions`, {
       method: 'POST',

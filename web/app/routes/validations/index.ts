@@ -5,6 +5,14 @@ import ENV from 'ddbj-repository/config/environment';
 import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type { components } from 'schema/openapi';
+
+type Validation = components['schemas']['Validation'];
+
+export interface Model {
+  validations: Validation[];
+  lastPage?: number;
+}
 
 export default class ValidationsRoute extends Route {
   @service declare currentUser: CurrentUserService;
@@ -38,8 +46,8 @@ export default class ValidationsRoute extends Route {
     };
   }
 
-  afterModel(model: { validations: { progress: string }[] }) {
-    if (model.validations.some(({ progress }) => progress === 'waiting' || progress === 'running')) {
+  afterModel(model: Model) {
+    if (model.validations.some(({ progress }) => progress === 'waiting' || progress === 'processing')) {
       this.timer = setTimeout(() => {
         this.refresh();
       }, 2000);

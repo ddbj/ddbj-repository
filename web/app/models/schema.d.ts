@@ -1,10 +1,10 @@
-type DBSchema = {
+export interface DBSchema {
   id: string;
   objects: ObjSchema[];
-};
+}
 
-type ObjSchema = {
+export interface ObjSchema {
   id: string;
   optional: boolean;
   multiple: boolean;
-};
+}

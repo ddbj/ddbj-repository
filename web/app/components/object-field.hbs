@@ -7,14 +7,14 @@
     {{#let (unique-id) as |name|}}
       <div class="form-check form-check-inline">
         {{#let (unique-id) as |id|}}
-          <input type="radio" checked={{eq @obj.sourceType 'file'}} name={{name}} id={{id}} {{on 'click' (fn (set @obj 'sourceType') 'file')}} />
+          <input type="radio" checked={{eq @obj.sourceType 'file'}} name={{name}} id={{id}} {{on 'click' (fn this.setSourceType 'file')}} />
           <label class="form-check-label" for={{id}}>File</label>
         {{/let}}
       </div>
 
       <div class="form-check form-check-inline">
         {{#let (unique-id) as |id|}}
-          <input type="radio" checked={{eq @obj.sourceType 'path'}} name={{name}} id={{id}} {{on 'click' (fn (set @obj 'sourceType') 'path')}} />
+          <input type="radio" checked={{eq @obj.sourceType 'path'}} name={{name}} id={{id}} {{on 'click' (fn this.setSourceType 'path')}} />
           <label class="form-check-label" for={{id}}>Path</label>
         {{/let}}
       </div>

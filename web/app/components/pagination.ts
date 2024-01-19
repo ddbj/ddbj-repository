@@ -1,12 +1,14 @@
 import Component from '@glimmer/component';
 
-type Signature = {
+interface Signature {
+  Element: HTMLElement;
+
   Args: {
     route: string;
     current: number;
     last: number;
   };
-};
+}
 
 export default class PaginationComponent extends Component<Signature> {
   get pages() {
@@ -25,5 +27,11 @@ export default class PaginationComponent extends Component<Signature> {
     const { current, last } = this.args;
 
     return current === last ? undefined : current + 1;
+  }
+}
+
+declare module '@glint/environment-ember-loose/registry' {
+  export default interface Registry {
+    Pagination: typeof PaginationComponent;
   }
 }

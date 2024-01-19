@@ -25,6 +25,12 @@ updates:
       interval: daily
 
   - package-ecosystem: npm
+    directory: /schema
+
+    schedule:
+      interval: daily
+
+  - package-ecosystem: npm
     directory: /web
 
     schedule:

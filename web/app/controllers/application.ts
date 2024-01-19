@@ -1,5 +1,6 @@
 import Controller from '@ember/controller';
 import { action } from '@ember/object';
+import { modifier } from 'ember-modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
@@ -15,18 +16,23 @@ export default class ApplicationController extends Controller {
 
   errorModal?: Modal;
 
+  setErrorModal = modifier((el) => {
+    this.errorModal = new Modal(el);
+
+    const handler = () => {
+      this.error = undefined;
+    };
+
+    el.addEventListener('hidden.bs.modal', handler);
+
+    return () => {
+      el.removeEventListener('hidden.bs.modal', handler);
+    };
+  });
+
   @action
   async logout() {
     await this.currentUser.logout();
-  }
-
-  @action
-  setErrorModal(element: HTMLElement) {
-    this.errorModal = new Modal(element);
-
-    element.addEventListener('hidden.bs.modal', () => {
-      this.error = undefined;
-    });
   }
 
   @action
