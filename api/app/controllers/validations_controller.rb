@@ -20,10 +20,10 @@ class ValidationsController < ApplicationController
 
     if validation.finished? || validation.canceled?
       render json: {
-        error: "Validation already #{validation.status}."
+        error: "Validation already #{validation.progress}."
       }, status: :conflict
     else
-      validation.update! status: 'canceled', finished_at: Time.current
+      validation.update! progress: 'canceled', finished_at: Time.current
 
       render json: {
         message: 'Validation canceled successfully.'

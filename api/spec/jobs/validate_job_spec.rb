@@ -10,7 +10,7 @@ RSpec.describe ValidateJob, type: :job do
     ValidateJob.perform_now validation
 
     expect(validation).to have_attributes(
-      status:   'finished',
+      progress: 'finished',
       validity: 'valid'
     )
   end
