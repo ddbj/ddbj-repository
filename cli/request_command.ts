@@ -70,7 +70,7 @@ type Request = {
 };
 
 async function listRequests(apiUrl: string, apiKey: string) {
-  const headers = ['ID', 'Created', 'Purpose', 'DB', 'Status', 'Validity', 'Submission'];
+  const headers = ['ID', 'Started', 'Purpose', 'DB', 'Status', 'Validity', 'Submission'];
   const table = Table.from([headers.map(colors.bold.yellow)]);
 
   table.push(headers.map((header) => colors.bold.yellow('-'.repeat(header.length))));
