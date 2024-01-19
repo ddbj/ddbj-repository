@@ -1,12 +1,22 @@
-{{page-title (concat "Validation #" @model.id)}}
-
-<h1 class="display-6 mb-4">Validation #{{@model.id}}</h1>
+{{page-title (concat 'Validation #' @model.id)}}
 
 <div class="mb-3">
   <LinkTo @route="validations.index">&laquo; Back</LinkTo>
 </div>
 
-<dl class="d-flex flex-wrap justify-content-between row-gap-1 column-gap-2">
+<h1 class="display-6 mb-4">Validation #{{@model.id}}</h1>
+
+<div class="d-flex align-items-center gap-3 mb-3">
+  <button type="button" class="btn btn-primary" disabled={{or (not this.canSubmit) this.submit.isRunning}} {{on 'click' (perform this.submit)}}>
+    Submit
+  </button>
+
+  {{#if this.cannotSubmitReason}}
+    <div class="text-danger">{{this.cannotSubmitReason}}</div>
+  {{/if}}
+</div>
+
+<dl class="d-flex flex-wrap row-gap-1 column-gap-5">
   <div>
     <dt>ID</dt>
     <dd>{{@model.id}}</dd>
@@ -49,7 +59,9 @@
 
     <dd>
       {{#if @model.submission}}
-        {{@model.submission.id}}
+        <LinkTo @route="submissions.show" @model={{@model.submission.id}}>
+          {{@model.submission.id}}
+        </LinkTo>
       {{else}}
         -
       {{/if}}

@@ -1,0 +1,30 @@
+{{page-title "Submissions"}}
+
+<h1 class="display-6 mb-4">Submissions</h1>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>DB</th>
+      <th>Created</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{#each @model.submissions key="id" as |submission|}}
+      <tr>
+        <td>
+          <LinkTo @route="submissions.show" @model={{submission}}>{{submission.id}}</LinkTo>
+        </td>
+
+        <td>{{submission.validation.db}}</td>
+        <td>{{format-datetime submission.created_at}}</td>
+      </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+{{#if @model.lastPage}}
+  <Pagination @route="submissions.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
+{{/if}}
