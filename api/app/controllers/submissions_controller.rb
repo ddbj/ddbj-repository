@@ -19,6 +19,8 @@ class SubmissionsController < ApplicationController
     validation  = current_user.validations.find(params.require(:validation_id))
     @submission = Submission.create!(validation:)
 
+    SubmitJob.perform_later @submission
+
     render status: :created
   end
 
