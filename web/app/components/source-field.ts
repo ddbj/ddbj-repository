@@ -1,7 +1,7 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 
-import { Obj, Source } from 'ddbj-repository/components/submit-form';
+import { Obj, Source } from 'ddbj-repository/components/create-validation-form';
 
 type Signature = {
   obj: Obj;
