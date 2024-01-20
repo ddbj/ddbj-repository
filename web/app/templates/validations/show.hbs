@@ -69,35 +69,6 @@
   </div>
 </dl>
 
-<h2>Objects</h2>
-
-<table class="table">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Files</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    {{#each @model.objects key="id" as |obj|}}
-      <tr>
-        <td>{{obj.id}}</td>
-
-        <td>
-          <ul class="list-unstyled mb-0">
-            {{#each obj.files as |file|}}
-              <li>
-                <button type="button" class="btn btn-link p-0" {{on 'click' (fn this.downloadFile file.url)}}>{{file.path}}</button>
-              </li>
-            {{/each}}
-          </ul>
-        </td>
-      </tr>
-    {{/each}}
-  </tbody>
-</table>
-
 <h2>Validation Reports</h2>
 
 <table class="table">
@@ -116,8 +87,8 @@
         <td>{{report.object_id}}</td>
 
         <td>
-          {{#if report.path}}
-            {{report.path}}
+          {{#if report.file}}
+            <button type="button" class="btn btn-link p-0" {{on 'click' (fn this.downloadFile report.file.url)}}>{{report.file.path}}</button>
           {{else}}
             -
           {{/if}}

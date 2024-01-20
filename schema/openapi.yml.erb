@@ -170,17 +170,20 @@ paths:
 
                   validation_reports:
                     - object_id: _base
-                      path: null
                       validity: valid
                       details: null
+                      file: null
 
                     - object_id: BioSample
-                      path: mybiosample.xml
                       validity: valid
 
                       details:
                         validity: true
                         answer: 42
+
+                      file:
+                        path: mybiosample.xml
+                        url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
 
                   submission:
                     id: X-200
@@ -202,9 +205,9 @@ paths:
 
                   validation_reports:
                     - object_id: _base
-                      path: null
                       validity: null
                       details: null
+                      file: null
 
                   submission: null
 
@@ -248,9 +251,9 @@ paths:
 
                 validation_reports:
                   - object_id: _base
-                    path: null
                     validity: null
                     details: null
+                    file: null
 
                   - object_id: BioSample
                     path: mybiosample.xml
@@ -259,6 +262,10 @@ paths:
                     details:
                       validity: true
                       answer: 42
+
+                    file:
+                      path: mybiosample.xml
+                      url: https://repository.ddbj.nig.ac.jp/api/validations/42/files/mybioproject.xml
 
                 submission:
                   id: X-84
@@ -581,7 +588,7 @@ components:
     ValidationReport:
       type: object
       additionalProperties: false
-      required: [object_id, path, validity, details]
+      required: [object_id, validity, details, file]
 
       properties:
         object_id:
@@ -592,11 +599,6 @@ components:
             <%- dbs.flat_map { _1[:objects] }.uniq { _1[:id] }.each do |obj| -%>
             - <%= obj[:id] %>
             <%- end -%>
-
-        path:
-          type:
-            - string
-            - 'null'
 
         validity:
           type:
@@ -613,6 +615,22 @@ components:
           type:
             - object
             - 'null'
+
+        file:
+          type:
+            - object
+            - 'null'
+
+          additionalProperties: false
+          required: [path, url]
+
+          properties:
+            path:
+              type: string
+
+            url:
+              type: string
+              format: uri
 
     File:
       type: string
