@@ -50,15 +50,19 @@ RSpec.describe 'submissions', type: :request, authorized: true do
         validation_reports: [
           {
             object_id: '_base',
-            path:      nil,
             validity:  'valid',
-            details:   nil
+            details:   nil,
+            file:      nil
           },
           {
             object_id: 'Excel',
-            path:      'dest/myexcel.xlsx',
             validity:  'valid',
-            details:   nil
+            details:   nil,
+
+            file: {
+              path: 'dest/myexcel.xlsx',
+              url:  'http://www.example.com/api/validations/100/files/dest/myexcel.xlsx'
+            }
           }
         ],
 

@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe MetabobankValidator, type: :model do
   example 'valid' do
-    validation = create(:validation, db: 'MetaboBank') {|validation|
+    validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
       create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')
     }
@@ -17,13 +17,12 @@ RSpec.describe MetabobankValidator, type: :model do
     expect(validation.validation_reports).to contain_exactly(
       {
         object_id: '_base',
-        path:      nil,
         validity:  'valid',
-        details:   nil
+        details:   nil,
+        file:      nil
       },
       {
         object_id: 'IDF',
-        path:      'MTBKS231.idf.txt',
         validity:  'valid',
 
         details: [
@@ -31,19 +30,28 @@ RSpec.describe MetabobankValidator, type: :model do
           'code'      => 'MB_IR0037',
           'severity'  => 'error_ignore',
           'message'   => instance_of(String)
-        ]
+        ],
+
+        file: {
+          path: 'MTBKS231.idf.txt',
+          url:  'http://www.example.com/api/validations/42/files/MTBKS231.idf.txt'
+        }
       },
       {
         object_id: 'SDRF',
-        path:      'MTBKS231.sdrf.txt',
         validity:  'valid',
-        details:   instance_of(Array)
+        details:   instance_of(Array),
+
+        file: {
+          path: 'MTBKS231.sdrf.txt',
+          url:  'http://www.example.com/api/validations/42/files/MTBKS231.sdrf.txt'
+        }
       }
     )
   end
 
   example 'with MAF and RawDataFile and ProcessedDataFile, valid' do
-    validation = create(:validation, db: 'MetaboBank') {|validation|
+    validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
       create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')
       create :obj, validation:, _id: 'MAF',  file: file_fixture_upload('metabobank/valid/MTBKS231.maf.txt')
@@ -80,27 +88,43 @@ RSpec.describe MetabobankValidator, type: :model do
     expect(validation.validation_reports).to include(
       {
         object_id: 'MAF',
-        path:      'MTBKS231.maf.txt',
         validity:  'valid',
-        details:   nil
+        details:   nil,
+
+        file: {
+          path: 'MTBKS231.maf.txt',
+          url:  'http://www.example.com/api/validations/42/files/MTBKS231.maf.txt'
+        }
       },
       {
         object_id: 'RawDataFile',
-        path:      'raw/010_10_1_010.lcd',
         validity:  'valid',
-        details:   nil
+        details:   nil,
+
+        file: {
+          path: 'raw/010_10_1_010.lcd',
+          url:  'http://www.example.com/api/validations/42/files/raw/010_10_1_010.lcd'
+        }
       },
       {
         object_id: 'RawDataFile',
-        path:      'raw/027_27_18_027.lcd',
         validity:  'valid',
-        details:   nil
+        details:   nil,
+
+        file: {
+          path: 'raw/027_27_18_027.lcd',
+          url:  'http://www.example.com/api/validations/42/files/raw/027_27_18_027.lcd'
+        }
       },
       {
         object_id: 'ProcessedDataFile',
-        path:      'processed/220629_ppg_conc.txt',
         validity:  'valid',
-        details:   nil
+        details:   nil,
+
+        file: {
+          path: 'processed/220629_ppg_conc.txt',
+          url:  'http://www.example.com/api/validations/42/files/processed/220629_ppg_conc.txt'
+        }
       }
     )
 
@@ -108,7 +132,7 @@ RSpec.describe MetabobankValidator, type: :model do
   end
 
   example 'with BioSample, valid' do
-    validation = create(:validation, db: 'MetaboBank') {|validation|
+    validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
       create :obj, validation:, _id: 'IDF',       file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')
       create :obj, validation:, _id: 'SDRF',      file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')
       create :obj, validation:, _id: 'BioSample', file: file_fixture_upload('metabobank/valid/MTBKS231.bs.tsv')
@@ -123,14 +147,18 @@ RSpec.describe MetabobankValidator, type: :model do
 
     expect(validation.validation_reports).to include(
       object_id: 'BioSample',
-      path:      'MTBKS231.bs.tsv',
       validity:  'valid',
-      details:   nil
+      details:   nil,
+
+      file: {
+        path: 'MTBKS231.bs.tsv',
+        url:  'http://www.example.com/api/validations/42/files/MTBKS231.bs.tsv'
+      }
     )
   end
 
   example 'invalid' do
-    validation = create(:validation, db: 'MetaboBank') {|validation|
+    validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
       create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/invalid/MTBKS201.idf.txt')
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/invalid/MTBKS201.sdrf.txt')
     }
@@ -145,21 +173,29 @@ RSpec.describe MetabobankValidator, type: :model do
     expect(validation.validation_reports).to contain_exactly(
       {
         object_id: '_base',
-        path:      nil,
         validity:  'valid',
-        details:   nil
+        details:   nil,
+        file:      nil
       },
       {
         object_id: 'IDF',
-        path:      'MTBKS201.idf.txt',
         validity:  'valid',
-        details:   instance_of(Array)
+        details:   instance_of(Array),
+
+        file: {
+          path: 'MTBKS201.idf.txt',
+          url:  'http://www.example.com/api/validations/42/files/MTBKS201.idf.txt'
+        }
       },
       {
         object_id: 'SDRF',
-        path:      'MTBKS201.sdrf.txt',
         validity:  'invalid',
-        details:   instance_of(Array)
+        details:   instance_of(Array),
+
+        file: {
+          path: 'MTBKS201.sdrf.txt',
+          url:  'http://www.example.com/api/validations/42/files/MTBKS201.sdrf.txt'
+        }
       }
     )
   end
