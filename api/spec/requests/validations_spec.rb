@@ -34,7 +34,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
             validity:    nil,
             objects:     [],
 
-            validation_reports: [
+            results: [
               {
                 object_id: '_base',
                 validity:  nil,
@@ -64,7 +64,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
               ]
             ],
 
-            validation_reports: [
+            results: [
               {
                 object_id: '_base',
                 validity:  'valid',
@@ -197,7 +197,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
         validity:    'valid',
         objects:     [],
 
-        validation_reports: [
+        results: [
           {
             object_id: '_base',
             validity:  'valid',

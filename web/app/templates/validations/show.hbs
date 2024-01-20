@@ -81,7 +81,7 @@
   </div>
 </dl>
 
-<h2>Validation Reports</h2>
+<h2>Results</h2>
 
 <table class="table">
   <thead>
@@ -94,22 +94,22 @@
   </thead>
 
   <tbody>
-    {{#each @model.validation_reports key="object_id" as |report|}}
+    {{#each @model.results key="object_id" as |result|}}
       <tr>
-        <td>{{report.object_id}}</td>
+        <td>{{result.object_id}}</td>
 
         <td>
-          {{#if report.file}}
-            <button type="button" class="btn btn-link p-0" {{on 'click' (fn this.downloadFile report.file.url)}}>{{report.file.path}}</button>
+          {{#if result.file}}
+            <button type="button" class="btn btn-link p-0" {{on 'click' (fn this.downloadFile result.file.url)}}>{{result.file.path}}</button>
           {{else}}
             -
           {{/if}}
         </td>
 
-        <td><ValidityBadge @validity={{report.validity}} /></td>
+        <td><ValidityBadge @validity={{result.validity}} /></td>
 
         <td>
-          <pre class="mb-0 py-1 text-pre-wrap"><code>{{#if report.details}}{{to-json report.details}}{{else}}-{{/if}}</code></pre>
+          <pre class="mb-0 py-1 text-pre-wrap"><code>{{#if result.details}}{{to-json result.details}}{{else}}-{{/if}}</code></pre>
         </td>
       </tr>
     {{/each}}
