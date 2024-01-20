@@ -62,6 +62,23 @@ export default class ValidationsShowController extends Controller {
     await downloadFile(url, this.currentUser);
   }
 
+  cancel = task({ drop: true }, async () => {
+    const { id } = this.model;
+
+    const res = await fetch(`${ENV.apiURL}/validations/${id}`, {
+      method: 'DELETE',
+      headers: this.currentUser.authorizationHeader,
+    });
+
+    if (!res.ok) {
+      this.errorModal.show(new Error(res.statusText));
+    }
+
+    // @ts-expect-error https://api.emberjs.com/ember/5.5/classes/RouterService/methods/refresh?anchor=refresh
+    this.router.refresh();
+    this.toast.show('Validation has been canceled.', 'success');
+  });
+
   submit = task({ drop: true }, async () => {
     const { id } = this.model;
 

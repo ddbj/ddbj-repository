@@ -6,13 +6,21 @@
 
 <h1 class="display-6 mb-4">Validation #{{@model.id}}</h1>
 
-<div class="d-flex align-items-center gap-3 mb-3" {{this.tickCurrentTime}}>
-  <button type="button" class="btn btn-primary" disabled={{or (not this.canSubmit) this.submit.isRunning}} {{on 'click' (perform this.submit)}}>
-    Submit
-  </button>
+<div class="mb-3">
+  {{#if (or (eq @model.progress 'waiting') (eq @model.progress 'running'))}}
+    <button type="button" class="btn btn-danger" disabled={{this.cancel.isRunning}} {{on 'click' (perform this.cancel)}}>
+      Cancel
+    </button>
+  {{else}}
+    <div class="d-flex align-items-center gap-3" {{this.tickCurrentTime}}>
+      <button type="button" class="btn btn-primary" disabled={{or (not this.canSubmit) this.submit.isRunning}} {{on 'click' (perform this.submit)}}>
+        Submit
+      </button>
 
-  {{#if this.cannotSubmitReason}}
-    <div class="text-danger">{{this.cannotSubmitReason}}</div>
+      {{#if this.cannotSubmitReason}}
+        <div class="text-danger">{{this.cannotSubmitReason}}</div>
+      {{/if}}
+    </div>
   {{/if}}
 </div>
 
