@@ -234,6 +234,8 @@ export interface components {
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "processing" | "finished" | "canceled";

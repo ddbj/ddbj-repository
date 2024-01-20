@@ -2,15 +2,13 @@ import { helper } from '@ember/component/helper';
 
 export interface Signature {
   Args: {
-    Positional: [date?: Date | string];
+    Positional: [date: Date | string];
   };
 
   Return: string;
 }
 
 const formatDatetime = helper<Signature>(([date]) => {
-  if (!date) return '';
-
   if (typeof date === 'string') {
     date = new Date(date);
   }

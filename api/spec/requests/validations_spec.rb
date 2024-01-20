@@ -8,7 +8,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
       before do
         travel_to '2024-01-02'
 
-        create :validation, :valid, id: 100, db: 'GEA', created_at: '2024-01-02 03:04:56', finished_at: '2024-01-02 03:04:57' do |validation|
+        create :validation, :valid, id: 100, db: 'GEA', created_at: '2024-01-02 03:04:56', started_at: '2024-01-02 03:04:57', finished_at: '2024-01-02 03:04:58' do |validation|
           create :submission, validation:, id: 200
 
           create :obj, validation:, _id: 'IDF', file: uploaded_file(name: 'myidf.txt'), validity: 'valid'
@@ -28,6 +28,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
             url:         'http://www.example.com/api/validations/101',
             db:          'MetaboBank',
             created_at:  '2024-01-02T03:04:58.000Z',
+            started_at:  nil,
             finished_at: nil,
             progress:    'waiting',
             validity:    nil,
@@ -49,7 +50,8 @@ RSpec.describe 'validations', type: :request, authorized: true do
             url:         'http://www.example.com/api/validations/100',
             db:          'GEA',
             created_at:  '2024-01-02T03:04:56.000Z',
-            finished_at: '2024-01-02T03:04:57.000Z',
+            started_at:  '2024-01-02T03:04:57.000Z',
+            finished_at: '2024-01-02T03:04:58.000Z',
             progress:    'finished',
             validity:    'valid',
 
@@ -174,7 +176,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
     before do
       travel_to '2024-01-02'
 
-      create :validation, :valid, id: 100, db: 'BioSample', created_at: '2024-01-02 03:04:56', finished_at: '2024-01-02 03:04:57' do |validation|
+      create :validation, :valid, id: 100, db: 'BioSample', created_at: '2024-01-02 03:04:56', started_at: '2024-01-02 03:04:57', finished_at: '2024-01-02 03:04:58' do |validation|
         create :submission, validation:, id: 200
       end
     end
@@ -189,7 +191,8 @@ RSpec.describe 'validations', type: :request, authorized: true do
         url:         'http://www.example.com/api/validations/100',
         db:          'BioSample',
         created_at:  '2024-01-02T03:04:56.000Z',
-        finished_at: '2024-01-02T03:04:57.000Z',
+        started_at:  '2024-01-02T03:04:57.000Z',
+        finished_at: '2024-01-02T03:04:58.000Z',
         progress:    'finished',
         validity:    'valid',
         objects:     [],
