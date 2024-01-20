@@ -84,6 +84,10 @@ class Validations::ViaFilesController < ApplicationController
 
       destination:
     }
+  rescue Errno::ENOENT
+    raise BadRequest, "path does not exist: #{path}"
+  rescue Errno::EISDIR
+    raise BadRequest, "path is directory: #{path}"
   end
 end
 
