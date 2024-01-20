@@ -39,7 +39,7 @@ RSpec.describe Validators, type: :model do
       validity: 'error'
     )
 
-    expect(validation.validation_reports).to contain_exactly(
+    expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
         validity:  'error',

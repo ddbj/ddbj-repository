@@ -28,8 +28,8 @@ class Validation < ApplicationRecord
     end
   end
 
-  def validation_reports
-    objs.map(&:validation_report)
+  def results
+    objs.map(&:validation_result)
   end
 
   def write_files_to_tmp(&block)
@@ -50,14 +50,14 @@ class Validation < ApplicationRecord
   end
 
   def write_submission_files(to:)
-    to.tap(&:mkpath).join('validation-report.json').write JSON.pretty_generate(validation_reports)
+    to.tap(&:mkpath).join('validation-report.json').write JSON.pretty_generate(results)
 
     objs.each do |obj|
       obj_dir = to.join(obj._id)
 
       if obj.base?
         obj_dir.mkpath
-        obj_dir.join('validation-report.json').write JSON.pretty_generate(obj.validation_report)
+        obj_dir.join('validation-report.json').write JSON.pretty_generate(obj.validation_result)
       else
         path = obj_dir.join(obj.path)
         path.dirname.mkpath
@@ -66,7 +66,7 @@ class Validation < ApplicationRecord
           FileUtils.mv file.path, path
         end
 
-        File.write "#{path}-validation-report.json", JSON.pretty_generate(obj.validation_report)
+        File.write "#{path}-validation-report.json", JSON.pretty_generate(obj.validation_result)
       end
     end
   end

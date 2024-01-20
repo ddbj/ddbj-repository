@@ -21,7 +21,7 @@ class Obj < ApplicationRecord
     _id == '_base'
   end
 
-  def validation_report
+  def validation_result
     {
       object_id: _id,
       validity:  validity,

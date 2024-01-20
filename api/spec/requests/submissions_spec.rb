@@ -49,7 +49,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
           ]
         ],
 
-        validation_reports: [
+        results: [
           {
             object_id: '_base',
             validity:  'valid',

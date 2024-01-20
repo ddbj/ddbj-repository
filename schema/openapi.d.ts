@@ -242,7 +242,7 @@ export interface components {
       /** @enum {string|null} */
       validity: "valid" | "invalid" | "error" | null;
       objects: components["schemas"]["Objects"];
-      validation_reports: components["schemas"]["ValidationReport"][];
+      results: components["schemas"]["ValidationResult"][];
       submission: {
         id: string;
         /** Format: uri */
@@ -264,7 +264,7 @@ export interface components {
             url: string;
           }[];
       })[];
-    ValidationReport: {
+    ValidationResult: {
       /** @enum {string} */
       object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile";
       /** @enum {string|null} */
