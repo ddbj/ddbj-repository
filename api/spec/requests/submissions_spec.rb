@@ -16,9 +16,10 @@ RSpec.describe 'submissions', type: :request, authorized: true do
   example 'GET /api/submissions/:id' do
     travel_to '2024-01-02'
 
-    create :validation, :valid, id: 100, db: 'JVar', created_at: '2024-01-02 03:04:56', finished_at: '2024-01-02 03:04:57' do |validation|
-      create :obj, validation:, _id: 'Excel', file: uploaded_file(name: 'myexcel.xlsx'), destination: 'dest', validity: 'valid'
+    create :validation, :valid, id: 100, db: 'JVar', created_at: '2024-01-02 03:04:56', started_at: '2024-01-02 03:04:57', finished_at: '2024-01-02 03:04:58' do |validation|
       create :submission, validation:, id: 200, created_at: '2024-01-02 03:04:58'
+
+      create :obj, validation:, _id: 'Excel', file: uploaded_file(name: 'myexcel.xlsx'), destination: 'dest', validity: 'valid'
     end
 
     get '/api/submissions/X-200'
@@ -34,7 +35,8 @@ RSpec.describe 'submissions', type: :request, authorized: true do
         url:         'http://www.example.com/api/validations/100',
         db:          'JVar',
         created_at:  '2024-01-02T03:04:56.000Z',
-        finished_at: '2024-01-02T03:04:57.000Z',
+        started_at:  '2024-01-02T03:04:57.000Z',
+        finished_at: '2024-01-02T03:04:58.000Z',
         progress:    'finished',
         validity:    'valid',
 

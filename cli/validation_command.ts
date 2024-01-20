@@ -63,7 +63,7 @@ export default validationCommand;
 type Validation = components['schemas']['Validation'];
 
 async function listValidations(apiUrl: string, apiKey: string) {
-  const headers = ['ID', 'DB', 'Started', 'Finished', 'Progress', 'Validity', 'Submission'];
+  const headers = ['ID', 'DB', 'Created', 'Started', 'Finished', 'Progress', 'Validity', 'Submission'];
   const table = Table.from([headers.map(colors.bold.yellow)]);
 
   table.push(headers.map((header) => colors.bold.yellow('-'.repeat(header.length))));
@@ -78,6 +78,7 @@ async function listValidations(apiUrl: string, apiKey: string) {
         colors.bold(req.id.toString()),
         req.db,
         formatDatetime(req.created_at)!,
+        formatDatetime(req.started_at) || '-',
         formatDatetime(req.finished_at) || '-',
         req.progress,
         req.validity || '-',

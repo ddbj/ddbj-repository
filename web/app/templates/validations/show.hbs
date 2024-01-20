@@ -28,8 +28,20 @@
   </div>
 
   <div>
-    <dt>Started</dt>
+    <dt>Created</dt>
     <dd>{{format-datetime @model.created_at}}</dd>
+  </div>
+
+  <div>
+    <dt>Started</dt>
+
+    <dd>
+      {{#if @model.started_at}}
+        {{format-datetime @model.started_at}}
+      {{else}}
+        -
+      {{/if}}
+    </dd>
   </div>
 
   <div>

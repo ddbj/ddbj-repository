@@ -6,7 +6,7 @@ import { hbs } from 'ember-cli-htmlbars';
 import type { TestContext } from '@ember/test-helpers';
 
 interface Context extends TestContext {
-  date?: Date;
+  date: Date;
 }
 
 module('Integration | Helper | format-datetime', function (hooks) {
@@ -26,11 +26,5 @@ module('Integration | Helper | format-datetime', function (hooks) {
     await render<Context>(hbs`{{format-datetime this.date}}`);
 
     assert.dom().hasText('2024-01-02 03:04:56');
-  });
-
-  test('undefined', async function (assert) {
-    await render(hbs`{{format-datetime undefined}}`);
-
-    assert.dom().hasNoText();
   });
 });
