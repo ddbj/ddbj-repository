@@ -42,7 +42,9 @@
 
         <td>
           {{#if validation.submission}}
-            {{validation.submission.id}}
+            <LinkTo @route="submissions.show" @model={{validation.submission.id}}>
+              {{validation.submission.id}}
+            </LinkTo>
           {{else}}
             -
           {{/if}}
