@@ -238,7 +238,7 @@ export interface components {
       /** Format: date-time */
       finished_at: string | null;
       /** @enum {string} */
-      progress: "waiting" | "processing" | "finished" | "canceled";
+      progress: "waiting" | "running" | "finished" | "canceled";
       /** @enum {string|null} */
       validity: "valid" | "invalid" | "error" | null;
       objects: components["schemas"]["Objects"];

@@ -510,7 +510,7 @@ components:
 
           enum:
             - waiting
-            - processing
+            - running
             - finished
             - canceled
 
