@@ -15,7 +15,7 @@ ExceptionNotification.configure do |config|
   end
 
   config.ignored_exceptions = ExceptionNotifier.ignored_exceptions + %w(
-    FileDownload::NotFound
-    ViaFile::BadRequest
+    Validations::FilesController::NotFound
+    Validations::ViaFilesController::UnprocessableEntity
   )
 end

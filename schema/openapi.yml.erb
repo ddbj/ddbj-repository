@@ -109,10 +109,15 @@ paths:
 
       responses:
         '201':
-          $ref: '#/components/responses/CreateResponseCreated'
+          description: The validation process initiated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Validation'
 
         '400':
-          $ref: '#/components/responses/CreateResponseBadRequest'
+          $ref: '#/components/responses/BadRequest'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -276,6 +281,9 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     delete:
       description: Cancel the validation.
 
@@ -307,16 +315,17 @@ paths:
                   message:
                     type: string
 
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-        '409':
-          description: Validation already canceled or finished.
+        '404':
+          $ref: '#/components/responses/NotFound'
 
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
 
   /validations/{id}/files/{path}:
     get:
@@ -350,6 +359,9 @@ paths:
 
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /submissions:
     get:
@@ -390,6 +402,9 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+        '404':
+          $ref: '#/components/responses/NotFound'
+
     post:
       description: Submit the validation.
 
@@ -418,7 +433,7 @@ paths:
                 $ref: '#/components/schemas/Submission'
 
         '400':
-          $ref: '#/components/responses/CreateResponseBadRequest'
+          $ref: '#/components/responses/BadRequest'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -454,6 +469,9 @@ paths:
 
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
 
 components:
   securitySchemes:
@@ -738,25 +756,6 @@ components:
                 <%- end -%>
 
   responses:
-    CreateResponseCreated:
-      description: The requested process initiated successfully.
-
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Validation'
-
-    CreateResponseBadRequest:
-      description: The requested process could not be initiated.
-
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-
-          example:
-            error: path must be in /home/alice
-
     BadRequest:
       description: Unexpected parameter specified.
 
@@ -778,6 +777,17 @@ components:
 
           example:
             error: Unauthorized
+
+    NotFound:
+      description: The requested resource could not be found.
+
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+          example:
+            error: Not Found
 
     UnprocessableEntity:
       description: Invalid parameter or payload was specified.

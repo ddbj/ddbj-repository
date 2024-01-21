@@ -1,7 +1,7 @@
 using PathnameContain
 
 class Validations::ViaFilesController < ApplicationController
-  class BadRequest < StandardError; end
+  class UnprocessableEntity < StandardError; end
 
   def create
     @validation = create_validation
@@ -16,7 +16,7 @@ class Validations::ViaFilesController < ApplicationController
   def create_validation
     ActiveRecord::Base.transaction {
       unless db = DB.find { _1[:id] == params.require(:db) }
-        raise BadRequest, "unknown db: #{params[:db]}"
+        raise UnprocessableEntity, "unknown db: #{params[:db]}"
       end
 
       validation = current_user.validations.create!(db: db[:id], progress: 'waiting')
@@ -46,7 +46,7 @@ class Validations::ViaFilesController < ApplicationController
       user_home = Pathname.new(ENV.fetch('USER_HOME_DIR')).join(current_user.uid)
       path      = user_home.join(relative_path)
 
-      raise BadRequest, "path must be in #{user_home}" unless user_home.contain?(path)
+      raise UnprocessableEntity, "path must be in #{user_home}" unless user_home.contain?(path)
 
       destination = rest[:destination]
 
@@ -69,7 +69,7 @@ class Validations::ViaFilesController < ApplicationController
     in nil if obj[:optional]
       # do nothing
     in unknown
-      raise BadRequest, "unexpected parameter format in #{id}: #{unknown.inspect}"
+      raise UnprocessableEntity, "unexpected parameter format in #{id}: #{unknown.inspect}"
     end
   end
 
@@ -85,9 +85,9 @@ class Validations::ViaFilesController < ApplicationController
       destination:
     }
   rescue Errno::ENOENT
-    raise BadRequest, "path does not exist: #{path}"
+    raise UnprocessableEntity, "path does not exist: #{path}"
   rescue Errno::EISDIR
-    raise BadRequest, "path is directory: #{path}"
+    raise UnprocessableEntity, "path is directory: #{path}"
   end
 end
 
