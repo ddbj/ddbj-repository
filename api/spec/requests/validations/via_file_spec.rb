@@ -25,7 +25,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
     end
 
     # We are supporsed to use `comform_schema` but it does not success.
-    expect(response).to have_http_status(400)
+    expect(response).to have_http_status(422)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
       error: 'path does not exist: spec/fixtures/files/home/alice/_foo'
@@ -88,7 +88,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
     end
 
     # We are supporsed to use `comform_schema` but it does not success.
-    expect(response).to have_http_status(400)
+    expect(response).to have_http_status(422)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
       error: 'path is directory: spec/fixtures/files/home/alice/foo'
@@ -120,7 +120,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
       }
     end
 
-    expect(response).to have_http_status(:bad_request)
+    expect(response).to have_http_status(400)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
       error: 'param is missing or the value is empty: SDRF'
@@ -136,7 +136,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
       }
     end
 
-    expect(response).to have_http_status(:bad_request)
+    expect(response).to have_http_status(422)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
       error: 'unknown db: foo'

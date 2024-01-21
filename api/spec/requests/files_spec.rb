@@ -21,7 +21,7 @@ RSpec.describe 'download submission files', type: :request, authorized: true do
       get '/api/validations/100/files/foo'
     end
 
-    expect(response).to have_http_status(:not_found)
+    expect(response).to have_http_status(404)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
       error: 'not_found'

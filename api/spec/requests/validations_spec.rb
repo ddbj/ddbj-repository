@@ -165,7 +165,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
         example do
           get '/api/validations'
 
-          expect(response).to have_http_status(200)
+          expect(response).to conform_schema(200)
           expect(response.headers['Link']).to be_nil
         end
       end
@@ -229,7 +229,7 @@ RSpec.describe 'validations', type: :request, authorized: true do
     example 'if validation is finished' do
       delete '/api/validations/101'
 
-      expect(response).to conform_schema(409)
+      expect(response).to conform_schema(422)
     end
   end
 end
