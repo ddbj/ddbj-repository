@@ -9,6 +9,7 @@ import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type DB from 'ddbj-repository/models/db';
 import type ErrorModalService from 'ddbj-repository/services/error-modal';
 import type Router from '@ember/routing/router';
+import type ToastService from 'ddbj-repository/services/toast';
 
 interface Signature {
   Args: {
@@ -20,6 +21,7 @@ export default class NewValidationFormComponent extends Component<Signature> {
   @service declare currentUser: CurrentUserService;
   @service declare errorModal: ErrorModalService;
   @service declare router: Router;
+  @service declare toast: ToastService;
 
   create = task({ drop: true }, async (e: Event) => {
     const { db } = this.args;
@@ -39,6 +41,7 @@ export default class NewValidationFormComponent extends Component<Signature> {
     const { id } = await res.json();
 
     this.router.transitionTo('validations.show', id);
+    this.toast.show('Validation has started.', 'success');
   });
 }
 
