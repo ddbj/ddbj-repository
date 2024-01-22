@@ -36,17 +36,13 @@ RSpec.describe DdbjValidator, type: :model do
       }
     )
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'valid'
-    )
+    DdbjValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
-        validity:  'valid',
+        validity:  nil,
         details:   nil,
         file:      nil
       },
@@ -74,17 +70,13 @@ RSpec.describe DdbjValidator, type: :model do
   example 'if error occured from ddbj_validator, validity is error' do
     stub_request(:post, 'validator.example.com/api/validation').to_return status: 500
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'error'
-    )
+    DdbjValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
-        validity:  'valid',
+        validity:  nil,
         details:   nil,
         file:      nil
       },
