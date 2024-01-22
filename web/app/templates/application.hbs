@@ -40,9 +40,22 @@
   </div>
 {{/if}}
 
-<main class="container py-4">
-  {{outlet}}
-</main>
+<div class="position-relative">
+  <main class="container py-4 position-relative">
+    {{outlet}}
+  </main>
+
+  <div class="toast-container top-0 end-0 p-3">
+    {{#each this.toastData as |toast|}}
+      <div id={{toast.id}} class="toast align-items-center text-bg-{{toast.bgColor}} border-0" role="alert" aria-live="assertive" aria-atomic="true" {{this.setToast}}>
+        <div class="d-flex">
+          <div class="toast-body">{{toast.body}}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      </div>
+    {{/each}}
+  </div>
+</div>
 
 <div class="modal fade" tabindex="-1" {{this.setErrorModal}}>
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
