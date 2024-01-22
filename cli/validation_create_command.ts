@@ -1,5 +1,7 @@
-import { basename, resolve, toFileUrl } from 'std/path/mod.ts';
-import { delay } from 'std/async/mod.ts';
+import { basename } from 'std/path/basename.ts';
+import { delay } from 'std/async/delay.ts';
+import { resolve } from 'std/path/resolve.ts';
+import { toFileUrl } from 'std/path/to_file_url.ts';
 
 import { Command } from 'cliffy/command/mod.ts';
 import { colorize } from 'json_colorize/mod.ts';

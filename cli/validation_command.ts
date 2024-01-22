@@ -1,8 +1,9 @@
+import { format } from 'std/datetime/format.ts';
+
 import { Command } from 'cliffy/command/mod.ts';
 import { Table } from 'cliffy/table/mod.ts';
 import { colorize } from 'json_colorize/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
-import { format } from 'std/datetime/mod.ts';
 
 import createCommand from './validation_create_command.ts';
 import paginatedFetch from './paginated_fetch.ts';
