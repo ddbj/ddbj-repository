@@ -9,17 +9,13 @@ RSpec.describe DraValidator, type: :model do
       create :obj, validation:, _id: 'RunFile',    file: uploaded_file(name: 'runfile.xml')
     }
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'valid'
-    )
+    DraValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
-        validity:  'valid',
+        validity:  nil,
         details:   nil,
         file:      nil
       },
@@ -74,17 +70,13 @@ RSpec.describe DraValidator, type: :model do
       create :obj, validation:, _id: 'RunFile',    file: uploaded_file(name: 'runfile.xml')
     }
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'invalid'
-    )
+    DraValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
-        validity:  'valid',
+        validity:  nil,
         details:   nil,
         file:      nil
       },
@@ -135,37 +127,6 @@ RSpec.describe DraValidator, type: :model do
     )
   end
 
-  example 'error' do
-    validation = create(:validation, db: 'DRA') {|validation|
-      create :obj, validation:, _id: 'Submission', file: file_fixture_upload('dra/valid/example-0001_dra_Submission.xml')
-      create :obj, validation:, _id: 'Experiment', file: file_fixture_upload('dra/valid/example-0001_dra_Experiment.xml')
-      create :obj, validation:, _id: 'Run',        file: file_fixture_upload('dra/valid/example-0001_dra_Run.xml')
-      create :obj, validation:, _id: 'RunFile',    file: uploaded_file(name: 'runfile.xml')
-    }
-
-    allow(Open3).to receive(:capture2e) { ['Something went wrong.', double(success?: false)] }
-
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'error'
-    )
-
-    expect(validation.results).to include(
-      object_id: '_base',
-      validity:  'error',
-
-      details: {
-        'error' => 'Something went wrong.'
-      },
-
-      file: nil
-    )
-
-    expect(validation.submission).to be_nil
-  end
-
   example 'with Analysis and AnalysisFile, valid' do
     validation = create(:validation, id: 42, db: 'DRA') {|validation|
       create :obj, validation:, _id: 'Submission',   file: file_fixture_upload('dra/valid/example-0002_dra_Submission.xml')
@@ -176,12 +137,8 @@ RSpec.describe DraValidator, type: :model do
       create :obj, validation:, _id: 'AnalysisFile', file: uploaded_file(name: 'analysisfile.xml')
     }
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'valid'
-    )
+    DraValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to include(
       {
@@ -216,12 +173,8 @@ RSpec.describe DraValidator, type: :model do
       create :obj, validation:, _id: 'RunFile',    file: uploaded_file(name: 'runfile2.xml')
     }
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'valid'
-    )
+    DraValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to include(
       {

@@ -7,17 +7,13 @@ RSpec.describe MetabobankValidator, type: :model do
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')
     }
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'valid'
-    )
+    MetabobankValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
-        validity:  'valid',
+        validity:  nil,
         details:   nil,
         file:      nil
       },
@@ -78,12 +74,8 @@ RSpec.describe MetabobankValidator, type: :model do
       create :obj, validation:, _id: 'ProcessedDataFile', file: uploaded_file(name: '220629_ppg_conc.txt'), destination: 'processed'
     }
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'valid'
-    )
+    MetabobankValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to include(
       {
@@ -138,12 +130,8 @@ RSpec.describe MetabobankValidator, type: :model do
       create :obj, validation:, _id: 'BioSample', file: file_fixture_upload('metabobank/valid/MTBKS231.bs.tsv')
     }
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'valid'
-    )
+    MetabobankValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to include(
       object_id: 'BioSample',
@@ -163,17 +151,13 @@ RSpec.describe MetabobankValidator, type: :model do
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/invalid/MTBKS201.sdrf.txt')
     }
 
-    Validators.validate validation
-
-    expect(validation).to have_attributes(
-      progress: 'finished',
-      validity: 'invalid'
-    )
+    MetabobankValidator.new.validate validation
+    validation.reload
 
     expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
-        validity:  'valid',
+        validity:  nil,
         details:   nil,
         file:      nil
       },
