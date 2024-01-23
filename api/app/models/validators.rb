@@ -1,6 +1,8 @@
 class Validators
   def self.validate(validation)
     ActiveRecord::Base.transaction do
+      raise ActiveRecord::Rollback if validation.reload.canceled?
+
       validation.update! progress: 'processing', started_at: Time.current
 
       db        = DB.find { _1[:id] == validation.db }
