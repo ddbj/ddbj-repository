@@ -1,7 +1,7 @@
 class Validators
   def self.validate(validation)
     ActiveRecord::Base.transaction do
-      validation.processing!
+      validation.update! progress: 'processing', started_at: Time.current
 
       db        = DB.find { _1[:id] == validation.db }
       validator = db.fetch(:validator).constantize.new

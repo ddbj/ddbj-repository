@@ -11,6 +11,7 @@
     <tr>
       <th>ID</th>
       <th>DB</th>
+      <th>Created</th>
       <th>Started</th>
       <th>Finished</th>
       <th>Progress</th>
@@ -28,6 +29,14 @@
 
         <td>{{validation.db}}</td>
         <td>{{format-datetime validation.created_at}}</td>
+
+        <td>
+          {{#if validation.started_at}}
+            {{format-datetime validation.started_at}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
 
         <td>
           {{#if validation.finished_at}}

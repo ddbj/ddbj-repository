@@ -4,9 +4,8 @@ RSpec.describe 'download submission files', type: :request, authorized: true do
   before_all do
     user = create(:user, api_key: 'API_KEY')
 
-    create :validation, :valid, id: 100, user:, db: 'JVar' do |validation|
+    create :validation, id: 100, user:, db: 'JVar' do |validation|
       create :obj, validation:, _id: 'Excel', file: uploaded_file(name: 'myexcel.xlsx'), destination: 'dest', validity: 'valid'
-      create :submission, validation:, id: 200, created_at: '2023-12-05'
     end
   end
 
