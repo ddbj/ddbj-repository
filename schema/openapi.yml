@@ -97,34 +97,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /validations/via-file:
-    post:
-      description: Validate submission files.
-
-      tags:
-        - Validation
-
-      requestBody:
-        $ref: '#/components/requestBodies/ViaFile'
-
-      responses:
-        '201':
-          description: The validation process initiated successfully.
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Validation'
-
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
   /validations:
     get:
       description: Get your validations.
@@ -223,6 +195,34 @@ paths:
 
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /validations/via-file:
+    post:
+      description: Validate submission files.
+
+      tags:
+        - Validation
+
+      requestBody:
+        $ref: '#/components/requestBodies/ViaFile'
+
+      responses:
+        '201':
+          description: The validation process initiated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Validation'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
 
   /validations/{id}:
     get:
@@ -724,8 +724,10 @@ components:
       allOf:
         - oneOf:
           - required:
+            - db
             - BioProject[file]
           - required:
+            - db
             - BioProject[path]
 
       properties:
@@ -749,8 +751,10 @@ components:
       allOf:
         - oneOf:
           - required:
+            - db
             - BioSample[file]
           - required:
+            - db
             - BioSample[path]
 
       properties:
@@ -774,13 +778,17 @@ components:
       allOf:
         - oneOf:
           - required:
+            - db
             - Sequence[][file]
           - required:
+            - db
             - Sequence[][path]
         - oneOf:
           - required:
+            - db
             - Annotation[][file]
           - required:
+            - db
             - Annotation[][path]
 
       properties:
@@ -837,23 +845,31 @@ components:
       allOf:
         - oneOf:
           - required:
+            - db
             - Submission[file]
           - required:
+            - db
             - Submission[path]
         - oneOf:
           - required:
+            - db
             - Experiment[file]
           - required:
+            - db
             - Experiment[path]
         - oneOf:
           - required:
+            - db
             - Run[file]
           - required:
+            - db
             - Run[path]
         - oneOf:
           - required:
+            - db
             - RunFile[][file]
           - required:
+            - db
             - RunFile[][path]
 
       properties:
@@ -946,13 +962,17 @@ components:
       allOf:
         - oneOf:
           - required:
+            - db
             - IDF[file]
           - required:
+            - db
             - IDF[path]
         - oneOf:
           - required:
+            - db
             - SDRF[file]
           - required:
+            - db
             - SDRF[path]
 
       properties:
@@ -1048,13 +1068,17 @@ components:
       allOf:
         - oneOf:
           - required:
+            - db
             - IDF[file]
           - required:
+            - db
             - IDF[path]
         - oneOf:
           - required:
+            - db
             - SDRF[file]
           - required:
+            - db
             - SDRF[path]
 
       properties:
@@ -1159,8 +1183,10 @@ components:
       allOf:
         - oneOf:
           - required:
+            - db
             - Excel[file]
           - required:
+            - db
             - Excel[path]
 
       properties:

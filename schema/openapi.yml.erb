@@ -97,34 +97,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /validations/via-file:
-    post:
-      description: Validate submission files.
-
-      tags:
-        - Validation
-
-      requestBody:
-        $ref: '#/components/requestBodies/ViaFile'
-
-      responses:
-        '201':
-          description: The validation process initiated successfully.
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Validation'
-
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-        '422':
-          $ref: '#/components/responses/UnprocessableEntity'
-
   /validations:
     get:
       description: Get your validations.
@@ -223,6 +195,34 @@ paths:
 
         '401':
           $ref: '#/components/responses/Unauthorized'
+
+  /validations/via-file:
+    post:
+      description: Validate submission files.
+
+      tags:
+        - Validation
+
+      requestBody:
+        $ref: '#/components/requestBodies/ViaFile'
+
+      responses:
+        '201':
+          description: The validation process initiated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Validation'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
 
   /validations/{id}:
     get:
@@ -693,8 +693,10 @@ components:
         <%- unless obj[:optional] -%>
         - oneOf:
           - required:
+            - db
             - <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[file]
           - required:
+            - db
             - <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[path]
         <%- end -%>
         <%- end -%>
