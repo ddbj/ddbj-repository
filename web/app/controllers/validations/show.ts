@@ -12,6 +12,7 @@ import downloadFile from 'ddbj-repository/utils/download-file';
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type ErrorModalService from 'ddbj-repository/services/error-modal';
 import type Router from '@ember/routing/router';
+import type ToastService from 'ddbj-repository/services/toast';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
@@ -22,6 +23,7 @@ export default class ValidationsShowController extends Controller {
   @service declare currentUser: CurrentUserService;
   @service declare errorModal: ErrorModalService;
   @service declare router: Router;
+  @service declare toast: ToastService;
 
   @tracked currentTime = new Date();
 
@@ -83,5 +85,6 @@ export default class ValidationsShowController extends Controller {
     const { id: submissionId } = await res.json();
 
     this.router.transitionTo('submissions.show', submissionId);
+    this.toast.show('Validation was successfully submitted.', 'success');
   });
 }
