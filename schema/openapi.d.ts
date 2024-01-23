@@ -53,18 +53,6 @@ export interface paths {
       };
     };
   };
-  "/validations/via-file": {
-    /** @description Validate submission files. */
-    post: {
-      requestBody: components["requestBodies"]["ViaFile"];
-      responses: {
-        201: components["responses"]["CreateResponseCreated"];
-        400: components["responses"]["CreateResponseBadRequest"];
-        401: components["responses"]["Unauthorized"];
-        422: components["responses"]["UnprocessableEntity"];
-      };
-    };
-  };
   "/validations": {
     /** @description Get your validations. */
     get: {
@@ -89,6 +77,23 @@ export interface paths {
       };
     };
   };
+  "/validations/via-file": {
+    /** @description Validate submission files. */
+    post: {
+      requestBody: components["requestBodies"]["ViaFile"];
+      responses: {
+        /** @description The validation process initiated successfully. */
+        201: {
+          content: {
+            "application/json": components["schemas"]["Validation"];
+          };
+        };
+        400: components["responses"]["BadRequest"];
+        401: components["responses"]["Unauthorized"];
+        422: components["responses"]["UnprocessableEntity"];
+      };
+    };
+  };
   "/validations/{id}": {
     /** @description Get the validation. */
     get: {
@@ -106,6 +111,7 @@ export interface paths {
           };
         };
         401: components["responses"]["Unauthorized"];
+        404: components["responses"]["NotFound"];
       };
     };
     /** @description Cancel the validation. */
@@ -125,13 +131,10 @@ export interface paths {
             };
           };
         };
+        400: components["responses"]["BadRequest"];
         401: components["responses"]["Unauthorized"];
-        /** @description Validation already canceled or finished. */
-        409: {
-          content: {
-            "application/json": components["schemas"]["Error"];
-          };
-        };
+        404: components["responses"]["NotFound"];
+        422: components["responses"]["UnprocessableEntity"];
       };
     };
   };
@@ -151,6 +154,7 @@ export interface paths {
           content: never;
         };
         401: components["responses"]["Unauthorized"];
+        404: components["responses"]["NotFound"];
       };
     };
   };
@@ -175,6 +179,7 @@ export interface paths {
         };
         400: components["responses"]["BadRequest"];
         401: components["responses"]["Unauthorized"];
+        404: components["responses"]["NotFound"];
       };
     };
     /** @description Submit the validation. */
@@ -193,7 +198,7 @@ export interface paths {
             "application/json": components["schemas"]["Submission"];
           };
         };
-        400: components["responses"]["CreateResponseBadRequest"];
+        400: components["responses"]["BadRequest"];
         401: components["responses"]["Unauthorized"];
         422: components["responses"]["UnprocessableEntity"];
       };
@@ -216,6 +221,7 @@ export interface paths {
           };
         };
         401: components["responses"]["Unauthorized"];
+        404: components["responses"]["NotFound"];
       };
     };
   };
@@ -278,7 +284,11 @@ export interface components {
     };
     /** Format: binary */
     File: string;
-    /** @description Path of the file on the NIG supercomputer, relative to the home directory of the authorised user. */
+    /**
+     * @description Path of the file on the NIG supercomputer, relative to the home directory of the authorised user.
+     *
+     * Note: If both file and path are specified, the file takes precedence.
+     */
     Path: string;
     /** @description Destination of the file to be submitted. */
     Destination: string;
@@ -384,18 +394,6 @@ export interface components {
     };
   };
   responses: {
-    /** @description The requested process initiated successfully. */
-    CreateResponseCreated: {
-      content: {
-        "application/json": components["schemas"]["Validation"];
-      };
-    };
-    /** @description The requested process could not be initiated. */
-    CreateResponseBadRequest: {
-      content: {
-        "application/json": components["schemas"]["Error"];
-      };
-    };
     /** @description Unexpected parameter specified. */
     BadRequest: {
       content: {
@@ -404,6 +402,12 @@ export interface components {
     };
     /** @description Not authenticated. */
     Unauthorized: {
+      content: {
+        "application/json": components["schemas"]["Error"];
+      };
+    };
+    /** @description The requested resource could not be found. */
+    NotFound: {
       content: {
         "application/json": components["schemas"]["Error"];
       };
