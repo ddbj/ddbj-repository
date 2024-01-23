@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Validators, type: :model do
   let(:validation) {
-    create(:validation, db: 'BioProject') {|validation|
+    create(:validation, id: 42, db: 'BioProject') {|validation|
       create :obj, validation:, _id: 'BioProject', file: uploaded_file(name: 'mybioproject.xml')
     }
   }
@@ -42,18 +42,23 @@ RSpec.describe Validators, type: :model do
     expect(validation.validation_reports).to contain_exactly(
       {
         object_id: '_base',
-        path:      nil,
         validity:  'error',
 
         details: {
           'error' => 'something went wrong'
-        }
+        },
+
+        file: nil
       },
       {
         object_id: 'BioProject',
-        path:      'mybioproject.xml',
         validity:  nil,
-        details:   nil
+        details:   nil,
+
+        file: {
+          path: 'mybioproject.xml',
+          url:  'http://www.example.com/api/validations/42/files/mybioproject.xml'
+        }
       }
     )
   end

@@ -24,9 +24,13 @@ class Obj < ApplicationRecord
   def validation_report
     {
       object_id: _id,
-      path:      path,
       validity:  validity,
-      details:   validation_details
+      details:   validation_details,
+
+      file: base? ? nil : {
+        path: ,
+        url:  Rails.application.routes.url_helpers.validation_file_url(validation, path)
+      }
     }
   end
 

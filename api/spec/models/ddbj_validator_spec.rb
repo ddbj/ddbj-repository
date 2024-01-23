@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe DdbjValidator, type: :model do
   let(:validation) {
-    create(:validation, db: 'BioSample') {|validation|
+    create(:validation, id: 42, db: 'BioSample') {|validation|
       create :obj, validation:, _id: 'BioSample', file: uploaded_file(name: 'mybiosample.xml')
     }
   }
@@ -46,18 +46,22 @@ RSpec.describe DdbjValidator, type: :model do
     expect(validation.validation_reports).to contain_exactly(
       {
         object_id: '_base',
-        path:      nil,
         validity:  'valid',
-        details:   nil
+        details:   nil,
+        file:      nil
       },
       {
         object_id: 'BioSample',
-        path:      'mybiosample.xml',
         validity:  'valid',
 
         details: {
           'validity' => true,
           'answer'   => 42
+        },
+
+        file: {
+          path: 'mybiosample.xml',
+          url:  'http://www.example.com/api/validations/42/files/mybiosample.xml'
         }
       }
     )
@@ -80,17 +84,21 @@ RSpec.describe DdbjValidator, type: :model do
     expect(validation.validation_reports).to contain_exactly(
       {
         object_id: '_base',
-        path:      nil,
         validity:  'valid',
-        details:   nil
+        details:   nil,
+        file:      nil
       },
       {
         object_id: 'BioSample',
-        path:      'mybiosample.xml',
         validity:  'error',
 
         details: {
           'error' => instance_of(String)
+        },
+
+        file: {
+          path: 'mybiosample.xml',
+          url:  'http://www.example.com/api/validations/42/files/mybiosample.xml'
         }
       }
     )

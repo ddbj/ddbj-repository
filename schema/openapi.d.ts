@@ -265,10 +265,14 @@ export interface components {
     ValidationReport: {
       /** @enum {string} */
       object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile";
-      path: string | null;
       /** @enum {string|null} */
       validity: "valid" | "invalid" | "error" | null;
       details: Record<string, never> | null;
+      file: {
+        path: string;
+        /** Format: uri */
+        url: string;
+      } | null;
     };
     /** Format: binary */
     File: string;
