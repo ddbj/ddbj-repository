@@ -169,7 +169,7 @@ paths:
                         - path: mybioproject.xml
                           url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
 
-                  validation_reports:
+                  results:
                     - object_id: _base
                       validity: valid
                       details: null
@@ -205,7 +205,7 @@ paths:
                         - path: mybiosample.xml
                           url: https://repository.ddbj.nig.ac.jp/api/validations/101/files/mybiosample.xml
 
-                  validation_reports:
+                  results:
                     - object_id: _base
                       validity: null
                       details: null
@@ -251,7 +251,7 @@ paths:
                 progress: finished
                 validity: valid
 
-                validation_reports:
+                results:
                   - object_id: _base
                     validity: null
                     details: null
@@ -465,7 +465,7 @@ components:
     Validation:
       type: object
       additionalProperties: false
-      required: [id, url, db, created_at, started_at, finished_at, progress, validity, objects, validation_reports, submission]
+      required: [id, url, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
 
       properties:
         id:
@@ -524,11 +524,11 @@ components:
         objects:
           $ref: '#/components/schemas/Objects'
 
-        validation_reports:
+        results:
           type: array
 
           items:
-            $ref: '#/components/schemas/ValidationReport'
+            $ref: '#/components/schemas/ValidationResult'
 
         submission:
           type:
@@ -594,7 +594,7 @@ components:
                   type: string
                   format: uri
 
-    ValidationReport:
+    ValidationResult:
       type: object
       additionalProperties: false
       required: [object_id, validity, details, file]
@@ -719,7 +719,6 @@ components:
 
         <%- end -%>
       <%- end -%>
-
   requestBodies:
     ViaFile:
       content:

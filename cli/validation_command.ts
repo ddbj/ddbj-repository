@@ -1,5 +1,3 @@
-import { format } from 'std/datetime/format.ts';
-
 import { Command } from 'cliffy/command/mod.ts';
 import { Table } from 'cliffy/table/mod.ts';
 import { colorize } from 'json_colorize/mod.ts';

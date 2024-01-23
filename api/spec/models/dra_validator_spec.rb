@@ -16,7 +16,7 @@ RSpec.describe DraValidator, type: :model do
       validity: 'valid'
     )
 
-    expect(validation.validation_reports).to contain_exactly(
+    expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
         validity:  'valid',
@@ -81,7 +81,7 @@ RSpec.describe DraValidator, type: :model do
       validity: 'invalid'
     )
 
-    expect(validation.validation_reports).to contain_exactly(
+    expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
         validity:  'valid',
@@ -152,7 +152,7 @@ RSpec.describe DraValidator, type: :model do
       validity: 'error'
     )
 
-    expect(validation.validation_reports).to include(
+    expect(validation.results).to include(
       object_id: '_base',
       validity:  'error',
 
@@ -183,7 +183,7 @@ RSpec.describe DraValidator, type: :model do
       validity: 'valid'
     )
 
-    expect(validation.validation_reports).to include(
+    expect(validation.results).to include(
       {
         object_id: 'Analysis',
         validity:  'valid',
@@ -223,7 +223,7 @@ RSpec.describe DraValidator, type: :model do
       validity: 'valid'
     )
 
-    expect(validation.validation_reports).to include(
+    expect(validation.results).to include(
       {
         object_id: 'RunFile',
         validity:  'valid',
