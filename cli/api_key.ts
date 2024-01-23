@@ -1,4 +1,5 @@
-import { dirname, join } from 'std/path/mod.ts';
+import { dirname } from 'std/path/dirname.ts';
+import { join } from 'std/path/join.ts';
 
 export function read() {
   try {

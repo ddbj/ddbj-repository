@@ -1,9 +1,9 @@
 require 'rails_helper'
 
 RSpec.describe DdbjValidator, type: :model do
-  let(:request) {
-    create(:request, db: 'BioSample') {|request|
-      create :obj, request:, _id: 'BioSample', file: uploaded_file(name: 'mybiosample.xml')
+  let(:validation) {
+    create(:validation, id: 42, db: 'BioSample') {|validation|
+      create :obj, validation:, _id: 'BioSample', file: uploaded_file(name: 'mybiosample.xml')
     }
   }
 
@@ -36,28 +36,28 @@ RSpec.describe DdbjValidator, type: :model do
       }
     )
 
-    Validators.validate request
+    DdbjValidator.new.validate validation
+    validation.reload
 
-    expect(request).to have_attributes(
-      status:   'finished',
-      validity: 'valid'
-    )
-
-    expect(request.validation_reports).to contain_exactly(
+    expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
-        path:      nil,
-        validity:  'valid',
-        details:   nil
+        validity:  nil,
+        details:   nil,
+        file:      nil
       },
       {
         object_id: 'BioSample',
-        path:      'mybiosample.xml',
         validity:  'valid',
 
         details: {
           'validity' => true,
           'answer'   => 42
+        },
+
+        file: {
+          path: 'mybiosample.xml',
+          url:  'http://www.example.com/api/validations/42/files/mybiosample.xml'
         }
       }
     )
@@ -70,27 +70,27 @@ RSpec.describe DdbjValidator, type: :model do
   example 'if error occured from ddbj_validator, validity is error' do
     stub_request(:post, 'validator.example.com/api/validation').to_return status: 500
 
-    Validators.validate request
+    DdbjValidator.new.validate validation
+    validation.reload
 
-    expect(request).to have_attributes(
-      status:   'finished',
-      validity: 'error'
-    )
-
-    expect(request.validation_reports).to contain_exactly(
+    expect(validation.results).to contain_exactly(
       {
         object_id: '_base',
-        path:      nil,
-        validity:  'valid',
-        details:   nil
+        validity:  nil,
+        details:   nil,
+        file:      nil
       },
       {
         object_id: 'BioSample',
-        path:      'mybiosample.xml',
         validity:  'error',
 
         details: {
           'error' => instance_of(String)
+        },
+
+        file: {
+          path: 'mybiosample.xml',
+          url:  'http://www.example.com/api/validations/42/files/mybiosample.xml'
         }
       }
     )

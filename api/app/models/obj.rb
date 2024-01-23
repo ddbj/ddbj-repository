@@ -1,12 +1,13 @@
 using PathnameContain
 
 class Obj < ApplicationRecord
-  belongs_to :request
+  belongs_to :validation
 
   has_one_attached :file
 
   scope :without_base, -> { where.not(_id: '_base') }
 
+  enum :_id, DB.flat_map { _1[:objects] }.map { _1[:id] }.uniq.concat(['_base']).index_by(&:to_sym)
   enum :validity, %w(valid invalid error).index_by(&:to_sym), prefix: true
 
   validate :destination_must_not_be_malformed
@@ -20,12 +21,16 @@ class Obj < ApplicationRecord
     _id == '_base'
   end
 
-  def validation_report
+  def validation_result
     {
       object_id: _id,
-      path:      path,
       validity:  validity,
-      details:   validation_details
+      details:   validation_details,
+
+      file: base? ? nil : {
+        path: ,
+        url:  Rails.application.routes.url_helpers.validation_file_url(validation, path)
+      }
     }
   end
 
@@ -43,7 +48,7 @@ class Obj < ApplicationRecord
   def path_must_be_unique_in_request
     return if base?
 
-    if request.objs.to_a.without(self).any? { path == _1.path }
+    if validation.objs.to_a.without(self).any? { path == _1.path }
       errors.add :path, "is duplicated: #{path}"
     end
   end

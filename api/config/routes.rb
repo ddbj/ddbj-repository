@@ -23,24 +23,14 @@ Rails.application.routes.draw do
 
     resource :me, only: %i(show)
 
-    resources :validations, only: %i() do
+    resources :validations, only: %i(index show destroy) do
       scope module: 'validations' do
         concerns :via_file
-      end
-    end
-
-    resources :submissions, only: %i(index show) do
-      scope module: 'submissions' do
-        concerns :via_file
         concerns :get_file
       end
     end
 
-    resources :requests, only: %i(index show destroy) do
-      scope module: 'requests' do
-        concerns :get_file
-      end
-    end
+    resources :submissions, only: %i(index show create)
   end
 
   get 'web/*paths', to: 'webs#show'

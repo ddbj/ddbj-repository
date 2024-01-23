@@ -4,11 +4,22 @@ import { colorize } from 'json_colorize/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 
 import paginatedFetch from './paginated_fetch.ts';
-import { defaultApiUrl, ensureLogin, ensureSuccess } from './util.ts';
+import { defaultApiUrl, ensureLogin, ensureSuccess, formatDatetime } from './util.ts';
+
+import type { components } from '../schema/openapi.d.ts';
 
 type Options = {
   apiUrl?: string;
 };
+
+const createCommand = new Command<void, void, Options, [number]>()
+  .description('Create the submission.')
+  .arguments('<validation_id:number>')
+  .action(({ apiUrl }, validationId) => {
+    const apiKey = ensureLogin();
+
+    createSubmission(apiUrl || defaultApiUrl, apiKey, validationId);
+  });
 
 const listCommand = new Command<Options>()
   .description('Get your submissions.')
@@ -39,6 +50,7 @@ const getFileCommand = new Command<void, void, Options, [string, string]>()
 const submissionCommand: Command<Options> = new Command<Options>()
   .description('Manage submissions.')
   .action(() => submissionCommand.showHelp())
+  .command('create', createCommand)
   .command('list', listCommand)
   .command('show', showCommand)
   .command('get-file', getFileCommand)
@@ -46,22 +58,29 @@ const submissionCommand: Command<Options> = new Command<Options>()
 
 export default submissionCommand;
 
-type Submission = {
-  id: string;
-  created_at: string;
-  db: string;
+type Submission = components['schemas']['Submission'];
 
-  objects: Array<{
-    id: string;
+async function createSubmission(apiUrl: string, apiKey: string, validationId: number) {
+  const res = await fetch(`${apiUrl}/submissions/`, {
+    method: 'POST',
 
-    files: Array<{
-      path: string;
-    }>;
-  }>;
-};
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+
+    body: JSON.stringify({ validation_id: validationId }),
+  });
+
+  await ensureSuccess(res);
+
+  const payload = await res.json();
+
+  colorize(JSON.stringify(payload, null, 2));
+}
 
 async function listSubmissions(apiUrl: string, apiKey: string) {
-  const headers = ['ID', 'Created', 'DB'];
+  const headers = ['ID', 'DB', 'Created'];
   const table = Table.from([headers.map(colors.bold.yellow)]);
 
   table.push(headers.map((header) => colors.bold.yellow('-'.repeat(header.length))));
@@ -74,8 +93,8 @@ async function listSubmissions(apiUrl: string, apiKey: string) {
     submissions.forEach((submission) => {
       table.push([
         colors.bold(submission.id),
-        submission.created_at,
-        submission.db,
+        submission.validation.db,
+        formatDatetime(submission.created_at)!,
       ]);
     });
   });

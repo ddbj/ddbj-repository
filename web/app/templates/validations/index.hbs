@@ -1,0 +1,68 @@
+{{page-title 'Validations'}}
+
+<h1 class="display-6 mb-4">Validations</h1>
+
+<div class="mb-3">
+  <LinkTo @route="validations.new" class="btn btn-primary">New Validation</LinkTo>
+</div>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>DB</th>
+      <th>Created</th>
+      <th>Started</th>
+      <th>Finished</th>
+      <th>Progress</th>
+      <th>Validity</th>
+      <th>Submission</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{#each @model.validations key="id" as |validation|}}
+      <tr>
+        <td>
+          <LinkTo @route="validations.show" @model={{validation}}>{{validation.id}}</LinkTo>
+        </td>
+
+        <td>{{validation.db}}</td>
+        <td>{{format-datetime validation.created_at}}</td>
+
+        <td>
+          {{#if validation.started_at}}
+            {{format-datetime validation.started_at}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
+
+        <td>
+          {{#if validation.finished_at}}
+            {{format-datetime validation.finished_at}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
+
+        <td><ProgressLabel @progress={{validation.progress}} /></td>
+        <td><ValidityBadge @validity={{validation.validity}} /></td>
+
+        <td>
+          {{#if validation.submission}}
+            <LinkTo @route="submissions.show" @model={{validation.submission.id}}>
+              {{validation.submission.id}}
+            </LinkTo>
+          {{else}}
+            -
+          {{/if}}
+        </td>
+      </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+{{#if @model.lastPage}}
+  <Pagination @route="validations.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
+{{/if}}

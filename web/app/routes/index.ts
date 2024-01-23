@@ -7,6 +7,6 @@ export default class IndexRoute extends Route {
   @service declare router: Router;
 
   beforeModel() {
-    this.router.transitionTo('submit');
+    this.router.transitionTo('validations');
   }
 }

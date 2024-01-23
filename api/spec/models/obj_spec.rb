@@ -1,12 +1,12 @@
 require 'rails_helper'
 
 RSpec.describe Obj, type: :model do
-  example 'path must be unique in request' do
-    request = build(:request, objs: [
-      build(:obj, _id: 'Foo', file: uploaded_file(name: 'dup.txt')),
-      build(:obj, _id: 'Bar', file: uploaded_file(name: 'dup.txt'))
+  example 'path must be unique in validation' do
+    validation = build(:validation, objs: [
+      build(:obj, _id: 'BioProject', file: uploaded_file(name: 'dup.txt')),
+      build(:obj, _id: 'BioSample',  file: uploaded_file(name: 'dup.txt'))
     ])
 
-    expect(request).to be_invalid
+    expect(validation).to be_invalid
   end
 end
