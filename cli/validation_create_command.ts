@@ -9,6 +9,8 @@ import { colorize } from 'json_colorize/mod.ts';
 import dbs from '../schema/db.json' with { type: 'json' };
 import { defaultApiUrl, ensureLogin, ensureSuccess } from './util.ts';
 
+import type { DBSchema, ObjSchema } from '../schema/db.d.ts';
+
 type Options = {
   apiUrl?: string;
   [key: string]: string | undefined | ObjOption;
@@ -17,18 +19,6 @@ type Options = {
 type ObjOption = {
   file: string;
   destination?: string;
-};
-
-type Db = {
-  id: string;
-  objects: Obj[];
-};
-
-type Obj = {
-  id: string;
-  ext: string;
-  required?: boolean;
-  multiple?: boolean;
 };
 
 const _createCommand = new Command<Options>()
@@ -63,7 +53,7 @@ function createDatabaseCommands(): [string, Command<Options>][] {
               const opt = opts[obj.id.toLowerCase()] as ObjOption | undefined;
 
               return opt ? [[obj, opt]] : [];
-            }) as [Obj, ObjOption][];
+            }) as [ObjSchema, ObjOption][];
 
             const { url } = await createValidation(opts.apiUrl || defaultApiUrl, apiKey, db, objs);
             const payload = await waitForRequestFinished(url, apiKey);
@@ -77,7 +67,7 @@ function createDatabaseCommands(): [string, Command<Options>][] {
   });
 }
 
-async function createValidation(apiUrl: string, apiKey: string, db: Db, objs: [Obj, ObjOption][]) {
+async function createValidation(apiUrl: string, apiKey: string, db: DBSchema, objs: [ObjSchema, ObjOption][]) {
   const body = new FormData();
   body.set('db', db.id);
 
