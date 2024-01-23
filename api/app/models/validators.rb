@@ -3,7 +3,7 @@ class Validators
     ActiveRecord::Base.transaction do
       raise ActiveRecord::Rollback if validation.reload.canceled?
 
-      validation.update! progress: 'processing', started_at: Time.current
+      validation.update! progress: 'running', started_at: Time.current
 
       db        = DB.find { _1[:id] == validation.db }
       validator = db.fetch(:validator).constantize.new

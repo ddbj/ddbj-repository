@@ -47,7 +47,7 @@ export default class ValidationsRoute extends Route {
   }
 
   afterModel(model: Model) {
-    if (model.validations.some(({ progress }) => progress === 'waiting' || progress === 'processing')) {
+    if (model.validations.some(({ progress }) => progress === 'waiting' || progress === 'running')) {
       this.timer = setTimeout(() => {
         this.refresh();
       }, 2000);
