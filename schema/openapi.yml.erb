@@ -690,7 +690,7 @@ components:
 
       allOf:
         <%- db[:objects].each do |obj| -%>
-        <%- unless obj[:optional] -%>
+        <%- if obj[:required] -%>
         - oneOf:
           - required:
             - db
@@ -710,7 +710,7 @@ components:
         <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[file]:
           <%- if obj[:multiple] -%>
           type: array
-          minItems: <%= obj[:optional] ? 0 : 1 %>
+          minItems: <%= obj[:required] ? 1 : 0 %>
 
           items:
             $ref: '#/components/schemas/File'
@@ -721,7 +721,7 @@ components:
         <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[path]:
           <%- if obj[:multiple] -%>
           type: array
-          minItems: <%= obj[:optional] ? 0 : 1 %>
+          minItems: <%= obj[:required] ? 1 : 0 %>
 
           items:
             $ref: '#/components/schemas/Path'
@@ -732,7 +732,7 @@ components:
         <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[destination]:
           <%- if obj[:multiple] -%>
           type: array
-          minItems: <%= obj[:optional] ? 0 : 1 %>
+          minItems: <%= obj[:required] ? 1 : 0 %>
 
           items:
             $ref: '#/components/schemas/Destination'

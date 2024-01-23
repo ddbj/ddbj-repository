@@ -14,9 +14,9 @@ export default class Source {
   }
 
   get required() {
-    const { optional, multiple } = this.obj.schema;
+    const { required, multiple } = this.obj.schema;
 
-    return !optional || multiple;
+    return required || multiple;
   }
 
   toJSON() {
