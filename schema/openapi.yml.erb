@@ -654,7 +654,10 @@ components:
 
     Path:
       type: string
-      description: Path of the file on the NIG supercomputer, relative to the home directory of the authorised user.
+      description: |
+        Path of the file on the NIG supercomputer, relative to the home directory of the authorised user.
+
+        Note: If both file and path are specified, the file takes precedence.
 
     Destination:
       type: string
