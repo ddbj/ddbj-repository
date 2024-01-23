@@ -25,7 +25,7 @@ class Validations::ViaFilesController < ApplicationController
 
       db[:objects].each do |obj|
         obj => {id:}
-        val = obj[:optional] ? params[id] : params.require(id)
+        val = obj[:required] ? params.require(id) : params[id]
 
         handle_param validation, obj, val
       end
@@ -66,7 +66,7 @@ class Validations::ViaFilesController < ApplicationController
       val.each do |v|
         handle_param validation, obj, v
       end
-    in nil if obj[:optional]
+    in nil unless obj[:required]
       # do nothing
     in unknown
       raise UnprocessableEntity, "unexpected parameter format in #{id}: #{unknown.inspect}"

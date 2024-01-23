@@ -14,15 +14,15 @@ export default class Obj {
   @tracked sources: Source[];
 
   constructor(db: DB, schema: ObjSchema) {
-    const { optional, multiple } = schema;
+    const { required, multiple } = schema;
 
     this.db = db;
     this.schema = schema;
-    this.sources = optional && multiple ? [] : [new Source(this)];
+    this.sources = !required && multiple ? [] : [new Source(this)];
   }
 
   get canRemoveSource() {
-    return this.schema.optional || this.sources.length > 1;
+    return !this.schema.required || this.sources.length > 1;
   }
 
   @action

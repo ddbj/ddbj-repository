@@ -5,6 +5,6 @@ export interface DBSchema {
 
 export interface ObjSchema {
   id: string;
-  optional: boolean;
+  required: boolean;
   multiple: boolean;
 }

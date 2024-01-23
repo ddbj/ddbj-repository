@@ -27,7 +27,7 @@ type Db = {
 type Obj = {
   id: string;
   ext: string;
-  optional?: boolean;
+  required?: boolean;
   multiple?: boolean;
 };
 
@@ -44,12 +44,12 @@ function createDatabaseCommands(): [string, Command<Options>][] {
       .description(`Validate ${db.id} files.`);
 
     const cmd = db.objects
-      .reduce((cmd, { id, ext, optional, multiple }) => (
+      .reduce((cmd, { id, ext, required, multiple }) => (
         cmd
           .option(
             `--${id.toLowerCase()}.file <path:file>`,
             `Path to ${id} file (${ext})`,
-            { required: !optional, collect: !!multiple },
+            { required, collect: !!multiple },
           )
           .option(
             `--${id.toLowerCase()}.destination <path:string>`,

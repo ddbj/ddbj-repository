@@ -5,7 +5,8 @@
     "objects": [
       {
         "id": "BioProject",
-        "ext": "xml"
+        "ext": "xml",
+        "required": true
       }
     ]
   },
@@ -15,7 +16,8 @@
     "objects": [
       {
         "id": "BioSample",
-        "ext": "xml"
+        "ext": "xml",
+        "required": true
       }
     ]
   },
@@ -26,11 +28,13 @@
       {
         "id": "Sequence",
         "ext": "fasta",
+        "required": true,
         "multiple": true
       },
       {
         "id": "Annotation",
         "ext": "ann",
+        "required": true,
         "multiple": true
       }
     ]
@@ -41,30 +45,32 @@
     "objects": [
       {
         "id": "Submission",
-        "ext": "xml"
+        "ext": "xml",
+        "required": true
       },
       {
         "id": "Experiment",
-        "ext": "xml"
+        "ext": "xml",
+        "required": true
       },
       {
         "id": "Run",
-        "ext": "xml"
+        "ext": "xml",
+        "required": true
       },
       {
         "id": "RunFile",
         "ext": "fastq",
+        "required": true,
         "multiple": true
       },
       {
         "id": "Analysis",
-        "ext": "xml",
-        "optional": true
+        "ext": "xml"
       },
       {
         "id": "AnalysisFile",
         "ext": "raw",
-        "optional": true,
         "multiple": true
       }
     ]
@@ -75,28 +81,27 @@
     "objects": [
       {
         "id": "IDF",
-        "ext": "idf.txt"
+        "ext": "idf.txt",
+        "required": true
       },
       {
         "id": "SDRF",
-        "ext": "sdrf.txt"
+        "ext": "sdrf.txt",
+        "required": true
       },
       {
         "id": "ADF",
         "ext": "adf.txt",
-        "optional": true,
         "multiple": true
       },
       {
         "id": "RawDataFile",
         "ext": "raw",
-        "optional": true,
         "multiple": true
       },
       {
         "id": "ProcessedDataFile",
         "ext": "raw",
-        "optional": true,
         "multiple": true
       }
     ]
@@ -107,34 +112,32 @@
     "objects": [
       {
         "id": "IDF",
-        "ext": "idf.txt"
+        "ext": "idf.txt",
+        "required": true
       },
       {
         "id": "SDRF",
-        "ext": "sdrf.txt"
+        "ext": "sdrf.txt",
+        "required": true
       },
       {
         "id": "MAF",
         "ext": "maf.txt",
-        "optional": true,
         "multiple": true
       },
       {
         "id": "RawDataFile",
         "ext": "raw",
-        "optional": true,
         "multiple": true
       },
       {
         "id": "ProcessedDataFile",
         "ext": "raw",
-        "optional": true,
         "multiple": true
       },
       {
         "id": "BioSample",
-        "ext": "tsv",
-        "optional": true
+        "ext": "tsv"
       }
     ]
   },
@@ -144,12 +147,12 @@
     "objects": [
       {
         "id": "Excel",
-        "ext": "xlsx"
+        "ext": "xlsx",
+        "required": true
       },
       {
         "id": "VariantCallFile",
         "ext": "vcf",
-        "optional": true,
         "multiple": true
       }
     ]
