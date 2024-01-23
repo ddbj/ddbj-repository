@@ -1,4 +1,4 @@
-{{page-title "Validations"}}
+{{page-title 'Validations'}}
 
 <h1 class="display-6 mb-4">Validations</h1>
 
@@ -20,29 +20,29 @@
   </thead>
 
   <tbody>
-    {{#each @model.validations key="id" as |req|}}
+    {{#each @model.validations key="id" as |validation|}}
       <tr>
         <td>
-          <LinkTo @route="validations.show" @model={{req}}>{{req.id}}</LinkTo>
+          <LinkTo @route="validations.show" @model={{validation}}>{{validation.id}}</LinkTo>
         </td>
 
-        <td>{{req.db}}</td>
-        <td>{{format-datetime req.created_at}}</td>
+        <td>{{validation.db}}</td>
+        <td>{{format-datetime validation.created_at}}</td>
 
         <td>
-          {{#if @model.finished_at}}
-            {{format-datetime req.finished_at}}
+          {{#if validation.finished_at}}
+            {{format-datetime validation.finished_at}}
           {{else}}
             -
           {{/if}}
         </td>
 
-        <td><ProgressLabel @progress={{req.progress}} /></td>
-        <td><ValidityBadge @validity={{req.validity}} /></td>
+        <td><ProgressLabel @progress={{validation.progress}} /></td>
+        <td><ValidityBadge @validity={{validation.validity}} /></td>
 
         <td>
-          {{#if req.submission}}
-            {{req.submission.id}}
+          {{#if validation.submission}}
+            {{validation.submission.id}}
           {{else}}
             -
           {{/if}}

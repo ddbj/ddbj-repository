@@ -8,7 +8,13 @@ import { LoginError } from 'ddbj-repository/services/current-user';
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type ErrorModalService from 'ddbj-repository/services/error-modal';
 
-export default class LoginFormComponent extends Component {
+interface Signature {
+  Args: {
+    loginURL: string;
+  };
+}
+
+export default class LoginFormComponent extends Component<Signature> {
   @service declare currentUser: CurrentUserService;
   @service declare errorModal: ErrorModalService;
 
@@ -31,5 +37,11 @@ export default class LoginFormComponent extends Component {
         this.errorModal.show(err as object);
       }
     }
+  }
+}
+
+declare module '@glint/environment-ember-loose/registry' {
+  export default interface Registry {
+    LoginForm: typeof LoginFormComponent;
   }
 }

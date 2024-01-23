@@ -5,6 +5,14 @@ import ENV from 'ddbj-repository/config/environment';
 import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type { components } from 'schema/openapi';
+
+type Submission = components['schemas']['Submission'];
+
+export interface Model {
+  submissions: Submission[];
+  lastPage?: number;
+}
 
 export default class SubmissionsIndexRoute extends Route {
   @service declare currentUser: CurrentUserService;

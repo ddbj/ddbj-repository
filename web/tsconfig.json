@@ -8,7 +8,11 @@
     "paths": {
       "ddbj-repository/tests/*": ["tests/*"],
       "ddbj-repository/*": ["app/*"],
+      "schema/*": ["../schema/*"],
       "*": ["types/*"]
     }
+  },
+  "glint": {
+    "environment": "ember-loose"
   }
 }

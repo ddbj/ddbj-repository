@@ -4,6 +4,9 @@ import { service } from '@ember/service';
 import ENV from 'ddbj-repository/config/environment';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type { components } from 'schema/openapi';
+
+type Validation = components['schemas']['Validation'];
 
 export default class ValidationsShowRoute extends Route {
   @service declare currentUser: CurrentUserService;
@@ -22,8 +25,8 @@ export default class ValidationsShowRoute extends Route {
     return await res.json();
   }
 
-  afterModel({ progress }: { progress: string }) {
-    if (progress === 'waiting' || progress === 'running') {
+  afterModel({ progress }: Validation) {
+    if (progress === 'waiting' || progress === 'processing') {
       this.timer = setTimeout(() => {
         this.refresh();
       }, 2000);

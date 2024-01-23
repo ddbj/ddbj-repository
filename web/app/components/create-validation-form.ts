@@ -1,23 +1,22 @@
 import Component from '@glimmer/component';
-import { action } from '@ember/object';
 import { service } from '@ember/service';
-import { tracked } from '@glimmer/tracking';
 
 import { task } from 'ember-concurrency';
 
 import ENV from 'ddbj-repository/config/environment';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type DB from 'ddbj-repository/models/db';
 import type ErrorModalService from 'ddbj-repository/services/error-modal';
 import type Router from '@ember/routing/router';
 
-type Signature = {
+interface Signature {
   Args: {
     db: DB;
   };
-};
+}
 
-export default class CreateValidationFormConponent extends Component<Signature> {
+export default class CreateValidationFormComponent extends Component<Signature> {
   @service declare currentUser: CurrentUserService;
   @service declare errorModal: ErrorModalService;
   @service declare router: Router;
@@ -43,90 +42,9 @@ export default class CreateValidationFormConponent extends Component<Signature> 
   });
 }
 
-export class DB {
-  schema: DBSchema;
-  objs: Obj[];
-
-  constructor(schema: DBSchema) {
-    this.schema = schema;
-    this.objs = this.schema.objects.map((obj) => new Obj(this, obj));
-  }
-
-  toJSON() {
-    return this.objs.reduce(
-      (acc, obj) => ({
-        ...acc,
-        [obj.schema.id]: obj.toJSON(),
-      }),
-      { db: this.schema.id },
-    );
-  }
-}
-
-export class Obj {
-  db: DB;
-  schema: ObjSchema;
-
-  @tracked sourceType: 'file' | 'path' = 'file';
-  @tracked sources: Source[];
-
-  constructor(db: DB, schema: ObjSchema) {
-    const { optional, multiple } = schema;
-
-    this.db = db;
-    this.schema = schema;
-    this.sources = optional && multiple ? [] : [new Source(this)];
-  }
-
-  get canRemoveSource() {
-    return this.schema.optional || this.sources.length > 1;
-  }
-
-  @action
-  addSource() {
-    this.sources = [...this.sources, new Source(this)];
-  }
-
-  @action
-  removeSource(source: Source) {
-    this.sources = this.sources.filter((_source) => _source !== source);
-  }
-
-  toJSON() {
-    const { schema, sources } = this;
-
-    return schema.multiple ? sources.map((source) => source.toJSON()) : sources[0]!.toJSON();
-  }
-}
-
-export class Source {
-  obj: Obj;
-
-  @tracked file?: File;
-  @tracked path = '';
-  @tracked destination = '';
-
-  constructor(obj: Obj) {
-    this.obj = obj;
-  }
-
-  get required() {
-    const { optional, multiple } = this.obj.schema;
-
-    return !optional || multiple;
-  }
-
-  toJSON() {
-    const { file, path, obj, destination } = this;
-
-    if (!file && !path) return undefined;
-
-    switch (obj.sourceType) {
-      case 'file':
-        return { file, destination };
-      case 'path':
-        return { path, destination };
-    }
+declare module '@glint/environment-ember-loose/registry' {
+  export default interface Registry {
+    CreateValidationForm: typeof CreateValidationFormComponent;
   }
 }
 
