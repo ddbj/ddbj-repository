@@ -27,6 +27,12 @@ class SubmissionsController < ApplicationController
   private
 
   def submissions
-    current_user.submissions.includes(validation: {objs: :file_blob}).order(id: :desc, 'objs.id': :asc)
+    current_user.submissions.includes(
+      :validation => {
+        :objs => {
+          :file_attachment => :blob
+        }
+      }
+    ).order(id: :desc, 'objs.id': :asc)
   end
 end

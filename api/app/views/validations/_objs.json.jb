@@ -5,7 +5,7 @@ validation.objs.group_by(&:_id).except('_base').map {|id, objs|
     files: objs.map {|obj|
       {
         path: obj.path,
-        url:  url_for([validation, :file, path: obj.path, only_path: false])
+        url:  validation_file_url(validation, obj.path)
       }
     }
   }

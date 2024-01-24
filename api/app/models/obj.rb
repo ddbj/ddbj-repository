@@ -13,12 +13,12 @@ class Obj < ApplicationRecord
   validate :destination_must_not_be_malformed
   validate :path_must_be_unique_in_request
 
-  def path
-    base? ? nil : [destination, file.filename.sanitized].reject(&:blank?).join('/')
-  end
+  def base? = _id == '_base'
 
-  def base?
-    _id == '_base'
+  def path
+    return nil if base?
+
+    [destination, file.filename.sanitized].reject(&:blank?).join('/')
   end
 
   def validation_result
