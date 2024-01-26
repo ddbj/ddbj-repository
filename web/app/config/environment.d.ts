@@ -1,4 +1,4 @@
-import type { DBSchema } from 'ddbj-repository/models/schema';
+import type { DBSchema } from 'schema/db';
 
 /**
  * Type declarations for

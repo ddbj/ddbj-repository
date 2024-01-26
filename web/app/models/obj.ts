@@ -4,7 +4,7 @@ import { tracked } from '@glimmer/tracking';
 import Source from 'ddbj-repository/models/source';
 
 import type DB from 'ddbj-repository/models/db';
-import type { ObjSchema } from 'ddbj-repository/models/schema';
+import type { ObjSchema } from 'schema/db';
 
 export default class Obj {
   db: DB;

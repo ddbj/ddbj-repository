@@ -1,6 +1,6 @@
 import Obj from 'ddbj-repository/models/obj';
 
-import type { DBSchema } from 'ddbj-repository/models/schema';
+import type { DBSchema } from 'schema/db';
 
 export default class DB {
   schema: DBSchema;

@@ -15,6 +15,7 @@ class Schema < Thor
       File.write 'db.json',     JSON.pretty_generate(dbs)
       File.write 'openapi.yml', erb.result_with_hash(dbs:)
 
+      run 'pnpm exec quicktype --lang typescript --just-types --top-level DBSchema db.json | sed s/Object/ObjSchema/g > db.d.ts'
       run 'pnpm exec openapi-typescript openapi.yml --output openapi.d.ts'
     end
   end
