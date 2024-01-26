@@ -85,14 +85,18 @@ paths:
               schema:
                 type: object
                 additionalProperties: false
-                required: [uid]
+                required: [uid, ddbj_member]
 
                 properties:
                   uid:
                     type: string
 
+                  ddbj_member:
+                    type: boolean
+
               example:
                 uid: alice
+                ddbj_member: false
 
         '401':
           $ref: '#/components/responses/Unauthorized'

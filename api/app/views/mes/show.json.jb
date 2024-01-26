@@ -1,0 +1,4 @@
+{
+  uid:         @user.uid,
+  ddbj_member: @user.ddbj_member
+}

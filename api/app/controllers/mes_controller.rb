@@ -1,7 +1,5 @@
 class MesController < ApplicationController
   def show
-    render json: {
-      uid: current_user.uid
-    }
+    @user = current_user
   end
 end

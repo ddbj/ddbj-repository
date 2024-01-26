@@ -12,6 +12,8 @@ export default class CurrentUserService extends Service {
   @service declare router: Router;
 
   @tracked apiKey?: string;
+  @tracked isDDBJMember?: boolean;
+  @tracked proxyUid?: string;
   @tracked uid?: string;
 
   previousTransition?: Transition;
@@ -21,15 +23,27 @@ export default class CurrentUserService extends Service {
   }
 
   get authorizationHeader() {
-    return { Authorization: `Bearer ${this.apiKey}` };
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.apiKey}`,
+    };
+
+    if (this.proxyUid) {
+      headers['X-Dway-User-Id'] = this.proxyUid;
+    }
+
+    return headers;
   }
 
-  ensureLogin(transition: Transition) {
-    if (!this.isLoggedIn) {
-      this.previousTransition = transition;
-
-      this.router.transitionTo('login');
+  ensureLogin(transition: Transition, requireAdmin = false) {
+    if (requireAdmin) {
+      if (this.isLoggedIn && this.isDDBJMember) return;
+    } else {
+      if (this.isLoggedIn) return;
     }
+
+    this.previousTransition = transition;
+
+    this.router.transitionTo('login');
   }
 
   ensureLogout() {
@@ -39,10 +53,8 @@ export default class CurrentUserService extends Service {
   }
 
   async login(apiKey: string) {
+    this.clear();
     localStorage.setItem('apiKey', apiKey);
-
-    this.apiKey = apiKey;
-    this.uid = undefined;
 
     await this.restore();
 
@@ -55,40 +67,40 @@ export default class CurrentUserService extends Service {
   }
 
   async logout() {
+    this.clear();
     localStorage.removeItem('apiKey');
-
-    this.apiKey = this.uid = undefined;
-
-    await this.restore();
 
     this.router.transitionTo('index');
   }
 
   async restore() {
-    if (!this.apiKey) {
-      this.apiKey = localStorage.getItem('apiKey') || undefined;
+    if (this.isLoggedIn) return;
+
+    this.apiKey = localStorage.getItem('apiKey') || undefined;
+
+    if (!this.isLoggedIn) {
+      this.clear();
+      return;
     }
 
-    if (this.apiKey) {
-      if (!this.uid) {
-        const res = await fetch(`${ENV.apiURL}/me`, {
-          headers: this.authorizationHeader,
-        });
+    const res = await fetch(`${ENV.apiURL}/me`, {
+      headers: this.authorizationHeader,
+    });
 
-        if (!res.ok) {
-          localStorage.removeItem('apiKey');
+    if (!res.ok) {
+      this.clear();
+      localStorage.removeItem('apiKey');
 
-          this.apiKey = this.uid = undefined;
-
-          throw new LoginError();
-        }
-
-        const { uid } = await res.json();
-
-        this.uid = uid;
-      }
-    } else {
-      this.uid = undefined;
+      throw new LoginError();
     }
+
+    const { uid, ddbj_member } = await res.json();
+
+    this.uid = uid;
+    this.isDDBJMember = ddbj_member;
+  }
+
+  clear() {
+    this.apiKey = this.uid = this.isDDBJMember = this.proxyUid = undefined;
   }
 }
