@@ -12,6 +12,8 @@ type Options = {
   apiUrl?: string;
 };
 
+type Submission = components['schemas']['Submission'];
+
 const createCommand = new Command<void, void, Options, [number]>()
   .description('Create the submission.')
   .arguments('<validation_id:number>')
@@ -57,8 +59,6 @@ const submissionCommand: Command<Options> = new Command<Options>()
   .reset();
 
 export default submissionCommand;
-
-type Submission = components['schemas']['Submission'];
 
 async function createSubmission(apiUrl: string, apiKey: string, validationId: number) {
   const res = await fetch(`${apiUrl}/submissions/`, {
@@ -109,9 +109,24 @@ async function showSubmission(apiUrl: string, apiKey: string, id: string) {
 
   await ensureSuccess(res);
 
-  const payload = await res.json();
+  const { created_at, validation } = await res.json() as Submission;
 
-  colorize(JSON.stringify(payload, null, 2));
+  console.log(`${colors.bold.yellow('ID:')} ${id}`);
+  console.log(`${colors.bold.yellow('URL:')} ${new URL(`/web/submissions/${id}`, apiUrl).href}`);
+  console.log(`${colors.bold.yellow('DB:')} ${validation.db}`);
+  console.log(`${colors.bold.yellow('Created:')} ${formatDatetime(created_at)}`);
+  console.log(`${colors.bold.yellow('Validation:')} #${validation.id}`);
+  console.log();
+  console.log(colors.bold.yellow('Objects:'));
+
+  Table.from([
+    ['ID', 'Files'].map(colors.bold.yellow),
+
+    ...validation.objects.map(({ id, files }) => [
+      id,
+      files.map(({ path }) => path).join('\n'),
+    ]),
+  ]).render();
 }
 
 async function getFile(apiUrl: string, apiKey: string, id: string, path: string) {

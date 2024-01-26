@@ -13,6 +13,8 @@ type Options = {
   apiUrl?: string;
 };
 
+type Validation = components['schemas']['Validation'];
+
 const listCommand = new Command<Options>()
   .description('Get your validations.')
   .action(({ apiUrl }) => {
@@ -60,8 +62,6 @@ const validationCommand: Command<Options> = new Command<Options>()
 
 export default validationCommand;
 
-type Validation = components['schemas']['Validation'];
-
 async function listValidations(apiUrl: string, apiKey: string) {
   const headers = ['ID', 'DB', 'Created', 'Started', 'Finished', 'Progress', 'Validity', 'Submission'];
   const table = Table.from([headers.map(colors.bold.yellow)]);
@@ -97,9 +97,29 @@ async function showValidation(apiUrl: string, apiKey: string, id: number) {
 
   await ensureSuccess(res);
 
-  const payload = await res.json();
+  const { db, created_at, started_at, finished_at, progress, validity, submission, results } = await res.json() as Validation;
 
-  colorize(JSON.stringify(payload, null, 2));
+  console.log(`${colors.bold.yellow('ID:')} ${id}`);
+  console.log(`${colors.bold.yellow('URL:')} ${new URL(`/web/validations/${id}`, apiUrl).href}`);
+  console.log(`${colors.bold.yellow('DB:')} ${db}`);
+  console.log(`${colors.bold.yellow('Created:')} ${formatDatetime(created_at)}`);
+  console.log(`${colors.bold.yellow('Started:')} ${formatDatetime(started_at) || '-'}`);
+  console.log(`${colors.bold.yellow('Finished:')} ${formatDatetime(finished_at) || '-'}`);
+  console.log(`${colors.bold.yellow('Progress:')} ${progress}`);
+  console.log(`${colors.bold.yellow('Validity:')} ${validity || '-'}`);
+  console.log(`${colors.bold.yellow('Submission:')} ${submission?.id || '-'}`);
+  console.log();
+  console.log(colors.bold.yellow('Results:'));
+
+  Table.from([
+    ['Object', 'File', 'Validity'].map(colors.bold.yellow),
+
+    ...results.map(({ object_id, file, validity }) => [
+      object_id,
+      file?.path || '-',
+      validity || '-',
+    ]),
+  ]).render();
 }
 
 async function getFile(apiUrl: string, apiKey: string, id: string, path: string) {
