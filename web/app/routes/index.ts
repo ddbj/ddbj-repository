@@ -7,6 +7,6 @@ export default class IndexRoute extends Route {
   @service declare router: Router;
 
   beforeModel() {
-    this.router.transitionTo('validations');
+    this.router.transitionTo('validations.index', { queryParams: { page: undefined } });
   }
 }

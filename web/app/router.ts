@@ -17,4 +17,6 @@ Router.map(function () {
   this.route('submissions', function () {
     this.route('show', { path: ':id' });
   });
+
+  this.route('admin');
 });
