@@ -34,6 +34,6 @@ class ValidationsController < ApplicationController
   private
 
   def validations
-    current_user.validations.includes(:submission, :objs => :file_blob).order(id: :desc, 'objs.id': :asc)
+    current_user.validations.includes(:submission, :objs).merge(Obj.with_attached_file).order(id: :desc, 'objs.id': :asc)
   end
 end
