@@ -5,6 +5,7 @@ import ENV from 'ddbj-repository/config/environment';
 import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type ValidationsIndexController from 'ddbj-repository/controllers/validations';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
@@ -51,6 +52,13 @@ export default class ValidationsRoute extends Route {
       this.timer = setTimeout(() => {
         this.refresh();
       }, 2000);
+    }
+  }
+
+  resetController(controller: ValidationsIndexController, isExiting: boolean) {
+    if (isExiting) {
+      controller.pageBefore = controller.page;
+      controller.page = undefined;
     }
   }
 

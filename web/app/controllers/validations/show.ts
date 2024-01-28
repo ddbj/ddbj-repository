@@ -1,5 +1,6 @@
 import Controller from '@ember/controller';
 import { action } from '@ember/object';
+import { getOwner } from '@ember/owner';
 import { modifier } from 'ember-modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
@@ -13,6 +14,7 @@ import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type ErrorModalService from 'ddbj-repository/services/error-modal';
 import type Router from '@ember/routing/router';
 import type ToastService from 'ddbj-repository/services/toast';
+import type ValidationsIndexController from 'ddbj-repository/controllers/validations/index';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
@@ -38,6 +40,12 @@ export default class ValidationsShowController extends Controller {
       clearInterval(timer);
     };
   });
+
+  get indexPage() {
+    const controller = getOwner(this)!.lookup('controller:validations.index') as ValidationsIndexController;
+
+    return controller?.pageBefore;
+  }
 
   get canSubmit() {
     return !this.cannotSubmitReason;

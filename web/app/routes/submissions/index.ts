@@ -5,6 +5,7 @@ import ENV from 'ddbj-repository/config/environment';
 import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type SubmissionsIndexController from 'ddbj-repository/controllers/submissions';
 import type { components } from 'schema/openapi';
 
 type Submission = components['schemas']['Submission'];
@@ -42,5 +43,12 @@ export default class SubmissionsIndexRoute extends Route {
       submissions: await res.json(),
       lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
     };
+  }
+
+  resetController(controller: SubmissionsIndexController, isExiting: boolean) {
+    if (isExiting) {
+      controller.pageBefore = controller.page;
+      controller.page = undefined;
+    }
   }
 }
