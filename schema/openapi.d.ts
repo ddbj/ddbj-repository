@@ -60,6 +60,11 @@ export interface paths {
       parameters: {
         query?: {
           page?: number;
+          db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar")[];
+          created_at_after?: string;
+          created_at_before?: string;
+          validity?: ("valid" | "invalid" | "error" | "null")[];
+          submitted?: boolean;
         };
       };
       responses: {

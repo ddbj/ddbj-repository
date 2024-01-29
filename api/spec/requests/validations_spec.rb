@@ -174,6 +174,75 @@ RSpec.describe 'validations', type: :request, authorized: true do
         end
       end
     end
+
+    describe 'search' do
+      example 'db' do
+        create :validation, id: 100, db: 'JVar'
+        create :validation, id: 101, db: 'MetaboBank'
+        create :validation, id: 102, db: 'Trad'
+
+        get '/api/validations', params: {db: 'JVar,MetaboBank'}
+
+        expect(response).to have_http_status(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100, 101)
+      end
+
+      example 'created_at' do
+        create :validation, id: 100, created_at: '2024-01-02 03:04:05'
+        create :validation, id: 101, created_at: '2024-01-03 03:04:05'
+        create :validation, id: 102, created_at: '2024-01-04 03:04:05'
+
+        get '/api/validations', params: {
+          created_at_after:  '2024-01-03 00:00:00'
+        }
+
+        expect(response).to have_http_status(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101, 102)
+
+        get '/api/validations', params: {
+          created_at_before: '2024-01-03 23:59:59'
+        }
+
+        expect(response).to have_http_status(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100, 101)
+
+        get '/api/validations', params: {
+          created_at_after:  '2024-01-03 00:00:00',
+          created_at_before: '2024-01-03 23:59:59'
+        }
+
+        expect(response).to have_http_status(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101)
+      end
+
+      example 'validity' do
+        create :validation, id: 100, validity: 'valid'
+        create :validation, id: 101, validity: nil
+
+        get '/api/validations', params: {validity: 'valid'}
+
+        expect(response).to have_http_status(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
+      end
+
+      example 'submitted' do
+        create :validation, :valid, id: 100 do |validation|
+          create :submission, validation:
+        end
+
+        create :validation, id: 101
+
+        get '/api/validations', params: {submitted: true}
+
+        expect(response).to conform_schema(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
+
+        get '/api/validations', params: {submitted: false}
+
+        expect(response).to conform_schema(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101)
+      end
+    end
   end
 
   describe 'GET /api/validations/:id' do

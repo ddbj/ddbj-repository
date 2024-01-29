@@ -115,6 +115,63 @@ paths:
           schema:
             type: integer
 
+        - in: query
+          name: db
+          style: form
+          explode: false
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - BioProject
+                - BioSample
+                - Trad
+                - DRA
+                - GEA
+                - MetaboBank
+                - JVar
+
+        - in: query
+          name: created_at_after
+
+          schema:
+            type: string
+            format: date-time
+
+        - in: query
+          name: created_at_before
+
+          schema:
+            type: string
+            format: date-time
+
+        - in: query
+          name: validity
+          style: form
+          explode: false
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - valid
+                - invalid
+                - error
+                - 'null'
+
+        - in: query
+          name: submitted
+
+          schema:
+            type: boolean
+
       responses:
         '200':
           description: Return your validations.
