@@ -19,7 +19,11 @@ export default class CurrentUserService extends Service {
   previousTransition?: Transition;
 
   get isLoggedIn() {
-    return !!this.apiKey;
+    return Boolean(this.apiKey);
+  }
+
+  get isProxyLoggedIn() {
+    return Boolean(this.proxyUid);
   }
 
   get authorizationHeader() {
