@@ -10,6 +10,12 @@ export default class ProxyLoginComponent extends Component {
 
   @tracked uid?: string;
 
+  constructor(owner: unknown, args: object) {
+    super(owner, args);
+
+    this.uid = this.currentUser.proxyUid;
+  }
+
   @action
   setUid(e: Event) {
     this.uid = (e.target as HTMLInputElement).value;
@@ -20,7 +26,11 @@ export default class ProxyLoginComponent extends Component {
     e.preventDefault();
 
     this.currentUser.proxyUid = this.uid;
-    this.uid = undefined;
+  }
+
+  @action
+  exit() {
+    this.currentUser.proxyUid = this.uid = undefined;
   }
 }
 

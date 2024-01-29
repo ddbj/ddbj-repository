@@ -6,14 +6,18 @@
       <div class="mb-3">
         {{#let (unique-id) as |id|}}
           <label for={{id}} class="form-label">
-            User ID
+            D-way User ID
           </label>
 
-          <input type="text" value={{this.uid}} id={{id}} class="form-control" {{on 'change' this.setUid}} />
+          <input type="text" value={{this.uid}} readonly={{this.currentUser.isProxyLoggedIn}} id={{id}} class={{if this.currentUser.isProxyLoggedIn "form-control-plaintext" "form-control"}} {{on 'change' this.setUid}} />
         {{/let}}
       </div>
 
-      <button type="submit" class="btn btn-primary">Switch User</button>
+      {{#if this.currentUser.isProxyLoggedIn}}
+        <button type="button" class="btn btn-danger" {{on 'click' this.exit}}>Exit Proxy Login</button>
+      {{else}}
+        <button type="submit" class="btn btn-primary">Switch User</button>
+      {{/if}}
     </form>
   </div>
 </div>
