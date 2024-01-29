@@ -1,4 +1,5 @@
 import Controller from '@ember/controller';
+import { tracked } from '@glimmer/tracking';
 
 import type { Model } from 'ddbj-repository/routes/validations/index';
 
@@ -7,5 +8,6 @@ export default class ValidationsIndexController extends Controller {
 
   declare model: Model;
 
-  page?: number;
+  @tracked page?: number;
+  @tracked pageBefore?: number;
 }
