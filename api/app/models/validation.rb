@@ -15,7 +15,6 @@ class Validation < ApplicationRecord
     sql = validities.map {|validity|
       case validity
       when 'valid'
-          # 'valid' = ALL(SELECT objs.validity FROM objs WHERE objs.validation_id = validations.id)
         <<~SQL
           NOT EXISTS (
             SELECT 1 FROM objs
@@ -32,9 +31,7 @@ class Validation < ApplicationRecord
           ) AND objs.validity = 'invalid'
         SQL
       when 'error'
-        <<~SQL
-          objs.validity = 'error'
-        SQL
+        %(objs.validity = 'error')
       when 'null'
         <<~SQL
           NOT EXISTS (
