@@ -24,13 +24,20 @@ export default class ValidationsRoute extends Route {
     page: {
       refreshModel: true,
     },
+    db: {
+      refreshModel: true,
+    },
   };
 
-  async model(params: { page?: string }) {
+  async model(params: { page?: string; db?: string }) {
     const url = new URL(`${ENV.apiURL}/validations`);
 
     if (params.page) {
       url.searchParams.set('page', params.page);
+    }
+
+    if (params.db) {
+      url.searchParams.set('db', params.db);
     }
 
     const res = await fetch(url, {

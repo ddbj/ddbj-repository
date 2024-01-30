@@ -6,6 +6,8 @@
   <LinkTo @route="validations.new" class="btn btn-primary">New Validation</LinkTo>
 </div>
 
+<ValidationsSearchForm @db={{this.db}} @dbChanged={{this.updateDB}} />
+
 <table class="table">
   <thead>
     <tr>

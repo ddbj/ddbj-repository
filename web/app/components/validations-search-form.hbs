@@ -1,0 +1,12 @@
+<dl>
+  <dt>DB</dt>
+
+  <dd>
+    {{#each this.dbs as |db|}}
+      <label>
+        <input type='checkbox' value={{db.id}} checked={{this.isDBSelected db.id}} {{on 'change' this.toggleDB}} />
+        {{db.id}}
+      </label>
+    {{/each}}
+  </dd>
+</dl>
