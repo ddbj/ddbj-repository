@@ -7,6 +7,8 @@ interface Signature {
   Args: {
     db?: string;
     dbChanged: (db?: string) => void;
+    created?: string;
+    createdChanged: (created?: string) => void;
   };
 }
 

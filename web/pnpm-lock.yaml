@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+dependencies:
+  date-fns:
+    specifier: ^3.3.1
+    version: 3.3.1
+
 devDependencies:
   '@babel/core':
     specifier: ^7.23.9
@@ -5711,6 +5716,10 @@ packages:
     dependencies:
       '@babel/runtime': 7.23.8
     dev: true
+
+  /date-fns@3.3.1:
+    resolution: {integrity: sha512-y8e109LYGgoQDveiEBD3DYXKba1jWf5BA8YU1FL5Tvm0BTdEfy54WLCwnuYWZNnzzvALy/QQ4Hov+Q9RVRv+Zw==}
+    dev: false
 
   /debug@2.6.9(supports-color@8.1.1):
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}

@@ -110,5 +110,8 @@
   },
   "ember": {
     "edition": "octane"
+  },
+  "dependencies": {
+    "date-fns": "^3.3.1"
   }
 }

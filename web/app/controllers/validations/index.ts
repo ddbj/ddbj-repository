@@ -9,7 +9,11 @@ import type Router from '@ember/routing/router';
 export default class ValidationsIndexController extends Controller {
   @service declare router: Router;
 
-  queryParams = [{ page: { type: 'number' } as const }, { db: { type: 'string' } as const }];
+  queryParams = [
+    { page: { type: 'number' } as const },
+    { db: { type: 'string' } as const },
+    { created: { type: 'string' } as const },
+  ];
 
   declare model: Model;
 
@@ -17,10 +21,17 @@ export default class ValidationsIndexController extends Controller {
   @tracked pageBefore?: number;
 
   @tracked db?: string;
+  @tracked created?: string;
 
   @action
   updateDB(db?: string) {
     this.db = db;
+    this.page = undefined;
+  }
+
+  @action
+  updateCreated(created?: string) {
+    this.created = created;
     this.page = undefined;
   }
 }

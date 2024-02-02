@@ -1,6 +1,8 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
+import { subDays, subWeeks, subMonths, subYears } from 'date-fns';
+
 import ENV from 'ddbj-repository/config/environment';
 import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
 
@@ -27,9 +29,12 @@ export default class ValidationsRoute extends Route {
     db: {
       refreshModel: true,
     },
+    created: {
+      refreshModel: true,
+    },
   };
 
-  async model(params: { page?: string; db?: string }) {
+  async model(params: { page?: string; db?: string; created?: string }) {
     const url = new URL(`${ENV.apiURL}/validations`);
 
     if (params.page) {
@@ -38,6 +43,10 @@ export default class ValidationsRoute extends Route {
 
     if (params.db) {
       url.searchParams.set('db', params.db);
+    }
+
+    if (params.created) {
+      url.searchParams.set('created_at_after', convertCreatedToDate(params.created).toISOString());
     }
 
     const res = await fetch(url, {
@@ -73,5 +82,22 @@ export default class ValidationsRoute extends Route {
     if (this.timer) {
       clearTimeout(this.timer);
     }
+  }
+}
+
+function convertCreatedToDate(created: string) {
+  const now = new Date();
+
+  switch (created) {
+    case 'within_one_day':
+      return subDays(now, 1);
+    case 'within_one_week':
+      return subWeeks(now, 1);
+    case 'within_one_month':
+      return subMonths(now, 1);
+    case 'within_one_year':
+      return subYears(now, 1);
+    default:
+      throw new Error(created);
   }
 }
