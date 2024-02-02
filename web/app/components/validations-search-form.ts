@@ -4,6 +4,8 @@ import { action } from '@ember/object';
 import ENV from 'ddbj-repository/config/environment';
 
 interface Signature {
+  Element: HTMLDListElement;
+
   Args: {
     db?: string;
     dbChanged: (db?: string) => void;

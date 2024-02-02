@@ -1,65 +1,85 @@
-<dl>
+<dl class="horizontal" ...attributes>
   <dt>DB</dt>
 
   <dd>
     {{#each this.dbs as |db|}}
-      <label>
-        <input type='checkbox' value={{db.id}} checked={{this.isDBSelected db.id}} {{on 'change' this.toggleDB}} />
-        {{db.id}}
-      </label>
+      <div class="form-check-inline">
+        {{#let (unique-id) as |id|}}
+          <input type="checkbox" value={{db.id}} checked={{this.isDBSelected db.id}} id={{id}} class="form-check-input" {{on 'change' this.toggleDB}} />
+          <label for={{id}} class="form-check-label">{{db.id}}</label>
+        {{/let}}
+      </div>
     {{/each}}
   </dd>
 
   <dt>Created</dt>
 
   <dd>
-    <label>
-      <input type='radio' checked={{eq @created undefined}} {{on 'change' (fn @createdChanged undefined)}} />
-      All
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="radio" checked={{eq @created undefined}} id={{id}} class="form-check-input" {{on 'change' (fn @createdChanged undefined)}} />
+        <label for={{id}} class="form-check-label">All</label>
+      {{/let}}
+    </div>
 
-    <label>
-      <input type='radio' checked={{eq @created 'within_one_day'}} {{on 'change' (fn @createdChanged 'within_one_day')}} />
-      Within 1 day
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="radio" checked={{eq @created 'within_one_day'}} id={{id}} class="form-check-input" {{on 'change' (fn @createdChanged 'within_one_day')}} />
+        <label for={{id}} class="form-check-label">Within 1 day</label>
+      {{/let}}
+    </div>
 
-    <label>
-      <input type='radio' checked={{eq @created 'within_one_week'}} {{on 'change' (fn @createdChanged 'within_one_week')}} />
-      Within 1 week
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="radio" checked={{eq @created 'within_one_week'}} id={{id}} class="form-check-input" {{on 'change' (fn @createdChanged 'within_one_week')}} />
+        <label for={{id}} class="form-check-label">Within 1 week</label>
+      {{/let}}
+    </div>
 
-    <label>
-      <input type='radio' checked={{eq @created 'within_one_month'}} {{on 'change' (fn @createdChanged 'within_one_month')}} />
-      Within 1 month
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="radio" checked={{eq @created 'within_one_month'}} id={{id}} class="form-check-input" {{on 'change' (fn @createdChanged 'within_one_month')}} />
+        <label for={{id}} class="form-check-label">Within 1 month</label>
+      {{/let}}
+    </div>
 
-    <label>
-      <input type='radio' checked={{eq @created 'within_one_year'}} {{on 'change' (fn @createdChanged 'within_one_year')}} />
-      Within 1 year
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="radio" checked={{eq @created 'within_one_year'}} id={{id}} class="form-check-input" {{on 'change' (fn @createdChanged 'within_one_year')}} />
+        <label for={{id}} class="form-check-label">Within 1 year</label>
+      {{/let}}
+    </div>
   </dd>
 
   <dt>Progress</dt>
 
   <dd>
-    <label>
-      <input type='checkbox' value='waiting' checked={{this.isProgressSelected 'waiting'}} {{on 'change' this.toggleProgress}} />
-      Waiting
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="checkbox" value="waiting" checked={{this.isProgressSelected 'waiting'}} id={{id}} class="form-check-input" {{on 'change' this.toggleProgress}} />
+        <label for={{id}} class="form-check-label">Waiting</label>
+      {{/let}}
+    </div>
 
-    <label>
-      <input type='checkbox' value='running' checked={{this.isProgressSelected 'running'}} {{on 'change' this.toggleProgress}} />
-      Running
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="checkbox" value="running" checked={{this.isProgressSelected 'running'}} id={{id}} class="form-check-input" {{on 'change' this.toggleProgress}} />
+        <label for={{id}} class="form-check-label">Running</label>
+      {{/let}}
+    </div>
 
-    <label>
-      <input type='checkbox' value='finished' checked={{this.isProgressSelected 'finished'}} {{on 'change' this.toggleProgress}} />
-      Finished
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="checkbox" value="finished" checked={{this.isProgressSelected 'finished'}} id={{id}} class="form-check-input" {{on 'change' this.toggleProgress}} />
+        <label for={{id}} class="form-check-label">Finished</label>
+      {{/let}}
+    </div>
 
-    <label>
-      <input type='checkbox' value='canceled' checked={{this.isProgressSelected 'canceled'}} {{on 'change' this.toggleProgress}} />
-      Canceled
-    </label>
+    <div class="form-check-inline">
+      {{#let (unique-id) as |id|}}
+        <input type="checkbox" value="canceled" checked={{this.isProgressSelected 'canceled'}} id={{id}} class="form-check-input" {{on 'change' this.toggleProgress}} />
+        <label for={{id}} class="form-check-label">Canceled</label>
+      {{/let}}
+    </div>
   </dd>
 </dl>

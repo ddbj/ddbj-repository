@@ -6,10 +6,10 @@
   <LinkTo @route="validations.new" class="btn btn-primary">New Validation</LinkTo>
 </div>
 
-<ValidationsSearchForm @db={{this.db}} @dbChanged={{this.updateDB}} @created={{this.created}} @createdChanged={{this.updateCreated}} @progress={{this.progress}} @progressChanged={{this.updateProgress}} />
+<ValidationsSearchForm @db={{this.db}} @dbChanged={{this.updateDB}} @created={{this.created}} @createdChanged={{this.updateCreated}} @progress={{this.progress}} @progressChanged={{this.updateProgress}} class="bg-light p-3 border rounded" />
 
-<table class="table">
-  <thead>
+<table class="table border">
+  <thead class="table-light">
     <tr>
       <th>ID</th>
       <th>DB</th>
