@@ -146,6 +146,23 @@ paths:
             format: date-time
 
         - in: query
+          name: progress
+          style: form
+          explode: false
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - waiting
+                - running
+                - finished
+                - canceled
+
+        - in: query
           name: validity
           style: form
           explode: false

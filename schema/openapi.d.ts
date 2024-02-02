@@ -63,6 +63,7 @@ export interface paths {
           db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar")[];
           created_at_after?: string;
           created_at_before?: string;
+          progress?: ("waiting" | "running" | "finished" | "canceled")[];
           validity?: ("valid" | "invalid" | "error" | "null")[];
           submitted?: boolean;
         };

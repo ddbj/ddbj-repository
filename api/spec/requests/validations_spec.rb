@@ -215,6 +215,22 @@ RSpec.describe 'validations', type: :request, authorized: true do
         expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101)
       end
 
+      example 'progress' do
+        create :validation, id: 100, progress: 'waiting'
+        create :validation, id: 101, progress: 'running'
+        create :validation, id: 102, progress: 'finished'
+
+        get '/api/validations', params: {progress: 'waiting'}
+
+        expect(response).to have_http_status(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
+
+        get '/api/validations', params: {progress: 'running,finished'}
+
+        expect(response).to have_http_status(200)
+        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101, 102)
+      end
+
       example 'validity' do
         create :validation, id: 100, validity: 'valid'
         create :validation, id: 101, validity: nil
