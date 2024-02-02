@@ -13,6 +13,7 @@ export default class ValidationsIndexController extends Controller {
     { page: { type: 'number' } as const },
     { db: { type: 'string' } as const },
     { created: { type: 'string' } as const },
+    { progress: { type: 'string' } as const },
   ];
 
   declare model: Model;
@@ -22,6 +23,7 @@ export default class ValidationsIndexController extends Controller {
 
   @tracked db?: string;
   @tracked created?: string;
+  @tracked progress?: string;
 
   @action
   updateDB(db?: string) {
@@ -32,6 +34,12 @@ export default class ValidationsIndexController extends Controller {
   @action
   updateCreated(created?: string) {
     this.created = created;
+    this.page = undefined;
+  }
+
+  @action
+  updateProgress(progress?: string) {
+    this.progress = progress;
     this.page = undefined;
   }
 }

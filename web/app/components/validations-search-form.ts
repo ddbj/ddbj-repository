@@ -9,6 +9,8 @@ interface Signature {
     dbChanged: (db?: string) => void;
     created?: string;
     createdChanged: (created?: string) => void;
+    progress?: string;
+    progressChanged: (progress?: string) => void;
   };
 }
 
@@ -36,6 +38,29 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
     }
 
     this.args.dbChanged(db);
+  }
+
+  isProgressSelected = (progress: string) => this.selectedProgresses.includes(progress);
+
+  get selectedProgresses() {
+    const { progress } = this.args;
+
+    return progress?.split(',') || [];
+  }
+
+  @action
+  toggleProgress(e: Event) {
+    const { checked, value } = e.target as HTMLInputElement;
+
+    let progress;
+
+    if (checked) {
+      progress = [...this.selectedProgresses, value].join(',');
+    } else {
+      progress = this.selectedProgresses.filter((progress) => progress !== value).join(',') || undefined;
+    }
+
+    this.args.progressChanged(progress);
   }
 }
 

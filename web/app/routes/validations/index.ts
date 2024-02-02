@@ -17,6 +17,13 @@ export interface Model {
   lastPage: number;
 }
 
+interface Params {
+  page?: string;
+  db?: string;
+  created?: string;
+  progress?: string;
+}
+
 export default class ValidationsRoute extends Route {
   @service declare currentUser: CurrentUserService;
 
@@ -32,9 +39,12 @@ export default class ValidationsRoute extends Route {
     created: {
       refreshModel: true,
     },
+    progress: {
+      refreshModel: true,
+    },
   };
 
-  async model(params: { page?: string; db?: string; created?: string }) {
+  async model(params: Params) {
     const url = new URL(`${ENV.apiURL}/validations`);
 
     if (params.page) {
@@ -47,6 +57,10 @@ export default class ValidationsRoute extends Route {
 
     if (params.created) {
       url.searchParams.set('created_at_after', convertCreatedToDate(params.created).toISOString());
+    }
+
+    if (params.progress) {
+      url.searchParams.set('progress', params.progress);
     }
 
     const res = await fetch(url, {

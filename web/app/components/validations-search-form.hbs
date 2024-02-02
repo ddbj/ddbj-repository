@@ -38,4 +38,28 @@
       Within 1 year
     </label>
   </dd>
+
+  <dt>Progress</dt>
+
+  <dd>
+    <label>
+      <input type='checkbox' value='waiting' checked={{this.isProgressSelected 'waiting'}} {{on 'change' this.toggleProgress}} />
+      Waiting
+    </label>
+
+    <label>
+      <input type='checkbox' value='running' checked={{this.isProgressSelected 'running'}} {{on 'change' this.toggleProgress}} />
+      Running
+    </label>
+
+    <label>
+      <input type='checkbox' value='finished' checked={{this.isProgressSelected 'finished'}} {{on 'change' this.toggleProgress}} />
+      Finished
+    </label>
+
+    <label>
+      <input type='checkbox' value='canceled' checked={{this.isProgressSelected 'canceled'}} {{on 'change' this.toggleProgress}} />
+      Canceled
+    </label>
+  </dd>
 </dl>
