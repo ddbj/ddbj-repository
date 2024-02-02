@@ -2,6 +2,8 @@ class SubmissionsController < ApplicationController
   include Pagination
 
   def index
+    submissions = user_submissions.order(id: :desc)
+
     pagy, @submissions = pagy(submissions, page: params[:page])
 
     headers['Link'] = pagination_link_header(pagy, :submissions)
@@ -12,7 +14,7 @@ class SubmissionsController < ApplicationController
   end
 
   def show
-    @submission = submissions.find(params[:id].delete_prefix('X-'))
+    @submission = user_submissions.find(params[:id].delete_prefix('X-'))
   end
 
   def create
@@ -26,13 +28,13 @@ class SubmissionsController < ApplicationController
 
   private
 
-  def submissions
+  def user_submissions
     current_user.submissions.includes(
       :validation => {
         :objs => {
           :file_attachment => :blob
         }
       }
-    ).order(id: :desc, 'objs.id': :asc)
+    )
   end
 end

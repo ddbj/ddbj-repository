@@ -2,6 +2,8 @@ class ValidationsController < ApplicationController
   include Pagination
 
   def index
+    validations = user_validations.order(id: :desc)
+
     pagy, @validations = pagy(validations, page: params[:page])
 
     headers['Link'] = pagination_link_header(pagy, :validations)
@@ -12,11 +14,11 @@ class ValidationsController < ApplicationController
   end
 
   def show
-    @validation = validations.find(params[:id])
+    @validation = user_validations.find(params[:id])
   end
 
   def destroy
-    validation = validations.find(params[:id])
+    validation = user_validations.find(params[:id])
 
     if validation.finished? || validation.canceled?
       render json: {
@@ -33,7 +35,7 @@ class ValidationsController < ApplicationController
 
   private
 
-  def validations
-    current_user.validations.includes(:submission, :objs).merge(Obj.with_attached_file).order(id: :desc, 'objs.id': :asc)
+  def user_validations
+    current_user.validations.includes(:submission, :objs).merge(Obj.with_attached_file)
   end
 end
