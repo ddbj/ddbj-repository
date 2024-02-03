@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-dependencies:
-  date-fns:
-    specifier: ^3.3.1
-    version: 3.3.1
-
 devDependencies:
   '@babel/core':
     specifier: ^7.23.9
@@ -136,6 +131,9 @@ devDependencies:
   concurrently:
     specifier: ^8.2.2
     version: 8.2.2
+  date-fns:
+    specifier: ^3.3.1
+    version: 3.3.1
   ember-auto-import:
     specifier: ^2.7.2
     version: 2.7.2(@glint/template@1.3.0)(webpack@5.90.1)
@@ -5719,7 +5717,7 @@ packages:
 
   /date-fns@3.3.1:
     resolution: {integrity: sha512-y8e109LYGgoQDveiEBD3DYXKba1jWf5BA8YU1FL5Tvm0BTdEfy54WLCwnuYWZNnzzvALy/QQ4Hov+Q9RVRv+Zw==}
-    dev: false
+    dev: true
 
   /debug@2.6.9(supports-color@8.1.1):
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
