@@ -47,19 +47,19 @@ export default class ValidationsRoute extends Route {
   async model(params: Params) {
     const url = new URL(`${ENV.apiURL}/validations`);
 
-    if (params.page) {
+    if (params.page !== undefined) {
       url.searchParams.set('page', params.page);
     }
 
-    if (params.db) {
+    if (params.db !== undefined) {
       url.searchParams.set('db', params.db);
     }
 
-    if (params.created) {
+    if (params.created !== undefined) {
       url.searchParams.set('created_at_after', convertCreatedToDate(params.created).toISOString());
     }
 
-    if (params.progress) {
+    if (params.progress !== undefined) {
       url.searchParams.set('progress', params.progress);
     }
 

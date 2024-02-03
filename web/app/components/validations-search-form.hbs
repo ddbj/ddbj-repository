@@ -5,8 +5,8 @@
     {{#each this.dbs as |db|}}
       <div class="form-check-inline">
         {{#let (unique-id) as |id|}}
-          <input type="checkbox" value={{db.id}} checked={{this.isDBSelected db.id}} id={{id}} class="form-check-input" {{on 'change' this.toggleDB}} />
-          <label for={{id}} class="form-check-label">{{db.id}}</label>
+          <input type="checkbox" value={{db}} checked={{this.isDBSelected db}} id={{id}} class="form-check-input" {{on 'change' this.toggleDB}} />
+          <label for={{id}} class="form-check-label">{{db}}</label>
         {{/let}}
       </div>
     {{/each}}
