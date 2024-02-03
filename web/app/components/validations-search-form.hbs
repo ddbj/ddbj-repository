@@ -19,7 +19,7 @@
     {{#each this.createdOptions as |opt|}}
       <div class="form-check">
         {{#let (unique-id) as |id|}}
-          <input type="radio" checked={{eq @created opt.value}} id={{id}} class="form-check-input" {{on 'change' (fn @onCreatedChange opt.value)}} />
+          <input type="radio" name="created" checked={{eq @created opt.value}} id={{id}} class="form-check-input" {{on 'change' (fn @onCreatedChange opt.value)}} />
           <label for={{id}} class="form-check-label">{{opt.label}}</label>
         {{/let}}
       </div>
