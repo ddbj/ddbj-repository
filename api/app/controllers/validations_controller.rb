@@ -1,10 +1,10 @@
 class ValidationsController < ApplicationController
-  include Pagination
+  include Pagy::Backend
 
   def index
     pagy, @validations = pagy(validations, page: params[:page])
 
-    headers['Link'] = pagination_link_header(pagy, :validations)
+    pagy_headers_merge pagy
   rescue Pagy::OverflowError => e
     render json: {
       error: e.message

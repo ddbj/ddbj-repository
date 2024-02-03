@@ -12,7 +12,7 @@ type Submission = components['schemas']['Submission'];
 
 export interface Model {
   submissions: Submission[];
-  lastPage?: number;
+  lastPage: number;
 }
 
 export default class SubmissionsIndexRoute extends Route {

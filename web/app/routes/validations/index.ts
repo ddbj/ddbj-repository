@@ -12,7 +12,7 @@ type Validation = components['schemas']['Validation'];
 
 export interface Model {
   validations: Validation[];
-  lastPage?: number;
+  lastPage: number;
 }
 
 export default class ValidationsRoute extends Route {

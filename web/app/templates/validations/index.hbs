@@ -63,6 +63,6 @@
   </tbody>
 </table>
 
-{{#if @model.lastPage}}
+{{#if (not-eq @model.lastPage 1)}}
   <Pagination @route="validations.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
 {{/if}}
