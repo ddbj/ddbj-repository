@@ -1,6 +1,9 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
 
+import type CheckboxComponent from 'ddbj-repository/components/checkbox-group/checkbox';
+import type { WithBoundArgs } from '@glint/template';
+
 interface Signature {
   Args: {
     values: string[];
@@ -9,11 +12,11 @@ interface Signature {
   };
 
   Blocks: {
-    default: [CheckboxesComponent];
+    default: [{ checkbox: WithBoundArgs<typeof CheckboxComponent, 'onChange' | 'isSelected'> }];
   };
 }
 
-export default class CheckboxesComponent extends Component<Signature> {
+export default class CheckboxGroupComponent extends Component<Signature> {
   isSelected = (val: string) => this.args.selected.includes(val);
 
   @action
@@ -41,6 +44,6 @@ export default class CheckboxesComponent extends Component<Signature> {
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    Checkboxes: typeof CheckboxesComponent;
+    CheckboxGroup: typeof CheckboxGroupComponent;
   }
 }

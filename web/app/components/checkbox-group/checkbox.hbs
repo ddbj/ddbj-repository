@@ -1,0 +1,4 @@
+{{#let (unique-id) as |id|}}
+  <input type="checkbox" value={{@value}} checked={{@isSelected @value}} id={{id}} class="form-check-input" {{on 'change' @onChange}} />
+  <label for={{id}} class="form-check-label">{{yield}}</label>
+{{/let}}

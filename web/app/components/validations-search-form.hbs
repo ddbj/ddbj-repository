@@ -1,17 +1,16 @@
-<dl class="horizontal" ...attributes>
+<dl class="horizontal align-items-center" ...attributes>
   <dt>DB</dt>
 
   <dd class="d-flex flex-wrap gap-3 align-items-center">
-    <Checkboxes @values={{@dbs}} @selected={{@selectedDBs}} @onChange={{@onSelectedDBsChange}} as |checkboxes|>
+    <CheckboxGroup @values={{@dbs}} @selected={{@selectedDBs}} @onChange={{@onSelectedDBsChange}} as |group|>
       {{#each @dbs as |db|}}
         <div class="form-check">
-          {{#let (unique-id) as |id|}}
-            <input type="checkbox" value={{db}} checked={{checkboxes.isSelected db}} id={{id}} class="form-check-input" {{on 'change' checkboxes.onChange}} />
-            <label for={{id}} class="form-check-label">{{db}}</label>
-          {{/let}}
+          <group.checkbox @value={{db}}>
+            {{db}}
+          </group.checkbox>
         </div>
       {{/each}}
-    </Checkboxes>
+    </CheckboxGroup>
   </dd>
 
   <dt>Created</dt>
@@ -30,15 +29,14 @@
   <dt>Progress</dt>
 
   <dd class="d-flex flex-wrap gap-3 align-items-center">
-    <Checkboxes @values={{@progresses}} @selected={{@selectedProgresses}} @onChange={{@onSelectedProgressesChange}} as |checkboxes|>
+    <CheckboxGroup @values={{@progresses}} @selected={{@selectedProgresses}} @onChange={{@onSelectedProgressesChange}} as |group|>
       {{#each this.progressOptions as |opt|}}
         <div class="form-check">
-          {{#let (unique-id) as |id|}}
-            <input type="checkbox" value={{opt.value}} checked={{checkboxes.isSelected opt.value}} id={{id}} class="form-check-input" {{on 'change' checkboxes.onChange}} />
-            <label for={{id}} class="form-check-label">{{opt.label}}</label>
-          {{/let}}
+          <group.checkbox @value={{opt.value}}>
+            {{opt.label}}
+          </group.checkbox>
         </div>
       {{/each}}
-    </Checkboxes>
+    </CheckboxGroup>
   </dd>
 </dl>
