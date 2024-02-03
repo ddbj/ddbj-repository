@@ -3,11 +3,15 @@ import { action } from '@ember/object';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
+import ENV from 'ddbj-repository/config/environment';
+
 import type { Model } from 'ddbj-repository/routes/validations/index';
 import type Router from '@ember/routing/router';
 
 export default class ValidationsIndexController extends Controller {
   @service declare router: Router;
+
+  declare model: Model;
 
   queryParams = [
     { page: { type: 'number' } as const },
@@ -16,7 +20,8 @@ export default class ValidationsIndexController extends Controller {
     { progress: { type: 'string' } as const },
   ];
 
-  declare model: Model;
+  dbs = ENV.dbs.map((db) => db.id);
+  progresses = ['waiting', 'running', 'finished', 'canceled'];
 
   @tracked page?: number;
   @tracked pageBefore?: number;
@@ -25,21 +30,44 @@ export default class ValidationsIndexController extends Controller {
   @tracked created?: string;
   @tracked progress?: string;
 
-  @action
-  updateDB(db?: string) {
-    this.db = db;
-    this.page = undefined;
+  get selectedDBs() {
+    return queryValueToArray(this.db, this.dbs);
+  }
+
+  get selectedProgresses() {
+    return queryValueToArray(this.progress, this.progresses);
   }
 
   @action
-  updateCreated(created?: string) {
+  onSelectedDBsChange(selected: string[]) {
+    this.page = undefined;
+    this.db = arrayToQueryValue(selected, this.dbs);
+  }
+
+  @action
+  onCreatedChange(created?: string) {
+    this.page = undefined;
     this.created = created;
-    this.page = undefined;
   }
 
   @action
-  updateProgress(progress?: string) {
-    this.progress = progress;
+  onSelectedProgressesChange(selected: string[]) {
     this.page = undefined;
+    this.progress = arrayToQueryValue(selected, this.progresses);
   }
+}
+
+function queryValueToArray(value: string | undefined, all: string[]) {
+  switch (value) {
+    case undefined:
+      return all;
+    case '':
+      return [];
+    default:
+      return value.split(',');
+  }
+}
+
+function arrayToQueryValue(values: string[], all: unknown[]) {
+  return values.length === all.length ? undefined : values.join(',');
 }

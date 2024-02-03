@@ -6,7 +6,17 @@
   <LinkTo @route="validations.new" class="btn btn-primary">New Validation</LinkTo>
 </div>
 
-<ValidationsSearchForm @db={{this.db}} @dbChanged={{this.updateDB}} @created={{this.created}} @createdChanged={{this.updateCreated}} @progress={{this.progress}} @progressChanged={{this.updateProgress}} class="bg-light p-3 border rounded" />
+<ValidationsSearchForm
+  @dbs={{this.dbs}}
+  @selectedDBs={{this.selectedDBs}}
+  @onSelectedDBsChange={{this.onSelectedDBsChange}}
+  @created={{this.created}}
+  @onCreatedChange={{this.onCreatedChange}}
+  @progresses={{this.progresses}}
+  @selectedProgresses={{this.selectedProgresses}}
+  @onSelectedProgressesChange={{this.onSelectedProgressesChange}}
+  class="bg-light p-3 border rounded"
+/>
 
 <table class="table border">
   <thead class="table-light">
