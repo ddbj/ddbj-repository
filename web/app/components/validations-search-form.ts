@@ -22,15 +22,17 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
     { label: 'Within 1 week', value: 'within_one_week' },
     { label: 'Within 1 month', value: 'within_one_month' },
     { label: 'Within 1 year', value: 'within_one_year' },
-  ];
+  ] as const;
 
   progressOptions = [
     { label: 'Waiting', value: 'waiting' },
     { label: 'Running', value: 'running' },
     { label: 'Finished', value: 'finished' },
     { label: 'Canceled', value: 'canceled' },
-  ];
+  ] as const;
 }
+
+export type Created = ValidationsSearchFormComponent['createdOptions'][number]['value'];
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {

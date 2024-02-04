@@ -8,6 +8,7 @@ import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type ValidationsIndexController from 'ddbj-repository/controllers/validations';
+import type { Created } from 'ddbj-repository/components/validations-search-form';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
@@ -20,7 +21,7 @@ export interface Model {
 interface Params {
   page?: string;
   db?: string;
-  created?: string;
+  created?: Created;
   progress?: string;
 }
 
@@ -99,7 +100,7 @@ export default class ValidationsRoute extends Route {
   }
 }
 
-function convertCreatedToDate(created: string) {
+function convertCreatedToDate(created: NonNullable<Created>) {
   const now = new Date();
 
   switch (created) {
@@ -112,6 +113,6 @@ function convertCreatedToDate(created: string) {
     case 'within_one_year':
       return subYears(now, 1);
     default:
-      throw new Error(created);
+      throw new Error(created satisfies never);
   }
 }
