@@ -65,7 +65,11 @@
           </td>
 
           <td><ProgressLabel @progress={{validation.progress}} /></td>
-          <td><ValidityBadge @validity={{validation.validity}} /></td>
+
+          <td>
+            <ValidityBadge @validity={{validation.validity}} />
+            <DetailsCount @results={{validation.results}} />
+          </td>
 
           <td>
             {{#if validation.submission}}

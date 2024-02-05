@@ -57,7 +57,11 @@
 
   <div>
     <dt>Validity</dt>
-    <dd><ValidityBadge @validity={{@model.validity}} /></dd>
+
+    <dd>
+      <ValidityBadge @validity={{@model.validity}} />
+      <DetailsCount @results={{@model.results}} />
+    </dd>
   </div>
 
   <div>
