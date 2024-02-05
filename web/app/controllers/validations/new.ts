@@ -6,12 +6,22 @@ import DB from 'ddbj-repository/models/db';
 import ENV from 'ddbj-repository/config/environment';
 
 export default class ValidationsNewController extends Controller {
+  queryParams = [{ db: { type: 'string' } as const }];
+
   dbs = ENV.dbs.map((db) => new DB(db));
 
-  @tracked selectedDb = this.dbs[0]!;
+  @tracked db = this.dbs[0]!.schema.id;
+
+  get selectedDb() {
+    const db = this.dbs.find((db) => db.schema.id === this.db);
+
+    if (!db) throw new Error('must not happen');
+
+    return db;
+  }
 
   @action
   selectDb(db: DB) {
-    this.selectedDb = db;
+    this.db = db.schema.id;
   }
 }
