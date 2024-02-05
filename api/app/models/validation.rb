@@ -11,6 +11,49 @@ class Validation < ApplicationRecord
 
   enum :progress, %w(waiting running finished canceled).index_by(&:to_sym)
 
+  scope :validity, -> (*validities) {
+    return none if validities.empty?
+
+    sql = validities.map {|validity|
+      case validity
+      when 'valid'
+        <<~SQL
+          NOT EXISTS (
+            SELECT 1 FROM objs
+            WHERE objs.validation_id = validations.id
+              AND (objs.validity <> 'valid' OR objs.validity IS NULL)
+          )
+        SQL
+      when 'invalid'
+        <<~SQL
+          NOT EXISTS (
+            SELECT 1 FROM objs
+            WHERE objs.validation_id = validations.id
+              AND objs.validity = 'error'
+          ) AND objs.validity = 'invalid'
+        SQL
+      when 'error'
+        %(objs.validity = 'error')
+      when 'null'
+        <<~SQL
+          NOT EXISTS (
+            SELECT 1 FROM objs
+            WHERE objs.validation_id = validations.id
+              AND (objs.validity <> 'valid' OR objs.validity <> 'invalid' OR objs.validity <> 'error')
+          )
+        SQL
+      else
+        raise ArgumentError, validity
+      end
+    }.join(' OR ')
+
+    joins(:objs).where(sql)
+  }
+
+  scope :submitted, -> (submitted) {
+    submitted ? where.associated(:submission) : where.missing(:submission)
+  }
+
   validates :db, inclusion: {in: DB.map { _1[:id] }}
 
   validates :started_at,  presence: true, if: :running?

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_01_20_124713) do
+ActiveRecord::Schema[7.1].define(version: 2024_02_02_095754) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -51,6 +51,7 @@ ActiveRecord::Schema[7.1].define(version: 2024_01_20_124713) do
     t.datetime "updated_at", null: false
     t.string "destination"
     t.index ["validation_id"], name: "index_objs_on_validation_id"
+    t.index ["validity"], name: "index_objs_on_validity"
   end
 
   create_table "submissions", force: :cascade do |t|
@@ -78,6 +79,9 @@ ActiveRecord::Schema[7.1].define(version: 2024_01_20_124713) do
     t.datetime "updated_at", null: false
     t.datetime "finished_at"
     t.datetime "started_at"
+    t.index ["created_at"], name: "index_validations_on_created_at"
+    t.index ["db"], name: "index_validations_on_db"
+    t.index ["progress"], name: "index_validations_on_progress"
     t.index ["user_id"], name: "index_validations_on_user_id"
   end
 
