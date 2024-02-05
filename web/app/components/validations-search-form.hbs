@@ -39,4 +39,18 @@
       {{/each}}
     </CheckboxGroup>
   </dd>
+
+  <dt>Validity</dt>
+
+  <dd class="d-flex flex-wrap gap-3 align-items-center">
+    <CheckboxGroup @values={{@validities}} @selected={{@selectedValidities}} @onChange={{@onSelectedValiditiesChange}} as |group|>
+      {{#each this.validityOptions as |opt|}}
+        <div class="form-check">
+          <group.checkbox @value={{opt.value}}>
+            {{opt.label}}
+          </group.checkbox>
+        </div>
+      {{/each}}
+    </CheckboxGroup>
+  </dd>
 </dl>

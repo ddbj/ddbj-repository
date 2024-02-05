@@ -18,10 +18,12 @@ export default class ValidationsIndexController extends Controller {
     { db: { type: 'string' } as const },
     { created: { type: 'string' } as const },
     { progress: { type: 'string' } as const },
+    { validity: { type: 'string' } as const },
   ];
 
   dbs = ENV.dbs.map((db) => db.id);
   progresses = ['waiting', 'running', 'finished', 'canceled'];
+  validities = ['valid', 'invalid', 'error', 'null'];
 
   @tracked page?: number;
   @tracked pageBefore?: number;
@@ -29,6 +31,7 @@ export default class ValidationsIndexController extends Controller {
   @tracked db?: string;
   @tracked created?: string;
   @tracked progress?: string;
+  @tracked validity?: string;
 
   get selectedDBs() {
     return queryValueToArray(this.db, this.dbs);
@@ -36,6 +39,10 @@ export default class ValidationsIndexController extends Controller {
 
   get selectedProgresses() {
     return queryValueToArray(this.progress, this.progresses);
+  }
+
+  get selectedValidities() {
+    return queryValueToArray(this.validity, this.validities);
   }
 
   @action
@@ -54,6 +61,12 @@ export default class ValidationsIndexController extends Controller {
   onSelectedProgressesChange(selected: string[]) {
     this.page = undefined;
     this.progress = arrayToQueryValue(selected, this.progresses);
+  }
+
+  @action
+  onSelectedValiditiesChange(selected: string[]) {
+    this.page = undefined;
+    this.validity = arrayToQueryValue(selected, this.validities);
   }
 }
 

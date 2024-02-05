@@ -12,6 +12,9 @@ interface Signature {
     progresses: string[];
     selectedProgresses: string[];
     onSelectedProgressesChange: (selected: string[]) => void;
+    validities: string[];
+    selectedValidities: string[];
+    onSelectedValiditiesChange: (selected: string[]) => void;
   };
 }
 
@@ -29,6 +32,13 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
     { label: 'Running', value: 'running' },
     { label: 'Finished', value: 'finished' },
     { label: 'Canceled', value: 'canceled' },
+  ] as const;
+
+  validityOptions = [
+    { label: 'Valid', value: 'valid' },
+    { label: 'Invalid', value: 'invalid' },
+    { label: 'Error', value: 'error' },
+    { label: '-', value: 'null' },
   ] as const;
 }
 

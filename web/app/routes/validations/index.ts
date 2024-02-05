@@ -23,6 +23,7 @@ interface Params {
   db?: string;
   created?: Created;
   progress?: string;
+  validity?: string;
 }
 
 export default class ValidationsRoute extends Route {
@@ -41,6 +42,9 @@ export default class ValidationsRoute extends Route {
       refreshModel: true,
     },
     progress: {
+      refreshModel: true,
+    },
+    validity: {
       refreshModel: true,
     },
   };
@@ -62,6 +66,10 @@ export default class ValidationsRoute extends Route {
 
     if (params.progress !== undefined) {
       url.searchParams.set('progress', params.progress);
+    }
+
+    if (params.validity !== undefined) {
+      url.searchParams.set('validity', params.validity);
     }
 
     const res = await fetch(url, {

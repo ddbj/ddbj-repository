@@ -12,6 +12,8 @@ class Validation < ApplicationRecord
   enum :progress, %w(waiting running finished canceled).index_by(&:to_sym)
 
   scope :validity, -> (*validities) {
+    return none if validities.empty?
+
     sql = validities.map {|validity|
       case validity
       when 'valid'
