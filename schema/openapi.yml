@@ -109,164 +109,17 @@ paths:
         - Validation
 
       parameters:
-        - in: query
-          name: page
-
-          schema:
-            type: integer
-
-        - in: query
-          name: db
-          style: form
-          explode: false
-
-          schema:
-            type: array
-
-            items:
-              type: string
-
-              enum:
-                - BioProject
-                - BioSample
-                - Trad
-                - DRA
-                - GEA
-                - MetaboBank
-                - JVar
-
-        - in: query
-          name: created_at_after
-
-          schema:
-            type: string
-            format: date-time
-
-        - in: query
-          name: created_at_before
-
-          schema:
-            type: string
-            format: date-time
-
-        - in: query
-          name: progress
-          style: form
-          explode: false
-
-          schema:
-            type: array
-
-            items:
-              type: string
-
-              enum:
-                - waiting
-                - running
-                - finished
-                - canceled
-
-        - in: query
-          name: validity
-          style: form
-          explode: false
-
-          schema:
-            type: array
-
-            items:
-              type: string
-
-              enum:
-                - valid
-                - invalid
-                - error
-                - 'null'
-
-        - in: query
-          name: submitted
-
-          schema:
-            type: boolean
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/DB'
+        - $ref: '#/components/parameters/CreatedAtAfter'
+        - $ref: '#/components/parameters/CreatedAtBefore'
+        - $ref: '#/components/parameters/Progress'
+        - $ref: '#/components/parameters/Validity'
+        - $ref: '#/components/parameters/Submitted'
 
       responses:
         '200':
-          description: Return your validations.
-
-          headers:
-            Link:
-              schema:
-                type: string
-
-              description: GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details.
-
-          content:
-            application/json:
-              schema:
-                type: array
-
-                items:
-                  $ref: '#/components/schemas/Validation'
-
-              example:
-                - id: 100
-                  url: https://repository.ddbj.nig.ac.jp/api/validations/100
-                  db: BioProject
-                  created_at: '2024-01-01T00:00:00.000Z'
-                  started_at: '2024-01-01T00:01:00.000Z'
-                  finished_at: '2024-01-01T00:02:00.000Z'
-                  progress: finished
-                  validity: valid
-
-                  objects:
-                    - id: BioProject
-                      files:
-                        - path: mybioproject.xml
-                          url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
-
-                  results:
-                    - object_id: _base
-                      validity: valid
-                      details: null
-                      file: null
-
-                    - object_id: BioSample
-                      validity: valid
-
-                      details:
-                        validity: true
-                        answer: 42
-
-                      file:
-                        path: mybiosample.xml
-                        url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
-
-                  submission:
-                    id: X-200
-                    url: https://repository.ddbj.nig.ac.jp/api/submissions/X-200
-
-                - id: 101
-                  url: https://repository.ddbj.nig.ac.jp/api/validations/101
-                  db: BioSample
-                  created_at: '2024-01-01T01:00:00.000Z'
-                  started_at: '2024-01-01T01:01:00.000Z'
-                  finished_at: '2024-01-01T01:02:00.000Z'
-                  progress: waiting
-                  validity: null
-
-                  objects:
-                    - id: BioSample
-                      files:
-                        - path: mybiosample.xml
-                          url: https://repository.ddbj.nig.ac.jp/api/validations/101/files/mybiosample.xml
-
-                  results:
-                    - object_id: _base
-                      validity: null
-                      details: null
-                      file: null
-
-                  submission: null
+          $ref: '#/components/responses/Validations'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -550,6 +403,33 @@ paths:
 
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /admin/validations:
+    get:
+      description: Get all validations.
+
+      tags:
+        - Admin
+
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/DB'
+        - $ref: '#/components/parameters/CreatedAtAfter'
+        - $ref: '#/components/parameters/CreatedAtBefore'
+        - $ref: '#/components/parameters/Progress'
+        - $ref: '#/components/parameters/Validity'
+        - $ref: '#/components/parameters/Submitted'
+        - $ref: '#/components/parameters/UID'
+
+      responses:
+        '200':
+          $ref: '#/components/responses/Validations'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
 components:
   securitySchemes:
@@ -1328,7 +1208,185 @@ components:
                 MetaboBank: '#/components/schemas/MetaboBankViaFile'
                 JVar: '#/components/schemas/JVarViaFile'
 
+  parameters:
+    Page:
+      in: query
+      name: page
+
+      schema:
+        type: integer
+
+    DB:
+      in: query
+      name: db
+      style: form
+      explode: false
+
+      schema:
+        type: array
+
+        items:
+          type: string
+
+          enum:
+            - BioProject
+            - BioSample
+            - Trad
+            - DRA
+            - GEA
+            - MetaboBank
+            - JVar
+
+    CreatedAtAfter:
+      in: query
+      name: created_at_after
+
+      schema:
+        type: string
+        format: date-time
+
+    CreatedAtBefore:
+      in: query
+      name: created_at_before
+
+      schema:
+        type: string
+        format: date-time
+
+    Progress:
+      in: query
+      name: progress
+      style: form
+      explode: false
+
+      schema:
+        type: array
+
+        items:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+    Validity:
+      in: query
+      name: validity
+      style: form
+      explode: false
+
+      schema:
+        type: array
+
+        items:
+          type: string
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - 'null'
+
+    Submitted:
+      in: query
+      name: submitted
+
+      schema:
+        type: boolean
+
+    UID:
+      in: query
+      name: uid
+      style: form
+      explode: false
+
+      schema:
+        type: array
+
+        items:
+          type: string
+
   responses:
+    Validations:
+      description: Return your validations.
+
+      headers:
+        Link:
+          schema:
+            type: string
+
+          description: GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details.
+
+      content:
+        application/json:
+          schema:
+            type: array
+
+            items:
+              $ref: '#/components/schemas/Validation'
+
+          example:
+            - id: 100
+              url: https://repository.ddbj.nig.ac.jp/api/validations/100
+              db: BioProject
+              created_at: '2024-01-01T00:00:00.000Z'
+              started_at: '2024-01-01T00:01:00.000Z'
+              finished_at: '2024-01-01T00:02:00.000Z'
+              progress: finished
+              validity: valid
+
+              objects:
+                - id: BioProject
+                  files:
+                    - path: mybioproject.xml
+                      url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
+
+              results:
+                - object_id: _base
+                  validity: valid
+                  details: null
+                  file: null
+
+                - object_id: BioSample
+                  validity: valid
+
+                  details:
+                    validity: true
+                    answer: 42
+
+                  file:
+                    path: mybiosample.xml
+                    url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
+
+              submission:
+                id: X-200
+                url: https://repository.ddbj.nig.ac.jp/api/submissions/X-200
+
+            - id: 101
+              url: https://repository.ddbj.nig.ac.jp/api/validations/101
+              db: BioSample
+              created_at: '2024-01-01T01:00:00.000Z'
+              started_at: '2024-01-01T01:01:00.000Z'
+              finished_at: '2024-01-01T01:02:00.000Z'
+              progress: waiting
+              validity: null
+
+              objects:
+                - id: BioSample
+                  files:
+                    - path: mybiosample.xml
+                      url: https://repository.ddbj.nig.ac.jp/api/validations/101/files/mybiosample.xml
+
+              results:
+                - object_id: _base
+                  validity: null
+                  details: null
+                  file: null
+
+              submission: null
+
     BadRequest:
       description: Unexpected parameter specified.
 

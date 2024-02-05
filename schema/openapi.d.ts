@@ -59,26 +59,17 @@ export interface paths {
     get: {
       parameters: {
         query?: {
-          page?: number;
-          db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar")[];
-          created_at_after?: string;
-          created_at_before?: string;
-          progress?: ("waiting" | "running" | "finished" | "canceled")[];
-          validity?: ("valid" | "invalid" | "error" | "null")[];
-          submitted?: boolean;
+          page?: components["parameters"]["Page"];
+          db?: components["parameters"]["DB"];
+          created_at_after?: components["parameters"]["CreatedAtAfter"];
+          created_at_before?: components["parameters"]["CreatedAtBefore"];
+          progress?: components["parameters"]["Progress"];
+          validity?: components["parameters"]["Validity"];
+          submitted?: components["parameters"]["Submitted"];
         };
       };
       responses: {
-        /** @description Return your validations. */
-        200: {
-          headers: {
-            /** @description GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details. */
-            Link?: string;
-          };
-          content: {
-            "application/json": components["schemas"]["Validation"][];
-          };
-        };
+        200: components["responses"]["Validations"];
         400: components["responses"]["BadRequest"];
         401: components["responses"]["Unauthorized"];
       };
@@ -229,6 +220,28 @@ export interface paths {
         };
         401: components["responses"]["Unauthorized"];
         404: components["responses"]["NotFound"];
+      };
+    };
+  };
+  "/admin/validations": {
+    /** @description Get all validations. */
+    get: {
+      parameters: {
+        query?: {
+          page?: components["parameters"]["Page"];
+          db?: components["parameters"]["DB"];
+          created_at_after?: components["parameters"]["CreatedAtAfter"];
+          created_at_before?: components["parameters"]["CreatedAtBefore"];
+          progress?: components["parameters"]["Progress"];
+          validity?: components["parameters"]["Validity"];
+          submitted?: components["parameters"]["Submitted"];
+          uid?: components["parameters"]["UID"];
+        };
+      };
+      responses: {
+        200: components["responses"]["Validations"];
+        400: components["responses"]["BadRequest"];
+        401: components["responses"]["Unauthorized"];
       };
     };
   };
@@ -401,6 +414,16 @@ export interface components {
     };
   };
   responses: {
+    /** @description Return your validations. */
+    Validations: {
+      headers: {
+        /** @description GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details. */
+        Link?: string;
+      };
+      content: {
+        "application/json": components["schemas"]["Validation"][];
+      };
+    };
     /** @description Unexpected parameter specified. */
     BadRequest: {
       content: {
@@ -426,7 +449,16 @@ export interface components {
       };
     };
   };
-  parameters: never;
+  parameters: {
+    Page?: number;
+    DB?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar")[];
+    CreatedAtAfter?: string;
+    CreatedAtBefore?: string;
+    Progress?: ("waiting" | "running" | "finished" | "canceled")[];
+    Validity?: ("valid" | "invalid" | "error" | "null")[];
+    Submitted?: boolean;
+    UID?: string[];
+  };
   requestBodies: {
     ViaFile?: {
       content: {
