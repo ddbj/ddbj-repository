@@ -1,10 +1,10 @@
 class SubmissionsController < ApplicationController
-  include Pagination
+  include Pagy::Backend
 
   def index
     pagy, @submissions = pagy(submissions, page: params[:page])
 
-    headers['Link'] = pagination_link_header(pagy, :submissions)
+    pagy_headers_merge pagy
   rescue Pagy::OverflowError => e
     render json: {
       error: e.message

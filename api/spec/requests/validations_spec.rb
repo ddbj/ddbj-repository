@@ -166,7 +166,11 @@ RSpec.describe 'validations', type: :request, authorized: true do
           get '/api/validations'
 
           expect(response).to conform_schema(200)
-          expect(response.headers['Link']).to be_nil
+
+          expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
+            '<http://www.example.com/api/validations?page=1>; rel="first"',
+            '<http://www.example.com/api/validations?page=1>; rel="last"'
+          )
         end
       end
     end
