@@ -53,4 +53,18 @@
       {{/each}}
     </CheckboxGroup>
   </dd>
+
+  <dt>Submission</dt>
+
+  <dd class="d-flex flex-wrap gap-3 align-items-center">
+    {{#each this.submittedOptions as |opt|}}
+      <div class="form-check">
+        {{#let (unique-id) as |id|}}
+          <input type="radio" name="submitted" checked={{eq @submitted opt.value}} id={{id}} class="form-check-input" {{on 'change' (fn @onSubmittedChange opt.value)}} />
+          <label for={{id}} class="form-check-label">{{opt.label}}</label>
+        {{/let}}
+      </div>
+    {{/each}}
+  </dd>
+
 </dl>

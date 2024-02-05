@@ -24,6 +24,7 @@ interface Params {
   created?: Created;
   progress?: string;
   validity?: string;
+  submitted?: boolean;
 }
 
 export default class ValidationsRoute extends Route {
@@ -45,6 +46,9 @@ export default class ValidationsRoute extends Route {
       refreshModel: true,
     },
     validity: {
+      refreshModel: true,
+    },
+    submitted: {
       refreshModel: true,
     },
   };
@@ -70,6 +74,10 @@ export default class ValidationsRoute extends Route {
 
     if (params.validity !== undefined) {
       url.searchParams.set('validity', params.validity);
+    }
+
+    if (params.submitted !== undefined) {
+      url.searchParams.set('submitted', params.submitted.toString());
     }
 
     const res = await fetch(url, {

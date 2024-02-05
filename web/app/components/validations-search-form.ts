@@ -15,6 +15,8 @@ interface Signature {
     validities: string[];
     selectedValidities: string[];
     onSelectedValiditiesChange: (selected: string[]) => void;
+    submitted?: boolean;
+    onSubmittedChange: (submitted?: boolean) => void;
   };
 }
 
@@ -39,6 +41,12 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
     { label: 'Invalid', value: 'invalid' },
     { label: 'Error', value: 'error' },
     { label: '-', value: 'null' },
+  ] as const;
+
+  submittedOptions = [
+    { label: 'All', value: undefined },
+    { label: 'Submitted', value: true },
+    { label: 'Not submitted', value: false },
   ] as const;
 }
 
