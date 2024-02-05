@@ -1,7 +1,7 @@
 <dl class="horizontal align-items-center" ...attributes>
   <dt>DB</dt>
 
-  <dd class="d-flex flex-wrap gap-3 align-items-center">
+  <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
     <CheckboxGroup @values={{@dbs}} @selected={{@selectedDBs}} @onChange={{@onSelectedDBsChange}} as |group|>
       {{#each @dbs as |db|}}
         <div class="form-check">
@@ -15,7 +15,7 @@
 
   <dt>Created</dt>
 
-  <dd class="d-flex flex-wrap gap-3 align-items-center">
+  <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
     {{#each this.createdOptions as |opt|}}
       <div class="form-check">
         {{#let (unique-id) as |id|}}
@@ -28,7 +28,7 @@
 
   <dt>Progress</dt>
 
-  <dd class="d-flex flex-wrap gap-3 align-items-center">
+  <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
     <CheckboxGroup @values={{@progresses}} @selected={{@selectedProgresses}} @onChange={{@onSelectedProgressesChange}} as |group|>
       {{#each this.progressOptions as |opt|}}
         <div class="form-check">
@@ -42,7 +42,7 @@
 
   <dt>Validity</dt>
 
-  <dd class="d-flex flex-wrap gap-3 align-items-center">
+  <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
     <CheckboxGroup @values={{@validities}} @selected={{@selectedValidities}} @onChange={{@onSelectedValiditiesChange}} as |group|>
       {{#each this.validityOptions as |opt|}}
         <div class="form-check">
