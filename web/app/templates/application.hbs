@@ -14,6 +14,12 @@
           <li class="nav-item">
             <LinkTo @route="submissions" class="nav-link">Submissions</LinkTo>
           </li>
+
+          {{#if this.currentUser.isAdmin}}
+            <li>
+              <LinkTo @route="admin" class="nav-link">Administration</LinkTo>
+            </li>
+          {{/if}}
         </ul>
 
         <ul class="navbar-nav">
@@ -27,14 +33,6 @@
             </button>
 
             <ul class="dropdown-menu">
-              {{#if this.currentUser.isDDBJMember}}
-                <li>
-                  <LinkTo @route="admin" class="dropdown-item">Administration</LinkTo>
-                </li>
-
-                <li><hr class="dropdown-divider"></li>
-              {{/if}}
-
               <li>
                 <button type="button" class="dropdown-item" {{on 'click' this.logout}}>Logout</button>
               </li>

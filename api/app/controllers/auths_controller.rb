@@ -35,7 +35,7 @@ class AuthsController < ApplicationController
     userinfo     = access_token.userinfo!
 
     user = User.find_or_initialize_by(uid: userinfo.preferred_username).tap {|user|
-      user.update! ddbj_member: userinfo.raw_attributes['account_type_number'] == 3
+      user.update! admin: userinfo.raw_attributes['account_type_number'] == 3
     }
 
     render plain: <<~TEXT

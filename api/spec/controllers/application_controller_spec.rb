@@ -24,8 +24,8 @@ RSpec.describe ApplicationController, type: :controller do
     expect(controller.current_user.uid).to eq('alice')
   end
 
-  example 'DDBJ member can login as proxy' do
-    create :user, uid: 'alice', api_key: 'API_KEY', ddbj_member: true
+  example 'admin can login as proxy' do
+    create :user, uid: 'alice', api_key: 'API_KEY', admin: true
     create :user, uid: 'bob'
 
     request.headers['Authorization']  = 'Bearer API_KEY'
@@ -38,7 +38,7 @@ RSpec.describe ApplicationController, type: :controller do
   end
 
   example 'other user cannot login as proxy' do
-    create :user, uid: 'alice', api_key: 'API_KEY', ddbj_member: false
+    create :user, uid: 'alice', api_key: 'API_KEY', admin: false
     create :user, uid: 'bob'
 
     request.headers['Authorization']  = 'Bearer API_KEY'
