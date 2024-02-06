@@ -2,29 +2,36 @@
 
 <h1 class="display-6 mb-4">Submissions</h1>
 
-<table class="table">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>DB</th>
-      <th>Created</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    {{#each @model.submissions key="id" as |submission|}}
+{{#if @model.submissions}}
+  <table class="table border">
+    <thead class="table-light">
       <tr>
-        <td>
-          <LinkTo @route="submissions.show" @model={{submission}}>{{submission.id}}</LinkTo>
-        </td>
-
-        <td>{{submission.validation.db}}</td>
-        <td>{{format-datetime submission.created_at}}</td>
+        <th>ID</th>
+        <th>DB</th>
+        <th>Created</th>
       </tr>
-    {{/each}}
-  </tbody>
-</table>
+    </thead>
 
-{{#if (not-eq @model.lastPage 1)}}
-  <Pagination @route="submissions.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
+    <tbody>
+      {{#each @model.submissions key="id" as |submission|}}
+        <tr>
+          <td>
+            <LinkTo @route="submissions.show" @model={{submission}}>{{submission.id}}</LinkTo>
+          </td>
+
+          <td>{{submission.validation.db}}</td>
+          <td>{{format-datetime submission.created_at}}</td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  {{#if (not-eq @model.lastPage 1)}}
+    <Pagination @route="submissions.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
+  {{/if}}
+{{else}}
+  {{! @glint-expect-error }}
+  <div class="text-center text-muted border rounded py-5" {{style --bs-border-style='dashed'}}>
+    There are no items.
+  </div>
 {{/if}}
