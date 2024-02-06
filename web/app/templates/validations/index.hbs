@@ -23,75 +23,69 @@
   class="bg-light p-3 border rounded"
 />
 
-{{#if @model.validations}}
-  <table class="table border">
-    <thead class="table-light">
+<Table @items={{@model.validations}}>
+  <thead class="table-light">
+    <tr>
+      <th>ID</th>
+      <th>DB</th>
+      <th>Created</th>
+      <th>Started</th>
+      <th>Finished</th>
+      <th>Progress</th>
+      <th>Validity</th>
+      <th>Submission</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{#each @model.validations key="id" as |validation|}}
       <tr>
-        <th>ID</th>
-        <th>DB</th>
-        <th>Created</th>
-        <th>Started</th>
-        <th>Finished</th>
-        <th>Progress</th>
-        <th>Validity</th>
-        <th>Submission</th>
-      </tr>
-    </thead>
+        <td class="position-relative">
+          <LinkTo @route="validations.show" @model={{validation}} class="stretched-link">
+            {{validation.id}}
+          </LinkTo>
+        </td>
 
-    <tbody>
-      {{#each @model.validations key="id" as |validation|}}
-        <tr>
-          <td class="position-relative">
-            <LinkTo @route="validations.show" @model={{validation}} class="stretched-link">
-              {{validation.id}}
+        <td>{{validation.db}}</td>
+        <td>{{format-datetime validation.created_at}}</td>
+
+        <td>
+          {{#if validation.started_at}}
+            {{format-datetime validation.started_at}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
+
+        <td>
+          {{#if validation.finished_at}}
+            {{format-datetime validation.finished_at}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
+
+        <td><ProgressLabel @progress={{validation.progress}} /></td>
+
+        <td>
+          <ValidityBadge @validity={{validation.validity}} />
+          <DetailsCount @results={{validation.results}} />
+        </td>
+
+        <td class="position-relative">
+          {{#if validation.submission}}
+            <LinkTo @route="submissions.show" @model={{validation.submission.id}} class="stretched-link">
+              {{validation.submission.id}}
             </LinkTo>
-          </td>
+          {{else}}
+            -
+          {{/if}}
+        </td>
+      </tr>
+    {{/each}}
+  </tbody>
+</Table>
 
-          <td>{{validation.db}}</td>
-          <td>{{format-datetime validation.created_at}}</td>
-
-          <td>
-            {{#if validation.started_at}}
-              {{format-datetime validation.started_at}}
-            {{else}}
-              -
-            {{/if}}
-          </td>
-
-          <td>
-            {{#if validation.finished_at}}
-              {{format-datetime validation.finished_at}}
-            {{else}}
-              -
-            {{/if}}
-          </td>
-
-          <td><ProgressLabel @progress={{validation.progress}} /></td>
-
-          <td>
-            <ValidityBadge @validity={{validation.validity}} />
-            <DetailsCount @results={{validation.results}} />
-          </td>
-
-          <td class="position-relative">
-            {{#if validation.submission}}
-              <LinkTo @route="submissions.show" @model={{validation.submission.id}} class="stretched-link">
-                {{validation.submission.id}}
-              </LinkTo>
-            {{else}}
-              -
-            {{/if}}
-          </td>
-        </tr>
-      {{/each}}
-    </tbody>
-  </table>
-
-  {{#if (not-eq @model.lastPage 1)}}
-    <Pagination @route="validations.index" @current={{this.page}} @last={{@model.lastPage}} />
-  {{/if}}
-{{else}}
-  <div class="text-center text-muted border rounded py-5" {{style --bs-border-style='dashed'}}>
-    There are no items.
-  </div>
+{{#if (not-eq @model.lastPage 1)}}
+  <Pagination @route="validations.index" @current={{this.page}} @last={{@model.lastPage}} />
 {{/if}}
