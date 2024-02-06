@@ -242,6 +242,7 @@ export interface paths {
         200: components["responses"]["Validations"];
         400: components["responses"]["BadRequest"];
         401: components["responses"]["Unauthorized"];
+        403: components["responses"]["Forbidden"];
       };
     };
   };
@@ -255,6 +256,9 @@ export interface components {
       id: number;
       /** Format: uri */
       url: string;
+      user: {
+        uid: string;
+      };
       /** @enum {string} */
       db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar";
       /** Format: date-time */
@@ -432,6 +436,12 @@ export interface components {
     };
     /** @description Not authenticated. */
     Unauthorized: {
+      content: {
+        "application/json": components["schemas"]["Error"];
+      };
+    };
+    /** @description Does not have access rights to the resource. */
+    Forbidden: {
       content: {
         "application/json": components["schemas"]["Error"];
       };

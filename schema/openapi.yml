@@ -431,6 +431,10 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+
 components:
   securitySchemes:
     BearerAuth:
@@ -441,7 +445,7 @@ components:
     Validation:
       type: object
       additionalProperties: false
-      required: [id, url, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
 
       properties:
         id:
@@ -450,6 +454,15 @@ components:
         url:
           type: string
           format: uri
+
+        user:
+          type: object
+          additionalProperties: false
+          required: [uid]
+
+          properties:
+            uid:
+              type: string
 
         db:
           type: string
@@ -1330,6 +1343,10 @@ components:
           example:
             - id: 100
               url: https://repository.ddbj.nig.ac.jp/api/validations/100
+
+              user:
+                uid: alice
+
               db: BioProject
               created_at: '2024-01-01T00:00:00.000Z'
               started_at: '2024-01-01T00:01:00.000Z'
@@ -1408,6 +1425,17 @@ components:
 
           example:
             error: Unauthorized
+
+    Forbidden:
+      description: Does not have access rights to the resource.
+
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+          example:
+            error: Forbidden
 
     NotFound:
       description: The requested resource could not be found.

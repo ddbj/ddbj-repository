@@ -1,4 +1,4 @@
-class Admin::ValidationsController < ApplicationController
+class Admin::ValidationsController < Admin::ApplicationController
   include Pagy::Backend
   include SearchValidations
 
