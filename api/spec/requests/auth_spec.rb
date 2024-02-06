@@ -61,8 +61,8 @@ RSpec.describe 'authentication', type: :request do
       user = User.find_by!(uid: 'alice')
 
       expect(user).to have_attributes(
-        api_key:     'API_KEY',
-        ddbj_member: false
+        api_key: 'API_KEY',
+        admin:   false
       )
 
       expect(oidc_client).to have_received(:authorization_code=).with('CODE')

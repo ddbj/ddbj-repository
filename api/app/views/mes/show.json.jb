@@ -1,4 +1,4 @@
 {
-  uid:         @user.uid,
-  ddbj_member: @user.ddbj_member
+  uid:   @user.uid,
+  admin: @user.admin
 }

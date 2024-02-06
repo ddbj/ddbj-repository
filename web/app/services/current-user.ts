@@ -12,7 +12,7 @@ export default class CurrentUserService extends Service {
   @service declare router: Router;
 
   @tracked apiKey?: string;
-  @tracked isDDBJMember?: boolean;
+  @tracked isAdmin?: boolean;
   @tracked proxyUid?: string;
   @tracked uid?: string;
 
@@ -40,7 +40,7 @@ export default class CurrentUserService extends Service {
 
   ensureLogin(transition: Transition, requireAdmin = false) {
     if (requireAdmin) {
-      if (this.isLoggedIn && this.isDDBJMember) return;
+      if (this.isLoggedIn && this.isAdmin) return;
     } else {
       if (this.isLoggedIn) return;
     }
@@ -98,13 +98,13 @@ export default class CurrentUserService extends Service {
       throw new LoginError();
     }
 
-    const { uid, ddbj_member } = await res.json();
+    const { uid, admin } = await res.json();
 
     this.uid = uid;
-    this.isDDBJMember = ddbj_member;
+    this.isAdmin = admin;
   }
 
   clear() {
-    this.apiKey = this.uid = this.isDDBJMember = this.proxyUid = undefined;
+    this.apiKey = this.uid = this.isAdmin = this.proxyUid = undefined;
   }
 }

@@ -46,7 +46,7 @@ export interface paths {
           content: {
             "application/json": {
               uid: string;
-              ddbj_member: boolean;
+              admin: boolean;
             };
           };
         };

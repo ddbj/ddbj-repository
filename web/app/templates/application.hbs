@@ -27,7 +27,7 @@
             </button>
 
             <ul class="dropdown-menu">
-              {{#if this.currentUser.isDDBJMember}}
+              {{#if this.currentUser.isAdmin}}
                 <li>
                   <LinkTo @route="admin" class="dropdown-item">Administration</LinkTo>
                 </li>

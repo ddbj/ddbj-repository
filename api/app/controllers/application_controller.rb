@@ -9,7 +9,7 @@ class ApplicationController < ActionController::API
     @current_user = authenticate_with_http_token {|token|
       next nil unless user = User.find_by(api_key: token)
 
-      if user.ddbj_member? && uid = request.headers['X-Dway-User-Id']
+      if user.admin? && uid = request.headers['X-Dway-User-Id']
         User.find_by(uid:)
       else
         user
