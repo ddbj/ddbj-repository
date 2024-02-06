@@ -89,7 +89,6 @@
     <Pagination @route="validations.index" @current={{this.page}} @last={{@model.lastPage}} />
   {{/if}}
 {{else}}
-  {{! @glint-expect-error }}
   <div class="text-center text-muted border rounded py-5" {{style --bs-border-style='dashed'}}>
     There are no items.
   </div>
