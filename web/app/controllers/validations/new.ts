@@ -13,11 +13,7 @@ export default class ValidationsNewController extends Controller {
   @tracked db = this.dbs[0]!.schema.id;
 
   get selectedDb() {
-    const db = this.dbs.find((db) => db.schema.id === this.db);
-
-    if (!db) throw new Error('must not happen');
-
-    return db;
+    return this.dbs.find((db) => db.schema.id === this.db)!;
   }
 
   @action
