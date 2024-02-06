@@ -1,26 +1,13 @@
-import Route from '@ember/routing/route';
-import { service } from '@ember/service';
+import ValidationsIndexBaseRoute from 'ddbj-repository/routes/validations-index-base';
 
 import { subDays, subWeeks, subMonths, subYears } from 'date-fns';
 
 import ENV from 'ddbj-repository/config/environment';
-import safeFetch from 'ddbj-repository/utils/safe-fetch';
-import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
-import type ValidationsIndexController from 'ddbj-repository/controllers/validations';
 import type { Created } from 'ddbj-repository/components/validations-search-form';
-import type { components } from 'schema/openapi';
 
-type Validation = components['schemas']['Validation'];
-
-export interface Model {
-  validations: Validation[];
-  lastPage: number;
-}
-
-interface Params {
-  page?: string;
+export interface Params {
+  page?: number;
   db?: string;
   created?: Created;
   progress?: string;
@@ -28,37 +15,40 @@ interface Params {
   submitted?: boolean;
 }
 
-export default class ValidationsRoute extends Route {
-  @service declare currentUser: CurrentUserService;
+export const queryParams = {
+  page: {
+    refreshModel: true,
+  },
 
-  timer?: number;
+  db: {
+    refreshModel: true,
+  },
 
-  queryParams = {
-    page: {
-      refreshModel: true,
-    },
-    db: {
-      refreshModel: true,
-    },
-    created: {
-      refreshModel: true,
-    },
-    progress: {
-      refreshModel: true,
-    },
-    validity: {
-      refreshModel: true,
-    },
-    submitted: {
-      refreshModel: true,
-    },
-  };
+  created: {
+    refreshModel: true,
+  },
 
-  async model(params: Params) {
+  progress: {
+    refreshModel: true,
+  },
+
+  validity: {
+    refreshModel: true,
+  },
+
+  submitted: {
+    refreshModel: true,
+  },
+};
+
+export default class ValidationsIndexRoute extends ValidationsIndexBaseRoute<Params> {
+  queryParams = queryParams;
+
+  buildURL(params: Params) {
     const url = new URL(`${ENV.apiURL}/validations`);
 
     if (params.page !== undefined) {
-      url.searchParams.set('page', params.page);
+      url.searchParams.set('page', params.page.toString());
     }
 
     if (params.db !== undefined) {
@@ -81,35 +71,7 @@ export default class ValidationsRoute extends Route {
       url.searchParams.set('submitted', params.submitted.toString());
     }
 
-    const res = await safeFetch(url, {
-      headers: this.currentUser.authorizationHeader,
-    });
-
-    return {
-      validations: await res.json(),
-      lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
-    };
-  }
-
-  afterModel(model: Model) {
-    if (model.validations.some(({ progress }) => progress === 'waiting' || progress === 'running')) {
-      this.timer = setTimeout(() => {
-        this.refresh();
-      }, 2000);
-    }
-  }
-
-  resetController(controller: ValidationsIndexController, isExiting: boolean) {
-    if (isExiting) {
-      controller.pageBefore = controller.page;
-      controller.page = 1;
-    }
-  }
-
-  deactivate() {
-    if (this.timer) {
-      clearTimeout(this.timer);
-    }
+    return url;
   }
 }
 

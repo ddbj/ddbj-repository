@@ -19,7 +19,7 @@ Router.map(function () {
   });
 
   this.route('admin', function () {
+    this.route('validations', function () {});
     this.route('proxy-login');
-    this.route('validations');
   });
 });

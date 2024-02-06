@@ -1,4 +1,16 @@
 <dl class="horizontal align-items-center" ...attributes>
+  {{#if @showUser}}
+    {{#let (unique-id) as |id|}}
+      <dt>
+        <label for={{id}}>User</label>
+      </dt>
+
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
+        <input type="text" value={{@uid}} id={{id}} class="form-control" placeholder="alice,bob" {{on 'input' (perform @onUIDChange)}} />
+      </dd>
+    {{/let}}
+  {{/if}}
+
   <dt>DB</dt>
 
   <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
