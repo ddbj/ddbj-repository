@@ -1,20 +1,14 @@
-import Component from '@glimmer/component';
+import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 
-export default class ProxyLoginComponent extends Component {
+export default class AdminProxyLoginController extends Controller {
   @service declare currentUser: CurrentUserService;
 
   @tracked uid?: string;
-
-  constructor(owner: unknown, args: object) {
-    super(owner, args);
-
-    this.uid = this.currentUser.proxyUid;
-  }
 
   @action
   setUid(e: Event) {
@@ -31,11 +25,5 @@ export default class ProxyLoginComponent extends Component {
   @action
   exit() {
     this.currentUser.proxyUid = this.uid = undefined;
-  }
-}
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ProxyLogin: typeof ProxyLoginComponent;
   }
 }

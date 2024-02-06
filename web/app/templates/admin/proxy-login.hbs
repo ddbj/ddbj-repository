@@ -1,6 +1,4 @@
 <div class="card">
-  <div class="card-header">Proxy Login</div>
-
   <div class="card-body">
     <form {{on 'submit' this.submit}}>
       <div class="mb-3">
@@ -14,7 +12,7 @@
       </div>
 
       {{#if this.currentUser.isProxyLoggedIn}}
-        <button type="button" class="btn btn-danger" {{on 'click' this.exit}}>Exit Proxy Login</button>
+        <button type="button" class="btn btn-danger" {{on 'click' this.exit}}>Deactivate</button>
       {{else}}
         <button type="submit" class="btn btn-primary">Switch User</button>
       {{/if}}

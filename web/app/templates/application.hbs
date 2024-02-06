@@ -14,13 +14,15 @@
           <li class="nav-item">
             <LinkTo @route="submissions" class="nav-link">Submissions</LinkTo>
           </li>
+        </ul>
 
-          {{#if this.currentUser.isAdmin}}
-            <li>
+        {{#if this.currentUser.isAdmin}}
+          <ul class="navbar-nav mb-2 mb-lg-0">
+            <li class="nav-item">
               <LinkTo @route="admin" class="nav-link">Administration</LinkTo>
             </li>
-          {{/if}}
-        </ul>
+          </ul>
+        {{/if}}
 
         <ul class="navbar-nav">
           <li class="nav-item dropdown">
