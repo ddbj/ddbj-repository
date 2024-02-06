@@ -48,7 +48,7 @@ export default class SubmissionsIndexRoute extends Route {
   resetController(controller: SubmissionsIndexController, isExiting: boolean) {
     if (isExiting) {
       controller.pageBefore = controller.page;
-      controller.page = undefined;
+      controller.page = 1;
     }
   }
 }

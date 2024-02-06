@@ -26,7 +26,7 @@ export default class ValidationsIndexController extends Controller {
   progresses = ['waiting', 'running', 'finished', 'canceled'];
   validities = ['valid', 'invalid', 'error', 'null'];
 
-  @tracked page?: number;
+  @tracked page = 1;
   @tracked pageBefore?: number;
 
   @tracked db?: string;
@@ -49,31 +49,31 @@ export default class ValidationsIndexController extends Controller {
 
   @action
   onSelectedDBsChange(selected: string[]) {
-    this.page = undefined;
+    this.page = 1;
     this.db = arrayToQueryValue(selected, this.dbs);
   }
 
   @action
   onCreatedChange(created?: string) {
-    this.page = undefined;
+    this.page = 1;
     this.created = created;
   }
 
   @action
   onSelectedProgressesChange(selected: string[]) {
-    this.page = undefined;
+    this.page = 1;
     this.progress = arrayToQueryValue(selected, this.progresses);
   }
 
   @action
   onSelectedValiditiesChange(selected: string[]) {
-    this.page = undefined;
+    this.page = 1;
     this.validity = arrayToQueryValue(selected, this.validities);
   }
 
   @action
   onSubmittedChange(submitted?: boolean) {
-    this.page = undefined;
+    this.page = 1;
     this.submitted = submitted;
   }
 }

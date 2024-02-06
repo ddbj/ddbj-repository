@@ -8,6 +8,6 @@ export default class SubmissionsIndexController extends Controller {
 
   declare model: Model;
 
-  @tracked page?: number;
+  @tracked page = 1;
   @tracked pageBefore?: number;
 }

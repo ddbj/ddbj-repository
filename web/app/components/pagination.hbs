@@ -2,7 +2,7 @@
   <ul class="pagination">
     <li class="page-item {{unless this.prev 'disabled' ''}}" data-test-prev>
       {{#if this.prev}}
-        <LinkTo @route={{@route}} @query={{hash page=(if (eq this.prev 1) undefined this.prev)}} class="page-link" aria-label="Previous">
+        <LinkTo @route={{@route}} @query={{hash page=this.prev}} class="page-link" aria-label="Previous">
           <span aria-hidden="true">&laquo;</span>
         </LinkTo>
       {{else}}
@@ -14,7 +14,7 @@
 
     {{#each this.pages as |page|}}
       <li class="page-item {{if (eq page @current) 'active' ''}}" data-test-page={{page}}>
-        <LinkTo @route={{@route}} @query={{hash page=(if (eq page 1) undefined page)}} class="page-link">
+        <LinkTo @route={{@route}} @query={{hash page=page}} class="page-link">
           {{page}}
         </LinkTo>
       </li>

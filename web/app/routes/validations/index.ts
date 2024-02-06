@@ -105,7 +105,7 @@ export default class ValidationsRoute extends Route {
   resetController(controller: ValidationsIndexController, isExiting: boolean) {
     if (isExiting) {
       controller.pageBefore = controller.page;
-      controller.page = undefined;
+      controller.page = 1;
     }
   }
 
