@@ -41,8 +41,10 @@
     <tbody>
       {{#each @model.validations key="id" as |validation|}}
         <tr>
-          <td>
-            <LinkTo @route="validations.show" @model={{validation}}>{{validation.id}}</LinkTo>
+          <td class="position-relative">
+            <LinkTo @route="validations.show" @model={{validation}} class="stretched-link">
+              {{validation.id}}
+            </LinkTo>
           </td>
 
           <td>{{validation.db}}</td>
@@ -71,9 +73,9 @@
             <DetailsCount @results={{validation.results}} />
           </td>
 
-          <td>
+          <td class="position-relative">
             {{#if validation.submission}}
-              <LinkTo @route="submissions.show" @model={{validation.submission.id}}>
+              <LinkTo @route="submissions.show" @model={{validation.submission.id}} class="stretched-link">
                 {{validation.submission.id}}
               </LinkTo>
             {{else}}
