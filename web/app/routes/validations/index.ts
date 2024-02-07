@@ -4,6 +4,7 @@ import { service } from '@ember/service';
 import { subDays, subWeeks, subMonths, subYears } from 'date-fns';
 
 import ENV from 'ddbj-repository/config/environment';
+import safeFetch from 'ddbj-repository/utils/safe-fetch';
 import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
@@ -80,13 +81,9 @@ export default class ValidationsRoute extends Route {
       url.searchParams.set('submitted', params.submitted.toString());
     }
 
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       headers: this.currentUser.authorizationHeader,
     });
-
-    if (!res.ok) {
-      throw new Error(res.statusText);
-    }
 
     return {
       validations: await res.json(),
