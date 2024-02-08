@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'validations', type: :request, authorized: true do
-  let_it_be(:user) { create_default(:user, api_key: 'API_KEY') }
+  let_it_be(:user) { create_default(:user, uid: 'alice', api_key: 'API_KEY') }
 
   describe 'GET /api/validations' do
     describe 'payload' do
@@ -26,6 +26,11 @@ RSpec.describe 'validations', type: :request, authorized: true do
           {
             id:          101,
             url:         'http://www.example.com/api/validations/101',
+
+            user: {
+              uid: 'alice'
+            },
+
             db:          'MetaboBank',
             created_at:  '2024-01-02T03:04:58.000Z',
             started_at:  nil,
@@ -48,6 +53,11 @@ RSpec.describe 'validations', type: :request, authorized: true do
           {
             id:          100,
             url:         'http://www.example.com/api/validations/100',
+
+            user: {
+              uid: 'alice'
+            },
+
             db:          'GEA',
             created_at:  '2024-01-02T03:04:56.000Z',
             started_at:  '2024-01-02T03:04:57.000Z',
@@ -278,6 +288,11 @@ RSpec.describe 'validations', type: :request, authorized: true do
       expect(response.parsed_body.deep_symbolize_keys).to eq(
         id:          100,
         url:         'http://www.example.com/api/validations/100',
+
+        user: {
+          uid: 'alice'
+        },
+
         db:          'BioSample',
         created_at:  '2024-01-02T03:04:56.000Z',
         started_at:  '2024-01-02T03:04:57.000Z',

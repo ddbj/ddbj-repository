@@ -1,23 +1,36 @@
 import Component from '@glimmer/component';
 
+import type { Task } from 'ember-concurrency';
+
+interface Args {
+  dbs: string[];
+  selectedDBs: string[];
+  onSelectedDBsChange: (selected: string[]) => void;
+  created?: string;
+  onCreatedChange: (created?: string) => void;
+  progresses: string[];
+  selectedProgresses: string[];
+  onSelectedProgressesChange: (selected: string[]) => void;
+  validities: string[];
+  selectedValidities: string[];
+  onSelectedValiditiesChange: (selected: string[]) => void;
+  submitted?: boolean;
+  onSubmittedChange: (submitted?: boolean) => void;
+}
+
+interface ArgsForUser extends Args {
+  showUser?: false;
+}
+
+interface ArgsForAdmin extends Args {
+  showUser: true;
+  uid?: string;
+  onUIDChange: Task<void, [Event]>;
+}
+
 interface Signature {
   Element: HTMLDListElement;
-
-  Args: {
-    dbs: string[];
-    selectedDBs: string[];
-    onSelectedDBsChange: (selected: string[]) => void;
-    created?: string;
-    onCreatedChange: (created?: string) => void;
-    progresses: string[];
-    selectedProgresses: string[];
-    onSelectedProgressesChange: (selected: string[]) => void;
-    validities: string[];
-    selectedValidities: string[];
-    onSelectedValiditiesChange: (selected: string[]) => void;
-    submitted?: boolean;
-    onSubmittedChange: (submitted?: boolean) => void;
-  };
+  Args: ArgsForUser | ArgsForAdmin;
 }
 
 export default class ValidationsSearchFormComponent extends Component<Signature> {

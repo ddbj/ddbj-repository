@@ -18,5 +18,8 @@ Router.map(function () {
     this.route('show', { path: ':id' });
   });
 
-  this.route('admin');
+  this.route('admin', function () {
+    this.route('validations', function () {});
+    this.route('proxy-login');
+  });
 });

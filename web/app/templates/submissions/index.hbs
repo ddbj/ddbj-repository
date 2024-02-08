@@ -2,35 +2,29 @@
 
 <h1 class="display-6 mb-4">Submissions</h1>
 
-{{#if @model.submissions}}
-  <table class="table border">
-    <thead class="table-light">
+<Table @items={{@model.submissions}}>
+  <thead class="table-light">
+    <tr>
+      <th>ID</th>
+      <th>DB</th>
+      <th>Created</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {{#each @model.submissions key="id" as |submission|}}
       <tr>
-        <th>ID</th>
-        <th>DB</th>
-        <th>Created</th>
+        <td>
+          <LinkTo @route="submissions.show" @model={{submission}}>{{submission.id}}</LinkTo>
+        </td>
+
+        <td>{{submission.validation.db}}</td>
+        <td>{{format-datetime submission.created_at}}</td>
       </tr>
-    </thead>
+    {{/each}}
+  </tbody>
+</Table>
 
-    <tbody>
-      {{#each @model.submissions key="id" as |submission|}}
-        <tr>
-          <td>
-            <LinkTo @route="submissions.show" @model={{submission}}>{{submission.id}}</LinkTo>
-          </td>
-
-          <td>{{submission.validation.db}}</td>
-          <td>{{format-datetime submission.created_at}}</td>
-        </tr>
-      {{/each}}
-    </tbody>
-  </table>
-
-  {{#if (not-eq @model.lastPage 1)}}
-    <Pagination @route="submissions.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
-  {{/if}}
-{{else}}
-  <div class="text-center text-muted border rounded py-5" {{style --bs-border-style='dashed'}}>
-    There are no items.
-  </div>
+{{#if (not-eq @model.lastPage 1)}}
+  <Pagination @route="submissions.index" @current={{or this.page 1}} @last={{@model.lastPage}} />
 {{/if}}

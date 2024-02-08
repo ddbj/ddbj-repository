@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'submissions', type: :request, authorized: true do
-  let!(:user) { create_default(:user, api_key: 'API_KEY') }
+  let!(:user) { create_default(:user, uid: 'alice', api_key: 'API_KEY') }
 
   example 'GET /api/submissions' do
     create :submission, id: 42
@@ -33,6 +33,11 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       validation: {
         id:          100,
         url:         'http://www.example.com/api/validations/100',
+
+        user: {
+          uid: 'alice'
+        },
+
         db:          'JVar',
         created_at:  '2024-01-02T03:04:56.000Z',
         started_at:  '2024-01-02T03:04:57.000Z',
