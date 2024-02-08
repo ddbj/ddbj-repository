@@ -4,8 +4,8 @@ import { service } from '@ember/service';
 
 import downloadFile from 'ddbj-repository/utils/download-file';
 
-import type { components } from 'schema/openapi';
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
