@@ -3,6 +3,7 @@ import { service } from '@ember/service';
 
 import ENV from 'ddbj-repository/config/environment';
 import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
+import safeFetch from 'ddbj-repository/utils/safe-fetch';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type SubmissionsIndexController from 'ddbj-repository/controllers/submissions';
@@ -31,13 +32,9 @@ export default class SubmissionsIndexRoute extends Route {
       url.searchParams.set('page', params.page);
     }
 
-    const res = await fetch(url, {
+    const res = await safeFetch(url, {
       headers: this.currentUser.authorizationHeader,
     });
-
-    if (!res.ok) {
-      throw new Error(res.statusText);
-    }
 
     return {
       submissions: await res.json(),

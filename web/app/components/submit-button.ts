@@ -5,6 +5,7 @@ import { task } from 'ember-concurrency';
 import { tracked } from '@glimmer/tracking';
 
 import ENV from 'ddbj-repository/config/environment';
+import { safeFetchWithModal } from 'ddbj-repository/utils/safe-fetch';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type ErrorModalService from 'ddbj-repository/services/error-modal';
@@ -43,22 +44,22 @@ export default class SubmitButtonComponent extends Component<Signature> {
   submit = task({ drop: true }, async () => {
     const { id } = this.args.validation;
 
-    const res = await fetch(`${ENV.apiURL}/submissions`, {
-      method: 'POST',
+    const res = await safeFetchWithModal(
+      `${ENV.apiURL}/submissions`,
+      {
+        method: 'POST',
 
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.currentUser.authorizationHeader,
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.currentUser.authorizationHeader,
+        },
+
+        body: JSON.stringify({
+          validation_id: id,
+        }),
       },
-
-      body: JSON.stringify({
-        validation_id: id,
-      }),
-    });
-
-    if (!res.ok) {
-      this.errorModal.show(new Error(res.statusText));
-    }
+      this.errorModal,
+    );
 
     const { id: submissionId } = await res.json();
 
@@ -69,14 +70,14 @@ export default class SubmitButtonComponent extends Component<Signature> {
   cancel = task({ drop: true }, async () => {
     const { id } = this.args.validation;
 
-    const res = await fetch(`${ENV.apiURL}/validations/${id}`, {
-      method: 'DELETE',
-      headers: this.currentUser.authorizationHeader,
-    });
-
-    if (!res.ok) {
-      this.errorModal.show(new Error(res.statusText));
-    }
+    await safeFetchWithModal(
+      `${ENV.apiURL}/validations/${id}`,
+      {
+        method: 'DELETE',
+        headers: this.currentUser.authorizationHeader,
+      },
+      this.errorModal,
+    );
 
     // @ts-expect-error https://api.emberjs.com/ember/5.5/classes/RouterService/methods/refresh?anchor=refresh
     this.router.refresh();

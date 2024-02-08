@@ -4,6 +4,7 @@ import { service } from '@ember/service';
 import { task } from 'ember-concurrency';
 
 import ENV from 'ddbj-repository/config/environment';
+import { safeFetchWithModal } from 'ddbj-repository/utils/safe-fetch';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type DB from 'ddbj-repository/models/db';
@@ -28,15 +29,15 @@ export default class NewValidationFormComponent extends Component<Signature> {
 
     e.preventDefault();
 
-    const res = await fetch(`${ENV.apiURL}/validations/via-file`, {
-      method: 'POST',
-      headers: this.currentUser.authorizationHeader,
-      body: jsonToFormData(db.toJSON()),
-    });
-
-    if (!res.ok) {
-      this.errorModal.show(new Error(res.statusText));
-    }
+    const res = await safeFetchWithModal(
+      `${ENV.apiURL}/validations/via-file`,
+      {
+        method: 'POST',
+        headers: this.currentUser.authorizationHeader,
+        body: jsonToFormData(db.toJSON()),
+      },
+      this.errorModal,
+    );
 
     const { id } = await res.json();
 

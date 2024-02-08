@@ -2,6 +2,7 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
 import ENV from 'ddbj-repository/config/environment';
+import safeFetch from 'ddbj-repository/utils/safe-fetch';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 
@@ -13,11 +14,7 @@ export default class LoginRoute extends Route {
   }
 
   async model() {
-    const res = await fetch(`${ENV.apiURL}/api-key`);
-
-    if (!res.ok) {
-      throw new Error(res.statusText);
-    }
+    const res = await safeFetch(`${ENV.apiURL}/api-key`);
 
     return await res.json();
   }

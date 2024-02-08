@@ -1,4 +1,7 @@
 import Component from '@glimmer/component';
+import { tracked } from '@glimmer/tracking';
+
+import { FetchFailed } from 'ddbj-repository/utils/safe-fetch';
 
 export interface Signature {
   Args: {
@@ -7,19 +10,45 @@ export interface Signature {
 }
 
 export default class ErrorMessageComponent extends Component<Signature> {
-  get message() {
+  @tracked message?: string;
+  @tracked details?: string;
+
+  constructor(owner: unknown, args: Signature['Args']) {
+    super(owner, args);
+
     const { error } = this.args;
 
-    return error.toString();
+    this.setMessage(error);
+    this.setDetails(error);
   }
 
-  get details() {
-    const { error } = this.args;
+  async setMessage(error: Signature['Args']['error']) {
+    if (error instanceof FetchFailed) {
+      const { response } = error;
 
-    if (error instanceof Error) {
-      return error.stack;
+      try {
+        const json = await response.json();
+
+        this.message = json.error ? json.error : JSON.stringify(json);
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          this.message = await response.text();
+        } else {
+          this.message = error.toString();
+        }
+      }
+    } else if (error instanceof Error) {
+      this.message = error.message;
     } else {
-      return JSON.stringify(error, null, 2);
+      this.message = error.toString();
+    }
+  }
+
+  setDetails(error: Signature['Args']['error']) {
+    if (error instanceof Error) {
+      this.details = error.stack;
+    } else {
+      this.details = JSON.stringify(error, null, 2);
     }
   }
 }

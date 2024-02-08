@@ -2,6 +2,7 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
 import ENV from 'ddbj-repository/config/environment';
+import safeFetch from 'ddbj-repository/utils/safe-fetch';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type { components } from 'schema/openapi';
@@ -14,13 +15,9 @@ export default class ValidationsShowRoute extends Route {
   timer?: number;
 
   async model({ id }: { id: string }) {
-    const res = await fetch(`${ENV.apiURL}/validations/${id}`, {
+    const res = await safeFetch(`${ENV.apiURL}/validations/${id}`, {
       headers: this.currentUser.authorizationHeader,
     });
-
-    if (!res.ok) {
-      throw new Error(res.statusText);
-    }
 
     return await res.json();
   }
