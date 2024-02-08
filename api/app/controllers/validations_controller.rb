@@ -18,7 +18,7 @@ class ValidationsController < ApplicationController
   end
 
   def destroy
-    validation = eager_load(accessible_validations).find(params[:id])
+    validation = accessible_validations.find(params[:id])
 
     if validation.finished? || validation.canceled?
       render json: {
