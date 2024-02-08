@@ -1,0 +1,7 @@
+{{page-title (concat 'Validation #' @model.id)}}
+
+<div class="mb-3">
+  <LinkTo @route="admin.validations.index" @query={{hash page=this.indexPage}}>&laquo; Back</LinkTo>
+</div>
+
+<Validation @validation={{@model}} @showUser={{true}} />

@@ -1,3 +1,3 @@
 import ValidationsShowBaseRoute from 'ddbj-repository/routes/validations-show-base';
 
-export default class ValidationsShowRoute extends ValidationsShowBaseRoute {}
+export default class AdminValidationsShowRoute extends ValidationsShowBaseRoute {}

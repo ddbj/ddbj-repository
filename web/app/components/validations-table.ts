@@ -8,9 +8,10 @@ interface Signature {
   Args: {
     showUser?: boolean;
     validations: Validation[];
-    route: string;
     page: number;
     lastPage: number;
+    indexRoute: string;
+    showRoute: string;
   };
 }
 

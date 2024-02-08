@@ -21,7 +21,7 @@
     {{#each @validations key="id" as |validation|}}
       <tr>
         <td class="position-relative">
-          <LinkTo @route="validations.show" @model={{validation}} class="stretched-link">
+          <LinkTo @route={{@showRoute}} @model={{validation}} class="stretched-link">
             {{validation.id}}
           </LinkTo>
         </td>
@@ -71,5 +71,5 @@
 </Table>
 
 {{#if (not-eq @lastPage 1)}}
-  <Pagination @route={{@route}} @current={{@page}} @last={{@lastPage}} />
+  <Pagination @route={{@indexRoute}} @current={{@page}} @last={{@lastPage}} />
 {{/if}}
