@@ -4,7 +4,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-current=$(git tag --list 'v*' | tail --lines=1 | tr --delete v)
+current=$(git tag --list 'v*' | tr --delete v | sort --numeric-sort | tail --lines=1)
 tag="v$((current + 1))"
 
 git tag --annotate --message $tag $tag
