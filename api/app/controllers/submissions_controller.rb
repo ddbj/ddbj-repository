@@ -30,11 +30,13 @@ class SubmissionsController < ApplicationController
 
   def user_submissions
     current_user.submissions.includes(
-      :validation => {
+      :validation => [
+        :user,
+
         :objs => {
           :file_attachment => :blob
         }
-      }
+      ]
     )
   end
 end

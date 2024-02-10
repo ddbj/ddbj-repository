@@ -8,7 +8,7 @@ module SearchValidations
     validations = validations.validity(*validity.split(','))                            if validity
     validations = validations.submitted(ActiveModel::Type::Boolean.new.cast(submitted)) if submitted
 
-    validations.order(id: :desc)
+    eager_load_validations(validations).order(id: :desc)
   end
 
   def search_validations_for_admin(validations)
@@ -18,5 +18,9 @@ module SearchValidations
     validations = validations.joins(:user).where(user: {uid: uid.split(',')}) if uid
 
     validations
+  end
+
+  def eager_load_validations(validations)
+    validations.includes(:user, :submission, :objs).merge(Obj.with_attached_file)
   end
 end

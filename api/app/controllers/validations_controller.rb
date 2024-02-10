@@ -3,7 +3,7 @@ class ValidationsController < ApplicationController
   include SearchValidations
 
   def index
-    validations = search_validations_for_user(eager_load(current_user.validations))
+    validations = search_validations_for_user(current_user.validations)
     pagy, @validations = pagy(validations, page: params[:page])
 
     pagy_headers_merge pagy
@@ -14,7 +14,7 @@ class ValidationsController < ApplicationController
   end
 
   def show
-    @validation = eager_load(accessible_validations).find(params[:id])
+    @validation = eager_load_validations(accessible_validations).find(params[:id])
   end
 
   def destroy
@@ -37,9 +37,5 @@ class ValidationsController < ApplicationController
 
   def accessible_validations
     current_user.admin? ? Validation.all : current_user.validations
-  end
-
-  def eager_load(validations)
-    validations.includes(:submission, :objs).merge(Obj.with_attached_file)
   end
 end
