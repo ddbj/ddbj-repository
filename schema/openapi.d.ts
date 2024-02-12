@@ -72,7 +72,7 @@ export interface paths {
            */
           uid?: string[];
           /** @description Return validations of the specified databases. */
-          db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar")[];
+          db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2")[];
           created_at_after?: string;
           created_at_before?: string;
           progress?: ("waiting" | "running" | "finished" | "canceled")[];
@@ -249,7 +249,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar";
+      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -276,7 +276,7 @@ export interface components {
     };
     Objects: ({
         /** @enum {string} */
-        id: "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile";
+        id: "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
         files: {
             path: string;
             /** Format: uri */
@@ -285,7 +285,7 @@ export interface components {
       })[];
     ValidationResult: {
       /** @enum {string} */
-      object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile";
+      object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
       /** @enum {string|null} */
       validity: "valid" | "invalid" | "error" | null;
       details: Record<string, never> | null;
@@ -405,6 +405,19 @@ export interface components {
       "VariantCallFile[][path]"?: components["schemas"]["Path"][];
       "VariantCallFile[][destination]"?: components["schemas"]["Destination"][];
     };
+    Trad2ViaFile: {
+      /** @enum {string} */
+      db?: "Trad2";
+      "Sequence[][file]"?: components["schemas"]["File"][];
+      "Sequence[][path]"?: components["schemas"]["Path"][];
+      "Sequence[][destination]"?: components["schemas"]["Destination"][];
+      "Annotation[][file]"?: components["schemas"]["File"][];
+      "Annotation[][path]"?: components["schemas"]["Path"][];
+      "Annotation[][destination]"?: components["schemas"]["Destination"][];
+      "Metadata[][file]"?: components["schemas"]["File"][];
+      "Metadata[][path]"?: components["schemas"]["Path"][];
+      "Metadata[][destination]"?: components["schemas"]["Destination"][];
+    };
   };
   responses: {
     /** @description Return your validations. */
@@ -452,7 +465,7 @@ export interface components {
   requestBodies: {
     ViaFile?: {
       content: {
-        "multipart/form-data": components["schemas"]["BioProjectViaFile"] | components["schemas"]["BioSampleViaFile"] | components["schemas"]["TradViaFile"] | components["schemas"]["DRAViaFile"] | components["schemas"]["GEAViaFile"] | components["schemas"]["MetaboBankViaFile"] | components["schemas"]["JVarViaFile"];
+        "multipart/form-data": components["schemas"]["BioProjectViaFile"] | components["schemas"]["BioSampleViaFile"] | components["schemas"]["TradViaFile"] | components["schemas"]["DRAViaFile"] | components["schemas"]["GEAViaFile"] | components["schemas"]["MetaboBankViaFile"] | components["schemas"]["JVarViaFile"] | components["schemas"]["Trad2ViaFile"];
       };
     };
   };

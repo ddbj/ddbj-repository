@@ -156,5 +156,29 @@
         "multiple": true
       }
     ]
+  },
+  {
+    "id": "Trad2",
+    "validator": "Trad2Validator",
+    "objects": [
+      {
+        "id": "Sequence",
+        "ext": "fasta",
+        "required": true,
+        "multiple": true
+      },
+      {
+        "id": "Annotation",
+        "ext": "gff",
+        "required": true,
+        "multiple": true
+      },
+      {
+        "id": "Metadata",
+        "ext": "tsv",
+        "required": true,
+        "multiple": true
+      }
+    ]
   }
 ]
