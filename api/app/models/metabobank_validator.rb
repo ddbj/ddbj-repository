@@ -1,8 +1,8 @@
 class MetabobankValidator
-  def validate(request)
-    objs = request.objs.without_base.index_by(&:_id)
+  def validate(validation)
+    objs = validation.objs.without_base.index_by(&:_id)
 
-    request.write_files_to_tmp do |tmpdir|
+    validation.write_files_to_tmp do |tmpdir|
       Dir.chdir tmpdir do
         idf, sdrf = objs.fetch_values('IDF', 'SDRF').map(&:path)
 
@@ -28,7 +28,7 @@ class MetabobankValidator
 
         errors = JSON.parse(out, symbolize_names: true).group_by { _1.fetch(:object_id) }
 
-        request.objs.without_base.group_by(&:_id).each do |obj_id, objs|
+        validation.objs.without_base.group_by(&:_id).each do |obj_id, objs|
           if errs = errors[obj_id]
             validity = if errs.any? { _1[:severity] == 'error' }
                          'invalid'

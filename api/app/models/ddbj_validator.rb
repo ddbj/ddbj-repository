@@ -1,7 +1,7 @@
 class DdbjValidator
-  def validate(request)
-    request.write_files_to_tmp do |dir|
-      request.objs.without_base.each do |obj|
+  def validate(validation)
+    validation.write_files_to_tmp do |dir|
+      validation.objs.without_base.each do |obj|
         part = Faraday::Multipart::FilePart.new(dir.join(obj.path).to_s, 'application/octet-stream')
 
         begin

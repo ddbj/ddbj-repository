@@ -1,6 +1,6 @@
 class DraValidator
-  def validate(request)
-    objs = request.objs.without_base.index_by(&:_id)
+  def validate(validation)
+    objs = validation.objs.without_base.index_by(&:_id)
 
     Dir.mktmpdir do |tmpdir|
       tmpdir = Pathname.new(tmpdir)
@@ -24,7 +24,7 @@ class DraValidator
 
         errors = JSON.parse(out, symbolize_names: true).group_by { _1.fetch(:object_id) }
 
-        request.objs.without_base.group_by(&:_id).each do |obj_id, objs|
+        validation.objs.without_base.group_by(&:_id).each do |obj_id, objs|
           if errs = errors[obj_id]
             objs.each do |obj|
               obj.update! validity: 'invalid', validation_details: errs
