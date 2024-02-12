@@ -4,8 +4,8 @@ class TradValidator
     'Annotation' => %w(.ann .annt.tsv .ann.txt)
   }
 
-  def validate(request)
-    objs = request.objs.without_base
+  def validate(validation)
+    objs = validation.objs.without_base
 
     objs.each do |obj|
       obj.validation_details = []
