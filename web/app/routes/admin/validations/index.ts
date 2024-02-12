@@ -18,7 +18,8 @@ export default class AdminValidationsIndexRoute extends ValidationsIndexBaseRout
 
   buildURL(params: Params) {
     const url = ValidationsIndexRoute.prototype.buildURL(params);
-    url.pathname = '/api/admin/validations';
+
+    url.searchParams.set('everyone', 'true');
 
     if (params.uid !== undefined) {
       url.searchParams.set('uid', params.uid);

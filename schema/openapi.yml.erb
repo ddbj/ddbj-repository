@@ -109,13 +109,114 @@ paths:
         - Validation
 
       parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/DB'
-        - $ref: '#/components/parameters/CreatedAtAfter'
-        - $ref: '#/components/parameters/CreatedAtBefore'
-        - $ref: '#/components/parameters/Progress'
-        - $ref: '#/components/parameters/Validity'
-        - $ref: '#/components/parameters/Submitted'
+        - in: query
+          name: page
+
+          description: |
+            The page number to return. The default is 1.
+
+          schema:
+            type: integer
+            default: 1
+
+        - in: query
+          name: everyone
+
+          description: |
+            If true, return all validations. If false, return only your validations.
+            (Administrator only)
+
+          schema:
+            type: boolean
+            default: false
+
+        - in: query
+          name: uid
+          style: form
+          explode: false
+
+          description: |
+            Return validations of the specified users.
+            (Administrator only)
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+        - in: query
+          name: db
+          style: form
+          explode: false
+
+          description: |
+            Return validations of the specified databases.
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                <%- dbs.each do |db| -%>
+                - <%= db[:id] %>
+                <%- end -%>
+
+        - in: query
+          name: created_at_after
+
+          schema:
+            type: string
+            format: date-time
+
+        - in: query
+          name: created_at_before
+
+          schema:
+            type: string
+            format: date-time
+
+        - in: query
+          name: progress
+          style: form
+          explode: false
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - waiting
+                - running
+                - finished
+                - canceled
+
+        - in: query
+          name: validity
+          style: form
+          explode: false
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - valid
+                - invalid
+                - error
+                - 'null'
+
+        - in: query
+          name: submitted
+
+          schema:
+            type: boolean
 
       responses:
         '200':
@@ -183,6 +284,10 @@ paths:
 
               example:
                 id: 42
+
+                user:
+                  uid: alice
+
                 url: https://repository.ddbj.nig.ac.jp/api/validations/42
                 progress: finished
                 validity: valid
@@ -403,37 +508,6 @@ paths:
 
         '404':
           $ref: '#/components/responses/NotFound'
-
-  /admin/validations:
-    get:
-      description: Get all validations.
-
-      tags:
-        - Admin
-
-      parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/DB'
-        - $ref: '#/components/parameters/CreatedAtAfter'
-        - $ref: '#/components/parameters/CreatedAtBefore'
-        - $ref: '#/components/parameters/Progress'
-        - $ref: '#/components/parameters/Validity'
-        - $ref: '#/components/parameters/Submitted'
-        - $ref: '#/components/parameters/UID'
-
-      responses:
-        '200':
-          $ref: '#/components/responses/Validations'
-
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-        '403':
-          $ref: '#/components/responses/Forbidden'
-
 
 components:
   securitySchemes:
@@ -730,102 +804,6 @@ components:
                 <%- dbs.each do |db| -%>
                 <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>ViaFile'
                 <%- end -%>
-
-  parameters:
-    Page:
-      in: query
-      name: page
-
-      schema:
-        type: integer
-
-    DB:
-      in: query
-      name: db
-      style: form
-      explode: false
-
-      schema:
-        type: array
-
-        items:
-          type: string
-
-          enum:
-            <%- dbs.each do |db| -%>
-            - <%= db[:id] %>
-            <%- end -%>
-
-    CreatedAtAfter:
-      in: query
-      name: created_at_after
-
-      schema:
-        type: string
-        format: date-time
-
-    CreatedAtBefore:
-      in: query
-      name: created_at_before
-
-      schema:
-        type: string
-        format: date-time
-
-    Progress:
-      in: query
-      name: progress
-      style: form
-      explode: false
-
-      schema:
-        type: array
-
-        items:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-    Validity:
-      in: query
-      name: validity
-      style: form
-      explode: false
-
-      schema:
-        type: array
-
-        items:
-          type: string
-
-          enum:
-            - valid
-            - invalid
-            - error
-            - 'null'
-
-    Submitted:
-      in: query
-      name: submitted
-
-      schema:
-        type: boolean
-
-    UID:
-      in: query
-      name: uid
-      style: form
-      explode: false
-
-      schema:
-        type: array
-
-        items:
-          type: string
 
   responses:
     Validations:

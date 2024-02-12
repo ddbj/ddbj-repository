@@ -1,10 +1,10 @@
 require 'rails_helper'
 
 RSpec.describe 'validations', type: :request, authorized: true do
-  let_it_be(:user) { create_default(:user, uid: 'alice', api_key: 'API_KEY') }
-
   describe 'GET /api/validations' do
     describe 'payload' do
+      let_it_be(:user) { create_default(:user, uid: 'alice', api_key: 'API_KEY') }
+
       before do
         travel_to '2024-01-02'
 
@@ -24,8 +24,8 @@ RSpec.describe 'validations', type: :request, authorized: true do
 
         expect(response.parsed_body.map(&:deep_symbolize_keys)).to eq([
           {
-            id:          101,
-            url:         'http://www.example.com/api/validations/101',
+            id:  101,
+            url: 'http://www.example.com/api/validations/101',
 
             user: {
               uid: 'alice'
@@ -51,8 +51,8 @@ RSpec.describe 'validations', type: :request, authorized: true do
             submission: nil
           },
           {
-            id:          100,
-            url:         'http://www.example.com/api/validations/100',
+            id:  100,
+            url: 'http://www.example.com/api/validations/100',
 
             user: {
               uid: 'alice'
@@ -103,6 +103,8 @@ RSpec.describe 'validations', type: :request, authorized: true do
     end
 
     describe 'pagination' do
+      let_it_be(:user) { create_default(:user, api_key: 'API_KEY') }
+
       context 'paginated' do
         before_all do
           create :validation, id: 100
@@ -186,92 +188,142 @@ RSpec.describe 'validations', type: :request, authorized: true do
     end
 
     describe 'search' do
-      example 'db' do
-        create :validation, id: 100, db: 'JVar'
-        create :validation, id: 101, db: 'MetaboBank'
-        create :validation, id: 102, db: 'Trad'
+      context 'by normal user' do
+        let_it_be(:user) { create_default(:user, admin: false, api_key: 'API_KEY') }
 
-        get '/api/validations', params: {db: 'JVar,MetaboBank'}
+        example 'everyone' do
+          create :validation, id: 100
+          create :validation, id: 101, user: create(:user)
 
-        expect(response).to have_http_status(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100, 101)
-      end
+          get '/api/validations', params: {everyone: true}
 
-      example 'created_at' do
-        create :validation, id: 100, created_at: '2024-01-02 03:04:05'
-        create :validation, id: 101, created_at: '2024-01-03 03:04:05'
-        create :validation, id: 102, created_at: '2024-01-04 03:04:05'
-
-        get '/api/validations', params: {
-          created_at_after:  '2024-01-03 00:00:00'
-        }
-
-        expect(response).to have_http_status(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101, 102)
-
-        get '/api/validations', params: {
-          created_at_before: '2024-01-03 23:59:59'
-        }
-
-        expect(response).to have_http_status(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100, 101)
-
-        get '/api/validations', params: {
-          created_at_after:  '2024-01-03 00:00:00',
-          created_at_before: '2024-01-03 23:59:59'
-        }
-
-        expect(response).to have_http_status(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101)
-      end
-
-      example 'progress' do
-        create :validation, id: 100, progress: 'waiting'
-        create :validation, id: 101, progress: 'running'
-        create :validation, id: 102, progress: 'finished'
-
-        get '/api/validations', params: {progress: 'waiting'}
-
-        expect(response).to have_http_status(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
-
-        get '/api/validations', params: {progress: 'running,finished'}
-
-        expect(response).to have_http_status(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101, 102)
-      end
-
-      example 'validity' do
-        create :validation, id: 100, validity: 'valid'
-        create :validation, id: 101, validity: nil
-
-        get '/api/validations', params: {validity: 'valid'}
-
-        expect(response).to have_http_status(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
-      end
-
-      example 'submitted' do
-        create :validation, :valid, id: 100 do |validation|
-          create :submission, validation:
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
         end
 
-        create :validation, id: 101
+        example 'uid' do
+          create :validation, id: 100
+          create :validation, id: 101, user: create(:user, uid: 'bob')
 
-        get '/api/validations', params: {submitted: true}
+          get '/api/validations', params: {everyone: true, uid: 'bob'}
 
-        expect(response).to conform_schema(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
+        end
 
-        get '/api/validations', params: {submitted: false}
+        example 'db' do
+          create :validation, id: 100, db: 'JVar'
+          create :validation, id: 101, db: 'MetaboBank'
+          create :validation, id: 102, db: 'Trad'
 
-        expect(response).to conform_schema(200)
-        expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101)
+          get '/api/validations', params: {db: 'JVar,MetaboBank'}
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100, 101)
+        end
+
+        example 'created_at' do
+          create :validation, id: 100, created_at: '2024-01-02 03:04:05'
+          create :validation, id: 101, created_at: '2024-01-03 03:04:05'
+          create :validation, id: 102, created_at: '2024-01-04 03:04:05'
+
+          get '/api/validations', params: {
+            created_at_after:  '2024-01-03 00:00:00'
+          }
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101, 102)
+
+          get '/api/validations', params: {
+            created_at_before: '2024-01-03 23:59:59'
+          }
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100, 101)
+
+          get '/api/validations', params: {
+            created_at_after:  '2024-01-03 00:00:00',
+            created_at_before: '2024-01-03 23:59:59'
+          }
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101)
+        end
+
+        example 'progress' do
+          create :validation, id: 100, progress: 'waiting'
+          create :validation, id: 101, progress: 'running'
+          create :validation, id: 102, progress: 'finished'
+
+          get '/api/validations', params: {progress: 'waiting'}
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
+
+          get '/api/validations', params: {progress: 'running,finished'}
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101, 102)
+        end
+
+        example 'validity' do
+          create :validation, id: 100, validity: 'valid'
+          create :validation, id: 101, validity: nil
+
+          get '/api/validations', params: {validity: 'valid'}
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
+        end
+
+        example 'submitted' do
+          create :validation, :valid, id: 100 do |validation|
+            create :submission, validation:
+          end
+
+          create :validation, id: 101
+
+          get '/api/validations', params: {submitted: true}
+
+          expect(response).to conform_schema(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100)
+
+          get '/api/validations', params: {submitted: false}
+
+          expect(response).to conform_schema(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101)
+        end
+      end
+
+      context 'by admin' do
+        let_it_be(:user) { create_default(:user, admin: true, api_key: 'API_KEY') }
+
+        before do
+          create :validation, id: 100
+          create :validation, id: 101, user: create(:user, uid: 'bob')
+          create :validation, id: 102, user: create(:user, uid: 'carol')
+        end
+
+        example 'everyone' do
+          get '/api/validations', params: {everyone: true}
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(100, 101, 102)
+        end
+
+        example 'uid' do
+          get '/api/validations', params: {everyone: true, uid: 'bob,carol'}
+
+          expect(response).to have_http_status(200)
+          expect(response.parsed_body.map { _1[:id] }).to contain_exactly(101, 102)
+        end
       end
     end
   end
 
   describe 'GET /api/validations/:id' do
+    let_it_be(:user) { create_default(:user, uid: 'alice', api_key: 'API_KEY') }
+
     before do
       travel_to '2024-01-02'
 
@@ -319,6 +371,8 @@ RSpec.describe 'validations', type: :request, authorized: true do
   end
 
   describe 'DELETE /api/validations/:id' do
+    let_it_be(:user) { create_default(:user, api_key: 'API_KEY') }
+
     before do
       create :validation, id: 100, progress: 'waiting'
       create :validation, id: 101, progress: 'finished', finished_at: Time.current
