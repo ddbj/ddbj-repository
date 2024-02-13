@@ -31,10 +31,6 @@ Rails.application.routes.draw do
     end
 
     resources :submissions, only: %i(index show create)
-
-    namespace :admin do
-      resources :validations, only: %i(index)
-    end
   end
 
   get 'web/*paths', to: 'webs#show'

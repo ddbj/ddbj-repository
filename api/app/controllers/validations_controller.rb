@@ -1,9 +1,8 @@
 class ValidationsController < ApplicationController
   include Pagy::Backend
-  include SearchValidations
 
   def index
-    validations = search_validations_for_user(eager_load(current_user.validations))
+    validations = search_validations
     pagy, @validations = pagy(validations, page: params[:page])
 
     pagy_headers_merge pagy
@@ -39,7 +38,22 @@ class ValidationsController < ApplicationController
     current_user.admin? ? Validation.all : current_user.validations
   end
 
+  def search_validations
+    everyone, uid, db, created_at_after, created_at_before, progress, validity, submitted = params.values_at(:everyone, :uid, :db, :created_at_after, :created_at_before, :progress, :validity, :submitted)
+
+    validations = current_user.admin? && everyone == 'true' ? Validation.all : current_user.validations
+
+    validations = validations.joins(:user).where(user: {uid: uid.split(',')})           if current_user.admin? && uid
+    validations = validations.where(db: db.split(','))                                  if db
+    validations = validations.where(created_at: created_at_after..created_at_before)    if created_at_after || created_at_before
+    validations = validations.where(progress: progress.split(','))                      if progress
+    validations = validations.validity(*validity.split(','))                            if validity
+    validations = validations.submitted(ActiveModel::Type::Boolean.new.cast(submitted)) if submitted
+
+    eager_load(validations).order(id: :desc)
+  end
+
   def eager_load(validations)
-    validations.includes(:submission, :objs).merge(Obj.with_attached_file)
+    validations.includes(:user, :submission, :objs).merge(Obj.with_attached_file)
   end
 end
