@@ -32,7 +32,7 @@ RSpec.describe Trad2Validator, type: :model do
     create(:obj, validation:, _id: 'Metadata', file: uploaded_file(name:, content:))
   end
 
-  let(:validation) { create(:validation, db: 'Trad') }
+  let(:validation) { create(:validation) }
 
   example 'ok' do
     seq  = create_seq(validation)
