@@ -167,6 +167,7 @@ paths:
                 - GEA
                 - MetaboBank
                 - JVar
+                - Trad2
 
         - in: query
           name: created_at_after
@@ -553,6 +554,7 @@ components:
             - GEA
             - MetaboBank
             - JVar
+            - Trad2
 
         created_at:
           type: string
@@ -663,6 +665,7 @@ components:
               - MAF
               - Excel
               - VariantCallFile
+              - Metadata
 
           files:
             type: array
@@ -709,6 +712,7 @@ components:
             - MAF
             - Excel
             - VariantCallFile
+            - Metadata
 
         validity:
           type:
@@ -1273,6 +1277,101 @@ components:
           items:
             $ref: '#/components/schemas/Destination'
 
+    Trad2ViaFile:
+      type: object
+      additionalProperties: false
+
+      allOf:
+        - oneOf:
+          - required:
+            - db
+            - Sequence[][file]
+          - required:
+            - db
+            - Sequence[][path]
+        - oneOf:
+          - required:
+            - db
+            - Annotation[][file]
+          - required:
+            - db
+            - Annotation[][path]
+        - oneOf:
+          - required:
+            - db
+            - Metadata[][file]
+          - required:
+            - db
+            - Metadata[][path]
+
+      properties:
+        db:
+          type: string
+          enum: [Trad2]
+
+        Sequence[][file]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/File'
+
+        Sequence[][path]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/Path'
+
+        Sequence[][destination]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/Destination'
+
+        Annotation[][file]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/File'
+
+        Annotation[][path]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/Path'
+
+        Annotation[][destination]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/Destination'
+
+        Metadata[][file]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/File'
+
+        Metadata[][path]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/Path'
+
+        Metadata[][destination]:
+          type: array
+          minItems: 1
+
+          items:
+            $ref: '#/components/schemas/Destination'
+
   requestBodies:
     ViaFile:
       content:
@@ -1286,6 +1385,7 @@ components:
               - $ref: '#/components/schemas/GEAViaFile'
               - $ref: '#/components/schemas/MetaboBankViaFile'
               - $ref: '#/components/schemas/JVarViaFile'
+              - $ref: '#/components/schemas/Trad2ViaFile'
 
             discriminator:
               propertyName: db
@@ -1298,6 +1398,7 @@ components:
                 GEA: '#/components/schemas/GEAViaFile'
                 MetaboBank: '#/components/schemas/MetaboBankViaFile'
                 JVar: '#/components/schemas/JVarViaFile'
+                Trad2: '#/components/schemas/Trad2ViaFile'
 
   responses:
     Validations:
