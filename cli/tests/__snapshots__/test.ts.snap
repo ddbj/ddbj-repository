@@ -1,0 +1,62 @@
+export const snapshot = {};
+
+snapshot[`valiadation list 1`] = `
+stdout:
+"ID DB   Created             Started             Finished            Progress Validity Submission
+-- --   -------             -------             --------            -------- -------- ----------
+1  JVar 2024-01-23 21:43:10 2024-01-23 21:43:11 2024-01-23 21:43:11 finished valid    X-1       
+2  JVar 2024-01-23 21:43:10 -                   -                   waiting  -        -         
+"
+stderr:
+""
+`;
+
+snapshot[`validation show 1 1`] = `
+stdout:
+"ID: 1
+URL: http://localhost:3000/web/validations/1
+DB: JVar
+Created: 2024-01-23 21:43:10
+Started: 2024-01-23 21:43:11
+Finished: 2024-01-23 21:43:11
+Progress: finished
+Validity: valid
+Submission: X-1
+
+Results:
+Object File      Validity
+_base  -         valid   
+Excel  README.md valid   
+"
+stderr:
+""
+`;
+
+snapshot[`validation show 2 1`] = `
+stdout:
+"ID: 2
+URL: http://localhost:3000/web/validations/2
+DB: JVar
+Created: 2024-01-23 21:43:10
+Started: -
+Finished: -
+Progress: waiting
+Validity: -
+Submission: -
+
+Results:
+Object File      Validity
+_base  -         -       
+Excel  README.md -       
+"
+stderr:
+""
+`;
+
+snapshot[`validation get-file 1 dummy-path 1`] = `
+stdout:
+"dummy-file
+"
+stderr:
+""
+`;

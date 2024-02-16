@@ -7,8 +7,10 @@ import { read } from './api_key.ts';
 
 export const defaultApiUrl = 'https://repository-dev.ddbj.nig.ac.jp/api';
 
+export const _internals = { read };
+
 export function ensureLogin() {
-  const apiKey = read();
+  const apiKey = _internals.read();
 
   if (!apiKey) {
     console.error(`First you need to log in; run ${colors.bold('`ddbj-repository auth login`')}.`);

@@ -1,0 +1,44 @@
+[
+  {
+    "id": 2,
+    "url": "http://localhost:3000/api/validations/2",
+    "user": {
+      "uid": "keycloak"
+    },
+    "db": "JVar",
+    "created_at": "2024-01-23T12:43:10.750Z",
+    "started_at": null,
+    "finished_at": null,
+    "progress": "waiting",
+    "validity": null,
+    "objects": [
+      {
+        "id": "Excel",
+        "files": [
+          {
+            "path": "README.md",
+            "url": "http://localhost:3000/api/validations/1/files/README.md"
+          }
+        ]
+      }
+    ],
+    "results": [
+      {
+        "object_id": "_base",
+        "validity": null,
+        "details": null,
+        "file": null
+      },
+      {
+        "object_id": "Excel",
+        "validity": null,
+        "details": null,
+        "file": {
+          "path": "README.md",
+          "url": "http://localhost:3000/api/validations/1/files/README.md"
+        }
+      }
+    ],
+    "submission": null
+  }
+]
