@@ -1,0 +1,32 @@
+export const snapshot = {};
+
+snapshot[`--help 1`] = `
+stdout:
+"
+Usage:   ddbj-repository
+Version: 0.1.0          
+
+Description:
+
+  Command-line client for DDBJ Repository API
+
+Options:
+
+  -h, --help     - Show this help.                            
+  -V, --version  - Show the version number for this program.  
+
+Commands:
+
+  auth        -                            
+  validation  - Manage validations.        
+  submission  - Manage submissions.        
+  completion  - Generate shell completions.
+
+Environment variables:
+
+  DDBJ_REPOSITORY_API_URL  <url>  - API endpoint URL  
+
+"
+stderr:
+""
+`;
