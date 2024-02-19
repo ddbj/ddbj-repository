@@ -242,7 +242,7 @@ GEM
       nio4r (~> 2.0)
     raabro (1.4.0)
     racc (1.7.3)
-    rack (3.0.8)
+    rack (3.0.9)
     rack-cors (2.0.1)
       rack (>= 2.0.0)
     rack-oauth2 (2.2.1)
@@ -299,7 +299,7 @@ GEM
       railties
     rdoc (6.6.2)
       psych (>= 4.0.0)
-    redis-client (0.19.1)
+    redis-client (0.20.0)
       connection_pool
     regexp_parser (2.9.0)
     reline (0.4.2)
@@ -331,7 +331,7 @@ GEM
     rubyzip (2.3.2)
     rufus-scheduler (3.9.1)
       fugit (~> 1.1, >= 1.1.6)
-    sidekiq (7.2.1)
+    sidekiq (7.2.2)
       concurrent-ruby (< 2)
       connection_pool (>= 2.3.0)
       rack (>= 2.2.4)
