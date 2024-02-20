@@ -35,6 +35,8 @@ services:
         NODE_VERSION:
         RUBY_VERSION:
 
+    init: true
+
     environment:
       API_URL:
       DATABASE_URL:            postgresql://postgres@postgres/ddbj_repository
