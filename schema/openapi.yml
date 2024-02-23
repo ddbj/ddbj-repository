@@ -517,9 +517,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /accessions/{id}/pubdate:
+  /accessions/{id}/hold_date:
     put:
-      description: Update the publication date of the accession.
+      description: Update the hold date of the accession.
 
       tags:
         - Accession
@@ -533,14 +533,11 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [pubdate]
+              required: [hold_date]
 
               properties:
-                pubdate:
-                  type:
-                    - string
-                    - 'null'
-
+                hold_date:
+                  type: string
                   format: date
 
       responses:

@@ -233,8 +233,8 @@ export interface paths {
       };
     };
   };
-  "/accessions/{id}/pubdate": {
-    /** @description Update the publication date of the accession. */
+  "/accessions/{id}/hold_date": {
+    /** @description Update the hold date of the accession. */
     put: {
       parameters: {
         path: {
@@ -245,7 +245,7 @@ export interface paths {
         content: {
           "application/json": {
             /** Format: date */
-            pubdate: string | null;
+            hold_date: string;
           };
         };
       };
