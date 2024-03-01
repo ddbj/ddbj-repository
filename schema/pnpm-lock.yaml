@@ -9,8 +9,8 @@ devDependencies:
     specifier: ^6.7.4
     version: 6.7.4
   quicktype:
-    specifier: ^23.0.104
-    version: 23.0.104
+    specifier: ^23.0.105
+    version: 23.0.105
 
 packages:
 
@@ -535,8 +535,8 @@ packages:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
     dev: true
 
-  /quicktype-core@23.0.104:
-    resolution: {integrity: sha512-Y/9/hO0w4lYbacxxWdSyBhfZgs2kXELR21tawGFz7MICgxKX9KaPGLH3YQEd3NsX7KNZKdWPZdxkImgZL0RnQw==}
+  /quicktype-core@23.0.105:
+    resolution: {integrity: sha512-amxAkFPUMfvU5uzmIAwdCFo30bPj3TrSnFq3dFoIgmcltPPMdOxFzcwHG9DCHveR4u6Qj0DRWj7IQ4e/1TEJeA==}
     dependencies:
       '@glideapps/ts-necessities': 2.1.3
       '@types/urijs': 1.19.25
@@ -557,21 +557,21 @@ packages:
       - encoding
     dev: true
 
-  /quicktype-graphql-input@23.0.104:
-    resolution: {integrity: sha512-thJVSo0VhHCBG5DtsKw3IE1MJhEYJkd7hwLjCszypS3jt6GON4SuWgeis1LxNpqqZAlRWTuAxYwr7I1EsFNYmA==}
+  /quicktype-graphql-input@23.0.105:
+    resolution: {integrity: sha512-w6mTTPfFNPqBT6cHsgaFTehDTAqbwEqvGIq7ybVFBk2mVRZuYUEaeegyo1xSZfbX9yXEtnpR06GLqcr/oiWrLA==}
     dependencies:
       collection-utils: 1.0.1
       graphql: 0.11.7
-      quicktype-core: 23.0.104
+      quicktype-core: 23.0.105
     transitivePeerDependencies:
       - encoding
     dev: true
 
-  /quicktype-typescript-input@23.0.104:
-    resolution: {integrity: sha512-MGiD/5TrChThYd7qcw9z1THi2ugTnf8qey+o5gMBdR1yc60HwXxZuTJIMVQt04rR6Nc8XHC0R6y90EL0JhPNzQ==}
+  /quicktype-typescript-input@23.0.105:
+    resolution: {integrity: sha512-HI+XGmcZiFqEoqOO2GzTOxpXovTdEjRKDyXl1W0gzUhqxmf17r3OknQ8rmyd4WmwwCbcoUghf61SQxvfnSdiPA==}
     dependencies:
       '@mark.probst/typescript-json-schema': 0.55.0
-      quicktype-core: 23.0.104
+      quicktype-core: 23.0.105
       typescript: 4.9.5
     transitivePeerDependencies:
       - '@swc/core'
@@ -579,8 +579,8 @@ packages:
       - encoding
     dev: true
 
-  /quicktype@23.0.104:
-    resolution: {integrity: sha512-c2rnnSIDlBqrdY210gHwnm+viHAtyJUEx0Oi6pGpqzD1SPJuquYrpwPuA7KVxfTXL+5yHvbn87Z4DNBn6NZKMQ==}
+  /quicktype@23.0.105:
+    resolution: {integrity: sha512-hc5abp9BpDphXP0D5kEK7jfhBLRhDK77791HB54RPQzUMvr9I69Kx5QYaMF/Ys0RF9M2pA8LufsD/ITY9haIUQ==}
     engines: {node: '>=18.12.0'}
     hasBin: true
     dependencies:
@@ -593,9 +593,9 @@ packages:
       graphql: 0.11.7
       lodash: 4.17.21
       moment: 2.30.1
-      quicktype-core: 23.0.104
-      quicktype-graphql-input: 23.0.104
-      quicktype-typescript-input: 23.0.104
+      quicktype-core: 23.0.105
+      quicktype-graphql-input: 23.0.105
+      quicktype-typescript-input: 23.0.105
       readable-stream: 4.5.2
       stream-json: 1.8.0
       string-to-stream: 3.0.1
