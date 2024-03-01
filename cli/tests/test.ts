@@ -1,4 +1,5 @@
 import { assertSpyCall, returnsNext, stub } from 'std/testing/mock.ts';
+import type { Stub } from 'std/testing/mock.ts';
 
 import { snapshotTest } from 'cliffy/testing/mod.ts';
 
@@ -8,36 +9,40 @@ import { _internals } from '../util.ts';
 import validations1 from './fixtures/validations-1.json' with { type: 'json' };
 import validations2 from './fixtures/validations-2.json' with { type: 'json' };
 
+async function runInContext(apiKey: string, responses: Response[], callback: (fetchStub: Stub) => Promise<void>) {
+  const readStub = stub(_internals, 'read', returnsNext([apiKey]));
+
+  const fetchStub = stub(
+    globalThis,
+    'fetch',
+    returnsNext(responses.map((response) => Promise.resolve(response))),
+  );
+
+  try {
+    await callback(fetchStub);
+  } finally {
+    readStub.restore();
+    fetchStub.restore();
+  }
+}
+
 await snapshotTest({
   name: 'valiadation list',
   meta: import.meta,
   denoArgs: ['--allow-all'],
 
   async fn() {
-    const readStub = stub(_internals, 'read', returnsNext(['dummy']));
+    await runInContext('dummy', [
+      new Response(JSON.stringify(validations1), {
+        headers: {
+          Link: '<http://localhost:3000/api/validations?page=2>; rel="next"',
+        },
+      }),
 
-    const fetchStub = stub(
-      globalThis,
-      'fetch',
-      returnsNext([
-        Promise.resolve(
-          new Response(JSON.stringify(validations1), {
-            headers: {
-              Link: '<http://localhost:3000/api/validations?page=2>; rel="next"',
-            },
-          }),
-        ),
-
-        Promise.resolve(new Response(JSON.stringify(validations2))),
-      ]),
-    );
-
-    try {
+      new Response(JSON.stringify(validations2)),
+    ], async () => {
       await mainCommand.parse(['validation', 'list']);
-    } finally {
-      readStub.restore();
-      fetchStub.restore();
-    }
+    });
   },
 });
 
@@ -47,22 +52,11 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    const readStub = stub(_internals, 'read', returnsNext(['dummy']));
-
-    const fetchStub = stub(
-      globalThis,
-      'fetch',
-      returnsNext([
-        Promise.resolve(new Response(JSON.stringify(validations1[0]))),
-      ]),
-    );
-
-    try {
+    await runInContext('dummy', [
+      new Response(JSON.stringify(validations1[0])),
+    ], async () => {
       await mainCommand.parse(['validation', 'show', '1']);
-    } finally {
-      readStub.restore();
-      fetchStub.restore();
-    }
+    });
   },
 });
 
@@ -72,22 +66,11 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    const readStub = stub(_internals, 'read', returnsNext(['dummy']));
-
-    const fetchStub = stub(
-      globalThis,
-      'fetch',
-      returnsNext([
-        Promise.resolve(new Response(JSON.stringify(validations2[0]))),
-      ]),
-    );
-
-    try {
+    await runInContext('dummy', [
+      new Response(JSON.stringify(validations2[0])),
+    ], async () => {
       await mainCommand.parse(['validation', 'show', '2']);
-    } finally {
-      readStub.restore();
-      fetchStub.restore();
-    }
+    });
   },
 });
 
@@ -97,17 +80,9 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    const readStub = stub(_internals, 'read', returnsNext(['dummy']));
-
-    const fetchStub = stub(
-      globalThis,
-      'fetch',
-      returnsNext([
-        Promise.resolve(new Response('dummy-file')),
-      ]),
-    );
-
-    try {
+    await runInContext('dummy', [
+      new Response('dummy-file'),
+    ], async (fetchStub) => {
       await mainCommand.parse(['validation', 'get-file', '1', 'dummy-path']);
 
       assertSpyCall(fetchStub, 0, {
@@ -115,9 +90,6 @@ await snapshotTest({
           headers: {'Authorization': 'Bearer dummy' },
         }],
       })
-    } finally {
-      readStub.restore();
-      fetchStub.restore();
-    }
+    });
   }
 })
