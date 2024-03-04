@@ -117,3 +117,24 @@ await snapshotTest({
     });
   },
 });
+
+await snapshotTest({
+  name: 'validation cancel 1',
+  meta: import.meta,
+  denoArgs: ['--allow-all'],
+
+  async fn() {
+    await runInContext('dummy', [
+      new Response(JSON.stringify(validations1[0])),
+    ], async (fetchStub) => {
+      await mainCommand.parse(['validation', 'cancel', '1']);
+
+      assertSpyCall(fetchStub, 0, {
+        args: ['http://example.com/api/validations/1', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer dummy' },
+        }],
+      });
+    });
+  },
+});
