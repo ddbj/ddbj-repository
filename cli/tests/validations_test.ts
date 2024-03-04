@@ -35,6 +35,22 @@ async function runInContext(apiKey: string, responses: Response[], callback: (fe
 }
 
 await snapshotTest({
+  name: 'validation create jvar',
+  meta: import.meta,
+  denoArgs: ['--allow-all'],
+
+  async fn() {
+    await runInContext('dummy', [
+      new Response(new File(['foo'], 'foo.txt')), // in createValidation
+      new Response(JSON.stringify(validations1[0])), // in createValidation
+      new Response(JSON.stringify(validations1[0])), // in waitForRequestFinished
+    ], async () => {
+      await mainCommand.parse(['validation', 'create', 'jvar', '--excel.file=tests/fixtures/validations-2.json']);
+    });
+  },
+});
+
+await snapshotTest({
   name: 'valiadation list',
   meta: import.meta,
   denoArgs: ['--allow-all'],
@@ -95,9 +111,9 @@ await snapshotTest({
 
       assertSpyCall(fetchStub, 0, {
         args: ['http://example.com/api/validations/1/files/dummy-path', {
-          headers: {'Authorization': 'Bearer dummy' },
+          headers: { 'Authorization': 'Bearer dummy' },
         }],
-      })
+      });
     });
-  }
-})
+  },
+});

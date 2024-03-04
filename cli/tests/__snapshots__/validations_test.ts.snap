@@ -60,3 +60,55 @@ stdout:
 stderr:
 ""
 `;
+
+snapshot[`validation create jvar 1`] = `
+stdout:
+'{
+  "id": 1,
+  "url": "http://localhost:3000/api/validations/1",
+  "user": {
+    "uid": "keycloak"
+  },
+  "db": "JVar",
+  "created_at": "2024-01-23T12:43:10.750Z",
+  "started_at": "2024-01-23T12:43:11.152Z",
+  "finished_at": "2024-01-23T12:43:11.272Z",
+  "progress": "finished",
+  "validity": "valid",
+  "objects": [
+    {
+      "id": "Excel",
+      "files": [
+        {
+          "path": "README.md",
+          "url": "http://localhost:3000/api/validations/1/files/README.md"
+        }
+      ]
+    }
+  ],
+  "results": [
+    {
+      "object_id": "_base",
+      "validity": "valid",
+      "details": null,
+      "file": null
+    },
+    {
+      "object_id": "Excel",
+      "validity": "valid",
+      "details": null,
+      "file": {
+        "path": "README.md",
+        "url": "http://localhost:3000/api/validations/1/files/README.md"
+      }
+    }
+  ],
+  "submission": {
+    "id": "X-1",
+    "url": "http://localhost:3000/api/submissions/X-1"
+  }
+}
+'
+stderr:
+""
+`;
