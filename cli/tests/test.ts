@@ -4,12 +4,16 @@ import type { Stub } from 'std/testing/mock.ts';
 import { snapshotTest } from 'cliffy/testing/mod.ts';
 
 import mainCommand from '../main_command.ts';
+import validationCreateCommand from '../validation_create_command.ts';
 import { _internals } from '../util.ts';
 
 import validations1 from './fixtures/validations-1.json' with { type: 'json' };
 import validations2 from './fixtures/validations-2.json' with { type: 'json' };
 
 async function runInContext(apiKey: string, responses: Response[], callback: (fetchStub: Stub) => Promise<void>) {
+  const originalApiUrl = Deno.env.get('DDBJ_REPOSITORY_API_URL');
+  Deno.env.set('DDBJ_REPOSITORY_API_URL', 'http://example.com/api');
+
   const readStub = stub(_internals, 'read', returnsNext([apiKey]));
 
   const fetchStub = stub(
@@ -21,6 +25,10 @@ async function runInContext(apiKey: string, responses: Response[], callback: (fe
   try {
     await callback(fetchStub);
   } finally {
+    if (originalApiUrl) {
+      Deno.env.set('DDBJ_REPOSITORY_API_URL', originalApiUrl);
+    }
+
     readStub.restore();
     fetchStub.restore();
   }
@@ -35,7 +43,7 @@ await snapshotTest({
     await runInContext('dummy', [
       new Response(JSON.stringify(validations1), {
         headers: {
-          Link: '<http://localhost:3000/api/validations?page=2>; rel="next"',
+          Link: '<http://example.com/api/validations?page=2>; rel="next"',
         },
       }),
 
@@ -86,7 +94,7 @@ await snapshotTest({
       await mainCommand.parse(['validation', 'get-file', '1', 'dummy-path']);
 
       assertSpyCall(fetchStub, 0, {
-        args: ['http://localhost:3000/api/validations/1/files/dummy-path', {
+        args: ['http://example.com/api/validations/1/files/dummy-path', {
           headers: {'Authorization': 'Bearer dummy' },
         }],
       })

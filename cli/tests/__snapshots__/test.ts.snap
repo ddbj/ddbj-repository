@@ -14,7 +14,7 @@ stderr:
 snapshot[`validation show 1 1`] = `
 stdout:
 "ID: 1
-URL: http://localhost:3000/web/validations/1
+URL: http://example.com/web/validations/1
 DB: JVar
 Created: 2024-01-23 21:43:10
 Started: 2024-01-23 21:43:11
@@ -35,7 +35,7 @@ stderr:
 snapshot[`validation show 2 1`] = `
 stdout:
 "ID: 2
-URL: http://localhost:3000/web/validations/2
+URL: http://example.com/web/validations/2
 DB: JVar
 Created: 2024-01-23 21:43:10
 Started: -
