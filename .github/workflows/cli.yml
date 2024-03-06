@@ -75,7 +75,7 @@ jobs:
         with:
           deno-version: vx.x.x
 
-      - run: deno task test
+      - run: TZ=Asia/Tokyo deno task test
 
   release:
     name: Release
