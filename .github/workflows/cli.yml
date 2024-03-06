@@ -60,6 +60,23 @@ jobs:
 
       - run: deno fmt --check
 
+  test:
+    name: "Test"
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: cli
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: vx.x.x
+
+      - run: deno task test
+
   release:
     name: Release
     runs-on: ubuntu-latest
