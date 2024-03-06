@@ -40,22 +40,12 @@ const showCommand = new Command<void, void, Options, [string]>()
     showSubmission(apiUrl || defaultApiUrl, apiKey, id);
   });
 
-const getFileCommand = new Command<void, void, Options, [string, string]>()
-  .description('Get the content of submission file.')
-  .arguments('<id:string> <path:string>')
-  .action(({ apiUrl }, id, path) => {
-    const apiKey = ensureLogin();
-
-    getFile(apiUrl || defaultApiUrl, apiKey, id, path);
-  });
-
 const submissionCommand: Command<Options> = new Command<Options>()
   .description('Manage submissions.')
   .action(() => submissionCommand.showHelp())
   .command('create', createCommand)
   .command('list', listCommand)
   .command('show', showCommand)
-  .command('get-file', getFileCommand)
   .reset();
 
 export default submissionCommand;
@@ -127,14 +117,4 @@ async function showSubmission(apiUrl: string, apiKey: string, id: string) {
       files.map(({ path }) => path).join('\n'),
     ]),
   ]).render();
-}
-
-async function getFile(apiUrl: string, apiKey: string, id: string, path: string) {
-  const res = await fetch(`${apiUrl}/submissions/${id}/files/${path}`, {
-    headers: { 'Authorization': `Bearer ${apiKey}` },
-  });
-
-  await ensureSuccess(res);
-
-  console.log(await res.text());
 }
