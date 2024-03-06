@@ -4,7 +4,6 @@ import type { Stub } from 'std/testing/mock.ts';
 import { snapshotTest } from 'cliffy/testing/mod.ts';
 
 import mainCommand from '../main_command.ts';
-import validationCreateCommand from '../validation_create_command.ts';
 import { _internals } from '../util.ts';
 
 import validations1 from './fixtures/validations-1.json' with { type: 'json' };
