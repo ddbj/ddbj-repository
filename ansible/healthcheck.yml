@@ -19,6 +19,5 @@
         minute: '*/10'
         job: 'cd /home/w3const/ddbj-repository/deploy && ansible/healthcheck {{ item }} > /dev/null'
       loop:
-        - dev
         - staging
         - production
