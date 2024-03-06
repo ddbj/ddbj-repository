@@ -11,6 +11,7 @@ type Options = {
 };
 
 const whoamiCommand = new Command<Options>()
+  .description('Show your logged in name.')
   .action(async ({ apiUrl }) => {
     const apiKey = read();
 
@@ -24,6 +25,7 @@ const whoamiCommand = new Command<Options>()
   });
 
 const loginCommand = new Command<void, void, Options, [string?]>()
+  .description('Login.')
   .arguments('[api-key:string]')
   .action(async ({ apiUrl }, apiKey) => {
     apiUrl = apiUrl || defaultApiUrl;
@@ -40,11 +42,13 @@ const loginCommand = new Command<void, void, Options, [string?]>()
   });
 
 const logoutCommand = new Command()
+  .description('Logout.')
   .action(() => {
     remove();
   });
 
 const authCommand: Command<Options> = new Command<Options>()
+  .description('Authenticate with DDBJ Repository.')
   .action(() => authCommand.showHelp())
   .command('whoami', whoamiCommand)
   .command('login', loginCommand)
