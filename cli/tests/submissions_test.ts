@@ -90,3 +90,24 @@ await snapshotTest({
     });
   },
 });
+
+await snapshotTest({
+  name: 'submission get-file X-1 dummy-path',
+  meta: import.meta,
+  denoArgs: ['--allow-all'],
+
+  async fn() {
+    await runInContext('dummy', [
+      new Response(JSON.stringify(submissions1[0])),
+      new Response('dummy-file'),
+    ], async (fetchStub) => {
+      await mainCommand.parse(['submission', 'get-file', 'X-1', 'dummy-path']);
+
+      assertSpyCall(fetchStub, 1, {
+        args: ['http://example.com/api/validations/1/files/dummy-path', {
+          headers: { 'Authorization': 'Bearer dummy' },
+        }],
+      });
+    });
+  },
+});
