@@ -61,12 +61,15 @@ jobs:
       - run: deno fmt --check
 
   test:
-    name: "Test"
+    name: Test
     runs-on: ubuntu-latest
 
     defaults:
       run:
         working-directory: cli
+
+    env:
+      TZ: Japan
 
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +78,7 @@ jobs:
         with:
           deno-version: vx.x.x
 
-      - run: TZ=Asia/Tokyo deno task test
+      - run: deno task test
 
   release:
     name: Release
