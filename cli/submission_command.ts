@@ -130,19 +130,19 @@ async function showSubmission(apiUrl: string, apiKey: string, id: string) {
 }
 
 async function getFile(apiUrl: string, apiKey: string, id: string, path: string) {
-  const _res = await fetch(`${apiUrl}/submissions/${id}`, {
+  const res1 = await fetch(`${apiUrl}/submissions/${id}`, {
     headers: { 'Authorization': `Bearer ${apiKey}` },
   });
 
-  await ensureSuccess(_res);
+  await ensureSuccess(res1);
 
-  const { validation } = await _res.json() as Submission;
+  const { validation } = await res1.json() as Submission;
 
-  const res = await fetch(`${apiUrl}/validations/${validation.id}/files/${path}`, {
+  const res2 = await fetch(`${apiUrl}/validations/${validation.id}/files/${path}`, {
     headers: { 'Authorization': `Bearer ${apiKey}` },
   });
 
-  await ensureSuccess(res);
+  await ensureSuccess(res2);
 
-  console.log(await res.text());
+  console.log(await res2.text());
 }
