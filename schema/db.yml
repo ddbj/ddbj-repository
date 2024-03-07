@@ -51,7 +51,7 @@
       multiple: true
 
 - id: GEA
-  validator: PassthroughValidator
+  validator: GeaValidator
 
   objects:
     - id: IDF

@@ -10,7 +10,7 @@ gem 'bootsnap', require: false
 gem 'faraday'
 gem 'faraday-multipart'
 gem 'jb'
-gem 'metabobank_tools', github: 'ddbj/metabobank_tools'
+gem 'metabobank_tools', github: 'ddbj/metabobank_tools', branch: 'protocol'
 gem 'openid_connect'
 gem 'pagy'
 gem 'parallel'

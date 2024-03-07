@@ -1,0 +1,20 @@
+Comment[GEAAccession]	E-GEAD-282
+MAGE-TAB Version	1.1
+Investigation Title	Elucidation of biosynthetic genes for the meroterpenoid antibiotic ascofuranone using Acremonium egyptiacum
+Experiment Description	Ascofuranone is a meroterpenoid with a strong inhibitory activity against cyanide-insensitive alternative oxidases and with demonstrated therapeutic efficacy in a rodent infection model of African trypanosomiasis. In order to elucidating the biosynthetic pathway and the underlying genes, comparative transcriptomics of the producer Acremonium egyptiacum F-1392 using high- and low-producing culture conditions was performed.
+Experimental Design	growth condition design
+Experimental Factor Name	culture medium
+Experimental Factor Type	culture medium
+Person Last Name	Matsuzaki
+Person First Name	Motomichi
+Person Affiliation	School of Tropical Medicine and Global Health, Nagasaki University
+Person Roles	submitter
+Public Release Date	2019-03-27
+PubMed ID	30952781
+Protocol Name	P-GEAD-16	P-GEAD-17	P-GEAD-18	P-GEAD-19	P-GEAD-20	P-GEAD-21	P-GEAD-22
+Protocol Type	sample collection protocol	nucleic acid extraction protocol	nucleic acid library construction protocol	nucleic acid sequencing protocol	normalization data transformation protocol	growth protocol	high throughput sequence alignment protocol
+Protocol Description	Mycelia from 4-day culture were harvested by centrifugation at 1000xg for 10 min.	The total RNA was extracted by disrupting the mycelia in TRIzol reagent (Thermo Fisher Scientific, Waltham, MA, USA) with 0.5-mm glass beads using bead beater 3110BX (Biospec Products Inc., Bartlesville, OK, USA).  The mRNAs were enriched with Dynabeads mRNA DIRECT Micro kit (Thermo Fisher Scientific, Waltham, MA, USA).	Transcriptome libraries were prepared with Ion Total RNA-Seq Kit v2 (Thermo Fisher Scientific, Waltham, MA, USA).	Sequencing templates were prepared with Ion PGM Template OT2 200 Kit (Thermo Fisher Scientific, Waltham, MA, USA). Sequencing was performed with an Ion PGM system (Thermo Fisher Scientific, Waltham, MA, USA) using Ion PGM Sequencing 200 kit v2 (Thermo Fisher Scientific, Waltham, MA, USA) in 500 flows.	Genes without mapped reads in any condition were eliminated, and the read counts were then normalized with iDEGES/DESeq method using R version 3.51 and TCC package version 1.20.	A. sclerotigenum strain F-1392 was first inoculated in 20 mL of either AF or F1 medium in a 300-mL baffled flask, and propagated for 3 days at 25 degree_C on a rotary shaker at 220 rpm. Five millilitre of the preculture was then diluted to 50 mL of the same medium in a 500-mL baffled flask, and incubated for 4 days at 28 degree_C at 220 rpm.	The reads were mapped on the draft genome of the same strain using Torrent Suite Software version 4.0.2 (Thermo Fisher Scientific, Waltham, MA, USA), and counted with the feuature counter plugin (v.1.0.6)
+SDRF File	E-GEAD-282.sdrf.txt
+Comment[AEExperimentType]	RNA-seq of coding RNA
+Comment[BioProject]	PRJDB6316
+Comment[Last Update Date]	2019-08-14
