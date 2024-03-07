@@ -1,0 +1,45 @@
+export const snapshot = {};
+
+snapshot[`auth whoami 1`] = `
+stdout:
+"Logged in as foo.
+"
+stderr:
+""
+`;
+
+snapshot[`auth whoami; not logged in 1`] = `
+stdout:
+"Not logged in.
+"
+stderr:
+""
+`;
+
+snapshot[`auth login API_KEY 1`] = `
+stdout:
+"Logged in as foo.
+"
+stderr:
+""
+`;
+
+snapshot[`auth login; not logged in 1`] = `
+stdout:
+"cli: Press any key to open up the browser to login or q to exit:
+Opening browser to http://example.com/login
+
+Execute the following command with the API key displayed in your browser:
+
+\$ ddbj-repository auth login YOUR_API_KEY
+"
+stderr:
+""
+`;
+
+snapshot[`auth logout 1`] = `
+stdout:
+""
+stderr:
+""
+`;

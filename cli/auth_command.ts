@@ -6,6 +6,8 @@ import { open } from 'https://deno.land/x/open@v0.0.6/index.ts';
 import { defaultApiUrl, ensureSuccess } from './util.ts';
 import { read, remove, write } from './api_key.ts';
 
+export const _internals = { read, keypress, open };
+
 type Options = {
   apiUrl?: string;
 };
@@ -13,7 +15,7 @@ type Options = {
 const whoamiCommand = new Command<Options>()
   .description('Show your logged in name.')
   .action(async ({ apiUrl }) => {
-    const apiKey = read();
+    const apiKey = _internals.read();
 
     if (apiKey) {
       const uid = await fetchUid(apiUrl || defaultApiUrl, apiKey);
@@ -63,7 +65,7 @@ async function openLoginURL(apiUrl: string) {
 
   console.log(colors.bold('cli: Press any key to open up the browser to login or q to exit:'));
 
-  const event = await keypress();
+  const event = await _internals.keypress();
 
   if (event.key === 'q') {
     console.log('Quit');
@@ -76,7 +78,7 @@ async function openLoginURL(apiUrl: string) {
   console.log();
   console.log(colors.bold('$ ddbj-repository auth login YOUR_API_KEY'));
 
-  await open(login_url);
+  await _internals.open(login_url);
 }
 
 async function fetchUid(apiUrl: string, apiKey: string) {
