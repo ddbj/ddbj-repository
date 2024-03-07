@@ -2,7 +2,7 @@ export const snapshot = {};
 
 snapshot[`auth whoami 1`] = `
 stdout:
-"Logged in as foo.
+"Logged in as alice.
 "
 stderr:
 ""
@@ -18,7 +18,7 @@ stderr:
 
 snapshot[`auth login API_KEY 1`] = `
 stdout:
-"Logged in as foo.
+"Logged in as alice.
 "
 stderr:
 ""

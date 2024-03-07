@@ -105,9 +105,9 @@ stderr:
 ""
 `;
 
-snapshot[`validation get-file 1 dummy-path 1`] = `
+snapshot[`validation get-file 1 path/to/file 1`] = `
 stdout:
-"dummy-file
+"foo
 "
 stderr:
 ""

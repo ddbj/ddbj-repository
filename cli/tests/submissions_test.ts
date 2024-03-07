@@ -4,33 +4,10 @@ import type { Stub } from 'std/testing/mock.ts';
 import { snapshotTest } from 'cliffy/testing/mod.ts';
 
 import mainCommand from '../main_command.ts';
-import { _internals } from '../util.ts';
+import { runInContext } from './util.ts';
 
 import submissions1 from './fixtures/submissions-1.json' with { type: 'json' };
 import submissions2 from './fixtures/submissions-2.json' with { type: 'json' };
-
-async function runInContext(apiKey: string, responses: Response[], callback: (fetchStub: Stub) => Promise<void>) {
-  const originalApiUrl = Deno.env.get('DDBJ_REPOSITORY_API_URL');
-  Deno.env.set('DDBJ_REPOSITORY_API_URL', 'http://example.com/api');
-
-  const readStub = stub(_internals, 'read', returnsNext([apiKey]));
-
-  const fetchStub = stub(
-    globalThis,
-    'fetch',
-    returnsNext(responses.map((response) => Promise.resolve(response))),
-  );
-
-  try {
-    await callback(fetchStub);
-  } finally {
-    if (originalApiUrl) {
-      Deno.env.set('DDBJ_REPOSITORY_API_URL', originalApiUrl);
-    }
-    readStub.restore();
-    fetchStub.restore();
-  }
-}
 
 await snapshotTest({
   name: 'submission create 1',
@@ -38,16 +15,18 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext('dummy', [
-      new Response(JSON.stringify(submissions1[0])),
-    ], async (fetchStub) => {
+    await runInContext({
+      responses: [
+        new Response(JSON.stringify(submissions1[0])),
+      ]
+    }, async (fetchStub) => {
       await mainCommand.parse(['submission', 'create', '1']);
 
       assertSpyCall(fetchStub, 0, {
         args: ['http://example.com/api/submissions/', {
           method: 'POST',
           headers: {
-            'Authorization': 'Bearer dummy',
+            'Authorization': 'Bearer API_KEY',
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ validation_id: 1 }),
@@ -63,15 +42,17 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext('dummy', [
-      new Response(JSON.stringify(submissions1), {
-        headers: {
-          Link: '<http://example.com/api/submissions?page=2>; rel="next"',
-        },
-      }),
+    await runInContext({
+      responses: [
+        new Response(JSON.stringify(submissions1), {
+          headers: {
+            Link: '<http://example.com/api/submissions?page=2>; rel="next"',
+          },
+        }),
 
-      new Response(JSON.stringify(submissions2)),
-    ], async () => {
+        new Response(JSON.stringify(submissions2)),
+      ]
+    }, async () => {
       await mainCommand.parse(['submission', 'list']);
     });
   },
@@ -83,29 +64,33 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext('dummy', [
-      new Response(JSON.stringify(submissions1[0])),
-    ], async () => {
+    await runInContext({
+      responses: [
+        new Response(JSON.stringify(submissions1[0])),
+      ]
+    }, async () => {
       await mainCommand.parse(['submission', 'show', 'X-1']);
     });
   },
 });
 
 await snapshotTest({
-  name: 'submission get-file X-1 dummy-path',
+  name: 'submission get-file X-1 path/to/file',
   meta: import.meta,
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext('dummy', [
-      new Response(JSON.stringify(submissions1[0])),
-      new Response('dummy-file'),
-    ], async (fetchStub) => {
-      await mainCommand.parse(['submission', 'get-file', 'X-1', 'dummy-path']);
+    await runInContext({
+      responses: [
+        new Response(JSON.stringify(submissions1[0])),
+        new Response('foo'),
+      ]
+    }, async (fetchStub) => {
+      await mainCommand.parse(['submission', 'get-file', 'X-1', 'path/to/file']);
 
       assertSpyCall(fetchStub, 1, {
-        args: ['http://example.com/api/validations/1/files/dummy-path', {
-          headers: { 'Authorization': 'Bearer dummy' },
+        args: ['http://example.com/api/validations/1/files/path/to/file', {
+          headers: { 'Authorization': 'Bearer API_KEY' },
         }],
       });
     });

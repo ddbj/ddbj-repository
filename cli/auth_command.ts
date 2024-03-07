@@ -6,7 +6,7 @@ import { open } from 'https://deno.land/x/open@v0.0.6/index.ts';
 import { defaultApiUrl, ensureSuccess } from './util.ts';
 import { read, remove, write } from './api_key.ts';
 
-export const _internals = { read, keypress, open };
+export const _internals = { keypress, open, read, remove, write };
 
 type Options = {
   apiUrl?: string;
@@ -37,7 +37,7 @@ const loginCommand = new Command<void, void, Options, [string?]>()
 
       console.log(`Logged in as ${colors.bold(uid)}.`);
 
-      write(apiKey);
+      _internals.write(apiKey);
     } else {
       await openLoginURL(apiUrl);
     }
@@ -46,7 +46,7 @@ const loginCommand = new Command<void, void, Options, [string?]>()
 const logoutCommand = new Command()
   .description('Logout.')
   .action(() => {
-    remove();
+    _internals.remove();
   });
 
 const authCommand: Command<Options> = new Command<Options>()

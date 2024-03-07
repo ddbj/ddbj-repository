@@ -1,39 +1,10 @@
-import { assertSpyCall, returnsNext, stub } from 'std/testing/mock.ts';
-import type { Stub } from 'std/testing/mock.ts';
+import { returnsNext, stub } from 'std/testing/mock.ts';
 
 import { snapshotTest } from 'cliffy/testing/mod.ts';
 
 import mainCommand from '../main_command.ts';
 import { _internals } from '../auth_command.ts';
-
-async function runInContext(apiKey: string | undefined, responses: Response[], callback: (fetchStub: Stub) => Promise<void>) {
-  const originalApiUrl = Deno.env.get('DDBJ_REPOSITORY_API_URL');
-  Deno.env.set('DDBJ_REPOSITORY_API_URL', 'http://example.com/api');
-
-  const readStub = stub(_internals, 'read', returnsNext([apiKey]));
-  // @ts-expect-error
-  const keypressStub = stub(_internals, 'keypress', returnsNext([Promise.resolve({ key: 'a' })]));
-  // @ts-expect-error
-  const openStub = stub(_internals, 'open', returnsNext([Promise.resolve()]));
-
-  const fetchStub = stub(
-    globalThis,
-    'fetch',
-    returnsNext(responses.map((response) => Promise.resolve(response))),
-  );
-
-  try {
-    await callback(fetchStub);
-  } finally {
-    if (originalApiUrl) {
-      Deno.env.set('DDBJ_REPOSITORY_API_URL', originalApiUrl);
-    }
-    readStub.restore();
-    keypressStub.restore();
-    openStub.restore();
-    fetchStub.restore();
-  }
-}
+import { runInContext } from './util.ts';
 
 await snapshotTest({
   name: 'auth whoami',
@@ -41,10 +12,18 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext('dummy', [
-      new Response(JSON.stringify({ uid: 'foo', admin: false })),
-    ], async () => {
-      await mainCommand.parse(['auth', 'whoami']);
+    await runInContext({
+      responses: [
+        new Response(JSON.stringify({ uid: 'alice', admin: false })),
+      ]
+    }, async () => {
+      const readStub = stub(_internals, 'read', returnsNext(['API_KEY']));
+
+      try {
+        await mainCommand.parse(['auth', 'whoami']);
+      } finally {
+        readStub.restore();
+      }
     });
   },
 });
@@ -55,8 +34,9 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext(undefined, [
-    ], async () => {
+    await runInContext({
+      apiKey: undefined,
+    }, async () => {
       await mainCommand.parse(['auth', 'whoami']);
     });
   },
@@ -68,10 +48,18 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext('dummy', [
-      new Response(JSON.stringify({ uid: 'foo', admin: false })),
-    ], async () => {
-      await mainCommand.parse(['auth', 'login', 'API_KEY']);
+    await runInContext({
+      responses: [
+        new Response(JSON.stringify({ uid: 'alice', admin: false })),
+      ]
+    }, async () => {
+      const writeStub = stub(_internals, 'write', returnsNext([undefined]));
+
+      try {
+        await mainCommand.parse(['auth', 'login', 'API_KEY']);
+      } finally {
+        writeStub.restore();
+      }
     });
   },
 });
@@ -82,10 +70,23 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext(undefined, [
-      new Response(JSON.stringify({ login_url: 'http://example.com/login' })),
-    ], async () => {
-      await mainCommand.parse(['auth', 'login']);
+    await runInContext({
+      apiKey: undefined,
+      responses: [
+        new Response(JSON.stringify({ login_url: 'http://example.com/login' })),
+      ]
+    }, async () => {
+      // @ts-expect-error for test
+      const keypressStub = stub(_internals, 'keypress', returnsNext([Promise.resolve({ key: 'a' })]));
+      // @ts-expect-error for test
+      const openStub = stub(_internals, 'open', returnsNext([Promise.resolve()]));
+
+      try {
+        await mainCommand.parse(['auth', 'login']);
+      } finally {
+        keypressStub.restore();
+        openStub.restore();
+      }
     });
   },
 });
@@ -96,9 +97,14 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext('dummy', [
-    ], async () => {
-      await mainCommand.parse(['auth', 'logout']);
+    await runInContext({}, async () => {
+      const removeStub = stub(_internals, 'remove', returnsNext([undefined]));
+
+      try {
+        await mainCommand.parse(['auth', 'logout']);
+      } finally {
+        removeStub.restore();
+      }
     });
   },
 });
