@@ -4,14 +4,14 @@ snapshot[`validation create jvar 1`] = `
 stdout:
 '{
   "id": 1,
-  "url": "http://localhost:3000/api/validations/1",
+  "url": "http://example.com/api/validations/1",
   "user": {
-    "uid": "keycloak"
+    "uid": "alice"
   },
   "db": "JVar",
-  "created_at": "2024-01-23T12:43:10.750Z",
-  "started_at": "2024-01-23T12:43:11.152Z",
-  "finished_at": "2024-01-23T12:43:11.272Z",
+  "created_at": "2024-01-02T03:04:56.000Z",
+  "started_at": "2024-01-02T03:04:56.000Z",
+  "finished_at": "2024-01-02T03:04:57.000Z",
   "progress": "finished",
   "validity": "valid",
   "objects": [
@@ -20,7 +20,7 @@ stdout:
       "files": [
         {
           "path": "README.md",
-          "url": "http://localhost:3000/api/validations/1/files/README.md"
+          "url": "http://example.com/api/validations/1/files/README.md"
         }
       ]
     }
@@ -38,13 +38,13 @@ stdout:
       "details": null,
       "file": {
         "path": "README.md",
-        "url": "http://localhost:3000/api/validations/1/files/README.md"
+        "url": "http://example.com/api/validations/1/files/README.md"
       }
     }
   ],
   "submission": {
     "id": "X-1",
-    "url": "http://localhost:3000/api/submissions/X-1"
+    "url": "http://example.com/api/submissions/X-1"
   }
 }
 '
@@ -56,8 +56,8 @@ snapshot[`valiadation list 1`] = `
 stdout:
 "ID DB   Created             Started             Finished            Progress Validity Submission
 -- --   -------             -------             --------            -------- -------- ----------
-1  JVar 2024-01-23 21:43:10 2024-01-23 21:43:11 2024-01-23 21:43:11 finished valid    X-1       
-2  JVar 2024-01-23 21:43:10 -                   -                   waiting  -        -         
+1  JVar 2024-01-02 12:04:56 2024-01-02 12:04:56 2024-01-02 12:04:57 finished valid    X-1       
+2  JVar 2024-01-02 12:04:56 -                   -                   waiting  -        -         
 "
 stderr:
 ""
@@ -68,9 +68,9 @@ stdout:
 "ID: 1
 URL: http://example.com/web/validations/1
 DB: JVar
-Created: 2024-01-23 21:43:10
-Started: 2024-01-23 21:43:11
-Finished: 2024-01-23 21:43:11
+Created: 2024-01-02 12:04:56
+Started: 2024-01-02 12:04:56
+Finished: 2024-01-02 12:04:57
 Progress: finished
 Validity: valid
 Submission: X-1
@@ -89,7 +89,7 @@ stdout:
 "ID: 2
 URL: http://example.com/web/validations/2
 DB: JVar
-Created: 2024-01-23 21:43:10
+Created: 2024-01-02 12:04:56
 Started: -
 Finished: -
 Progress: waiting
@@ -117,14 +117,14 @@ snapshot[`validation cancel 1 1`] = `
 stdout:
 '{
   "id": 1,
-  "url": "http://localhost:3000/api/validations/1",
+  "url": "http://example.com/api/validations/1",
   "user": {
-    "uid": "keycloak"
+    "uid": "alice"
   },
   "db": "JVar",
-  "created_at": "2024-01-23T12:43:10.750Z",
-  "started_at": "2024-01-23T12:43:11.152Z",
-  "finished_at": "2024-01-23T12:43:11.272Z",
+  "created_at": "2024-01-02T03:04:56.000Z",
+  "started_at": "2024-01-02T03:04:56.000Z",
+  "finished_at": "2024-01-02T03:04:57.000Z",
   "progress": "finished",
   "validity": "valid",
   "objects": [
@@ -133,7 +133,7 @@ stdout:
       "files": [
         {
           "path": "README.md",
-          "url": "http://localhost:3000/api/validations/1/files/README.md"
+          "url": "http://example.com/api/validations/1/files/README.md"
         }
       ]
     }
@@ -151,13 +151,13 @@ stdout:
       "details": null,
       "file": {
         "path": "README.md",
-        "url": "http://localhost:3000/api/validations/1/files/README.md"
+        "url": "http://example.com/api/validations/1/files/README.md"
       }
     }
   ],
   "submission": {
     "id": "X-1",
-    "url": "http://localhost:3000/api/submissions/X-1"
+    "url": "http://example.com/api/submissions/X-1"
   }
 }
 '

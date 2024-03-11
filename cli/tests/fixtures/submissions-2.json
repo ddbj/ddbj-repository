@@ -1,17 +1,17 @@
 [
   {
     "id": "X-2",
-    "created_at": "2024-03-04T13:07:11.463Z",
+    "created_at": "2024-01-02T03:04:59.000Z",
     "validation": {
       "id": 2,
-      "url": "http://localhost:3000/api/validations/2",
+      "url": "http://example.com/api/validations/2",
       "user": {
-        "uid": "keycloak"
+        "uid": "alice"
       },
       "db": "JVar",
-      "created_at": "2024-03-04T13:06:50.973Z",
-      "started_at": "2024-03-04T13:06:51.215Z",
-      "finished_at": "2024-03-04T13:06:51.261Z",
+      "created_at": "2024-01-02T03:04:56.000Z",
+      "started_at": "2024-01-02T03:04:56.000Z",
+      "finished_at": "2024-01-02T03:04:57.000Z",
       "progress": "finished",
       "validity": "valid",
       "objects": [
@@ -20,7 +20,7 @@
           "files": [
             {
               "path": "validations-1.json",
-              "url": "http://localhost:3000/api/validations/2/files/validations-1.json"
+              "url": "http://example.com/api/validations/2/files/validations-1.json"
             }
           ]
         }
@@ -38,13 +38,13 @@
           "details": null,
           "file": {
             "path": "validations-1.json",
-            "url": "http://localhost:3000/api/validations/2/files/validations-1.json"
+            "url": "http://example.com/api/validations/2/files/validations-1.json"
           }
         }
       ],
       "submission": {
         "id": "X-2",
-        "url": "http://localhost:3000/api/submissions/X-2"
+        "url": "http://example.com/api/submissions/X-2"
       }
     }
   }

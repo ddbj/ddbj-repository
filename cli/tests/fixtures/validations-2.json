@@ -1,12 +1,12 @@
 [
   {
     "id": 2,
-    "url": "http://localhost:3000/api/validations/2",
+    "url": "http://example.com/api/validations/2",
     "user": {
-      "uid": "keycloak"
+      "uid": "alice"
     },
     "db": "JVar",
-    "created_at": "2024-01-23T12:43:10.750Z",
+    "created_at": "2024-01-02T03:04:56.000Z",
     "started_at": null,
     "finished_at": null,
     "progress": "waiting",
@@ -17,7 +17,7 @@
         "files": [
           {
             "path": "README.md",
-            "url": "http://localhost:3000/api/validations/1/files/README.md"
+            "url": "http://example.com/api/validations/1/files/README.md"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "details": null,
         "file": {
           "path": "README.md",
-          "url": "http://localhost:3000/api/validations/1/files/README.md"
+          "url": "http://example.com/api/validations/1/files/README.md"
         }
       }
     ],
