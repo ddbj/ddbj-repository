@@ -78,7 +78,7 @@ jobs:
 
       - run: ./compile
 
-      - uses: softprops/action-gh-release@v1
+      - uses: softprops/action-gh-release@v2
         with:
           files: |
             cli/dist/ddbj-repository-cli-aarch64-apple-darwin.zip
