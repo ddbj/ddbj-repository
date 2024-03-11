@@ -18,7 +18,7 @@ await snapshotTest({
     await runInContext({
       responses: [
         new Response(JSON.stringify(submissions1[0])),
-      ]
+      ],
     }, async (fetchStub) => {
       await mainCommand.parse(['submission', 'create', '1']);
 
@@ -51,7 +51,7 @@ await snapshotTest({
         }),
 
         new Response(JSON.stringify(submissions2)),
-      ]
+      ],
     }, async () => {
       await mainCommand.parse(['submission', 'list']);
     });
@@ -67,7 +67,7 @@ await snapshotTest({
     await runInContext({
       responses: [
         new Response(JSON.stringify(submissions1[0])),
-      ]
+      ],
     }, async () => {
       await mainCommand.parse(['submission', 'show', 'X-1']);
     });
@@ -84,7 +84,7 @@ await snapshotTest({
       responses: [
         new Response(JSON.stringify(submissions1[0])),
         new Response('foo'),
-      ]
+      ],
     }, async (fetchStub) => {
       await mainCommand.parse(['submission', 'get-file', 'X-1', 'path/to/file']);
 

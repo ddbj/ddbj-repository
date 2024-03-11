@@ -4,7 +4,7 @@ import { _internals } from '../util.ts';
 
 import type { Stub } from 'std/testing/mock.ts';
 
-export async function runInContext(opts: { apiKey?: string, responses?: Response[] } = {}, callback: (fetchStub: Stub) => Promise<void>) {
+export async function runInContext(opts: { apiKey?: string; responses?: Response[] } = {}, callback: (fetchStub: Stub) => Promise<void>) {
   const apiKey = opts.apiKey ?? 'API_KEY';
   const responses = opts.responses ?? [];
 

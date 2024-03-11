@@ -19,7 +19,7 @@ await snapshotTest({
         new Response(new File(['foo'], 'path/to/file')), // in createValidation
         new Response(JSON.stringify(validations1[0])), // in createValidation
         new Response(JSON.stringify(validations1[0])), // in waitForRequestFinished
-      ]
+      ],
     }, async () => {
       await mainCommand.parse(['validation', 'create', 'jvar', '--excel.file=path/to/file']);
     });
@@ -41,7 +41,7 @@ await snapshotTest({
         }),
 
         new Response(JSON.stringify(validations2)),
-      ]
+      ],
     }, async () => {
       await mainCommand.parse(['validation', 'list']);
     });
@@ -57,7 +57,7 @@ await snapshotTest({
     await runInContext({
       responses: [
         new Response(JSON.stringify(validations1[0])),
-      ]
+      ],
     }, async () => {
       await mainCommand.parse(['validation', 'show', '1']);
     });
@@ -73,7 +73,7 @@ await snapshotTest({
     await runInContext({
       responses: [
         new Response(JSON.stringify(validations2[0])),
-      ]
+      ],
     }, async () => {
       await mainCommand.parse(['validation', 'show', '2']);
     });
@@ -89,7 +89,7 @@ await snapshotTest({
     await runInContext({
       responses: [
         new Response('foo'),
-      ]
+      ],
     }, async (fetchStub) => {
       await mainCommand.parse(['validation', 'get-file', '1', 'path/to/file']);
 
@@ -111,7 +111,7 @@ await snapshotTest({
     await runInContext({
       responses: [
         new Response(JSON.stringify(validations1[0])),
-      ]
+      ],
     }, async (fetchStub) => {
       await mainCommand.parse(['validation', 'cancel', '1']);
 

@@ -15,7 +15,7 @@ await snapshotTest({
     await runInContext({
       responses: [
         new Response(JSON.stringify({ uid: 'alice', admin: false })),
-      ]
+      ],
     }, async () => {
       const readStub = stub(_internals, 'read', returnsNext(['API_KEY']));
 
@@ -51,7 +51,7 @@ await snapshotTest({
     await runInContext({
       responses: [
         new Response(JSON.stringify({ uid: 'alice', admin: false })),
-      ]
+      ],
     }, async () => {
       const writeStub = stub(_internals, 'write', returnsNext([undefined]));
 
@@ -74,7 +74,7 @@ await snapshotTest({
       apiKey: undefined,
       responses: [
         new Response(JSON.stringify({ login_url: 'http://example.com/login' })),
-      ]
+      ],
     }, async () => {
       // @ts-expect-error for test
       const keypressStub = stub(_internals, 'keypress', returnsNext([Promise.resolve({ key: 'a' })]));
