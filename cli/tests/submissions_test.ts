@@ -1,5 +1,4 @@
-import { assertSpyCall, returnsNext, stub } from 'std/testing/mock.ts';
-import type { Stub } from 'std/testing/mock.ts';
+import { assertSpyCall } from 'std/testing/mock.ts';
 
 import { snapshotTest } from 'cliffy/testing/mod.ts';
 
