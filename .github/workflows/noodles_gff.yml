@@ -1,0 +1,26 @@
+name: NoodlesGFF
+on: push
+
+concurrency:
+  group: noodles_gff-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: noodles_gff-rb
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oxidize-rb/actions/setup-ruby-and-rust@v1
+        with:
+          bundler-cache: true
+          cargo-cache: true
+          working-directory: noodles_gff-rb
+
+      - run: bundle exec rake
