@@ -295,7 +295,6 @@ name = "noodles_gff"
 version = "0.1.0"
 dependencies = [
  "magnus",
- "noodles-core",
  "noodles-gff",
 ]
 
