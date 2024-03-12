@@ -31,7 +31,7 @@ class Trad2Validator
   def validate_ann(objs)
     objs.select { _1._id == 'Annotation' }.each do |obj|
       NoodlesGFF.parse obj.file.download
-    rescue => e
+    rescue NoodlesGFF::Error => e
       obj.validation_details << {
         severity: 'error',
         message:  e.message

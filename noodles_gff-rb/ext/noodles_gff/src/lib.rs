@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 
-use magnus::{exception, function, Error, Ruby};
+use magnus::{class, define_module, exception, function, Error, ExceptionClass, Module, RClass, RModule};
 use noodles_gff::{Directive, Line, Reader};
 
 fn parse(input: String) -> Result<(), Error> {
@@ -33,7 +33,10 @@ where
             Ok(_) => (),
 
             Err(e) => {
-                return Err(Error::new(exception::runtime_error(), format!("Line {}: {:?}", i + 1, e)));
+                let gff = class::object().const_get::<_, RModule>("NoodlesGFF")?;
+                let error = gff.const_get::<_, ExceptionClass>("Error")?;
+
+                return Err(Error::new(error, format!("Line {}: {:?}", i + 1, e)));
             }
         }
     }
@@ -42,8 +45,10 @@ where
 }
 
 #[magnus::init]
-fn init(ruby: &Ruby) -> Result<(), Error> {
-    let gff = ruby.define_module("NoodlesGFF")?;
+fn init() -> Result<(), Error> {
+    let gff = define_module("NoodlesGFF")?;
+
+    gff.define_class("Error", class::object().const_get::<_, RClass>("StandardError")?)?;
 
     gff.define_module_function("parse", function!(parse, 1))?;
     gff.define_module_function("parse_from_file", function!(parse_from_file, 1))?;

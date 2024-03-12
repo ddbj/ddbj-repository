@@ -23,7 +23,7 @@ RSpec.describe NoodlesGFF do
       NoodlesGFF.parse(<<~GFF)
         chr1	feature	gene	foo	1967	.	-	.	ID=Mp1g00005a;Name=Mp1g00005a;locus_type=rRNA;note=partial
       GFF
-    }.to raise_error('Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidStart(ParseIntError { kind: InvalidDigit })) }')
+    }.to raise_error(NoodlesGFF::Error, 'Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidStart(ParseIntError { kind: InvalidDigit })) }')
   end
 
   example 'end is invalid' do
@@ -31,7 +31,7 @@ RSpec.describe NoodlesGFF do
       NoodlesGFF.parse(<<~GFF)
         chr1	feature	gene	1	foo	.	-	.	ID=Mp1g00005a;Name=Mp1g00005a;locus_type=rRNA;note=partial
       GFF
-    }.to raise_error('Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidEnd(ParseIntError { kind: InvalidDigit })) }')
+    }.to raise_error(NoodlesGFF::Error, 'Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidEnd(ParseIntError { kind: InvalidDigit })) }')
   end
 
   example 'score is invalid' do
@@ -39,7 +39,7 @@ RSpec.describe NoodlesGFF do
       NoodlesGFF.parse(<<~GFF)
         chr1	feature	gene	1	1967	foo	-	.	ID=Mp1g00005a;Name=Mp1g00005a;locus_type=rRNA;note=partial
       GFF
-    }.to raise_error('Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidScore(ParseFloatError { kind: Invalid })) }')
+    }.to raise_error(NoodlesGFF::Error, 'Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidScore(ParseFloatError { kind: Invalid })) }')
   end
 
   example 'strand is invalid' do
@@ -47,7 +47,7 @@ RSpec.describe NoodlesGFF do
       NoodlesGFF.parse(<<~GFF)
         chr1	feature	gene	1	1967	.	foo	.	ID=Mp1g00005a;Name=Mp1g00005a;locus_type=rRNA;note=partial
       GFF
-    }.to raise_error('Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidStrand(Invalid("foo"))) }')
+    }.to raise_error(NoodlesGFF::Error, 'Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidStrand(Invalid("foo"))) }')
   end
 
   example 'phase is invalid' do
@@ -55,7 +55,7 @@ RSpec.describe NoodlesGFF do
       NoodlesGFF.parse(<<~GFF)
         chr1	feature	gene	1	1967	.	-	foo	ID=Mp1g00005a;Name=Mp1g00005a;locus_type=rRNA;note=partial
       GFF
-    }.to raise_error('Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidPhase(Invalid("foo"))) }')
+    }.to raise_error(NoodlesGFF::Error, 'Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidPhase(Invalid("foo"))) }')
   end
 
   example 'attributes is invalid' do
@@ -63,6 +63,6 @@ RSpec.describe NoodlesGFF do
       NoodlesGFF.parse(<<~GFF)
         chr1	feature	gene	1	1967	.	-	.	ID=Mp1g00005a;Name=Mp1g00005a;locus_type=rRNA;note=partial;foo
       GFF
-    }.to raise_error('Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidAttributes(InvalidField(Invalid))) }')
+    }.to raise_error(NoodlesGFF::Error, 'Line 1: Custom { kind: InvalidData, error: InvalidRecord(InvalidAttributes(InvalidField(Invalid))) }')
   end
 end
