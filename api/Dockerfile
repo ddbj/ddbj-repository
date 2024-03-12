@@ -21,6 +21,10 @@ RUN pnpm build
 
 FROM ruby:${RUBY_VERSION:?}-slim as base
 
+WORKDIR /app/noodles_gff-rb
+
+COPY noodles_gff-rb/ .
+
 # Rails app lives here
 WORKDIR /app/api
 
@@ -66,6 +70,7 @@ RUN apt-get update -qq && \
 # Copy built artifacts: gems, application
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY --from=build /app/api /app/api
+COPY --from=build /app/noodles_gff-rb /app/noodles_gff-rb
 COPY --from=web /app/web/dist /app/api/public/web
 
 COPY schema /app/schema

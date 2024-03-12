@@ -10,12 +10,16 @@ Gem::Specification.new do |spec|
   spec.homepage = 'https://github.com/ursm/noodles_gff-rb'
   spec.license  = 'MIT'
 
-  spec.files = Dir.chdir(__dir__) do
-    `git ls-files -z`.split("\x0").reject do |f|
-      (File.expand_path(f) == __FILE__) ||
-        f.start_with?(*%w[bin/ test/ spec/ features/ .git .github appveyor Gemfile])
-    end
-  end
+  spec.files = Dir[
+    'Cargo.lock',
+    'Cargo.toml',
+    'LICENSE.txt',
+    'README.md',
+    'ext/noodles_gff/Cargo.toml',
+    'ext/noodles_gff/extconf.rb',
+    'ext/noodles_gff/src/**/*.rs',
+    'lib/**/*.rb',
+  ]
 
   spec.require_paths = ['lib']
   spec.extensions    = ['ext/noodles_gff/Cargo.toml']
