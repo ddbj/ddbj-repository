@@ -34,10 +34,14 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext({
-      apiKey: undefined,
-    }, async () => {
-      await mainCommand.parse(['auth', 'whoami']);
+    await runInContext({}, async () => {
+      const readStub = stub(_internals, 'read', returnsNext([undefined]));
+
+      try {
+        await mainCommand.parse(['auth', 'whoami']);
+      } finally {
+        readStub.restore();
+      }
     });
   },
 });
