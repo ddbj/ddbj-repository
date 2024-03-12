@@ -4,12 +4,14 @@ import { resolve } from 'std/path/resolve.ts';
 import { toFileUrl } from 'std/path/to_file_url.ts';
 
 import { Command } from 'cliffy/command/mod.ts';
-import { colorize } from 'json_colorize/mod.ts';
+import { Table } from 'cliffy/table/mod.ts';
+import { colors } from 'cliffy/ansi/colors.ts';
 
 import dbs from '../schema/db.json' with { type: 'json' };
-import { defaultApiUrl, ensureLogin, ensureSuccess } from './util.ts';
+import { defaultApiUrl, ensureLogin, ensureSuccess, formatDatetime } from './util.ts';
 
 import type { DBSchema, ObjSchema } from '../schema/db.d.ts';
+import type { components } from '../schema/openapi.d.ts';
 
 type Options = {
   apiUrl?: string;
@@ -20,6 +22,8 @@ type ObjOption = {
   file: string;
   destination?: string;
 };
+
+type Validation = components['schemas']['Validation'];
 
 const _createCommand = new Command<Options>()
   .description('Validate the specified files.')
@@ -56,9 +60,31 @@ function createDatabaseCommands(): [string, Command<Options>][] {
             }) as [ObjSchema, ObjOption][];
 
             const { url } = await createValidation(opts.apiUrl || defaultApiUrl, apiKey, db, objs);
-            const payload = await waitForRequestFinished(url, apiKey);
+            const payload: Validation = await waitForRequestFinished(url, apiKey);
 
-            colorize(JSON.stringify(payload, null, 2));
+            const { id: validationId, created_at, started_at, finished_at, progress, validity, submission, results } = payload;
+
+            console.log(`${colors.bold.yellow('ID:')} ${validationId}`);
+            console.log(`${colors.bold.yellow('URL:')} ${new URL(`/web/validations/${validationId}`, url).href}`);
+            console.log(`${colors.bold.yellow('DB:')} ${db.id}`);
+            console.log(`${colors.bold.yellow('Created:')} ${formatDatetime(created_at)}`);
+            console.log(`${colors.bold.yellow('Started:')} ${formatDatetime(started_at) || '-'}`);
+            console.log(`${colors.bold.yellow('Finished:')} ${formatDatetime(finished_at) || '-'}`);
+            console.log(`${colors.bold.yellow('Progress:')} ${progress}`);
+            console.log(`${colors.bold.yellow('Validity:')} ${validity || '-'}`);
+            console.log(`${colors.bold.yellow('Submission:')} ${submission?.id || '-'}`);
+            console.log();
+            console.log(colors.bold.yellow('Results:'));
+
+            Table.from([
+              ['Object', 'File', 'Validity'].map(colors.bold.yellow),
+
+              ...results.map(({ object_id, file, validity }) => [
+                object_id,
+                file?.path || '-',
+                validity || '-',
+              ]),
+            ]).render();
           })
       ), _cmd)
       .reset();

@@ -2,52 +2,21 @@ export const snapshot = {};
 
 snapshot[`validation create jvar 1`] = `
 stdout:
-'{
-  "id": 1,
-  "url": "http://example.com/api/validations/1",
-  "user": {
-    "uid": "alice"
-  },
-  "db": "JVar",
-  "created_at": "2024-01-02T03:04:56.000Z",
-  "started_at": "2024-01-02T03:04:56.000Z",
-  "finished_at": "2024-01-02T03:04:57.000Z",
-  "progress": "finished",
-  "validity": "valid",
-  "objects": [
-    {
-      "id": "Excel",
-      "files": [
-        {
-          "path": "README.md",
-          "url": "http://example.com/api/validations/1/files/README.md"
-        }
-      ]
-    }
-  ],
-  "results": [
-    {
-      "object_id": "_base",
-      "validity": "valid",
-      "details": null,
-      "file": null
-    },
-    {
-      "object_id": "Excel",
-      "validity": "valid",
-      "details": null,
-      "file": {
-        "path": "README.md",
-        "url": "http://example.com/api/validations/1/files/README.md"
-      }
-    }
-  ],
-  "submission": {
-    "id": "X-1",
-    "url": "http://example.com/api/submissions/X-1"
-  }
-}
-'
+"ID: 1
+URL: http://example.com/web/validations/1
+DB: JVar
+Created: 2024-01-02 12:04:56
+Started: 2024-01-02 12:04:56
+Finished: 2024-01-02 12:04:57
+Progress: finished
+Validity: valid
+Submission: X-1
+
+Results:
+Object File      Validity
+_base  -         valid   
+Excel  README.md valid   
+"
 stderr:
 ""
 `;
