@@ -44,6 +44,14 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+          working-directory: noodles_gff-rb
+
+      - run: bundle exec rake compile
+        working-directory: noodles_gff-rb
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
           working-directory: api
 
       - run: bundle exec submission-excel2xml download_xsd
