@@ -110,7 +110,7 @@ await snapshotTest({
   async fn() {
     await runInContext({
       responses: [
-        new Response(JSON.stringify(validations1[0])),
+        new Response(JSON.stringify({ message: 'Validation canceled successfully.' })),
       ],
     }, async (fetchStub) => {
       await mainCommand.parse(['validation', 'cancel', '1']);
