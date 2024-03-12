@@ -2,56 +2,16 @@ export const snapshot = {};
 
 snapshot[`submission create 1 1`] = `
 stdout:
-'{
-  "id": "X-1",
-  "created_at": "2024-01-02T03:04:58.000Z",
-  "validation": {
-    "id": 1,
-    "url": "http://example.com/api/validations/1",
-    "user": {
-      "uid": "alice"
-    },
-    "db": "JVar",
-    "created_at": "2024-01-02T03:04:56.000Z",
-    "started_at": "2024-01-02T03:04:56.000Z",
-    "finished_at": "2024-01-02T03:04:57.000Z",
-    "progress": "finished",
-    "validity": "valid",
-    "objects": [
-      {
-        "id": "Excel",
-        "files": [
-          {
-            "path": "validations-1.json",
-            "url": "http://example.com/api/validations/1/files/validations-1.json"
-          }
-        ]
-      }
-    ],
-    "results": [
-      {
-        "object_id": "_base",
-        "validity": "valid",
-        "details": null,
-        "file": null
-      },
-      {
-        "object_id": "Excel",
-        "validity": "valid",
-        "details": null,
-        "file": {
-          "path": "validations-1.json",
-          "url": "http://example.com/api/validations/1/files/validations-1.json"
-        }
-      }
-    ],
-    "submission": {
-      "id": "X-1",
-      "url": "http://example.com/api/submissions/X-1"
-    }
-  }
-}
-'
+"ID: X-1
+URL: http://example.com/web/submissions/X-1
+DB: JVar
+Created: 2024-01-02 12:04:58
+Validation: #1
+
+Objects:
+ID    Files             
+Excel validations-1.json
+"
 stderr:
 ""
 `;

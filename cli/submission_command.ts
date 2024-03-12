@@ -1,6 +1,5 @@
 import { Command } from 'cliffy/command/mod.ts';
 import { Table } from 'cliffy/table/mod.ts';
-import { colorize } from 'json_colorize/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 
 import paginatedFetch from './paginated_fetch.ts';
@@ -74,9 +73,24 @@ async function createSubmission(apiUrl: string, apiKey: string, validationId: nu
 
   await ensureSuccess(res);
 
-  const payload = await res.json();
+  const { id, created_at, validation } = await res.json() as Submission;
 
-  colorize(JSON.stringify(payload, null, 2));
+  console.log(`${colors.bold.yellow('ID:')} ${id}`);
+  console.log(`${colors.bold.yellow('URL:')} ${new URL(`/web/submissions/${id}`, apiUrl).href}`);
+  console.log(`${colors.bold.yellow('DB:')} ${validation.db}`);
+  console.log(`${colors.bold.yellow('Created:')} ${formatDatetime(created_at)}`);
+  console.log(`${colors.bold.yellow('Validation:')} #${validation.id}`);
+  console.log();
+  console.log(colors.bold.yellow('Objects:'));
+
+  Table.from([
+    ['ID', 'Files'].map(colors.bold.yellow),
+
+    ...validation.objects.map(({ id, files }) => [
+      id,
+      files.map(({ path }) => path).join('\n'),
+    ]),
+  ]).render();
 }
 
 async function listSubmissions(apiUrl: string, apiKey: string) {
