@@ -238,9 +238,10 @@ RSpec.describe Trad2Validator, type: :model do
 
   describe 'seq' do
     example 'no entries' do
-      seq  = create_seq(validation, content: '')
-      ann  = create_ann(validation)
-      meta = create_meta(validation)
+      seq = create_seq(validation, content: '')
+
+      create_ann validation
+      create_meta validation
 
       Trad2Validator.new.validate validation
       seq.reload
@@ -251,6 +252,27 @@ RSpec.describe Trad2Validator, type: :model do
         validation_details: [
           'severity' => 'error',
           'message'  => 'No entries found.'
+        ]
+      )
+    end
+  end
+
+  describe 'ann' do
+    example 'invalid' do
+      ann = create_ann(validation, content: 'foo')
+
+      create_seq validation
+      create_meta validation
+
+      Trad2Validator.new.validate validation
+      ann.reload
+
+      expect(ann).to have_attributes(
+        validity: 'invalid',
+
+        validation_details: [
+          'severity' => 'error',
+          'message'  => 'Line 1: Custom { kind: InvalidData, error: InvalidRecord(MissingField(Source)) }'
         ]
       )
     end

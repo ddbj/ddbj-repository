@@ -20,6 +20,11 @@ GIT
       rubyzip (~> 2)
       thor (~> 1)
 
+PATH
+  remote: ../noodles_gff-rb
+  specs:
+    noodles_gff (0.1.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -394,6 +399,7 @@ DEPENDENCIES
   faraday-multipart
   jb
   metabobank_tools!
+  noodles_gff!
   openid_connect
   pagy
   parallel

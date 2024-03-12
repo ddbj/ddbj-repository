@@ -22,6 +22,7 @@ Container_Boundary(repository, "DDBJ Repository") {
         ContainerDb(db, "Database", "PostgreSQL")
         ContainerDb(job_store, "Background Job Store", "Redis")
         Container_Ext(excel2xml, "ddbj/submission-excel2xml")
+        Container(noodles-gff, "noodles_gff-rb")
     }
 }
 
@@ -51,4 +52,5 @@ Rel(worker, job_store, "Polls for and updates jobs in")
 Rel(worker, ddbj_validator, "Validates BioProject/BioSample files using")
 Rel(worker, mb_tools, "Validates MetaboBank files using")
 Rel(worker, excel2xml, "Validates DRA files using")
+Rel(worker, noodles-gff, "Validates GFF3 files using")
 ```

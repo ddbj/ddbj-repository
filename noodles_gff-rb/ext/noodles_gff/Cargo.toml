@@ -1,0 +1,15 @@
+[package]
+name = "noodles_gff"
+version = "0.1.0"
+edition = "2021"
+authors = ["Keita Urashima <ursm@ursm.jp>"]
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+magnus = "0.6"
+noodles-core = "0.14"
+noodles-gff = "0.27"
