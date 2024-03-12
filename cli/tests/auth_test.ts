@@ -75,7 +75,6 @@ await snapshotTest({
 
   async fn() {
     await runInContext({
-      apiKey: undefined,
       responses: [
         new Response(JSON.stringify({ login_url: 'http://example.com/login' })),
       ],
