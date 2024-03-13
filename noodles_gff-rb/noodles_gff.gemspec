@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
 
   spec.summary  = 'Ruby bindings for noodles_gff'
   spec.homepage = 'https://github.com/ursm/noodles_gff-rb'
-  spec.license  = 'MIT'
+  spec.license  = 'Apache-2.0'
 
   spec.files = Dir[
     'Cargo.lock',
