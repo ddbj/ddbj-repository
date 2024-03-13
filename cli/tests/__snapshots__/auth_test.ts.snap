@@ -24,7 +24,7 @@ stderr:
 ""
 `;
 
-snapshot[`auth login; not logged in 1`] = `
+snapshot[`auth login 1`] = `
 stdout:
 "cli: Press any key to open up the browser to login or q to exit:
 Opening browser to http://example.com/login

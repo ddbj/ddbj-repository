@@ -1,7 +1,10 @@
 import { dirname } from 'std/path/dirname.ts';
 import { join } from 'std/path/join.ts';
 
-export function read() {
+const configHome = Deno.env.get('XDG_CONFIG_HOME') || join(Deno.env.get('HOME')!, '.config');
+const apiKeyFilePath = join(configHome, 'ddbj-repository', 'api-key');
+
+function read() {
   try {
     return Deno.readTextFileSync(apiKeyFilePath);
   } catch (err) {
@@ -11,12 +14,12 @@ export function read() {
   }
 }
 
-export function write(apiKey: string) {
+function write(apiKey: string) {
   Deno.mkdirSync(dirname(apiKeyFilePath), { recursive: true });
   Deno.writeTextFileSync(apiKeyFilePath, apiKey);
 }
 
-export function remove() {
+function remove() {
   try {
     Deno.removeSync(apiKeyFilePath);
   } catch (err) {
@@ -24,5 +27,8 @@ export function remove() {
   }
 }
 
-const configHome = Deno.env.get('XDG_CONFIG_HOME') || join(Deno.env.get('HOME')!, '.config');
-const apiKeyFilePath = join(configHome, 'ddbj-repository', 'api-key');
+export const _internals = {
+  read,
+  write,
+  remove,
+};

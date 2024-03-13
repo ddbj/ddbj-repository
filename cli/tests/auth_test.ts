@@ -17,13 +17,7 @@ await snapshotTest({
         new Response(JSON.stringify({ uid: 'alice', admin: false })),
       ],
     }, async () => {
-      const readStub = stub(_internals, 'read', returnsNext(['API_KEY']));
-
-      try {
-        await mainCommand.parse(['auth', 'whoami']);
-      } finally {
-        readStub.restore();
-      }
+      await mainCommand.parse(['auth', 'whoami']);
     });
   },
 });
@@ -34,14 +28,10 @@ await snapshotTest({
   denoArgs: ['--allow-all'],
 
   async fn() {
-    await runInContext({}, async () => {
-      const readStub = stub(_internals, 'read', returnsNext([undefined]));
-
-      try {
-        await mainCommand.parse(['auth', 'whoami']);
-      } finally {
-        readStub.restore();
-      }
+    await runInContext({
+      apiKey: undefined,
+    }, async () => {
+      await mainCommand.parse(['auth', 'whoami']);
     });
   },
 });
@@ -57,19 +47,13 @@ await snapshotTest({
         new Response(JSON.stringify({ uid: 'alice', admin: false })),
       ],
     }, async () => {
-      const writeStub = stub(_internals, 'write', returnsNext([undefined]));
-
-      try {
-        await mainCommand.parse(['auth', 'login', 'API_KEY']);
-      } finally {
-        writeStub.restore();
-      }
+      await mainCommand.parse(['auth', 'login', 'API_KEY']);
     });
   },
 });
 
 await snapshotTest({
-  name: 'auth login; not logged in',
+  name: 'auth login',
   meta: import.meta,
   denoArgs: ['--allow-all'],
 
@@ -101,13 +85,7 @@ await snapshotTest({
 
   async fn() {
     await runInContext({}, async () => {
-      const removeStub = stub(_internals, 'remove', returnsNext([undefined]));
-
-      try {
-        await mainCommand.parse(['auth', 'logout']);
-      } finally {
-        removeStub.restore();
-      }
+      await mainCommand.parse(['auth', 'logout']);
     });
   },
 });

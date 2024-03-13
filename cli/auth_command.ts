@@ -4,9 +4,9 @@ import { keypress } from 'cliffy/keypress/mod.ts';
 import { open } from 'https://deno.land/x/open@v0.0.6/index.ts';
 
 import { defaultApiUrl, ensureSuccess } from './util.ts';
-import { read, remove, write } from './api_key.ts';
+import { _internals as apiKeyInternals } from './api_key.ts';
 
-export const _internals = { keypress, open, read, remove, write };
+export const _internals = { keypress, open };
 
 type Options = {
   apiUrl?: string;
@@ -15,7 +15,7 @@ type Options = {
 const whoamiCommand = new Command<Options>()
   .description('Show your logged in name.')
   .action(async ({ apiUrl }) => {
-    const apiKey = _internals.read();
+    const apiKey = apiKeyInternals.read();
 
     if (apiKey) {
       const uid = await fetchUid(apiUrl || defaultApiUrl, apiKey);
@@ -37,7 +37,7 @@ const loginCommand = new Command<void, void, Options, [string?]>()
 
       console.log(`Logged in as ${colors.bold(uid)}.`);
 
-      _internals.write(apiKey);
+      apiKeyInternals.write(apiKey);
     } else {
       await openLoginURL(apiUrl);
     }
@@ -46,7 +46,7 @@ const loginCommand = new Command<void, void, Options, [string?]>()
 const logoutCommand = new Command()
   .description('Logout.')
   .action(() => {
-    _internals.remove();
+    apiKeyInternals.remove();
   });
 
 const authCommand: Command<Options> = new Command<Options>()

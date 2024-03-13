@@ -1,17 +1,19 @@
 import { returnsNext, stub } from 'std/testing/mock.ts';
 
-import { _internals } from '../util.ts';
+import { _internals } from '../api_key.ts';
 
 import type { Stub } from 'std/testing/mock.ts';
 
 export async function runInContext(opts: { apiKey?: string; responses?: Response[] } = {}, callback: (fetchStub: Stub) => Promise<void>) {
-  const apiKey = opts.apiKey ?? 'API_KEY';
+  const apiKey = Object.hasOwn(opts, 'apiKey') ? opts.apiKey : 'API_KEY';
   const responses = opts.responses ?? [];
 
   const originalApiUrl = Deno.env.get('DDBJ_REPOSITORY_API_URL');
   Deno.env.set('DDBJ_REPOSITORY_API_URL', 'http://example.com/api');
 
   const readStub = stub(_internals, 'read', returnsNext([apiKey]));
+  const writeStub = stub(_internals, 'write', returnsNext([undefined]));
+  const removeStub = stub(_internals, 'remove', returnsNext([undefined]));
 
   const fetchStub = stub(
     globalThis,
@@ -27,6 +29,8 @@ export async function runInContext(opts: { apiKey?: string; responses?: Response
     }
 
     readStub.restore();
+    writeStub.restore();
+    removeStub.restore();
     fetchStub.restore();
   }
 }
