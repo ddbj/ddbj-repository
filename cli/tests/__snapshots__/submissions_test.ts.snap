@@ -9,8 +9,8 @@ Created: 2024-01-02 12:04:58
 Validation: #1
 
 Objects:
-ID    Files             
-Excel validations-1.json
+ID    Files       
+Excel path/to/file
 "
 stderr:
 ""
@@ -36,8 +36,8 @@ Created: 2024-01-02 12:04:58
 Validation: #1
 
 Objects:
-ID    Files             
-Excel validations-1.json
+ID    Files       
+Excel path/to/file
 "
 stderr:
 ""

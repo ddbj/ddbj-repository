@@ -16,8 +16,8 @@
         "id": "Excel",
         "files": [
           {
-            "path": "README.md",
-            "url": "http://example.com/api/validations/1/files/README.md"
+            "path": "path/to/file",
+            "url": "http://example.com/api/validations/1/files/path/to/file"
           }
         ]
       }
@@ -34,8 +34,8 @@
         "validity": "valid",
         "details": null,
         "file": {
-          "path": "README.md",
-          "url": "http://example.com/api/validations/1/files/README.md"
+          "path": "path/to/file",
+          "url": "http://example.com/api/validations/1/files/path/to/file"
         }
       }
     ],

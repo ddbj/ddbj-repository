@@ -13,9 +13,9 @@ Validity: valid
 Submission: X-1
 
 Results:
-Object File      Validity
-_base  -         valid   
-Excel  README.md valid   
+Object File         Validity
+_base  -            valid   
+Excel  path/to/file valid   
 "
 stderr:
 ""
@@ -45,9 +45,9 @@ Validity: valid
 Submission: X-1
 
 Results:
-Object File      Validity
-_base  -         valid   
-Excel  README.md valid   
+Object File         Validity
+_base  -            valid   
+Excel  path/to/file valid   
 "
 stderr:
 ""
@@ -66,9 +66,9 @@ Validity: -
 Submission: -
 
 Results:
-Object File      Validity
-_base  -         -       
-Excel  README.md -       
+Object File         Validity
+_base  -            -       
+Excel  path/to/file -       
 "
 stderr:
 ""

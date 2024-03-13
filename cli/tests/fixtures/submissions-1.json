@@ -19,8 +19,8 @@
           "id": "Excel",
           "files": [
             {
-              "path": "validations-1.json",
-              "url": "http://example.com/api/validations/1/files/validations-1.json"
+              "path": "path/to/file",
+              "url": "http://example.com/api/validations/1/files/path/to/file"
             }
           ]
         }
@@ -37,8 +37,8 @@
           "validity": "valid",
           "details": null,
           "file": {
-            "path": "validations-1.json",
-            "url": "http://example.com/api/validations/1/files/validations-1.json"
+            "path": "path/to/file",
+            "url": "http://example.com/api/validations/1/files/path/to/file"
           }
         }
       ],
