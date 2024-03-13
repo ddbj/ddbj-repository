@@ -1,9 +1,0 @@
-AllCops:
-  DisabledByDefault: true
-  SuggestExtensions: false
-
-Style/FrozenStringLiteralComment:
-  EnforcedStyle: never
-
-Style/StringLiterals:
-  EnforcedStyle: single_quotes
