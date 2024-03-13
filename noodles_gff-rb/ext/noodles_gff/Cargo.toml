@@ -1,0 +1,14 @@
+[package]
+name = "noodles_gff"
+version = "0.1.0"
+edition = "2021"
+authors = ["Keita Urashima <ursm@ursm.jp>"]
+license = "Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+magnus = "0.6"
+noodles-gff = "0.27"

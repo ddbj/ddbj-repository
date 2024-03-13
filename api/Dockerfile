@@ -35,8 +35,25 @@ ENV RAILS_ENV="production" \
     TZ=Japan
 
 
+FROM base as noodles_gff
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN apt-get update -qq && apt-get install --no-install-recommends -y build-essential clang curl
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+WORKDIR /app/noodles_gff-rb
+
+COPY noodles_gff-rb/ .
+
+RUN bundle install
+RUN bundle exec rake compile
+
+
 # Throw-away build stage to reduce size of final image
 FROM base as build
+
+COPY --from=noodles_gff /app/noodles_gff-rb /app/noodles_gff-rb
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
@@ -66,6 +83,7 @@ RUN apt-get update -qq && \
 # Copy built artifacts: gems, application
 COPY --from=build /usr/local/bundle /usr/local/bundle
 COPY --from=build /app/api /app/api
+COPY --from=noodles_gff /app/noodles_gff-rb /app/noodles_gff-rb
 COPY --from=web /app/web/dist /app/api/public/web
 
 COPY schema /app/schema
