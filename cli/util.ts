@@ -3,12 +3,12 @@ import { format } from 'std/datetime/mod.ts';
 import { colorize } from 'json_colorize/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 
-import { read } from './api_key.ts';
+import { _internals } from './api_key.ts';
 
 export const defaultApiUrl = 'https://repository-dev.ddbj.nig.ac.jp/api';
 
 export function ensureLogin() {
-  const apiKey = read();
+  const apiKey = _internals.read();
 
   if (!apiKey) {
     console.error(`First you need to log in; run ${colors.bold('`ddbj-repository auth login`')}.`);

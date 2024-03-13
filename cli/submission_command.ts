@@ -1,6 +1,5 @@
 import { Command } from 'cliffy/command/mod.ts';
 import { Table } from 'cliffy/table/mod.ts';
-import { colorize } from 'json_colorize/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 
 import paginatedFetch from './paginated_fetch.ts';
@@ -74,9 +73,24 @@ async function createSubmission(apiUrl: string, apiKey: string, validationId: nu
 
   await ensureSuccess(res);
 
-  const payload = await res.json();
+  const { id, created_at, validation } = await res.json() as Submission;
 
-  colorize(JSON.stringify(payload, null, 2));
+  console.log(`${colors.bold.yellow('ID:')} ${id}`);
+  console.log(`${colors.bold.yellow('URL:')} ${new URL(`/web/submissions/${id}`, apiUrl).href}`);
+  console.log(`${colors.bold.yellow('DB:')} ${validation.db}`);
+  console.log(`${colors.bold.yellow('Created:')} ${formatDatetime(created_at)}`);
+  console.log(`${colors.bold.yellow('Validation:')} #${validation.id}`);
+  console.log();
+  console.log(colors.bold.yellow('Objects:'));
+
+  Table.from([
+    ['ID', 'Files'].map(colors.bold.yellow),
+
+    ...validation.objects.map(({ id, files }) => [
+      id,
+      files.map(({ path }) => path).join('\n'),
+    ]),
+  ]).render();
 }
 
 async function listSubmissions(apiUrl: string, apiKey: string) {
@@ -130,11 +144,19 @@ async function showSubmission(apiUrl: string, apiKey: string, id: string) {
 }
 
 async function getFile(apiUrl: string, apiKey: string, id: string, path: string) {
-  const res = await fetch(`${apiUrl}/submissions/${id}/files/${path}`, {
+  const res1 = await fetch(`${apiUrl}/submissions/${id}`, {
     headers: { 'Authorization': `Bearer ${apiKey}` },
   });
 
-  await ensureSuccess(res);
+  await ensureSuccess(res1);
 
-  console.log(await res.text());
+  const { validation } = await res1.json() as Submission;
+
+  const res2 = await fetch(`${apiUrl}/validations/${validation.id}/files/${path}`, {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  });
+
+  await ensureSuccess(res2);
+
+  console.log(await res2.text());
 }

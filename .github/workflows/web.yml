@@ -7,7 +7,7 @@ concurrency:
 
 jobs:
   lint:
-    name: "Lint"
+    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -28,7 +28,7 @@ jobs:
         run: pnpm lint
 
   test:
-    name: "Test"
+    name: Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
