@@ -25,3 +25,9 @@ services:
       - type: bind
         source: ~/ddbj-repository/data/$STAGE/redis
         target: /data
+
+  minio:
+    volumes:
+      - type: bind
+        source: ~/ddbj-repository/data/$STAGE/minio
+        target: /data
