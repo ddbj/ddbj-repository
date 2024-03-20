@@ -24,6 +24,18 @@ updates:
     schedule:
       interval: daily
 
+  - package-ecosystem: bundler
+    directory: /noodles_gff-rb
+
+    schedule:
+      interval: daily
+
+  - package-ecosystem: cargo
+    directory: /noodles_gff-rb
+
+    schedule:
+      interval: daily
+
   - package-ecosystem: npm
     directory: /schema
 
