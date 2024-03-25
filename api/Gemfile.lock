@@ -298,7 +298,7 @@ GEM
       actionpack
       activesupport
       railties
-    rdoc (6.6.2)
+    rdoc (6.6.3.1)
       psych (>= 4.0.0)
     redis-client (0.21.0)
       connection_pool
