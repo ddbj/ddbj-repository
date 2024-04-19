@@ -1,6 +1,6 @@
 {
   "devDependencies": {
     "openapi-typescript": "^6.7.5",
-    "quicktype": "^23.0.107"
+    "quicktype": "^23.0.147"
   }
 }
