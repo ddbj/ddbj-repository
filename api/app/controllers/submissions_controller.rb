@@ -30,11 +30,7 @@ class SubmissionsController < ApplicationController
 
   def user_submissions
     current_user.submissions.includes(
-      :validation => {
-        :objs => {
-          :file_attachment => :blob
-        }
-      }
-    )
+      :validation => :objs
+    ).merge(Obj.with_attached_file)
   end
 end
