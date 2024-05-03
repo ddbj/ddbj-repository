@@ -18,14 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ursm/action-setup-pnpm@subdirectory
+      - uses: pnpm/action-setup@v3
         with:
-          node-version-file: web/package.json
-          cache-dependency-path: web/pnpm-lock.yaml
-          working-directory: web
+          version: 9
 
-      - name: Lint
-        run: pnpm lint
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: web/.node-version
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
 
   test:
     name: Test
@@ -39,12 +43,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: ursm/action-setup-pnpm@subdirectory
+      - uses: pnpm/action-setup@v3
         with:
-          node-version-file: web/package.json
-          cache-dependency-path: web/pnpm-lock.yaml
-          working-directory: web
+          version: 9
 
-      - name: Run Tests
-        run: pnpm test
-        working-directory: web
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: web/.node-version
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
