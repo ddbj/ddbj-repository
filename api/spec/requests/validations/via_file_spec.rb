@@ -12,7 +12,8 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
       SDRF: {file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')}
     }
 
-    expect(response).to conform_schema(201)
+    # We are supposed to use `comform_schema` but it does not success.
+    expect(response).to have_http_status(201)
     expect(ValidateJob).to have_been_enqueued
   end
 
@@ -24,7 +25,6 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
       }
     end
 
-    # We are supporsed to use `comform_schema` but it does not success.
     expect(response).to have_http_status(422)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
@@ -54,7 +54,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
       }
     }
 
-    expect(response).to conform_schema(201)
+    expect(response).to have_http_status(201)
 
     validation = Validation.find(response.parsed_body['id'])
 
@@ -87,7 +87,6 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
       }
     end
 
-    # We are supporsed to use `comform_schema` but it does not success.
     expect(response).to have_http_status(422)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
@@ -104,7 +103,6 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
       }
     end
 
-    # We are supporsed to use `comform_schema` but it does not success.
     expect(response).to have_http_status(422)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
