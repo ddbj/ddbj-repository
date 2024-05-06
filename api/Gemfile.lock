@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/ddbj/metabobank_tools.git
-  revision: 62b7b375d0ea0b7d2d02dd6ad64b8b82ca145fde
+  revision: 2a79cecc9a34cc6f6e3e9df4d2b6a8095ef24afb
   specs:
     metabobank_tools (0.1.0)
       csv
@@ -135,7 +135,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    csv (3.2.8)
+    csv (3.3.0)
     date (3.3.4)
     debug (1.9.2)
       irb (~> 1.10)
