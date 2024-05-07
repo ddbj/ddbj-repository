@@ -51,6 +51,15 @@ export default class ErrorMessageComponent extends Component<Signature> {
       this.details = JSON.stringify(error, null, 2);
     }
   }
+
+  <template>
+    <p>{{this.message}}</p>
+
+    <details>
+      <summary>Details</summary>
+      <pre class='text-bg-dark text-pre-wrap p-3'><code>{{this.details}}</code></pre>
+    </details>
+  </template>
 }
 
 declare module '@glint/environment-ember-loose/registry' {

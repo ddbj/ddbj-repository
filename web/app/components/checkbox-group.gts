@@ -1,7 +1,10 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
+import { hash } from '@ember/helper';
+import { on } from '@ember/modifier';
 
-import type CheckboxComponent from 'ddbj-repository/components/checkbox-group/checkbox';
+import CheckboxComponent from 'ddbj-repository/components/checkbox-group/checkbox';
+
 import type { WithBoundArgs } from '@glint/template';
 
 interface Signature {
@@ -40,6 +43,15 @@ export default class CheckboxGroupComponent extends Component<Signature> {
 
     onChange([]);
   }
+
+  <template>
+    {{yield (hash checkbox=(component CheckboxComponent onChange=this.onChange isSelected=this.isSelected))}}
+
+    <div class='btn-group btn-group-sm'>
+      <button type='button' class='btn btn-link' {{on 'click' this.checkAll}}>Check all</button>
+      <button type='button' class='btn btn-link' {{on 'click' this.clear}}>Clear</button>
+    </div>
+  </template>
 }
 
 declare module '@glint/environment-ember-loose/registry' {
