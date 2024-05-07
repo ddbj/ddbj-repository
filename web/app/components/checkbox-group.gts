@@ -3,7 +3,7 @@ import { action } from '@ember/object';
 import { hash } from '@ember/helper';
 import { on } from '@ember/modifier';
 
-import CheckboxComponent from 'ddbj-repository/components/checkbox-group/checkbox';
+import Checkbox from 'ddbj-repository/components/checkbox-group/checkbox';
 
 import type { WithBoundArgs } from '@glint/template';
 
@@ -15,7 +15,7 @@ interface Signature {
   };
 
   Blocks: {
-    default: [{ checkbox: WithBoundArgs<typeof CheckboxComponent, 'onChange' | 'isSelected'> }];
+    default: [{ checkbox: WithBoundArgs<typeof Checkbox, 'onChange' | 'isSelected'> }];
   };
 }
 
@@ -45,7 +45,7 @@ export default class CheckboxGroupComponent extends Component<Signature> {
   }
 
   <template>
-    {{yield (hash checkbox=(component CheckboxComponent onChange=this.onChange isSelected=this.isSelected))}}
+    {{yield (hash checkbox=(component Checkbox onChange=this.onChange isSelected=this.isSelected))}}
 
     <div class='btn-group btn-group-sm'>
       <button type='button' class='btn btn-link' {{on 'click' this.checkAll}}>Check all</button>
