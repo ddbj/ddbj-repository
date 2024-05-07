@@ -1,8 +1,11 @@
 import Component from '@glimmer/component';
 import { modifier } from 'ember-modifier';
+import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { task } from 'ember-concurrency';
 import { tracked } from '@glimmer/tracking';
+
+import { eq, not, or } from 'ember-truth-helpers';
 
 import ENV from 'ddbj-repository/config/environment';
 import { safeFetchWithModal } from 'ddbj-repository/utils/safe-fetch';
@@ -101,6 +104,34 @@ export default class SubmitButtonComponent extends Component<Signature> {
       return undefined;
     }
   }
+
+  <template>
+    {{#if (or (eq @validation.progress 'waiting') (eq @validation.progress 'running'))}}
+      <button
+        type='button'
+        class='btn btn-danger'
+        disabled={{this.cancel.isRunning}}
+        {{on 'click' this.cancel.perform}}
+      >
+        Cancel
+      </button>
+    {{else}}
+      <div class='d-flex align-items-center gap-3' {{this.tickCurrentTime}}>
+        <button
+          type='button'
+          class='btn btn-primary'
+          disabled={{or (not this.canSubmit) this.submit.isRunning}}
+          {{on 'click' this.submit.perform}}
+        >
+          Submit
+        </button>
+
+        {{#if this.cannotSubmitReason}}
+          <div class='text-danger'>{{this.cannotSubmitReason}}</div>
+        {{/if}}
+      </div>
+    {{/if}}
+  </template>
 }
 
 declare module '@glint/environment-ember-loose/registry' {

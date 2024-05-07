@@ -1,9 +1,11 @@
 import Component from '@glimmer/component';
+import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 
 import { task } from 'ember-concurrency';
 
 import ENV from 'ddbj-repository/config/environment';
+import ObjectField from 'ddbj-repository/components/object-field';
 import { safeFetchWithModal } from 'ddbj-repository/utils/safe-fetch';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
@@ -44,6 +46,23 @@ export default class NewValidationFormComponent extends Component<Signature> {
     this.router.transitionTo('validations.show', id);
     this.toast.show('Validation has started.', 'success');
   });
+
+  <template>
+    <form {{on 'submit' this.create.perform}}>
+      {{#each @db.objs as |obj|}}
+        <ObjectField @obj={{obj}} />
+      {{/each}}
+
+      <button type='submit' class='btn btn-primary' disabled={{this.create.isRunning}}>
+        {{#if this.create.isRunning}}
+          <span class='spinner-border spinner-border-sm' aria-hidden='true'></span>
+          <span role='status'>Uploading...</span>
+        {{else}}
+          Validate
+        {{/if}}
+      </button>
+    </form>
+  </template>
 }
 
 declare module '@glint/environment-ember-loose/registry' {

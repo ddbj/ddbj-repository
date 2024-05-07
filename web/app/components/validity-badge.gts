@@ -27,6 +27,14 @@ export default class ValidityBadgeComponent extends Component<Signature> {
         throw new Error(validity satisfies never);
     }
   }
+
+  <template>
+    {{#if @validity}}
+      <span class='badge {{this.colorClass}} text-capitalize'>{{@validity}}</span>
+    {{else}}
+      -
+    {{/if}}
+  </template>
 }
 
 declare module '@glint/environment-ember-loose/registry' {

@@ -16,6 +16,12 @@ export default class DetailsCountComponent extends Component<Signature> {
 
     return results.map(({ details }) => details).filter(Boolean).length;
   }
+
+  <template>
+    {{#if this.count}}
+      <span class='badge bg-secondary'>{{this.count}}</span>
+    {{/if}}
+  </template>
 }
 
 declare module '@glint/environment-ember-loose/registry' {
