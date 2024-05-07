@@ -310,113 +310,165 @@ export interface components {
     };
     BioProjectViaFile: {
       /** @enum {string} */
-      db?: "BioProject";
-      "BioProject[file]"?: components["schemas"]["File"];
-      "BioProject[path]"?: components["schemas"]["Path"];
-      "BioProject[destination]"?: components["schemas"]["Destination"];
+      db: "BioProject";
+      BioProject: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
     };
     BioSampleViaFile: {
       /** @enum {string} */
-      db?: "BioSample";
-      "BioSample[file]"?: components["schemas"]["File"];
-      "BioSample[path]"?: components["schemas"]["Path"];
-      "BioSample[destination]"?: components["schemas"]["Destination"];
+      db: "BioSample";
+      BioSample: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
     };
     TradViaFile: {
       /** @enum {string} */
-      db?: "Trad";
-      "Sequence[][file]"?: components["schemas"]["File"][];
-      "Sequence[][path]"?: components["schemas"]["Path"][];
-      "Sequence[][destination]"?: components["schemas"]["Destination"][];
-      "Annotation[][file]"?: components["schemas"]["File"][];
-      "Annotation[][path]"?: components["schemas"]["Path"][];
-      "Annotation[][destination]"?: components["schemas"]["Destination"][];
+      db: "Trad";
+      Sequence: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      Annotation: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
     };
     DRAViaFile: {
       /** @enum {string} */
-      db?: "DRA";
-      "Submission[file]"?: components["schemas"]["File"];
-      "Submission[path]"?: components["schemas"]["Path"];
-      "Submission[destination]"?: components["schemas"]["Destination"];
-      "Experiment[file]"?: components["schemas"]["File"];
-      "Experiment[path]"?: components["schemas"]["Path"];
-      "Experiment[destination]"?: components["schemas"]["Destination"];
-      "Run[file]"?: components["schemas"]["File"];
-      "Run[path]"?: components["schemas"]["Path"];
-      "Run[destination]"?: components["schemas"]["Destination"];
-      "RunFile[][file]"?: components["schemas"]["File"][];
-      "RunFile[][path]"?: components["schemas"]["Path"][];
-      "RunFile[][destination]"?: components["schemas"]["Destination"][];
-      "Analysis[file]"?: components["schemas"]["File"];
-      "Analysis[path]"?: components["schemas"]["Path"];
-      "Analysis[destination]"?: components["schemas"]["Destination"];
-      "AnalysisFile[][file]"?: components["schemas"]["File"][];
-      "AnalysisFile[][path]"?: components["schemas"]["Path"][];
-      "AnalysisFile[][destination]"?: components["schemas"]["Destination"][];
+      db: "DRA";
+      Submission: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      Experiment: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      Run: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      RunFile: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      Analysis?: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      AnalysisFile?: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
     };
     GEAViaFile: {
       /** @enum {string} */
-      db?: "GEA";
-      "IDF[file]"?: components["schemas"]["File"];
-      "IDF[path]"?: components["schemas"]["Path"];
-      "IDF[destination]"?: components["schemas"]["Destination"];
-      "SDRF[file]"?: components["schemas"]["File"];
-      "SDRF[path]"?: components["schemas"]["Path"];
-      "SDRF[destination]"?: components["schemas"]["Destination"];
-      "ADF[][file]"?: components["schemas"]["File"][];
-      "ADF[][path]"?: components["schemas"]["Path"][];
-      "ADF[][destination]"?: components["schemas"]["Destination"][];
-      "RawDataFile[][file]"?: components["schemas"]["File"][];
-      "RawDataFile[][path]"?: components["schemas"]["Path"][];
-      "RawDataFile[][destination]"?: components["schemas"]["Destination"][];
-      "ProcessedDataFile[][file]"?: components["schemas"]["File"][];
-      "ProcessedDataFile[][path]"?: components["schemas"]["Path"][];
-      "ProcessedDataFile[][destination]"?: components["schemas"]["Destination"][];
+      db: "GEA";
+      IDF: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      SDRF: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      ADF?: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      RawDataFile?: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      ProcessedDataFile?: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
     };
     MetaboBankViaFile: {
       /** @enum {string} */
-      db?: "MetaboBank";
-      "IDF[file]"?: components["schemas"]["File"];
-      "IDF[path]"?: components["schemas"]["Path"];
-      "IDF[destination]"?: components["schemas"]["Destination"];
-      "SDRF[file]"?: components["schemas"]["File"];
-      "SDRF[path]"?: components["schemas"]["Path"];
-      "SDRF[destination]"?: components["schemas"]["Destination"];
-      "MAF[][file]"?: components["schemas"]["File"][];
-      "MAF[][path]"?: components["schemas"]["Path"][];
-      "MAF[][destination]"?: components["schemas"]["Destination"][];
-      "RawDataFile[][file]"?: components["schemas"]["File"][];
-      "RawDataFile[][path]"?: components["schemas"]["Path"][];
-      "RawDataFile[][destination]"?: components["schemas"]["Destination"][];
-      "ProcessedDataFile[][file]"?: components["schemas"]["File"][];
-      "ProcessedDataFile[][path]"?: components["schemas"]["Path"][];
-      "ProcessedDataFile[][destination]"?: components["schemas"]["Destination"][];
-      "BioSample[file]"?: components["schemas"]["File"];
-      "BioSample[path]"?: components["schemas"]["Path"];
-      "BioSample[destination]"?: components["schemas"]["Destination"];
+      db: "MetaboBank";
+      IDF: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      SDRF: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      MAF?: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      RawDataFile?: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      ProcessedDataFile?: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      BioSample?: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
     };
     JVarViaFile: {
       /** @enum {string} */
-      db?: "JVar";
-      "Excel[file]"?: components["schemas"]["File"];
-      "Excel[path]"?: components["schemas"]["Path"];
-      "Excel[destination]"?: components["schemas"]["Destination"];
-      "VariantCallFile[][file]"?: components["schemas"]["File"][];
-      "VariantCallFile[][path]"?: components["schemas"]["Path"][];
-      "VariantCallFile[][destination]"?: components["schemas"]["Destination"][];
+      db: "JVar";
+      Excel: {
+        file?: components["schemas"]["File"];
+        path?: components["schemas"]["Path"];
+        destination?: components["schemas"]["Destination"];
+      };
+      VariantCallFile?: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
     };
     Trad2ViaFile: {
       /** @enum {string} */
-      db?: "Trad2";
-      "Sequence[][file]"?: components["schemas"]["File"][];
-      "Sequence[][path]"?: components["schemas"]["Path"][];
-      "Sequence[][destination]"?: components["schemas"]["Destination"][];
-      "Annotation[][file]"?: components["schemas"]["File"][];
-      "Annotation[][path]"?: components["schemas"]["Path"][];
-      "Annotation[][destination]"?: components["schemas"]["Destination"][];
-      "Metadata[][file]"?: components["schemas"]["File"][];
-      "Metadata[][path]"?: components["schemas"]["Path"][];
-      "Metadata[][destination]"?: components["schemas"]["Destination"][];
+      db: "Trad2";
+      Sequence: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      Annotation: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
+      Metadata: {
+          file?: components["schemas"]["File"];
+          path?: components["schemas"]["Path"];
+          destination?: components["schemas"]["Destination"];
+        }[];
     };
   };
   responses: {

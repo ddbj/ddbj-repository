@@ -733,17 +733,10 @@ components:
       type: object
       additionalProperties: false
 
-      allOf:
-        <%- db[:objects].each do |obj| -%>
-        <%- if obj[:required] -%>
-        - oneOf:
-          - required:
-            - db
-            - <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[file]
-          - required:
-            - db
-            - <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[path]
-        <%- end -%>
+      required:
+        - db
+        <%- db[:objects].select { _1[:required] }.each do |obj| -%>
+        - <%= obj[:id] %>
         <%- end -%>
 
       properties:
@@ -752,37 +745,45 @@ components:
           enum: [<%= db[:id] %>]
 
         <%- db[:objects].each do |obj| -%>
-        <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[file]:
+        <%= obj[:id] %>:
           <%- if obj[:multiple] -%>
           type: array
           minItems: <%= obj[:required] ? 1 : 0 %>
 
           items:
-            $ref: '#/components/schemas/File'
+            type: object
+            additionalProperties: false
+
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
           <%- else -%>
-          $ref: '#/components/schemas/File'
-          <%- end -%>
+          type: object
+          additionalProperties: false
 
-        <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[path]:
-          <%- if obj[:multiple] -%>
-          type: array
-          minItems: <%= obj[:required] ? 1 : 0 %>
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-          items:
-            $ref: '#/components/schemas/Path'
-          <%- else -%>
-          $ref: '#/components/schemas/Path'
-          <%- end -%>
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
 
-        <%= obj[:id] %><% if obj[:multiple] %>[]<% end %>[destination]:
-          <%- if obj[:multiple] -%>
-          type: array
-          minItems: <%= obj[:required] ? 1 : 0 %>
+            path:
+              $ref: '#/components/schemas/Path'
 
-          items:
-            $ref: '#/components/schemas/Destination'
-          <%- else -%>
-          $ref: '#/components/schemas/Destination'
+            destination:
+              $ref: '#/components/schemas/Destination'
           <%- end -%>
 
         <%- end -%>

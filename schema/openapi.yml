@@ -774,603 +774,637 @@ components:
       type: object
       additionalProperties: false
 
-      allOf:
-        - oneOf:
-          - required:
-            - db
-            - BioProject[file]
-          - required:
-            - db
-            - BioProject[path]
+      required:
+        - db
+        - BioProject
 
       properties:
         db:
           type: string
           enum: [BioProject]
 
-        BioProject[file]:
-          $ref: '#/components/schemas/File'
+        BioProject:
+          type: object
+          additionalProperties: false
 
-        BioProject[path]:
-          $ref: '#/components/schemas/Path'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        BioProject[destination]:
-          $ref: '#/components/schemas/Destination'
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
 
     BioSampleViaFile:
       type: object
       additionalProperties: false
 
-      allOf:
-        - oneOf:
-          - required:
-            - db
-            - BioSample[file]
-          - required:
-            - db
-            - BioSample[path]
+      required:
+        - db
+        - BioSample
 
       properties:
         db:
           type: string
           enum: [BioSample]
 
-        BioSample[file]:
-          $ref: '#/components/schemas/File'
+        BioSample:
+          type: object
+          additionalProperties: false
 
-        BioSample[path]:
-          $ref: '#/components/schemas/Path'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        BioSample[destination]:
-          $ref: '#/components/schemas/Destination'
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
 
     TradViaFile:
       type: object
       additionalProperties: false
 
-      allOf:
-        - oneOf:
-          - required:
-            - db
-            - Sequence[][file]
-          - required:
-            - db
-            - Sequence[][path]
-        - oneOf:
-          - required:
-            - db
-            - Annotation[][file]
-          - required:
-            - db
-            - Annotation[][path]
+      required:
+        - db
+        - Sequence
+        - Annotation
 
       properties:
         db:
           type: string
           enum: [Trad]
 
-        Sequence[][file]:
+        Sequence:
           type: array
           minItems: 1
 
           items:
-            $ref: '#/components/schemas/File'
+            type: object
+            additionalProperties: false
 
-        Sequence[][path]:
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+
+        Annotation:
           type: array
           minItems: 1
 
           items:
-            $ref: '#/components/schemas/Path'
+            type: object
+            additionalProperties: false
 
-        Sequence[][destination]:
-          type: array
-          minItems: 1
+            oneOf:
+              - required: [file]
+              - required: [path]
 
-          items:
-            $ref: '#/components/schemas/Destination'
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
 
-        Annotation[][file]:
-          type: array
-          minItems: 1
+              path:
+                $ref: '#/components/schemas/Path'
 
-          items:
-            $ref: '#/components/schemas/File'
-
-        Annotation[][path]:
-          type: array
-          minItems: 1
-
-          items:
-            $ref: '#/components/schemas/Path'
-
-        Annotation[][destination]:
-          type: array
-          minItems: 1
-
-          items:
-            $ref: '#/components/schemas/Destination'
+              destination:
+                $ref: '#/components/schemas/Destination'
 
     DRAViaFile:
       type: object
       additionalProperties: false
 
-      allOf:
-        - oneOf:
-          - required:
-            - db
-            - Submission[file]
-          - required:
-            - db
-            - Submission[path]
-        - oneOf:
-          - required:
-            - db
-            - Experiment[file]
-          - required:
-            - db
-            - Experiment[path]
-        - oneOf:
-          - required:
-            - db
-            - Run[file]
-          - required:
-            - db
-            - Run[path]
-        - oneOf:
-          - required:
-            - db
-            - RunFile[][file]
-          - required:
-            - db
-            - RunFile[][path]
+      required:
+        - db
+        - Submission
+        - Experiment
+        - Run
+        - RunFile
 
       properties:
         db:
           type: string
           enum: [DRA]
 
-        Submission[file]:
-          $ref: '#/components/schemas/File'
+        Submission:
+          type: object
+          additionalProperties: false
 
-        Submission[path]:
-          $ref: '#/components/schemas/Path'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        Submission[destination]:
-          $ref: '#/components/schemas/Destination'
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
 
-        Experiment[file]:
-          $ref: '#/components/schemas/File'
+            path:
+              $ref: '#/components/schemas/Path'
 
-        Experiment[path]:
-          $ref: '#/components/schemas/Path'
+            destination:
+              $ref: '#/components/schemas/Destination'
 
-        Experiment[destination]:
-          $ref: '#/components/schemas/Destination'
+        Experiment:
+          type: object
+          additionalProperties: false
 
-        Run[file]:
-          $ref: '#/components/schemas/File'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        Run[path]:
-          $ref: '#/components/schemas/Path'
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
 
-        Run[destination]:
-          $ref: '#/components/schemas/Destination'
+            path:
+              $ref: '#/components/schemas/Path'
 
-        RunFile[][file]:
+            destination:
+              $ref: '#/components/schemas/Destination'
+
+        Run:
+          type: object
+          additionalProperties: false
+
+          oneOf:
+            - required: [file]
+            - required: [path]
+
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
+
+        RunFile:
           type: array
           minItems: 1
 
           items:
-            $ref: '#/components/schemas/File'
+            type: object
+            additionalProperties: false
 
-        RunFile[][path]:
-          type: array
-          minItems: 1
+            oneOf:
+              - required: [file]
+              - required: [path]
 
-          items:
-            $ref: '#/components/schemas/Path'
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
 
-        RunFile[][destination]:
-          type: array
-          minItems: 1
+              path:
+                $ref: '#/components/schemas/Path'
 
-          items:
-            $ref: '#/components/schemas/Destination'
+              destination:
+                $ref: '#/components/schemas/Destination'
 
-        Analysis[file]:
-          $ref: '#/components/schemas/File'
+        Analysis:
+          type: object
+          additionalProperties: false
 
-        Analysis[path]:
-          $ref: '#/components/schemas/Path'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        Analysis[destination]:
-          $ref: '#/components/schemas/Destination'
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
 
-        AnalysisFile[][file]:
-          type: array
-          minItems: 0
+            path:
+              $ref: '#/components/schemas/Path'
 
-          items:
-            $ref: '#/components/schemas/File'
+            destination:
+              $ref: '#/components/schemas/Destination'
 
-        AnalysisFile[][path]:
-          type: array
-          minItems: 0
-
-          items:
-            $ref: '#/components/schemas/Path'
-
-        AnalysisFile[][destination]:
+        AnalysisFile:
           type: array
           minItems: 0
 
           items:
-            $ref: '#/components/schemas/Destination'
+            type: object
+            additionalProperties: false
+
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
 
     GEAViaFile:
       type: object
       additionalProperties: false
 
-      allOf:
-        - oneOf:
-          - required:
-            - db
-            - IDF[file]
-          - required:
-            - db
-            - IDF[path]
-        - oneOf:
-          - required:
-            - db
-            - SDRF[file]
-          - required:
-            - db
-            - SDRF[path]
+      required:
+        - db
+        - IDF
+        - SDRF
 
       properties:
         db:
           type: string
           enum: [GEA]
 
-        IDF[file]:
-          $ref: '#/components/schemas/File'
+        IDF:
+          type: object
+          additionalProperties: false
 
-        IDF[path]:
-          $ref: '#/components/schemas/Path'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        IDF[destination]:
-          $ref: '#/components/schemas/Destination'
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
 
-        SDRF[file]:
-          $ref: '#/components/schemas/File'
+            path:
+              $ref: '#/components/schemas/Path'
 
-        SDRF[path]:
-          $ref: '#/components/schemas/Path'
+            destination:
+              $ref: '#/components/schemas/Destination'
 
-        SDRF[destination]:
-          $ref: '#/components/schemas/Destination'
+        SDRF:
+          type: object
+          additionalProperties: false
 
-        ADF[][file]:
+          oneOf:
+            - required: [file]
+            - required: [path]
+
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
+
+        ADF:
           type: array
           minItems: 0
 
           items:
-            $ref: '#/components/schemas/File'
+            type: object
+            additionalProperties: false
 
-        ADF[][path]:
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+
+        RawDataFile:
           type: array
           minItems: 0
 
           items:
-            $ref: '#/components/schemas/Path'
+            type: object
+            additionalProperties: false
 
-        ADF[][destination]:
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+
+        ProcessedDataFile:
           type: array
           minItems: 0
 
           items:
-            $ref: '#/components/schemas/Destination'
+            type: object
+            additionalProperties: false
 
-        RawDataFile[][file]:
-          type: array
-          minItems: 0
+            oneOf:
+              - required: [file]
+              - required: [path]
 
-          items:
-            $ref: '#/components/schemas/File'
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
 
-        RawDataFile[][path]:
-          type: array
-          minItems: 0
+              path:
+                $ref: '#/components/schemas/Path'
 
-          items:
-            $ref: '#/components/schemas/Path'
-
-        RawDataFile[][destination]:
-          type: array
-          minItems: 0
-
-          items:
-            $ref: '#/components/schemas/Destination'
-
-        ProcessedDataFile[][file]:
-          type: array
-          minItems: 0
-
-          items:
-            $ref: '#/components/schemas/File'
-
-        ProcessedDataFile[][path]:
-          type: array
-          minItems: 0
-
-          items:
-            $ref: '#/components/schemas/Path'
-
-        ProcessedDataFile[][destination]:
-          type: array
-          minItems: 0
-
-          items:
-            $ref: '#/components/schemas/Destination'
+              destination:
+                $ref: '#/components/schemas/Destination'
 
     MetaboBankViaFile:
       type: object
       additionalProperties: false
 
-      allOf:
-        - oneOf:
-          - required:
-            - db
-            - IDF[file]
-          - required:
-            - db
-            - IDF[path]
-        - oneOf:
-          - required:
-            - db
-            - SDRF[file]
-          - required:
-            - db
-            - SDRF[path]
+      required:
+        - db
+        - IDF
+        - SDRF
 
       properties:
         db:
           type: string
           enum: [MetaboBank]
 
-        IDF[file]:
-          $ref: '#/components/schemas/File'
+        IDF:
+          type: object
+          additionalProperties: false
 
-        IDF[path]:
-          $ref: '#/components/schemas/Path'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        IDF[destination]:
-          $ref: '#/components/schemas/Destination'
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
 
-        SDRF[file]:
-          $ref: '#/components/schemas/File'
+            path:
+              $ref: '#/components/schemas/Path'
 
-        SDRF[path]:
-          $ref: '#/components/schemas/Path'
+            destination:
+              $ref: '#/components/schemas/Destination'
 
-        SDRF[destination]:
-          $ref: '#/components/schemas/Destination'
+        SDRF:
+          type: object
+          additionalProperties: false
 
-        MAF[][file]:
+          oneOf:
+            - required: [file]
+            - required: [path]
+
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
+
+        MAF:
           type: array
           minItems: 0
 
           items:
-            $ref: '#/components/schemas/File'
+            type: object
+            additionalProperties: false
 
-        MAF[][path]:
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+
+        RawDataFile:
           type: array
           minItems: 0
 
           items:
-            $ref: '#/components/schemas/Path'
+            type: object
+            additionalProperties: false
 
-        MAF[][destination]:
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+
+        ProcessedDataFile:
           type: array
           minItems: 0
 
           items:
-            $ref: '#/components/schemas/Destination'
+            type: object
+            additionalProperties: false
 
-        RawDataFile[][file]:
-          type: array
-          minItems: 0
+            oneOf:
+              - required: [file]
+              - required: [path]
 
-          items:
-            $ref: '#/components/schemas/File'
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
 
-        RawDataFile[][path]:
-          type: array
-          minItems: 0
+              path:
+                $ref: '#/components/schemas/Path'
 
-          items:
-            $ref: '#/components/schemas/Path'
+              destination:
+                $ref: '#/components/schemas/Destination'
 
-        RawDataFile[][destination]:
-          type: array
-          minItems: 0
+        BioSample:
+          type: object
+          additionalProperties: false
 
-          items:
-            $ref: '#/components/schemas/Destination'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        ProcessedDataFile[][file]:
-          type: array
-          minItems: 0
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
 
-          items:
-            $ref: '#/components/schemas/File'
+            path:
+              $ref: '#/components/schemas/Path'
 
-        ProcessedDataFile[][path]:
-          type: array
-          minItems: 0
-
-          items:
-            $ref: '#/components/schemas/Path'
-
-        ProcessedDataFile[][destination]:
-          type: array
-          minItems: 0
-
-          items:
-            $ref: '#/components/schemas/Destination'
-
-        BioSample[file]:
-          $ref: '#/components/schemas/File'
-
-        BioSample[path]:
-          $ref: '#/components/schemas/Path'
-
-        BioSample[destination]:
-          $ref: '#/components/schemas/Destination'
+            destination:
+              $ref: '#/components/schemas/Destination'
 
     JVarViaFile:
       type: object
       additionalProperties: false
 
-      allOf:
-        - oneOf:
-          - required:
-            - db
-            - Excel[file]
-          - required:
-            - db
-            - Excel[path]
+      required:
+        - db
+        - Excel
 
       properties:
         db:
           type: string
           enum: [JVar]
 
-        Excel[file]:
-          $ref: '#/components/schemas/File'
+        Excel:
+          type: object
+          additionalProperties: false
 
-        Excel[path]:
-          $ref: '#/components/schemas/Path'
+          oneOf:
+            - required: [file]
+            - required: [path]
 
-        Excel[destination]:
-          $ref: '#/components/schemas/Destination'
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
 
-        VariantCallFile[][file]:
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
+
+        VariantCallFile:
           type: array
           minItems: 0
 
           items:
-            $ref: '#/components/schemas/File'
+            type: object
+            additionalProperties: false
 
-        VariantCallFile[][path]:
-          type: array
-          minItems: 0
+            oneOf:
+              - required: [file]
+              - required: [path]
 
-          items:
-            $ref: '#/components/schemas/Path'
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
 
-        VariantCallFile[][destination]:
-          type: array
-          minItems: 0
+              path:
+                $ref: '#/components/schemas/Path'
 
-          items:
-            $ref: '#/components/schemas/Destination'
+              destination:
+                $ref: '#/components/schemas/Destination'
 
     Trad2ViaFile:
       type: object
       additionalProperties: false
 
-      allOf:
-        - oneOf:
-          - required:
-            - db
-            - Sequence[][file]
-          - required:
-            - db
-            - Sequence[][path]
-        - oneOf:
-          - required:
-            - db
-            - Annotation[][file]
-          - required:
-            - db
-            - Annotation[][path]
-        - oneOf:
-          - required:
-            - db
-            - Metadata[][file]
-          - required:
-            - db
-            - Metadata[][path]
+      required:
+        - db
+        - Sequence
+        - Annotation
+        - Metadata
 
       properties:
         db:
           type: string
           enum: [Trad2]
 
-        Sequence[][file]:
+        Sequence:
           type: array
           minItems: 1
 
           items:
-            $ref: '#/components/schemas/File'
+            type: object
+            additionalProperties: false
 
-        Sequence[][path]:
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+
+        Annotation:
           type: array
           minItems: 1
 
           items:
-            $ref: '#/components/schemas/Path'
+            type: object
+            additionalProperties: false
 
-        Sequence[][destination]:
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+
+        Metadata:
           type: array
           minItems: 1
 
           items:
-            $ref: '#/components/schemas/Destination'
+            type: object
+            additionalProperties: false
 
-        Annotation[][file]:
-          type: array
-          minItems: 1
+            oneOf:
+              - required: [file]
+              - required: [path]
 
-          items:
-            $ref: '#/components/schemas/File'
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
 
-        Annotation[][path]:
-          type: array
-          minItems: 1
+              path:
+                $ref: '#/components/schemas/Path'
 
-          items:
-            $ref: '#/components/schemas/Path'
-
-        Annotation[][destination]:
-          type: array
-          minItems: 1
-
-          items:
-            $ref: '#/components/schemas/Destination'
-
-        Metadata[][file]:
-          type: array
-          minItems: 1
-
-          items:
-            $ref: '#/components/schemas/File'
-
-        Metadata[][path]:
-          type: array
-          minItems: 1
-
-          items:
-            $ref: '#/components/schemas/Path'
-
-        Metadata[][destination]:
-          type: array
-          minItems: 1
-
-          items:
-            $ref: '#/components/schemas/Destination'
+              destination:
+                $ref: '#/components/schemas/Destination'
 
   requestBodies:
     ViaFile:

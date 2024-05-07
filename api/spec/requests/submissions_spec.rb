@@ -87,7 +87,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
 
       post '/api/submissions', params: {
         validation_id: 42
-      }
+      }, as: :json
 
       expect(response).to conform_schema(201)
       expect(response.parsed_body.deep_symbolize_keys.dig(:validation, :id)).to eq(42)
@@ -99,7 +99,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       with_exceptions_app do
         post '/api/submissions', params: {
           validation_id: 42
-        }
+        }, as: :json
       end
 
       expect(response).to have_http_status(422)
@@ -117,7 +117,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       with_exceptions_app do
         post '/api/submissions', params: {
           validation_id: 42
-        }
+        }, as: :json
       end
 
       expect(response).to have_http_status(422)
@@ -135,7 +135,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       with_exceptions_app do
         post '/api/submissions', params: {
           validation_id: 42
-        }
+        }, as: :json
       end
 
       expect(response).to have_http_status(422)
