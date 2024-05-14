@@ -10,7 +10,7 @@ class DdbjValidator
         rescue Faraday::Error => e
           obj.update! validity: 'error', validation_details: {error: e.message}
 
-          Rails.logger.error e
+          Rails.error.report e
         else
           validity = if validated
                        details.fetch(:validity) ? 'valid' : 'invalid'
