@@ -13,8 +13,7 @@ WORKDIR /app/web
 COPY web ./
 COPY schema /app/schema
 
-RUN corepack enable
-RUN corepack prepare pnpm@latest --activate
+RUN corepack enable pnpm
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
