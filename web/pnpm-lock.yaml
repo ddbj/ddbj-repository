@@ -48,8 +48,8 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
       '@tsconfig/ember':
-        specifier: ^3.0.6
-        version: 3.0.6
+        specifier: ^3.0.7
+        version: 3.0.7
       '@types/bootstrap':
         specifier: ^5.2.10
         version: 5.2.10
@@ -1337,8 +1337,8 @@ packages:
     resolution: {integrity: sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==}
     engines: {node: '>= 6'}
 
-  '@tsconfig/ember@3.0.6':
-    resolution: {integrity: sha512-b1LmFAL5suTpQsaoG5NYpKAU8XfqQcob9gPu4xQlS/sNGD8Pp+vx+jI30Cy01+mxTBsQPig2kOwFpTD2b2qwtw==}
+  '@tsconfig/ember@3.0.7':
+    resolution: {integrity: sha512-T9H3VNlino2mo3wpAd9EqRwJyERvUKnJnIyiYuL7b3UvV+yQAt7f9np81liHpmBeBQ5z5NzegA5vJGpvCOtYsQ==}
 
   '@types/babel__code-frame@7.0.6':
     resolution: {integrity: sha512-Anitqkl3+KrzcW2k77lRlg/GfLZLWXBuNgbEcIOU6M92yw42vsd3xV/Z/yAHEj8m+KUjL6bWOVOFqX8PFPJ4LA==}
@@ -8401,7 +8401,7 @@ snapshots:
 
   '@tootallnate/once@1.1.2': {}
 
-  '@tsconfig/ember@3.0.6': {}
+  '@tsconfig/ember@3.0.7': {}
 
   '@types/babel__code-frame@7.0.6': {}
 
