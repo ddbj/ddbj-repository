@@ -288,7 +288,11 @@ export interface components {
       object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
       /** @enum {string|null} */
       validity: "valid" | "invalid" | "error" | null;
-      details: Record<string, never> | null;
+      details: {
+          id: string;
+          severity: string;
+          message: string;
+        }[] | null;
       file: {
         path: string;
         /** Format: uri */

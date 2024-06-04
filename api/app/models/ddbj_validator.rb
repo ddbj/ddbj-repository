@@ -8,7 +8,9 @@ class DdbjValidator
           res = client.post('validation', obj._id.downcase => part)
           validated, details = wait_for_finish(res.body.fetch(:uuid))
         rescue Faraday::Error => e
-          obj.update! validity: 'error', validation_details: {error: e.message}
+          obj.update! validity: 'error', validation_details: [
+            message: e.message
+          ]
 
           Rails.error.report e
         else
@@ -18,7 +20,12 @@ class DdbjValidator
                        'error'
                      end
 
-          obj.update! validity:, validation_details: details
+          obj.update! validity:, validation_details: details.fetch(:messages).map {|msg|
+            {
+              **msg.slice(:id, :message),
+              severity: msg.fetch(:level)
+            }
+          }
         end
       end
     end

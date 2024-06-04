@@ -173,6 +173,9 @@ importers:
       ember-load-initializers:
         specifier: ^2.1.2
         version: 2.1.2(@babel/core@7.24.6)
+      ember-math-helpers:
+        specifier: ^4.0.0
+        version: 4.0.0(ember-source@5.8.0(@babel/core@7.24.6)(@glimmer/component@1.1.2(@babel/core@7.24.6))(@glint/template@1.4.0)(rsvp@4.8.5)(webpack@5.91.0))
       ember-modifier:
         specifier: ^4.1.0
         version: 4.1.0(ember-source@5.8.0(@babel/core@7.24.6)(@glimmer/component@1.1.2(@babel/core@7.24.6))(@glint/template@1.4.0)(rsvp@4.8.5)(webpack@5.91.0))
@@ -3063,6 +3066,12 @@ packages:
   ember-load-initializers@2.1.2:
     resolution: {integrity: sha512-CYR+U/wRxLbrfYN3dh+0Tb6mFaxJKfdyz+wNql6cqTrA0BBi9k6J3AaKXj273TqvEpyyXegQFFkZEiuZdYtgJw==}
     engines: {node: 6.* || 8.* || >= 10.*}
+
+  ember-math-helpers@4.0.0:
+    resolution: {integrity: sha512-f83fUNp9/DbnPK6WWiYDLdxSePMC2YVxt7aZZPsDy3Zlwp75mhzUknbqd6wSCeKwJYJm+1xh0l/SygxzLvKgnw==}
+    engines: {node: 14.* || 16.* || >= 18}
+    peerDependencies:
+      ember-source: ^4.0.0 || ^5.0.0
 
   ember-modifier@4.1.0:
     resolution: {integrity: sha512-YFCNpEYj6jdyy3EjslRb2ehNiDvaOrXTilR9+ngq+iUqSHYto2zKV0rleiA1XJQ27ELM1q8RihT29U6Lq5EyqQ==}
@@ -10789,6 +10798,13 @@ snapshots:
       ember-cli-typescript: 2.0.2(@babel/core@7.24.6)
     transitivePeerDependencies:
       - '@babel/core'
+      - supports-color
+
+  ember-math-helpers@4.0.0(ember-source@5.8.0(@babel/core@7.24.6)(@glimmer/component@1.1.2(@babel/core@7.24.6))(@glint/template@1.4.0)(rsvp@4.8.5)(webpack@5.91.0)):
+    dependencies:
+      '@embroider/addon-shim': 1.8.8
+      ember-source: 5.8.0(@babel/core@7.24.6)(@glimmer/component@1.1.2(@babel/core@7.24.6))(@glint/template@1.4.0)(rsvp@4.8.5)(webpack@5.91.0)
+    transitivePeerDependencies:
       - supports-color
 
   ember-modifier@4.1.0(ember-source@5.8.0(@babel/core@7.24.6)(@glimmer/component@1.1.2(@babel/core@7.24.6))(@glint/template@1.4.0)(rsvp@4.8.5)(webpack@5.91.0)):
