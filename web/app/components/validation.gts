@@ -4,6 +4,10 @@ import { action } from '@ember/object';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import { array } from '@ember/helper';
+
+import { eq } from 'ember-truth-helpers';
+import { sub } from 'ember-math-helpers/helpers/sub';
 
 import DetailsCount from 'ddbj-repository/components/details-count';
 import ProgressLabel from 'ddbj-repository/components/progress-label';
@@ -11,7 +15,6 @@ import SubmitButton from 'ddbj-repository/components/submit-button';
 import ValidityBadge from 'ddbj-repository/components/validity-badge';
 import downloadFile from 'ddbj-repository/utils/download-file';
 import formatDatetime from 'ddbj-repository/helpers/format-datetime';
-import toJSON from 'ddbj-repository/helpers/to-json';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
 import type { components } from 'schema/openapi';
@@ -147,10 +150,32 @@ export default class ValidationComponent extends Component<Signature> {
 
             <td><ValidityBadge @validity={{result.validity}} /></td>
 
-            <td>
-              <pre class='mb-0 py-1 text-pre-wrap'><code>{{#if result.details}}{{toJSON
-                      result.details
-                    }}{{else}}-{{/if}}</code></pre>
+            <td class='p-0'>
+              {{#if result.details}}
+                <table class='table m-0'>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Severity</th>
+                      <th>Message</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {{#each result.details as |detail i|}}
+                      <tr>
+                        {{#let (eq i (sub (array result.details.length 1))) as |isLast|}}
+                          <td class={{if isLast 'border-bottom-0'}}>{{if detail.id detail.id '-'}}</td>
+                          <td class={{if isLast 'border-bottom-0'}}>{{if detail.severity detail.severity '-'}}</td>
+                          <td class={{if isLast 'border-bottom-0'}}>{{detail.message}}</td>
+                        {{/let}}
+                      </tr>
+                    {{/each}}
+                  </tbody>
+                </table>
+              {{else}}
+                -
+              {{/if}}
             </td>
           </tr>
         {{/each}}

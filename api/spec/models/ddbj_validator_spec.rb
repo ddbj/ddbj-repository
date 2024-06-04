@@ -31,7 +31,12 @@ RSpec.describe DdbjValidator, type: :model do
       body: {
         result: {
           validity: true,
-          answer:   42
+
+          messages: [
+            id:      '0001',
+            level:   'error',
+            message: 'something went wrong'
+          ]
         }
       }
     )
@@ -50,10 +55,11 @@ RSpec.describe DdbjValidator, type: :model do
         object_id: 'BioSample',
         validity:  'valid',
 
-        details: {
-          'validity' => true,
-          'answer'   => 42
-        },
+        details: [
+          'id'       => '0001',
+          'severity' => 'error',
+          'message'  => 'something went wrong'
+        ],
 
         file: {
           path: 'mybiosample.xml',
@@ -84,9 +90,9 @@ RSpec.describe DdbjValidator, type: :model do
         object_id: 'BioSample',
         validity:  'error',
 
-        details: {
-          'error' => instance_of(String)
-        },
+        details: [
+          'message' => 'the server responded with status 500'
+        ],
 
         file: {
           path: 'mybiosample.xml',
