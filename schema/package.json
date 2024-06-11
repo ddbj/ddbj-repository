@@ -3,5 +3,5 @@
     "openapi-typescript": "^6.7.6",
     "quicktype": "^23.0.170"
   },
-  "packageManager": "pnpm@9.1.4"
+  "packageManager": "pnpm@9.2.0"
 }

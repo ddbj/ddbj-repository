@@ -289,7 +289,7 @@ export interface components {
       /** @enum {string|null} */
       validity: "valid" | "invalid" | "error" | null;
       details: {
-          id: string;
+          code: string;
           severity: string;
           message: string;
         }[] | null;
