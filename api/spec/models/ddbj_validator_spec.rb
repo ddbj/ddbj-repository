@@ -56,7 +56,7 @@ RSpec.describe DdbjValidator, type: :model do
         validity:  'valid',
 
         details: [
-          'id'       => '0001',
+          'code'     => '0001',
           'severity' => 'error',
           'message'  => 'something went wrong'
         ],

@@ -22,8 +22,9 @@ class DdbjValidator
 
           obj.update! validity:, validation_details: details.fetch(:messages).map {|msg|
             {
-              **msg.slice(:id, :message),
-              severity: msg.fetch(:level)
+              code:     msg[:id],
+              severity: msg[:level],
+              message:  msg[:message]
             }
           }
         end

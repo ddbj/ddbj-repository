@@ -155,7 +155,7 @@ export default class ValidationComponent extends Component<Signature> {
                 <table class='table m-0'>
                   <thead>
                     <tr>
-                      <th>ID</th>
+                      <th>Code</th>
                       <th>Severity</th>
                       <th>Message</th>
                     </tr>
@@ -165,7 +165,7 @@ export default class ValidationComponent extends Component<Signature> {
                     {{#each result.details as |detail i|}}
                       <tr>
                         {{#let (eq i (sub (array result.details.length 1))) as |isLast|}}
-                          <td class={{if isLast 'border-bottom-0'}}>{{if detail.id detail.id '-'}}</td>
+                          <td class={{if isLast 'border-bottom-0'}}>{{if detail.code detail.code '-'}}</td>
                           <td class={{if isLast 'border-bottom-0'}}>{{if detail.severity detail.severity '-'}}</td>
                           <td class={{if isLast 'border-bottom-0'}}>{{detail.message}}</td>
                         {{/let}}
