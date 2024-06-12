@@ -2,7 +2,7 @@ class SubmissionsController < ApplicationController
   include Pagy::Backend
 
   def index
-    submissions = user_submissions.order(id: :desc)
+    submissions = search_submissions
 
     pagy, @submissions = pagy(submissions, page: params[:page])
 
@@ -32,5 +32,13 @@ class SubmissionsController < ApplicationController
     current_user.submissions.includes(
       :validation => :objs
     ).merge(Obj.with_attached_file)
+  end
+
+  def search_submissions
+    db = params[:db]
+
+    submissions = current_user.submissions.includes(:validation => :objs)
+    submissions = submissions.where(validations: {db: db.split(',')}) if db
+    submissions.merge(Obj.with_attached_file).order(id: :desc)   
   end
 end
