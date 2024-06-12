@@ -174,6 +174,8 @@ export interface paths {
       parameters: {
         query?: {
           page?: number;
+          /** @description Return submissions of the specified databases. */
+          db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2")[];
         };
       };
       responses: {

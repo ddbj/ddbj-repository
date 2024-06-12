@@ -418,6 +418,30 @@ paths:
           schema:
             type: integer
 
+        - in: query
+          name: db
+          style: form
+          explode: false
+
+          description: |
+            Return submissions of the specified databases.
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - BioProject
+                - BioSample
+                - Trad
+                - DRA
+                - GEA
+                - MetaboBank
+                - JVar
+                - Trad2
+
       responses:
         '200':
           description: Return your submissions.

@@ -413,6 +413,25 @@ paths:
           schema:
             type: integer
 
+        - in: query
+          name: db
+          style: form
+          explode: false
+
+          description: |
+            Return submissions of the specified databases.
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                <%- dbs.each do |db| -%>
+                - <%= db[:id] %>
+                <%- end -%>
+
       responses:
         '200':
           description: Return your submissions.
