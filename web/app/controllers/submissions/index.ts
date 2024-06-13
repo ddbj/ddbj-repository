@@ -7,7 +7,13 @@ import ENV from 'ddbj-repository/config/environment';
 import type { Model } from 'ddbj-repository/routes/submissions/index';
 
 export default class SubmissionsIndexController extends Controller {
-  queryParams = [{ page: { type: 'number' } as const }];
+  queryParams = [
+    {
+      page: { type: 'number' } as const,
+      db: { type: 'string' } as const,
+      created: { type: 'string' } as const,
+    },
+  ];
 
   declare model: Model;
 
@@ -17,6 +23,7 @@ export default class SubmissionsIndexController extends Controller {
   @tracked pageBefore?: number;
 
   @tracked db?: string;
+  @tracked created?: string;
 
   get selectedDBs() {
     return queryValueToArray(this.db, this.dbs);
@@ -26,6 +33,12 @@ export default class SubmissionsIndexController extends Controller {
   onSelectedDBsChange(selected: string[]) {
     this.page = 1;
     this.db = arrayToQueryValue(selected, this.dbs);
+  }
+
+  @action
+  onCreatedChange(created?: string) {
+    this.page = 1;
+    this.created = created;
   }
 }
 
