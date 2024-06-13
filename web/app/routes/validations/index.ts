@@ -1,8 +1,7 @@
 import ValidationsIndexBaseRoute from 'ddbj-repository/routes/validations-index-base';
 
-import { subDays, subWeeks, subMonths, subYears } from 'date-fns';
-
 import ENV from 'ddbj-repository/config/environment';
+import convertCreatedToDate from 'ddbj-repository/utils/convert-created-to-date';
 
 import type { Created } from 'ddbj-repository/components/validations-search-form';
 
@@ -72,22 +71,5 @@ export default class ValidationsIndexRoute extends ValidationsIndexBaseRoute<Par
     }
 
     return url;
-  }
-}
-
-function convertCreatedToDate(created: NonNullable<Created>) {
-  const now = new Date();
-
-  switch (created) {
-    case 'within_one_day':
-      return subDays(now, 1);
-    case 'within_one_week':
-      return subWeeks(now, 1);
-    case 'within_one_month':
-      return subMonths(now, 1);
-    case 'within_one_year':
-      return subYears(now, 1);
-    default:
-      throw new Error(created satisfies never);
   }
 }

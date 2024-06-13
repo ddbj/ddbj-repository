@@ -1,5 +1,14 @@
 <h1 class="display-6 mb-4">Submissions</h1>
 
+<SubmissionsSearchForm
+  @dbs={{this.dbs}}
+  @selectedDBs={{this.selectedDBs}}
+  @onSelectedDBsChange={{this.onSelectedDBsChange}}
+  @created={{this.created}}
+  @onCreatedChange={{this.onCreatedChange}}
+  class="bg-light p-3 border rounded"
+/>
+
 <Table @items={{@model.submissions}}>
   <thead class="table-light">
     <tr>
