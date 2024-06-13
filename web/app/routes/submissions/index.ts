@@ -28,7 +28,7 @@ export default class SubmissionsIndexRoute extends Route {
     },
   };
 
-  async model(params: { page?: string, db?: string }) {
+  async model(params: { page?: string; db?: string }) {
     const url = new URL(`${ENV.apiURL}/submissions`);
 
     if (params.page) {
