@@ -27,8 +27,8 @@ importers:
         specifier: ^3.4.11
         version: 3.4.11(@glint/template@1.4.0)
       '@embroider/webpack':
-        specifier: ^4.0.1
-        version: 4.0.1(@embroider/core@3.4.11(@glint/template@1.4.0))(webpack@5.92.0)
+        specifier: ^4.0.3
+        version: 4.0.3(@embroider/core@3.4.11(@glint/template@1.4.0))(webpack@5.92.0)
       '@glimmer/component':
         specifier: ^1.1.2
         version: 1.1.2(@babel/core@7.24.7)
@@ -1017,11 +1017,11 @@ packages:
     resolution: {integrity: sha512-STU1oDP36JQY+zpivyAfXGXadN664d+DOiVNBUW+4AAuWLVxIRWDIuFj8UxzREXZU9trZY8vOhKwKQtfEgdwSg==}
     engines: {node: 12.* || 14.* || >= 16}
 
-  '@embroider/webpack@4.0.1':
-    resolution: {integrity: sha512-Yrk6DqNnZRtWW+i9eQiqVLJIAPUxBLbX4HdVZ/wD5VigvB/lo+pdAQKoDV1/FQ8V7PqnbcPg/hJkw8ZpfxWJ+Q==}
+  '@embroider/webpack@4.0.3':
+    resolution: {integrity: sha512-bDjQfyI8O7xADDajfQ6IFHen4XirsNJ2Y3s0LzNw/USWYCD043G+K7wAsZ0HXfhkZKyj+uw60zeOWQuVrepWGQ==}
     engines: {node: 12.* || 14.* || >= 16}
     peerDependencies:
-      '@embroider/core': ^3.4.10
+      '@embroider/core': ^3.4.11
       webpack: ^5.0.0
 
   '@eslint-community/eslint-utils@4.4.0':
@@ -7953,7 +7953,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@embroider/webpack@4.0.1(@embroider/core@3.4.11(@glint/template@1.4.0))(webpack@5.92.0)':
+  '@embroider/webpack@4.0.3(@embroider/core@3.4.11(@glint/template@1.4.0))(webpack@5.92.0)':
     dependencies:
       '@babel/core': 7.24.7(supports-color@8.1.1)
       '@babel/preset-env': 7.24.7(@babel/core@7.24.7(supports-color@8.1.1))(supports-color@8.1.1)
