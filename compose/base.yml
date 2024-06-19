@@ -40,7 +40,7 @@ services:
     environment:
       API_URL:
       DATABASE_URL:            postgresql://postgres@postgres/ddbj_repository
-      DDBJ_VALIDATOR_URL:      http://host.docker.internal:18840/api
+      DDBJ_VALIDATOR_URL:      http://ddbj-validator:3000/api
       MINIO_ACCESS_KEY_ID:
       MINIO_BUCKET:            uploads
       MINIO_ENDPOINT:
@@ -70,6 +70,8 @@ services:
         condition: service_healthy
       minio-setup:
         condition: service_completed_successfully
+      ddbj-validator:
+        condition: service_started
 
     extra_hosts:
       - host.docker.internal:host-gateway
@@ -147,3 +149,8 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+
+  ddbj-validator:
+    build:
+      context: ../ddbj_validator
+
