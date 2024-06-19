@@ -153,4 +153,3 @@ services:
   ddbj-validator:
     build:
       context: ../ddbj_validator
-
