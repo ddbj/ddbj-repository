@@ -1,0 +1,3 @@
+[submodule "ddbj_validator"]
+	path = ddbj_validator
+	url = https://github.com/ddbj/ddbj_validator.git
