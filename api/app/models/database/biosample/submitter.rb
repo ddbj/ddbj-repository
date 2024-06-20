@@ -126,15 +126,16 @@ class Database::BioSample::Submitter
         )
 
         tx.after_commit do
-          DRMDB::ExtEntity.create!(
+          entity = DRMDB::ExtEntity.create!(
             acc_type: :sample,
             ref_name: sample.smp_id,
             status:   :valid
-          ) do |entity|
-            entity.ext_permits.build(
-              submitter_id:
-            )
-          end
+          )
+
+          DRMDB::ExtPermit.create!(
+            ext_id: entity.ext_id,
+            submitter_id:
+          )
         end
       end
 
