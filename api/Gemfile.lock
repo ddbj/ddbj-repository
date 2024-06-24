@@ -302,7 +302,7 @@ GEM
       psych (>= 4.0.0)
     redis-client (0.22.1)
       connection_pool
-    regexp_parser (2.9.0)
+    regexp_parser (2.9.2)
     reline (0.5.9)
       io-console (~> 0.5)
     rexml (3.3.0)
@@ -350,7 +350,7 @@ GEM
       rufus-scheduler (~> 3.2)
       sidekiq (>= 6, < 8)
       tilt (>= 1.4.0)
-    skooma (0.3.1)
+    skooma (0.3.2)
       json_skooma (~> 0.2.0)
       zeitwerk (~> 2.6)
     stringio (3.1.1)
