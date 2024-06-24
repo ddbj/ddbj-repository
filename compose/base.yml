@@ -2,6 +2,7 @@ volumes:
   postgres:
   redis:
   minio:
+  virtuoso:
 
 services:
   varnish:
@@ -60,6 +61,7 @@ services:
       SMTP_PORT:
       SMTP_USERNAME:
       STAGE:
+      TZ:                      Japan
       USER_HOME_DIR:           /data/home
       WEB_CONCURRENCY:         2
 
@@ -153,3 +155,25 @@ services:
   ddbj-validator:
     build:
       context: ../ddbj_validator
+
+    environment:
+      DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER: http://virtuoso:8890/sparql
+      TZ:                                          Japan
+
+  virtuoso:
+    image: openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
+
+    environment:
+      DBA_PASSWORD: dba
+      VIRT_Client_SQL_PREFETCH_BYTES: '160000'
+      VIRT_Client_SQL_PREFETCH_ROWS: '10000'
+      VIRT_Parameters_DirsAllowed: ., ../vad, /usr/share/proj, /database
+      VIRT_Parameters_MaxDirtyBuffers: '130000'
+      VIRT_Parameters_NumberOfBuffers: '170000'
+      VIRT_SPARQL_MaxQueryCostEstimationTime: '-1'
+      VIRT_SPARQL_MaxQueryExecutionTime: '300'
+      VIRT_SPARQL_MaxSortedTopRows: '100000'
+      VIRT_SPARQL_ResultSetMaxRows: '1000000'
+
+    volumes:
+      - virtuoso:/database

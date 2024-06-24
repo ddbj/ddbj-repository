@@ -23,6 +23,7 @@
           - production
         paths:
           - ~/repository/STAGE
-          - ~/ddbj-repository/data/STAGE/minio
           - ~/ddbj-repository/data/STAGE/postgres
           - ~/ddbj-repository/data/STAGE/redis
+          - ~/ddbj-repository/data/STAGE/minio
+          - ~/ddbj-repository/data/STAGE/virtuoso

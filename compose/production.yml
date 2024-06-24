@@ -31,3 +31,9 @@ services:
       - type: bind
         source: ~/ddbj-repository/data/$STAGE/minio
         target: /data
+
+  virtuoso:
+    volumes:
+      - type: bind
+        source: ~/ddbj-repository/data/$STAGE/virtuoso
+        target: /database
