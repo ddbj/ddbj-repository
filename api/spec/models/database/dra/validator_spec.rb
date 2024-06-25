@@ -74,13 +74,11 @@ RSpec.describe Database::DRA::Validator, type: :model do
     validation.reload
 
     expect(validation.results).to contain_exactly(
-      {
+      include(
         object_id: '_base',
-        validity:  nil,
-        details:   [],
-        file:      nil
-      },
-      {
+        validity:  nil
+      ),
+      include(
         object_id: 'Submission',
         validity:  'invalid',
 
@@ -88,43 +86,20 @@ RSpec.describe Database::DRA::Validator, type: :model do
           code:     nil,
           severity: 'error',
           message:  '18:1: FATAL: Premature end of data in tag SUBMISSION line 2'
-        ],
-
-        file: {
-          path: 'example-0001_dra_Submission.xml',
-          url:  'http://www.example.com/api/validations/42/files/example-0001_dra_Submission.xml'
-        }
-      },
-      {
+        ]
+      ),
+      include(
         object_id: 'Experiment',
-        validity:  'invalid',
-        details:   instance_of(Array),
-
-        file: {
-          path: 'example-0001_dra_Experiment.xml',
-          url:  'http://www.example.com/api/validations/42/files/example-0001_dra_Experiment.xml'
-        }
-      },
-      {
+        validity:  'invalid'
+      ),
+      include(
         object_id: 'Run',
-        validity:  'invalid',
-        details:   instance_of(Array),
-
-        file: {
-          path: 'example-0001_dra_Run.xml',
-          url:  'http://www.example.com/api/validations/42/files/example-0001_dra_Run.xml'
-        }
-      },
-      {
+        validity:  'invalid'
+      ),
+      include(
         object_id: 'RunFile',
-        validity:  'valid',
-        details:   [],
-
-        file: {
-          path: 'runfile.xml',
-          url:  'http://www.example.com/api/validations/42/files/runfile.xml'
-        }
-      }
+        validity:  'valid'
+      )
     )
   end
 

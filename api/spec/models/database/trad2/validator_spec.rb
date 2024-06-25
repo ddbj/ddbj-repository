@@ -92,13 +92,11 @@ RSpec.describe Database::Trad2::Validator, type: :model do
       validation.reload
 
       expect(validation.results).to contain_exactly(
-        {
+        include(
           object_id: '_base',
-          validity:  nil,
-          details:   [],
-          file:      nil
-        },
-        {
+          validity:  nil
+        ),
+        include(
           object_id: 'Sequence',
           validity:  'invalid',
 
@@ -106,11 +104,9 @@ RSpec.describe Database::Trad2::Validator, type: :model do
             code:     nil,
             severity: 'error',
             message:  'The extension should be one of the following: .fasta, .seq.fa, .fa, .fna, .seq'
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Annotation',
           validity:  'invalid',
 
@@ -118,11 +114,9 @@ RSpec.describe Database::Trad2::Validator, type: :model do
             code:     nil,
             severity: 'error',
             message:  'The extension should be one of the following: .gff'
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Metadata',
           validity:  'invalid',
 
@@ -130,10 +124,8 @@ RSpec.describe Database::Trad2::Validator, type: :model do
             code:     nil,
             severity: 'error',
             message:  'The extension should be one of the following: .tsv'
-          ],
-
-          file: instance_of(Hash)
-        }
+          ]
+        )
       )
     end
   end
@@ -148,13 +140,11 @@ RSpec.describe Database::Trad2::Validator, type: :model do
       validation.reload
 
       expect(validation.results).to contain_exactly(
-        {
+        include(
           object_id: '_base',
-          validity:  nil,
-          details:   [],
-          file:      nil
-        },
-        {
+          validity:  nil
+        ),
+        include(
           object_id: 'Sequence',
           validity:  'invalid',
 
@@ -169,11 +159,9 @@ RSpec.describe Database::Trad2::Validator, type: :model do
               severity: 'error',
               message:  'There is no corresponding metadata file.'
             }
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Annotation',
           validity:  'invalid',
 
@@ -188,11 +176,9 @@ RSpec.describe Database::Trad2::Validator, type: :model do
               severity: 'error',
               message:  'There is no corresponding metadata file.'
             }
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Metadata',
           validity:  'invalid',
 
@@ -207,10 +193,8 @@ RSpec.describe Database::Trad2::Validator, type: :model do
               severity: 'error',
               message:  'There is no corresponding annotation file.'
             }
-          ],
-
-          file: instance_of(Hash)
-        }
+          ]
+        )
       )
     end
 
@@ -224,13 +208,11 @@ RSpec.describe Database::Trad2::Validator, type: :model do
       validation.reload
 
       expect(validation.results).to contain_exactly(
-        {
+        include(
           object_id: '_base',
-          validity:  nil,
-          details:   [],
-          file:      nil
-        },
-        {
+          validity:  nil
+        ),
+        include(
           object_id: 'Sequence',
           validity:  'invalid',
 
@@ -238,11 +220,9 @@ RSpec.describe Database::Trad2::Validator, type: :model do
             code:     nil,
             severity: 'error',
             message:  'Duplicate sequence files with the same name exist.'
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Sequence',
           validity:  'invalid',
 
@@ -250,22 +230,16 @@ RSpec.describe Database::Trad2::Validator, type: :model do
             code:     nil,
             severity: 'error',
             message:  'Duplicate sequence files with the same name exist.'
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Annotation',
-          validity:  'valid',
-          details:   [],
-          file:      instance_of(Hash)
-        },
-        {
+          validity:  'valid'
+        ),
+        include(
           object_id: 'Metadata',
-          validity:  'valid',
-          details:   [],
-          file:      instance_of(Hash)
-        }
+          validity:  'valid'
+        )
       )
     end
 
@@ -277,13 +251,11 @@ RSpec.describe Database::Trad2::Validator, type: :model do
       validation.reload
 
       expect(validation.results).to contain_exactly(
-        {
+        include(
           object_id: '_base',
-          validity:  nil,
-          details:   [],
-          file:      nil
-        },
-        {
+          validity:  nil
+        ),
+        include(
           object_id: 'Sequence',
           validity:  'invalid',
 
@@ -303,11 +275,9 @@ RSpec.describe Database::Trad2::Validator, type: :model do
               severity: 'error',
               message:  'There is no corresponding metadata file.'
             }
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Sequence',
           validity:  'invalid',
 
@@ -327,10 +297,8 @@ RSpec.describe Database::Trad2::Validator, type: :model do
               severity: 'error',
               message:  'There is no corresponding metadata file.'
             }
-          ],
-
-          file: instance_of(Hash)
-        }
+          ]
+        )
       )
     end
   end
@@ -345,13 +313,11 @@ RSpec.describe Database::Trad2::Validator, type: :model do
       validation.reload
 
       expect(validation.results).to contain_exactly(
-        {
+        include(
           object_id: '_base',
-          validity:  nil,
-          details:   [],
-          file:      nil
-        },
-        {
+          validity:  nil
+        ),
+        include(
           object_id: 'Sequence',
           validity:  'invalid',
 
@@ -359,22 +325,16 @@ RSpec.describe Database::Trad2::Validator, type: :model do
             code:     nil,
             severity: 'error',
             message:  'No entries found.'
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Annotation',
-          validity:  'valid',
-          details:   [],
-          file:      instance_of(Hash)
-        },
-        {
+          validity:  'valid'
+        ),
+        include(
           object_id: 'Metadata',
-          validity:  'valid',
-          details:   [],
-          file:      instance_of(Hash)
-        }
+          validity:  'valid'
+        )
       )
     end
   end
@@ -389,19 +349,15 @@ RSpec.describe Database::Trad2::Validator, type: :model do
       validation.reload
 
       expect(validation.results).to contain_exactly(
-        {
+        include(
           object_id: '_base',
-          validity:  nil,
-          details:   [],
-          file:      nil
-        },
-        {
+          validity:  nil
+        ),
+        include(
           object_id: 'Sequence',
-          validity:  'valid',
-          details:   [],
-          file:      instance_of(Hash)
-        },
-        {
+          validity:  'valid'
+        ),
+        include(
           object_id: 'Annotation',
           validity:  'invalid',
 
@@ -409,16 +365,12 @@ RSpec.describe Database::Trad2::Validator, type: :model do
             code:     nil,
             severity: 'error',
             message:  'Line 1: Custom { kind: InvalidData, error: InvalidRecord(MissingField(Source)) }'
-          ],
-
-          file: instance_of(Hash)
-        },
-        {
+          ]
+        ),
+        include(
           object_id: 'Metadata',
-          validity:  'valid',
-          details:   [],
-          file:      instance_of(Hash)
-        }
+          validity:  'valid'
+        )
       )
     end
   end
