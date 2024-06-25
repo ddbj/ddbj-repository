@@ -3,8 +3,7 @@ class ValidateJob < ApplicationJob
     ActiveRecord::Base.transaction do
       validation.update! progress: 'running', started_at: Time.current
 
-      db        = DB.find { _1[:id] == validation.db }
-      validator = db.fetch(:validator).constantize.new
+      validator = "Database::#{validation.db}::Validator".constantize.new
 
       Rails.error.handle do
         begin
