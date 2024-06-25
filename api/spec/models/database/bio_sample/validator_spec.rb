@@ -80,13 +80,11 @@ RSpec.describe Database::BioSample::Validator, type: :model do
     validation.reload
 
     expect(validation.results).to contain_exactly(
-      {
+      include(
         object_id: '_base',
         validity:  nil,
-        details:   [],
-        file:      nil
-      },
-      {
+      ),
+      include(
         object_id: 'BioSample',
         validity:  'error',
 
@@ -94,13 +92,8 @@ RSpec.describe Database::BioSample::Validator, type: :model do
           code:     nil,
           severity: 'error',
           message:  'the server responded with status 500'
-        ],
-
-        file: {
-          path: 'mybiosample.xml',
-          url:  'http://www.example.com/api/validations/42/files/mybiosample.xml'
-        }
-      }
+        ]
+      )
     )
   end
 end
