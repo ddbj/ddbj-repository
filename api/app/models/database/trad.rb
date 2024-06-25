@@ -10,10 +10,6 @@ module Database::Trad
     def validate(validation)
       objs = validation.objs.without_base
 
-      objs.each do |obj|
-        obj.validation_details = []
-      end
-
       validate_ext   objs, ASSOC
       validate_nwise objs, ASSOC
       validate_seq   objs
@@ -21,7 +17,7 @@ module Database::Trad
 
       objs.each do |obj|
         if obj.validation_details.empty?
-          obj.update! validity: 'valid', validation_details: nil
+          obj.validity_valid!
         else
           obj.validity_invalid!
         end
@@ -39,10 +35,10 @@ module Database::Trad
         contact_person = extract_contact_person_in_ann(obj.file)
 
         if contact_person.values.any?(&:nil?)
-          obj.validation_details << {
+          obj.validation_details.create!(
             severity: 'error',
             message:  'Contact person information (contact, email, institute) is missing.'
-          }
+          )
         end
 
         [obj, contact_person]
@@ -52,10 +48,10 @@ module Database::Trad
 
       assoc.each do |obj, contact_person|
         unless first_contact_person == contact_person
-          obj.validation_details << {
+          obj.validation_details.create!(
             severity: 'error',
             message:  'Contact person must be the same for all annotation files.'
-          }
+          )
         end
       end
     end

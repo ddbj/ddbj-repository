@@ -16,13 +16,13 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: '_base',
         validity:  nil,
-        details:   nil,
+        details:   [],
         file:      nil
       },
       {
         object_id: 'Submission',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'example-0001_dra_Submission.xml',
@@ -32,7 +32,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: 'Experiment',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'example-0001_dra_Experiment.xml',
@@ -42,7 +42,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: 'Run',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'example-0001_dra_Run.xml',
@@ -52,7 +52,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: 'RunFile',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'runfile.xml',
@@ -77,7 +77,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: '_base',
         validity:  nil,
-        details:   nil,
+        details:   [],
         file:      nil
       },
       {
@@ -85,8 +85,9 @@ RSpec.describe Database::DRA::Validator, type: :model do
         validity:  'invalid',
 
         details: [
-          'object_id' => 'Submission',
-          'message'   => '18:1: FATAL: Premature end of data in tag SUBMISSION line 2'
+          code:     nil,
+          severity: 'error',
+          message:  '18:1: FATAL: Premature end of data in tag SUBMISSION line 2'
         ],
 
         file: {
@@ -117,7 +118,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: 'RunFile',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'runfile.xml',
@@ -144,7 +145,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: 'Analysis',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'example-0002_dra_Analysis.xml',
@@ -154,7 +155,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: 'AnalysisFile',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'analysisfile.xml',
@@ -180,7 +181,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: 'RunFile',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'runfile1.xml',
@@ -190,7 +191,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
       {
         object_id: 'RunFile',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'runfile2.xml',

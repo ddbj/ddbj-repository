@@ -38,7 +38,11 @@ module Database::MetaboBank
                          end
 
               objs.each do |obj|
-                obj.update! validity:, validation_details: errs
+                obj.update! validity: validity
+
+                errs.each do |err|
+                  obj.validation_details.create! err.slice(:code, :severity, :message)
+                end
               end
             else
               objs.each do |obj|

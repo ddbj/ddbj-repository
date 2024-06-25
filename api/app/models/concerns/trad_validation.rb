@@ -4,10 +4,10 @@ module TradValidation
       exts = assoc.fetch(obj._id)
 
       unless exts.any? { obj.path.end_with?(_1) }
-        obj.validation_details << {
+        obj.validation_details.create!(
           severity: 'error',
           message:  "The extension should be one of the following: #{exts.join(', ')}"
-        }
+        )
       end
     end
   end
@@ -28,19 +28,19 @@ module TradValidation
         case objs.size
         when 0
           other_objs.each do |obj|
-            obj.validation_details << {
+            obj.validation_details.create!(
               severity: 'error',
               message:  "There is no corresponding #{id.downcase} file."
-            }
+            )
           end
         when 1
           # do nothing
         else
           objs.each do |obj|
-            obj.validation_details << {
+            obj.validation_details.create!(
               severity: 'error',
               message:  "Duplicate #{id.downcase} files with the same name exist."
-            }
+            )
           end
         end
       end
@@ -50,10 +50,10 @@ module TradValidation
   def validate_seq(objs)
     objs.select { _1._id == 'Sequence' }.each do |obj|
       unless contain_at_least_one_entry_in_seq?(obj.file)
-        obj.validation_details << {
+        obj.validation_details.create!(
           severity: 'error',
           message:  'No entries found.'
-        }
+        )
       end
     end
   end

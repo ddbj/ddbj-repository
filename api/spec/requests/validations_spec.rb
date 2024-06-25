@@ -42,7 +42,7 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
             {
               object_id: '_base',
               validity:  nil,
-              details:   nil,
+              details:   [],
               file:      nil
             }
           ],
@@ -77,13 +77,13 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
             {
               object_id: '_base',
               validity:  'valid',
-              details:   nil,
+              details:   [],
               file:      nil
             },
             {
               object_id: 'IDF',
               validity:  'valid',
-              details:   nil,
+              details:   [],
 
               file: {
                 path: 'myidf.txt',
@@ -135,7 +135,7 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           {
             object_id: '_base',
             validity:  'valid',
-            details:   nil,
+            details:   [],
             file:      nil
           }
         ],

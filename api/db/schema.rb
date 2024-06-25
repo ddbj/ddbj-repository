@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2024_02_06_004217) do
+ActiveRecord::Schema[7.1].define(version: 2024_06_25_103742) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -46,7 +46,6 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_06_004217) do
     t.bigint "validation_id", null: false
     t.string "_id", null: false
     t.string "validity"
-    t.jsonb "validation_details"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "destination"
@@ -71,6 +70,16 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_06_004217) do
     t.index ["uid"], name: "index_users_on_uid", unique: true
   end
 
+  create_table "validation_details", force: :cascade do |t|
+    t.bigint "obj_id", null: false
+    t.string "code"
+    t.string "severity"
+    t.string "message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["obj_id"], name: "index_validation_details_on_obj_id"
+  end
+
   create_table "validations", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "db", null: false
@@ -89,5 +98,6 @@ ActiveRecord::Schema[7.1].define(version: 2024_02_06_004217) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "objs", "validations"
   add_foreign_key "submissions", "validations"
+  add_foreign_key "validation_details", "objs"
   add_foreign_key "validations", "users"
 end

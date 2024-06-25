@@ -32,248 +32,393 @@ RSpec.describe Database::Trad2::Validator, type: :model do
     create(:obj, validation:, _id: 'Metadata', file: uploaded_file(name:, content:))
   end
 
-  let(:validation) { create(:validation) }
+  let(:validation) { create(:validation, id: 42) }
 
   example 'ok' do
-    seq  = create_seq(validation)
-    ann  = create_ann(validation)
-    meta = create_meta(validation)
+    create_seq  validation, name: 'foo.fasta'
+    create_ann  validation, name: 'foo.gff'
+    create_meta validation, name: 'foo.tsv'
 
     Database::Trad2::Validator.new.validate validation
-    [seq, ann, meta].each &:reload
+    validation.reload
 
-    expect(seq).to have_attributes(
-      validity:           'valid',
-      validation_details: nil
-    )
+    expect(validation.results).to contain_exactly(
+      {
+        object_id: '_base',
+        validity:  nil,
+        details:   [],
+        file:      nil
+      },
+      {
+        object_id: 'Sequence',
+        validity:  'valid',
+        details:   [],
 
-    expect(ann).to have_attributes(
-      validity:           'valid',
-      validation_details: nil
-    )
+        file: {
+          path: 'foo.fasta',
+          url:  'http://www.example.com/api/validations/42/files/foo.fasta'
+        }
+      },
+      {
+        object_id: 'Annotation',
+        validity:  'valid',
+        details:   [],
 
-    expect(meta).to have_attributes(
-      validity:           'valid',
-      validation_details: nil
+        file: {
+          path: 'foo.gff',
+          url:  'http://www.example.com/api/validations/42/files/foo.gff'
+        }
+      },
+      {
+        object_id: 'Metadata',
+        validity:  'valid',
+        details:   [],
+
+        file: {
+          path: 'foo.tsv',
+          url:  'http://www.example.com/api/validations/42/files/foo.tsv'
+        }
+      }
     )
   end
 
   describe 'ext' do
     example do
-      seq  = create_seq(validation,  name: 'foo.bar')
-      ann  = create_ann(validation,  name: 'foo.baz')
-      meta = create_meta(validation, name: 'foo.qux')
+      create_seq  validation, name: 'foo.bar'
+      create_ann  validation, name: 'foo.baz'
+      create_meta validation, name: 'foo.qux'
 
       Database::Trad2::Validator.new.validate validation
-      [seq, ann, meta].each &:reload
+      validation.reload
 
-      expect(seq).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'The extension should be one of the following: .fasta, .seq.fa, .fa, .fna, .seq'
-        ]
-      )
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'The extension should be one of the following: .fasta, .seq.fa, .fa, .fna, .seq'
+          ],
 
-      expect(ann).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'The extension should be one of the following: .gff'
-        ]
-      )
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'The extension should be one of the following: .gff'
+          ],
 
-      expect(meta).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Metadata',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'The extension should be one of the following: .tsv'
-        ]
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'The extension should be one of the following: .tsv'
+          ],
+
+          file: instance_of(Hash)
+        }
       )
     end
   end
 
   describe 'n-wise' do
     example 'not paired' do
-      seq  = create_seq(validation,  name: 'foo.fasta')
-      ann  = create_ann(validation,  name: 'bar.gff')
-      meta = create_meta(validation, name: 'baz.tsv')
+      create_seq  validation, name: 'foo.fasta'
+      create_ann  validation, name: 'bar.gff'
+      create_meta validation, name: 'baz.tsv'
 
       Database::Trad2::Validator.new.validate validation
-      [seq, ann, meta].each &:reload
+      validation.reload
 
-      expect(seq).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding annotation file.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding metadata file.'
-          }
-        ]
-      )
+          details: [
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding annotation file.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding metadata file.'
+            }
+          ],
 
-      expect(ann).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'invalid',
 
-        validation_details: [
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding sequence file.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding metadata file.'
-          }
-        ]
-      )
+          details: [
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding sequence file.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding metadata file.'
+            }
+          ],
 
-      expect(meta).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Metadata',
+          validity:  'invalid',
 
-        validation_details: [
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding sequence file.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding annotation file.'
-          }
-        ]
+          details: [
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding sequence file.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding annotation file.'
+            }
+          ],
+
+          file: instance_of(Hash)
+        }
       )
     end
 
     example 'duplicate seq' do
-      seq1 = create_seq(validation,  name: 'foo.fasta')
-      seq2 = create_seq(validation,  name: 'foo.seq')
-      ann  = create_ann(validation,  name: 'foo.gff')
-      meta = create_meta(validation, name: 'foo.tsv')
+      create_seq  validation, name: 'foo.fasta'
+      create_seq  validation, name: 'foo.seq'
+      create_ann  validation, name: 'foo.gff'
+      create_meta validation, name: 'foo.tsv'
 
       Database::Trad2::Validator.new.validate validation
-      [seq1, seq2, ann, meta].each &:reload
+      validation.reload
 
-      expect(seq1).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'Duplicate sequence files with the same name exist.'
-        ]
-      )
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Duplicate sequence files with the same name exist.'
+          ],
 
-      expect(seq2).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'Duplicate sequence files with the same name exist.'
-        ]
-      )
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Duplicate sequence files with the same name exist.'
+          ],
 
-      expect(ann).to have_attributes(
-        validity:           'valid',
-        validation_details: nil
-      )
-
-      expect(meta).to have_attributes(
-        validity:           'valid',
-        validation_details: nil
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        },
+        {
+          object_id: 'Metadata',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        }
       )
     end
 
     example 'combined' do
-      seq1 = create_seq(validation, name: 'foo.fasta')
-      seq2 = create_seq(validation, name: 'foo.seq')
+      create_seq validation, name: 'foo.fasta'
+      create_seq validation, name: 'foo.seq'
 
       Database::Trad2::Validator.new.validate validation
-      [seq1, seq2].each &:reload
+      validation.reload
 
-      expect(seq1).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: contain_exactly(
-          {
-            'severity' => 'error',
-            'message'  => 'Duplicate sequence files with the same name exist.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding annotation file.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding metadata file.'
-          }
-        )
-      )
+          details: [
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'Duplicate sequence files with the same name exist.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding annotation file.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding metadata file.'
+            }
+          ],
 
-      expect(seq2).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: contain_exactly(
-          {
-            'severity' => 'error',
-            'message'  => 'Duplicate sequence files with the same name exist.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding annotation file.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding metadata file.'
-          }
-        )
+          details: [
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'Duplicate sequence files with the same name exist.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding annotation file.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding metadata file.'
+            }
+          ],
+
+          file: instance_of(Hash)
+        }
       )
     end
   end
 
   describe 'seq' do
     example 'no entries' do
-      seq = create_seq(validation, content: '')
-
-      create_ann validation
+      create_seq  validation, content: ''
+      create_ann  validation
       create_meta validation
 
       Database::Trad2::Validator.new.validate validation
-      seq.reload
+      validation.reload
 
-      expect(seq).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'No entries found.'
-        ]
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'No entries found.'
+          ],
+
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        },
+        {
+          object_id: 'Metadata',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        }
       )
     end
   end
 
   describe 'ann' do
     example 'invalid' do
-      ann = create_ann(validation, content: 'foo')
-
-      create_seq validation
+      create_seq  validation
+      create_ann  validation, content: 'foo'
       create_meta validation
 
       Database::Trad2::Validator.new.validate validation
-      ann.reload
+      validation.reload
 
-      expect(ann).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'Line 1: Custom { kind: InvalidData, error: InvalidRecord(MissingField(Source)) }'
-        ]
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Line 1: Custom { kind: InvalidData, error: InvalidRecord(MissingField(Source)) }'
+          ],
+
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Metadata',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        }
       )
     end
   end

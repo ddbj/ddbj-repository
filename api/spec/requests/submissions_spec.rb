@@ -58,13 +58,13 @@ RSpec.describe 'submissions', type: :request, authorized: true do
           {
             object_id: '_base',
             validity:  'valid',
-            details:   nil,
+            details:   [],
             file:      nil
           },
           {
             object_id: 'Excel',
             validity:  'valid',
-            details:   nil,
+            details:   [],
 
             file: {
               path: 'dest/myexcel.xlsx',

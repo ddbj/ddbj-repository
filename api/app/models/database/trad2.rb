@@ -11,10 +11,6 @@ module Database::Trad2
     def validate(validation)
       objs = validation.objs.without_base
 
-      objs.each do |obj|
-        obj.validation_details = []
-      end
-
       validate_ext   objs, ASSOC
       validate_nwise objs, ASSOC
       validate_seq   objs
@@ -22,7 +18,7 @@ module Database::Trad2
 
       objs.each do |obj|
         if obj.validation_details.empty?
-          obj.update! validity: 'valid', validation_details: nil
+          obj.validity_valid!
         else
           obj.validity_invalid!
         end
@@ -33,10 +29,10 @@ module Database::Trad2
       objs.select { _1._id == 'Annotation' }.each do |obj|
         NoodlesGFF.parse obj.file.download
       rescue NoodlesGFF::Error => e
-        obj.validation_details << {
+        obj.validation_details.create!(
           severity: 'error',
           message:  e.message
-        }
+        )
       end
     end
   end
