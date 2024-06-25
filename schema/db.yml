@@ -1,5 +1,4 @@
 - id: BioProject
-  validator: DDBJValidator
 
   objects:
     - id: BioProject
@@ -7,7 +6,6 @@
       required: true
 
 - id: BioSample
-  validator: DDBJValidator
 
   objects:
     - id: BioSample
@@ -15,7 +13,6 @@
       required: true
 
 - id: Trad
-  validator: TradValidator
 
   objects:
     - id: Sequence
@@ -28,7 +25,6 @@
       multiple: true
 
 - id: DRA
-  validator: DRAValidator
 
   objects:
     - id: Submission
@@ -51,7 +47,6 @@
       multiple: true
 
 - id: GEA
-  validator: GEAValidator
 
   objects:
     - id: IDF
@@ -71,7 +66,6 @@
       multiple: true
 
 - id: MetaboBank
-  validator: MetabobankValidator
 
   objects:
     - id: IDF
@@ -93,7 +87,6 @@
       ext: tsv
 
 - id: JVar
-  validator: PassthroughValidator
 
   objects:
     - id: Excel
@@ -104,7 +97,6 @@
       multiple: true
 
 - id: Trad2
-  validator: Trad2Validator
 
   objects:
     - id: Sequence

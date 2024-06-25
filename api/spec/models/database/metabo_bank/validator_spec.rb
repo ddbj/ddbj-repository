@@ -1,13 +1,13 @@
 require 'rails_helper'
 
-RSpec.describe MetabobankValidator, type: :model do
+RSpec.describe Database::MetaboBank::Validator, type: :model do
   example 'valid' do
     validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
       create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')
     }
 
-    MetabobankValidator.new.validate validation
+    Database::MetaboBank::Validator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -74,7 +74,7 @@ RSpec.describe MetabobankValidator, type: :model do
       create :obj, validation:, _id: 'ProcessedDataFile', file: uploaded_file(name: '220629_ppg_conc.txt'), destination: 'processed'
     }
 
-    MetabobankValidator.new.validate validation
+    Database::MetaboBank::Validator.new.validate validation
     validation.reload
 
     expect(validation.results).to include(
@@ -130,7 +130,7 @@ RSpec.describe MetabobankValidator, type: :model do
       create :obj, validation:, _id: 'BioSample', file: file_fixture_upload('metabobank/valid/MTBKS231.bs.tsv')
     }
 
-    MetabobankValidator.new.validate validation
+    Database::MetaboBank::Validator.new.validate validation
     validation.reload
 
     expect(validation.results).to include(
@@ -151,7 +151,7 @@ RSpec.describe MetabobankValidator, type: :model do
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/invalid/MTBKS201.sdrf.txt')
     }
 
-    MetabobankValidator.new.validate validation
+    Database::MetaboBank::Validator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(

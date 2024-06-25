@@ -1,4 +1,4 @@
-class DDBJValidator
+module DDBJValidator
   def validate(validation)
     validation.write_files_to_tmp do |dir|
       validation.objs.without_base.each do |obj|
