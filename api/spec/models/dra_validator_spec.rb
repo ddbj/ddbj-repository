@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe DraValidator, type: :model do
+RSpec.describe DRAValidator, type: :model do
   example 'valid' do
     validation = create(:validation, id: 42, db: 'DRA') {|validation|
       create :obj, validation:, _id: 'Submission', file: file_fixture_upload('dra/valid/example-0001_dra_Submission.xml')
@@ -9,7 +9,7 @@ RSpec.describe DraValidator, type: :model do
       create :obj, validation:, _id: 'RunFile',    file: uploaded_file(name: 'runfile.xml')
     }
 
-    DraValidator.new.validate validation
+    DRAValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -70,7 +70,7 @@ RSpec.describe DraValidator, type: :model do
       create :obj, validation:, _id: 'RunFile',    file: uploaded_file(name: 'runfile.xml')
     }
 
-    DraValidator.new.validate validation
+    DRAValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -137,7 +137,7 @@ RSpec.describe DraValidator, type: :model do
       create :obj, validation:, _id: 'AnalysisFile', file: uploaded_file(name: 'analysisfile.xml')
     }
 
-    DraValidator.new.validate validation
+    DRAValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to include(
@@ -173,7 +173,7 @@ RSpec.describe DraValidator, type: :model do
       create :obj, validation:, _id: 'RunFile',    file: uploaded_file(name: 'runfile2.xml')
     }
 
-    DraValidator.new.validate validation
+    DRAValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to include(

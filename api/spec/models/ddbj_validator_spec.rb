@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe DdbjValidator, type: :model do
+RSpec.describe DDBJValidator, type: :model do
   let(:validation) {
     create(:validation, id: 42, db: 'BioSample') {|validation|
       create :obj, validation:, _id: 'BioSample', file: uploaded_file(name: 'mybiosample.xml')
@@ -41,7 +41,7 @@ RSpec.describe DdbjValidator, type: :model do
       }
     )
 
-    DdbjValidator.new.validate validation
+    DDBJValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -76,7 +76,7 @@ RSpec.describe DdbjValidator, type: :model do
   example 'if error occured from ddbj_validator, validity is error' do
     stub_request(:post, 'validator.example.com/api/validation').to_return status: 500
 
-    DdbjValidator.new.validate validation
+    DDBJValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
