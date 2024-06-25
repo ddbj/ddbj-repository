@@ -45,23 +45,23 @@ module DDBJValidator
   end
 
   def wait_for_finish(uuid)
-    res = client.get("validation/#{uuid}/status")
+    status = client.get("validation/#{uuid}/status")
 
-    case res.body.fetch(:status)
+    case status.body.fetch(:status)
     when 'accepted', 'running'
       sleep 1 unless Rails.env.test?
 
       wait_for_finish(uuid)
     when 'finished'
-      detail = client.get("validation/#{uuid}")
+      result = client.get("validation/#{uuid}")
 
-      [true, detail.body.fetch(:result)]
+      [true, result.body.fetch(:result)]
     when 'error'
-      detail = client.get("validation/#{uuid}")
+      result = client.get("validation/#{uuid}")
 
-      [false, error: detail.body.fetch(:message)]
+      [false, error: result.body.fetch(:message)]
     else
-      raise "must not happen: #{res.body.to_json}"
+      raise "must not happen: #{status.body.to_json}"
     end
   end
 end
