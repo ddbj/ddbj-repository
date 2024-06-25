@@ -54,6 +54,6 @@ class ValidationsController < ApplicationController
   end
 
   def eager_load(validations)
-    validations.includes(:user, :submission, :objs).merge(Obj.with_attached_file)
+    validations.includes(:user, :submission, :objs => :validation_details).merge(Obj.with_attached_file)
   end
 end

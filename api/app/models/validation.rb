@@ -3,7 +3,7 @@ class Validation < ApplicationRecord
 
   has_one :submission, dependent: :restrict_with_exception
 
-  has_many :objs, dependent: :destroy do
+  has_many :objs, -> { order(:id) }, dependent: :destroy do
     def base
       find { _1._id == '_base' }
     end
@@ -72,7 +72,7 @@ class Validation < ApplicationRecord
   end
 
   def results
-    objs.preload(:validation_details).order(:id).map(&:validation_result)
+    objs.map(&:validation_result)
   end
 
   def write_files_to_tmp(&block)
