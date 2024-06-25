@@ -262,6 +262,7 @@ export interface components {
       validity: "valid" | "invalid" | "error" | null;
       objects: components["schemas"]["Objects"];
       results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
       submission: {
         id: string;
         /** Format: uri */

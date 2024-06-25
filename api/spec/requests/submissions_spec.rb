@@ -73,6 +73,8 @@ RSpec.describe 'submissions', type: :request, authorized: true do
           }
         ],
 
+        raw_result: nil,
+
         submission: {
           id:  'X-200',
           url: 'http://www.example.com/api/submissions/X-200'

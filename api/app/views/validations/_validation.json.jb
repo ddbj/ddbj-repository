@@ -14,6 +14,7 @@
   validity:    validation.validity,
   objects:     render('validations/objs', validation:),
   results:     validation.results,
+  raw_result:  validation.raw_result,
 
   submission: validation.submission.then {|submission|
     if submission

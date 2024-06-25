@@ -5,8 +5,8 @@ module DDBJValidator
         part = Faraday::Multipart::FilePart.new(dir.join(obj.path).to_s, 'application/octet-stream')
 
         begin
-          res = client.post('validation', obj._id.downcase => part)
-          validated, details = wait_for_finish(res.body.fetch(:uuid))
+          res               = client.post('validation', obj._id.downcase => part)
+          validated, result = wait_for_finish(res.body.fetch(:uuid))
         rescue Faraday::Error => e
           obj.validity_error!
 
@@ -17,15 +17,18 @@ module DDBJValidator
 
           Rails.error.report e
         else
+          # each is executed only once, so it will not be overwritten by subsequent executions
+          validation.update! raw_result: result
+
           validity = if validated
-                       details.fetch(:validity) ? 'valid' : 'invalid'
+                       result.fetch(:validity) ? 'valid' : 'invalid'
                      else
                        'error'
                      end
 
           obj.update! validity: validity
 
-          details.fetch(:messages).each do |msg|
+          result.fetch(:messages).each do |msg|
             obj.validation_details.create!(
               code:     msg[:id],
               severity: msg[:level],

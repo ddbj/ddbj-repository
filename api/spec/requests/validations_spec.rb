@@ -47,7 +47,8 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
             }
           ],
 
-          submission: nil
+          raw_result: nil,
+          submission:  nil
         },
         {
           id:  100,
@@ -91,6 +92,8 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
               }
             },
           ],
+
+          raw_result: nil,
 
           submission: {
             id:  'X-200',
@@ -139,6 +142,8 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
             file:      nil
           }
         ],
+
+        raw_result: nil,
 
         submission: {
           id:  'X-200',

@@ -181,7 +181,18 @@ export default class ValidationComponent extends Component<Signature> {
         {{/each}}
       </tbody>
     </table>
+
+    {{#if @validation.raw_result}}
+      <details>
+        <summary>Raw result</summary>
+        <pre><code>{{jsonStringify @validation.raw_result}}</code></pre>
+      </details>
+    {{/if}}
   </template>
+}
+
+function jsonStringify(value: unknown) {
+  return JSON.stringify(value, null, 2);
 }
 
 declare module '@glint/environment-ember-loose/registry' {
