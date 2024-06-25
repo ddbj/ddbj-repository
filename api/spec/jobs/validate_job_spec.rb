@@ -10,7 +10,7 @@ RSpec.describe ValidateJob, type: :job do
   let(:validator) { double(:validator) }
 
   before do
-    allow(DdbjValidator).to receive(:new) { validator }
+    allow(DDBJValidator).to receive(:new) { validator }
   end
 
   example 'valid' do

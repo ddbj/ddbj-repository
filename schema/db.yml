@@ -1,5 +1,5 @@
 - id: BioProject
-  validator: DdbjValidator
+  validator: DDBJValidator
 
   objects:
     - id: BioProject
@@ -7,7 +7,7 @@
       required: true
 
 - id: BioSample
-  validator: DdbjValidator
+  validator: DDBJValidator
 
   objects:
     - id: BioSample
@@ -28,7 +28,7 @@
       multiple: true
 
 - id: DRA
-  validator: DraValidator
+  validator: DRAValidator
 
   objects:
     - id: Submission
@@ -51,7 +51,7 @@
       multiple: true
 
 - id: GEA
-  validator: GeaValidator
+  validator: GEAValidator
 
   objects:
     - id: IDF
