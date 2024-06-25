@@ -74,7 +74,7 @@ class Validations::ViaFilesController < ApplicationController
   end
 
   def create_object(validation, obj_id, path, destination)
-    validation.objs.create! **{
+    validation.objs.create!(
       _id: obj_id,
 
       file: {
@@ -83,7 +83,7 @@ class Validations::ViaFilesController < ApplicationController
       },
 
       destination:
-    }
+    )
   rescue Errno::ENOENT
     raise UnprocessableEntity, "path does not exist: #{path}"
   rescue Errno::EISDIR
