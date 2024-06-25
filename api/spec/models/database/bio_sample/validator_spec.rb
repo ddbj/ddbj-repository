@@ -48,7 +48,7 @@ RSpec.describe Database::BioSample::Validator, type: :model do
       {
         object_id: '_base',
         validity:  nil,
-        details:   nil,
+        details:   [],
         file:      nil
       },
       {
@@ -56,9 +56,9 @@ RSpec.describe Database::BioSample::Validator, type: :model do
         validity:  'valid',
 
         details: [
-          'code'     => '0001',
-          'severity' => 'error',
-          'message'  => 'something went wrong'
+          code:     '0001',
+          severity: 'error',
+          message:  'something went wrong'
         ],
 
         file: {
@@ -83,7 +83,7 @@ RSpec.describe Database::BioSample::Validator, type: :model do
       {
         object_id: '_base',
         validity:  nil,
-        details:   nil,
+        details:   [],
         file:      nil
       },
       {
@@ -91,7 +91,9 @@ RSpec.describe Database::BioSample::Validator, type: :model do
         validity:  'error',
 
         details: [
-          'message' => 'the server responded with status 500'
+          code:     nil,
+          severity: 'error',
+          message:  'the server responded with status 500'
         ],
 
         file: {

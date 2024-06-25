@@ -9,7 +9,12 @@ class ValidateJob < ApplicationJob
         begin
           validator.validate validation
         rescue => e
-          validation.objs.base.update! validity: 'error', validation_details: {error: e.message}
+          validation.objs.base.validity_error!
+
+          validation.objs.base.validation_details.create!(
+            severity: 'error',
+            message:  e.message
+          )
 
           raise
         else

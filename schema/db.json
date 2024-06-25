@@ -1,7 +1,6 @@
 [
   {
     "id": "BioProject",
-    "validator": "DdbjValidator",
     "objects": [
       {
         "id": "BioProject",
@@ -12,7 +11,6 @@
   },
   {
     "id": "BioSample",
-    "validator": "DdbjValidator",
     "objects": [
       {
         "id": "BioSample",
@@ -23,7 +21,6 @@
   },
   {
     "id": "Trad",
-    "validator": "TradValidator",
     "objects": [
       {
         "id": "Sequence",
@@ -41,7 +38,6 @@
   },
   {
     "id": "DRA",
-    "validator": "DraValidator",
     "objects": [
       {
         "id": "Submission",
@@ -77,7 +73,6 @@
   },
   {
     "id": "GEA",
-    "validator": "GeaValidator",
     "objects": [
       {
         "id": "IDF",
@@ -108,7 +103,6 @@
   },
   {
     "id": "MetaboBank",
-    "validator": "MetabobankValidator",
     "objects": [
       {
         "id": "IDF",
@@ -143,7 +137,6 @@
   },
   {
     "id": "JVar",
-    "validator": "PassthroughValidator",
     "objects": [
       {
         "id": "Excel",
@@ -159,7 +152,6 @@
   },
   {
     "id": "Trad2",
-    "validator": "Trad2Validator",
     "objects": [
       {
         "id": "Sequence",

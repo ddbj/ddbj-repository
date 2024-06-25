@@ -72,7 +72,7 @@ class Validation < ApplicationRecord
   end
 
   def results
-    objs.sort_by(&:id).map(&:validation_result)
+    objs.preload(:validation_details).order(:id).map(&:validation_result)
   end
 
   def write_files_to_tmp(&block)

@@ -38,9 +38,6 @@ paths:
                     type: string
                     format: uri
 
-              example:
-                login_url: https://repository.ddbj.nig.ac.jp/auth/login
-
   /api-key/regenerate:
     post:
       description: Re-generate API key.
@@ -62,9 +59,6 @@ paths:
                 properties:
                   api_key:
                     type: string
-
-              example:
-                api_key: ddbj_repository_VbHQePhpFhvrKI7by1kteMvN2ImLfhGVK4mTPFEZ2EO
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -93,10 +87,6 @@ paths:
 
                   admin:
                     type: boolean
-
-              example:
-                uid: alice
-                admin: false
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -276,8 +266,6 @@ paths:
           schema:
             type: integer
 
-          example: 42
-
       responses:
         '200':
           description: Return the validation.
@@ -286,38 +274,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Validation'
-
-              example:
-                id: 42
-
-                user:
-                  uid: alice
-
-                url: https://repository.ddbj.nig.ac.jp/api/validations/42
-                progress: finished
-                validity: valid
-
-                results:
-                  - object_id: _base
-                    validity: null
-                    details: null
-                    file: null
-
-                  - object_id: BioSample
-                    path: mybiosample.xml
-                    validity: valid
-
-                    details:
-                      validity: true
-                      answer: 42
-
-                    file:
-                      path: mybiosample.xml
-                      url: https://repository.ddbj.nig.ac.jp/api/validations/42/files/mybioproject.xml
-
-                submission:
-                  id: X-84
-                  url: https://repository.ddbj.nig.ac.jp/api/submissions/X-84
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -338,8 +294,6 @@ paths:
 
           schema:
             type: integer
-
-          example: 42
 
       responses:
         '200':
@@ -391,8 +345,6 @@ paths:
 
           schema:
             type: string
-
-          example: dest/mybiosample.xml
 
       responses:
         '302':
@@ -535,8 +487,6 @@ paths:
           schema:
             type: string
 
-          example: X-42
-
       responses:
         '200':
           description: Return the submission.
@@ -640,6 +590,11 @@ components:
 
           items:
             $ref: '#/components/schemas/ValidationResult'
+
+        raw_result:
+          type:
+            - object
+            - 'null'
 
         submission:
           type:
@@ -764,9 +719,7 @@ components:
             - null
 
         details:
-          type:
-            - array
-            - 'null'
+          type: array
 
           items:
             type: object
@@ -775,13 +728,19 @@ components:
 
             properties:
               code:
-                type: string
+                type:
+                  - string
+                  - 'null'
 
               severity:
-                type: string
+                type:
+                  - string
+                  - 'null'
 
               message:
-                type: string
+                type:
+                  - string
+                  - 'null'
 
         file:
           type:
@@ -1506,70 +1465,6 @@ components:
             items:
               $ref: '#/components/schemas/Validation'
 
-          example:
-            - id: 100
-              url: https://repository.ddbj.nig.ac.jp/api/validations/100
-
-              user:
-                uid: alice
-
-              db: BioProject
-              created_at: '2024-01-01T00:00:00.000Z'
-              started_at: '2024-01-01T00:01:00.000Z'
-              finished_at: '2024-01-01T00:02:00.000Z'
-              progress: finished
-              validity: valid
-
-              objects:
-                - id: BioProject
-                  files:
-                    - path: mybioproject.xml
-                      url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
-
-              results:
-                - object_id: _base
-                  validity: valid
-                  details: null
-                  file: null
-
-                - object_id: BioSample
-                  validity: valid
-
-                  details:
-                    validity: true
-                    answer: 42
-
-                  file:
-                    path: mybiosample.xml
-                    url: https://repository.ddbj.nig.ac.jp/api/validations/100/files/mybioproject.xml
-
-              submission:
-                id: X-200
-                url: https://repository.ddbj.nig.ac.jp/api/submissions/X-200
-
-            - id: 101
-              url: https://repository.ddbj.nig.ac.jp/api/validations/101
-              db: BioSample
-              created_at: '2024-01-01T01:00:00.000Z'
-              started_at: '2024-01-01T01:01:00.000Z'
-              finished_at: '2024-01-01T01:02:00.000Z'
-              progress: waiting
-              validity: null
-
-              objects:
-                - id: BioSample
-                  files:
-                    - path: mybiosample.xml
-                      url: https://repository.ddbj.nig.ac.jp/api/validations/101/files/mybiosample.xml
-
-              results:
-                - object_id: _base
-                  validity: null
-                  details: null
-                  file: null
-
-              submission: null
-
     BadRequest:
       description: Unexpected parameter specified.
 
@@ -1577,9 +1472,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-
-          example:
-            error: expected :page in 1..3; got 4
 
     Unauthorized:
       description: Not authenticated.
@@ -1589,9 +1481,6 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
 
-          example:
-            error: Unauthorized
-
     Forbidden:
       description: Does not have access rights to the resource.
 
@@ -1599,9 +1488,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-
-          example:
-            error: Forbidden
 
     NotFound:
       description: The requested resource could not be found.
@@ -1611,9 +1497,6 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
 
-          example:
-            error: Not Found
-
     UnprocessableEntity:
       description: Invalid parameter or payload was specified.
 
@@ -1621,6 +1504,3 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-
-          example:
-            error: 'Validation failed: Path is duplicated: mybiosample.xml'

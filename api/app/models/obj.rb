@@ -3,6 +3,8 @@ using PathnameContain
 class Obj < ApplicationRecord
   belongs_to :validation
 
+  has_many :validation_details, -> { order(:id) }, dependent: :destroy
+
   has_one_attached :file
 
   scope :without_base, -> { where.not(_id: '_base') }
@@ -25,7 +27,10 @@ class Obj < ApplicationRecord
     {
       object_id: _id,
       validity:  validity,
-      details:   validation_details,
+
+      details: validation_details.map {
+        _1.slice(:code, :severity, :message).symbolize_keys
+      },
 
       file: base? ? nil : {
         path: ,

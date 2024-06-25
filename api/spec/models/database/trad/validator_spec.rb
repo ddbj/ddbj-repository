@@ -26,207 +26,343 @@ RSpec.describe Database::Trad::Validator, type: :model do
     create(:obj, validation:, _id: 'Annotation', file: uploaded_file(name:, content:))
   end
 
-  let(:validation) { create(:validation) }
+  let(:validation) { create(:validation, id: 42) }
 
   example 'ok' do
-    seq = create_seq(validation)
-    ann = create_ann(validation)
+    create_seq validation, name: 'foo.fasta'
+    create_ann validation, name: 'foo.ann'
 
     Database::Trad::Validator.new.validate validation
-    [seq, ann].each &:reload
+    validation.reload
 
-    expect(seq).to have_attributes(
-      validity:           'valid',
-      validation_details: nil
-    )
+    expect(validation.results).to contain_exactly(
+      {
+        object_id: '_base',
+        validity:  nil,
+        details:   [],
+        file:      nil
+      },
+      {
+        object_id: 'Sequence',
+        validity:  'valid',
+        details:   [],
 
-    expect(ann).to have_attributes(
-      validity:           'valid',
-      validation_details: nil
+        file: {
+          path: 'foo.fasta',
+          url:  'http://www.example.com/api/validations/42/files/foo.fasta'
+        }
+      },
+      {
+        object_id: 'Annotation',
+        validity:  'valid',
+        details:   [],
+
+        file: {
+          path: 'foo.ann',
+          url:  'http://www.example.com/api/validations/42/files/foo.ann'
+        }
+      }
     )
   end
 
   describe 'ext' do
     example do
-      seq = create_seq(validation, name: 'foo.bar')
-      ann = create_ann(validation, name: 'foo.baz')
+      create_seq validation, name: 'foo.bar'
+      create_ann validation, name: 'foo.baz'
 
       Database::Trad::Validator.new.validate validation
-      [seq, ann].each &:reload
+      validation.reload
 
-      expect(seq).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'The extension should be one of the following: .fasta, .seq.fa, .fa, .fna, .seq'
-        ]
-      )
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'The extension should be one of the following: .fasta, .seq.fa, .fa, .fna, .seq'
+          ],
 
-      expect(ann).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'The extension should be one of the following: .ann, .annt.tsv, .ann.txt'
-        ]
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'The extension should be one of the following: .ann, .annt.tsv, .ann.txt'
+          ],
+
+          file: instance_of(Hash)
+        }
       )
     end
   end
 
   describe 'pairwise' do
     example 'not paired' do
-      seq = create_seq(validation, name: 'foo.fasta')
-      ann = create_ann(validation, name: 'bar.ann')
+      create_seq validation, name: 'foo.fasta'
+      create_ann validation, name: 'bar.ann'
 
       Database::Trad::Validator.new.validate validation
-      [seq, ann].each &:reload
+      validation.reload
 
-      expect(seq).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'There is no corresponding annotation file.'
-        ]
-      )
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'There is no corresponding annotation file.'
+          ],
 
-      expect(ann).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'There is no corresponding sequence file.'
-        ]
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'There is no corresponding sequence file.'
+          ],
+
+          file: instance_of(Hash)
+        }
       )
     end
 
     example 'duplicate seq' do
-      seq1 = create_seq(validation, name: 'foo.fasta')
-      seq2 = create_seq(validation, name: 'foo.seq')
-      ann  = create_ann(validation, name: 'foo.ann')
+      create_seq validation, name: 'foo.fasta'
+      create_seq validation, name: 'foo.seq'
+      create_ann validation, name: 'foo.ann'
 
       Database::Trad::Validator.new.validate validation
-      [seq1, seq2, ann].each &:reload
+      validation.reload
 
-      expect(seq1).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'Duplicate sequence files with the same name exist.'
-        ]
-      )
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Duplicate sequence files with the same name exist.'
+          ],
 
-      expect(seq2).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'Duplicate sequence files with the same name exist.'
-        ]
-      )
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Duplicate sequence files with the same name exist.'
+          ],
 
-      expect(ann).to have_attributes(
-        validity:           'valid',
-        validation_details: nil
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        }
       )
     end
 
     example 'combined' do
-      seq1 = create_seq(validation, name: 'foo.fasta')
-      seq2 = create_seq(validation, name: 'foo.seq')
+      create_seq validation, name: 'foo.fasta'
+      create_seq validation, name: 'foo.seq'
 
       Database::Trad::Validator.new.validate validation
-      [seq1, seq2].each &:reload
+      validation.reload
 
-      expect(seq1).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: contain_exactly(
-          {
-            'severity' => 'error',
-            'message'  => 'Duplicate sequence files with the same name exist.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding annotation file.'
-          }
-        )
-      )
+          details: [
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'Duplicate sequence files with the same name exist.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding annotation file.'
+            }
+          ],
 
-      expect(seq2).to have_attributes(
-        validity: 'invalid',
+          file: instance_of(Hash)
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: contain_exactly(
-          {
-            'severity' => 'error',
-            'message'  => 'Duplicate sequence files with the same name exist.'
-          },
-          {
-            'severity' => 'error',
-            'message'  => 'There is no corresponding annotation file.'
-          }
-        )
+          details: [
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'Duplicate sequence files with the same name exist.'
+            },
+            {
+              code:     nil,
+              severity: 'error',
+              message:  'There is no corresponding annotation file.'
+            }
+          ],
+
+          file: instance_of(Hash)
+        }
       )
     end
   end
 
   describe 'seq' do
     example 'no entries' do
-      seq = create_seq(validation, content: '')
-      ann = create_ann(validation)
+      create_seq validation, content: ''
+      create_ann validation
 
       Database::Trad::Validator.new.validate validation
-      seq.reload
+      validation.reload
 
-      expect(seq).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'No entries found.'
-        ]
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'No entries found.'
+          ],
+
+          file:      instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        }
       )
     end
   end
 
   describe 'ann' do
     example 'missing contact person' do
-      seq = create_seq(validation)
-      ann = create_ann(validation, content: '')
+      create_seq validation
+      create_ann validation, content: ''
 
       Database::Trad::Validator.new.validate validation
-      ann.reload
+      validation.reload
 
-      expect(ann).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'Contact person information (contact, email, institute) is missing.'
-        ]
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is missing.'
+          ],
+
+          file: instance_of(Hash)
+        }
       )
     end
 
     example 'missing contact person (partial)' do
-      seq = create_seq(validation)
+      create_seq validation
 
-      ann = create_ann(validation, content: <<~ANN)
+      create_ann validation, content: <<~ANN
         COMMON	SUBMITTER		contact	Alice Liddell
         			email	alice@example.com
       ANN
 
       Database::Trad::Validator.new.validate validation
-      ann.reload
+      validation.reload
 
-      expect(ann).to have_attributes(
-        validity: 'invalid',
+      expect(validation.results).to contain_exactly(
+        {
+          object_id: '_base',
+          validity:  nil,
+          details:   [],
+          file:      nil
+        },
+        {
+          object_id: 'Sequence',
+          validity:  'valid',
+          details:   [],
+          file:      instance_of(Hash)
+        },
+        {
+          object_id: 'Annotation',
+          validity:  'invalid',
 
-        validation_details: [
-          'severity' => 'error',
-          'message'  => 'Contact person information (contact, email, institute) is missing.'
-        ]
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is missing.'
+          ],
+
+          file: instance_of(Hash)
+        }
       )
     end
   end

@@ -14,7 +14,7 @@ RSpec.describe Database::GEA::Validator, type: :model do
       {
         object_id: '_base',
         validity:  nil,
-        details:   nil,
+        details:   [],
         file:      nil
       },
       {

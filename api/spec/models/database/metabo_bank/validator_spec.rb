@@ -14,7 +14,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       {
         object_id: '_base',
         validity:  nil,
-        details:   nil,
+        details:   [],
         file:      nil
       },
       {
@@ -22,10 +22,9 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
         validity:  'valid',
 
         details: [
-          'object_id' => 'IDF',
-          'code'      => 'MB_IR0037',
-          'severity'  => 'error_ignore',
-          'message'   => instance_of(String)
+          code:     'MB_IR0037',
+          severity: 'error_ignore',
+          message:  instance_of(String)
         ],
 
         file: {
@@ -81,7 +80,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       {
         object_id: 'MAF',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'MTBKS231.maf.txt',
@@ -91,7 +90,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       {
         object_id: 'RawDataFile',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'raw/010_10_1_010.lcd',
@@ -101,7 +100,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       {
         object_id: 'RawDataFile',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'raw/027_27_18_027.lcd',
@@ -111,7 +110,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       {
         object_id: 'ProcessedDataFile',
         validity:  'valid',
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'processed/220629_ppg_conc.txt',
@@ -136,7 +135,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
     expect(validation.results).to include(
       object_id: 'BioSample',
       validity:  'valid',
-      details:   nil,
+      details:   [],
 
       file: {
         path: 'MTBKS231.bs.tsv',
@@ -158,7 +157,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       {
         object_id: '_base',
         validity:  nil,
-        details:   nil,
+        details:   [],
         file:      nil
       },
       {

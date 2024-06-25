@@ -42,12 +42,13 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
             {
               object_id: '_base',
               validity:  nil,
-              details:   nil,
+              details:   [],
               file:      nil
             }
           ],
 
-          submission: nil
+          raw_result: nil,
+          submission:  nil
         },
         {
           id:  100,
@@ -77,13 +78,13 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
             {
               object_id: '_base',
               validity:  'valid',
-              details:   nil,
+              details:   [],
               file:      nil
             },
             {
               object_id: 'IDF',
               validity:  'valid',
-              details:   nil,
+              details:   [],
 
               file: {
                 path: 'myidf.txt',
@@ -91,6 +92,8 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
               }
             },
           ],
+
+          raw_result: nil,
 
           submission: {
             id:  'X-200',
@@ -135,10 +138,12 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           {
             object_id: '_base',
             validity:  'valid',
-            details:   nil,
+            details:   [],
             file:      nil
           }
         ],
+
+        raw_result: nil,
 
         submission: {
           id:  'X-200',

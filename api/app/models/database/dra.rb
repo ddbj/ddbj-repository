@@ -28,7 +28,14 @@ module Database::DRA
           validation.objs.without_base.group_by(&:_id).each do |obj_id, objs|
             if errs = errors[obj_id]
               objs.each do |obj|
-                obj.update! validity: 'invalid', validation_details: errs
+                obj.validity_invalid!
+
+                errs.each do |err|
+                  obj.validation_details.create!(
+                    severity: 'error',
+                    message:  err.fetch(:message)
+                  )
+                end
               end
             else
               objs.each do |obj|

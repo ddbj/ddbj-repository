@@ -57,16 +57,18 @@ RSpec.describe ValidateJob, type: :job do
         object_id: '_base',
         validity:  'error',
 
-        details: {
-          'error' => 'something went wrong'
-        },
+        details: [
+          code:     nil,
+          severity: 'error',
+          message:  'something went wrong'
+        ],
 
         file: nil
       },
       {
         object_id: 'BioProject',
         validity:  nil,
-        details:   nil,
+        details:   [],
 
         file: {
           path: 'mybioproject.xml',

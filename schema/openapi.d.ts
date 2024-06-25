@@ -109,7 +109,6 @@ export interface paths {
     get: {
       parameters: {
         path: {
-          /** @example 42 */
           id: number;
         };
       };
@@ -128,7 +127,6 @@ export interface paths {
     delete: {
       parameters: {
         path: {
-          /** @example 42 */
           id: number;
         };
       };
@@ -154,7 +152,6 @@ export interface paths {
       parameters: {
         path: {
           id: number;
-          /** @example dest/mybiosample.xml */
           path: string;
         };
       };
@@ -223,7 +220,6 @@ export interface paths {
     get: {
       parameters: {
         path: {
-          /** @example X-42 */
           id: string;
         };
       };
@@ -266,6 +262,7 @@ export interface components {
       validity: "valid" | "invalid" | "error" | null;
       objects: components["schemas"]["Objects"];
       results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
       submission: {
         id: string;
         /** Format: uri */
@@ -292,11 +289,11 @@ export interface components {
       object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
       /** @enum {string|null} */
       validity: "valid" | "invalid" | "error" | null;
-      details: {
-          code: string;
-          severity: string;
-          message: string;
-        }[] | null;
+      details: ({
+          code: string | null;
+          severity: string | null;
+          message: string | null;
+        })[];
       file: {
         path: string;
         /** Format: uri */
