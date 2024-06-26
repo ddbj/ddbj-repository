@@ -5,8 +5,8 @@ module DDBJValidator
         part = Faraday::Multipart::FilePart.new(dir.join(obj.path).to_s, 'application/octet-stream')
 
         begin
-          res        = client.post('validation', obj._id.downcase => part)
-          ok, result = wait_for_finish(res.body.fetch(:uuid))
+          res      = client.post('validation', obj._id.downcase => part)
+          ok, body = wait_for_finish(res.body.fetch(:uuid))
         rescue Faraday::Error => e
           obj.validity_error!
 
@@ -18,12 +18,12 @@ module DDBJValidator
           Rails.error.report e
         else
           # each is executed only once, so it will not be overwritten by subsequent executions
-          validation.update! raw_result: result
+          validation.update! raw_result: body
 
           if ok
-            obj.update! validity: result.fetch(:validity) ? 'valid' : 'invalid'
+            obj.update! validity: body.dig(:result, :validity) ? 'valid' : 'invalid'
 
-            result.fetch(:messages).each do |msg|
+            body.dig(:result, :messages).each do |msg|
               code, severity, message = msg.fetch_values(:id, :level, :message)
 
               obj.validation_details.create! code:, severity:, message:
@@ -33,7 +33,7 @@ module DDBJValidator
 
             obj.validation_details.create!(
               severity: 'error',
-              message:  result
+              message:  body.fetch(:message)
             )
           end
         end
@@ -64,11 +64,11 @@ module DDBJValidator
     when 'finished'
       result = client.get("validation/#{uuid}")
 
-      [true, result.body.fetch(:result)]
+      [true, result.body]
     when 'error'
       result = client.get("validation/#{uuid}")
 
-      [false, result.body.fetch(:message)]
+      [false, result.body]
     else
       raise "must not happen: #{status.body.to_json}"
     end
