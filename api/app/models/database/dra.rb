@@ -50,7 +50,43 @@ module Database::DRA
 
   class Submitter
     def submit(submission)
-      # do nothing
+      db = Sequel.connect(ENV.fetch('DRA_DATABASE_URL'))
+
+      user_id       = 42
+      submitter_id  = '42'
+      serial        = (db[:submission].where(submitter_id:).max(:serial) || 0) + 1
+      submission_id = "#{submitter_id}-#{serial.to_s.rjust(4, '0')}"
+
+      sub_id = db[:submission].insert(
+        usr_id:       user_id,
+        submitter_id: ,
+        serial:       ,
+        create_date:  Date.current
+      )
+
+      db[:status_history].insert(
+        sub_id: ,
+        status: 100 # SubmissionStatus.NEW
+      )
+
+      db[:operation_history].insert(
+        type:         3, # LogLevel.INFO
+        summary:      'Status update to new',
+        usr_id:       user_id,
+        serial:       ,
+        submitter_id:
+      )
+
+      ext_id = db[:ext_entity].insert(
+        acc_type: 'DRA',
+        ref_name: submission_id,
+        status:   0 # ExtStatus.INPUTTING
+      )
+
+      db[:ext_permit].insert(
+        ext_id:       ,
+        submitter_id:
+      )
     end
   end
 end
