@@ -19,6 +19,12 @@ const ValidityBadgeComponent: TOC<Signature> = <template>
 
 export default ValidityBadgeComponent;
 
+declare module '@glint/environment-ember-loose/registry' {
+  export default interface Registry {
+    ValidityBadge: typeof ValidityBadgeComponent;
+  }
+}
+
 function colorClass(validity: Exclude<Validity, null>) {
   switch (validity) {
     case 'valid':
@@ -29,11 +35,5 @@ function colorClass(validity: Exclude<Validity, null>) {
       return 'text-bg-warning';
     default:
       throw new Error(validity satisfies never);
-  }
-}
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ValidityBadge: typeof ValidityBadgeComponent;
   }
 }
