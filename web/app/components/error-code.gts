@@ -25,16 +25,16 @@ const ErrorCodeComponent: TOC<Signature> = <template>
 
 export default ErrorCodeComponent;
 
+declare module '@glint/environment-ember-loose/registry' {
+  export default interface Registry {
+    ErrorCode: typeof ErrorCodeComponent;
+  }
+}
+
 function url(code: Exclude<Code, null>) {
   if (/^BS_R\d{4}$/.test(code)) {
     return `https://www.ddbj.nig.ac.jp/biosample/validation-e.html#${code}`;
   } else {
     return undefined;
-  }
-}
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ErrorCode: typeof ErrorCodeComponent;
   }
 }

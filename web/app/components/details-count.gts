@@ -1,31 +1,30 @@
-import Component from '@glimmer/component';
-
+import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
-type Validation = components['schemas']['Validation'];
+type Results = components['schemas']['Validation']['results'];
 
 interface Signature {
   Args: {
-    results: Validation['results'];
+    results: Results;
   };
 }
 
-export default class DetailsCountComponent extends Component<Signature> {
-  get count() {
-    const { results } = this.args;
-
-    return results.reduce((acc, { details }) => acc + details.length, 0);
-  }
-
-  <template>
-    {{#if this.count}}
-      <span class='badge bg-secondary'>{{this.count}}</span>
+const DetailsCountComponent: TOC<Signature> = <template>
+  {{#let (detailsCount @results) as |count|}}
+    {{#if count}}
+      <span class='badge bg-secondary'>{{count}}</span>
     {{/if}}
-  </template>
-}
+  {{/let}}
+</template>;
+
+export default DetailsCountComponent;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
     DetailsCount: typeof DetailsCountComponent;
   }
+}
+
+function detailsCount(results: Results) {
+  return results.reduce((acc, { details }) => acc + details.length, 0);
 }
