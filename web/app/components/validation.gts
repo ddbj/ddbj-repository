@@ -10,6 +10,7 @@ import { eq } from 'ember-truth-helpers';
 import { sub } from 'ember-math-helpers/helpers/sub';
 
 import DetailsCount from 'ddbj-repository/components/details-count';
+import ErrorCode from 'ddbj-repository/components/error-code';
 import ProgressLabel from 'ddbj-repository/components/progress-label';
 import SubmitButton from 'ddbj-repository/components/submit-button';
 import ValidityBadge from 'ddbj-repository/components/validity-badge';
@@ -165,9 +166,17 @@ export default class ValidationComponent extends Component<Signature> {
                     {{#each result.details as |detail i|}}
                       <tr>
                         {{#let (eq i (sub (array result.details.length 1))) as |isLast|}}
-                          <td class={{if isLast 'border-bottom-0'}}>{{if detail.code detail.code '-'}}</td>
-                          <td class={{if isLast 'border-bottom-0'}}>{{if detail.severity detail.severity '-'}}</td>
-                          <td class={{if isLast 'border-bottom-0'}}>{{detail.message}}</td>
+                          <td class={{if isLast 'border-bottom-0'}}>
+                            <ErrorCode @code={{detail.code}} />
+                          </td>
+
+                          <td class={{if isLast 'border-bottom-0'}}>
+                            {{if detail.severity detail.severity '-'}}
+                          </td>
+
+                          <td class={{if isLast 'border-bottom-0'}}>
+                            {{detail.message}}
+                          </td>
                         {{/let}}
                       </tr>
                     {{/each}}
