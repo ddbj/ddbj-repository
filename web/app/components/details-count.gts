@@ -14,7 +14,7 @@ export default class DetailsCountComponent extends Component<Signature> {
   get count() {
     const { results } = this.args;
 
-    return results.map(({ details }) => details).filter(Boolean).length;
+    return results.reduce((acc, { details }) => acc + details.length, 0);
   }
 
   <template>
