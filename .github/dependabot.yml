@@ -13,11 +13,6 @@ updates:
     schedule:
       interval: daily
 
-    labels:
-      - dependencies
-      - ruby
-      - api
-
   - package-ecosystem: docker
     directory: /compose/varnish
 
@@ -47,11 +42,6 @@ updates:
 
     schedule:
       interval: daily
-
-    labels:
-      - dependencies
-      - javascript
-      - web
 
     groups:
       types:
