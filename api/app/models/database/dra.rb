@@ -91,6 +91,26 @@ module Database::DRA
           ext_id:       ,
           submitter_id:
         )
+
+        Net::SFTP.start 'localhost', 'maimu', key_data: [File.read('/Users/maimu/.ssh/id_ed25519_no_passphrase')] do |sftp|
+          mkdir_p! sftp, 'Documents/upload/foo/bar'
+        end
+      end
+
+      private
+
+      def mkdir_p!(sftp, path)
+        components = path.split('/')
+        
+        components.size.times.map {|i|
+          components[0..i].join('/')
+        }.each do |sub_path|
+          begin
+            sftp.mkdir! sub_path
+          rescue Net::SFTP::StatusException => e
+            raise unless e.code == 4
+          end
+        end
       end
     end
   end
