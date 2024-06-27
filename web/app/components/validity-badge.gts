@@ -1,40 +1,35 @@
-import Component from '@glimmer/component';
-
+import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
-type Validation = components['schemas']['Validation'];
+type Validity = components['schemas']['Validation']['validity'];
 
 interface Signature {
   Args: {
-    validity: Validation['validity'];
+    validity: Validity;
   };
 }
 
-export default class ValidityBadgeComponent extends Component<Signature> {
-  get colorClass() {
-    const { validity } = this.args;
+const ValidityBadgeComponent: TOC<Signature> = <template>
+  {{#if @validity}}
+    <span class='badge {{colorClass @validity}} text-capitalize'>{{@validity}}</span>
+  {{else}}
+    -
+  {{/if}}
+</template>;
 
-    switch (validity) {
-      case 'valid':
-        return 'text-bg-success';
-      case 'invalid':
-        return 'text-bg-danger';
-      case 'error':
-        return 'text-bg-warning';
-      case null:
-        return undefined;
-      default:
-        throw new Error(validity satisfies never);
-    }
+export default ValidityBadgeComponent;
+
+function colorClass(validity: Exclude<Validity, null>) {
+  switch (validity) {
+    case 'valid':
+      return 'text-bg-success';
+    case 'invalid':
+      return 'text-bg-danger';
+    case 'error':
+      return 'text-bg-warning';
+    default:
+      throw new Error(validity satisfies never);
   }
-
-  <template>
-    {{#if @validity}}
-      <span class='badge {{this.colorClass}} text-capitalize'>{{@validity}}</span>
-    {{else}}
-      -
-    {{/if}}
-  </template>
 }
 
 declare module '@glint/environment-ember-loose/registry' {
