@@ -21,8 +21,8 @@ importers:
         specifier: ^3.3.0
         version: 3.3.0(@glint/template@1.4.0)(ember-source@5.9.0(@babel/core@7.24.7)(@glimmer/component@1.1.2(@babel/core@7.24.7))(@glint/template@1.4.0)(rsvp@4.8.5)(webpack@5.92.1))(webpack@5.92.1)
       '@embroider/compat':
-        specifier: ^3.5.4
-        version: 3.5.4(@embroider/core@3.4.14(@glint/template@1.4.0))(@glint/template@1.4.0)
+        specifier: ^3.5.5
+        version: 3.5.5(@embroider/core@3.4.14(@glint/template@1.4.0))(@glint/template@1.4.0)
       '@embroider/core':
         specifier: ^3.4.14
         version: 3.4.14(@glint/template@1.4.0)
@@ -977,12 +977,12 @@ packages:
     peerDependencies:
       '@embroider/core': ^3.4.0
 
-  '@embroider/compat@3.5.4':
-    resolution: {integrity: sha512-WTHR2PnBYtFrHsDJ0glU8feWr5sMmb3eDolH4M0n3oUNzfEkerRqeosNHAjSfQTlJIh2KDHd4Pf2XYLhRrDFPg==}
+  '@embroider/compat@3.5.5':
+    resolution: {integrity: sha512-AFdsoitgxdU4VDmoGJohvPJtcQ0hpNrueHDHaeY1agPw18+CD+NQNtKI6BbGltEvneNBgWn8xaRChNqj+1tXoQ==}
     engines: {node: 12.* || 14.* || >= 16}
     hasBin: true
     peerDependencies:
-      '@embroider/core': ^3.4.13
+      '@embroider/core': ^3.4.14
 
   '@embroider/core@3.4.14':
     resolution: {integrity: sha512-WVVKup9j1LzciQDL3jfvADJIyLTPe3+cWKzZwqwSnDkYIx2Nsq5a/drKcjJZPJtwU1ddbMpDnUVgGtOurN1VcA==}
@@ -7804,7 +7804,7 @@ snapshots:
       - supports-color
       - webpack
 
-  '@embroider/compat@3.5.4(@embroider/core@3.4.14(@glint/template@1.4.0))(@glint/template@1.4.0)':
+  '@embroider/compat@3.5.5(@embroider/core@3.4.14(@glint/template@1.4.0))(@glint/template@1.4.0)':
     dependencies:
       '@babel/code-frame': 7.24.7
       '@babel/core': 7.24.7
@@ -7814,7 +7814,7 @@ snapshots:
       '@babel/runtime': 7.24.7
       '@babel/traverse': 7.24.7(supports-color@8.1.1)
       '@embroider/core': 3.4.14(@glint/template@1.4.0)
-      '@embroider/macros': 1.16.4(@glint/template@1.4.0)
+      '@embroider/macros': 1.16.5(@glint/template@1.4.0)
       '@types/babel__code-frame': 7.0.6
       '@types/yargs': 17.0.32
       assert-never: 1.2.1
