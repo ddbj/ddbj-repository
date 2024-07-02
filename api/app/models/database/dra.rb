@@ -50,34 +50,30 @@ module Database::DRA
 
   class Submitter
     def submit(submission)
-      db = Sequel.connect(ENV.fetch('DRA_DATABASE_URL'))
+      submitter_db = Sequel.connect(ENV.fetch('SUBMITTER_DB_DATABASE_URL'))
+      drmdb        = Sequel.connect(ENV.fetch('DRMDB_DATABASE_URL'))
 
-      user_id      = 42
-      submitter_id = '42'
+      submitter_id = submission.validation.user.uid
+      user_id      = submitter_db[:login].where(submitter_id:).get(:usr_id)
 
-      db.transaction auto_savepoint: true do
-        serial = nil
-        sub_id = nil
+      drmdb.transaction isolation: :serializable do
+        serial = (drmdb[:submission].where(submitter_id:).max(:serial) || 0) + 1
 
-        db.transaction isolation: :serializable do
-          serial = (db[:submission].where(submitter_id:).max(:serial) || 0) + 1
-
-          sub_id = db[:submission].insert(
-            usr_id:       user_id,
-            submitter_id: ,
-            serial:       ,
-            create_date:  Date.current
-          )
-        end
+        sub_id = drmdb[:submission].insert(
+          usr_id:       user_id,
+          submitter_id: ,
+          serial:       ,
+          create_date:  Date.current
+        )
 
         submission_id = "#{submitter_id}-#{serial.to_s.rjust(4, '0')}"
 
-        db[:status_history].insert(
+        drmdb[:status_history].insert(
           sub_id: ,
           status: 100 # SubmissionStatus.NEW
         )
 
-        db[:operation_history].insert(
+        drmdb[:operation_history].insert(
           type:         3, # LogLevel.INFO
           summary:      'Status update to new',
           usr_id:       user_id,
@@ -85,13 +81,13 @@ module Database::DRA
           submitter_id:
         )
 
-        ext_id = db[:ext_entity].insert(
+        ext_id = drmdb[:ext_entity].insert(
           acc_type: 'DRA',
           ref_name: submission_id,
           status:   0 # ExtStatus.INPUTTING
         )
 
-        db[:ext_permit].insert(
+        drmdb[:ext_permit].insert(
           ext_id:       ,
           submitter_id:
         )
