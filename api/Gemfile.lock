@@ -213,8 +213,6 @@ GEM
       net-protocol
     net-protocol (0.2.2)
       timeout
-    net-sftp (4.0.0)
-      net-ssh (>= 5.0.0, < 8.0.0)
     net-smtp (0.5.0)
       net-protocol
     net-ssh (7.2.3)
@@ -412,7 +410,7 @@ DEPENDENCIES
   faraday-multipart
   jb
   metabobank_tools!
-  net-sftp
+  net-ssh
   noodles_gff!
   openid_connect
   pagy

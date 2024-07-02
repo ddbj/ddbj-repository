@@ -92,8 +92,10 @@ module Database::DRA
           submitter_id:
         )
 
-        Net::SFTP.start 'localhost', 'maimu', key_data: [File.read('/Users/maimu/.ssh/id_ed25519_no_passphrase')] do |sftp|
-          mkdir_p! sftp, 'Documents/upload/foo/bar'
+        host, user, key_data = ENV.fetch_values('DRA_SSH_HOST', 'DRA_SSH_USER', 'DRA_SSH_KEY_DATA')
+
+        Net::SSH.start host, user, key_data: [key_data] do |ssh|
+          ssh.exec! "sudo /usr/local/sbin/chroot-createdir.sh #{submitter_id} #{submission_id}"
         end
       end
 
@@ -101,7 +103,7 @@ module Database::DRA
 
       def mkdir_p!(sftp, path)
         components = path.split('/')
-        
+
         components.size.times.map {|i|
           components[0..i].join('/')
         }.each do |sub_path|
