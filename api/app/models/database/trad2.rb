@@ -36,4 +36,10 @@ module Database::Trad2
       end
     end
   end
+
+  class Submitter
+    def submit(submission)
+      # do nothing
+    end
+  end
 end

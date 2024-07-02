@@ -47,4 +47,57 @@ module Database::DRA
       end
     end
   end
+
+  class Submitter
+    def submit(submission)
+      submitter_db = Sequel.connect(ENV.fetch('SUBMITTER_DB_DATABASE_URL'))
+      drmdb        = Sequel.connect(ENV.fetch('DRMDB_DATABASE_URL'))
+
+      submitter_id = submission.validation.user.uid
+      user_id      = submitter_db[:login].where(submitter_id:).get(:usr_id)
+
+      drmdb.transaction isolation: :serializable do
+        serial = (drmdb[:submission].where(submitter_id:).max(:serial) || 0) + 1
+
+        sub_id = drmdb[:submission].insert(
+          usr_id:       user_id,
+          submitter_id: ,
+          serial:       ,
+          create_date:  Date.current
+        )
+
+        submission_id = "#{submitter_id}-#{serial.to_s.rjust(4, '0')}"
+
+        drmdb[:status_history].insert(
+          sub_id: ,
+          status: 100 # SubmissionStatus.NEW
+        )
+
+        drmdb[:operation_history].insert(
+          type:         3, # LogLevel.INFO
+          summary:      'Status update to new',
+          usr_id:       user_id,
+          serial:       ,
+          submitter_id:
+        )
+
+        ext_id = drmdb[:ext_entity].insert(
+          acc_type: 'DRA',
+          ref_name: submission_id,
+          status:   0 # ExtStatus.INPUTTING
+        )
+
+        drmdb[:ext_permit].insert(
+          ext_id:       ,
+          submitter_id:
+        )
+
+        host, user, key_data = ENV.values_at('DRA_SSH_HOST', 'DRA_SSH_USER', 'DRA_SSH_KEY_DATA')
+
+        Net::SSH.start host, user, key_data: [key_data] do |ssh|
+          ssh.exec! "sudo /usr/local/sbin/chroot-createdir.sh #{submitter_id} #{submission_id}"
+        end
+      end
+    end
+  end
 end
