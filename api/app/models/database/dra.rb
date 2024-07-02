@@ -92,26 +92,10 @@ module Database::DRA
           submitter_id:
         )
 
-        host, user, key_data = ENV.fetch_values('DRA_SSH_HOST', 'DRA_SSH_USER', 'DRA_SSH_KEY_DATA')
+        host, user, key_data = ENV.values_at('DRA_SSH_HOST', 'DRA_SSH_USER', 'DRA_SSH_KEY_DATA')
 
         Net::SSH.start host, user, key_data: [key_data] do |ssh|
           ssh.exec! "sudo /usr/local/sbin/chroot-createdir.sh #{submitter_id} #{submission_id}"
-        end
-      end
-
-      private
-
-      def mkdir_p!(sftp, path)
-        components = path.split('/')
-
-        components.size.times.map {|i|
-          components[0..i].join('/')
-        }.each do |sub_path|
-          begin
-            sftp.mkdir! sub_path
-          rescue Net::SFTP::StatusException => e
-            raise unless e.code == 4
-          end
         end
       end
     end
