@@ -342,6 +342,8 @@ GEM
     sentry-sidekiq (5.18.1)
       sentry-ruby (~> 5.18.1)
       sidekiq (>= 3.0)
+    sequel (5.82.0)
+      bigdecimal
     sidekiq (7.3.0)
       concurrent-ruby (< 2)
       connection_pool (>= 2.3.0)
@@ -418,6 +420,7 @@ DEPENDENCIES
   rspec-rails
   sentry-rails
   sentry-sidekiq
+  sequel
   sidekiq
   sidekiq-scheduler
   skooma
