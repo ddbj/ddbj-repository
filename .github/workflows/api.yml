@@ -56,5 +56,8 @@ jobs:
 
       - run: bundle exec submission-excel2xml download_xsd
 
+      - run: createdb drmdb_test
+      - run: createdb submitter_db_test
+
       - run: bin/rails db:prepare
       - run: bundle exec rspec
