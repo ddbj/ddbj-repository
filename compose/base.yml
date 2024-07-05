@@ -157,8 +157,13 @@ services:
       context: ../ddbj_validator
 
     environment:
-      DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER: http://virtuoso:8890/sparql
-      TZ:                                          Japan
+      DDBJ_VALIDATOR_APP_POSTGRES_HOST:
+      DDBJ_VALIDATOR_APP_POSTGRES_PASSWD:
+      DDBJ_VALIDATOR_APP_POSTGRES_PORT:
+      DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:          '30'
+      DDBJ_VALIDATOR_APP_POSTGRES_USER:
+      DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER:  http://virtuoso:8890/sparql
+      TZ:                                           Japan
 
   virtuoso:
     image: openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
