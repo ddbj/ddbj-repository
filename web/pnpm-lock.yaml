@@ -21,8 +21,8 @@ importers:
         specifier: ^3.3.0
         version: 3.3.0(@glint/template@1.4.0)(ember-source@5.9.0(@babel/core@7.24.7)(@glimmer/component@1.1.2(@babel/core@7.24.7))(@glint/template@1.4.0)(rsvp@4.8.5)(webpack@5.92.1))(webpack@5.92.1)
       '@embroider/compat':
-        specifier: ^3.5.5
-        version: 3.5.5(@embroider/core@3.4.14(@glint/template@1.4.0))(@glint/template@1.4.0)
+        specifier: ^3.5.6
+        version: 3.5.6(@embroider/core@3.4.14(@glint/template@1.4.0))(@glint/template@1.4.0)
       '@embroider/core':
         specifier: ^3.4.14
         version: 3.4.14(@glint/template@1.4.0)
@@ -977,8 +977,8 @@ packages:
     peerDependencies:
       '@embroider/core': ^3.4.0
 
-  '@embroider/compat@3.5.5':
-    resolution: {integrity: sha512-AFdsoitgxdU4VDmoGJohvPJtcQ0hpNrueHDHaeY1agPw18+CD+NQNtKI6BbGltEvneNBgWn8xaRChNqj+1tXoQ==}
+  '@embroider/compat@3.5.6':
+    resolution: {integrity: sha512-yATWUTGrbHms/FLBe+tbvmmTWqfkTxUrgQTaagwjXSsVRkI5IBIX6CKfGMn/iaHcEQuTVmMJMxIT1X1XRJJqNw==}
     engines: {node: 12.* || 14.* || >= 16}
     hasBin: true
     peerDependencies:
@@ -7810,7 +7810,7 @@ snapshots:
       - supports-color
       - webpack
 
-  '@embroider/compat@3.5.5(@embroider/core@3.4.14(@glint/template@1.4.0))(@glint/template@1.4.0)':
+  '@embroider/compat@3.5.6(@embroider/core@3.4.14(@glint/template@1.4.0))(@glint/template@1.4.0)':
     dependencies:
       '@babel/code-frame': 7.24.7
       '@babel/core': 7.24.7
