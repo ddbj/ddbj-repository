@@ -90,5 +90,3 @@ class Validations::ViaFilesController < ApplicationController
     raise UnprocessableEntity, "path is directory: #{path}"
   end
 end
-
-
