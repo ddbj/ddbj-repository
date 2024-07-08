@@ -64,14 +64,14 @@
     "@types/ember__utils": "^4.0.7",
     "@types/qunit": "^2.19.10",
     "@types/rsvp": "^4.0.9",
-    "@typescript-eslint/eslint-plugin": "^7.15.0",
-    "@typescript-eslint/parser": "^7.15.0",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
     "bootstrap": "^5.3.3",
     "broccoli-asset-rev": "^3.0.0",
     "concurrently": "^8.2.2",
     "date-fns": "^3.6.0",
     "ember-auto-import": "^2.7.4",
-    "ember-cli": "~5.9.0",
+    "ember-cli": "~5.10.0",
     "ember-cli-app-version": "^7.0.0",
     "ember-cli-babel": "^8.2.0",
     "ember-cli-clean-css": "^3.0.0",
@@ -86,7 +86,7 @@
     "ember-page-title": "^8.2.3",
     "ember-qunit": "^8.1.0",
     "ember-resolver": "^12.0.1",
-    "ember-source": "~5.9.0",
+    "ember-source": "~5.10.0",
     "ember-style-modifier": "^4.3.1",
     "ember-template-imports": "^4.1.1",
     "ember-template-lint": "^6.0.0",
@@ -116,5 +116,5 @@
   "ember": {
     "edition": "octane"
   },
-  "packageManager": "pnpm@9.4.0"
+  "packageManager": "pnpm@9.5.0"
 }
