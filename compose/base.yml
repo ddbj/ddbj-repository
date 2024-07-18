@@ -1,6 +1,5 @@
 volumes:
   postgres:
-  redis:
   minio:
   virtuoso:
 
@@ -48,7 +47,6 @@ services:
       MINIO_SECRET_ACCESS_KEY:
       OIDC_CLIENT_ID:
       OIDC_ISSUER_URL:
-      REDIS_URL:               redis://redis
       REPOSITORY_DIR:          /data/repository
       RUBY_YJIT_ENABLE:        'true'
       SECRET_KEY_BASE:
@@ -68,8 +66,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
       minio-setup:
         condition: service_completed_successfully
       ddbj-validator:
@@ -78,9 +74,9 @@ services:
     extra_hosts:
       - host.docker.internal:host-gateway
 
-  sidekiq:
+  solid_queue:
     <<: *rails
-    command: [bundle, exec, sidekiq]
+    command: [bundle, exec, rake, solid_queue:start]
     ports: []
 
   postgres:
@@ -95,18 +91,6 @@ services:
 
     healthcheck:
       test: [CMD, pg_isready, --username, postgres]
-      interval: 1s
-      timeout: 3s
-      retries: 30
-
-  redis:
-    image: redis:7
-
-    volumes:
-      - redis:/data
-
-    healthcheck:
-      test: [CMD, redis-cli, ping]
       interval: 1s
       timeout: 3s
       retries: 30

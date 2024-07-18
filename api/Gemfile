@@ -20,10 +20,8 @@ gem 'puma'
 gem 'rack-cors'
 gem 'rambulance'
 gem 'sentry-rails'
-gem 'sentry-sidekiq'
 gem 'sequel'
-gem 'sidekiq'
-gem 'sidekiq-scheduler'
+gem 'solid_queue'
 gem 'submission-excel2xml', github: 'ddbj/submission-excel2xml'
 
 group :development do

@@ -302,8 +302,6 @@ GEM
       railties
     rdoc (6.7.0)
       psych (>= 4.0.0)
-    redis-client (0.22.2)
-      connection_pool
     regexp_parser (2.9.2)
     reline (0.5.9)
       io-console (~> 0.5)
@@ -332,32 +330,23 @@ GEM
       rspec-support (~> 3.13)
     rspec-support (3.13.1)
     rubyzip (2.3.2)
-    rufus-scheduler (3.9.1)
-      fugit (~> 1.1, >= 1.1.6)
     sentry-rails (5.18.1)
       railties (>= 5.0)
       sentry-ruby (~> 5.18.1)
     sentry-ruby (5.18.1)
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
-    sentry-sidekiq (5.18.1)
-      sentry-ruby (~> 5.18.1)
-      sidekiq (>= 3.0)
     sequel (5.82.0)
       bigdecimal
-    sidekiq (7.3.0)
-      concurrent-ruby (< 2)
-      connection_pool (>= 2.3.0)
-      logger
-      rack (>= 2.2.4)
-      redis-client (>= 0.22.2)
-    sidekiq-scheduler (5.0.5)
-      rufus-scheduler (~> 3.2)
-      sidekiq (>= 6, < 8)
-      tilt (>= 1.4.0, < 3)
     skooma (0.3.2)
       json_skooma (~> 0.2.0)
       zeitwerk (~> 2.6)
+    solid_queue (0.3.3)
+      activejob (>= 7.1)
+      activerecord (>= 7.1)
+      concurrent-ruby (>= 1.3.1)
+      fugit (~> 1.11.0)
+      railties (>= 7.1)
     stringio (3.1.1)
     strscan (3.1.0)
     swd (2.0.3)
@@ -367,7 +356,6 @@ GEM
       faraday-follow_redirects
     test-prof (1.3.3.1)
     thor (1.3.1)
-    tilt (2.4.0)
     timeout (0.4.1)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
@@ -420,11 +408,9 @@ DEPENDENCIES
   rspec-default_http_header
   rspec-rails
   sentry-rails
-  sentry-sidekiq
   sequel
-  sidekiq
-  sidekiq-scheduler
   skooma
+  solid_queue
   submission-excel2xml!
   test-prof
   webmock
