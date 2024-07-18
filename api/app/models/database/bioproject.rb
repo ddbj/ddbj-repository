@@ -65,6 +65,25 @@ module Database::BioProject
             submitter_id:
           )
         end
+
+        contact      = Dway.submitterdb[:contact].where(submitter_id:, is_pi: true).first
+        organization = Dway.submitterdb[:organization].where(submitter_id:).first
+
+        {
+          first_name:        contact[:first_name],
+          last_name:         contact[:last_name],
+          email:             contact[:email],
+          organization_name: organization.fetch_values(:unit, :affiliation, :department, :organization).compact_blank.join(', '),
+          organization_url:  organization[:url],
+        }.each.with_index 1 do |(key, value), i|
+          Dway.bioproject[:submission_data].insert(
+            submission_id: ,
+            data_name:     key.to_s,
+            data_value:    value.to_s,
+            form_name:     'submitter',
+            t_order:       i
+          )
+        end
       end
     end
 

@@ -39,9 +39,9 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
     const res = await safeFetchWithModal(
       `${ENV.apiURL}/submissions`,
       {
-        method:  'POST',
+        method: 'POST',
         headers: this.currentUser.authorizationHeader,
-        body:    formData
+        body: formData,
       },
       this.errorModal,
     );
@@ -53,21 +53,37 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
   });
 
   <template>
-    <form {{on 'submit' this.submit.perform}} class="p-3">
+    <form {{on 'submit' this.submit.perform}} class='p-3'>
       <div class='mb-3'>
         <label class='form-label'>Visibility</label>
 
         <div>
           <div class='form-check form-check-inline'>
             {{#let (uniqueId) as |id|}}
-              <input class='form-check-input' type='radio' name='submission[visibility]' value='public' id={{id}} required />
+              <input
+                class='form-check-input'
+                id={{id}}
+                type='radio'
+                name='submission[visibility]'
+                value='public'
+                required
+              />
+
               <label class='form-check-label' for={{id}}>Public</label>
             {{/let}}
           </div>
 
           <div class='form-check form-check-inline'>
             {{#let (uniqueId) as |id|}}
-              <input class='form-check-input' type='radio' name='submission[visibility]' value='private' id={{id}} required />
+              <input
+                class='form-check-input'
+                id={{id}}
+                type='radio'
+                name='submission[visibility]'
+                value='private'
+                required
+              />
+
               <label class='form-check-label' for={{id}}>Private</label>
             {{/let}}
           </div>

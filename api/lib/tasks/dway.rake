@@ -6,7 +6,7 @@ namespace :dway do
     env_keys = %w(DRMDB_DATABASE_URL SUBMITTERDB_DATABASE_URL BIOPROJECT_DATABASE_URL)
 
     desc 'Create databases'
-    task :create do
+    task :create => :environment do
       env_keys.each do |key|
         uri = URI.parse(ENV.fetch(key))
 
@@ -32,7 +32,7 @@ namespace :dway do
     task :prepare => %i[create migrate]
 
     desc 'Drop databases'
-    task :drop do
+    task :drop => :environment do
       env_keys.each do |key|
         uri = URI.parse(ENV.fetch(key))
 
