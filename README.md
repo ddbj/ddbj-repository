@@ -16,11 +16,10 @@ Container_Boundary(repository, "DDBJ Repository") {
     Container_Boundary(api, "API") {
         Container(proxy, "Reverse Proxy", "Varnish")
         Container(app, "Application Server", "Puma (Rails)")
-        ContainerQueue(worker, "Background Job Worker", "Sidekiq")
+        ContainerQueue(worker, "Background Job Worker", "Solid Queue")
         Container_Ext(mb_tools, "ddbj/metabobank_tools")
         ContainerDb(object_storage, "Object Storage", "MinIO")
         ContainerDb(db, "Database", "PostgreSQL")
-        ContainerDb(job_store, "Background Job Store", "Redis")
         Container_Ext(excel2xml, "ddbj/submission-excel2xml")
         Container(noodles-gff, "noodles_gff-rb")
     }
@@ -48,7 +47,6 @@ Rel(app, job_store, "Enqueues jobs in")
 
 Rel(worker, object_storage, "Writes files to")
 Rel(worker, db, "Reads from and writes to")
-Rel(worker, job_store, "Polls for and updates jobs in")
 Rel(worker, ddbj_validator, "Validates BioProject/BioSample files using")
 Rel(worker, mb_tools, "Validates MetaboBank files using")
 Rel(worker, excel2xml, "Validates DRA files using")

@@ -11,7 +11,7 @@ services:
       - ../api/tmp/home:/data/home
       - ../api/tmp/repository:/data/repository
 
-  sidekiq:
+  solid_queue:
     <<: *rails-local
 
   minio:
