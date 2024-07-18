@@ -198,7 +198,11 @@ export interface paths {
       requestBody?: {
         content: {
           "application/json": {
-            validation_id: number;
+            submission: {
+              validation_id: number;
+              /** @enum {string} */
+              visibility: "public" | "private";
+            };
           };
         };
       };
@@ -274,6 +278,8 @@ export interface components {
       /** Format: date-time */
       created_at: string;
       validation: components["schemas"]["Validation"];
+      /** @enum {string} */
+      visibility: "public" | "private";
     };
     Objects: ({
         /** @enum {string} */

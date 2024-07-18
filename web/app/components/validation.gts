@@ -1,9 +1,9 @@
 import { LinkTo } from '@ember/routing';
-import { uniqueId } from '@ember/-internals/glimmer';
 
 import DetailsCount from 'ddbj-repository/components/details-count';
 import ProgressLabel from 'ddbj-repository/components/progress-label';
 import ValidationResults from 'ddbj-repository/components/validation/results';
+import ValidationSubmitForm from 'ddbj-repository/components/validation/submit-form';
 import ValidityBadge from 'ddbj-repository/components/validity-badge';
 import formatDatetime from 'ddbj-repository/helpers/format-datetime';
 
@@ -132,29 +132,7 @@ const ValidationComponent: TOC<Signature> = <template>
     </div>
 
     <div class='tab-pane' id='submit-pane' role='tabpanel' aria-labelledby='submit-tab' tabindex='0'>
-      <form class="p-3">
-        <div class='mb-3'>
-          <label class='form-label'>Visibility</label>
-
-          <div>
-            <div class='form-check form-check-inline'>
-              {{#let (uniqueId) as |id|}}
-                <input class='form-check-input' type='radio' name='visibility' value='public' id={{id}} required />
-                <label class='form-check-label' for={{id}}>Public</label>
-              {{/let}}
-            </div>
-
-            <div class='form-check form-check-inline'>
-              {{#let (uniqueId) as |id|}}
-                <input class='form-check-input' type='radio' name='visibility' value='private' id={{id}} required />
-                <label class='form-check-label' for={{id}}>Private</label>
-              {{/let}}
-            </div>
-          </div>
-        </div>
-
-        <button class='btn btn-primary' type='submit'>Submit</button>
-      </form>
+      <ValidationSubmitForm @validation={{@validation}} />
     </div>
   </div>
 </template>;

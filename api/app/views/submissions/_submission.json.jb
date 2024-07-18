@@ -1,5 +1,6 @@
 {
   id:         submission.public_id,
   created_at: submission.created_at,
-  validation: render('validations/validation', validation: submission.validation)
+  validation: render('validations/validation', validation: submission.validation),
+  visibility: submission.visibility
 }

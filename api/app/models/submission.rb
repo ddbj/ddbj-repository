@@ -6,6 +6,8 @@ class Submission < ApplicationRecord
   validate :validation_must_be_valid
   validate :validation_finished_at_must_be_in_24_hours
 
+  enum :visibility, %w(public private).index_by(&:to_sym), prefix: true
+
   after_destroy do |submission|
     submission.dir.rmtree
   end

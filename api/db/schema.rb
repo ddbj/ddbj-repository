@@ -160,6 +160,7 @@ ActiveRecord::Schema[7.1].define(version: 2024_07_18_063752) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "validation_id", null: false
+    t.string "visibility", null: false
     t.index ["validation_id"], name: "index_submissions_on_validation_id", unique: true
   end
 

@@ -18,8 +18,9 @@ class SubmissionsController < ApplicationController
   end
 
   def create
-    validation  = current_user.validations.find(params.require(:validation_id))
-    @submission = Submission.create!(validation:)
+    current_user.validations.find submission_params[:validation_id]
+
+    @submission = Submission.create!(submission_params)
 
     SubmitJob.perform_later @submission
 
@@ -27,6 +28,10 @@ class SubmissionsController < ApplicationController
   end
 
   private
+
+  def submission_params
+    params.require(:submission).permit(:validation_id, :visibility)
+  end
 
   def user_submissions
     current_user.submissions.includes(

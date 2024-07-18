@@ -448,11 +448,24 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [validation_id]
+              required: [submission]
 
               properties:
-                validation_id:
-                  type: integer
+                submission:
+                  type: object
+                  additionalProperties: false
+                  required: [validation_id, visibility]
+
+                  properties:
+                    validation_id:
+                      type: integer
+
+                    visibility:
+                      type: string
+
+                      enum:
+                        - public
+                        - private
 
       responses:
         '201':
@@ -614,7 +627,7 @@ components:
     Submission:
       type: object
       additionalProperties: false
-      required: [id, created_at, validation]
+      required: [id, created_at, validation, visibility]
 
       properties:
         id:
@@ -626,6 +639,13 @@ components:
 
         validation:
           $ref: '#/components/schemas/Validation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
 
     Objects:
       type: array
