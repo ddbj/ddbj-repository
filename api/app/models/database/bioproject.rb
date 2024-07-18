@@ -22,7 +22,6 @@ module Database::BioProject
         submitter_id         = submission.validation.user.uid
         latest_submission_id = Dway.bioproject[:submission].reverse(:submission_id).get(:submission_id)
         submission_id        = next_submission_id(latest_submission_id || 'PSUB000000')
-        version              = (Dway.bioproject[:xml].where(submission_id:).max(:version) || 0) + 1
 
         contact      = Dway.submitterdb[:contact].where(submitter_id:, is_pi: true).first
         organization = Dway.submitterdb[:organization].where(submitter_id:).first
@@ -43,19 +42,6 @@ module Database::BioProject
           )
         end
 
-        Dway.drmdb.transaction do
-          ext_id = Dway.drmdb[:ext_entity].insert(
-            acc_type: SCHEMA_TYPE_STUDY,
-            ref_name: submission_id,
-            status:   EXT_STATUS_INPUTTING
-          )
-
-          Dway.drmdb[:ext_permit].insert(
-            ext_id:       ext_id,
-            submitter_id:
-          )
-        end
-
         Dway.bioproject[:submission].insert(
           submission_id:     ,
           submitter_id:      ,
@@ -63,9 +49,18 @@ module Database::BioProject
           form_status_flags: ''
         )
 
-        Dway.drmdb[:ext_entity].where(ref_name: submission_id).update(
-          status: EXT_STATUS_VALID
-        )
+        Dway.drmdb.transaction do
+          ext_id = Dway.drmdb[:ext_entity].insert(
+            acc_type: SCHEMA_TYPE_STUDY,
+            ref_name: submission_id,
+            status:   EXT_STATUS_VALID
+          )
+
+          Dway.drmdb[:ext_permit].insert(
+            ext_id:       ext_id,
+            submitter_id:
+          )
+        end
 
         release_immidiately = false
 
@@ -96,6 +91,8 @@ module Database::BioProject
             # TODO: Error handling
           end
         end
+
+        version = (Dway.bioproject[:xml].where(submission_id:).max(:version) || 0) + 1
 
         Dway.bioproject[:xml].insert(
           submission_id:   ,

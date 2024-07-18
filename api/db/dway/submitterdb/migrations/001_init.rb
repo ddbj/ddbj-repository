@@ -8,34 +8,34 @@ Sequel.migration do
       integer   :role,           null: false, default: 0
       boolean   :usable,         null: false, default: true
       boolean   :need_chgpasswd,              default: true
-      timestamp :create_date,                 default: Sequel.lit("DATE_TRUNC('second'::text, NOW())")
+      timestamp :create_date,                 default: Sequel.lit("DATE_TRUNC('second', NOW())")
     end
 
     create_table :contact do
-      text :submitter_id, primary_key: true
+      primary_key :cnt_id, type: :bigint
 
-      integer :seq_no
-      text    :first_name
-      text    :middle_name
-      text    :last_name
+      text    :submitter_id, null: false
       text    :email
-      boolean :is_pi
-      boolean :is_contact
+      text    :first_name,                default: ''
+      text    :middle_name,               default: ''
+      text    :last_name,                 default: ''
+      boolean :is_pi,        null: false, default: false
+      boolean :is_contact,   null: false, default: false
     end
 
     create_table :organization do
       text :submitter_id, primary_key: true
 
-      text :center_name
       text :detail
+      text :center_name
       text :organization
       text :department
       text :affiliation
+      text :unit
       text :phone
-      text :phone_ext
       text :fax
       text :url
-      text :unit
+      text :phone_ext
       text :address
       text :city
       text :state

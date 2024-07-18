@@ -6,14 +6,14 @@ class Dway
   end
 
   def submitterdb
-    @submitterdb ||= Sequel.connect(ENV.fetch('SUBMITTERDB_DATABASE_URL'))
+    @submitterdb ||= Sequel.connect(ENV.fetch('SUBMITTERDB_DATABASE_URL'), search_path: 'mass')
   end
 
   def drmdb
-    @drmdb ||= Sequel.connect(ENV.fetch('DRMDB_DATABASE_URL'))
+    @drmdb ||= Sequel.connect(ENV.fetch('DRMDB_DATABASE_URL'), search_path: 'mass')
   end
 
   def bioproject
-    @bioproject ||= Sequel.connect(ENV.fetch('BIOPROJECT_DATABASE_URL'))
+    @bioproject ||= Sequel.connect(ENV.fetch('BIOPROJECT_DATABASE_URL'), search_path: 'mass')
   end
 end

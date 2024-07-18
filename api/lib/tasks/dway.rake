@@ -20,9 +20,12 @@ namespace :dway do
 
       version = args[:version]&.to_i
 
-      Sequel::Migrator.run Dway.drmdb,       'db/dway/drmdb/migrations',       target: version
-      Sequel::Migrator.run Dway.submitterdb, 'db/dway/submitterdb/migrations', target: version
-      Sequel::Migrator.run Dway.bioproject,  'db/dway/bioproject/migrations',  target: version
+      %i(drmdb submitterdb bioproject).each do |name|
+        db = Dway.public_send(name)
+        db.create_schema 'mass', if_not_exists: true
+
+        Sequel::Migrator.run db, "db/dway/#{name}/migrations", target: version
+      end
     end
 
     desc 'Prepare databases'

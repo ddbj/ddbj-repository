@@ -3,47 +3,47 @@ Sequel.migration do
     create_table :submission do
       text :submission_id, primary_key: true
 
-      text    :submitter_id
-      integer :status_id
-      text    :created_date
-      text    :modified_date
-      integer :charge_id
-      text    :form_status_flags
+      text      :submitter_id
+      integer   :status_id,                      default: 100
+      timestamp :created_date,      null: false, default: Sequel.function(:now)
+      timestamp :modified_date,     null: false, default: Sequel.function(:now)
+      integer   :charge_id,         null: false, default: 1
+      varchar   :form_status_flags, size: 6,     default: '000000'
     end
 
     create_table :submission_data do
-      primary_key :id
+      primary_key %i(submission_id data_name t_order)
 
-      text    :submission_id
-      text    :data_name
-      text    :data_value
-      integer :t_order
-      text    :form_name
-      text    :modified_date
+      text      :submission_id, null: false
+      text      :data_name,     null: false
+      text      :data_value
+      integer   :t_order,       null: false, default: -1
+      text      :form_name
+      timestamp :modified_date, null: false, default: Sequel.function(:now)
     end
 
     create_table :project do
       text :submission_id, primary_key: true
 
-      text    :project_id_prefix
-      integer :project_id_counter
-      text    :created_date
-      text    :modified_date
-      text    :release_date
-      text    :issued_date
-      text    :dist_date
-      integer :status_id
-      text    :project_type
-      text    :comment
+      text      :project_id_prefix, default: 'PRJDB'
+      serial    :project_id_counter
+      timestamp :created_date,      null: false, default: Sequel.function(:now)
+      timestamp :modified_date,     null: false, default: Sequel.function(:now)
+      timestamp :issued_date
+      integer   :status_id
+      text      :project_type,      null: false
+      timestamp :release_date
+      timestamp :dist_date
+      text      :comment
     end
 
     create_table :xml do
-      primary_key :id, type: :bigint
+      primary_key %i(submission_id version)
 
-      text    :submission_id
-      text    :content
-      integer :version
-      text    :registered_date
+      text    :submission_id,   null: false
+      text    :content,         null: false
+      integer :version,         null: false
+      text    :registered_date, null: false, default: Sequel.function(:now)
     end
   end
 end

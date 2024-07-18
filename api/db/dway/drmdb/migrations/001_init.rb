@@ -18,19 +18,20 @@ Sequel.migration do
     create_table :status_history do
       primary_key :id, type: :bigint
 
-      bigint    :sub_id
-      integer   :status
-      timestamp :date
+      bigint    :sub_id, null: false
+      integer   :status, null: false
+      timestamp :date,   null: false, default: Sequel.lit("DATE_TRUNC('second', NOW())")
     end
 
     create_table :operation_history do
       primary_key :his_id, type: :bigint
 
-      integer   :type
-      text      :summary
+      integer   :type,    null: false
+      text      :summary, null: false
       text      :file_name
-      timestamp :date
-      bigint    :usr_id
+      bytea     :detail
+      timestamp :date,    null: false, default: Sequel.lit("DATE_TRUNC('second', NOW())")
+      bigint    :usr_id,  null: false
       integer   :serial
       text      :submitter_id
     end
@@ -38,16 +39,16 @@ Sequel.migration do
     create_table :ext_entity do
       primary_key :ext_id, type: :bigint
 
-      text    :acc_type
-      text    :ref_name
-      integer :status
+      text    :acc_type, null: false
+      text    :ref_name, null: false
+      integer :status,   null: false
     end
 
     create_table :ext_permit do
       primary_key :per_id, type: :bigint
 
-      bigint :ext_id
-      text   :submitter_id
+      bigint :ext_id,       null: false
+      text   :submitter_id, null: false
     end
   end
 end
