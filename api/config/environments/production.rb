@@ -20,7 +20,7 @@ Rails.application.configure do
   # config.require_master_key = true
 
   # Enable static file serving from the `/public` folder (turn off if using NGINX/Apache for it).
-  config.public_file_server.enabled = true
+  # config.public_file_server.enabled = true
 
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
@@ -88,6 +88,7 @@ Rails.application.configure do
   config.active_storage.service        = :minio
   config.assume_ssl                    = ENV['DISABLE_SSL'] != 'true'
   config.force_ssl                     = ENV['DISABLE_SSL'] != 'true'
+  config.public_file_server.enabled    = true
 
   config.action_mailer.smtp_settings = {
     address:        ENV.fetch('SMTP_ADDRESS'),
