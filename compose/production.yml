@@ -11,23 +11,12 @@ services:
         source: /home
         target: /data/home
 
+    restart: unless-stopped
+
   solid_queue:
     <<: *rails
 
-  postgres:
-    volumes:
-      - type: bind
-        source: ~/ddbj-repository/data/$STAGE/postgres
-        target: /var/lib/postgresql/data
-
-  minio:
-    volumes:
-      - type: bind
-        source: ~/ddbj-repository/data/$STAGE/minio
-        target: /data
-
-  virtuoso:
-    volumes:
-      - type: bind
-        source: ~/ddbj-repository/data/$STAGE/virtuoso
-        target: /database
+networks:
+  default:
+    external: true
+    name: repository-$STAGE

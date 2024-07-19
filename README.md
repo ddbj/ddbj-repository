@@ -18,8 +18,8 @@ Container_Boundary(repository, "DDBJ Repository") {
         Container(app, "Application Server", "Puma (Rails)")
         ContainerQueue(worker, "Background Job Worker", "Solid Queue")
         Container_Ext(mb_tools, "ddbj/metabobank_tools")
-        ContainerDb(object_storage, "Object Storage", "MinIO")
-        ContainerDb(db, "Database", "PostgreSQL")
+        ContainerDb_Ext(object_storage, "Object Storage", "MinIO")
+        ContainerDb_Ext(db, "Database", "PostgreSQL")
         Container_Ext(excel2xml, "ddbj/submission-excel2xml")
         Container(noodles-gff, "noodles_gff-rb")
     }
@@ -43,7 +43,6 @@ Rel(app, accounts, "Requests authorization from")
 Rel(app, schema, "Uses")
 Rel(app, db, "Reads from and writes to")
 Rel(app, object_storage, "Reads files from")
-Rel(app, job_store, "Enqueues jobs in")
 
 Rel(worker, object_storage, "Writes files to")
 Rel(worker, db, "Reads from and writes to")

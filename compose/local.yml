@@ -13,8 +13,3 @@ services:
 
   solid_queue:
     <<: *rails-local
-
-  minio:
-    ports:
-      - 9000:9000
-      - 9001:9001
