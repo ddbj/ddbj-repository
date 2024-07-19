@@ -4,6 +4,7 @@ services:
       DISABLE_SSL: 'true'
 
     extra_hosts:
+      - host.docker.internal:host-gateway
       - keycloak.localhost:host-gateway
       - ddbj-repository.localhost:host-gateway
 
