@@ -3,6 +3,7 @@ class ValidationsController < ApplicationController
 
   def index
     validations = search_validations
+
     pagy, @validations = pagy(validations, page: params[:page])
 
     pagy_headers_merge pagy
