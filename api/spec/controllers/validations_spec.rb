@@ -23,7 +23,7 @@ RSpec.describe ValidationsController, type: :controller do
         end
 
         before do
-          stub_const 'Pagy::DEFAULT', Pagy::DEFAULT.merge(items: 2)
+          stub_const 'Pagy::DEFAULT', Pagy::DEFAULT.merge(limit: 2)
         end
 
         example 'page=1' do
