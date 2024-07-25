@@ -6,8 +6,7 @@ FactoryBot.define do
 
     user
 
-    db       { DB.map { _1[:id] }.sample }
-    progress { 'waiting' }
+    db { DB.map { _1[:id] }.sample }
 
     after :build do |validation|
       if validation.running? || validation.finished? || validation.canceled?

@@ -1,6 +1,11 @@
 {
-  id:         submission.public_id,
-  created_at: submission.created_at,
-  validation: render('validations/validation', validation: submission.validation),
-  visibility: submission.visibility
+  id:            submission.public_id,
+  created_at:    submission.created_at,
+  started_at:    submission.started_at,
+  finished_at:   submission.finished_at,
+  progress:      submission.progress,
+  result:        submission.result,
+  error_message: submission.error_message,
+  validation:    render('validations/validation', validation: submission.validation),
+  visibility:    submission.visibility
 }

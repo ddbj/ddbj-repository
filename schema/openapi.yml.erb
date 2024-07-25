@@ -612,7 +612,7 @@ components:
     Submission:
       type: object
       additionalProperties: false
-      required: [id, created_at, validation, visibility]
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility]
 
       properties:
         id:
@@ -621,6 +621,41 @@ components:
         created_at:
           type: string
           format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type: string
+
+          enum:
+            - success
+            - failure
+
+        error_message:
+          type:
+            - string
+            - 'null'
 
         validation:
           $ref: '#/components/schemas/Validation'

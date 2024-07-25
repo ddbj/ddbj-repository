@@ -27,6 +27,8 @@ interface Params {
 export default class SubmissionsIndexRoute extends Route {
   @service declare currentUser: CurrentUserService;
 
+  timer?: number;
+
   queryParams = {
     page: {
       refreshModel: true,
@@ -64,10 +66,24 @@ export default class SubmissionsIndexRoute extends Route {
     };
   }
 
+  afterModel(model: Model) {
+    if (model.submissions.some(({ progress }) => progress === 'waiting' || progress === 'running')) {
+      this.timer = setTimeout(() => {
+        this.refresh();
+      }, 2000);
+    }
+  }
+
   resetController(controller: SubmissionsIndexController, isExiting: boolean) {
     if (isExiting) {
       controller.pageBefore = controller.page;
       controller.page = 1;
+    }
+  }
+
+  deactivate() {
+    if (this.timer) {
+      clearTimeout(this.timer);
     }
   }
 }

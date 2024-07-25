@@ -1,9 +1,27 @@
 class SubmitJob < ApplicationJob
   def perform(submission)
-    submitter = "Database::#{submission.validation.db}::Submitter".constantize.new
+    ActiveRecord::Base.transaction do
+      submission.update! progress: :running, started_at: Time.current
 
-    submitter.submit submission
+      submitter = "Database::#{submission.validation.db}::Submitter".constantize.new
 
-    submission.validation.write_submission_files to: submission.dir
+      Rails.error.handle do
+        begin
+          submitter.submit submission
+        rescue => e
+          submission.update!(
+            result:        :failure,
+            error_message: e.message
+          )
+
+          raise
+        else
+          submission.validation.write_submission_files to: submission.dir
+          submission.success!
+        end
+      end
+    ensure
+      submission.update! progress: :finished, finished_at: Time.current
+    end
   end
 end

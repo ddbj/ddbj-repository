@@ -277,6 +277,15 @@ export interface components {
       id: string;
       /** Format: date-time */
       created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string} */
+      result: "success" | "failure";
+      error_message: string | null;
       validation: components["schemas"]["Validation"];
       /** @enum {string} */
       visibility: "public" | "private";

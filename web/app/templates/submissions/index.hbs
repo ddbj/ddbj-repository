@@ -15,6 +15,11 @@
       <th>ID</th>
       <th>DB</th>
       <th>Created</th>
+      <th>Started</th>
+      <th>Finished</th>
+      <th>Progress</th>
+      <th>Result</th>
+      <th>Validation</th>
     </tr>
   </thead>
 
@@ -27,6 +32,34 @@
 
         <td>{{submission.validation.db}}</td>
         <td>{{format-datetime submission.created_at}}</td>
+
+        <td>
+          {{#if submission.started_at}}
+            {{format-datetime submission.started_at}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
+
+        <td>
+          {{#if submission.finished_at}}
+            {{format-datetime submission.finished_at}}
+          {{else}}
+            -
+          {{/if}}
+        </td>
+
+        <td>
+          <ProgressLabel @progress={{submission.progress}} />
+        </td>
+
+        <td>
+          <ResultBadge @result={{submission.result}} />
+        </td>
+
+        <td>
+          <LinkTo @route="validations.show" @model={{submission.validation.id}}>#{{submission.validation.id}}</LinkTo>
+        </td>
       </tr>
     {{/each}}
   </tbody>

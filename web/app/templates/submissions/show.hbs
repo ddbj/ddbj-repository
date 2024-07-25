@@ -23,6 +23,43 @@
   </div>
 
   <div>
+    <dt>Started</dt>
+
+    <dd>
+      {{#if @model.started_at}}
+        {{format-datetime @model.started_at}}
+      {{else}}
+        -
+      {{/if}}
+    </dd>
+  </div>
+
+  <div>
+    <dt>Finished</dt>
+
+    <dd>
+      {{#if @model.finished_at}}
+        {{format-datetime @model.finished_at}}
+      {{else}}
+        -
+      {{/if}}
+    </dd>
+  </div>
+
+  <div>
+    <dt>Progress</dt>
+    <dd><ProgressLabel @progress={{@model.progress}} /></dd>
+  </div>
+
+  <div>
+    <dt>Result</dt>
+
+    <dd>
+      <ResultBadge @result={{@model.result}} />
+    </dd>
+  </div>
+
+  <div>
     <dt>Validation</dt>
 
     <dd>
@@ -35,6 +72,10 @@
     <dd>{{@model.visibility}}</dd>
   </div>
 </dl>
+
+{{#if @model.error_message}}
+  <p class="alert alert-danger">{{@model.error_message}}</p>
+{{/if}}
 
 <h2>Objects</h2>
 

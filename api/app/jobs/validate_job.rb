@@ -1,7 +1,7 @@
 class ValidateJob < ApplicationJob
   def perform(validation)
     ActiveRecord::Base.transaction do
-      validation.update! progress: 'running', started_at: Time.current
+      validation.update! progress: :running, started_at: Time.current
 
       validator = "Database::#{validation.db}::Validator".constantize.new
 
@@ -25,7 +25,7 @@ class ValidateJob < ApplicationJob
       raise ActiveRecord::Rollback if validation.reload.canceled?
     ensure
       unless validation.canceled?
-        validation.update! progress: 'finished', finished_at: Time.current
+        validation.update! progress: :finished, finished_at: Time.current
       end
     end
   end
