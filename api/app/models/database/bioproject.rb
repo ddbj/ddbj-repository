@@ -18,9 +18,11 @@ module Database::BioProject
     SCHEMA_TYPE_ANALYSIS                   = 6
 
     def submit(submission)
+      user = submission.validation.user
+
       Dway.bioproject.transaction isolation: :serializable do
         submission_id = next_submission_id
-        submitter_id  = submission.validation.user.uid
+        submitter_id  = user.uid
 
         Dway.bioproject[:submission].insert(
           submission_id:     ,
@@ -66,15 +68,12 @@ module Database::BioProject
           )
         end
 
-        contact      = Dway.submitterdb[:contact].where(submitter_id:, is_pi: true).first
-        organization = Dway.submitterdb[:organization].where(submitter_id:).first
-
         {
-          first_name:        contact[:first_name],
-          last_name:         contact[:last_name],
-          email:             contact[:email],
-          organization_name: organization.fetch_values(:unit, :affiliation, :department, :organization).compact_blank.join(', '),
-          organization_url:  organization[:url],
+          first_name:        user.first_name,
+          last_name:         user.last_name,
+          email:             user.email,
+          organization_name: [user.department, user.organization].compact_blank.join(', '),
+          organization_url:  user.organization_url
         }.each.with_index 1 do |(key, value), i|
           Dway.bioproject[:submission_data].insert(
             submission_id: ,

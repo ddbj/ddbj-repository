@@ -19,26 +19,17 @@ RSpec.describe Database::BioProject::Submitter do
     })
   end
 
-  let(:user) { create(:user, uid: 'alice') }
-
-  before do
-    Dway.submitterdb[:contact].insert(
-      submitter_id: 'alice',
-      is_pi:        true,
-      first_name:   'Alice',
-      last_name:    'Liddell',
-      email:        'alice@example.com'
-    )
-
-    Dway.submitterdb[:organization].insert(
-      submitter_id: 'alice',
-      unit:         'UNIT',
-      affiliation:  'AFFILIATION',
-      department:   'DEPARTMENT',
-      organization: 'ORGANIZATION',
-      url:          'http://example.com/organization'
-    )
-  end
+  let(:user) {
+    create(:user, **{
+      uid:              'alice',
+      email:            'alice@example.com',
+      first_name:       'Alice',
+      last_name:        'Liddell',
+      organization:     'Wonderland Inc.',
+      department:       'Rabbit Hole',
+      organization_url: 'http://wonderland.example.com'
+    })
+  }
 
   example 'visibility: private' do
     submission = create_submission(visibility: :private)
@@ -113,14 +104,14 @@ RSpec.describe Database::BioProject::Submitter do
       include(
         submission_id: 'PSUB000001',
         data_name:     'organization_name',
-        data_value:    'UNIT, AFFILIATION, DEPARTMENT, ORGANIZATION',
+        data_value:    'Rabbit Hole, Wonderland Inc.',
         form_name:     'submitter',
         t_order:       4
       ),
       include(
         submission_id: 'PSUB000001',
         data_name:     'organization_url',
-        data_value:    'http://example.com/organization',
+        data_value:    'http://wonderland.example.com',
         form_name:     'submitter',
         t_order:       5
       )
