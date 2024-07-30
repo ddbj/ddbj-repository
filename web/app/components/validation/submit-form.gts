@@ -1,8 +1,11 @@
 import Component from '@glimmer/component';
+import { modifier } from 'ember-modifier';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import { tracked } from '@glimmer/tracking';
 import { uniqueId } from '@ember/-internals/glimmer';
 
+import { gt, notEq } from 'ember-truth-helpers';
 import { task } from 'ember-concurrency';
 
 import ENV from 'ddbj-repository/config/environment';
@@ -27,6 +30,20 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
   @service declare errorModal: ErrorModalService;
   @service declare router: Router;
   @service declare toast: ToastService;
+
+  @tracked elapsedFromValidationFinished = 0;
+
+  calculateElapsed = modifier(() => {
+    const finishedAt = new Date(this.args.validation.finished_at!);
+
+    const timer = setInterval(() => {
+      this.elapsedFromValidationFinished = new Date().getTime() - finishedAt.getTime();
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  });
 
   submit = task({ drop: true }, async (e) => {
     e.preventDefault();
@@ -53,45 +70,55 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
   });
 
   <template>
-    <form {{on 'submit' this.submit.perform}} class='p-3'>
-      <div class='mb-3'>
-        <label class='form-label'>Visibility</label>
+    <div {{this.calculateElapsed}}>
+      {{#if @validation.submission}}
+        <div class='alert alert-danger mt-3'>You have already submitted this validation.</div>
+      {{else if (notEq @validation.validity 'valid')}}
+        <div class='alert alert-danger mt-3'>This validation is not valid.</div>
+      {{else if (gt this.elapsedFromValidationFinished oneDay)}}
+        <div class='alert alert-danger mt-3'>This validation is expired.</div>
+      {{else}}
+        <form {{on 'submit' this.submit.perform}} class='p-3'>
+          <div class='mb-3'>
+            <label class='form-label'>Visibility</label>
 
-        <div>
-          <div class='form-check form-check-inline'>
-            {{#let (uniqueId) as |id|}}
-              <input
-                class='form-check-input'
-                id={{id}}
-                type='radio'
-                name='submission[visibility]'
-                value='public'
-                required
-              />
+            <div>
+              <div class='form-check form-check-inline'>
+                {{#let (uniqueId) as |id|}}
+                  <input
+                    class='form-check-input'
+                    id={{id}}
+                    type='radio'
+                    name='submission[visibility]'
+                    value='public'
+                    required
+                  />
 
-              <label class='form-check-label' for={{id}}>Public</label>
-            {{/let}}
+                  <label class='form-check-label' for={{id}}>Public</label>
+                {{/let}}
+              </div>
+
+              <div class='form-check form-check-inline'>
+                {{#let (uniqueId) as |id|}}
+                  <input
+                    class='form-check-input'
+                    id={{id}}
+                    type='radio'
+                    name='submission[visibility]'
+                    value='private'
+                    required
+                  />
+
+                  <label class='form-check-label' for={{id}}>Private</label>
+                {{/let}}
+              </div>
+            </div>
           </div>
 
-          <div class='form-check form-check-inline'>
-            {{#let (uniqueId) as |id|}}
-              <input
-                class='form-check-input'
-                id={{id}}
-                type='radio'
-                name='submission[visibility]'
-                value='private'
-                required
-              />
-
-              <label class='form-check-label' for={{id}}>Private</label>
-            {{/let}}
-          </div>
-        </div>
-      </div>
-
-      <button class='btn btn-primary' type='submit'>Submit</button>
-    </form>
+          <button class='btn btn-primary' type='submit'>Submit</button>
+        </form>
+      {{/if}}
+    </div>
   </template>
 }
 
@@ -100,3 +127,5 @@ declare module '@glint/environment-ember-loose/registry' {
     'Validation::SubmitForm': typeof ValidationSubmitFormComponent;
   }
 }
+
+const oneDay = 24 * 60 * 60 * 1000;
