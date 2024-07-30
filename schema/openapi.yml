@@ -538,6 +538,19 @@ components:
         - $ref: '#/components/schemas/JVarValidation'
         - $ref: '#/components/schemas/Trad2Validation'
 
+      discriminator:
+        propertyName: db
+
+        mapping:
+          BioProject: '#/components/schemas/BioProjectValidation'
+          BioSample: '#/components/schemas/BioSampleValidation'
+          Trad: '#/components/schemas/TradValidation'
+          DRA: '#/components/schemas/DRAValidation'
+          GEA: '#/components/schemas/GEAValidation'
+          MetaboBank: '#/components/schemas/MetaboBankValidation'
+          JVar: '#/components/schemas/JVarValidation'
+          Trad2: '#/components/schemas/Trad2Validation'
+
     BioProjectValidation:
       type: object
       additionalProperties: false
@@ -565,13 +578,6 @@ components:
 
           enum:
             - BioProject
-            - BioSample
-            - Trad
-            - DRA
-            - GEA
-            - MetaboBank
-            - JVar
-            - Trad2
 
         created_at:
           type: string
@@ -666,14 +672,7 @@ components:
           type: string
 
           enum:
-            - BioProject
             - BioSample
-            - Trad
-            - DRA
-            - GEA
-            - MetaboBank
-            - JVar
-            - Trad2
 
         created_at:
           type: string
@@ -768,14 +767,7 @@ components:
           type: string
 
           enum:
-            - BioProject
-            - BioSample
             - Trad
-            - DRA
-            - GEA
-            - MetaboBank
-            - JVar
-            - Trad2
 
         created_at:
           type: string
@@ -870,14 +862,7 @@ components:
           type: string
 
           enum:
-            - BioProject
-            - BioSample
-            - Trad
             - DRA
-            - GEA
-            - MetaboBank
-            - JVar
-            - Trad2
 
         created_at:
           type: string
@@ -972,14 +957,7 @@ components:
           type: string
 
           enum:
-            - BioProject
-            - BioSample
-            - Trad
-            - DRA
             - GEA
-            - MetaboBank
-            - JVar
-            - Trad2
 
         created_at:
           type: string
@@ -1074,14 +1052,7 @@ components:
           type: string
 
           enum:
-            - BioProject
-            - BioSample
-            - Trad
-            - DRA
-            - GEA
             - MetaboBank
-            - JVar
-            - Trad2
 
         created_at:
           type: string
@@ -1176,14 +1147,7 @@ components:
           type: string
 
           enum:
-            - BioProject
-            - BioSample
-            - Trad
-            - DRA
-            - GEA
-            - MetaboBank
             - JVar
-            - Trad2
 
         created_at:
           type: string
@@ -1278,13 +1242,6 @@ components:
           type: string
 
           enum:
-            - BioProject
-            - BioSample
-            - Trad
-            - DRA
-            - GEA
-            - MetaboBank
-            - JVar
             - Trad2
 
         created_at:
@@ -1402,11 +1359,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:
@@ -1469,11 +1429,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:
@@ -1530,11 +1493,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:
@@ -1591,11 +1557,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:
@@ -1652,11 +1621,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:
@@ -1713,11 +1685,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:
@@ -1774,11 +1749,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:
@@ -1835,11 +1813,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:

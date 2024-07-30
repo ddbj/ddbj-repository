@@ -255,7 +255,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      db: "BioProject";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -283,7 +283,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      db: "BioSample";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -311,7 +311,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      db: "Trad";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -339,7 +339,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      db: "DRA";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -367,7 +367,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      db: "GEA";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -395,7 +395,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      db: "MetaboBank";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -423,7 +423,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      db: "JVar";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -451,7 +451,7 @@ export interface components {
         uid: string;
       };
       /** @enum {string} */
-      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      db: "Trad2";
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -482,8 +482,8 @@ export interface components {
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "running" | "finished" | "canceled";
-      /** @enum {string} */
-      result: "success" | "failure";
+      /** @enum {string|null} */
+      result: "success" | "failure" | null;
       error_message: string | null;
       validation: components["schemas"]["BioProjectValidation"];
       /** @enum {string} */
@@ -502,8 +502,8 @@ export interface components {
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "running" | "finished" | "canceled";
-      /** @enum {string} */
-      result: "success" | "failure";
+      /** @enum {string|null} */
+      result: "success" | "failure" | null;
       error_message: string | null;
       validation: components["schemas"]["BioSampleValidation"];
       /** @enum {string} */
@@ -520,8 +520,8 @@ export interface components {
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "running" | "finished" | "canceled";
-      /** @enum {string} */
-      result: "success" | "failure";
+      /** @enum {string|null} */
+      result: "success" | "failure" | null;
       error_message: string | null;
       validation: components["schemas"]["TradValidation"];
       /** @enum {string} */
@@ -538,8 +538,8 @@ export interface components {
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "running" | "finished" | "canceled";
-      /** @enum {string} */
-      result: "success" | "failure";
+      /** @enum {string|null} */
+      result: "success" | "failure" | null;
       error_message: string | null;
       validation: components["schemas"]["DRAValidation"];
       /** @enum {string} */
@@ -556,8 +556,8 @@ export interface components {
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "running" | "finished" | "canceled";
-      /** @enum {string} */
-      result: "success" | "failure";
+      /** @enum {string|null} */
+      result: "success" | "failure" | null;
       error_message: string | null;
       validation: components["schemas"]["GEAValidation"];
       /** @enum {string} */
@@ -574,8 +574,8 @@ export interface components {
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "running" | "finished" | "canceled";
-      /** @enum {string} */
-      result: "success" | "failure";
+      /** @enum {string|null} */
+      result: "success" | "failure" | null;
       error_message: string | null;
       validation: components["schemas"]["MetaboBankValidation"];
       /** @enum {string} */
@@ -592,8 +592,8 @@ export interface components {
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "running" | "finished" | "canceled";
-      /** @enum {string} */
-      result: "success" | "failure";
+      /** @enum {string|null} */
+      result: "success" | "failure" | null;
       error_message: string | null;
       validation: components["schemas"]["JVarValidation"];
       /** @enum {string} */
@@ -610,8 +610,8 @@ export interface components {
       finished_at: string | null;
       /** @enum {string} */
       progress: "waiting" | "running" | "finished" | "canceled";
-      /** @enum {string} */
-      result: "success" | "failure";
+      /** @enum {string|null} */
+      result: "success" | "failure" | null;
       error_message: string | null;
       validation: components["schemas"]["Trad2Validation"];
       /** @enum {string} */

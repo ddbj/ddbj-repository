@@ -4,9 +4,13 @@ RSpec.describe 'authentication', type: :request do
   def userinfo(account_type_number:)
     double(:userinfo, {
       preferred_username: 'alice',
+      email:              'alice@exmaple.com',
 
       raw_attributes: {
-        'account_type_number' => account_type_number
+        'account_type_number' => account_type_number,
+        'given_name'          => 'Alice',
+        'sn'                  => 'Liddell',
+        'institution'         => 'Wonderland Inc.'
       }
     })
   end
@@ -44,7 +48,7 @@ RSpec.describe 'authentication', type: :request do
       expect(response).to redirect_to('http://example.com/auth/authorization')
 
       expect(oidc_client).to have_received(:authorization_uri).with(
-        scope:                 %i(openid),
+        scope:                 %i(openid ddbj email profile),
         state:                 'STATE',
         code_challenge:        'CODE_CHALLENGE',
         code_challenge_method: 'S256'

@@ -523,6 +523,14 @@ components:
         - $ref: '#/components/schemas/<%= db[:id] %>Validation'
         <%- end -%>
 
+      discriminator:
+        propertyName: db
+
+        mapping:
+          <%- dbs.each do |db| -%>
+          <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>Validation'
+          <%- end -%>
+
     <%- dbs.each do |db| -%>
     <%= db[:id] %>Validation:
       type: object
@@ -550,9 +558,7 @@ components:
           type: string
 
           enum:
-            <%- dbs.each do |db| -%>
             - <%= db[:id] %>
-            <%- end -%>
 
         created_at:
           type: string
@@ -666,11 +672,14 @@ components:
             - canceled
 
         result:
-          type: string
+          type:
+            - string
+            - 'null'
 
           enum:
             - success
             - failure
+            - null
 
         error_message:
           type:

@@ -27,15 +27,20 @@ RSpec.describe 'submissions', type: :request, authorized: true do
     expect(response).to conform_schema(200)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
-      id:         'X-200',
-      created_at: '2024-01-02T03:04:58.000Z',
+      id:            'X-200',
+      created_at:    '2024-01-02T03:04:58.000Z',
+      started_at:    nil,
+      finished_at:   nil,
+      progress:      'waiting',
+      result:        nil,
+      error_message: nil,
 
-      validation: {
+      validation:    {
         id:          100,
         url:         'http://www.example.com/api/validations/100',
 
-        user: {
-          uid: 'alice'
+        user:        {
+          uid:       'alice'
         },
 
         db:          'JVar',
@@ -79,16 +84,22 @@ RSpec.describe 'submissions', type: :request, authorized: true do
           id:  'X-200',
           url: 'http://www.example.com/api/submissions/X-200'
         }
-      }
+      },
+
+      visibility: 'public',
+      param:      nil
     )
   end
 
   describe 'POST /api/submissions' do
     example 'ok' do
-      create :validation, :valid, id: 42
+      create :validation, :valid, id: 42, db: 'JVar'
 
       post '/api/submissions', params: {
-        validation_id: 42
+        submission: {
+          validation_id: 42,
+          visibility:    'public'
+        }
       }, as: :json
 
       expect(response).to conform_schema(201)
@@ -96,7 +107,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
     end
 
     example 'validity is not valid' do
-      create :validation, id: 42
+      create :validation, id: 42, db: 'JVar'
 
       with_exceptions_app do
         post '/api/submissions', params: {
@@ -114,11 +125,14 @@ RSpec.describe 'submissions', type: :request, authorized: true do
     example 'expired' do
       travel_to '2024-01-03 03:04:56'
 
-      create :validation, :valid, id: 42, finished_at: '2024-01-02 03:04:56'
+      create :validation, :valid, id: 42, db: 'BioSample', finished_at: '2024-01-02 03:04:56'
 
       with_exceptions_app do
         post '/api/submissions', params: {
-          validation_id: 42
+          submission: {
+            validation_id: 42,
+            visibility:    'public'
+          }
         }, as: :json
       end
 
@@ -130,13 +144,16 @@ RSpec.describe 'submissions', type: :request, authorized: true do
     end
 
     example 'duplicated' do
-      create :validation, :valid, id: 42 do |validation|
+      create :validation, :valid, id: 42, db: 'JVar' do |validation|
         create :submission, validation:
       end
 
       with_exceptions_app do
         post '/api/submissions', params: {
-          validation_id: 42
+          submission: {
+            validation_id: 42,
+            visibility:    'public'
+          }
         }, as: :json
       end
 
