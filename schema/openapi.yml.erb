@@ -457,6 +457,11 @@ paths:
                         - public
                         - private
 
+                param:
+                  type:
+                    - object
+                    - 'null'
+
       responses:
         '201':
           description: Submitted successfully.
@@ -513,6 +518,13 @@ components:
 
   schemas:
     Validation:
+      oneOf:
+        <%- dbs.each do |db| -%>
+        - $ref: '#/components/schemas/<%= db[:id] %>Validation'
+        <%- end -%>
+
+    <%- dbs.each do |db| -%>
+    <%= db[:id] %>Validation:
       type: object
       additionalProperties: false
       required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
@@ -609,10 +621,18 @@ components:
               type: string
               format: uri
 
+    <%- end -%>
     Submission:
+      oneOf:
+        <%- dbs.each do |db| -%>
+        - $ref: '#/components/schemas/<%= db[:id] %>Submission'
+        <%- end -%>
+
+    <%- dbs.each do |db| -%>
+    <%= db[:id] %>Submission:
       type: object
       additionalProperties: false
-      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility]
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
 
       properties:
         id:
@@ -658,7 +678,7 @@ components:
             - 'null'
 
         validation:
-          $ref: '#/components/schemas/Validation'
+          $ref: '#/components/schemas/<%= db[:id] %>Validation'
 
         visibility:
           type: string
@@ -667,6 +687,21 @@ components:
             - public
             - private
 
+        param:
+          <%- case db[:id] -%>
+          <%- when 'BioProject' -%>
+          type: object
+          additionalProperties: false
+          required: [umbrella]
+
+          properties:
+            umbrella:
+              type: boolean
+          <%- else -%>
+          type: 'null'
+          <%- end -%>
+
+    <%- end -%>
     Objects:
       type: array
 

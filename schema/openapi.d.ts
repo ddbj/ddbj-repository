@@ -203,6 +203,7 @@ export interface paths {
               /** @enum {string} */
               visibility: "public" | "private";
             };
+            param?: Record<string, never> | null;
           };
         };
       };
@@ -245,7 +246,8 @@ export type webhooks = Record<string, never>;
 
 export interface components {
   schemas: {
-    Validation: {
+    Validation: components["schemas"]["BioProjectValidation"] | components["schemas"]["BioSampleValidation"] | components["schemas"]["TradValidation"] | components["schemas"]["DRAValidation"] | components["schemas"]["GEAValidation"] | components["schemas"]["MetaboBankValidation"] | components["schemas"]["JVarValidation"] | components["schemas"]["Trad2Validation"];
+    BioProjectValidation: {
       id: number;
       /** Format: uri */
       url: string;
@@ -273,7 +275,204 @@ export interface components {
         url: string;
       } | null;
     };
-    Submission: {
+    BioSampleValidation: {
+      id: number;
+      /** Format: uri */
+      url: string;
+      user: {
+        uid: string;
+      };
+      /** @enum {string} */
+      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string|null} */
+      validity: "valid" | "invalid" | "error" | null;
+      objects: components["schemas"]["Objects"];
+      results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
+      submission: {
+        id: string;
+        /** Format: uri */
+        url: string;
+      } | null;
+    };
+    TradValidation: {
+      id: number;
+      /** Format: uri */
+      url: string;
+      user: {
+        uid: string;
+      };
+      /** @enum {string} */
+      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string|null} */
+      validity: "valid" | "invalid" | "error" | null;
+      objects: components["schemas"]["Objects"];
+      results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
+      submission: {
+        id: string;
+        /** Format: uri */
+        url: string;
+      } | null;
+    };
+    DRAValidation: {
+      id: number;
+      /** Format: uri */
+      url: string;
+      user: {
+        uid: string;
+      };
+      /** @enum {string} */
+      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string|null} */
+      validity: "valid" | "invalid" | "error" | null;
+      objects: components["schemas"]["Objects"];
+      results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
+      submission: {
+        id: string;
+        /** Format: uri */
+        url: string;
+      } | null;
+    };
+    GEAValidation: {
+      id: number;
+      /** Format: uri */
+      url: string;
+      user: {
+        uid: string;
+      };
+      /** @enum {string} */
+      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string|null} */
+      validity: "valid" | "invalid" | "error" | null;
+      objects: components["schemas"]["Objects"];
+      results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
+      submission: {
+        id: string;
+        /** Format: uri */
+        url: string;
+      } | null;
+    };
+    MetaboBankValidation: {
+      id: number;
+      /** Format: uri */
+      url: string;
+      user: {
+        uid: string;
+      };
+      /** @enum {string} */
+      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string|null} */
+      validity: "valid" | "invalid" | "error" | null;
+      objects: components["schemas"]["Objects"];
+      results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
+      submission: {
+        id: string;
+        /** Format: uri */
+        url: string;
+      } | null;
+    };
+    JVarValidation: {
+      id: number;
+      /** Format: uri */
+      url: string;
+      user: {
+        uid: string;
+      };
+      /** @enum {string} */
+      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string|null} */
+      validity: "valid" | "invalid" | "error" | null;
+      objects: components["schemas"]["Objects"];
+      results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
+      submission: {
+        id: string;
+        /** Format: uri */
+        url: string;
+      } | null;
+    };
+    Trad2Validation: {
+      id: number;
+      /** Format: uri */
+      url: string;
+      user: {
+        uid: string;
+      };
+      /** @enum {string} */
+      db: "BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2";
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string|null} */
+      validity: "valid" | "invalid" | "error" | null;
+      objects: components["schemas"]["Objects"];
+      results: components["schemas"]["ValidationResult"][];
+      raw_result?: Record<string, never> | null;
+      submission: {
+        id: string;
+        /** Format: uri */
+        url: string;
+      } | null;
+    };
+    Submission: components["schemas"]["BioProjectSubmission"] | components["schemas"]["BioSampleSubmission"] | components["schemas"]["TradSubmission"] | components["schemas"]["DRASubmission"] | components["schemas"]["GEASubmission"] | components["schemas"]["MetaboBankSubmission"] | components["schemas"]["JVarSubmission"] | components["schemas"]["Trad2Submission"];
+    BioProjectSubmission: {
       id: string;
       /** Format: date-time */
       created_at: string;
@@ -286,9 +485,138 @@ export interface components {
       /** @enum {string} */
       result: "success" | "failure";
       error_message: string | null;
-      validation: components["schemas"]["Validation"];
+      validation: components["schemas"]["BioProjectValidation"];
       /** @enum {string} */
       visibility: "public" | "private";
+      param: {
+        umbrella: boolean;
+      };
+    };
+    BioSampleSubmission: {
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string} */
+      result: "success" | "failure";
+      error_message: string | null;
+      validation: components["schemas"]["BioSampleValidation"];
+      /** @enum {string} */
+      visibility: "public" | "private";
+      param: null;
+    };
+    TradSubmission: {
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string} */
+      result: "success" | "failure";
+      error_message: string | null;
+      validation: components["schemas"]["TradValidation"];
+      /** @enum {string} */
+      visibility: "public" | "private";
+      param: null;
+    };
+    DRASubmission: {
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string} */
+      result: "success" | "failure";
+      error_message: string | null;
+      validation: components["schemas"]["DRAValidation"];
+      /** @enum {string} */
+      visibility: "public" | "private";
+      param: null;
+    };
+    GEASubmission: {
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string} */
+      result: "success" | "failure";
+      error_message: string | null;
+      validation: components["schemas"]["GEAValidation"];
+      /** @enum {string} */
+      visibility: "public" | "private";
+      param: null;
+    };
+    MetaboBankSubmission: {
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string} */
+      result: "success" | "failure";
+      error_message: string | null;
+      validation: components["schemas"]["MetaboBankValidation"];
+      /** @enum {string} */
+      visibility: "public" | "private";
+      param: null;
+    };
+    JVarSubmission: {
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string} */
+      result: "success" | "failure";
+      error_message: string | null;
+      validation: components["schemas"]["JVarValidation"];
+      /** @enum {string} */
+      visibility: "public" | "private";
+      param: null;
+    };
+    Trad2Submission: {
+      id: string;
+      /** Format: date-time */
+      created_at: string;
+      /** Format: date-time */
+      started_at: string | null;
+      /** Format: date-time */
+      finished_at: string | null;
+      /** @enum {string} */
+      progress: "waiting" | "running" | "finished" | "canceled";
+      /** @enum {string} */
+      result: "success" | "failure";
+      error_message: string | null;
+      validation: components["schemas"]["Trad2Validation"];
+      /** @enum {string} */
+      visibility: "public" | "private";
+      param: null;
     };
     Objects: ({
         /** @enum {string} */

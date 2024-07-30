@@ -1,4 +1,10 @@
 module Database::BioProject
+  class Param
+    def self.build(params)
+      BioProjectSubmissionParam.new(params.require(:param).permit(:umbrella))
+    end
+  end
+
   class Validator
     include DDBJValidator
   end

@@ -3,9 +3,10 @@ import { modifier } from 'ember-modifier';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
+// @ts-expect-error https://github.com/emberjs/ember.js/pull/20464
 import { uniqueId } from '@ember/-internals/glimmer';
 
-import { gt, notEq } from 'ember-truth-helpers';
+import { eq, gt, notEq } from 'ember-truth-helpers';
 import { task } from 'ember-concurrency';
 
 import ENV from 'ddbj-repository/config/environment';
@@ -114,6 +115,19 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
               </div>
             </div>
           </div>
+
+          {{#if (eq @validation.db 'BioProject')}}
+            <div class='mb-3'>
+              <div class='form-check'>
+                <input type='hidden' name='param[umbrella]' value='false' />
+
+                {{#let (uniqueId) as |id|}}
+                  <input class='form-check-input' id={{id}} type='checkbox' name='param[umbrella]' value='true' />
+                  <label class='form-check-label' for={{id}}>Umbrella project</label>
+                {{/let}}
+              </div>
+            </div>
+          {{/if}}
 
           <button class='btn btn-primary' type='submit'>Submit</button>
         </form>

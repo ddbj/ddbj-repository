@@ -1,4 +1,10 @@
 module Database::GEA
+  class Param
+    def self.build(params)
+      nil
+    end
+  end
+
   class Validator
     def validate(validation)
       objs = validation.objs.without_base.index_by(&:_id)

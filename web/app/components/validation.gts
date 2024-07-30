@@ -112,7 +112,7 @@ const ValidationComponent: TOC<Signature> = <template>
       >Results</button>
     </li>
 
-    <li class='nav-item'>
+    <li class='nav-item' role='presentation'>
       <button
         class='nav-link'
         id='submit-tab'
