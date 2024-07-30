@@ -1,6 +1,8 @@
 class Submission < ApplicationRecord
   belongs_to :validation
 
+  delegated_type :param, types: %w(BioProjectSubmissionParam), dependent: :destroy
+
   validates :validation_id, uniqueness: {message: 'is already submitted'}
 
   validate :validation_must_be_valid
