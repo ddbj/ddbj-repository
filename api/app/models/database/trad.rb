@@ -6,6 +6,9 @@ module Database::Trad
   end
 
   class Validator
+    class MissingContactPersonInformation < StandardError; end
+    class DuplicateContactPersonInformation < StandardError; end
+
     include TradValidation
 
     ASSOC = {
@@ -38,14 +41,20 @@ module Database::Trad
       return if anns.empty?
 
       assoc = anns.map {|obj|
-        contact_person = extract_contact_person_in_ann(obj.file)
-
-        if contact_person.values.any?(&:nil?)
+        begin
+          contact_person = extract_contact_person_in_ann(obj.file)
+        rescue MissingContactPersonInformation
           obj.validation_details.create!(
             severity: 'error',
             message:  'Contact person information (contact, email, institute) is missing.'
           )
+        rescue DuplicateContactPersonInformation 
+          obj.validation_details.create!(
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is duplicated.'
+          )
         end
+
 
         [obj, contact_person]
       }
@@ -63,14 +72,12 @@ module Database::Trad
     end
 
     def extract_contact_person_in_ann(file)
-      in_common   = false
-      full_name   = nil
-      email       = nil
-      affiliation = nil
+      in_common = false
+      contact   = nil
+      email     = nil
+      institute = nil
 
       file.download.each_line chomp: true do |line|
-        break if full_name && email && affiliation
-
         entry, _feature, _location, qualifier, value = line.split("\t")
 
         break if in_common && entry.present?
@@ -81,20 +88,28 @@ module Database::Trad
 
         case qualifier
         when 'contact'
-          full_name = value
+          raise DuplicateContactPersonInformation if contact
+
+          contact = value
         when 'email'
+          raise DuplicateContactPersonInformation if email
+          
           email = value
         when 'institute'
-          affiliation = value
+          raise DuplicateContactPersonInformation if institute
+
+          institute = value
         else
           # do nothing
         end
       end
 
+      raise MissingContactPersonInformation unless contact && email && institute
+
       {
-        full_name:,
+        contact:,
         email:,
-        affiliation:
+        institute:
       }
     end
   end
