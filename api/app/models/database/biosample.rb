@@ -1,4 +1,10 @@
-module Database::BioProject
+module Database::BioSample
+  class Param
+    def self.build(params)
+      nil
+    end
+  end
+
   class Validator
     include DDBJValidator
   end

@@ -1,0 +1,145 @@
+import Component from '@glimmer/component';
+import { modifier } from 'ember-modifier';
+import { on } from '@ember/modifier';
+import { service } from '@ember/service';
+import { tracked } from '@glimmer/tracking';
+// @ts-expect-error https://github.com/emberjs/ember.js/pull/20464
+import { uniqueId } from '@ember/-internals/glimmer';
+
+import { eq, gt, notEq } from 'ember-truth-helpers';
+import { task } from 'ember-concurrency';
+
+import ENV from 'ddbj-repository/config/environment';
+import { safeFetchWithModal } from 'ddbj-repository/utils/safe-fetch';
+
+import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type ErrorModalService from 'ddbj-repository/services/error-modal';
+import type Router from '@ember/routing/router';
+import type ToastService from 'ddbj-repository/services/toast';
+import type { components } from 'schema/openapi';
+
+type Validation = components['schemas']['Validation'];
+
+interface Signature {
+  Args: {
+    validation: Validation;
+  };
+}
+
+export default class ValidationSubmitFormComponent extends Component<Signature> {
+  @service declare currentUser: CurrentUserService;
+  @service declare errorModal: ErrorModalService;
+  @service declare router: Router;
+  @service declare toast: ToastService;
+
+  @tracked elapsedFromValidationFinished = 0;
+
+  calculateElapsed = modifier(() => {
+    const finishedAt = new Date(this.args.validation.finished_at!);
+
+    const timer = setInterval(() => {
+      this.elapsedFromValidationFinished = new Date().getTime() - finishedAt.getTime();
+    }, 1000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  });
+
+  submit = task({ drop: true }, async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const { id } = this.args.validation;
+
+    formData.set('submission[validation_id]', id.toString());
+
+    const res = await safeFetchWithModal(
+      `${ENV.apiURL}/submissions`,
+      {
+        method: 'POST',
+        headers: this.currentUser.authorizationHeader,
+        body: formData,
+      },
+      this.errorModal,
+    );
+
+    const { id: submissionId } = await res.json();
+
+    this.router.transitionTo('submissions.show', submissionId);
+    this.toast.show('Validation was successfully submitted.', 'success');
+  });
+
+  <template>
+    <div {{this.calculateElapsed}}>
+      {{#if @validation.submission}}
+        <div class='alert alert-danger mt-3'>You have already submitted this validation.</div>
+      {{else if (notEq @validation.validity 'valid')}}
+        <div class='alert alert-danger mt-3'>This validation is not valid.</div>
+      {{else if (gt this.elapsedFromValidationFinished oneDay)}}
+        <div class='alert alert-danger mt-3'>This validation is expired.</div>
+      {{else}}
+        <form {{on 'submit' this.submit.perform}} class='p-3'>
+          <div class='mb-3'>
+            <label class='form-label'>Visibility</label>
+
+            <div>
+              <div class='form-check form-check-inline'>
+                {{#let (uniqueId) as |id|}}
+                  <input
+                    class='form-check-input'
+                    id={{id}}
+                    type='radio'
+                    name='submission[visibility]'
+                    value='public'
+                    required
+                  />
+
+                  <label class='form-check-label' for={{id}}>Public</label>
+                {{/let}}
+              </div>
+
+              <div class='form-check form-check-inline'>
+                {{#let (uniqueId) as |id|}}
+                  <input
+                    class='form-check-input'
+                    id={{id}}
+                    type='radio'
+                    name='submission[visibility]'
+                    value='private'
+                    required
+                  />
+
+                  <label class='form-check-label' for={{id}}>Private</label>
+                {{/let}}
+              </div>
+            </div>
+          </div>
+
+          {{#if (eq @validation.db 'BioProject')}}
+            <div class='mb-3'>
+              <div class='form-check'>
+                <input type='hidden' name='param[umbrella]' value='false' />
+
+                {{#let (uniqueId) as |id|}}
+                  <input class='form-check-input' id={{id}} type='checkbox' name='param[umbrella]' value='true' />
+                  <label class='form-check-label' for={{id}}>Umbrella project</label>
+                {{/let}}
+              </div>
+            </div>
+          {{/if}}
+
+          <button class='btn btn-primary' type='submit'>Submit</button>
+        </form>
+      {{/if}}
+    </div>
+  </template>
+}
+
+declare module '@glint/environment-ember-loose/registry' {
+  export default interface Registry {
+    'Validation::SubmitForm': typeof ValidationSubmitFormComponent;
+  }
+}
+
+const oneDay = 24 * 60 * 60 * 1000;

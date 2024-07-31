@@ -438,11 +438,29 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [validation_id]
+              required: [submission]
 
               properties:
-                validation_id:
-                  type: integer
+                submission:
+                  type: object
+                  additionalProperties: false
+                  required: [validation_id, visibility]
+
+                  properties:
+                    validation_id:
+                      type: integer
+
+                    visibility:
+                      type: string
+
+                      enum:
+                        - public
+                        - private
+
+                param:
+                  type:
+                    - object
+                    - 'null'
 
       responses:
         '201':
@@ -500,6 +518,21 @@ components:
 
   schemas:
     Validation:
+      oneOf:
+        <%- dbs.each do |db| -%>
+        - $ref: '#/components/schemas/<%= db[:id] %>Validation'
+        <%- end -%>
+
+      discriminator:
+        propertyName: db
+
+        mapping:
+          <%- dbs.each do |db| -%>
+          <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>Validation'
+          <%- end -%>
+
+    <%- dbs.each do |db| -%>
+    <%= db[:id] %>Validation:
       type: object
       additionalProperties: false
       required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
@@ -525,9 +558,7 @@ components:
           type: string
 
           enum:
-            <%- dbs.each do |db| -%>
             - <%= db[:id] %>
-            <%- end -%>
 
         created_at:
           type: string
@@ -596,10 +627,18 @@ components:
               type: string
               format: uri
 
+    <%- end -%>
     Submission:
+      oneOf:
+        <%- dbs.each do |db| -%>
+        - $ref: '#/components/schemas/<%= db[:id] %>Submission'
+        <%- end -%>
+
+    <%- dbs.each do |db| -%>
+    <%= db[:id] %>Submission:
       type: object
       additionalProperties: false
-      required: [id, created_at, validation]
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
 
       properties:
         id:
@@ -609,9 +648,69 @@ components:
           type: string
           format: date-time
 
-        validation:
-          $ref: '#/components/schemas/Validation'
+        started_at:
+          type:
+            - string
+            - 'null'
 
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        validation:
+          $ref: '#/components/schemas/<%= db[:id] %>Validation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          <%- case db[:id] -%>
+          <%- when 'BioProject' -%>
+          type: object
+          additionalProperties: false
+          required: [umbrella]
+
+          properties:
+            umbrella:
+              type: boolean
+          <%- else -%>
+          type: 'null'
+          <%- end -%>
+
+    <%- end -%>
     Objects:
       type: array
 

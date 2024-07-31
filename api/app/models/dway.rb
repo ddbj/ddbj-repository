@@ -2,14 +2,18 @@ class Dway
   include Singleton
 
   class << self
-    delegate :submitter_db, :drmdb, to: :instance
+    delegate :bioproject, :drmdb, :submitterdb, to: :instance
   end
 
-  def submitter_db
-    @submitter_db ||= Sequel.connect(ENV.fetch('SUBMITTER_DB_DATABASE_URL'))
+  def bioproject
+    @bioproject ||= Sequel.connect(ENV.fetch('BIOPROJECT_DATABASE_URL'), search_path: 'mass')
   end
 
   def drmdb
-    @drmdb ||= Sequel.connect(ENV.fetch('DRMDB_DATABASE_URL'))
+    @drmdb ||= Sequel.connect(ENV.fetch('DRMDB_DATABASE_URL'), search_path: 'mass')
+  end
+
+  def submitterdb
+    @submitterdb ||= Sequel.connect(ENV.fetch('SUBMITTERDB_DATABASE_URL'), search_path: 'mass')
   end
 end

@@ -32,10 +32,13 @@ jobs:
         working-directory: api
 
     env:
+      BIOPROJECT_DATABASE_URL: postgres://localhost/bioproject_test
       BUNDLE_WITHOUT: development
+      DRMDB_DATABASE_URL: postgres://localhost/drmdb_test
       PGHOST: localhost
       PGUSER: postgres
       RAILS_ENV: test
+      SUBMITTER_DB_DATABASE_URL: postgres://localhost/submitter_db_test
       TZ: Japan
 
     steps:
@@ -56,8 +59,6 @@ jobs:
 
       - run: bundle exec submission-excel2xml download_xsd
 
-      - run: createdb drmdb_test
-      - run: createdb submitter_db_test
-
       - run: bin/rails db:prepare
+      - run: bundle exec rake dway:db:create dway:db:migrate
       - run: bundle exec rspec

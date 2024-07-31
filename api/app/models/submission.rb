@@ -1,10 +1,16 @@
 class Submission < ApplicationRecord
   belongs_to :validation
 
+  delegated_type :param, types: %w(BioProjectSubmissionParam), optional: true, dependent: :destroy
+
   validates :validation_id, uniqueness: {message: 'is already submitted'}
 
   validate :validation_must_be_valid
   validate :validation_finished_at_must_be_in_24_hours
+
+  enum :progress,   %w(waiting running finished canceled).index_by(&:to_sym)
+  enum :result,     %w(success failure).index_by(&:to_sym)
+  enum :visibility, %w(public private).index_by(&:to_sym), prefix: true
 
   after_destroy do |submission|
     submission.dir.rmtree

@@ -1,4 +1,10 @@
 module Database::Trad
+  class Param
+    def self.build(params)
+      nil
+    end
+  end
+
   class Validator
     include TradValidation
 

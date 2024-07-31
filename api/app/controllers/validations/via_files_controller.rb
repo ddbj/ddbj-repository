@@ -19,7 +19,7 @@ class Validations::ViaFilesController < ApplicationController
         raise UnprocessableEntity, "unknown db: #{params[:db]}"
       end
 
-      validation = current_user.validations.create!(db: db[:id], progress: 'waiting')
+      validation = current_user.validations.create!(db: db[:id])
 
       validation.objs.create! _id: '_base'
 

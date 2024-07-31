@@ -448,11 +448,29 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [validation_id]
+              required: [submission]
 
               properties:
-                validation_id:
-                  type: integer
+                submission:
+                  type: object
+                  additionalProperties: false
+                  required: [validation_id, visibility]
+
+                  properties:
+                    validation_id:
+                      type: integer
+
+                    visibility:
+                      type: string
+
+                      enum:
+                        - public
+                        - private
+
+                param:
+                  type:
+                    - object
+                    - 'null'
 
       responses:
         '201':
@@ -510,6 +528,30 @@ components:
 
   schemas:
     Validation:
+      oneOf:
+        - $ref: '#/components/schemas/BioProjectValidation'
+        - $ref: '#/components/schemas/BioSampleValidation'
+        - $ref: '#/components/schemas/TradValidation'
+        - $ref: '#/components/schemas/DRAValidation'
+        - $ref: '#/components/schemas/GEAValidation'
+        - $ref: '#/components/schemas/MetaboBankValidation'
+        - $ref: '#/components/schemas/JVarValidation'
+        - $ref: '#/components/schemas/Trad2Validation'
+
+      discriminator:
+        propertyName: db
+
+        mapping:
+          BioProject: '#/components/schemas/BioProjectValidation'
+          BioSample: '#/components/schemas/BioSampleValidation'
+          Trad: '#/components/schemas/TradValidation'
+          DRA: '#/components/schemas/DRAValidation'
+          GEA: '#/components/schemas/GEAValidation'
+          MetaboBank: '#/components/schemas/MetaboBankValidation'
+          JVar: '#/components/schemas/JVarValidation'
+          Trad2: '#/components/schemas/Trad2Validation'
+
+    BioProjectValidation:
       type: object
       additionalProperties: false
       required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
@@ -536,12 +578,670 @@ components:
 
           enum:
             - BioProject
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - null
+
+        objects:
+          $ref: '#/components/schemas/Objects'
+
+        results:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/ValidationResult'
+
+        raw_result:
+          type:
+            - object
+            - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
+    BioSampleValidation:
+      type: object
+      additionalProperties: false
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        user:
+          type: object
+          additionalProperties: false
+          required: [uid]
+
+          properties:
+            uid:
+              type: string
+
+        db:
+          type: string
+
+          enum:
             - BioSample
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - null
+
+        objects:
+          $ref: '#/components/schemas/Objects'
+
+        results:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/ValidationResult'
+
+        raw_result:
+          type:
+            - object
+            - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
+    TradValidation:
+      type: object
+      additionalProperties: false
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        user:
+          type: object
+          additionalProperties: false
+          required: [uid]
+
+          properties:
+            uid:
+              type: string
+
+        db:
+          type: string
+
+          enum:
             - Trad
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - null
+
+        objects:
+          $ref: '#/components/schemas/Objects'
+
+        results:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/ValidationResult'
+
+        raw_result:
+          type:
+            - object
+            - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
+    DRAValidation:
+      type: object
+      additionalProperties: false
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        user:
+          type: object
+          additionalProperties: false
+          required: [uid]
+
+          properties:
+            uid:
+              type: string
+
+        db:
+          type: string
+
+          enum:
             - DRA
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - null
+
+        objects:
+          $ref: '#/components/schemas/Objects'
+
+        results:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/ValidationResult'
+
+        raw_result:
+          type:
+            - object
+            - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
+    GEAValidation:
+      type: object
+      additionalProperties: false
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        user:
+          type: object
+          additionalProperties: false
+          required: [uid]
+
+          properties:
+            uid:
+              type: string
+
+        db:
+          type: string
+
+          enum:
             - GEA
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - null
+
+        objects:
+          $ref: '#/components/schemas/Objects'
+
+        results:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/ValidationResult'
+
+        raw_result:
+          type:
+            - object
+            - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
+    MetaboBankValidation:
+      type: object
+      additionalProperties: false
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        user:
+          type: object
+          additionalProperties: false
+          required: [uid]
+
+          properties:
+            uid:
+              type: string
+
+        db:
+          type: string
+
+          enum:
             - MetaboBank
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - null
+
+        objects:
+          $ref: '#/components/schemas/Objects'
+
+        results:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/ValidationResult'
+
+        raw_result:
+          type:
+            - object
+            - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
+    JVarValidation:
+      type: object
+      additionalProperties: false
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        user:
+          type: object
+          additionalProperties: false
+          required: [uid]
+
+          properties:
+            uid:
+              type: string
+
+        db:
+          type: string
+
+          enum:
             - JVar
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - null
+
+        objects:
+          $ref: '#/components/schemas/Objects'
+
+        results:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/ValidationResult'
+
+        raw_result:
+          type:
+            - object
+            - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
+    Trad2Validation:
+      type: object
+      additionalProperties: false
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        user:
+          type: object
+          additionalProperties: false
+          required: [uid]
+
+          properties:
+            uid:
+              type: string
+
+        db:
+          type: string
+
+          enum:
             - Trad2
 
         created_at:
@@ -612,9 +1312,20 @@ components:
               format: uri
 
     Submission:
+      oneOf:
+        - $ref: '#/components/schemas/BioProjectSubmission'
+        - $ref: '#/components/schemas/BioSampleSubmission'
+        - $ref: '#/components/schemas/TradSubmission'
+        - $ref: '#/components/schemas/DRASubmission'
+        - $ref: '#/components/schemas/GEASubmission'
+        - $ref: '#/components/schemas/MetaboBankSubmission'
+        - $ref: '#/components/schemas/JVarSubmission'
+        - $ref: '#/components/schemas/Trad2Submission'
+
+    BioProjectSubmission:
       type: object
       additionalProperties: false
-      required: [id, created_at, validation]
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
 
       properties:
         id:
@@ -624,8 +1335,510 @@ components:
           type: string
           format: date-time
 
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
         validation:
-          $ref: '#/components/schemas/Validation'
+          $ref: '#/components/schemas/BioProjectValidation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          type: object
+          additionalProperties: false
+          required: [umbrella]
+
+          properties:
+            umbrella:
+              type: boolean
+
+    BioSampleSubmission:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+
+      properties:
+        id:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        validation:
+          $ref: '#/components/schemas/BioSampleValidation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          type: 'null'
+
+    TradSubmission:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+
+      properties:
+        id:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        validation:
+          $ref: '#/components/schemas/TradValidation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          type: 'null'
+
+    DRASubmission:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+
+      properties:
+        id:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        validation:
+          $ref: '#/components/schemas/DRAValidation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          type: 'null'
+
+    GEASubmission:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+
+      properties:
+        id:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        validation:
+          $ref: '#/components/schemas/GEAValidation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          type: 'null'
+
+    MetaboBankSubmission:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+
+      properties:
+        id:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        validation:
+          $ref: '#/components/schemas/MetaboBankValidation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          type: 'null'
+
+    JVarSubmission:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+
+      properties:
+        id:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        validation:
+          $ref: '#/components/schemas/JVarValidation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          type: 'null'
+
+    Trad2Submission:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+
+      properties:
+        id:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        validation:
+          $ref: '#/components/schemas/Trad2Validation'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        param:
+          type: 'null'
 
     Objects:
       type: array
