@@ -321,5 +321,106 @@ RSpec.describe Database::Trad::Validator, type: :model do
         )
       )
     end
+
+    example 'duplicate contact' do
+      create_seq validation
+
+      create_ann validation, content: <<~ANN
+        COMMON	SUBMITTER		contact	Alice Liddell
+        			contact	ALice Liddell
+      ANN
+
+      Database::Trad::Validator.new.validate validation
+      validation.reload
+
+      expect(validation.results).to contain_exactly(
+        include(
+          object_id: '_base',
+          validity:  nil
+        ),
+        include(
+          object_id: 'Sequence',
+          validity:  'valid'
+        ),
+        include(
+          object_id: 'Annotation',
+          validity:  'invalid',
+
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is duplicated.'
+          ]
+        )
+      )
+    end
+
+    example 'duplicate email' do
+      create_seq validation
+
+      create_ann validation, content: <<~ANN
+        COMMON	SUBMITTER		contact	Alice Liddell
+        			email	alice@example.com
+        			email	alice@example.com
+      ANN
+
+      Database::Trad::Validator.new.validate validation
+      validation.reload
+
+      expect(validation.results).to contain_exactly(
+        include(
+          object_id: '_base',
+          validity:  nil
+        ),
+        include(
+          object_id: 'Sequence',
+          validity:  'valid'
+        ),
+        include(
+          object_id: 'Annotation',
+          validity:  'invalid',
+
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is duplicated.'
+          ]
+        )
+      )
+    end
+
+    example 'duplicate institute' do
+      create_seq validation
+
+      create_ann validation, content: <<~ANN
+        COMMON	SUBMITTER		contact	Alice Liddell
+        			institute	Wonderland Inc.
+        			institute	Wonderland Inc.
+      ANN
+
+      Database::Trad::Validator.new.validate validation
+      validation.reload
+
+      expect(validation.results).to contain_exactly(
+        include(
+          object_id: '_base',
+          validity:  nil
+        ),
+        include(
+          object_id: 'Sequence',
+          validity:  'valid'
+        ),
+        include(
+          object_id: 'Annotation',
+          validity:  'invalid',
+
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is duplicated.'
+          ]
+        )
+      )
+    end
   end
 end
