@@ -1,0 +1,15 @@
+#!/bin/bash
+
+docker compose pull
+
+pushd api
+bin/setup
+popd
+
+pushd web
+pnpm install
+popd
+
+pushd noodles_gff-rb
+bundle install
+popd
