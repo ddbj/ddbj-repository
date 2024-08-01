@@ -1,5 +1,5 @@
-api: cd api && bin/rails server
-web: cd web && pnpm start
+api: cd api && bin/rails server --port 3000
+web: cd web && pnpm start --port 4200
 ddbj_validator: cd ddbj_validator && docker compose up
 minio: docker compose up minio
 keycloak: docker compose up keycloak
