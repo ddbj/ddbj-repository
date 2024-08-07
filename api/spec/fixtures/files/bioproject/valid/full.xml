@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PackageSet>
+  <Package>
+    <Project>
+      <Project>
+        <ProjectID>
+          <ArchiveID />
+        </ProjectID>
+
+        <ProjectDescr>
+          <Title>general_info.project_title</Title>
+          <Description>general_info.public_description</Description>
+
+          <ExternalLink label="link_description.i">
+            <URL>link_uri.i</URL>
+          </ExternalLink>
+
+          <Grant GrantId="grant_id.i">
+            <Title>grant_title.i</Title>
+            <Agency abbr="agency_abbreviation.i">agency.i</Agency>
+          </Grant>
+
+          <Publication id="publication.pubmed_id.i">
+            <Reference>
+              <DbType>ePubmed</DbType>
+            </Reference>
+          </Publication>
+
+          <Publication id="publication.doi.i">
+            <Reference>
+              <DbType>eDOI</DbType>
+            </Reference>
+          </Publication>
+
+          <Relevance>
+            <!-- general_info.relevance == 'Other' -->
+            <Other>general_info.relevance_description</Other>
+            <!-- else -->
+            <general_info.relevance>yes</general_info.relevance>
+          </Relevance>
+
+          <LocusTagPrefix>project_type.locus_tag</LocusTagPrefix>
+        </ProjectDescr>
+
+        <ProjectType>
+          <ProjectTypeSubmission>
+            <Target sample_scope="project_type.sample_code" material="project_type.material" capture="project_type.capture">
+              <Organism taxID="target.taxonomy_id || 0">
+                <OrganismName>target.organism_name</OrganismName>
+                <Label>target.isolate_name_or_label?</Label>
+                <Strain>target.strain_breed_cultivar</Strain>
+
+                <BiologicalProperties>
+                  <Morphology>
+                    <Gram>target.prokaryote_gram?</Gram>
+                    <Enveloped>target.prokaryote_enveloped?</Enveloped>
+                    <Shape>target.prokaryote_shape.i*</Shape>
+                    <Endospores>target.prokaryote_endospores?</Endospores>
+                    <Motility>target.prokaryote_motility?</Motility>
+                  </Morphology>
+
+                  <Environment>
+                    <Salinity>target.environment_salinity?</Salinity>
+                    <OxygenReq>target.environment_oxygen_requirement?</OxygenReq>
+                    <OptimumTemperature>target.environment_optimum_temperature?</OptimumTemperature>
+                    <TemperatureRange>target.environment_temperature_range?</TemperatureRange>
+                    <Habitat>target.environment_habitat?</Habitat>
+                  </Environment>
+
+                  <Phoenotype>
+                    <BioticRelationship>target.phenotype_biotic_relationship?</BioticRelationship>
+                    <TrophicLevel>target.phenotype_trophic_level?</TrophicLevel>
+                    <Disease>target.phenotype_disease?</Disease>
+                  </Phoenotype>
+                </BiologicalProperties>
+
+                <Organization>target.cellularity?</Organization>
+                <Reproduction>target.reproduction?</Reproduction>
+
+                <RepliconSet>
+                  <Replicon order="target.replicons_order.i?">
+                    <Type location="target.replicons_location.i?" isSingle="target.replicons_type.i == 'eChromesome' && target.replicons_location.i == 'eMitochondrion'" typeOtherDescr="target.replicons_type_description.i?" locationOtherDescr="target.replicons_location_description.i?">
+                      target.replicons_type.i
+                    </Type>
+
+                    <Name>target.replicons_name.i</Name>
+                    <Size units="target.replicons_size_unit.i">target.replicons_size.i?</Size>
+                    <Description>target.replicons_description.i?</Description>
+                  </Replicon>
+
+                  <Ploidy type="target.ploidy?" />
+                  <Count repliconType="target.replicons_name.j*">(count of target.replicons_name.i)</Count>
+                </RepliconSet>
+
+                <GenomeSize units="target.haploid_genome_size_unit">target.haploid_genome_size?</GenomeSize>
+              </Organism>
+
+              <Provider>general_info.biomaterial_provider?</Provider>
+              <Description>target.label_description?</Description>
+            </Target>
+
+            <Method method_type="project_type.methodology">
+              <!-- if project_type.methodology == 'eOther' -->
+              project_type.methodology_description?
+            </Method>
+
+            <Objectives>
+              <Data data_type="project_type.objective.i*" />
+            </Objectives>
+
+            <ProjectDataTypeSet>
+              <DataType>
+                <!-- if project_type.project_data_type.i == 'other' -->
+                project_type.project_data_type_description
+                <!-- else if BpNameUtil.getProjectDataTypeSummary(project_type.project_data_type.i) -->
+                BpNameUtil.getProjectDataTypeSummary(project_type.project_data_type.i)
+                <!-- else -->
+                project_type.project_data_type.i
+              </DataType>
+            </ProjectDataTypeSet>
+          </ProjectTypeSubmission>
+        </ProjectType>
+      </Project>
+    </Project>
+
+    <Submission>
+      <Submission sumitted="Date.current.iso8601">
+        <Description>
+          <Organization type="center" role="owner" url="submitter.organization_url?">
+            <Name>submitter.organization_name</Name>
+
+            <Contact email="submitter.email.i?">
+              <Name>
+                <First>submitter.first_name?</First>
+                <Last>submitter.last_name</Last>
+              </Name>
+            </Contact>
+          </Organization>
+
+          <!-- if submitter.data_release == 'hup' -->
+          <Hold release_date="2030-01-01" />
+          <!-- end -->
+        </Description>
+      </Submission>
+    </Submission>
+  </Package>
+</PackageSet>
