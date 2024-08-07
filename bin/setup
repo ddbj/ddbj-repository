@@ -12,4 +12,5 @@ popd
 
 pushd noodles_gff-rb
 bundle install
+bundle exec rake compile
 popd
