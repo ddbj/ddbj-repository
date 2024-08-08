@@ -84,8 +84,10 @@ module Database::BioProject
           },
 
           *doc.xpath('/PackageSet/Package/Project/Project/ProjectDescr/ExternalLink').flat_map.with_index(1) {|link, i|
+            url = link.at('URL')
+
             [
-              ['general_info', "link_url.#{i}",         link.text],
+              ['general_info', "link_url.#{i}",         url&.text],
               ['general_info', "link_description.#{i}", link[:label]]
             ]
           },
@@ -104,7 +106,7 @@ module Database::BioProject
           },
 
           *doc.xpath('/PackageSet/Package/Project/Project/ProjectDescr/Publication').map.with_index(1) {|publication, i|
-            case publication.at('Reference/DbType')
+            case publication.at('Reference/DbType')&.text
             when 'ePubmed'
               ['publication', "publication.pubmed_id.#{i}", publication[:id]]
             when 'eDOI'
@@ -115,6 +117,8 @@ module Database::BioProject
           },
 
           doc.at('/PackageSet/Package/Project/Project/ProjectDescr/Relevance').then {
+            next nil unless _1
+
             if other = _1.at('Other')
               ['general_info', 'relevance_description', other.text]
             else

@@ -12,8 +12,12 @@
           <Title>general_info.project_title</Title>
           <Description>general_info.public_description</Description>
 
-          <ExternalLink label="link_description.i">
-            <URL>link_uri.i</URL>
+          <ExternalLink label="general_info.link_description.i">
+            <URL>general_info.link_uri.i</URL>
+          </ExternalLink>
+
+          <ExternalLink label="general_info.link_description.j">
+            <URL>general_info.link_uri.j</URL>
           </ExternalLink>
 
           <Grant GrantId="grant_id.i">
