@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Database::BioProject::Submitter do
-  def create_submission(visibility:)
+  def create_submission(visibility: :private, file: 'bioproject/valid/1_not_well_format_xml_ok.xml')
     create(:submission, **{
       visibility:,
 
@@ -11,7 +11,7 @@ RSpec.describe Database::BioProject::Submitter do
         objs: [
           build(:obj, **{
             _id:      'BioProject',
-            file:     file_fixture('bioproject/valid/1_not_well_format_xml_ok.xml'),
+            file:     file_fixture(file),
             validity: :valid
           })
         ]
@@ -30,8 +30,8 @@ RSpec.describe Database::BioProject::Submitter do
       organization_url: 'http://wonderland.example.com'
     })
   }
-
-  example 'visibility: private' do
+  
+  example 'submit' do
     submission = create_submission(visibility: :private)
 
     Database::BioProject::Submitter.new.submit submission
@@ -79,41 +79,19 @@ RSpec.describe Database::BioProject::Submitter do
       submitter_id: 'alice'
     )
 
-    expect(Dway.bioproject[:submission_data]).to contain_exactly(
+    expect(Dway.bioproject[:submission_data]).to include(
       include(
         submission_id: 'PSUB000001',
-        data_name:     'first_name',
-        data_value:    'Alice',
-        form_name:     'submitter',
+        form_name:     'general_info',
+        data_name:     'project_title',
+        data_value:    'Title text',
         t_order:       1
       ),
       include(
-        submission_id: 'PSUB000001',
-        data_name:     'last_name',
-        data_value:    'Liddell',
-        form_name:     'submitter',
-        t_order:       2
-      ),
-      include(
-        submission_id: 'PSUB000001',
-        data_name:     'email',
-        data_value:    'alice@example.com',
-        form_name:     'submitter',
-        t_order:       3
-      ),
-      include(
-        submission_id: 'PSUB000001',
-        data_name:     'organization_name',
-        data_value:    'Rabbit Hole, Wonderland Inc.',
-        form_name:     'submitter',
-        t_order:       4
-      ),
-      include(
-        submission_id: 'PSUB000001',
-        data_name:     'organization_url',
-        data_value:    'http://wonderland.example.com',
-        form_name:     'submitter',
-        t_order:       5
+        form_name:  'general_info',
+        data_name:  'public_description',
+        data_value: 'Description text',
+        t_order:    2
       )
     )
   end
@@ -130,6 +108,45 @@ RSpec.describe Database::BioProject::Submitter do
       release_date:  instance_of(Time),
       dist_date:     instance_of(Time),
       modified_date: instance_of(Time)
+    )
+  end
+
+  example 'full' do
+    submission = create_submission(file: 'bioproject/valid/full.xml')
+
+    Database::BioProject::Submitter.new.submit submission
+    
+    expect(Dway.bioproject[:submission_data].to_a).to include(
+      include(
+        form_name:  'general_info',
+        data_name:  'project_title',
+        data_value: 'general_info.project_title'
+      ),
+      include(
+        form_name:  'general_info',
+        data_name:  'public_description',
+        data_value: 'general_info.public_description'
+      ),
+      include(
+        form_name:  'general_info',
+        data_name:  'link_url.1',
+        data_value: 'general_info.link_uri.i'
+      ),
+      include(
+        form_name:  'general_info',
+        data_name:  'link_description.1',
+        data_value: 'general_info.link_description.i'
+      ),
+      include(
+        form_name:  'general_info',
+        data_name:  'link_url.2',
+        data_value: 'general_info.link_uri.j'
+      ),
+      include(
+        form_name:  'general_info',
+        data_name:  'link_description.2',
+        data_value: 'general_info.link_description.j'
+      ),
     )
   end
 end
