@@ -12,22 +12,26 @@
           <Title>general_info.project_title</Title>
           <Description>general_info.public_description</Description>
 
-          <ExternalLink label="link_description.i">
-            <URL>link_uri.i</URL>
+          <ExternalLink label="general_info.link_description.1">
+            <URL>general_info.link_uri.1</URL>
           </ExternalLink>
 
-          <Grant GrantId="grant_id.i">
-            <Title>grant_title.i</Title>
-            <Agency abbr="agency_abbreviation.i">agency.i</Agency>
+          <ExternalLink label="general_info.link_description.2">
+            <URL>general_info.link_uri.2</URL>
+          </ExternalLink>
+
+          <Grant GrantId="general_info.grant_id.1">
+            <Title>general_info.grant_title.1</Title>
+            <Agency abbr="general_info.agency_abbreviation.1">general_info.agency.1</Agency>
           </Grant>
 
-          <Publication id="publication.pubmed_id.i">
+          <Publication id="publication.pubmed_id.1">
             <Reference>
               <DbType>ePubmed</DbType>
             </Reference>
           </Publication>
 
-          <Publication id="publication.doi.i">
+          <Publication id="publication.doi.2">
             <Reference>
               <DbType>eDOI</DbType>
             </Reference>
@@ -55,7 +59,7 @@
                   <Morphology>
                     <Gram>target.prokaryote_gram?</Gram>
                     <Enveloped>target.prokaryote_enveloped?</Enveloped>
-                    <Shape>target.prokaryote_shape.i*</Shape>
+                    <Shape>target.prokaryote_shape.1*</Shape>
                     <Endospores>target.prokaryote_endospores?</Endospores>
                     <Motility>target.prokaryote_motility?</Motility>
                   </Morphology>
@@ -68,29 +72,27 @@
                     <Habitat>target.environment_habitat?</Habitat>
                   </Environment>
 
-                  <Phoenotype>
+                  <Phenotype>
                     <BioticRelationship>target.phenotype_biotic_relationship?</BioticRelationship>
                     <TrophicLevel>target.phenotype_trophic_level?</TrophicLevel>
                     <Disease>target.phenotype_disease?</Disease>
-                  </Phoenotype>
+                  </Phenotype>
                 </BiologicalProperties>
 
                 <Organization>target.cellularity?</Organization>
                 <Reproduction>target.reproduction?</Reproduction>
 
                 <RepliconSet>
-                  <Replicon order="target.replicons_order.i?">
-                    <Type location="target.replicons_location.i?" isSingle="target.replicons_type.i == 'eChromesome' && target.replicons_location.i == 'eMitochondrion'" typeOtherDescr="target.replicons_type_description.i?" locationOtherDescr="target.replicons_location_description.i?">
-                      target.replicons_type.i
-                    </Type>
+                  <Replicon order="target.replicons_order.1?">
+                    <Type location="target.replicons_location.1?" isSingle="target.replicons_type.1 == 'eChromesome' &amp;&amp; target.replicons_location.1 == 'eMitochondrion'" typeOtherDescr="target.replicons_type_description.1?" locationOtherDescr="target.replicons_location_description.1?">target.replicons_type.1</Type>
 
-                    <Name>target.replicons_name.i</Name>
-                    <Size units="target.replicons_size_unit.i">target.replicons_size.i?</Size>
-                    <Description>target.replicons_description.i?</Description>
+                    <Name>target.replicons_name.1</Name>
+                    <Size units="target.replicons_size_unit.1">target.replicons_size.1?</Size>
+                    <Description>target.replicons_description.1?</Description>
                   </Replicon>
 
                   <Ploidy type="target.ploidy?" />
-                  <Count repliconType="target.replicons_name.j*">(count of target.replicons_name.i)</Count>
+                  <Count repliconType="target.replicons_name.1*">(count of target.replicons_name.1)</Count>
                 </RepliconSet>
 
                 <GenomeSize units="target.haploid_genome_size_unit">target.haploid_genome_size?</GenomeSize>
@@ -106,17 +108,17 @@
             </Method>
 
             <Objectives>
-              <Data data_type="project_type.objective.i*" />
+              <Data data_type="project_type.objective.1*" />
             </Objectives>
 
             <ProjectDataTypeSet>
               <DataType>
-                <!-- if project_type.project_data_type.i == 'other' -->
+                <!-- if project_type.project_data_type.1 == 'other' -->
                 project_type.project_data_type_description
-                <!-- else if BpNameUtil.getProjectDataTypeSummary(project_type.project_data_type.i) -->
-                BpNameUtil.getProjectDataTypeSummary(project_type.project_data_type.i)
+                <!-- else if BpNameUtil.getProjectDataTypeSummary(project_type.project_data_type.1) -->
+                BpNameUtil.getProjectDataTypeSummary(project_type.project_data_type.1)
                 <!-- else -->
-                project_type.project_data_type.i
+                project_type.project_data_type.1
               </DataType>
             </ProjectDataTypeSet>
           </ProjectTypeSubmission>
@@ -130,7 +132,7 @@
           <Organization type="center" role="owner" url="submitter.organization_url?">
             <Name>submitter.organization_name</Name>
 
-            <Contact email="submitter.email.i?">
+            <Contact email="submitter.email.1?">
               <Name>
                 <First>submitter.first_name?</First>
                 <Last>submitter.last_name</Last>
