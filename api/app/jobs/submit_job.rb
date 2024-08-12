@@ -3,7 +3,7 @@ class SubmitJob < ApplicationJob
     ActiveRecord::Base.transaction do
       submission.update! progress: :running, started_at: Time.current
 
-      submitter = "Database::#{submission.validation.db}::Submitter".constantize.new
+      submitter = Database::MAPPING.fetch(submission.validation.db)::Submitter.new
 
       Rails.error.handle do
         begin
