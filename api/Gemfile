@@ -1,42 +1,42 @@
-source 'https://rubygems.org'
+source "https://rubygems.org"
 
-ruby file: '.ruby-version'
+ruby file: ".ruby-version"
 
-gem 'rails', '~> 7.2.0'
+gem "rails", "~> 7.2.0"
 
-gem 'aws-sdk-s3'
-gem 'base62-rb'
-gem 'bootsnap', require: false
-gem 'faraday'
-gem 'faraday-multipart'
-gem 'jb'
-gem 'metabobank_tools', github: 'ddbj/metabobank_tools'
-gem 'noodles_gff', path: '../noodles_gff-rb'
-gem 'openid_connect'
-gem 'pagy'
-gem 'parallel'
-gem 'pg'
-gem 'puma'
-gem 'rack-cors'
-gem 'rambulance'
-gem 'sentry-rails'
-gem 'sequel'
-gem 'solid_queue'
-gem 'submission-excel2xml', github: 'ddbj/submission-excel2xml'
+gem "aws-sdk-s3"
+gem "base62-rb"
+gem "bootsnap", require: false
+gem "faraday"
+gem "faraday-multipart"
+gem "jb"
+gem "metabobank_tools", github: "ddbj/metabobank_tools"
+gem "noodles_gff", path: "../noodles_gff-rb"
+gem "openid_connect"
+gem "pagy"
+gem "parallel"
+gem "pg"
+gem "puma"
+gem "rack-cors"
+gem "rambulance"
+gem "sentry-rails"
+gem "sequel"
+gem "solid_queue"
+gem "submission-excel2xml", github: "ddbj/submission-excel2xml"
 
 group :development do
-  gem 'brakeman', require: false
-  gem 'debug', require: 'debug/prelude', group: :test
-  gem 'rubocop-rails-omakase', require: false
+  gem "brakeman", require: false
+  gem "debug", require: "debug/prelude", group: :test
+  gem "rubocop-rails-omakase", require: false
 end
 
 group :test do
-  gem 'climate_control'
-  gem 'factory_bot_rails', group: :development
-  gem 'rails-controller-testing'
-  gem 'rspec-default_http_header'
-  gem 'rspec-rails', group: :development
-  gem 'skooma'
-  gem 'test-prof'
-  gem 'webmock', require: 'webmock/rspec'
+  gem "climate_control"
+  gem "factory_bot_rails", group: :development
+  gem "rails-controller-testing"
+  gem "rspec-default_http_header"
+  gem "rspec-rails", group: :development
+  gem "skooma"
+  gem "test-prof"
+  gem "webmock", require: "webmock/rspec"
 end

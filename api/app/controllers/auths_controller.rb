@@ -2,7 +2,7 @@ class AuthsController < ApplicationController
   skip_before_action :authenticate
 
   def self.oidc_config
-    @oidc_config ||= OpenIDConnect::Discovery::Provider::Config.discover!(ENV.fetch('OIDC_ISSUER_URL'))
+    @oidc_config ||= OpenIDConnect::Discovery::Provider::Config.discover!(ENV.fetch("OIDC_ISSUER_URL"))
   end
 
   def login
@@ -12,10 +12,10 @@ class AuthsController < ApplicationController
     code_challenge = calculate_code_challenge(code_verifier)
 
     redirect_to oidc_client.authorization_uri(
-      scope:                 %i(openid ddbj email profile),
-      state:                 ,
-      code_challenge:        ,
-      code_challenge_method: 'S256'
+      scope:                 %i[openid ddbj email profile],
+      state:,
+      code_challenge:,
+      code_challenge_method: "S256"
     ), allow_other_host: true
   end
 
@@ -24,7 +24,7 @@ class AuthsController < ApplicationController
     code_verifier = session.delete(:code_verifier)
 
     unless state == params.require(:state)
-      render plain: 'Error: state mismatch', status: :bad_request
+      render plain: "Error: state mismatch", status: :bad_request
 
       return
     end
@@ -34,15 +34,15 @@ class AuthsController < ApplicationController
     access_token = oidc_client.access_token!(code_verifier:)
     userinfo     = access_token.userinfo!
 
-    user = User.find_or_initialize_by(uid: userinfo.preferred_username).tap {|user|
+    user = User.find_or_initialize_by(uid: userinfo.preferred_username).tap { |user|
       user.update!(
         email:            userinfo.email,
-        first_name:       userinfo.raw_attributes['given_name'],
-        last_name:        userinfo.raw_attributes['sn'],
-        organization:     userinfo.raw_attributes['institution'],
-        department:       userinfo.raw_attributes['lab_fac_dep'],
-        organization_url: userinfo.raw_attributes['url'],
-        admin:            userinfo.raw_attributes['account_type_number'] == 3
+        first_name:       userinfo.raw_attributes["given_name"],
+        last_name:        userinfo.raw_attributes["sn"],
+        organization:     userinfo.raw_attributes["institution"],
+        department:       userinfo.raw_attributes["lab_fac_dep"],
+        organization_url: userinfo.raw_attributes["url"],
+        admin:            userinfo.raw_attributes["account_type_number"] == 3
       )
     }
 
@@ -69,7 +69,7 @@ class AuthsController < ApplicationController
 
   def oidc_client
     @oidc_client ||= OpenIDConnect::Client.new(
-      identifier:             ENV.fetch('OIDC_CLIENT_ID'),
+      identifier:             ENV.fetch("OIDC_CLIENT_ID"),
       redirect_uri:           callback_auth_url,
       jwks_uri:               self.class.oidc_config.jwks_uri,
       authorization_endpoint: self.class.oidc_config.authorization_endpoint,

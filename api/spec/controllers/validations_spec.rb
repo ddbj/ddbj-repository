@@ -30,7 +30,7 @@ RSpec.describe ValidationsController, type: :controller do
           get :index, as: :json
 
           expect(response).to have_http_status(:ok)
-          expect(assigns(:validations).pluck(:id)).to eq([104, 103])
+          expect(assigns(:validations).pluck(:id)).to eq([ 104, 103 ])
 
           expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
             '<http://test.host/api/validations?page=1>; rel="first"',
@@ -40,10 +40,10 @@ RSpec.describe ValidationsController, type: :controller do
         end
 
         example 'page=2' do
-          get :index, params: {page: 2}, as: :json
+          get :index, params: { page: 2 }, as: :json
 
           expect(response).to have_http_status(:ok)
-          expect(assigns(:validations).pluck(:id)).to eq([102, 101])
+          expect(assigns(:validations).pluck(:id)).to eq([ 102, 101 ])
 
           expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
             '<http://test.host/api/validations?page=1>; rel="first"',
@@ -54,10 +54,10 @@ RSpec.describe ValidationsController, type: :controller do
         end
 
         example 'page=3' do
-          get :index, params: {page: 3}, as: :json
+          get :index, params: { page: 3 }, as: :json
 
           expect(response).to have_http_status(:ok)
-          expect(assigns(:validations).pluck(:id)).to eq([100])
+          expect(assigns(:validations).pluck(:id)).to eq([ 100 ])
 
           expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
             '<http://test.host/api/validations?page=1>; rel="first"',
@@ -67,7 +67,7 @@ RSpec.describe ValidationsController, type: :controller do
         end
 
         example 'out of range' do
-          get :index, params: {page: 4}, as: :json
+          get :index, params: { page: 4 }, as: :json
 
           expect(response).to have_http_status(:bad_request)
 
@@ -107,7 +107,7 @@ RSpec.describe ValidationsController, type: :controller do
           create :validation, id: 100
           create :validation, id: 101, user: create(:user)
 
-          get :index, params: {everyone: true}, as: :json
+          get :index, params: { everyone: true }, as: :json
 
           expect(response).to have_http_status(200)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(100)
@@ -117,7 +117,7 @@ RSpec.describe ValidationsController, type: :controller do
           create :validation, id: 100
           create :validation, id: 101, user: create(:user, uid: 'bob')
 
-          get :index, params: {everyone: true, uid: 'bob'}, as: :json
+          get :index, params: { everyone: true, uid: 'bob' }, as: :json
 
           expect(response).to have_http_status(200)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(100)
@@ -128,7 +128,7 @@ RSpec.describe ValidationsController, type: :controller do
           create :validation, id: 101, db: 'MetaboBank'
           create :validation, id: 102, db: 'Trad'
 
-          get :index, params: {db: 'JVar,MetaboBank'}, as: :json
+          get :index, params: { db: 'JVar,MetaboBank' }, as: :json
 
           expect(response).to have_http_status(200)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(100, 101)
@@ -167,12 +167,12 @@ RSpec.describe ValidationsController, type: :controller do
           create :validation, id: 101, progress: 'running'
           create :validation, id: 102, progress: 'finished'
 
-          get :index, params: {progress: 'waiting'}, as: :json
+          get :index, params: { progress: 'waiting' }, as: :json
 
           expect(response).to have_http_status(200)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(100)
 
-          get :index, params: {progress: 'running,finished'}, as: :json
+          get :index, params: { progress: 'running,finished' }, as: :json
 
           expect(response).to have_http_status(200)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(101, 102)
@@ -182,7 +182,7 @@ RSpec.describe ValidationsController, type: :controller do
           create :validation, id: 100, validity: 'valid'
           create :validation, id: 101, validity: nil
 
-          get :index, params: {validity: 'valid'}, as: :json
+          get :index, params: { validity: 'valid' }, as: :json
 
           expect(response).to have_http_status(200)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(100)
@@ -195,12 +195,12 @@ RSpec.describe ValidationsController, type: :controller do
 
           create :validation, id: 101
 
-          get :index, params: {submitted: true}, as: :json
+          get :index, params: { submitted: true }, as: :json
 
           expect(response).to have_http_status(:ok)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(100)
 
-          get :index, params: {submitted: false}, as: :json
+          get :index, params: { submitted: false }, as: :json
 
           expect(response).to have_http_status(:ok)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(101)
@@ -221,14 +221,14 @@ RSpec.describe ValidationsController, type: :controller do
         end
 
         example 'everyone' do
-          get :index, params: {everyone: true}, as: :json
+          get :index, params: { everyone: true }, as: :json
 
           expect(response).to have_http_status(200)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(100, 101, 102)
         end
 
         example 'uid' do
-          get :index, params: {everyone: true, uid: 'bob,carol'}, as: :json
+          get :index, params: { everyone: true, uid: 'bob,carol' }, as: :json
 
           expect(response).to have_http_status(200)
           expect(assigns(:validations).pluck(:id)).to contain_exactly(101, 102)

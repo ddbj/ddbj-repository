@@ -12,7 +12,7 @@ class ValidateJob < ApplicationJob
           validation.objs.base.validity_error!
 
           validation.objs.base.validation_details.create!(
-            severity: 'error',
+            severity: "error",
             message:  e.message
           )
 

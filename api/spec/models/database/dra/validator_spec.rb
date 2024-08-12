@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Database::DRA::Validator, type: :model do
   example 'valid' do
-    validation = create(:validation, id: 42, db: 'DRA') {|validation|
+    validation = create(:validation, id: 42, db: 'DRA') { |validation|
       create :obj, validation:, _id: 'Submission', file: file_fixture_upload('dra/valid/example-0001_dra_Submission.xml')
       create :obj, validation:, _id: 'Experiment', file: file_fixture_upload('dra/valid/example-0001_dra_Experiment.xml')
       create :obj, validation:, _id: 'Run',        file: file_fixture_upload('dra/valid/example-0001_dra_Run.xml')
@@ -63,7 +63,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
   end
 
   example 'invalid' do
-    validation = create(:validation, id: 42, db: 'DRA') {|validation|
+    validation = create(:validation, id: 42, db: 'DRA') { |validation|
       create :obj, validation:, _id: 'Submission', file: file_fixture_upload('dra/invalid/example-0001_dra_Submission.xml')
       create :obj, validation:, _id: 'Experiment', file: file_fixture_upload('dra/invalid/example-0001_dra_Experiment.xml')
       create :obj, validation:, _id: 'Run',        file: file_fixture_upload('dra/invalid/example-0001_dra_Run.xml')
@@ -104,7 +104,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
   end
 
   example 'with Analysis and AnalysisFile, valid' do
-    validation = create(:validation, id: 42, db: 'DRA') {|validation|
+    validation = create(:validation, id: 42, db: 'DRA') { |validation|
       create :obj, validation:, _id: 'Submission',   file: file_fixture_upload('dra/valid/example-0002_dra_Submission.xml')
       create :obj, validation:, _id: 'Experiment',   file: file_fixture_upload('dra/valid/example-0002_dra_Experiment.xml')
       create :obj, validation:, _id: 'Run',          file: file_fixture_upload('dra/valid/example-0002_dra_Run.xml')
@@ -141,7 +141,7 @@ RSpec.describe Database::DRA::Validator, type: :model do
   end
 
   example 'with multiple RunFile, valid' do
-    validation = create(:validation, id: 42, db: 'DRA') {|validation|
+    validation = create(:validation, id: 42, db: 'DRA') { |validation|
       create :obj, validation:, _id: 'Submission', file: file_fixture_upload('dra/valid/example-0001_dra_Submission.xml')
       create :obj, validation:, _id: 'Experiment', file: file_fixture_upload('dra/valid/example-0001_dra_Experiment.xml')
       create :obj, validation:, _id: 'Run',        file: file_fixture_upload('dra/valid/example-0001_dra_Run.xml')

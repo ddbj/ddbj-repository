@@ -1,1 +1,1 @@
-render partial: 'submission', collection: @submissions, as: :submission
+render partial: "submission", collection: @submissions, as: :submission

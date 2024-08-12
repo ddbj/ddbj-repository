@@ -12,11 +12,11 @@
   finished_at: validation.finished_at,
   progress:    validation.progress,
   validity:    validation.validity,
-  objects:     render('validations/objs', validation:),
+  objects:     render("validations/objs", validation:),
   results:     validation.results,
   raw_result:  validation.raw_result,
 
-  submission: validation.submission.then {|submission|
+  submission: validation.submission.then { |submission|
     if submission
       {
         id:  submission.public_id,

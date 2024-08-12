@@ -12,8 +12,8 @@ module Database::Trad
     include TradValidation
 
     ASSOC = {
-      'Sequence'   => %w(.fasta .seq.fa .fa .fna .seq),
-      'Annotation' => %w(.ann .annt.tsv .ann.txt)
+      "Sequence"   => %w[.fasta .seq.fa .fa .fna .seq],
+      "Annotation" => %w[.ann .annt.tsv .ann.txt]
     }
 
     def validate(validation)
@@ -36,27 +36,27 @@ module Database::Trad
     private
 
     def validate_ann(objs)
-      anns = objs.select { _1._id == 'Annotation' }
+      anns = objs.select { _1._id == "Annotation" }
 
       return if anns.empty?
 
-      assoc = anns.map {|obj|
+      assoc = anns.map { |obj|
         begin
           contact_person = extract_contact_person_in_ann(obj.file)
         rescue MissingContactPersonInformation
           obj.validation_details.create!(
-            severity: 'error',
-            message:  'Contact person information (contact, email, institute) is missing.'
+            severity: "error",
+            message:  "Contact person information (contact, email, institute) is missing."
           )
-        rescue DuplicateContactPersonInformation 
+        rescue DuplicateContactPersonInformation
           obj.validation_details.create!(
-            severity: 'error',
-            message:  'Contact person information (contact, email, institute) is duplicated.'
+            severity: "error",
+            message:  "Contact person information (contact, email, institute) is duplicated."
           )
         end
 
 
-        [obj, contact_person]
+        [ obj, contact_person ]
       }
 
       _, first_contact_person = assoc.first
@@ -64,8 +64,8 @@ module Database::Trad
       assoc.each do |obj, contact_person|
         unless first_contact_person == contact_person
           obj.validation_details.create!(
-            severity: 'error',
-            message:  'Contact person must be the same for all annotation files.'
+            severity: "error",
+            message:  "Contact person must be the same for all annotation files."
           )
         end
       end
@@ -82,20 +82,20 @@ module Database::Trad
 
         break if in_common && entry.present?
 
-        in_common = entry == 'COMMON' if entry.present?
+        in_common = entry == "COMMON" if entry.present?
 
         next unless in_common
 
         case qualifier
-        when 'contact'
+        when "contact"
           raise DuplicateContactPersonInformation if contact
 
           contact = value
-        when 'email'
+        when "email"
           raise DuplicateContactPersonInformation if email
-          
+
           email = value
-        when 'institute'
+        when "institute"
           raise DuplicateContactPersonInformation if institute
 
           institute = value

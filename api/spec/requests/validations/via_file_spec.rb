@@ -8,8 +8,8 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
   example 'happy case' do
     post '/api/validations/via-file', params: {
       db:   'MetaboBank',
-      IDF:  {file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')},
-      SDRF: {file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')}
+      IDF:  { file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt') },
+      SDRF: { file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt') }
     }
 
     # We are supposed to use `comform_schema` but it does not success.
@@ -21,7 +21,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
     with_exceptions_app do
       post '/api/validations/via-file', params: {
         db:    'JVar',
-        Excel: {path: '_foo'}
+        Excel: { path: '_foo' }
       }
     end
 
@@ -83,7 +83,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
     with_exceptions_app do
       post '/api/validations/via-file', params: {
         db:    'JVar',
-        Excel: {path: 'foo'}
+        Excel: { path: 'foo' }
       }
     end
 
@@ -98,8 +98,8 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
     with_exceptions_app do
       post '/api/validations/via-file', params: {
         db:   'MetaboBank',
-        IDF:  {file: uploaded_file(name: 'idf.txt')},
-        SDRF: {file: uploaded_file(name: 'idf.txt')}
+        IDF:  { file: uploaded_file(name: 'idf.txt') },
+        SDRF: { file: uploaded_file(name: 'idf.txt') }
       }
     end
 
@@ -114,7 +114,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
     with_exceptions_app do
       post '/api/validations/via-file', params: {
         db:   'MetaboBank',
-        IDF: {file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')}
+        IDF: { file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt') }
       }
     end
 

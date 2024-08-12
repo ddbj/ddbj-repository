@@ -1,12 +1,12 @@
-require 'sequel/core'
-require 'uri'
+require "sequel/core"
+require "uri"
 
 namespace :dway do
   namespace :db do
-    env_keys = %w(DRMDB_DATABASE_URL SUBMITTERDB_DATABASE_URL BIOPROJECT_DATABASE_URL)
+    env_keys = %w[DRMDB_DATABASE_URL SUBMITTERDB_DATABASE_URL BIOPROJECT_DATABASE_URL]
 
-    desc 'Create databases'
-    task :create => :environment do
+    desc "Create databases"
+    task create: :environment do
       env_keys.each do |key|
         uri = URI.parse(ENV.fetch(key))
 
@@ -14,25 +14,25 @@ namespace :dway do
       end
     end
 
-    desc 'Run migrations'
-    task :migrate, [:version] => :environment do |t, args|
+    desc "Run migrations"
+    task :migrate, [ :version ] => :environment do |t, args|
       Sequel.extension :migration
 
       version = args[:version]&.to_i
 
-      %i(drmdb submitterdb bioproject).each do |name|
+      %i[drmdb submitterdb bioproject].each do |name|
         db = Dway.public_send(name)
-        db.create_schema 'mass', if_not_exists: true
+        db.create_schema "mass", if_not_exists: true
 
         Sequel::Migrator.run db, "db/dway/#{name}/migrations", target: version
       end
     end
 
-    desc 'Prepare databases'
-    task :prepare => %i[create migrate]
+    desc "Prepare databases"
+    task prepare: %i[create migrate]
 
-    desc 'Drop databases'
-    task :drop => :environment do
+    desc "Drop databases"
+    task drop: :environment do
       env_keys.each do |key|
         uri = URI.parse(ENV.fetch(key))
 

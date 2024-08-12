@@ -12,7 +12,7 @@ Sequel.migration do
     end
 
     create_table :submission_data do
-      primary_key %i(submission_id data_name t_order)
+      primary_key %i[submission_id data_name t_order]
 
       text      :submission_id, null: false
       text      :data_name,     null: false
@@ -38,7 +38,7 @@ Sequel.migration do
     end
 
     create_table :xml do
-      primary_key %i(submission_id version)
+      primary_key %i[submission_id version]
 
       text    :submission_id,   null: false
       text    :content,         null: false

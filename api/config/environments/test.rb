@@ -66,6 +66,6 @@ Rails.application.configure do
   config.action_controller.raise_on_missing_callback_actions = true
 end
 
-ENV['BIOPROJECT_DATABASE_URL']  = 'postgres://localhost/bioproject_test'
-ENV['DRMDB_DATABASE_URL']       = 'postgres://localhost/drmdb_test'
-ENV['SUBMITTERDB_DATABASE_URL'] = 'postgres://localhost/submitterdb_test'
+ENV["BIOPROJECT_DATABASE_URL"]  = "postgres://localhost/bioproject_test"
+ENV["DRMDB_DATABASE_URL"]       = "postgres://localhost/drmdb_test"
+ENV["SUBMITTERDB_DATABASE_URL"] = "postgres://localhost/submitterdb_test"

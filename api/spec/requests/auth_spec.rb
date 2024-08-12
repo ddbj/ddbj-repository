@@ -48,7 +48,7 @@ RSpec.describe 'authentication', type: :request do
       expect(response).to redirect_to('http://example.com/auth/authorization')
 
       expect(oidc_client).to have_received(:authorization_uri).with(
-        scope:                 %i(openid ddbj email profile),
+        scope:                 %i[openid ddbj email profile],
         state:                 'STATE',
         code_challenge:        'CODE_CHALLENGE',
         code_challenge_method: 'S256'

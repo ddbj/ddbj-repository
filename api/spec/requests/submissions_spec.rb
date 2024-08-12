@@ -10,7 +10,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
 
     expect(response).to conform_schema(200)
 
-    expect(response.parsed_body.map(&:deep_symbolize_keys).map { _1[:id] }).to eq(['X-42'])
+    expect(response.parsed_body.map(&:deep_symbolize_keys).map { _1[:id] }).to eq([ 'X-42' ])
   end
 
   example 'GET /api/submissions/:id' do

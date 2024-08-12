@@ -22,10 +22,10 @@ module Database::DRA
 
         Dir.chdir tmpdir do
           env = {
-            'BUNDLE_GEMFILE' => Rails.root.join('Gemfile').to_s
+            "BUNDLE_GEMFILE" => Rails.root.join("Gemfile").to_s
           }
 
-          out, status = Open3.capture2e(env, *%w(bundle exec validate_meta_dra -a example -i 0001 --machine-readable))
+          out, status = Open3.capture2e(env, *%w[bundle exec validate_meta_dra -a example -i 0001 --machine-readable])
 
           raise out unless status.success?
 
@@ -38,7 +38,7 @@ module Database::DRA
 
                 errs.each do |err|
                   obj.validation_details.create!(
-                    severity: 'error',
+                    severity: "error",
                     message:  err.fetch(:message)
                   )
                 end

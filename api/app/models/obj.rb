@@ -7,20 +7,20 @@ class Obj < ApplicationRecord
 
   has_one_attached :file
 
-  scope :without_base, -> { where.not(_id: '_base') }
+  scope :without_base, -> { where.not(_id: "_base") }
 
-  enum :_id, DB.flat_map { _1[:objects] }.map { _1[:id] }.uniq.concat(['_base']).index_by(&:to_sym)
-  enum :validity, %w(valid invalid error).index_by(&:to_sym), prefix: true
+  enum :_id, DB.flat_map { _1[:objects] }.map { _1[:id] }.uniq.concat([ "_base" ]).index_by(&:to_sym)
+  enum :validity, %w[valid invalid error].index_by(&:to_sym), prefix: true
 
   validate :destination_must_not_be_malformed
   validate :path_must_be_unique_in_request
 
-  def base? = _id == '_base'
+  def base? = _id == "_base"
 
   def path
     return nil if base?
 
-    [destination, file.filename.sanitized].reject(&:blank?).join('/')
+    [ destination, file.filename.sanitized ].reject(&:blank?).join("/")
   end
 
   def validation_result
@@ -33,7 +33,7 @@ class Obj < ApplicationRecord
       },
 
       file: base? ? nil : {
-        path: ,
+        path:,
         url:  Rails.application.routes.url_helpers.validation_file_url(validation, path)
       }
     }
@@ -45,9 +45,9 @@ class Obj < ApplicationRecord
     return if base?
     return unless destination
 
-    tmp = Pathname.new('/tmp').join(SecureRandom.uuid)
+    tmp = Pathname.new("/tmp").join(SecureRandom.uuid)
 
-    errors.add :destination, 'is malformed path' unless tmp.contain?(tmp.join(destination))
+    errors.add :destination, "is malformed path" unless tmp.contain?(tmp.join(destination))
   end
 
   def path_must_be_unique_in_request

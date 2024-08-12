@@ -13,7 +13,7 @@ RSpec.describe 'download submission files', type: :request, authorized: true do
     get '/api/validations/100/files/dest%2Fmyexcel.xlsx'
 
     expect(response).to conform_schema(302)
-    expect(response).to redirect_to(%r(\Ahttp://www.example.com/rails/active_storage/disk/))
+    expect(response).to redirect_to(%r{\Ahttp://www.example.com/rails/active_storage/disk/})
   end
 
   example 'from validation, not found' do

@@ -1,8 +1,8 @@
-validation.objs.sort_by(&:id).group_by(&:_id).except('_base').map {|id, objs|
+validation.objs.sort_by(&:id).group_by(&:_id).except("_base").map { |id, objs|
   {
     id:,
 
-    files: objs.map {|obj|
+    files: objs.map { |obj|
       {
         path: obj.path,
         url:  validation_file_url(validation, obj.path)

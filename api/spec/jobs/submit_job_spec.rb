@@ -6,7 +6,7 @@ RSpec.describe SubmitJob, type: :job do
 
   example 'simple' do
     submission = create(:submission, id: 42, **{
-      validation: create(:validation, :valid, db: 'MetaboBank') {|validation|
+      validation: create(:validation, :valid, db: 'MetaboBank') { |validation|
         create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt'), validity: 'valid'
         create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt'), validity: 'valid'
       }
@@ -14,7 +14,7 @@ RSpec.describe SubmitJob, type: :job do
 
     SubmitJob.perform_now submission
 
-    expect(Dir.glob('**/*', base: submission_dir)).to match_array(%w(
+    expect(Dir.glob('**/*', base: submission_dir)).to match_array(%w[
       _base
       _base/validation-report.json
       IDF
@@ -24,12 +24,12 @@ RSpec.describe SubmitJob, type: :job do
       SDRF/MTBKS231.sdrf.txt
       SDRF/MTBKS231.sdrf.txt-validation-report.json
       validation-report.json
-    ))
+    ])
   end
 
   example 'complex' do
     submission = create(:submission, id: 42, **{
-      validation: create(:validation, :valid, db: 'MetaboBank') {|validation|
+      validation: create(:validation, :valid, db: 'MetaboBank') { |validation|
         create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt'),  validity: 'valid'
         create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt'), validity: 'valid'
         create :obj, validation:, _id: 'MAF',  file: file_fixture_upload('metabobank/valid/MTBKS231.maf.txt'),  validity: 'valid'
@@ -59,7 +59,7 @@ RSpec.describe SubmitJob, type: :job do
 
     SubmitJob.perform_now submission
 
-    expect(Dir.glob('**/*', base: submission_dir)).to match_array(%w(
+    expect(Dir.glob('**/*', base: submission_dir)).to match_array(%w[
       _base
       _base/validation-report.json
       IDF
@@ -114,6 +114,6 @@ RSpec.describe SubmitJob, type: :job do
       ProcessedDataFile/processed/220629_ppg_conc.txt
       ProcessedDataFile/processed/220629_ppg_conc.txt-validation-report.json
       validation-report.json
-    ))
+    ])
   end
 end
