@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe ValidateJob, type: :job do
   let(:validation) {
-    create(:validation, id: 42, db: 'BioProject') {|validation|
+    create(:validation, id: 42, db: 'BioProject') { |validation|
       create :obj, validation:, _id: 'BioProject', file: uploaded_file(name: 'mybioproject.xml')
     }
   }

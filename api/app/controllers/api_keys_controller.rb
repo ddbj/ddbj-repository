@@ -1,5 +1,5 @@
 class ApiKeysController < ApplicationController
-  skip_before_action :authenticate, only: %i(show)
+  skip_before_action :authenticate, only: %i[show]
 
   def show
     render json: {

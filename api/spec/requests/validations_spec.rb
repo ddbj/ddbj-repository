@@ -90,7 +90,7 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
                 path: 'myidf.txt',
                 url:  'http://www.example.com/api/validations/100/files/myidf.txt'
               }
-            },
+            }
           ],
 
           raw_result: nil,

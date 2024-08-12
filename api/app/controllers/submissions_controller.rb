@@ -14,7 +14,7 @@ class SubmissionsController < ApplicationController
   end
 
   def show
-    @submission = user_submissions.find(params[:id].delete_prefix('X-'))
+    @submission = user_submissions.find(params[:id].delete_prefix("X-"))
   end
 
   def create
@@ -37,10 +37,10 @@ class SubmissionsController < ApplicationController
 
   def user_submissions
     current_user.submissions.includes(
-      :validation => [
+      validation: [
         :user,
 
-        :objs => [
+        objs: [
           :file_blob,
           :validation_details
         ]
@@ -53,7 +53,7 @@ class SubmissionsController < ApplicationController
 
     submissions = user_submissions
 
-    submissions = submissions.where(validations: {db: db.split(',')})                if db
+    submissions = submissions.where(validations: { db: db.split(",") })              if db
     submissions = submissions.where(created_at: created_at_after..created_at_before) if created_at_after || created_at_before
 
     submissions

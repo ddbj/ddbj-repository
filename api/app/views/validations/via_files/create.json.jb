@@ -1,1 +1,1 @@
-render(partial: 'validations/validation', object: @validation)
+render(partial: "validations/validation", object: @validation)

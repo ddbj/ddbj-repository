@@ -6,7 +6,7 @@
   progress:      submission.progress,
   result:        submission.result,
   error_message: submission.error_message,
-  validation:    render('validations/validation', validation: submission.validation),
+  validation:    render("validations/validation", validation: submission.validation),
   visibility:    submission.visibility,
   param:         submission.param.as_json
 }

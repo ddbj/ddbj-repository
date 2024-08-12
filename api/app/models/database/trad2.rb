@@ -9,9 +9,9 @@ module Database::Trad2
     include TradValidation
 
     ASSOC = {
-      'Sequence'   => %w(.fasta .seq.fa .fa .fna .seq),
-      'Annotation' => %w(.gff),
-      'Metadata'   => %w(.tsv)
+      "Sequence"   => %w[.fasta .seq.fa .fa .fna .seq],
+      "Annotation" => %w[.gff],
+      "Metadata"   => %w[.tsv]
     }
 
     def validate(validation)
@@ -32,11 +32,11 @@ module Database::Trad2
     end
 
     def validate_ann(objs)
-      objs.select { _1._id == 'Annotation' }.each do |obj|
+      objs.select { _1._id == "Annotation" }.each do |obj|
         NoodlesGFF.parse obj.file.download
       rescue NoodlesGFF::Error => e
         obj.validation_details.create!(
-          severity: 'error',
+          severity: "error",
           message:  e.message
         )
       end

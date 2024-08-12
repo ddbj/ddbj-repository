@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Database::MetaboBank::Validator, type: :model do
   example 'valid' do
-    validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
+    validation = create(:validation, id: 42, db: 'MetaboBank') { |validation|
       create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')
     }
@@ -46,7 +46,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
   end
 
   example 'with MAF and RawDataFile and ProcessedDataFile, valid' do
-    validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
+    validation = create(:validation, id: 42, db: 'MetaboBank') { |validation|
       create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')
       create :obj, validation:, _id: 'MAF',  file: file_fixture_upload('metabobank/valid/MTBKS231.maf.txt')
@@ -193,7 +193,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
   end
 
   example 'with BioSample, valid' do
-    validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
+    validation = create(:validation, id: 42, db: 'MetaboBank') { |validation|
       create :obj, validation:, _id: 'IDF',       file: file_fixture_upload('metabobank/valid/MTBKS231.idf.txt')
       create :obj, validation:, _id: 'SDRF',      file: file_fixture_upload('metabobank/valid/MTBKS231.sdrf.txt')
       create :obj, validation:, _id: 'BioSample', file: file_fixture_upload('metabobank/valid/MTBKS231.bs.tsv')
@@ -223,7 +223,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
   end
 
   example 'invalid' do
-    validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
+    validation = create(:validation, id: 42, db: 'MetaboBank') { |validation|
       create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/invalid/MTBKS201.idf.txt')
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/invalid/MTBKS201.sdrf.txt')
     }

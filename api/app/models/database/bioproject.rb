@@ -31,33 +31,33 @@ module Database::BioProject
         submitter_id  = user.uid
 
         Dway.bioproject[:submission].insert(
-          submission_id:     ,
-          submitter_id:      ,
+          submission_id:,
+          submitter_id:,
           status_id:         BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED,
-          form_status_flags: ''
+          form_status_flags: ""
         )
 
         is_public = submission.visibility_public?
 
         project_id = Dway.bioproject[:project].insert(
-          submission_id: ,
-          project_type:  'primary',
+          submission_id:,
+          project_type:  "primary",
           status_id:     is_public ? BP_PROJECT_STATUS_ID_PUBLIC : BP_PROJECT_STATUS_ID_PRIVATE,
           release_date:  is_public ? Sequel.function(:now)       : nil,
           dist_date:     is_public ? Sequel.function(:now)       : nil,
           modified_date: Sequel.function(:now)
         )
 
-        content = submission.validation.objs.find_by!(_id: 'BioProject').file.download
+        content = submission.validation.objs.find_by!(_id: "BioProject").file.download
         doc     = Nokogiri::XML.parse(content)
         version = (Dway.bioproject[:xml].where(submission_id:).max(:version) || 0) + 1
 
         modify_xml doc, project_id, is_public
 
         Dway.bioproject[:xml].insert(
-          submission_id:   ,
+          submission_id:,
           content:         doc.to_s,
-          version:         ,
+          version:,
           registered_date: Sequel.function(:now)
         )
 
@@ -78,14 +78,14 @@ module Database::BioProject
           first_name:        user.first_name,
           last_name:         user.last_name,
           email:             user.email,
-          organization_name: [user.department, user.organization].compact_blank.join(', '),
+          organization_name: [ user.department, user.organization ].compact_blank.join(", "),
           organization_url:  user.organization_url
         }.each.with_index 1 do |(key, value), i|
           Dway.bioproject[:submission_data].insert(
-            submission_id: ,
+            submission_id:,
             data_name:     key.to_s,
             data_value:    value.to_s,
-            form_name:     'submitter',
+            form_name:     "submitter",
             t_order:       i
           )
         end
@@ -95,22 +95,22 @@ module Database::BioProject
     private
 
     def next_submission_id
-      submission_id = Dway.bioproject[:submission].reverse(:submission_id).get(:submission_id) || 'PSUB000000'
-      num           = submission_id.delete_prefix('PSUB').to_i
+      submission_id = Dway.bioproject[:submission].reverse(:submission_id).get(:submission_id) || "PSUB000000"
+      num           = submission_id.delete_prefix("PSUB").to_i
 
       "PSUB#{num.succ.to_s.rjust(6, '0')}"
     end
 
     def modify_xml(doc, project_id, is_public)
-      archive_id = doc.at('/PackageSet/Package/Project/Project/ProjectID/ArchiveID')
+      archive_id = doc.at("/PackageSet/Package/Project/Project/ProjectID/ArchiveID")
 
       archive_id[:accession] = project_id
-      archive_id[:archive]   = 'DDBJ'
+      archive_id[:archive]   = "DDBJ"
 
       if is_public
-        doc.at('/PackageSet/Package/Submission/Submission/Description/Hold')&.remove
+        doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")&.remove
 
-        if release_date = doc.at('/PackageSet/Package/Project/Project/ProjectDescr/ProjectReleaseDate')
+        if release_date = doc.at("/PackageSet/Package/Project/Project/ProjectDescr/ProjectReleaseDate")
           if release_date.text.empty?
             release_date.content = Time.current.iso8601
           end

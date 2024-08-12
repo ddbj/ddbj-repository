@@ -21,7 +21,7 @@ class Validations::ViaFilesController < ApplicationController
 
       validation = current_user.validations.create!(db: db[:id])
 
-      validation.objs.create! _id: '_base'
+      validation.objs.create! _id: "_base"
 
       db[:objects].each do |obj|
         obj => {id:}
@@ -43,7 +43,7 @@ class Validations::ViaFilesController < ApplicationController
     in {file:, **rest}
       validation.objs.create! _id: id, file: file, **rest.slice(:destination)
     in {path: relative_path, **rest}
-      user_home = Pathname.new(ENV.fetch('USER_HOME_DIR')).join(current_user.uid)
+      user_home = Pathname.new(ENV.fetch("USER_HOME_DIR")).join(current_user.uid)
       path      = user_home.join(relative_path)
 
       raise UnprocessableEntity, "path must be in #{user_home}" unless user_home.contain?(path)
@@ -51,11 +51,11 @@ class Validations::ViaFilesController < ApplicationController
       destination = rest[:destination]
 
       if obj[:multiple] && path.directory?
-        path.glob('**/*').reject(&:directory?).each do |fpath|
+        path.glob("**/*").reject(&:directory?).each do |fpath|
           destination = [
             destination,
             fpath.relative_path_from(path).dirname.to_s
-          ].reject { _1.blank? || _1 == '.' }.join('/').presence
+          ].reject { _1.blank? || _1 == "." }.join("/").presence
 
           create_object validation, id, fpath, destination
         end
@@ -79,7 +79,7 @@ class Validations::ViaFilesController < ApplicationController
 
       file: {
         io:       path.open,
-        filename: path.basename,
+        filename: path.basename
       },
 
       destination:

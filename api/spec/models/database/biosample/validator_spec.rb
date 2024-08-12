@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Database::BioSample::Validator, type: :model do
   let(:validation) {
-    create(:validation, id: 42, db: 'BioSample') {|validation|
+    create(:validation, id: 42, db: 'BioSample') { |validation|
       create :obj, validation:, _id: 'BioSample', file: uploaded_file(name: 'mybiosample.xml')
     }
   }
@@ -17,13 +17,13 @@ RSpec.describe Database::BioSample::Validator, type: :model do
 
     stub_request(:get, 'validator.example.com/api/validation/deadbeef/status').to_return_json(
       {
-        body: {status: 'accepted'}
+        body: { status: 'accepted' }
       },
       {
-        body: {status: 'running'}
+        body: { status: 'running' }
       },
       {
-        body: {status: 'finished'}
+        body: { status: 'finished' }
       }
     )
 

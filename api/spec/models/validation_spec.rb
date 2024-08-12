@@ -5,14 +5,14 @@ RSpec.describe Validation, type: :model do
     let!(:valid) { create(:validation, validity: 'valid') }
 
     let!(:invalid) {
-      create(:validation, validity: 'invalid') {|validation|
+      create(:validation, validity: 'invalid') { |validation|
         create :obj, validation:, validity: 'valid'
         create :obj, validation:, validity: nil
       }
     }
 
     let!(:error) {
-      create(:validation, validity: 'error') {|validation|
+      create(:validation, validity: 'error') { |validation|
         create :obj, validation:, validity: 'valid'
         create :obj, validation:, validity: 'invalid'
         create :obj, validation:, validity: nil
