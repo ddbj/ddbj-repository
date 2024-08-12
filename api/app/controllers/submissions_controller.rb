@@ -21,7 +21,7 @@ class SubmissionsController < ApplicationController
     current_user.validations.find submission_params[:validation_id]
 
     validation  = Validation.find(params[:submission][:validation_id])
-    param       = "Database::#{validation.db}::Param".constantize.build(params)
+    param       = Database::MAPPING.fetch(validation.db)::Param.build(params)
     @submission = Submission.create!(**submission_params, param:)
 
     SubmitJob.perform_later @submission
