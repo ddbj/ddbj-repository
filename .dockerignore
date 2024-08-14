@@ -48,6 +48,10 @@
 /ansible/
 /compose.yml
 /compose/
+/ddbj_validator/.git/
+/noodles_gff-rb/lib/noodles_gff/noodles_gff.so
+/noodles_gff-rb/target/
+/noodles_gff-rb/tmp/
 /web/.github/
 /web/.gitignore
 /web/dist/
