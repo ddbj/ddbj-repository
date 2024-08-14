@@ -8,8 +8,8 @@
   tasks:
     - git:
         repo: https://github.com/ddbj/ddbj-repository.git
-        dest: ~/ddbj-repository/deploy
+        dest: ~/ddbj-repository
 
     - command: compose/{{ stage }} up --build --detach
       args:
-        chdir: ~/ddbj-repository/deploy/
+        chdir: ~/ddbj-repository
