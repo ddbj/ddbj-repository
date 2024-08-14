@@ -65,7 +65,6 @@ services:
   solid_queue:
     <<: *rails
     command: [bundle, exec, rake, solid_queue:start]
-    ports: []
 
   ddbj-validator:
     build:
