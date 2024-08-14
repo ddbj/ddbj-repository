@@ -10,8 +10,54 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 0) do
+ActiveRecord::Schema[7.2].define(version: 2024_08_29_001416) do
+  create_schema "mass"
+
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
+  create_table "contact_form", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
+    t.text "submission_id", null: false
+    t.integer "seq_no", null: false
+    t.text "email"
+    t.text "first_name"
+    t.text "last_name"
+  end
+
+  create_table "link_form", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
+    t.text "submission_id", null: false
+    t.integer "seq_no", null: false
+    t.text "description"
+    t.text "url"
+  end
+
+  create_table "submission", primary_key: "submission_id", id: :text, force: :cascade do |t|
+    t.text "submitter_id"
+    t.text "organization"
+    t.text "organization_url"
+    t.text "comment"
+    t.integer "charge_id", default: 1
+    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+  end
+
+  create_table "submission_form", primary_key: "submission_id", id: :text, force: :cascade do |t|
+    t.text "submitter_id", null: false
+    t.integer "status_id", null: false
+    t.text "organization"
+    t.text "organization_url"
+    t.integer "release_type"
+    t.integer "core_package"
+    t.integer "pathogen"
+    t.integer "mixs"
+    t.integer "env_pkg"
+    t.text "attribute_file_name"
+    t.text "attribute_file"
+    t.text "comment"
+    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.text "package_group"
+    t.text "package"
+    t.text "env_package"
+  end
 end
