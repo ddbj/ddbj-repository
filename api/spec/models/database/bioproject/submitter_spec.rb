@@ -85,13 +85,14 @@ RSpec.describe Database::BioProject::Submitter do
         form_name:     'general_info',
         data_name:     'project_title',
         data_value:    'Title text',
-        t_order:       1
+        t_order:       -1
       ),
       include(
-        form_name:  'general_info',
-        data_name:  'public_description',
-        data_value: 'Description text',
-        t_order:    2
+        submission_id: 'PSUB000001',
+        form_name:     'general_info',
+        data_name:     'public_description',
+        data_value:    'Description text',
+        t_order:       -1
       )
     )
   end
@@ -116,302 +117,361 @@ RSpec.describe Database::BioProject::Submitter do
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(Dway.bioproject[:submission_data].to_a).to include(
-      include(
-        form_name:  'general_info',
-        data_name:  'project_title',
-        data_value: 'general_info.project_title'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'public_description',
-        data_value: 'general_info.public_description'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'link_url.1',
-        data_value: 'general_info.link_uri.1'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'link_description.1',
-        data_value: 'general_info.link_description.1'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'link_url.2',
-        data_value: 'general_info.link_uri.2'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'link_description.2',
-        data_value: 'general_info.link_description.2'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'grant_id.1',
-        data_value: 'general_info.grant_id.1'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'grant_title.1',
-        data_value: 'general_info.grant_title.1'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'agency_abbreviation.1',
-        data_value: 'general_info.agency_abbreviation.1'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'agency.1',
-        data_value: 'general_info.agency.1'
-      ),
-      include(
-        form_name:  'publication',
-        data_name:  'pubmed_id.1',
-        data_value: 'publication.pubmed_id.1'
-      ),
-      include(
-        form_name:  'publication',
-        data_name:  'doi.2',
-        data_value: 'publication.doi.2'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'relevance_description',
-        data_value: 'general_info.relevance_description'
-      ),
-      include(
-        form_name:  'project_type',
-        data_name:  'locus_tag',
-        data_value: 'project_type.locus_tag'
-      ),
-      include(
-        form_name:  'project_type',
-        data_name:  'sample_code',
-        data_value: 'project_type.sample_code'
-      ),
-      include(
-        form_name:  'project_type',
-        data_name:  'material',
-        data_value: 'project_type.material'
-      ),
-      include(
-        form_name:  'project_type',
-        data_name:  'capture',
-        data_value: 'project_type.capture'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'taxonomy_id',
-        data_value: 'target.taxonomy_id || 0'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'organism_name',
-        data_value: 'target.organism_name'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'isolate_name_or_label',
-        data_value: 'target.isolate_name_or_label?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'strain_breed_cultivar',
-        data_value: 'target.strain_breed_cultivar'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'prokaryote_gram',
-        data_value: 'target.prokaryote_gram?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'prokaryote_enveloped',
-        data_value: 'target.prokaryote_enveloped?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'prokaryote_shape.1',
-        data_value: 'target.prokaryote_shape.1*'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'prokaryote_endospores',
-        data_value: 'target.prokaryote_endospores?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'prokaryote_motility',
-        data_value: 'target.prokaryote_motility?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'environment_salinity',
-        data_value: 'target.environment_salinity?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'environment_oxygen_requirement',
-        data_value: 'target.environment_oxygen_requirement?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'environment_optimum_temperature',
-        data_value: 'target.environment_optimum_temperature?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'environment_temperature_range',
-        data_value: 'target.environment_temperature_range?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'environment_habitat',
-        data_value: 'target.environment_habitat?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'phenotype_biotic_relationship',
-        data_value: 'target.phenotype_biotic_relationship?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'phenotype_trophic_level',
-        data_value: 'target.phenotype_trophic_level?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'phenotype_disease',
-        data_value: 'target.phenotype_disease?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'cellularity',
-        data_value: 'target.cellularity?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'reproduction',
-        data_value: 'target.reproduction?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_order.1',
-        data_value: 'target.replicons_order.1?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_location.1',
-        data_value: 'target.replicons_location.1?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_type_description.1',
-        data_value: 'target.replicons_type_description.1?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_location_description.1',
-        data_value: 'target.replicons_location_description.1?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_type.1',
-        data_value: 'target.replicons_type.1'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_name.1',
-        data_value: 'target.replicons_name.1'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_size_unit.1',
-        data_value: 'target.replicons_size_unit.1'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_size.1',
-        data_value: 'target.replicons_size.1?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'replicons_description.1',
-        data_value: 'target.replicons_description.1?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'ploidy',
-        data_value: 'target.ploidy?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'haploid_genome_size_unit',
-        data_value: 'target.haploid_genome_size_unit'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'haploid_genome_size',
-        data_value: 'target.haploid_genome_size?'
-      ),
-      include(
-        form_name:  'general_info',
-        data_name:  'biomaterial_provider',
-        data_value: 'general_info.biomaterial_provider?'
-      ),
-      include(
-        form_name:  'target',
-        data_name:  'label_description',
-        data_value: 'target.label_description?'
-      ),
-      include(
-        form_name:  'project_type',
-        data_name:  'methodology',
-        data_value: 'project_type.methodology'
-      ),
-      include(
-        form_name:  'project_type',
-        data_name:  'methodology_description',
-        data_value: nil
-      ),
-      include(
-        form_name:  'project_type',
-        data_name:  'objective.1',
-        data_value: 'project_type.objective.1*'
-      ),
-      include(
+    expect(Dway.bioproject[:submission_data].map { _1.slice(:form_name, :data_name, :data_value, :t_order) }).to include(
+      {
         form_name:  'submitter',
         data_name:  'first_name',
-        data_value: 'Alice'
-      ),
-      include(
+        data_value: 'Alice',
+        t_order:    1
+      },
+      {
         form_name:  'submitter',
         data_name:  'last_name',
-        data_value: 'Liddell'
-      ),
-      include(
+        data_value: 'Liddell',
+        t_order:    1
+      },
+      {
         form_name:  'submitter',
         data_name:  'email',
-        data_value: 'alice@example.com'
-      ),
-      include(
+        data_value: 'alice@example.com',
+        t_order:    1
+      },
+      {
         form_name:  'submitter',
         data_name:  'organization_name',
-        data_value: 'Rabbit Hole, Wonderland Inc.'
-      ),
-      include(
+        data_value: 'Rabbit Hole, Wonderland Inc.',
+        t_order:    -1
+      },
+      {
         form_name:  'submitter',
         data_name:  'organization_url',
-        data_value: 'http://wonderland.example.com'
-      ),
-      include(
+        data_value: 'http://wonderland.example.com',
+        t_order:    -1
+      },
+      {
         form_name:  'submitter',
         data_name:  'data_release',
-        data_value: nil
-      ),
+        data_value: 'hup',
+        t_order:    -1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'project_title',
+        data_value: 'general_info.project_title',
+        t_order:    -1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'public_description',
+        data_value: 'general_info.public_description',
+        t_order:    -1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'link_url.1',
+        data_value: 'general_info.link_uri.1',
+        t_order:    1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'link_description.1',
+        data_value: 'general_info.link_description.1',
+        t_order:    1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'link_url.2',
+        data_value: 'general_info.link_uri.2',
+        t_order:    2
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'link_description.2',
+        data_value: 'general_info.link_description.2',
+        t_order:    2
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'grant_id.1',
+        data_value: 'general_info.grant_id.1',
+        t_order:    1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'grant_title.1',
+        data_value: 'general_info.grant_title.1',
+        t_order:    1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'agency_abbreviation.1',
+        data_value: 'general_info.agency_abbreviation.1',
+        t_order:    1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'agency.1',
+        data_value: 'general_info.agency.1',
+        t_order:    1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'relevance_description',
+        data_value: 'general_info.relevance_description',
+        t_order:    -1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'biomaterial_provider',
+        data_value: 'general_info.biomaterial_provider?',
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'locus_tag',
+        data_value: 'project_type.locus_tag',
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'sample_code',
+        data_value: 'project_type.sample_code',
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'material',
+        data_value: 'project_type.material',
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'capture',
+        data_value: 'project_type.capture',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'taxonomy_id',
+        data_value: 'target.taxonomy_id || 0',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'organism_name',
+        data_value: 'target.organism_name',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'isolate_name_or_label',
+        data_value: 'target.isolate_name_or_label?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'strain_breed_cultivar',
+        data_value: 'target.strain_breed_cultivar',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'prokaryote_gram',
+        data_value: 'target.prokaryote_gram?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'prokaryote_enveloped',
+        data_value: 'target.prokaryote_enveloped?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'prokaryote_shape.1',
+        data_value: 'target.prokaryote_shape.1*',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'prokaryote_endospores',
+        data_value: 'target.prokaryote_endospores?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'prokaryote_motility',
+        data_value: 'target.prokaryote_motility?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'environment_salinity',
+        data_value: 'target.environment_salinity?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'environment_oxygen_requirement',
+        data_value: 'target.environment_oxygen_requirement?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'environment_optimum_temperature',
+        data_value: 'target.environment_optimum_temperature?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'environment_temperature_range',
+        data_value: 'target.environment_temperature_range?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'environment_habitat',
+        data_value: 'target.environment_habitat?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'phenotype_biotic_relationship',
+        data_value: 'target.phenotype_biotic_relationship?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'phenotype_trophic_level',
+        data_value: 'target.phenotype_trophic_level?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'phenotype_disease',
+        data_value: 'target.phenotype_disease?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'cellularity',
+        data_value: 'target.cellularity?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'reproduction',
+        data_value: 'target.reproduction?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_order.1',
+        data_value: 'target.replicons_order.1?',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_location.1',
+        data_value: 'target.replicons_location.1?',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_type_description.1',
+        data_value: 'target.replicons_type_description.1?',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_location_description.1',
+        data_value: 'target.replicons_location_description.1?',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_type.1',
+        data_value: 'target.replicons_type.1',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_name.1',
+        data_value: 'target.replicons_name.1',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_size_unit.1',
+        data_value: 'target.replicons_size_unit.1',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_size.1',
+        data_value: 'target.replicons_size.1?',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'replicons_description.1',
+        data_value: 'target.replicons_description.1?',
+        t_order:    1
+      },
+      {
+        form_name:  'target',
+        data_name:  'ploidy',
+        data_value: 'target.ploidy?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'haploid_genome_size_unit',
+        data_value: 'target.haploid_genome_size_unit',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'haploid_genome_size',
+        data_value: 'target.haploid_genome_size?',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'label_description',
+        data_value: 'target.label_description?',
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'methodology',
+        data_value: 'project_type.methodology',
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'methodology_description',
+        data_value: nil,
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'objective.1',
+        data_value: 'project_type.objective.1*',
+        t_order:    1
+      },
+      {
+        form_name:  'publication',
+        data_name:  'pubmed_id.1',
+        data_value: 'publication.pubmed_id.1',
+        t_order:    1
+      },
+      {
+        form_name:  'publication',
+        data_name:  'doi.2',
+        data_value: 'publication.doi.2',
+        t_order:    2
+      }
     )
   end
 end

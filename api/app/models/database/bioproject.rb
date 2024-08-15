@@ -109,23 +109,31 @@ module Database::BioProject
     end
 
     def submission_data_attrs(submission, submission_id, doc)
-      user = submission.validation.user
+      user              = submission.validation.user
+      organization_name = [ user.department, user.organization ].compact_blank.join(", ")
 
       [
+        [ "submitter", "first_name",        user.first_name,                                    1 ],
+        [ "submitter", "last_name",         user.last_name,                                     1 ],
+        [ "submitter", "email",             user.email,                                         1 ],
+        [ "submitter", "organization_name", organization_name,                                  -1 ],
+        [ "submitter", "organization_url",  user.organization_url,                              -1 ],
+        [ "submitter", "data_release",      submission.visibility_public? ? "nonhup" : "hup",   -1 ],
+
         doc.at("/PackageSet/Package/Project/Project/ProjectDescr/Title").then {
-          [ "general_info", "project_title", _1&.text ]
+          [ "general_info", "project_title", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectDescr/Description").then {
-          [ "general_info", "public_description", _1&.text ]
+          [ "general_info", "public_description", _1&.text, -1 ]
         },
 
         *doc.xpath("/PackageSet/Package/Project/Project/ProjectDescr/ExternalLink").flat_map.with_index(1) { |link, i|
           url = link.at("URL")
 
           [
-            [ "general_info", "link_url.#{i}",         url&.text ],
-            [ "general_info", "link_description.#{i}", link[:label] ]
+            [ "general_info", "link_url.#{i}",         url&.text,    i ],
+            [ "general_info", "link_description.#{i}", link[:label], i ]
           ]
         },
 
@@ -135,122 +143,131 @@ module Database::BioProject
           abbr   = grant.at("Agency/@abbr")
 
           [
-            [ "general_info", "grant_id.#{i}",            grant[:GrantId] ],
-            [ "general_info", "grant_title.#{i}",         title&.text ],
-            [ "general_info", "agency.#{i}",              agency&.text ],
-            [ "general_info", "agency_abbreviation.#{i}", abbr&.text ]
+            [ "general_info", "grant_id.#{i}",            grant[:GrantId], i ],
+            [ "general_info", "grant_title.#{i}",         title&.text,     i ],
+            [ "general_info", "agency.#{i}",              agency&.text,    i ],
+            [ "general_info", "agency_abbreviation.#{i}", abbr&.text,      i ]
           ]
-        },
-
-        *doc.xpath("/PackageSet/Package/Project/Project/ProjectDescr/Publication").map.with_index(1) { |publication, i|
-          case publication.at("Reference/DbType")&.text
-          when "ePubmed"
-            [ "publication", "pubmed_id.#{i}", publication[:id] ]
-          when "eDOI"
-            [ "publication", "doi.#{i}", publication[:id] ]
-          else
-            raise "Unsupported publication type"
-          end
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectDescr/Relevance").then {
           next nil unless _1
 
           if other = _1.at("Other")
-            [ "general_info", "relevance_description", other.text ]
+            [ "general_info", "relevance_description", other.text, -1 ]
           else
-            [ "general_info", "relevance", _1.childeren.first.name ]
+            [ "general_info", "relevance", _1.childeren.first.name, -1 ]
           end
         },
 
-        doc.at("/PackageSet/Package/Project/Project/ProjectDescr/LocusTagPrefix").then {
-          [ "project_type", "locus_tag", _1&.text ]
+        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Provider").then {
+          [ "general_info", "biomaterial_provider", _1&.text, -1 ]
         },
 
         *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target").then {
           [
-            [ "project_type", "sample_code", _1&.[](:sample_scope) ],
-            [ "project_type", "material",    _1&.[](:material) ],
-            [ "project_type", "capture",     _1&.[](:capture) ]
+            [ "project_type", "sample_code", _1&.[](:sample_scope), -1 ],
+            [ "project_type", "material",    _1&.[](:material),     -1 ],
+            [ "project_type", "capture",     _1&.[](:capture),      -1 ]
           ]
+        },
+
+        *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Method").then {
+          method_type = _1&.[](:method_type)
+          description = method_type == "eOther" ? _1&.text : nil
+
+          [
+            [ "project_type", "methodology",             method_type, -1 ],
+            [ "project_type", "methodology_description", description, -1 ]
+          ]
+        },
+
+        *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Objectives").map.with_index(1) { |objectives, i|
+          data = objectives.at("Data")
+
+          [ "project_type", "objective.#{i}", data&.[](:data_type), i ]
+        },
+
+        doc.at("/PackageSet/Package/Project/Project/ProjectDescr/LocusTagPrefix").then {
+          [ "project_type", "locus_tag", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism").then {
           tax_id = _1&.[](:taxID)
 
-          [ "target", "taxonomy_id", tax_id == "0" ? nil : tax_id ]
+          [ "target", "taxonomy_id", tax_id == "0" ? nil : tax_id, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").then {
-          [ "target", "organism_name", _1&.text ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Label").then {
-          [ "target", "isolate_name_or_label", _1&.text ]
+          [ "target", "organism_name", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Strain").then {
-          [ "target", "strain_breed_cultivar", _1&.text ]
+          [ "target", "strain_breed_cultivar", _1&.text, -1 ]
+        },
+
+        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Label").then {
+          [ "target", "isolate_name_or_label", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Gram").then {
-          [ "target", "prokaryote_gram", _1&.text ]
+          [ "target", "prokaryote_gram", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Enveloped").then {
-          [ "target", "prokaryote_enveloped", _1&.text ]
+          [ "target", "prokaryote_enveloped", _1&.text, -1 ]
         },
 
         *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Shape").map.with_index(1) { |shape, i|
-          [ "target", "prokaryote_shape.#{i}", shape.text ]
+          [ "target", "prokaryote_shape.#{i}", shape.text, i ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Endospores").then {
-          [ "target", "prokaryote_endospores", _1&.text ]
+          [ "target", "prokaryote_endospores", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Motility").then {
-          [ "target", "prokaryote_motility", _1&.text ]
+          [ "target", "prokaryote_motility", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/Salinity").then {
-          [ "target", "environment_salinity", _1&.text ]
+          [ "target", "environment_salinity", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/OxygenReq").then {
-          [ "target", "environment_oxygen_requirement", _1&.text ]
+          [ "target", "environment_oxygen_requirement", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/OptimumTemperature").then {
-          [ "target", "environment_optimum_temperature", _1&.text ]
+          [ "target", "environment_optimum_temperature", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/TemperatureRange").then {
-          [ "target", "environment_temperature_range", _1&.text ]
+          [ "target", "environment_temperature_range", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/Habitat").then {
-          [ "target", "environment_habitat", _1&.text ]
+          [ "target", "environment_habitat", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Phenotype/BioticRelationship").then {
-          [ "target", "phenotype_biotic_relationship", _1&.text ]
+          [ "target", "phenotype_biotic_relationship", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Phenotype/TrophicLevel").then {
-          [ "target", "phenotype_trophic_level", _1&.text ]
+          [ "target", "phenotype_trophic_level", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Phenotype/Disease").then {
-          [ "target", "phenotype_disease", _1&.text ]
+          [ "target", "phenotype_disease", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Organization").then {
-          [ "target", "cellularity", _1&.text ]
+          [ "target", "cellularity", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Reproduction").then {
-          [ "target", "reproduction", _1&.text ]
+          [ "target", "reproduction", _1&.text, -1 ]
         },
 
         *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/RepliconSet/Replicon").flat_map.with_index(1) { |replicon, i|
@@ -260,65 +277,50 @@ module Database::BioProject
           description = replicon.at("Description")
 
           [
-            [ "target", "replicons_order.#{i}",                replicon[:order] ],
-            [ "target", "replicons_location.#{i}",             type&.[](:location) ],
-            [ "target", "replicons_type_description.#{i}",     type&.[](:typeOtherDescr) ],
-            [ "target", "replicons_location_description.#{i}", type&.[](:locationOtherDescr) ],
-            [ "target", "replicons_type.#{i}",                 type&.text ],
-            [ "target", "replicons_name.#{i}",                 name&.text ],
-            [ "target", "replicons_size_unit.#{i}",            size&.[](:units) ],
-            [ "target", "replicons_size.#{i}",                 size&.text ],
-            [ "target", "replicons_description.#{i}",          description&.text ]
+            [ "target", "replicons_order.#{i}",                replicon[:order],              i ],
+            [ "target", "replicons_location.#{i}",             type&.[](:location),           i ],
+            [ "target", "replicons_type_description.#{i}",     type&.[](:typeOtherDescr),     i ],
+            [ "target", "replicons_location_description.#{i}", type&.[](:locationOtherDescr), i ],
+            [ "target", "replicons_type.#{i}",                 type&.text,                    i ],
+            [ "target", "replicons_name.#{i}",                 name&.text,                    i ],
+            [ "target", "replicons_size_unit.#{i}",            size&.[](:units),              i ],
+            [ "target", "replicons_size.#{i}",                 size&.text,                    i ],
+            [ "target", "replicons_description.#{i}",          description&.text,             i ]
           ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/RepliconSet/Ploidy").then {
-          [ "target", "ploidy", _1&.[](:type) ]
+          [ "target", "ploidy", _1&.[](:type), -1 ]
         },
 
         *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/GenomeSize").then {
           [
-            [ "target", "haploid_genome_size_unit", _1&.[](:units) ],
-            [ "target", "haploid_genome_size",      _1&.text ]
+            [ "target", "haploid_genome_size_unit", _1&.[](:units), -1 ],
+            [ "target", "haploid_genome_size",      _1&.text,       -1 ]
           ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Provider").then {
-          [ "general_info", "biomaterial_provider", _1&.text ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Description").then {
-          [ "target", "label_description", _1&.text ]
+          [ "target", "label_description", _1&.text, -1 ]
         },
 
-        *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Method").then {
-          method_type = _1&.[](:method_type)
-
-          [
-            [ "project_type", "methodology",             method_type ],
-            [ "project_type", "methodology_description", method_type == "eOther" ? _1&.text : nil ]
-          ]
-        },
-
-        *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Objectives").map.with_index(1) { |objectives, i|
-          data = objectives.at("Data")
-
-          [ "project_type", "objective.#{i}", data&.[](:data_type) ]
-        },
-
-        [ "submitter", "first_name",        user.first_name ],
-        [ "submitter", "last_name",         user.last_name ],
-        [ "submitter", "email",             user.email ],
-        [ "submitter", "organization_name", [ user.department, user.organization ].compact_blank.join(", ") ],
-        [ "submitter", "organization_url",  user.organization_url ],
-        [ "submitter", "data_release",      submission.visibility_public? ? "hup" : nil ]
-      ].compact.map.with_index(1) { |(form_name, data_name, data_value), i|
+        *doc.xpath("/PackageSet/Package/Project/Project/ProjectDescr/Publication").map.with_index(1) { |publication, i|
+          case publication.at("Reference/DbType")&.text
+          when "ePubmed"
+            [ "publication", "pubmed_id.#{i}", publication[:id], i ]
+          when "eDOI"
+            [ "publication", "doi.#{i}", publication[:id], i ]
+          else
+            raise "Unsupported publication type"
+          end
+        }
+      ].compact.map { |form_name, data_name, data_value, t_order|
         {
           submission_id:,
           form_name:,
           data_name:,
           data_value:,
-          t_order: i
+          t_order:
         }
       }
     end
