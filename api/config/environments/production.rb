@@ -93,7 +93,6 @@ Rails.application.configure do
   config.active_storage.service        = :minio
   config.assume_ssl                    = ENV["DISABLE_SSL"] != "true"
   config.force_ssl                     = ENV["DISABLE_SSL"] != "true"
-  config.public_file_server.enabled    = true
 
   config.action_mailer.smtp_settings = {
     address:        ENV.fetch("SMTP_ADDRESS"),
