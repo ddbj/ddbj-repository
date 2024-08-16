@@ -34,6 +34,7 @@ services:
       API_URL:
       DATABASE_URL:
       DDBJ_VALIDATOR_URL:      http://ddbj-validator:3000/api
+      DISABLE_SSL:
       MINIO_ACCESS_KEY_ID:
       MINIO_BUCKET:            uploads
       MINIO_ENDPOINT:

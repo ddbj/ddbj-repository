@@ -96,8 +96,9 @@ COPY --from=web /app/web/dist /app/api/public/web
 COPY schema /app/schema
 
 # Run and own only the runtime files as a non-root user for security
-RUN mkdir /.local
-RUN chown -R ${APP_UID:?}:${APP_GID:?} db log tmp /.local
+RUN groupadd --system --gid ${APP_GID:?} rails && \
+    useradd rails --uid ${APP_UID:?} --gid ${APP_GID:?} --create-home --shell /bin/bash && \
+    chown -R rails:rails log tmp
 USER ${APP_UID:?}:${APP_GID:?}
 
 RUN bundle exec submission-excel2xml download_xsd

@@ -1,16 +1,36 @@
+volumes:
+  postgres:
+  minio:
+
 services:
   rails: &rails-local
-    environment:
-      DISABLE_SSL: 'true'
-
     extra_hosts:
-      - host.docker.internal:host-gateway
-      - keycloak.localhost:host-gateway
-      - ddbj-repository.localhost:host-gateway
+      - repository.localhost:host-gateway
 
     volumes:
       - ../api/tmp/home:/data/home
       - ../api/tmp/repository:/data/repository
 
+    depends_on:
+      - postgres
+      - minio
+
   solid_queue:
     <<: *rails-local
+
+  postgres:
+    image: postgres:16
+
+    environment:
+      POSTGRES_DB: repository
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+    volumes:
+      - postgres:/var/lib/postgresql/data
+
+  minio:
+    image: minio/minio
+    command: [server, /data]
+
+    volumes:
+      - minio:/data
