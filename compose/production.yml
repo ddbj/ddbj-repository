@@ -1,5 +1,5 @@
 services:
-  rails: &rails
+  rails:
     group_add:
       - '60000' # submitter
 
@@ -12,9 +12,6 @@ services:
         target: /data/home
 
     restart: unless-stopped
-
-  solid_queue:
-    <<: *rails
 
 networks:
   default:
