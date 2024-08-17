@@ -12,7 +12,8 @@ class AuthsController < ApplicationController
     code_challenge = calculate_code_challenge(code_verifier)
 
     redirect_to oidc_client.authorization_uri(
-      scope:                 %i[openid ddbj email profile],
+      scope:                 %w[openid ddbj email profile],
+      prompt:                "login",
       state:,
       code_challenge:,
       code_challenge_method: "S256"
@@ -38,7 +39,7 @@ class AuthsController < ApplicationController
       user.update!(
         email:            userinfo.email,
         first_name:       userinfo.raw_attributes["given_name"],
-        last_name:        userinfo.raw_attributes["sn"],
+        last_name:        userinfo.raw_attributes["family_name"],
         organization:     userinfo.raw_attributes["institution"],
         department:       userinfo.raw_attributes["lab_fac_dep"],
         organization_url: userinfo.raw_attributes["url"],
