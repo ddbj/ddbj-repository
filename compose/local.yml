@@ -3,7 +3,7 @@ volumes:
   minio:
 
 services:
-  rails: &rails-local
+  rails:
     extra_hosts:
       - repository.localhost:host-gateway
 
@@ -12,11 +12,10 @@ services:
       - ../api/tmp/repository:/data/repository
 
     depends_on:
-      - postgres
-      - minio
-
-  solid_queue:
-    <<: *rails-local
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
 
   postgres:
     image: postgres:16
@@ -27,6 +26,12 @@ services:
 
     volumes:
       - postgres:/var/lib/postgresql/data
+
+    healthcheck:
+      test: [CMD-SHELL, pg_isready]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio
