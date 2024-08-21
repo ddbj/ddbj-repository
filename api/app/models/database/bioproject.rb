@@ -148,21 +148,21 @@ module Database::BioProject
           url = link.at("URL")
 
           [
-            [ "general_info", "link_url.#{i}",         url&.text,    i ],
-            [ "general_info", "link_description.#{i}", link[:label], i ]
+            [ "general_info", "link_description.#{i}", link[:label], i ],
+            [ "general_info", "link_url.#{i}",         url&.text,    i ]
           ]
         },
 
         *doc.xpath("/PackageSet/Package/Project/Project/ProjectDescr/Grant").flat_map.with_index(1) { |grant, i|
-          title  = grant.at("Title")
           agency = grant.at("Agency")
           abbr   = grant.at("Agency/@abbr")
+          title  = grant.at("Title")
 
           [
-            [ "general_info", "grant_id.#{i}",            grant[:GrantId], i ],
-            [ "general_info", "grant_title.#{i}",         title&.text,     i ],
             [ "general_info", "agency.#{i}",              agency&.text,    i ],
-            [ "general_info", "agency_abbreviation.#{i}", abbr&.text,      i ]
+            [ "general_info", "agency_abbreviation.#{i}", abbr&.text,      i ],
+            [ "general_info", "grant_id.#{i}",            grant[:GrantId], i ],
+            [ "general_info", "grant_title.#{i}",         title&.text,     i ]
           ]
         },
 
@@ -180,26 +180,24 @@ module Database::BioProject
           [ "general_info", "biomaterial_provider", _1&.text, -1 ]
         },
 
-        *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/ProjectDataTypeSet/DataType").then {
-          next [] unless _1
-
-          if value = PROJECT_DATA_TYPES[_1.text]
+        *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/ProjectDataTypeSet/DataType").flat_map.with_index(1) { |data_type, i|
+          if value = PROJECT_DATA_TYPES[data_type.text]
             [
-              [ "project_type", "project_data_type", value, -1 ]
+              [ "project_type", "project_data_type", value, i ]
             ]
           else
             [
-              [ "project_type", "project_data_type",             "other", -1 ],
-              [ "project_type", "project_data_type_description", _1.text, -1 ]
+              [ "project_type", "project_data_type",             "other",        i ],
+              [ "project_type", "project_data_type_description", data_type.text, i ]
             ]
           end
         },
 
         *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target").then {
           [
-            [ "project_type", "sample_code", _1&.[](:sample_scope), -1 ],
-            [ "project_type", "material",    _1&.[](:material),     -1 ],
-            [ "project_type", "capture",     _1&.[](:capture),      -1 ]
+            [ "project_type", "sample_scope", _1&.[](:sample_scope), -1 ],
+            [ "project_type", "material",     _1&.[](:material),     -1 ],
+            [ "project_type", "capture",      _1&.[](:capture),      -1 ]
           ]
         },
 
@@ -223,14 +221,14 @@ module Database::BioProject
           [ "project_type", "locus_tag", _1&.text, -1 ]
         },
 
+        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").then {
+          [ "target", "organism_name", _1&.text, -1 ]
+        },
+
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism").then {
           tax_id = _1&.[](:taxID)
 
           [ "target", "taxonomy_id", tax_id == "0" ? nil : tax_id, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").then {
-          [ "target", "organism_name", _1&.text, -1 ]
         },
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Strain").then {

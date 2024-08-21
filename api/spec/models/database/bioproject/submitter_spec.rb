@@ -117,7 +117,7 @@ RSpec.describe Database::BioProject::Submitter do
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(Dway.bioproject[:submission_data].map { _1.slice(:form_name, :data_name, :data_value, :t_order) }).to include(
+    expect(Dway.bioproject[:submission_data].map { _1.slice(:form_name, :data_name, :data_value, :t_order) }).to contain_exactly(
       {
         form_name:  'submitter',
         data_name:  'first_name',
@@ -168,15 +168,21 @@ RSpec.describe Database::BioProject::Submitter do
       },
       {
         form_name:  'general_info',
+        data_name:  'link_description.1',
+        data_value: 'general_info.link_description.1',
+        t_order:    1
+      },
+      {
+        form_name:  'general_info',
         data_name:  'link_url.1',
         data_value: 'general_info.link_uri.1',
         t_order:    1
       },
       {
         form_name:  'general_info',
-        data_name:  'link_description.1',
-        data_value: 'general_info.link_description.1',
-        t_order:    1
+        data_name:  'link_description.2',
+        data_value: 'general_info.link_description.2',
+        t_order:    2
       },
       {
         form_name:  'general_info',
@@ -186,9 +192,15 @@ RSpec.describe Database::BioProject::Submitter do
       },
       {
         form_name:  'general_info',
-        data_name:  'link_description.2',
-        data_value: 'general_info.link_description.2',
-        t_order:    2
+        data_name:  'agency.1',
+        data_value: 'general_info.agency.1',
+        t_order:    1
+      },
+      {
+        form_name:  'general_info',
+        data_name:  'agency_abbreviation.1',
+        data_value: 'general_info.agency_abbreviation.1',
+        t_order:    1
       },
       {
         form_name:  'general_info',
@@ -200,18 +212,6 @@ RSpec.describe Database::BioProject::Submitter do
         form_name:  'general_info',
         data_name:  'grant_title.1',
         data_value: 'general_info.grant_title.1',
-        t_order:    1
-      },
-      {
-        form_name:  'general_info',
-        data_name:  'agency_abbreviation.1',
-        data_value: 'general_info.agency_abbreviation.1',
-        t_order:    1
-      },
-      {
-        form_name:  'general_info',
-        data_name:  'agency.1',
-        data_value: 'general_info.agency.1',
         t_order:    1
       },
       {
@@ -230,18 +230,24 @@ RSpec.describe Database::BioProject::Submitter do
         form_name:  'project_type',
         data_name:  'project_data_type',
         data_value: 'genome_sequencing',
-        t_order:    -1
+        t_order:    1
       },
       {
         form_name:  'project_type',
-        data_name:  'locus_tag',
-        data_value: 'project_type.locus_tag',
-        t_order:    -1
+        data_name:  'project_data_type',
+        data_value: 'other',
+        t_order:    2
       },
       {
         form_name:  'project_type',
-        data_name:  'sample_code',
-        data_value: 'project_type.sample_code',
+        data_name:  'project_data_type_description',
+        data_value: 'project_type.project_data_type_description.2',
+        t_order:    2
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'sample_scope',
+        data_value: 'project_type.sample_scope',
         t_order:    -1
       },
       {
@@ -257,9 +263,27 @@ RSpec.describe Database::BioProject::Submitter do
         t_order:    -1
       },
       {
-        form_name:  'target',
-        data_name:  'taxonomy_id',
-        data_value: 'target.taxonomy_id || 0',
+        form_name:  'project_type',
+        data_name:  'methodology',
+        data_value: 'project_type.methodology',
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'methodology_description',
+        data_value: nil,
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'objective.1',
+        data_value: 'project_type.objective.1*',
+        t_order:    1
+      },
+      {
+        form_name:  'project_type',
+        data_name:  'locus_tag',
+        data_value: 'project_type.locus_tag',
         t_order:    -1
       },
       {
@@ -270,14 +294,20 @@ RSpec.describe Database::BioProject::Submitter do
       },
       {
         form_name:  'target',
-        data_name:  'isolate_name_or_label',
-        data_value: 'target.isolate_name_or_label?',
+        data_name:  'taxonomy_id',
+        data_value: 'target.taxonomy_id || 0',
         t_order:    -1
       },
       {
         form_name:  'target',
         data_name:  'strain_breed_cultivar',
         data_value: 'target.strain_breed_cultivar',
+        t_order:    -1
+      },
+      {
+        form_name:  'target',
+        data_name:  'isolate_name_or_label',
+        data_value: 'target.isolate_name_or_label?',
         t_order:    -1
       },
       {
@@ -447,24 +477,6 @@ RSpec.describe Database::BioProject::Submitter do
         data_name:  'label_description',
         data_value: 'target.label_description?',
         t_order:    -1
-      },
-      {
-        form_name:  'project_type',
-        data_name:  'methodology',
-        data_value: 'project_type.methodology',
-        t_order:    -1
-      },
-      {
-        form_name:  'project_type',
-        data_name:  'methodology_description',
-        data_value: nil,
-        t_order:    -1
-      },
-      {
-        form_name:  'project_type',
-        data_name:  'objective.1',
-        data_value: 'project_type.objective.1*',
-        t_order:    1
       },
       {
         form_name:  'publication',
