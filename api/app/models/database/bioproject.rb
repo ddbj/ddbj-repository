@@ -23,6 +23,22 @@ module Database::BioProject
     SCHEMA_TYPE_RUN                        = 5
     SCHEMA_TYPE_ANALYSIS                   = 6
 
+    PROJECT_DATA_TYPES = {
+      "Genome Sequencing"                => "genome_sequencing",
+      "Clone Ends"                       => "clone_ends",
+      "Epigenomics"                      => "epigenomics",
+      "Exome"                            => "exome",
+      "Map"                              => "map",
+      "Metagenome"                       => "metagenome",
+      "Phenotype and Genotype"           => "phenotype_and_genotype",
+      "Proteome"                         => "proteome",
+      "Random Survey"                    => "random_survey",
+      "Targeted Locus (Loci)"            => "targeted_locus_loci",
+      "Transcriptome or Gene Expression" => "transcriptome_or_gene_expression",
+      "Variation"                        => "variation",
+      "Other"                            => "other"
+    }
+
     def submit(submission)
       user = submission.validation.user
 
@@ -162,6 +178,21 @@ module Database::BioProject
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Provider").then {
           [ "general_info", "biomaterial_provider", _1&.text, -1 ]
+        },
+
+        *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/ProjectDataTypeSet/DataType").then {
+          next [] unless _1
+
+          if value = PROJECT_DATA_TYPES[_1.text]
+            [
+              [ "project_type", "project_data_type", value, -1 ]
+            ]
+          else
+            [
+              [ "project_type", "project_data_type",             "other", -1 ],
+              [ "project_type", "project_data_type_description", _1.text, -1 ]
+            ]
+          end
         },
 
         *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target").then {

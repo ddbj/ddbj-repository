@@ -228,6 +228,12 @@ RSpec.describe Database::BioProject::Submitter do
       },
       {
         form_name:  'project_type',
+        data_name:  'project_data_type',
+        data_value: 'genome_sequencing',
+        t_order:    -1
+      },
+      {
+        form_name:  'project_type',
         data_name:  'locus_tag',
         data_value: 'project_type.locus_tag',
         t_order:    -1

@@ -112,14 +112,7 @@
             </Objectives>
 
             <ProjectDataTypeSet>
-              <DataType>
-                <!-- if project_type.project_data_type.1 == 'other' -->
-                project_type.project_data_type_description
-                <!-- else if BpNameUtil.getProjectDataTypeSummary(project_type.project_data_type.1) -->
-                BpNameUtil.getProjectDataTypeSummary(project_type.project_data_type.1)
-                <!-- else -->
-                project_type.project_data_type.1
-              </DataType>
+              <DataType>Genome Sequencing</DataType>
             </ProjectDataTypeSet>
           </ProjectTypeSubmission>
         </ProjectType>
