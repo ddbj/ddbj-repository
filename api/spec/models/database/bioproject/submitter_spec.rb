@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Database::BioProject::Submitter do
-  def create_submission(visibility: :private, file: 'bioproject/valid/1_not_well_format_xml_ok.xml')
+  def create_submission(visibility:, file:)
     create(:submission, **{
       visibility:,
 
@@ -32,7 +32,7 @@ RSpec.describe Database::BioProject::Submitter do
   }
 
   example 'submit' do
-    submission = create_submission(visibility: :private)
+    submission = create_submission(visibility: :private, file: 'bioproject/valid/hup.xml')
 
     Database::BioProject::Submitter.new.submit submission
 
@@ -98,7 +98,7 @@ RSpec.describe Database::BioProject::Submitter do
   end
 
   example 'visibility: public' do
-    submission = create_submission(visibility: :public)
+    submission = create_submission(visibility: :public, file: 'bioproject/valid/nonhup.xml')
 
     Database::BioProject::Submitter.new.submit submission
 
@@ -113,7 +113,7 @@ RSpec.describe Database::BioProject::Submitter do
   end
 
   example 'full' do
-    submission = create_submission(file: 'bioproject/valid/full.xml')
+    submission = create_submission(visibility: :private, file: 'bioproject/valid/full.xml')
 
     Database::BioProject::Submitter.new.submit submission
 

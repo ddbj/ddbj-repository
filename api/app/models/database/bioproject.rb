@@ -10,6 +10,8 @@ module Database::BioProject
   end
 
   class Submitter
+    class VisibilityMismatch < StandardError; end 
+
     BP_PROJECT_STATUS_ID_PRIVATE           = 5400
     BP_PROJECT_STATUS_ID_PUBLIC            = 5500
     BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED = 700
@@ -54,6 +56,11 @@ module Database::BioProject
         )
 
         is_public = submission.visibility_public?
+        content   = submission.validation.objs.find_by!(_id: "BioProject").file.download
+        doc       = Nokogiri::XML.parse(content)
+        hold      = !!doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")
+
+        raise VisibilityMismatch if is_public == hold
 
         project_id = Dway.bioproject[:project].insert(
           submission_id:,
@@ -64,8 +71,6 @@ module Database::BioProject
           modified_date: Sequel.function(:now)
         )
 
-        content = submission.validation.objs.find_by!(_id: "BioProject").file.download
-        doc     = Nokogiri::XML.parse(content)
         version = (Dway.bioproject[:xml].where(submission_id:).max(:version) || 0) + 1
 
         modify_xml doc, project_id, is_public
