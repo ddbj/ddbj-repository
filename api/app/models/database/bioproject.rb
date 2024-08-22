@@ -60,7 +60,11 @@ module Database::BioProject
         doc       = Nokogiri::XML.parse(content)
         hold      = !!doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")
 
-        raise VisibilityMismatch if is_public == hold
+        if is_public && hold
+          raise VisibilityMismatch, "Visibility is public, but Hold exist in XML."
+        elsif !is_public && !hold
+          raise VisibilityMismatch, "Visibility is private, but Hold does not exist in XML."
+        end
 
         project_id = Dway.bioproject[:project].insert(
           submission_id:,

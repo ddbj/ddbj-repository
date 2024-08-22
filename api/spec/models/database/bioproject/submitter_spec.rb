@@ -324,4 +324,14 @@ RSpec.describe Database::BioProject::Submitter do
       }
     ])
   end
+
+  example 'hold and visibility mismathed' do
+    expect {
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: 'bioproject/valid/hup.xml')
+    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is public, but Hold exist in XML.')
+
+    expect {
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/valid/nonhup.xml')
+    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is private, but Hold does not exist in XML.')
+  end
 end
