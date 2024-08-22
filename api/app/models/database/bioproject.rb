@@ -125,16 +125,28 @@ module Database::BioProject
     end
 
     def submission_data_attrs(submission, submission_id, doc)
-      user              = submission.validation.user
-      organization_name = [ user.department, user.organization ].compact_blank.join(", ")
-
       [
-        [ "submitter", "first_name",        user.first_name,                                    1 ],
-        [ "submitter", "last_name",         user.last_name,                                     1 ],
-        [ "submitter", "email",             user.email,                                         1 ],
-        [ "submitter", "organization_name", organization_name,                                  -1 ],
-        [ "submitter", "organization_url",  user.organization_url,                              -1 ],
-        [ "submitter", "data_release",      submission.visibility_public? ? "nonhup" : "hup",   -1 ],
+        *doc.xpath("/PackageSet/Package/Submission/Submission/Description/Organization/Contact").flat_map.with_index(1) { |contact, i|
+          first_name = contact.at("Name/First")
+          last_name  = contact.at("Name/Last")
+          email      = contact[:email]
+          
+          [
+            [ "submitter", "first_name.#{i}", first_name&.text, i ],
+            [ "submitter", "last_name.#{i}",  last_name&.text,  i ],
+            [ "submitter", "email.#{i}",      email,            i ]
+          ]
+        },
+
+        doc.at("/PackageSet/Package/Submission/Submission/Description/Organization/Name").then {
+          [ "submitter", "organization_name", _1&.text, -1 ]
+        },
+
+        doc.at("/PackageSet/Package/Submission/Submission/Description/Organization/@url").then {
+          [ "submitter", "organization_url", _1&.text, -1 ]
+        },
+
+        [ "submitter", "data_release", submission.visibility_public? ? "nonhup" : "hup", -1 ],
 
         doc.at("/PackageSet/Package/Project/Project/ProjectDescr/Title").then {
           [ "general_info", "project_title", _1&.text, -1 ]

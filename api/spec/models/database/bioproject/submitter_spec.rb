@@ -120,32 +120,50 @@ RSpec.describe Database::BioProject::Submitter do
     expect(Dway.bioproject[:submission_data].map { _1.slice(:form_name, :data_name, :data_value, :t_order) }).to eq([
       {
         form_name:  'submitter',
-        data_name:  'first_name',
-        data_value: 'Alice',
+        data_name:  'first_name.1',
+        data_value: 'submitter.first_name.1?',
         t_order:    1
       },
       {
         form_name:  'submitter',
-        data_name:  'last_name',
-        data_value: 'Liddell',
+        data_name:  'last_name.1',
+        data_value: 'submitter.last_name.1',
         t_order:    1
       },
       {
         form_name:  'submitter',
-        data_name:  'email',
-        data_value: 'alice@example.com',
+        data_name:  'email.1',
+        data_value: 'submitter.email.1?',
         t_order:    1
+      },
+      {
+        form_name:  'submitter',
+        data_name:  'first_name.2',
+        data_value: 'submitter.first_name.2?',
+        t_order:    2
+      },
+      {
+        form_name:  'submitter',
+        data_name:  'last_name.2',
+        data_value: 'submitter.last_name.2',
+        t_order:    2
+      },
+      {
+        form_name:  'submitter',
+        data_name:  'email.2',
+        data_value: 'submitter.email.2?',
+        t_order:    2
       },
       {
         form_name:  'submitter',
         data_name:  'organization_name',
-        data_value: 'Rabbit Hole, Wonderland Inc.',
+        data_value: 'submitter.organization_name',
         t_order:    -1
       },
       {
         form_name:  'submitter',
         data_name:  'organization_url',
-        data_value: 'http://wonderland.example.com',
+        data_value: 'submitter.organization_url?',
         t_order:    -1
       },
       {
