@@ -10,7 +10,7 @@ module Database::BioProject
   end
 
   class Submitter
-    class VisibilityMismatch < StandardError; end 
+    class VisibilityMismatch < StandardError; end
 
     BP_PROJECT_STATUS_ID_PRIVATE           = 5400
     BP_PROJECT_STATUS_ID_PUBLIC            = 5500
@@ -135,7 +135,7 @@ module Database::BioProject
           first_name = contact.at("Name/First")
           last_name  = contact.at("Name/Last")
           email      = contact[:email]
-          
+
           [
             [ "submitter", "first_name.#{i}", first_name&.text, i ],
             [ "submitter", "last_name.#{i}",  last_name&.text,  i ],
