@@ -15,8 +15,14 @@ fn parse(input: String) -> Result<(), Error> {
             Err(e) => {
                 let gff = class::object().const_get::<_, RModule>("NoodlesGFF")?;
                 let error = gff.const_get::<_, ExceptionClass>("Error")?;
+                let msg = format!("Line {}: {:?}", i + 1, e);
 
-                return Err(Error::new(error, format!("Line {}: {:?}", i + 1, e)));
+                let msg = match e.downcast::<noodles_gff::line::ParseError>() {
+                    Ok(e) => format!("Line {}: {:?}", i + 1, e),
+                    Err(_) => msg,
+                };
+
+                return Err(Error::new(error, msg));
             }
         }
     }
