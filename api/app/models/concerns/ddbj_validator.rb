@@ -24,7 +24,7 @@ module DDBJValidator
 
           body.dig(:result, :messages).each do |error|
             code, severity = error.fetch_values(:id, :level)
-            message        = message_for(error)
+            message        = translate_error(error)
 
             obj.validation_details.create! code:, severity:, message:
           end
@@ -73,64 +73,7 @@ module DDBJValidator
     end
   end
 
-  def message_for(error)
-    id          = error.fetch(:id)
-    message     = error.fetch(:message)
-    annotations = error.fetch(:annotation, []).index_by { _1.fetch(:key) }
-
-    case id
-    when /\ABP_/
-      translate_bioproject_error(id, message, annotations)
-    when /\ABS_/
-      translate_biosample_error(id, message, annotations)
-    else
-      message
-    end
-  end
-
-  def translate_bioproject_error(error_id, message, annotations)
-    case error_id
-    when "BP_R0002"
-      xsd_message = annotations.fetch("XSD error message").fetch(:value)
-
-      "#{message} #{xsd_message}"
-    else
-      message
-    end
-  end
-
-  def translate_biosample_error(error_id, message, annotations)
-    sample_name = annotations.dig("Sample name", :value)
-
-    case error_id
-    when "BS_R0003"
-      %(The Sample title is not unique for the Sample name "#{sample_name}". Please provide a unique Sample title.)
-    when "BS_R0013"
-      key       = annotations.fetch("Attribute").fetch(:value)
-      value     = annotations.fetch("Attribute value").fetch(:value)
-      suggested = annotations.fetch("Suggested value").fetch(:suggested_value).first
-
-      %(Invalid data format. The "#{key}" attribute value is not valid for the Sample name "#{sample_name}". Please replace "#{value}" to "#{suggested}".)
-    when "BS_R0015"
-      host = annotations.fetch("host").fetch(:value)
-
-      %(Invalid host organism name. The "host" attribute value is not valid for the Sample name "#{sample_name}". Please correct "#{host}".)
-    when "BS_R0045"
-      organism = annotations.fetch("organism").fetch(:value)
-
-      %(Warning about "organism" for the Sample name "#{sample_name}". Please correct "#{organism}". If applicable, the taxonomy id will be automatically filled and the organism will be corrected to the scientific name. When the organism(s) is novel, please enter proposed name(s) in the organism, leave the taxonomy id empty and submit the BioSample.)
-    when "BS_R0098"
-      xsd_message = annotations.fetch("message").fetch(:value)
-
-      "#{message} #{xsd_message}"
-    when "BS_R0100"
-      key       = annotations.fetch("Attribute name").fetch(:value)
-      value     = annotations.fetch("Attribute value").fetch(:value)
-      suggested = annotations.fetch("Suggested value").fetch(:suggested_value).first
-
-      %(Missing values are not neccesary for optional attributes. Leave values empty when there is no information. The "#{key}" attribute value is not valid for the Sample name "#{sample_name}". Please replace "#{value}" to "#{suggested}".)
-    else
-      message
-    end
+  def translate_error(error)
+    raise NotImplementedError
   end
 end
