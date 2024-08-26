@@ -364,7 +364,7 @@ RSpec.describe Database::Trad2::Validator, type: :model do
           details: [
             code:     nil,
             severity: 'error',
-            message:  'Line 1: Custom { kind: InvalidData, error: InvalidRecord(MissingField(Source)) }'
+            message:  'Line 1: InvalidRecord(MissingField(Source))'
           ]
         ),
         include(
