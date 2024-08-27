@@ -24,6 +24,8 @@ module Database::BioProject
   end
 
   class Submitter
+    class VisibilityMismatch < StandardError; end
+
     BP_PROJECT_STATUS_ID_PRIVATE           = 5400
     BP_PROJECT_STATUS_ID_PUBLIC            = 5500
     BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED = 700
@@ -68,6 +70,15 @@ module Database::BioProject
         )
 
         is_public = submission.visibility_public?
+        content   = submission.validation.objs.find_by!(_id: "BioProject").file.download
+        doc       = Nokogiri::XML.parse(content)
+        hold      = !!doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")
+
+        if is_public && hold
+          raise VisibilityMismatch, "Visibility is public, but Hold exist in XML."
+        elsif !is_public && !hold
+          raise VisibilityMismatch, "Visibility is private, but Hold does not exist in XML."
+        end
 
         project_id = Dway.bioproject[:project].insert(
           submission_id:,
@@ -78,8 +89,6 @@ module Database::BioProject
           modified_date: Sequel.function(:now)
         )
 
-        content = submission.validation.objs.find_by!(_id: "BioProject").file.download
-        doc     = Nokogiri::XML.parse(content)
         version = (Dway.bioproject[:xml].where(submission_id:).max(:version) || 0) + 1
 
         modify_xml doc, project_id, is_public
@@ -139,16 +148,28 @@ module Database::BioProject
     end
 
     def submission_data_attrs(submission, submission_id, doc)
-      user              = submission.validation.user
-      organization_name = [ user.department, user.organization ].compact_blank.join(", ")
-
       [
-        [ "submitter", "first_name",        user.first_name,                                    1 ],
-        [ "submitter", "last_name",         user.last_name,                                     1 ],
-        [ "submitter", "email",             user.email,                                         1 ],
-        [ "submitter", "organization_name", organization_name,                                  -1 ],
-        [ "submitter", "organization_url",  user.organization_url,                              -1 ],
-        [ "submitter", "data_release",      submission.visibility_public? ? "nonhup" : "hup",   -1 ],
+        *doc.xpath("/PackageSet/Package/Submission/Submission/Description/Organization/Contact").flat_map.with_index(1) { |contact, i|
+          first_name = contact.at("Name/First")
+          last_name  = contact.at("Name/Last")
+          email      = contact[:email]
+
+          [
+            [ "submitter", "first_name.#{i}", first_name&.text, i ],
+            [ "submitter", "last_name.#{i}",  last_name&.text,  i ],
+            [ "submitter", "email.#{i}",      email,            i ]
+          ]
+        },
+
+        doc.at("/PackageSet/Package/Submission/Submission/Description/Organization/Name").then {
+          [ "submitter", "organization_name", _1&.text, -1 ]
+        },
+
+        doc.at("/PackageSet/Package/Submission/Submission/Description/Organization/@url").then {
+          [ "submitter", "organization_url", _1&.text, -1 ]
+        },
+
+        [ "submitter", "data_release", submission.visibility_public? ? "nonhup" : "hup", -1 ],
 
         doc.at("/PackageSet/Package/Project/Project/ProjectDescr/Title").then {
           [ "general_info", "project_title", _1&.text, -1 ]
@@ -178,20 +199,6 @@ module Database::BioProject
             [ "general_info", "grant_id.#{i}",            grant[:GrantId], i ],
             [ "general_info", "grant_title.#{i}",         title&.text,     i ]
           ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectDescr/Relevance").then {
-          next nil unless _1
-
-          if other = _1.at("Other")
-            [ "general_info", "relevance_description", other.text, -1 ]
-          else
-            [ "general_info", "relevance", _1.childeren.first.name, -1 ]
-          end
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Provider").then {
-          [ "general_info", "biomaterial_provider", _1&.text, -1 ]
         },
 
         *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/ProjectDataTypeSet/DataType").flat_map.with_index(1) { |data_type, i|
@@ -231,10 +238,6 @@ module Database::BioProject
           [ "project_type", "objective.#{i}", data&.[](:data_type), i ]
         },
 
-        doc.at("/PackageSet/Package/Project/Project/ProjectDescr/LocusTagPrefix").then {
-          [ "project_type", "locus_tag", _1&.text, -1 ]
-        },
-
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").then {
           [ "target", "organism_name", _1&.text, -1 ]
         },
@@ -251,100 +254,6 @@ module Database::BioProject
 
         doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Label").then {
           [ "target", "isolate_name_or_label", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Gram").then {
-          [ "target", "prokaryote_gram", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Enveloped").then {
-          [ "target", "prokaryote_enveloped", _1&.text, -1 ]
-        },
-
-        *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Shape").map.with_index(1) { |shape, i|
-          [ "target", "prokaryote_shape.#{i}", shape.text, i ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Endospores").then {
-          [ "target", "prokaryote_endospores", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Morphology/Motility").then {
-          [ "target", "prokaryote_motility", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/Salinity").then {
-          [ "target", "environment_salinity", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/OxygenReq").then {
-          [ "target", "environment_oxygen_requirement", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/OptimumTemperature").then {
-          [ "target", "environment_optimum_temperature", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/TemperatureRange").then {
-          [ "target", "environment_temperature_range", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Environment/Habitat").then {
-          [ "target", "environment_habitat", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Phenotype/BioticRelationship").then {
-          [ "target", "phenotype_biotic_relationship", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Phenotype/TrophicLevel").then {
-          [ "target", "phenotype_trophic_level", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/BiologicalProperties/Phenotype/Disease").then {
-          [ "target", "phenotype_disease", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Organization").then {
-          [ "target", "cellularity", _1&.text, -1 ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Reproduction").then {
-          [ "target", "reproduction", _1&.text, -1 ]
-        },
-
-        *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/RepliconSet/Replicon").flat_map.with_index(1) { |replicon, i|
-          type        = replicon.at("Type")
-          name        = replicon.at("Name")
-          size        = replicon.at("Size")
-          description = replicon.at("Description")
-
-          [
-            [ "target", "replicons_order.#{i}",                replicon[:order],              i ],
-            [ "target", "replicons_location.#{i}",             type&.[](:location),           i ],
-            [ "target", "replicons_type_description.#{i}",     type&.[](:typeOtherDescr),     i ],
-            [ "target", "replicons_location_description.#{i}", type&.[](:locationOtherDescr), i ],
-            [ "target", "replicons_type.#{i}",                 type&.text,                    i ],
-            [ "target", "replicons_name.#{i}",                 name&.text,                    i ],
-            [ "target", "replicons_size_unit.#{i}",            size&.[](:units),              i ],
-            [ "target", "replicons_size.#{i}",                 size&.text,                    i ],
-            [ "target", "replicons_description.#{i}",          description&.text,             i ]
-          ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/RepliconSet/Ploidy").then {
-          [ "target", "ploidy", _1&.[](:type), -1 ]
-        },
-
-        *doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/GenomeSize").then {
-          [
-            [ "target", "haploid_genome_size_unit", _1&.[](:units), -1 ],
-            [ "target", "haploid_genome_size",      _1&.text,       -1 ]
-          ]
-        },
-
-        doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Description").then {
-          [ "target", "label_description", _1&.text, -1 ]
         },
 
         *doc.xpath("/PackageSet/Package/Project/Project/ProjectDescr/Publication").map.with_index(1) { |publication, i|

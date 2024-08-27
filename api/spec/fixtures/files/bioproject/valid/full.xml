@@ -128,8 +128,15 @@
 
             <Contact email="submitter.email.1?">
               <Name>
-                <First>submitter.first_name?</First>
-                <Last>submitter.last_name</Last>
+                <First>submitter.first_name.1?</First>
+                <Last>submitter.last_name.1</Last>
+              </Name>
+            </Contact>
+
+            <Contact email="submitter.email.2?">
+              <Name>
+                <First>submitter.first_name.2?</First>
+                <Last>submitter.last_name.2</Last>
               </Name>
             </Contact>
           </Organization>

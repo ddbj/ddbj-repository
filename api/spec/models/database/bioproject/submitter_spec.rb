@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Database::BioProject::Submitter do
-  def create_submission(visibility: :private, file: 'bioproject/valid/1_not_well_format_xml_ok.xml')
+  def create_submission(visibility:, file:)
     create(:submission, **{
       visibility:,
 
@@ -32,7 +32,7 @@ RSpec.describe Database::BioProject::Submitter do
   }
 
   example 'submit' do
-    submission = create_submission(visibility: :private)
+    submission = create_submission(visibility: :private, file: 'bioproject/valid/hup.xml')
 
     Database::BioProject::Submitter.new.submit submission
 
@@ -98,7 +98,7 @@ RSpec.describe Database::BioProject::Submitter do
   end
 
   example 'visibility: public' do
-    submission = create_submission(visibility: :public)
+    submission = create_submission(visibility: :public, file: 'bioproject/valid/nonhup.xml')
 
     Database::BioProject::Submitter.new.submit submission
 
@@ -113,39 +113,57 @@ RSpec.describe Database::BioProject::Submitter do
   end
 
   example 'full' do
-    submission = create_submission(file: 'bioproject/valid/full.xml')
+    submission = create_submission(visibility: :private, file: 'bioproject/valid/full.xml')
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(Dway.bioproject[:submission_data].map { _1.slice(:form_name, :data_name, :data_value, :t_order) }).to contain_exactly(
+    expect(Dway.bioproject[:submission_data].map { _1.slice(:form_name, :data_name, :data_value, :t_order) }).to eq([
       {
         form_name:  'submitter',
-        data_name:  'first_name',
-        data_value: 'Alice',
+        data_name:  'first_name.1',
+        data_value: 'submitter.first_name.1?',
         t_order:    1
       },
       {
         form_name:  'submitter',
-        data_name:  'last_name',
-        data_value: 'Liddell',
+        data_name:  'last_name.1',
+        data_value: 'submitter.last_name.1',
         t_order:    1
       },
       {
         form_name:  'submitter',
-        data_name:  'email',
-        data_value: 'alice@example.com',
+        data_name:  'email.1',
+        data_value: 'submitter.email.1?',
         t_order:    1
+      },
+      {
+        form_name:  'submitter',
+        data_name:  'first_name.2',
+        data_value: 'submitter.first_name.2?',
+        t_order:    2
+      },
+      {
+        form_name:  'submitter',
+        data_name:  'last_name.2',
+        data_value: 'submitter.last_name.2',
+        t_order:    2
+      },
+      {
+        form_name:  'submitter',
+        data_name:  'email.2',
+        data_value: 'submitter.email.2?',
+        t_order:    2
       },
       {
         form_name:  'submitter',
         data_name:  'organization_name',
-        data_value: 'Rabbit Hole, Wonderland Inc.',
+        data_value: 'submitter.organization_name',
         t_order:    -1
       },
       {
         form_name:  'submitter',
         data_name:  'organization_url',
-        data_value: 'http://wonderland.example.com',
+        data_value: 'submitter.organization_url?',
         t_order:    -1
       },
       {
@@ -215,18 +233,6 @@ RSpec.describe Database::BioProject::Submitter do
         t_order:    1
       },
       {
-        form_name:  'general_info',
-        data_name:  'relevance_description',
-        data_value: 'general_info.relevance_description',
-        t_order:    -1
-      },
-      {
-        form_name:  'general_info',
-        data_name:  'biomaterial_provider',
-        data_value: 'general_info.biomaterial_provider?',
-        t_order:    -1
-      },
-      {
         form_name:  'project_type',
         data_name:  'project_data_type',
         data_value: 'genome_sequencing',
@@ -281,12 +287,6 @@ RSpec.describe Database::BioProject::Submitter do
         t_order:    1
       },
       {
-        form_name:  'project_type',
-        data_name:  'locus_tag',
-        data_value: 'project_type.locus_tag',
-        t_order:    -1
-      },
-      {
         form_name:  'target',
         data_name:  'organism_name',
         data_value: 'target.organism_name',
@@ -311,174 +311,6 @@ RSpec.describe Database::BioProject::Submitter do
         t_order:    -1
       },
       {
-        form_name:  'target',
-        data_name:  'prokaryote_gram',
-        data_value: 'target.prokaryote_gram?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'prokaryote_enveloped',
-        data_value: 'target.prokaryote_enveloped?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'prokaryote_shape.1',
-        data_value: 'target.prokaryote_shape.1*',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'prokaryote_endospores',
-        data_value: 'target.prokaryote_endospores?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'prokaryote_motility',
-        data_value: 'target.prokaryote_motility?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'environment_salinity',
-        data_value: 'target.environment_salinity?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'environment_oxygen_requirement',
-        data_value: 'target.environment_oxygen_requirement?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'environment_optimum_temperature',
-        data_value: 'target.environment_optimum_temperature?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'environment_temperature_range',
-        data_value: 'target.environment_temperature_range?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'environment_habitat',
-        data_value: 'target.environment_habitat?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'phenotype_biotic_relationship',
-        data_value: 'target.phenotype_biotic_relationship?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'phenotype_trophic_level',
-        data_value: 'target.phenotype_trophic_level?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'phenotype_disease',
-        data_value: 'target.phenotype_disease?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'cellularity',
-        data_value: 'target.cellularity?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'reproduction',
-        data_value: 'target.reproduction?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_order.1',
-        data_value: 'target.replicons_order.1?',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_location.1',
-        data_value: 'target.replicons_location.1?',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_type_description.1',
-        data_value: 'target.replicons_type_description.1?',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_location_description.1',
-        data_value: 'target.replicons_location_description.1?',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_type.1',
-        data_value: 'target.replicons_type.1',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_name.1',
-        data_value: 'target.replicons_name.1',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_size_unit.1',
-        data_value: 'target.replicons_size_unit.1',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_size.1',
-        data_value: 'target.replicons_size.1?',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'replicons_description.1',
-        data_value: 'target.replicons_description.1?',
-        t_order:    1
-      },
-      {
-        form_name:  'target',
-        data_name:  'ploidy',
-        data_value: 'target.ploidy?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'haploid_genome_size_unit',
-        data_value: 'target.haploid_genome_size_unit',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'haploid_genome_size',
-        data_value: 'target.haploid_genome_size?',
-        t_order:    -1
-      },
-      {
-        form_name:  'target',
-        data_name:  'label_description',
-        data_value: 'target.label_description?',
-        t_order:    -1
-      },
-      {
         form_name:  'publication',
         data_name:  'pubmed_id.1',
         data_value: 'publication.pubmed_id.1',
@@ -490,6 +322,16 @@ RSpec.describe Database::BioProject::Submitter do
         data_value: 'publication.doi.2',
         t_order:    2
       }
-    )
+    ])
+  end
+
+  example 'hold and visibility mismathed' do
+    expect {
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: 'bioproject/valid/hup.xml')
+    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is public, but Hold exist in XML.')
+
+    expect {
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/valid/nonhup.xml')
+    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is private, but Hold does not exist in XML.')
   end
 end
