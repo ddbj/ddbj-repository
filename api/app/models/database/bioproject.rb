@@ -57,12 +57,13 @@ module Database::BioProject
 
     def submit(submission)
       user = submission.validation.user
+      opts = Rails.env.test? ? {} : { isolation: :serializable }
 
-      Dway.bioproject.transaction isolation: :serializable do
+      ::BioProject::BaseRecord.transaction **opts do
         submission_id = next_submission_id
         submitter_id  = user.uid
 
-        Dway.bioproject[:submission].insert(
+        BioProject::Submission.create!(
           submission_id:,
           submitter_id:,
           status_id:         BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED,
@@ -80,47 +81,47 @@ module Database::BioProject
           raise VisibilityMismatch, "Visibility is private, but Hold does not exist in XML."
         end
 
-        project_id = Dway.bioproject[:project].insert(
+        BioProject::Project.create!(
           submission_id:,
           project_type:  "primary",
           status_id:     is_public ? BP_PROJECT_STATUS_ID_PUBLIC : BP_PROJECT_STATUS_ID_PRIVATE,
-          release_date:  is_public ? Sequel.function(:now)       : nil,
-          dist_date:     is_public ? Sequel.function(:now)       : nil,
-          modified_date: Sequel.function(:now)
+          release_date:  is_public ? Time.current : nil,
+          dist_date:     is_public ? Time.current : nil,
+          modified_date: Time.current
         )
 
-        version = (Dway.bioproject[:xml].where(submission_id:).max(:version) || 0) + 1
+        version = (BioProject::XML.where(submission_id:).order(version: :desc).pick(:version) || 0) + 1
 
-        modify_xml doc, project_id, is_public
+        modify_xml doc, submission_id, is_public
 
-        Dway.bioproject[:xml].insert(
+        BioProject::XML.create!(
           submission_id:,
           content:         doc.to_s,
           version:,
-          registered_date: Sequel.function(:now)
+          registered_date: Time.current
         )
 
-        Dway.drmdb.transaction do
-          ext_id = Dway.drmdb[:ext_entity].insert(
+        DRMDB::BaseRecord.transaction do
+          ext = DRMDB::ExtEntity.create!(
             acc_type: SCHEMA_TYPE_STUDY,
             ref_name: submission_id,
             status:   EXT_STATUS_VALID
           )
 
-          Dway.drmdb[:ext_permit].insert(
-            ext_id:       ext_id,
+          DRMDB::ExtPermit.create!(
+            ext_id:       ext.ext_id,
             submitter_id:
           )
         end
 
-        Dway.bioproject[:submission_data].multi_insert submission_data_attrs(submission, submission_id, doc)
+        BioProject::SubmissionData.insert_all submission_data_attrs(submission, submission_id, doc)
       end
     end
 
     private
 
     def next_submission_id
-      submission_id = Dway.bioproject[:submission].reverse(:submission_id).get(:submission_id) || "PSUB000000"
+      submission_id = BioProject::Submission.order(submission_id: :desc).pick(:submission_id) || "PSUB000000"
       num           = submission_id.delete_prefix("PSUB").to_i
 
       "PSUB#{num.succ.to_s.rjust(6, '0')}"

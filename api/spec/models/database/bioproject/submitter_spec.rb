@@ -36,58 +36,58 @@ RSpec.describe Database::BioProject::Submitter do
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(Dway.bioproject[:submission].first).to include(
+    expect(BioProject::Submission.first).to have_attributes(
       submission_id:     'PSUB000001',
       submitter_id:      'alice',
       status_id:         Database::BioProject::Submitter::BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED,
       form_status_flags: ''
     )
 
-    expect(Dway.bioproject[:project].first).to include(
+    expect(BioProject::Project.first).to have_attributes(
       submission_id: 'PSUB000001',
       project_type:  'primary',
       status_id:     Database::BioProject::Submitter::BP_PROJECT_STATUS_ID_PRIVATE,
       release_date:  nil,
       dist_date:     nil,
-      modified_date: instance_of(Time)
+      modified_date: instance_of(ActiveSupport::TimeWithZone)
     )
 
-    expect(Dway.bioproject[:xml].first).to include(
+    expect(BioProject::XML.first).to have_attributes(
       submission_id:   'PSUB000001',
       content:         instance_of(String),
       version:         1,
       registered_date: instance_of(String)
     )
 
-    doc        = Nokogiri::XML.parse(Dway.bioproject[:xml].first[:content])
+    doc        = Nokogiri::XML.parse(BioProject::XML.first.content)
     archive_id = doc.at('/PackageSet/Package/Project/Project/ProjectID/ArchiveID')
 
     expect(archive_id[:accession]).to eq('PSUB000001')
     expect(archive_id[:archive]).to eq('DDBJ')
 
-    ext_entity = Dway.drmdb[:ext_entity].first
+    ext_entity = DRMDB::ExtEntity.first
 
-    expect(ext_entity).to include(
+    expect(ext_entity).to have_attributes(
       ext_id:   instance_of(Integer),
       acc_type: Database::BioProject::Submitter::SCHEMA_TYPE_STUDY.to_s,
       ref_name: 'PSUB000001',
       status:   Database::BioProject::Submitter::EXT_STATUS_VALID
     )
 
-    expect(Dway.drmdb[:ext_permit].first).to include(
-      ext_id:       ext_entity[:ext_id],
+    expect(DRMDB::ExtPermit.first).to have_attributes(
+      ext_id:       ext_entity.ext_id,
       submitter_id: 'alice'
     )
 
-    expect(Dway.bioproject[:submission_data]).to include(
-      include(
+    expect(BioProject::SubmissionData.all).to include(
+      have_attributes(
         submission_id: 'PSUB000001',
         form_name:     'general_info',
         data_name:     'project_title',
         data_value:    'Title text',
         t_order:       -1
       ),
-      include(
+      have_attributes(
         submission_id: 'PSUB000001',
         form_name:     'general_info',
         data_name:     'public_description',
@@ -102,13 +102,13 @@ RSpec.describe Database::BioProject::Submitter do
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(Dway.bioproject[:project].first).to include(
+    expect(BioProject::Project.first).to have_attributes(
       submission_id: 'PSUB000001',
       project_type:  'primary',
       status_id:     Database::BioProject::Submitter::BP_PROJECT_STATUS_ID_PUBLIC,
-      release_date:  instance_of(Time),
-      dist_date:     instance_of(Time),
-      modified_date: instance_of(Time)
+      release_date:  instance_of(ActiveSupport::TimeWithZone),
+      dist_date:     instance_of(ActiveSupport::TimeWithZone),
+      modified_date: instance_of(ActiveSupport::TimeWithZone)
     )
   end
 
@@ -117,7 +117,7 @@ RSpec.describe Database::BioProject::Submitter do
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(Dway.bioproject[:submission_data].map { _1.slice(:form_name, :data_name, :data_value, :t_order) }).to eq([
+    expect(BioProject::SubmissionData.all.map { _1.slice(:form_name, :data_name, :data_value, :t_order).symbolize_keys }).to eq([
       {
         form_name:  'submitter',
         data_name:  'first_name.1',
