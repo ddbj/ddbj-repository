@@ -39,14 +39,14 @@ RSpec.describe Database::BioProject::Submitter do
     expect(BioProject::Submission.sole).to have_attributes(
       submission_id:     'PSUB000001',
       submitter_id:      'alice',
-      status_id:         Database::BioProject::Submitter::BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED,
+      status_id:         'data_submitted',
       form_status_flags: ''
     )
 
     expect(BioProject::Project.sole).to have_attributes(
       submission_id: 'PSUB000001',
       project_type:  'primary',
-      status_id:     Database::BioProject::Submitter::BP_PROJECT_STATUS_ID_PRIVATE,
+      status_id:     'private',
       release_date:  nil,
       dist_date:     nil,
       modified_date: instance_of(ActiveSupport::TimeWithZone)
@@ -69,9 +69,9 @@ RSpec.describe Database::BioProject::Submitter do
 
     expect(ext_entity).to have_attributes(
       ext_id:   instance_of(Integer),
-      acc_type: Database::BioProject::Submitter::SCHEMA_TYPE_STUDY.to_s,
+      acc_type: 'study',
       ref_name: 'PSUB000001',
-      status:   Database::BioProject::Submitter::EXT_STATUS_VALID
+      status:   'valid'
     )
 
     expect(DRMDB::ExtPermit.sole).to have_attributes(
@@ -79,7 +79,7 @@ RSpec.describe Database::BioProject::Submitter do
       submitter_id: 'alice'
     )
 
-    expect(BioProject::SubmissionData.all).to include(
+    expect(BioProject::SubmissionDatum.all).to include(
       have_attributes(
         submission_id: 'PSUB000001',
         form_name:     'general_info',
@@ -105,7 +105,7 @@ RSpec.describe Database::BioProject::Submitter do
     expect(BioProject::Project.sole).to have_attributes(
       submission_id: 'PSUB000001',
       project_type:  'primary',
-      status_id:     Database::BioProject::Submitter::BP_PROJECT_STATUS_ID_PUBLIC,
+      status_id:     'public',
       release_date:  instance_of(ActiveSupport::TimeWithZone),
       dist_date:     instance_of(ActiveSupport::TimeWithZone),
       modified_date: instance_of(ActiveSupport::TimeWithZone)
@@ -117,7 +117,7 @@ RSpec.describe Database::BioProject::Submitter do
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(BioProject::SubmissionData.all.map { _1.slice(:form_name, :data_name, :data_value, :t_order).symbolize_keys }).to eq([
+    expect(BioProject::SubmissionDatum.all.map { _1.slice(:form_name, :data_name, :data_value, :t_order).symbolize_keys }).to eq([
       {
         form_name:  'submitter',
         data_name:  'first_name.1',

@@ -26,19 +26,6 @@ module Database::BioProject
   class Submitter
     class VisibilityMismatch < StandardError; end
 
-    BP_PROJECT_STATUS_ID_PRIVATE           = 5400
-    BP_PROJECT_STATUS_ID_PUBLIC            = 5500
-    BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED = 700
-    EXT_STATUS_INPUTTING                   = 0
-    EXT_STATUS_VALID                       = 100
-    EXT_STATUS_INVALID                     = 1000
-    SCHEMA_TYPE_SUBMISSION                 = 1
-    SCHEMA_TYPE_STUDY                      = 2
-    SCHEMA_TYPE_SAMPLE                     = 3
-    SCHEMA_TYPE_EXPERIMENT                 = 4
-    SCHEMA_TYPE_RUN                        = 5
-    SCHEMA_TYPE_ANALYSIS                   = 6
-
     PROJECT_DATA_TYPES = {
       "Genome Sequencing"                => "genome_sequencing",
       "Clone Ends"                       => "clone_ends",
@@ -57,16 +44,15 @@ module Database::BioProject
 
     def submit(submission)
       user = submission.validation.user
-      opts = Rails.env.test? ? {} : { isolation: :serializable }
 
-      ::BioProject::BaseRecord.transaction **opts do
+      BioProject::BaseRecord.transaction isolation: Rails.env.test? ? nil : :serializable do
         submission_id = next_submission_id
         submitter_id  = user.uid
 
-        BioProject::Submission.create!(
+        bp_submission = BioProject::Submission.create!(
           submission_id:,
           submitter_id:,
-          status_id:         BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED,
+          status_id:         :data_submitted,
           form_status_flags: ""
         )
 
@@ -81,10 +67,10 @@ module Database::BioProject
           raise VisibilityMismatch, "Visibility is private, but Hold does not exist in XML."
         end
 
-        BioProject::Project.create!(
+        bp_submission.create_project!(
           submission_id:,
           project_type:  "primary",
-          status_id:     is_public ? BP_PROJECT_STATUS_ID_PUBLIC : BP_PROJECT_STATUS_ID_PRIVATE,
+          status_id:     is_public ? :public : :private,
           release_date:  is_public ? Time.current : nil,
           dist_date:     is_public ? Time.current : nil,
           modified_date: Time.current
@@ -94,27 +80,23 @@ module Database::BioProject
 
         modify_xml doc, submission_id, is_public
 
-        BioProject::XML.create!(
-          submission_id:,
+        bp_submission.xmls.create!(
           content:         doc.to_s,
           version:,
           registered_date: Time.current
         )
 
-        DRMDB::BaseRecord.transaction do
-          ext = DRMDB::ExtEntity.create!(
-            acc_type: SCHEMA_TYPE_STUDY,
-            ref_name: submission_id,
-            status:   EXT_STATUS_VALID
-          )
-
-          DRMDB::ExtPermit.create!(
-            ext_id:       ext.ext_id,
+        DRMDB::ExtEntity.create!(
+          acc_type: :study,
+          ref_name: submission_id,
+          status:   :valid
+        ) do |entity|
+          entity.ext_permits.build(
             submitter_id:
           )
         end
 
-        BioProject::SubmissionData.insert_all submission_data_attrs(submission, submission_id, doc)
+        bp_submission.submission_data.insert_all submission_data_attrs(submission, submission_id, doc)
       end
     end
 

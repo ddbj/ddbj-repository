@@ -32,7 +32,6 @@ test:
   primary:
     <<: *default
     database: ddbj_repository_test
-    migrations_paths: db/migrate
 
   bioproject:
     <<: *default
