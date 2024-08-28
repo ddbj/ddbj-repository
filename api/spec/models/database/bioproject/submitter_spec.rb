@@ -36,14 +36,14 @@ RSpec.describe Database::BioProject::Submitter do
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(BioProject::Submission.first).to have_attributes(
+    expect(BioProject::Submission.sole).to have_attributes(
       submission_id:     'PSUB000001',
       submitter_id:      'alice',
       status_id:         Database::BioProject::Submitter::BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED,
       form_status_flags: ''
     )
 
-    expect(BioProject::Project.first).to have_attributes(
+    expect(BioProject::Project.sole).to have_attributes(
       submission_id: 'PSUB000001',
       project_type:  'primary',
       status_id:     Database::BioProject::Submitter::BP_PROJECT_STATUS_ID_PRIVATE,
@@ -52,20 +52,20 @@ RSpec.describe Database::BioProject::Submitter do
       modified_date: instance_of(ActiveSupport::TimeWithZone)
     )
 
-    expect(BioProject::XML.first).to have_attributes(
+    expect(BioProject::XML.sole).to have_attributes(
       submission_id:   'PSUB000001',
       content:         instance_of(String),
       version:         1,
       registered_date: instance_of(String)
     )
 
-    doc        = Nokogiri::XML.parse(BioProject::XML.first.content)
+    doc        = Nokogiri::XML.parse(BioProject::XML.sole.content)
     archive_id = doc.at('/PackageSet/Package/Project/Project/ProjectID/ArchiveID')
 
     expect(archive_id[:accession]).to eq('PSUB000001')
     expect(archive_id[:archive]).to eq('DDBJ')
 
-    ext_entity = DRMDB::ExtEntity.first
+    ext_entity = DRMDB::ExtEntity.sole
 
     expect(ext_entity).to have_attributes(
       ext_id:   instance_of(Integer),
@@ -74,7 +74,7 @@ RSpec.describe Database::BioProject::Submitter do
       status:   Database::BioProject::Submitter::EXT_STATUS_VALID
     )
 
-    expect(DRMDB::ExtPermit.first).to have_attributes(
+    expect(DRMDB::ExtPermit.sole).to have_attributes(
       ext_id:       ext_entity.ext_id,
       submitter_id: 'alice'
     )
@@ -102,7 +102,7 @@ RSpec.describe Database::BioProject::Submitter do
 
     Database::BioProject::Submitter.new.submit submission
 
-    expect(BioProject::Project.first).to have_attributes(
+    expect(BioProject::Project.sole).to have_attributes(
       submission_id: 'PSUB000001',
       project_type:  'primary',
       status_id:     Database::BioProject::Submitter::BP_PROJECT_STATUS_ID_PUBLIC,
