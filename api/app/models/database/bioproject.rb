@@ -68,7 +68,6 @@ module Database::BioProject
         end
 
         bp_submission.create_project!(
-          submission_id:,
           project_type:  "primary",
           status_id:     is_public ? :public : :private,
           release_date:  is_public ? Time.current : nil,
@@ -86,6 +85,8 @@ module Database::BioProject
           registered_date: Time.current
         )
 
+        bp_submission.submission_data.insert_all submission_data_attrs(submission, submission_id, doc)
+
         DRMDB::ExtEntity.create!(
           acc_type: :study,
           ref_name: submission_id,
@@ -95,8 +96,6 @@ module Database::BioProject
             submitter_id:
           )
         end
-
-        bp_submission.submission_data.insert_all submission_data_attrs(submission, submission_id, doc)
       end
     end
 
