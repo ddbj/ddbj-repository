@@ -1,4 +1,4 @@
-class DRMDB::ExtEntity < DRMDB::BaseRecord
+class DRMDB::ExtEntity < DRMDB::Record
   self.table_name = "ext_entity"
 
   has_many :ext_permits, class_name: "DRMDB::ExtPermit", foreign_key: "ext_id"

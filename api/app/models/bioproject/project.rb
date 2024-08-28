@@ -1,4 +1,4 @@
-class BioProject::Project < BioProject::BaseRecord
+class BioProject::Project < BioProject::Record
   self.table_name = "project"
 
   enum :status_id, {

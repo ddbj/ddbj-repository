@@ -1,4 +1,4 @@
-class BioProject::Submission < BioProject::BaseRecord
+class BioProject::Submission < BioProject::Record
   self.table_name = "submission"
 
   has_one  :project,         class_name: "BioProject::Project"

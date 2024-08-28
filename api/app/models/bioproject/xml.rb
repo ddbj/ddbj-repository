@@ -1,3 +1,3 @@
-class BioProject::XML < BioProject::BaseRecord
+class BioProject::XML < BioProject::Record
   self.table_name = "xml"
 end

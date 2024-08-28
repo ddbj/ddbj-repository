@@ -45,7 +45,7 @@ module Database::BioProject
     def submit(submission)
       user = submission.validation.user
 
-      BioProject::BaseRecord.transaction isolation: Rails.env.test? ? nil : :serializable do
+      BioProject::Record.transaction isolation: Rails.env.test? ? nil : :serializable do
         submission_id = next_submission_id
         submitter_id  = user.uid
 

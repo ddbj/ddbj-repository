@@ -1,3 +1,3 @@
-class SubmitterDB::Organization < SubmitterDB::BaseRecord
+class SubmitterDB::Organization < SubmitterDB::Record
   self.table_name = "organization"
 end
