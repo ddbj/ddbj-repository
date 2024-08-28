@@ -20,7 +20,6 @@ gem "puma"
 gem "rack-cors"
 gem "rambulance"
 gem "sentry-rails"
-gem "sequel"
 gem "solid_queue"
 gem "submission-excel2xml", github: "ddbj/submission-excel2xml"
 

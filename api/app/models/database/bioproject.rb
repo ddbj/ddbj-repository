@@ -26,19 +26,6 @@ module Database::BioProject
   class Submitter
     class VisibilityMismatch < StandardError; end
 
-    BP_PROJECT_STATUS_ID_PRIVATE           = 5400
-    BP_PROJECT_STATUS_ID_PUBLIC            = 5500
-    BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED = 700
-    EXT_STATUS_INPUTTING                   = 0
-    EXT_STATUS_VALID                       = 100
-    EXT_STATUS_INVALID                     = 1000
-    SCHEMA_TYPE_SUBMISSION                 = 1
-    SCHEMA_TYPE_STUDY                      = 2
-    SCHEMA_TYPE_SAMPLE                     = 3
-    SCHEMA_TYPE_EXPERIMENT                 = 4
-    SCHEMA_TYPE_RUN                        = 5
-    SCHEMA_TYPE_ANALYSIS                   = 6
-
     PROJECT_DATA_TYPES = {
       "Genome Sequencing"                => "genome_sequencing",
       "Clone Ends"                       => "clone_ends",
@@ -58,14 +45,14 @@ module Database::BioProject
     def submit(submission)
       user = submission.validation.user
 
-      Dway.bioproject.transaction isolation: :serializable do
+      BioProject::Record.transaction isolation: Rails.env.test? ? nil : :serializable do |tx|
         submission_id = next_submission_id
         submitter_id  = user.uid
 
-        Dway.bioproject[:submission].insert(
+        bp_submission = BioProject::Submission.create!(
           submission_id:,
           submitter_id:,
-          status_id:         BP_SUBMISSION_STATUS_ID_DATA_SUBMITTED,
+          status_id:         :data_submitted,
           form_status_flags: ""
         )
 
@@ -80,47 +67,44 @@ module Database::BioProject
           raise VisibilityMismatch, "Visibility is private, but Hold does not exist in XML."
         end
 
-        project_id = Dway.bioproject[:project].insert(
-          submission_id:,
+        bp_submission.create_project!(
           project_type:  "primary",
-          status_id:     is_public ? BP_PROJECT_STATUS_ID_PUBLIC : BP_PROJECT_STATUS_ID_PRIVATE,
-          release_date:  is_public ? Sequel.function(:now)       : nil,
-          dist_date:     is_public ? Sequel.function(:now)       : nil,
-          modified_date: Sequel.function(:now)
+          status_id:     is_public ? :public : :private,
+          release_date:  is_public ? Time.current : nil,
+          dist_date:     is_public ? Time.current : nil,
+          modified_date: Time.current
         )
 
-        version = (Dway.bioproject[:xml].where(submission_id:).max(:version) || 0) + 1
+        version = (BioProject::XML.where(submission_id:).order(version: :desc).pick(:version) || 0) + 1
 
-        modify_xml doc, project_id, is_public
+        modify_xml doc, submission_id, is_public
 
-        Dway.bioproject[:xml].insert(
-          submission_id:,
+        bp_submission.xmls.create!(
           content:         doc.to_s,
           version:,
-          registered_date: Sequel.function(:now)
+          registered_date: Time.current
         )
 
-        Dway.drmdb.transaction do
-          ext_id = Dway.drmdb[:ext_entity].insert(
-            acc_type: SCHEMA_TYPE_STUDY,
+        bp_submission.submission_data.insert_all submission_data_attrs(submission, submission_id, doc)
+
+        tx.after_commit do
+          DRMDB::ExtEntity.create!(
+            acc_type: :study,
             ref_name: submission_id,
-            status:   EXT_STATUS_VALID
-          )
-
-          Dway.drmdb[:ext_permit].insert(
-            ext_id:       ext_id,
-            submitter_id:
-          )
+            status:   :valid
+          ) do |entity|
+            entity.ext_permits.build(
+              submitter_id:
+            )
+          end
         end
-
-        Dway.bioproject[:submission_data].multi_insert submission_data_attrs(submission, submission_id, doc)
       end
     end
 
     private
 
     def next_submission_id
-      submission_id = Dway.bioproject[:submission].reverse(:submission_id).get(:submission_id) || "PSUB000000"
+      submission_id = BioProject::Submission.order(submission_id: :desc).pick(:submission_id) || "PSUB000000"
       num           = submission_id.delete_prefix("PSUB").to_i
 
       "PSUB#{num.succ.to_s.rjust(6, '0')}"
