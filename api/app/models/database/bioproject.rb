@@ -45,7 +45,7 @@ module Database::BioProject
     def submit(submission)
       user = submission.validation.user
 
-      BioProject::Record.transaction isolation: Rails.env.test? ? nil : :serializable do
+      BioProject::Record.transaction isolation: Rails.env.test? ? nil : :serializable do |tx|
         submission_id = next_submission_id
         submitter_id  = user.uid
 
@@ -87,14 +87,16 @@ module Database::BioProject
 
         bp_submission.submission_data.insert_all submission_data_attrs(submission, submission_id, doc)
 
-        DRMDB::ExtEntity.create!(
-          acc_type: :study,
-          ref_name: submission_id,
-          status:   :valid
-        ) do |entity|
-          entity.ext_permits.build(
-            submitter_id:
-          )
+        tx.after_commit do
+          DRMDB::ExtEntity.create!(
+            acc_type: :study,
+            ref_name: submission_id,
+            status:   :valid
+          ) do |entity|
+            entity.ext_permits.build(
+              submitter_id:
+            )
+          end
         end
       end
     end
