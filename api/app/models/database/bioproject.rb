@@ -85,7 +85,7 @@ module Database::BioProject
           registered_date: Time.current
         )
 
-        bp_submission.submission_data.insert_all submission_data_attrs(submission, submission_id, doc)
+        bp_submission.submission_data.insert_all submission_data_attrs(submission, doc)
 
         tx.after_commit do
           DRMDB::ExtEntity.create!(
@@ -131,7 +131,7 @@ module Database::BioProject
       doc
     end
 
-    def submission_data_attrs(submission, submission_id, doc)
+    def submission_data_attrs(submission, doc)
       [
         *doc.xpath("/PackageSet/Package/Submission/Submission/Description/Organization/Contact").flat_map.with_index(1) { |contact, i|
           first_name = contact.at("Name/First")
@@ -252,7 +252,6 @@ module Database::BioProject
         }
       ].compact.map { |form_name, data_name, data_value, t_order|
         {
-          submission_id:,
           form_name:,
           data_name:,
           data_value:,
