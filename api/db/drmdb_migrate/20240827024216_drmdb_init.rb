@@ -1,19 +1,21 @@
 class DRMDBInit < ActiveRecord::Migration[7.2]
   def change
-    create_table :ext_entity, id: false do |t|
+    execute 'CREATE SCHEMA mass'
+
+    create_table 'mass.ext_entity', id: false do |t|
       t.bigint :ext_id,  primary_key: true
       t.text   :acc_type, null: false
       t.text   :ref_name, null: false
       t.integer :status,  null: false
     end
 
-    create_table :ext_permit, id: false do |t|
+    create_table 'mass.ext_permit', id: false do |t|
       t.bigint :per_id,       primary_key: true
       t.bigint :ext_id,       null: false
       t.text   :submitter_id, null: false
     end
 
-    create_table :operation_history, id: false do |t|
+    create_table 'mass.operation_history', id: false do |t|
       t.bigint    :his_id,  primary_key: true
       t.integer   :type,    null: false
       t.text      :summary, null: false
@@ -25,13 +27,13 @@ class DRMDBInit < ActiveRecord::Migration[7.2]
       t.text      :submitter_id
     end
 
-    create_table :status_history do |t|
+    create_table 'mass.status_history' do |t|
       t.bigint    :sub_id, null: false
       t.integer   :status, null: false
       t.timestamp :date,   null: false, default: -> { "DATE_TRUNC('second', NOW())" }
     end
 
-    create_table :submission, id: false do |t|
+    create_table 'mass.submission', id: false do |t|
       t.bigint  :sub_id,       primary_key: true
       t.bigint  :usr_id,       null: false
       t.text    :submitter_id, null: false

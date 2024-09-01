@@ -1,6 +1,8 @@
 class SubmitterDBInit < ActiveRecord::Migration[7.2]
   def change
-    create_table :contact, id: false do |t|
+    execute 'CREATE SCHEMA mass'
+
+    create_table 'mass.contact', id: false do |t|
       t.bigint    :cnt_id,          primary_key: true
       t.text      :submitter_id,    null: false
       t.text      :email
@@ -11,7 +13,7 @@ class SubmitterDBInit < ActiveRecord::Migration[7.2]
       t.boolean   :is_contact,      null: false, default: false
     end
 
-    create_table :login, id: false do |t|
+    create_table 'mass.login', id: false do |t|
       t.bigint    :usr_id,          primary_key: true
       t.text      :submitter_id,    null: false
       t.text      :password,        null: false
@@ -21,7 +23,7 @@ class SubmitterDBInit < ActiveRecord::Migration[7.2]
       t.timestamp :create_date,                    default: -> { "DATE_TRUNC('second', NOW())" }
     end
 
-    create_table :organization, id: false do |t|
+    create_table 'mass.organization', id: false do |t|
       t.text :submitter_id, primary_key: true
       t.text :detail
       t.text :center_name
