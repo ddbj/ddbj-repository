@@ -31,7 +31,7 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           },
 
           db:          'MetaboBank',
-          created_at:  '2024-01-02T03:04:58.000Z',
+          created_at:  '2024-01-02T03:04:58.000+09:00',
           started_at:  nil,
           finished_at: nil,
           progress:    'waiting',
@@ -59,9 +59,9 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           },
 
           db:          'GEA',
-          created_at:  '2024-01-02T03:04:56.000Z',
-          started_at:  '2024-01-02T03:04:57.000Z',
-          finished_at: '2024-01-02T03:04:58.000Z',
+          created_at:  '2024-01-02T03:04:56.000+09:00',
+          started_at:  '2024-01-02T03:04:57.000+09:00',
+          finished_at: '2024-01-02T03:04:58.000+09:00',
           progress:    'finished',
           validity:    'valid',
 
@@ -127,9 +127,9 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
         },
 
         db:          'BioSample',
-        created_at:  '2024-01-02T03:04:56.000Z',
-        started_at:  '2024-01-02T03:04:57.000Z',
-        finished_at: '2024-01-02T03:04:58.000Z',
+        created_at:  '2024-01-02T03:04:56.000+09:00',
+        started_at:  '2024-01-02T03:04:57.000+09:00',
+        finished_at: '2024-01-02T03:04:58.000+09:00',
         progress:    'finished',
         validity:    'valid',
         objects:     [],

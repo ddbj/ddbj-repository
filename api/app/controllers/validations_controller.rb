@@ -42,9 +42,12 @@ class ValidationsController < ApplicationController
   def search_validations
     everyone, uid, db, created_at_after, created_at_before, progress, validity, submitted = params.values_at(:everyone, :uid, :db, :created_at_after, :created_at_before, :progress, :validity, :submitted)
 
+    created_at_after  = Time.zone.parse(created_at_after)  if created_at_after
+    created_at_before = Time.zone.parse(created_at_before) if created_at_before
+
     validations = current_user.admin? && everyone == "true" ? Validation.all : current_user.validations
 
-    validations = validations.joins(:user).where(user: { uid: uid.split(",") })           if current_user.admin? && uid
+    validations = validations.joins(:user).where(user: { uid: uid.split(",") })         if current_user.admin? && uid
     validations = validations.where(db: db.split(","))                                  if db
     validations = validations.where(created_at: created_at_after..created_at_before)    if created_at_after || created_at_before
     validations = validations.where(progress: progress.split(","))                      if progress
