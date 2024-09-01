@@ -1,6 +1,8 @@
 class BioProjectInit < ActiveRecord::Migration[7.2]
   def change
-    create_table :project, id: false do |t|
+    execute 'CREATE SCHEMA mass'
+
+    create_table 'mass.project', id: false do |t|
       t.text      :submission_id,     primary_key: true
       t.text      :project_id_prefix, default: 'PRJDB'
       t.serial    :project_id_counter
@@ -14,7 +16,7 @@ class BioProjectInit < ActiveRecord::Migration[7.2]
       t.text      :comment
     end
 
-    create_table :submission, id: false do |t|
+    create_table 'mass.submission', id: false do |t|
       t.text      :submission_id,     primary_key: true
       t.text      :submitter_id
       t.integer   :status_id,         default: 100
@@ -24,7 +26,7 @@ class BioProjectInit < ActiveRecord::Migration[7.2]
       t.string    :form_status_flags, limit: 6,    default: '000000'
     end
 
-    create_table :submission_data, primary_key: %i[submission_id data_name t_order] do |t|
+    create_table 'mass.submission_data', primary_key: %i[submission_id data_name t_order] do |t|
       t.text      :submission_id, null: false
       t.text      :data_name,     null: false
       t.text      :data_value
@@ -33,7 +35,7 @@ class BioProjectInit < ActiveRecord::Migration[7.2]
       t.timestamp :modified_date, null: false, default: -> { 'NOW()' }
     end
 
-    create_table :xml, primary_key: %i[submission_id version] do |t|
+    create_table 'mass.xml', primary_key: %i[submission_id version] do |t|
       t.text    :submission_id,   null: false
       t.text    :content,         null: false
       t.integer :version,         null: false

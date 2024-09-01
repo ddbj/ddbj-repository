@@ -3,30 +3,47 @@ default: &default
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
+dway_default: &dway_default
+  <<: *default
+  schema_search_path: mass,public
+  default_timezone: local
+
+bioproject_default: &bioproject_default
+  <<: *dway_default
+  migrations_paths: db/bioproject_migrate
+
+biosample_default: &biosample_default
+  <<: *dway_default
+  migrations_paths: db/biosample_migrate
+
+drmdb_default: &drmdb_default
+  <<: *dway_default
+  migrations_paths: db/drmdb_migrate
+
+submitterdb_default: &submitterdb_default
+  <<: *dway_default
+  migrations_paths: db/submitterdb_migrate
+
 development:
   primary:
     <<: *default
     database: ddbj_repository_development
 
   bioproject:
-    <<: *default
+    <<: *bioproject_default
     database: bioproject_development
-    migrations_paths: db/bioproject_migrate
 
   biosample:
-    <<: *default
+    <<: *biosample_default
     database: biosample_development
-    migrations_paths: db/biosample_migrate
 
   drmdb:
-    <<: *default
+    <<: *drmdb_default
     database: drmdb_development
-    migrations_paths: db/drmdb_migrate
 
   submitterdb:
-    <<: *default
+    <<: *submitterdb_default
     database: submitterdb_development
-    migrations_paths: db/submitterdb_migrate
 
 test:
   primary:
@@ -34,24 +51,20 @@ test:
     database: ddbj_repository_test
 
   bioproject:
-    <<: *default
+    <<: *bioproject_default
     database: bioproject_test
-    migrations_paths: db/bioproject_migrate
 
   biosample:
-    <<: *default
+    <<: *biosample_default
     database: biosample_test
-    migrations_paths: db/biosample_migrate
 
   drmdb:
-    <<: *default
+    <<: *drmdb_default
     database: drmdb_test
-    migrations_paths: db/drmdb_migrate
 
   submitterdb:
-    <<: *default
+    <<: *submitterdb_default
     database: submitterdb_test
-    migrations_paths: db/submitterdb_migrate
 
 production:
   primary:
@@ -59,21 +72,21 @@ production:
     url: <%= ENV["DATABASE_URL"] %>
 
   bioproject:
-    <<: *default
+    <<: *bioproject_default
     url: <%= ENV["BIOPROJECT_DATABASE_URL"] %>
     database_tasks: false
 
   biosample:
-    <<: *default
+    <<: *biosample_default
     url: <%= ENV["BIOSAMPLE_DATABASE_URL"] %>
     database_tasks: false
 
   drmdb:
-    <<: *default
+    <<: *drmdb_default
     url: <%= ENV["DRMDB_DATABASE_URL"] %>
     database_tasks: false
 
   submitterdb:
-    <<: *default
+    <<: *submitterdb_default
     url: <%= ENV["SUBMITTERDB_DATABASE_URL"] %>
     database_tasks: false
