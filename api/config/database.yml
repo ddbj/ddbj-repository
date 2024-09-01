@@ -73,20 +73,20 @@ production:
 
   bioproject:
     <<: *bioproject_default
-    url: <%= ENV["BIOPROJECT_DATABASE_URL"] %>
+    url: <%= ENV["DATABASE_URL_BIOPROJECT"] %>
     database_tasks: false
 
   biosample:
     <<: *biosample_default
-    url: <%= ENV["BIOSAMPLE_DATABASE_URL"] %>
+    url: <%= ENV["DATABASE_URL_BIOSAMPLE"] %>
     database_tasks: false
 
   drmdb:
     <<: *drmdb_default
-    url: <%= ENV["DRMDB_DATABASE_URL"] %>
+    url: <%= ENV["DATABASE_URL_DRMDB"] %>
     database_tasks: false
 
   submitterdb:
     <<: *submitterdb_default
-    url: <%= ENV["SUBMITTERDB_DATABASE_URL"] %>
+    url: <%= ENV["DATABASE_URL_SUBMITTERDB"] %>
     database_tasks: false
