@@ -33,16 +33,20 @@ services:
     environment:
       API_URL:
       DATABASE_URL:
-      DDBJ_VALIDATOR_URL:      http://ddbj-validator:3000/api
+      DATABASE_URL_BIOPROJECT:
+      DATABASE_URL_BIOSAMPLE:
+      DATABASE_URL_DRMDB:
+      DATABASE_URL_SUBMITTERDB:
+      DDBJ_VALIDATOR_URL:       http://ddbj-validator:3000/api
       DISABLE_SSL:
       MINIO_ACCESS_KEY_ID:
-      MINIO_BUCKET:            uploads
+      MINIO_BUCKET:             uploads
       MINIO_ENDPOINT:
       MINIO_SECRET_ACCESS_KEY:
       OIDC_CLIENT_ID:
       OIDC_ISSUER_URL:
-      REPOSITORY_DIR:          /data/repository
-      RUBY_YJIT_ENABLE:        'true'
+      REPOSITORY_DIR:           /data/repository
+      RUBY_YJIT_ENABLE:         'true'
       SECRET_KEY_BASE:
       SENTRY_CURRENT_ENV:
       SENTRY_DSN:
@@ -52,9 +56,9 @@ services:
       SMTP_PASSWORD:
       SMTP_PORT:
       SMTP_USERNAME:
-      TZ:                      Japan
-      USER_HOME_DIR:           /data/home
-      WEB_CONCURRENCY:         2
+      TZ:                       Japan
+      USER_HOME_DIR:            /data/home
+      WEB_CONCURRENCY:          2
 
     depends_on:
       - ddbj-validator
