@@ -46,7 +46,6 @@ services:
       OIDC_CLIENT_ID:
       OIDC_ISSUER_URL:
       REPOSITORY_DIR:           /data/repository
-      RUBY_YJIT_ENABLE:         'true'
       SECRET_KEY_BASE:
       SENTRY_CURRENT_ENV:
       SENTRY_DSN:
