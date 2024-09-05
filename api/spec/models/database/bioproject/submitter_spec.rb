@@ -55,6 +55,15 @@ RSpec.describe Database::BioProject::Submitter do
     expect(archive_id[:accession]).to eq('PSUB000001')
     expect(archive_id[:archive]).to eq('DDBJ')
 
+    expect(BioProject::ActionHistory.sole).to have_attributes(
+      submission_id: 'PSUB000001',
+      action:        '[repository:CreateNewSubmission] Create new submission',
+      action_date:   instance_of(ActiveSupport::TimeWithZone),
+      result:        true,
+      action_level:  'info',
+      submitter_id:  'alice'
+    )
+
     ext_entity = DRMDB::ExtEntity.sole
 
     expect(ext_entity).to have_attributes(
@@ -323,5 +332,13 @@ RSpec.describe Database::BioProject::Submitter do
     expect {
       Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/valid/nonhup.xml')
     }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is private, but Hold does not exist in XML.')
+  end
+
+  example 'submission id is overflow' do
+    BioProject::Submission.create! submission_id: 'PSUB999999', submitter_id: user.uid
+
+    expect {
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: 'bioproject/valid/hup.xml')
+    }.to raise_error(Database::BioProject::Submitter::SubmissionIDOverflow)
   end
 end

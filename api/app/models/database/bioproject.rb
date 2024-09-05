@@ -25,6 +25,7 @@ module Database::BioProject
 
   class Submitter
     class VisibilityMismatch < StandardError; end
+    class SubmissionIDOverflow < StandardError; end
 
     PROJECT_DATA_TYPES = {
       "Genome Sequencing"                => "genome_sequencing",
@@ -43,11 +44,25 @@ module Database::BioProject
     }
 
     def submit(submission)
-      user = submission.validation.user
+      user         = submission.validation.user
+      submitter_id = user.uid
 
       BioProject::Record.transaction isolation: Rails.env.test? ? nil : :serializable do |tx|
-        submission_id = next_submission_id
-        submitter_id  = user.uid
+        begin
+          submission_id = next_submission_id
+        rescue SubmissionIDOverflow
+          tx.after_rollback do
+            BioProject::ActionHistory.create!(
+              action:       "[repository:CreateNewSubmission] Number of submission surpass the upper limit",
+              action_date:  Time.current,
+              result:       false,
+              action_level: "fatal",
+              submitter_id:
+            )
+          end
+
+          raise
+        end
 
         bp_submission = BioProject::Submission.create!(
           submission_id:,
@@ -114,6 +129,8 @@ module Database::BioProject
     def next_submission_id
       submission_id = BioProject::Submission.order(submission_id: :desc).pick(:submission_id) || "PSUB000000"
       num           = submission_id.delete_prefix("PSUB").to_i
+
+      raise SubmissionIDOverflow if num >= 999_999
 
       "PSUB#{num.succ.to_s.rjust(6, '0')}"
     end
