@@ -87,6 +87,14 @@ module Database::BioProject
 
         bp_submission.submission_data.insert_all submission_data_attrs(submission, doc)
 
+        bp_submission.action_histories.create!(
+          action:       "[repository:CreateNewSubmission] Create new submission",
+          action_date:  Time.current,
+          result:       true,
+          action_level: "info",
+          submitter_id:
+        )
+
         tx.after_commit do
           DRMDB::ExtEntity.create!(
             acc_type: :study,

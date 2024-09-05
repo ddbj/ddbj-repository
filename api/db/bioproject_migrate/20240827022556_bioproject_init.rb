@@ -2,6 +2,16 @@ class BioProjectInit < ActiveRecord::Migration[7.2]
   def change
     execute 'CREATE SCHEMA mass'
 
+    create_table 'mass.action_history', id: false do |t|
+      t.integer   :action_id,    primary_key: true
+      t.text      :submission_id
+      t.text      :action,       null: false
+      t.timestamp :action_date
+      t.boolean   :result,       null: false, default: true
+      t.text      :action_level, null: false
+      t.text      :submitter_id
+    end
+
     create_table 'mass.project', id: false do |t|
       t.text      :submission_id,     primary_key: true
       t.text      :project_id_prefix, default: 'PRJDB'
