@@ -37,13 +37,7 @@ class AuthsController < ApplicationController
 
     user = User.find_or_initialize_by(uid: userinfo.preferred_username).tap { |user|
       user.update!(
-        email:            userinfo.email,
-        first_name:       userinfo.raw_attributes["given_name"],
-        last_name:        userinfo.raw_attributes["family_name"],
-        organization:     userinfo.raw_attributes["institution"],
-        department:       userinfo.raw_attributes["lab_fac_dep"],
-        organization_url: userinfo.raw_attributes["url"],
-        admin:            userinfo.raw_attributes["account_type_number"] == 3
+        admin: userinfo.raw_attributes["account_type_number"] == 3
       )
     }
 

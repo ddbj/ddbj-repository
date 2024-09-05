@@ -19,17 +19,7 @@ RSpec.describe Database::BioProject::Submitter do
     })
   end
 
-  let(:user) {
-    create(:user, **{
-      uid:              'alice',
-      email:            'alice@example.com',
-      first_name:       'Alice',
-      last_name:        'Liddell',
-      organization:     'Wonderland Inc.',
-      department:       'Rabbit Hole',
-      organization_url: 'http://wonderland.example.com'
-    })
-  }
+  let(:user) { create(:user, uid: 'alice') }
 
   example 'submit' do
     submission = create_submission(visibility: :private, file: 'bioproject/valid/hup.xml')
