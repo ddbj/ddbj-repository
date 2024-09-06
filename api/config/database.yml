@@ -70,23 +70,34 @@ production:
   primary:
     <<: *default
     url: <%= ENV["DATABASE_URL"] %>
+    database: ddbj_repository
+
+  queue:
+    <<: *default
+    url: <%= ENV["DATABASE_URL"] %>
+    database: ddbj_repository_queue
+    migrations_paths: db/queue_migrate
 
   bioproject:
     <<: *bioproject_default
-    url: <%= ENV["DATABASE_URL_BIOPROJECT"] %>
+    url: <%= ENV["DATABASE_URL_DWAY"] %>
+    database: bioproject
     database_tasks: false
 
   biosample:
     <<: *biosample_default
-    url: <%= ENV["DATABASE_URL_BIOSAMPLE"] %>
+    url: <%= ENV["DATABASE_URL_DWAY"] %>
+    database: biosample
     database_tasks: false
 
   drmdb:
     <<: *drmdb_default
-    url: <%= ENV["DATABASE_URL_DRMDB"] %>
+    url: <%= ENV["DATABASE_URL_DWAY"] %>
+    database: drmdb
     database_tasks: false
 
   submitterdb:
     <<: *submitterdb_default
-    url: <%= ENV["DATABASE_URL_SUBMITTERDB"] %>
+    url: <%= ENV["DATABASE_URL_DWAY"] %>
+    database: submitterdb
     database_tasks: false
