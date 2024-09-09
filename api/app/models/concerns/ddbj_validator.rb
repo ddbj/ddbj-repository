@@ -20,7 +20,7 @@ module DDBJValidator
           })
         }
 
-        finished, body = wait_for_finish(res.json(symbolize_names: true).fetch(:uuid))
+        finished, body = wait_for_finish(res.json.fetch(:uuid))
       rescue NotOk => e
         obj.validity_error!
 
@@ -57,22 +57,22 @@ module DDBJValidator
   private
 
   def wait_for_finish(uuid)
-    res = fetch("/validation/#{uuid}/status")
+    loop do
+      res = fetch("/validation/#{uuid}/status")
 
-    body   = res.json(symbolize_names: true)
-    status = body.fetch(:status)
+      body   = res.json
+      status = body.fetch(:status)
 
-    case status
-    when "accepted", "running"
-      sleep 1 unless Rails.env.test?
+      case status
+      when "accepted", "running"
+        sleep 1 unless Rails.env.test?
+      when "finished", "error"
+        res = fetch("/validation/#{uuid}")
 
-      wait_for_finish(uuid)
-    when "finished", "error"
-      res = fetch("/validation/#{uuid}")
-
-      [ status == "finished", res.json(symbolize_names: true) ]
-    else
-      raise "must not happen: #{body.to_json}"
+        return [ status == "finished", res.json ]
+      else
+        raise "must not happen: #{body.to_json}"
+      end
     end
   end
 
