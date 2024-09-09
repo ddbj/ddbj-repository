@@ -115,7 +115,10 @@ RSpec.describe Database::BioSample::Validator, type: :model do
   end
 
   example 'if server error returned from ddbj_validator, validity is error' do
-    stub_request(:post, 'validator.example.com/api/validation').to_return status: 500
+    stub_request(:post, 'validator.example.com/api/validation').to_return(
+      status: 500,
+      body:   'something went wrong'
+    )
 
     Database::BioSample::Validator.new.validate validation
     validation.reload
@@ -132,7 +135,7 @@ RSpec.describe Database::BioSample::Validator, type: :model do
         details: [
           code:     nil,
           severity: 'error',
-          message:  'the server responded with status 500'
+          message:  '500 Internal Server Error: something went wrong'
         ]
       )
     )
