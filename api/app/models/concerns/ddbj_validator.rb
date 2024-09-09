@@ -1,13 +1,27 @@
 module DDBJValidator
+  class NotOk < StandardError
+    def initialize(res)
+      super "#{res.status} #{res.status_text}: #{res.body}"
+    end
+  end
+
   def validate(validation)
     validation.write_files_to_tmp do |dir|
-      obj  = validation.objs.without_base.sole # either BioProject or BioSample
-      part = Faraday::Multipart::FilePart.new(dir.join(obj.path).to_s, "application/octet-stream")
+      obj = validation.objs.without_base.sole # either BioProject or BioSample
 
       begin
-        res      = client.post("validation", obj._id.downcase => part)
-        ok, body = wait_for_finish(res.body.fetch(:uuid))
-      rescue Faraday::Error => e
+        res = dir.join(obj.path).open { |file|
+          fetch("/validation", **{
+            method: :post,
+
+            body: Fetch::FormData.build(
+              obj._id.downcase => file
+            )
+          })
+        }
+
+        finished, body = wait_for_finish(res.json(symbolize_names: true).fetch(:uuid))
+      rescue NotOk => e
         obj.validity_error!
 
         obj.validation_details.create!(
@@ -19,7 +33,7 @@ module DDBJValidator
       else
         validation.update! raw_result: body
 
-        if ok
+        if finished
           obj.update! validity: body.dig(:result, :validity) ? "valid" : "invalid"
 
           body.dig(:result, :messages).each do |error|
@@ -42,35 +56,30 @@ module DDBJValidator
 
   private
 
-  def client
-    @client ||= Faraday.new(url: ENV.fetch("DDBJ_VALIDATOR_URL")) { |f|
-      f.request :multipart
-
-      f.response :raise_error
-      f.response :json, parser_options: { symbolize_names: true }
-      f.response :logger unless Rails.env.test?
-    }
-  end
-
   def wait_for_finish(uuid)
-    status = client.get("validation/#{uuid}/status")
+    res = fetch("/validation/#{uuid}/status")
 
-    case status.body.fetch(:status)
+    body   = res.json(symbolize_names: true)
+    status = body.fetch(:status)
+
+    case status
     when "accepted", "running"
       sleep 1 unless Rails.env.test?
 
       wait_for_finish(uuid)
-    when "finished"
-      result = client.get("validation/#{uuid}")
+    when "finished", "error"
+      res = fetch("/validation/#{uuid}")
 
-      [ true, result.body ]
-    when "error"
-      result = client.get("validation/#{uuid}")
-
-      [ false, result.body ]
+      [ status == "finished", res.json(symbolize_names: true) ]
     else
-      raise "must not happen: #{status.body.to_json}"
+      raise "must not happen: #{body.to_json}"
     end
+  end
+
+  def fetch(path, **options)
+    Fetch::API.fetch("#{ENV.fetch("DDBJ_VALIDATOR_URL")}#{path}", **options).tap { |res|
+      raise NotOk, res unless res.ok
+    }
   end
 
   def translate_error(error)
