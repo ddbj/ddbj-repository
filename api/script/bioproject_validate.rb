@@ -25,8 +25,8 @@ def wait_for_finish(id)
   end
 end
 
-src  = Rails.root.join('tmp/bioproject_xml_no_tax_id')
-dest = Rails.root.join('tmp/bioproject_xml_validate').tap(&:mkpath)
+src  = Rails.root.join('tmp/bioproject_xml_cleaned')
+dest = Rails.root.join('tmp/bioproject_validate').tap(&:mkpath)
 
 Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
   puts path.basename
