@@ -17,7 +17,7 @@ def wait_for_finish(id)
     res = fetch("/api/validations/#{id}")
 
     case res.json.fetch(:progress)
-    when "waiting", "running"
+    when 'waiting', 'running'
       sleep 1
     else
       return res
@@ -32,12 +32,12 @@ Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
   puts path.basename
 
   res = path.open { |file|
-    body = fetch("/api/validations/via-file", **{
+    body = fetch('/api/validations/via-file', **{
       method: :post,
 
       body: Fetch::FormData.build(
-        db:                 "BioProject",
-        "BioProject[file]": file
+        db:                 'BioProject',
+        'BioProject[file]': file
       )
     }).json
 

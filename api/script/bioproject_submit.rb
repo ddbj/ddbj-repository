@@ -44,7 +44,7 @@ dest     = Rails.root.join('tmp/bioproject_xml_submit').tap(&:mkpath)
 
 json_src.glob '*.json' do |path|
   json = JSON.parse(path.read, symbolize_names: true)
-  
+
   next unless json.fetch(:validity) == 'valid'
 
   xml        = xml_src.join("#{path.basename('.json')}.xml")
@@ -57,7 +57,7 @@ json_src.glob '*.json' do |path|
     body: Fetch::URLSearchParams.new(
       'submission[validation_id]': json.fetch(:id),
       'submission[visibility]':    visibility,
-      'param[umbrella]':           false                      
+      'param[umbrella]':           false
     )
   }).json
 
