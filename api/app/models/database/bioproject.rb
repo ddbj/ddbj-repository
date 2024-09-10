@@ -64,6 +64,16 @@ module Database::BioProject
           raise
         end
 
+        tx.after_rollback do
+          BioProject::ActionHistory.create!(
+            action:       "[repository:CreateNewSubmission] rollback transaction",
+            action_date:  Time.current,
+            result:       false,
+            action_level: "error",
+            submitter_id:
+          )
+        end
+
         bp_submission = BioProject::Submission.create!(
           submission_id:,
           submitter_id:,

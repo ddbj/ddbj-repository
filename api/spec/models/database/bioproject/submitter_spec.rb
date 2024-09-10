@@ -332,13 +332,43 @@ RSpec.describe Database::BioProject::Submitter do
     expect {
       Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/valid/nonhup.xml')
     }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is private, but Hold does not exist in XML.')
+
+    expect(BioProject::Submission.count).to eq(0)
   end
 
   example 'submission id is overflow' do
     BioProject::Submission.create! submission_id: 'PSUB999999', submitter_id: user.uid
 
     expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: 'bioproject/valid/hup.xml')
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/valid/hup.xml')
     }.to raise_error(Database::BioProject::Submitter::SubmissionIDOverflow)
+
+    expect(BioProject::Submission.count).to eq(1)
+
+    expect(BioProject::ActionHistory.sole).to have_attributes(
+      submission_id: nil,
+      action:        '[repository:CreateNewSubmission] Number of submission surpass the upper limit',
+      action_date:   instance_of(ActiveSupport::TimeWithZone),
+      result:        false,
+      action_level:  'fatal',
+      submitter_id:  'alice'
+    )
+  end
+
+  example 'submission failed' do
+    expect {
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: 'bioproject/valid/hup.xml')
+    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch)
+
+    expect(BioProject::Submission.count).to eq(0)
+
+    expect(BioProject::ActionHistory.sole).to have_attributes(
+      submission_id: nil,
+      action:        '[repository:CreateNewSubmission] rollback transaction',
+      action_date:   instance_of(ActiveSupport::TimeWithZone),
+      result:        false,
+      action_level:  'error',
+      submitter_id:  'alice'
+    )
   end
 end
