@@ -1,9 +1,9 @@
 require_relative '../config/environment'
 
-def fetch(path, **opts)
-  Fetch::API.fetch("http://localhost:3000#{path}", **{
+def fetch(url, **opts)
+  Fetch::API.fetch(url, **{
     headers: {
-      Authorization: "Bearer #{ENV.fetch('API_TOKEN')}"
+      Authorization: "Bearer #{ENV.fetch('API_KEY')}"
     },
 
     **opts
@@ -12,9 +12,9 @@ def fetch(path, **opts)
   }
 end
 
-def wait_for_finish(id)
+def wait_for_finish(url)
   loop do
-    res = fetch("/api/validations/#{id}")
+    res = fetch(url)
 
     case res.json.fetch(:progress)
     when 'waiting', 'running'
@@ -32,7 +32,7 @@ Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
   puts path.basename
 
   res = path.open { |file|
-    body = fetch('/api/validations/via-file', **{
+    body = fetch("#{ENV.fetch('API_URL')}/validations/via-file", **{
       method: :post,
 
       body: Fetch::FormData.build(
@@ -41,7 +41,7 @@ Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
       )
     }).json
 
-    wait_for_finish(body.fetch(:id))
+    wait_for_finish(body.fetch(:url))
   }
 
   dest.join("#{path.basename(".xml")}.json").write JSON.pretty_generate(res.json)

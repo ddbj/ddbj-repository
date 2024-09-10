@@ -2,10 +2,10 @@ require_relative '../config/environment'
 
 class AlreadySubmitted < StandardError; end
 
-def fetch(path, **opts)
-  Fetch::API.fetch("http://localhost:3000#{path}", **{
+def fetch(url, **opts)
+  Fetch::API.fetch(url, **{
     headers: {
-      Authorization: "Bearer #{ENV.fetch('API_TOKEN')}"
+      Authorization: "Bearer #{ENV.fetch('API_KEY')}"
     },
 
     **opts
@@ -25,9 +25,9 @@ def fetch(path, **opts)
   }
 end
 
-def wait_for_finish(id)
+def wait_for_finish(url)
   loop do
-    res = fetch("/api/submissions/#{id}")
+    res = fetch(url)
 
     case res.json.fetch(:progress)
     when "waiting", "running"
@@ -51,7 +51,7 @@ json_src.glob '*.json' do |path|
   doc        = Nokogiri::XML.parse(xml.read)
   visibility = doc.at("/PackageSet/Package/Submission/Submission/Description/Hold") ? 'private' : 'public'
 
-  body = fetch('/api/submissions', **{
+  body = fetch("#{ENV.fetch('API_URL')}/submissions", **{
     method: :post,
 
     body: Fetch::URLSearchParams.new(
@@ -61,7 +61,7 @@ json_src.glob '*.json' do |path|
     )
   }).json
 
-  res = wait_for_finish(body.fetch(:id))
+  res = wait_for_finish(body.fetch(:url))
 
   dest.join(path.basename).write JSON.pretty_generate(res.json)
 
