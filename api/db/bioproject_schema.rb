@@ -16,6 +16,15 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_27_022556) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
+  create_table "action_history", primary_key: "action_id", id: :serial, force: :cascade do |t|
+    t.text "submission_id"
+    t.text "action", null: false
+    t.datetime "action_date", precision: nil
+    t.boolean "result", default: true, null: false
+    t.text "action_level", null: false
+    t.text "submitter_id"
+  end
+
   create_table "project", primary_key: "submission_id", id: :text, force: :cascade do |t|
     t.text "project_id_prefix", default: "PRJDB"
     t.serial "project_id_counter", null: false
