@@ -42,7 +42,7 @@ json_src = Rails.root.join('tmp/bioproject_validate')
 xml_src  = Rails.root.join('tmp/bioproject_xml_cleaned')
 dest     = Rails.root.join('tmp/bioproject_submit').tap(&:mkpath)
 
-json_src.glob '*.json' do |path|
+Parallel.each json_src.glob('*.json'), in_threads: 3 do |path|
   json = JSON.parse(path.read, symbolize_names: true)
 
   next unless json.fetch(:validity) == 'valid'
