@@ -84,7 +84,7 @@ module Database::BioProject
         is_public = submission.visibility_public?
         content   = submission.validation.objs.find_by!(_id: "BioProject").file.download
         doc       = Nokogiri::XML.parse(content)
-        hold      = !!doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")
+        hold      = doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")
 
         if is_public && hold
           raise VisibilityMismatch, "Visibility is public, but Hold exist in XML."

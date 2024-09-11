@@ -474,6 +474,8 @@ export interface components {
     Submission: components["schemas"]["BioProjectSubmission"] | components["schemas"]["BioSampleSubmission"] | components["schemas"]["TradSubmission"] | components["schemas"]["DRASubmission"] | components["schemas"]["GEASubmission"] | components["schemas"]["MetaboBankSubmission"] | components["schemas"]["JVarSubmission"] | components["schemas"]["Trad2Submission"];
     BioProjectSubmission: {
       id: string;
+      /** Format: uri */
+      url: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -494,6 +496,8 @@ export interface components {
     };
     BioSampleSubmission: {
       id: string;
+      /** Format: uri */
+      url: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -512,6 +516,8 @@ export interface components {
     };
     TradSubmission: {
       id: string;
+      /** Format: uri */
+      url: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -530,6 +536,8 @@ export interface components {
     };
     DRASubmission: {
       id: string;
+      /** Format: uri */
+      url: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -548,6 +556,8 @@ export interface components {
     };
     GEASubmission: {
       id: string;
+      /** Format: uri */
+      url: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -566,6 +576,8 @@ export interface components {
     };
     MetaboBankSubmission: {
       id: string;
+      /** Format: uri */
+      url: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -584,6 +596,8 @@ export interface components {
     };
     JVarSubmission: {
       id: string;
+      /** Format: uri */
+      url: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */
@@ -602,6 +616,8 @@ export interface components {
     };
     Trad2Submission: {
       id: string;
+      /** Format: uri */
+      url: string;
       /** Format: date-time */
       created_at: string;
       /** Format: date-time */

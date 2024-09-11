@@ -28,6 +28,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
       id:            'X-200',
+      url:           'http://www.example.com/api/submissions/X-200',
       created_at:    '2024-01-02T03:04:58.000+09:00',
       started_at:    nil,
       finished_at:   nil,

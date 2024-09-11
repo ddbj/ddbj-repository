@@ -1,5 +1,6 @@
 {
   id:            submission.public_id,
+  url:           submission_url(submission),
   created_at:    submission.created_at,
   started_at:    submission.started_at,
   finished_at:   submission.finished_at,

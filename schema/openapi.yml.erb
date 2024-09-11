@@ -638,11 +638,15 @@ components:
     <%= db[:id] %>Submission:
       type: object
       additionalProperties: false
-      required: [id, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+      required: [id, url, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
 
       properties:
         id:
           type: string
+
+        url:
+          type: string
+          format: uri
 
         created_at:
           type: string
