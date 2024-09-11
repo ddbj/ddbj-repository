@@ -28,6 +28,10 @@ class Database::BioSample::Submitter
         }
       }
 
+      package_id = doc.at("/BioSample/Models/Model").text
+
+      package_attributes(package_id) => { package_group:, env_package: }
+
       attribute_file = CSV.generate(col_sep: "\t") { |tsv|
         doc.xpath("/BioSample/Attributes/Attribute").map { |attribute|
           [
@@ -48,9 +52,9 @@ class Database::BioSample::Submitter
         attribute_file_name: "#{submission_id}.tsv",
         attribute_file:,
         comment:             doc.at("/BioSample/Description/Comment/Paragraph")&.text,
-        package_group:       "", # TODO
-        package:             "", # TODO
-        env_package:         "", # TODO
+        package_group:,
+        package:             package_id,
+        env_package:
       )
 
       BioSample::LinkForm.insert_all! doc.xpath("/BioSample/Links/Link").map.with_index(1) { |link, i|
@@ -83,5 +87,24 @@ class Database::BioSample::Submitter
     num           = submission_id.delete_prefix("SSUB").to_i
 
     "SSUB#{num.succ.to_s.rjust(6, '0')}"
+  end
+
+  def package_attributes(package_id)
+    res = Fetch::API.fetch("#{DDBJ_VALIDATOR_URL}/package_group_list")
+
+    raise res.inspect unless res.ok
+
+    body = res.json
+
+    packages_assoc       = body.flat_map { _1.fetch(:package_list) }.index_by { _1.fetch(:package_id) }
+    package_groups_assoc = body.index_by { _1.fetch(:package_group_uri) }
+
+    package       = packages_assoc.fetch(package_id)
+    package_group = package_groups_assoc.fetch(package.fetch(:parent_package_group_uri))
+
+    {
+      package_group: package_group.fetch(:package_group_id),
+      env_package:   package.fetch(:env_package)
+    }
   end
 end
