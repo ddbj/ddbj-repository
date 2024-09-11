@@ -97,10 +97,8 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       create :validation, :valid, id: 42, db: 'JVar'
 
       post '/api/submissions', params: {
-        submission: {
-          validation_id: 42,
-          visibility:    'public'
-        }
+        validation_id: 42,
+        visibility:    'public'
       }, as: :json
 
       expect(response).to conform_schema(201)
@@ -112,7 +110,8 @@ RSpec.describe 'submissions', type: :request, authorized: true do
 
       with_exceptions_app do
         post '/api/submissions', params: {
-          validation_id: 42
+          validation_id: 42,
+          visibility:    'public'
         }, as: :json
       end
 
@@ -130,10 +129,8 @@ RSpec.describe 'submissions', type: :request, authorized: true do
 
       with_exceptions_app do
         post '/api/submissions', params: {
-          submission: {
-            validation_id: 42,
-            visibility:    'public'
-          }
+          validation_id: 42,
+          visibility:    'public'
         }, as: :json
       end
 
@@ -151,10 +148,8 @@ RSpec.describe 'submissions', type: :request, authorized: true do
 
       with_exceptions_app do
         post '/api/submissions', params: {
-          submission: {
-            validation_id: 42,
-            visibility:    'public'
-          }
+          validation_id: 42,
+          visibility:    'public'
         }, as: :json
       end
 

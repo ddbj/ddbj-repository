@@ -18,9 +18,7 @@ class SubmissionsController < ApplicationController
   end
 
   def create
-    current_user.validations.find submission_params[:validation_id]
-
-    validation  = Validation.find(params[:submission][:validation_id])
+    validation  = current_user.validations.find(params.require(:validation_id))
     param       = Database::MAPPING.fetch(validation.db)::Param.build(params)
     @submission = Submission.create!(**submission_params, param:)
 
@@ -32,7 +30,7 @@ class SubmissionsController < ApplicationController
   private
 
   def submission_params
-    params.require(:submission).permit(:validation_id, :visibility)
+    params.permit(:validation_id, :visibility)
   end
 
   def user_submissions
