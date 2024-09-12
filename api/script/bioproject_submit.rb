@@ -55,6 +55,7 @@ Parallel.each json_src.glob('*.json'), in_threads: 3 do |path|
     method: :post,
 
     body: Fetch::URLSearchParams.new(
+      db:            'BioProject',
       validation_id: json.fetch(:id),
       visibility:,
       umbrella:      false

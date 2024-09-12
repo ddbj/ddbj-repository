@@ -87,8 +87,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
         }
       },
 
-      visibility: 'public',
-      param:      nil
+      visibility: 'public'
     )
   end
 
@@ -97,6 +96,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       create :validation, :valid, id: 42, db: 'JVar'
 
       post '/api/submissions', params: {
+        db:            'JVar',
         validation_id: 42,
         visibility:    'public'
       }, as: :json
@@ -110,6 +110,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
 
       with_exceptions_app do
         post '/api/submissions', params: {
+          db:            'JVar',
           validation_id: 42,
           visibility:    'public'
         }, as: :json
@@ -125,10 +126,11 @@ RSpec.describe 'submissions', type: :request, authorized: true do
     example 'expired' do
       travel_to '2024-01-03 03:04:56'
 
-      create :validation, :valid, id: 42, db: 'BioSample', finished_at: '2024-01-02 03:04:56'
+      create :validation, :valid, id: 42, db: 'JVar', finished_at: '2024-01-02 03:04:56'
 
       with_exceptions_app do
         post '/api/submissions', params: {
+          db:            'JVar',
           validation_id: 42,
           visibility:    'public'
         }, as: :json
@@ -148,6 +150,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
 
       with_exceptions_app do
         post '/api/submissions', params: {
+          db:            'JVar',
           validation_id: 42,
           visibility:    'public'
         }, as: :json

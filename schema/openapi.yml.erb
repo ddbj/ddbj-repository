@@ -436,20 +436,18 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: false
-              required: [validation_id, visibility]
+              oneOf:
+                <%- dbs.each do |db| -%>
+                - $ref: '#/components/schemas/SubmissionRequest<%= db[:id] %>'
+                <%- end -%>
 
-              properties:
-                validation_id:
-                  type: integer
+              discriminator:
+                propertyName: db
 
-                visibility:
-                  type: string
-
-                  enum:
-                    - public
-                    - private
+                mapping:
+                  <%- dbs.each do |db| -%>
+                  <%= db[:id] %>: '#/components/schemas/SubmissionRequest<%= db[:id] %>'
+                  <%- end -%>
 
       responses:
         '201':
@@ -617,6 +615,42 @@ components:
               format: uri
 
     <%- end -%>
+    <%- dbs.each do |db| -%>
+    SubmissionRequest<%= db[:id] %>:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+        - validation_id
+        - visibility
+        <%- if db[:id] == 'BioProject' -%>
+        - umbrella
+        <%- end -%>
+
+      properties:
+        db:
+          type: string
+
+          enum:
+            - <%= db[:id] %>
+
+        validation_id:
+          type: integer
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+        <%- if db[:id] == 'BioProject' -%>
+
+        umbrella:
+          type: boolean
+        <%- end -%>
+
+    <%- end -%>
     Submission:
       oneOf:
         <%- dbs.each do |db| -%>
@@ -627,7 +661,21 @@ components:
     <%= db[:id] %>Submission:
       type: object
       additionalProperties: false
-      required: [id, url, created_at, started_at, finished_at, progress, result, error_message, validation, visibility, param]
+
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - validation
+        - visibility
+        <%- if db[:id] == 'BioProject' -%>
+        - umbrella
+        <%- end -%>
 
       properties:
         id:
@@ -688,20 +736,11 @@ components:
           enum:
             - public
             - private
+        <%- if db[:id] == 'BioProject' -%>
 
-        param:
-          <%- case db[:id] -%>
-          <%- when 'BioProject' -%>
-          type: object
-          additionalProperties: false
-          required: [umbrella]
-
-          properties:
-            umbrella:
-              type: boolean
-          <%- else -%>
-          type: 'null'
-          <%- end -%>
+        umbrella:
+          type: boolean
+        <%- end -%>
 
     <%- end -%>
     Objects:
