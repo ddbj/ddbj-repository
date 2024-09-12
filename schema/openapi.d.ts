@@ -198,12 +198,9 @@ export interface paths {
       requestBody?: {
         content: {
           "application/json": {
-            submission: {
-              validation_id: number;
-              /** @enum {string} */
-              visibility: "public" | "private";
-            };
-            param?: Record<string, never> | null;
+            validation_id: number;
+            /** @enum {string} */
+            visibility: "public" | "private";
           };
         };
       };

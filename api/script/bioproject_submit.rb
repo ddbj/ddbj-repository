@@ -55,9 +55,9 @@ Parallel.each json_src.glob('*.json'), in_threads: 3 do |path|
     method: :post,
 
     body: Fetch::URLSearchParams.new(
-      'submission[validation_id]': json.fetch(:id),
-      'submission[visibility]':    visibility,
-      'param[umbrella]':           false
+      validation_id: json.fetch(:id),
+      visibility:,
+      umbrella:      false
     )
   }).json
 

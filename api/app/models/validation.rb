@@ -9,6 +9,11 @@ class Validation < ApplicationRecord
     end
   end
 
+  validates :db, inclusion: { in: DB.map { _1[:id] } }
+
+  validates :started_at,  presence: true, if: :running?
+  validates :finished_at, presence: true, if: ->(validation) { validation.finished? || validation.canceled? }
+
   enum :progress, %w[waiting running finished canceled].index_by(&:to_sym)
 
   scope :validity, ->(*validities) {
@@ -53,11 +58,6 @@ class Validation < ApplicationRecord
   scope :submitted, ->(submitted) {
     submitted ? where.associated(:submission) : where.missing(:submission)
   }
-
-  validates :db, inclusion: { in: DB.map { _1[:id] } }
-
-  validates :started_at,  presence: true, if: :running?
-  validates :finished_at, presence: true, if: ->(validation) { validation.finished? || validation.canceled? }
 
   def validity
     if objs.all?(&:validity_valid?)

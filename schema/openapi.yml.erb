@@ -438,29 +438,18 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [submission]
+              required: [validation_id, visibility]
 
               properties:
-                submission:
-                  type: object
-                  additionalProperties: false
-                  required: [validation_id, visibility]
+                validation_id:
+                  type: integer
 
-                  properties:
-                    validation_id:
-                      type: integer
+                visibility:
+                  type: string
 
-                    visibility:
-                      type: string
-
-                      enum:
-                        - public
-                        - private
-
-                param:
-                  type:
-                    - object
-                    - 'null'
+                  enum:
+                    - public
+                    - private
 
       responses:
         '201':
