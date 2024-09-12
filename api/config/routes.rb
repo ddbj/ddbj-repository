@@ -1,14 +1,4 @@
 Rails.application.routes.draw do
-  concern :via_file do
-    collection do
-      resource :via_file, only: %i[create], path: "via-file"
-    end
-  end
-
-  concern :get_file do
-    get "files/*path" => "files#show", format: false, as: "file"
-  end
-
   root to: redirect("/web/")
 
   resource :auth, only: %i[] do
@@ -25,8 +15,11 @@ Rails.application.routes.draw do
 
     resources :validations, only: %i[index show destroy] do
       scope module: "validations" do
-        concerns :via_file
-        concerns :get_file
+        collection do
+          resource :via_file, only: %i[create], path: "via-file"
+        end
+
+        get "files/*path" => "files#show", format: false, as: "file"
       end
     end
 
