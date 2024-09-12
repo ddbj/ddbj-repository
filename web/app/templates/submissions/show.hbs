@@ -75,7 +75,8 @@
   {{#if (eq @model.validation.db 'BioProject')}}
     <div>
       <dt>Umbrella</dt>
-      <dd>{{@model.param.umbrella}}</dd>
+      {{! @glint-expect-error }}
+      <dd>{{@model.umbrella}}</dd>
     </div>
   {{/if}}
 </dl>

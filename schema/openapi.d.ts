@@ -197,11 +197,7 @@ export interface paths {
     post: {
       requestBody?: {
         content: {
-          "application/json": {
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-          };
+          "application/json": components["schemas"]["SubmissionRequestBioProject"] | components["schemas"]["SubmissionRequestBioSample"] | components["schemas"]["SubmissionRequestTrad"] | components["schemas"]["SubmissionRequestDRA"] | components["schemas"]["SubmissionRequestGEA"] | components["schemas"]["SubmissionRequestMetaboBank"] | components["schemas"]["SubmissionRequestJVar"] | components["schemas"]["SubmissionRequestTrad2"];
         };
       };
       responses: {
@@ -468,6 +464,63 @@ export interface components {
         url: string;
       } | null;
     };
+    SubmissionRequestBioProject: {
+      /** @enum {string} */
+      db: "BioProject";
+      validation_id: number;
+      /** @enum {string} */
+      visibility: "public" | "private";
+      umbrella: boolean;
+    };
+    SubmissionRequestBioSample: {
+      /** @enum {string} */
+      db: "BioSample";
+      validation_id: number;
+      /** @enum {string} */
+      visibility: "public" | "private";
+    };
+    SubmissionRequestTrad: {
+      /** @enum {string} */
+      db: "Trad";
+      validation_id: number;
+      /** @enum {string} */
+      visibility: "public" | "private";
+    };
+    SubmissionRequestDRA: {
+      /** @enum {string} */
+      db: "DRA";
+      validation_id: number;
+      /** @enum {string} */
+      visibility: "public" | "private";
+    };
+    SubmissionRequestGEA: {
+      /** @enum {string} */
+      db: "GEA";
+      validation_id: number;
+      /** @enum {string} */
+      visibility: "public" | "private";
+    };
+    SubmissionRequestMetaboBank: {
+      /** @enum {string} */
+      db: "MetaboBank";
+      validation_id: number;
+      /** @enum {string} */
+      visibility: "public" | "private";
+    };
+    SubmissionRequestJVar: {
+      /** @enum {string} */
+      db: "JVar";
+      validation_id: number;
+      /** @enum {string} */
+      visibility: "public" | "private";
+    };
+    SubmissionRequestTrad2: {
+      /** @enum {string} */
+      db: "Trad2";
+      validation_id: number;
+      /** @enum {string} */
+      visibility: "public" | "private";
+    };
     Submission: components["schemas"]["BioProjectSubmission"] | components["schemas"]["BioSampleSubmission"] | components["schemas"]["TradSubmission"] | components["schemas"]["DRASubmission"] | components["schemas"]["GEASubmission"] | components["schemas"]["MetaboBankSubmission"] | components["schemas"]["JVarSubmission"] | components["schemas"]["Trad2Submission"];
     BioProjectSubmission: {
       id: string;
@@ -487,9 +540,7 @@ export interface components {
       validation: components["schemas"]["BioProjectValidation"];
       /** @enum {string} */
       visibility: "public" | "private";
-      param: {
-        umbrella: boolean;
-      };
+      umbrella: boolean;
     };
     BioSampleSubmission: {
       id: string;
@@ -509,7 +560,6 @@ export interface components {
       validation: components["schemas"]["BioSampleValidation"];
       /** @enum {string} */
       visibility: "public" | "private";
-      param: null;
     };
     TradSubmission: {
       id: string;
@@ -529,7 +579,6 @@ export interface components {
       validation: components["schemas"]["TradValidation"];
       /** @enum {string} */
       visibility: "public" | "private";
-      param: null;
     };
     DRASubmission: {
       id: string;
@@ -549,7 +598,6 @@ export interface components {
       validation: components["schemas"]["DRAValidation"];
       /** @enum {string} */
       visibility: "public" | "private";
-      param: null;
     };
     GEASubmission: {
       id: string;
@@ -569,7 +617,6 @@ export interface components {
       validation: components["schemas"]["GEAValidation"];
       /** @enum {string} */
       visibility: "public" | "private";
-      param: null;
     };
     MetaboBankSubmission: {
       id: string;
@@ -589,7 +636,6 @@ export interface components {
       validation: components["schemas"]["MetaboBankValidation"];
       /** @enum {string} */
       visibility: "public" | "private";
-      param: null;
     };
     JVarSubmission: {
       id: string;
@@ -609,7 +655,6 @@ export interface components {
       validation: components["schemas"]["JVarValidation"];
       /** @enum {string} */
       visibility: "public" | "private";
-      param: null;
     };
     Trad2Submission: {
       id: string;
@@ -629,7 +674,6 @@ export interface components {
       validation: components["schemas"]["Trad2Validation"];
       /** @enum {string} */
       visibility: "public" | "private";
-      param: null;
     };
     Objects: ({
         /** @enum {string} */

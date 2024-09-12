@@ -50,9 +50,6 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
     e.preventDefault();
 
     const formData = new FormData(e.target);
-    const { id } = this.args.validation;
-
-    formData.set('submission[validation_id]', id.toString());
 
     const res = await safeFetchWithModal(
       `${ENV.apiURL}/submissions`,
@@ -80,36 +77,23 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
         <div class='alert alert-danger mt-3'>This validation is expired.</div>
       {{else}}
         <form {{on 'submit' this.submit.perform}} class='p-3'>
+          <input type='hidden' name='validation_id' value={{@validation.id}} />
+          <input type='hidden' name='db' value={{@validation.db}} />
+
           <div class='mb-3'>
             <label class='form-label'>Visibility</label>
 
             <div>
               <div class='form-check form-check-inline'>
                 {{#let (uniqueId) as |id|}}
-                  <input
-                    class='form-check-input'
-                    id={{id}}
-                    type='radio'
-                    name='submission[visibility]'
-                    value='public'
-                    required
-                  />
-
+                  <input class='form-check-input' id={{id}} type='radio' name='visibility' value='public' required />
                   <label class='form-check-label' for={{id}}>Public</label>
                 {{/let}}
               </div>
 
               <div class='form-check form-check-inline'>
                 {{#let (uniqueId) as |id|}}
-                  <input
-                    class='form-check-input'
-                    id={{id}}
-                    type='radio'
-                    name='submission[visibility]'
-                    value='private'
-                    required
-                  />
-
+                  <input class='form-check-input' id={{id}} type='radio' name='visibility' value='private' required />
                   <label class='form-check-label' for={{id}}>Private</label>
                 {{/let}}
               </div>
@@ -119,10 +103,10 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
           {{#if (eq @validation.db 'BioProject')}}
             <div class='mb-3'>
               <div class='form-check'>
-                <input type='hidden' name='param[umbrella]' value='false' />
+                <input type='hidden' name='umbrella' value='false' />
 
                 {{#let (uniqueId) as |id|}}
-                  <input class='form-check-input' id={{id}} type='checkbox' name='param[umbrella]' value='true' />
+                  <input class='form-check-input' id={{id}} type='checkbox' name='umbrella' value='true' />
                   <label class='form-check-label' for={{id}}>Umbrella project</label>
                 {{/let}}
               </div>
