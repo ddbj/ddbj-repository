@@ -5,16 +5,10 @@ class Database::BioSample::Submitter
 
     BioSample::Record.transaction isolation: Rails.env.test? ? nil : :serializable do |tx|
       submission_id = next_submission_id
+      content       = submission.validation.objs.find_by!(_id: "BioSample").file.download
+      doc           = Nokogiri::XML.parse(content)
 
-      BioSample::SubmissionForm.create!(
-        submission_id:,
-        status_id: :new
-      )
-
-      content = submission.validation.objs.find_by!(_id: "BioSample").file.download
-      doc     = Nokogiri::XML.parse(content)
-
-      BioSample::ContactForm.insert_all doc.xpath("/BioSample/Owner/Contacts/Contact").map.with_index(1) { |contact, i|
+      BioSample::ContactForm.insert_all doc.xpath("/BioSampleSet/BioSample/Owner/Contacts/Contact").map.with_index(1) { |contact, i|
         first_name = contact.at("Name/First")
         last_name  = contact.at("Name/Last")
         email      = contact[:email]
@@ -28,12 +22,12 @@ class Database::BioSample::Submitter
         }
       }
 
-      package_id = doc.at("/BioSample/Models/Model").text
+      package_id = doc.at("/BioSampleSet/BioSample/Models/Model").text
 
       package_attributes(package_id) => { package_group:, env_package: }
 
       attribute_file = CSV.generate(col_sep: "\t") { |tsv|
-        doc.xpath("/BioSample/Attributes/Attribute").map { |attribute|
+        doc.xpath("/BioSampleSet/BioSample/Attributes/Attribute").map { |attribute|
           [
             attribute[:attribute_name],
             attribute.text
@@ -46,18 +40,19 @@ class Database::BioSample::Submitter
       BioSample::SubmissionForm.create!(
         submission_id:,
         submitter_id:,
-        organization:        doc.at("/BioSample/Owner/Name")&.text,
-        organization_url:    doc.at("/BioSample/Owner/Name/@url")&.text,
+        status_id:           :new,
+        organization:        doc.at("/BioSampleSet/BioSample/Owner/Name")&.text,
+        organization_url:    doc.at("/BioSampleSet/BioSample/Owner/Name/@url")&.text,
         release_type:        submission.visibility_public? ? :release : :hold,
         attribute_file_name: "#{submission_id}.tsv",
         attribute_file:,
-        comment:             doc.at("/BioSample/Description/Comment/Paragraph")&.text,
+        comment:             doc.at("/BioSampleSet/BioSample/Description/Comment/Paragraph")&.text,
         package_group:,
         package:             package_id,
         env_package:
       )
 
-      BioSample::LinkForm.insert_all! doc.xpath("/BioSample/Links/Link").map.with_index(1) { |link, i|
+      BioSample::LinkForm.insert_all! doc.xpath("/BioSampleSet/BioSample/Links/Link").map.with_index(1) { |link, i|
         {
           submission_id:,
           seq_no:        i,
@@ -90,14 +85,15 @@ class Database::BioSample::Submitter
   end
 
   def package_attributes(package_id)
-    res = Fetch::API.fetch("#{DDBJ_VALIDATOR_URL}/package_group_list")
+    res = Fetch::API.fetch("#{ENV.fetch('DDBJ_VALIDATOR_URL')}/package_group_list")
 
     raise res.inspect unless res.ok
 
     body = res.json
+    packages = body.flat_map { _1.fetch(:package_list) + _1.fetch(:package_list).flat_map { |package| package.fetch(:package_list) } }
 
-    packages_assoc       = body.flat_map { _1.fetch(:package_list) }.index_by { _1.fetch(:package_id) }
-    package_groups_assoc = body.index_by { _1.fetch(:package_group_uri) }
+    packages_assoc       = packages.select { _1.fetch(:type) == 'package' }.index_by { _1.fetch(:package_id) }
+    package_groups_assoc = packages.select { _1.fetch(:type) == 'package_group' }.index_by { _1.fetch(:package_group_uri) }
 
     package       = packages_assoc.fetch(package_id)
     package_group = package_groups_assoc.fetch(package.fetch(:parent_package_group_uri))
