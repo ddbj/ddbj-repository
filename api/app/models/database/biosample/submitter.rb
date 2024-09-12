@@ -92,8 +92,8 @@ class Database::BioSample::Submitter
     body = res.json
     packages = body.flat_map { _1.fetch(:package_list) + _1.fetch(:package_list).flat_map { |package| package.fetch(:package_list) } }
 
-    packages_assoc       = packages.select { _1.fetch(:type) == 'package' }.index_by { _1.fetch(:package_id) }
-    package_groups_assoc = packages.select { _1.fetch(:type) == 'package_group' }.index_by { _1.fetch(:package_group_uri) }
+    packages_assoc       = packages.select { _1.fetch(:type) == "package" }.index_by { _1.fetch(:package_id) }
+    package_groups_assoc = packages.select { _1.fetch(:type) == "package_group" }.index_by { _1.fetch(:package_group_uri) }
 
     package       = packages_assoc.fetch(package_id)
     package_group = package_groups_assoc.fetch(package.fetch(:parent_package_group_uri))

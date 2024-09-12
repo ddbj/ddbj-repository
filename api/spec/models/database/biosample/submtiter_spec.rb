@@ -52,7 +52,7 @@ RSpec.describe Database::BioSample::Submitter do
         }
       ]
     )
-    
+
     Database::BioSample::Submitter.new.submit submission
 
     expect(BioSample::ContactForm.sole).to have_attributes(
