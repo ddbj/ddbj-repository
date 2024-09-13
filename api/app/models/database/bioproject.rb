@@ -1,5 +1,5 @@
-class Database::BioProject::Param
-  def self.build(params)
+module Database::BioProject
+  def self.build_param(params)
     BioProjectSubmissionParam.new(params.permit(:umbrella))
   end
 end
