@@ -251,13 +251,13 @@ class Database::BioProject::Submitter
       },
 
       *doc.xpath("/PackageSet/Package/Project/Project/ProjectDescr/Publication").map.with_index(1) { |publication, i|
-        case publication.at("Reference/DbType")&.text
+        case dbtype = publication.at("Reference/DbType")&.text
         when "ePubmed"
           [ "publication", "pubmed_id.#{i}", publication[:id], i ]
         when "eDOI"
           [ "publication", "doi.#{i}", publication[:id], i ]
         else
-          raise "Unsupported publication type"
+          raise "Unsupported publication type: #{dbtype.inspect}"
         end
       }
     ].compact.map { |form_name, data_name, data_value, t_order|

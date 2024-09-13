@@ -3,8 +3,9 @@ require_relative '../config/environment'
 def fetch(url, **opts)
   Fetch::API.fetch(url, **{
     headers: {
-      Authorization: "Bearer #{ENV.fetch('API_KEY')}"
-    },
+      Authorization:    "Bearer #{ENV.fetch('API_KEY')}",
+      'X-Dway-User-Id': ENV['PROXY_USER_ID']
+    }.compact,
 
     **opts
   }).tap { |res|
