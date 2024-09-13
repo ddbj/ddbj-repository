@@ -19,7 +19,7 @@ class SubmissionsController < ApplicationController
 
   def create
     validation  = current_user.validations.find(params.require(:validation_id))
-    param       = Database::MAPPING.fetch(validation.db)::Param.build(params)
+    param       = Database::MAPPING.fetch(validation.db).build_param(params)
     @submission = Submission.create!(**submission_params, param:)
 
     SubmitJob.perform_later @submission
