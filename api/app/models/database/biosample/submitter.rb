@@ -43,7 +43,7 @@ class Database::BioSample::Submitter
         status_id:           :new,
         organization:        doc.at("/BioSampleSet/BioSample/Owner/Name")&.text,
         organization_url:    doc.at("/BioSampleSet/BioSample/Owner/Name/@url")&.text,
-        release_type:        submission.visibility_public? ? :release : :hold,
+        release_type:        submission.visibility_public? ? 'release' : 'hold',
         attribute_file_name: "#{submission_id}.tsv",
         attribute_file:,
         comment:             doc.at("/BioSampleSet/BioSample/Description/Comment/Paragraph")&.text,
