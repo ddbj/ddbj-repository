@@ -90,7 +90,14 @@ class Database::BioSample::Submitter
     raise res.inspect unless res.ok
 
     body = res.json
-    packages = body.flat_map { _1.fetch(:package_list) + _1.fetch(:package_list).flat_map { |package| package.fetch(:package_list) } }
+    
+    collect_packages = ->(packages) {
+      packages + packages.flat_map {
+        collect_packages.call(_1.fetch(:package_list, []))
+      }
+    }
+
+    packages = collect_packages.call(body)
 
     packages_assoc       = packages.select { _1.fetch(:type) == "package" }.index_by { _1.fetch(:package_id) }
     package_groups_assoc = packages.select { _1.fetch(:type) == "package_group" }.index_by { _1.fetch(:package_group_uri) }
