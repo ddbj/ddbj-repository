@@ -8,7 +8,7 @@ class Database::BioSample::Submitter
       content       = submission.validation.objs.find_by!(_id: "BioSample").file.download
       doc           = Nokogiri::XML.parse(content)
 
-      BioSample::ContactForm.insert_all doc.xpath("/BioSampleSet/BioSample/Owner/Contacts/Contact").map.with_index(1) { |contact, i|
+      BioSample::ContactForm.insert_all doc.xpath(selector("Owner/Contacts/Contact")).map.with_index(1) { |contact, i|
         first_name = contact.at("Name/First")
         last_name  = contact.at("Name/Last")
         email      = contact[:email]
@@ -22,12 +22,12 @@ class Database::BioSample::Submitter
         }
       }
 
-      package_id = doc.at("/BioSampleSet/BioSample/Models/Model").text
+      package_id = doc.at(selector("Models/Model")).text
 
       package_attributes(package_id) => { package_group:, env_package: }
 
       attribute_file = CSV.generate(col_sep: "\t") { |tsv|
-        doc.xpath("/BioSampleSet/BioSample/Attributes/Attribute").map { |attribute|
+        doc.xpath(selector("Attributes/Attribute")).map { |attribute|
           [
             attribute[:attribute_name],
             attribute.text
@@ -41,18 +41,18 @@ class Database::BioSample::Submitter
         submission_id:,
         submitter_id:,
         status_id:           :new,
-        organization:        doc.at("/BioSampleSet/BioSample/Owner/Name")&.text,
-        organization_url:    doc.at("/BioSampleSet/BioSample/Owner/Name/@url")&.text,
-        release_type:        submission.visibility_public? ? 'release' : 'hold',
+        organization:        doc.at(selector("Owner/Name"))&.text,
+        organization_url:    doc.at(selector("Owner/Name/@url"))&.text,
+        release_type:        submission.visibility_public? ? "release" : "hold",
         attribute_file_name: "#{submission_id}.tsv",
         attribute_file:,
-        comment:             doc.at("/BioSampleSet/BioSample/Description/Comment/Paragraph")&.text,
+        comment:             doc.at(selector("Description/Comment/Paragraph"))&.text,
         package_group:,
         package:             package_id,
         env_package:
       )
 
-      BioSample::LinkForm.insert_all! doc.xpath("/BioSampleSet/BioSample/Links/Link").map.with_index(1) { |link, i|
+      BioSample::LinkForm.insert_all! doc.xpath(selector("Links/Link")).map.with_index(1) { |link, i|
         {
           submission_id:,
           seq_no:        i,
@@ -90,7 +90,7 @@ class Database::BioSample::Submitter
     raise res.inspect unless res.ok
 
     body = res.json
-    
+
     collect_packages = ->(packages) {
       packages + packages.flat_map {
         collect_packages.call(_1.fetch(:package_list, []))
@@ -109,5 +109,9 @@ class Database::BioSample::Submitter
       package_group: package_group.fetch(:package_group_id),
       env_package:   package.fetch(:env_package)
     }
+  end
+
+  def selector(path)
+    "/BioSample/#{path}|/BioSampleSet/BioSample/#{path}"
   end
 end

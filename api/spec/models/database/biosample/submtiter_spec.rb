@@ -3,21 +3,7 @@ require 'rails_helper'
 RSpec.describe Database::BioSample::Submitter do
   let(:user) { create(:user, uid: 'alice') }
 
-  example 'submit' do
-    submission = create(:submission, **{
-      validation: build(:validation, :valid, **{
-        user:,
-
-        objs: [
-          build(:obj, **{
-            _id:      'BioSample',
-            file:     file_fixture('biosample/SSUB000019_db_fail.xml'),
-            validity: :valid
-          })
-        ]
-      })
-    })
-
+  before do
     stub_request(:get, 'validator.example.com/api/package_group_list').to_return_json(
       body: [
         {
@@ -49,6 +35,22 @@ RSpec.describe Database::BioSample::Submitter do
         }
       ]
     )
+  end
+
+  example 'submit' do
+    submission = create(:submission, **{
+      validation: build(:validation, :valid, **{
+        user:,
+
+        objs: [
+          build(:obj, **{
+            _id:      'BioSample',
+            file:     file_fixture('biosample/SSUB000019_db_fail.xml'),
+            validity: :valid
+          })
+        ]
+      })
+    })
 
     Database::BioSample::Submitter.new.submit submission
 
@@ -108,6 +110,32 @@ RSpec.describe Database::BioSample::Submitter do
     expect(DRMDB::ExtPermit.sole).to have_attributes(
       ext_id:       ext_entity.ext_id,
       submitter_id: 'alice'
+    )
+  end
+
+  example 'no BioSampleSet' do
+    submission = create(:submission, **{
+      validation: build(:validation, :valid, **{
+        user:,
+
+        objs: [
+          build(:obj, **{
+            _id:      'BioSample',
+            file:     file_fixture('biosample/no_biosample_set.xml'),
+            validity: :valid
+          })
+        ]
+      })
+    })
+
+    Database::BioSample::Submitter.new.submit submission
+
+    expect(BioSample::ContactForm.sole).to have_attributes(
+      submission_id: 'SSUB000001',
+      first_name:    'Haruno',
+      last_name:     'Yoshida',
+      email:         'harunoy@lisci.kitasato-u.ac.jp.ddbj.test',
+      seq_no:        1
     )
   end
 end
