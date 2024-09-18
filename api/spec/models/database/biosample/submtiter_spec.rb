@@ -1,6 +1,22 @@
 require 'rails_helper'
 
 RSpec.describe Database::BioSample::Submitter do
+  def create_submission(file)
+    create(:submission, **{
+      validation: build(:validation, :valid, **{
+        user:,
+
+        objs: [
+          build(:obj, **{
+            _id:      'BioSample',
+            file:,
+            validity: :valid
+          })
+        ]
+      })
+    })
+  end
+
   let(:user) { create(:user, uid: 'alice') }
 
   before do
@@ -38,19 +54,7 @@ RSpec.describe Database::BioSample::Submitter do
   end
 
   example 'submit' do
-    submission = create(:submission, **{
-      validation: build(:validation, :valid, **{
-        user:,
-
-        objs: [
-          build(:obj, **{
-            _id:      'BioSample',
-            file:     file_fixture('biosample/SSUB000019_db_fail.xml'),
-            validity: :valid
-          })
-        ]
-      })
-    })
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok.xml'))
 
     Database::BioSample::Submitter.new.submit submission
 
@@ -63,23 +67,24 @@ RSpec.describe Database::BioSample::Submitter do
     )
 
     attribute_file = {
-      sample_name:        'MTB313',
-      strains:            'MTB313',
-      env_biome:          'urban biome',
-      collection_date:    '2011-12-1T1:2:3',
-      env_feature:        'town',
-      geo_loc_name:       'Japan: Hikone-shi',
-      lat_lon:            '136.225389 35.262246',
-      env_material:       'interstitial fluid',
-      project_name:       'Streptococcus pyogenes MTB313 genome sequencing',
-      isol_growth_condt:  '24464696',
-      num_replicons:      '1',
-      ref_biomaterial:    '16088826',
-      elev:               '88.8m',
-      depth:              '0m',
-      bioproject_id:      'PRJDB1654',
-      culture_collection: 'Coriell: 1234',
-      specimen_voucher:   'ATCC:1234'
+      sample_name:       'MTB313',
+      strain:            'MTB313',
+      env_biome:         'urban biome',
+      collection_date:   '2011-12-01T01:02:03Z',
+      env_feature:       'town',
+      geo_loc_name:      'Japan:Hikone-shi',
+      lat_lon:           '35.262246 N 136.225389 E',
+      env_material:      'interstitial fluid',
+      project_name:      'Streptococcus pyogenes MTB313 genome sequencing',
+      isol_growth_condt: '24464696',
+      num_replicons:     '1',
+      ref_biomaterial:   '16088826',
+      elev:              '88.8m',
+      depth:             '0m',
+      bioproject_id:     'PRJDB1654',
+      env_broad_scale:   'missing',
+      env_local_scale:   'missing',
+      env_medium:        'missing'
     }.to_a.transpose.map { _1.join("\t") + "\n" }.join
 
     expect(BioSample::SubmissionForm.sole).to have_attributes(
@@ -114,19 +119,7 @@ RSpec.describe Database::BioSample::Submitter do
   end
 
   example 'no BioSampleSet' do
-    submission = create(:submission, **{
-      validation: build(:validation, :valid, **{
-        user:,
-
-        objs: [
-          build(:obj, **{
-            _id:      'BioSample',
-            file:     file_fixture('biosample/no_biosample_set.xml'),
-            validity: :valid
-          })
-        ]
-      })
-    })
+    submission = create_submission(file_fixture('biosample/no_biosample_set.xml'))
 
     Database::BioSample::Submitter.new.submit submission
 
@@ -137,5 +130,73 @@ RSpec.describe Database::BioSample::Submitter do
       email:         'harunoy@lisci.kitasato-u.ac.jp.ddbj.test',
       seq_no:        1
     )
+  end
+
+  example 'two BioSample, valid' do
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_two_biosamples.xml'))
+
+    Database::BioSample::Submitter.new.submit submission
+
+    expect(BioSample::SubmissionForm.sole.attribute_file).to eq(<<~TSV)
+      sample_name	strain	env_biome
+      MTB313	MTB313	urban biome
+      MTB313	MTB313	urban biome
+    TSV
+  end
+
+  example 'two BioSample, inconsistent contact' do
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_inconsistent_contact.xml'))
+
+    expect {
+      Database::BioSample::Submitter.new.submit submission
+    }.to raise_error(%r{Inconsistent Owner/Contacts/Contact:})
+  end
+
+  example 'two BioSample, inconsistent model' do
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_inconsistent_model.xml'))
+
+    expect {
+      Database::BioSample::Submitter.new.submit submission
+    }.to raise_error(%r{Inconsistent Models/Model:})
+  end
+
+  example 'two BioSample, inconsistent attributes' do
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_inconsistent_attributes.xml'))
+
+    expect {
+      Database::BioSample::Submitter.new.submit submission
+    }.to raise_error(%r{Inconsistent Attributes/Attribute/@attribute_name:})
+  end
+
+  example 'two BioSample, inconsistent organization' do
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_inconsistent_organization.xml'))
+
+    expect {
+      Database::BioSample::Submitter.new.submit submission
+    }.to raise_error(%r{Inconsistent Owner/Name:})
+  end
+
+  example 'two BioSample, inconsistent organization_url' do
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_inconsistent_organization_url.xml'))
+
+    expect {
+      Database::BioSample::Submitter.new.submit submission
+    }.to raise_error(%r{Inconsistent Owner/Name/@url:})
+  end
+
+  example 'two BioSample, inconsistent comment' do
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_inconsistent_comment.xml'))
+
+    expect {
+      Database::BioSample::Submitter.new.submit submission
+    }.to raise_error(%r{Inconsistent Description/Comment/Paragraph:})
+  end
+
+  example 'two BioSample, inconsistent link' do
+    submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_inconsistent_link.xml'))
+
+    expect {
+      Database::BioSample::Submitter.new.submit submission
+    }.to raise_error(%r{Inconsistent Links/Link:})
   end
 end
