@@ -17,6 +17,20 @@ class BioSampleInit < ActiveRecord::Migration[7.2]
       t.text    :url
     end
 
+    create_table 'mass.operation_history', id: false do |t|
+      t.bigint :his_id, primary_key: true
+
+      t.integer   :type
+      t.text      :summary
+      t.text      :file_name
+      t.binary    :detail
+      t.timestamp :date
+      t.bigint    :usr_id
+      t.integer   :serial
+      t.text      :submitter_id
+      t.text      :submission_id
+    end
+
     create_table 'mass.submission', id: false do |t|
       t.text :submission_id, primary_key: true
 
