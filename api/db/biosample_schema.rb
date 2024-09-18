@@ -31,6 +31,18 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_29_001416) do
     t.text "url"
   end
 
+  create_table "operation_history", primary_key: "his_id", force: :cascade do |t|
+    t.integer "type"
+    t.text "summary"
+    t.text "file_name"
+    t.binary "detail"
+    t.datetime "date", precision: nil
+    t.bigint "usr_id"
+    t.integer "serial"
+    t.text "submitter_id"
+    t.text "submission_id"
+  end
+
   create_table "submission", primary_key: "submission_id", id: :text, force: :cascade do |t|
     t.text "submitter_id"
     t.text "organization"
