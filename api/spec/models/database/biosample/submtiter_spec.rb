@@ -54,6 +54,8 @@ RSpec.describe Database::BioSample::Submitter do
   end
 
   example 'submit' do
+    travel_to '2024-01-02 12:34:56'
+    
     submission = create_submission(file_fixture('biosample/SSUB000019_db_ok.xml'))
 
     Database::BioSample::Submitter.new.submit submission
@@ -104,6 +106,14 @@ RSpec.describe Database::BioSample::Submitter do
 
     expect(BioSample::LinkForm.count).to eq(0)
 
+    expect(BioSample::OperationHistory.sole).to have_attributes(
+      type:          'info',
+      summary:       '[repository:CreateNewSubmission] Create new submission',
+      date:          '2024-01-02 12:34:56'.to_time,
+      submitter_id:  'alice',
+      submission_id: 'SSUB000001'
+    )
+
     ext_entity = DRMDB::ExtEntity.sole
 
     expect(ext_entity).to have_attributes(
@@ -144,12 +154,44 @@ RSpec.describe Database::BioSample::Submitter do
     TSV
   end
 
+  example 'submission id is overflow' do
+    travel_to '2024-01-02 12:34:56'
+    
+    BioSample::SubmissionForm.create! submission_id: 'SSUB999999', submitter_id: user.uid, status_id: :new
+
+    expect {
+      Database::BioSample::Submitter.new.submit create_submission(file_fixture('biosample/SSUB000019_db_ok.xml'))
+    }.to raise_error(Database::BioSample::Submitter::SubmissionIDOverflow)
+
+    expect(BioSample::SubmissionForm.count).to eq(1)
+
+    expect(BioSample::OperationHistory.sole).to have_attributes(
+      type:          'fatal',
+      summary:       '[repository:CreateNewSubmission] Number of submission surpass the upper limit',
+      date:          '2024-01-02 12:34:56'.to_time,
+      submitter_id:  'alice',
+      submission_id: nil
+    )
+  end
+
   example 'two BioSample, inconsistent contact' do
+    travel_to '2024-01-02 12:34:56'
+
     submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_inconsistent_contact.xml'))
 
     expect {
       Database::BioSample::Submitter.new.submit submission
     }.to raise_error(%r{Inconsistent Owner/Contacts/Contact:})
+
+    expect(BioSample::SubmissionForm.count).to eq(0)
+
+    expect(BioSample::OperationHistory.sole).to have_attributes(
+      type:          'error',
+      summary:       '[repository:CreateNewSubmission] rollback transaction',
+      date:          '2024-01-02 12:34:56'.to_time,
+      submitter_id:  'alice',
+      submission_id: nil
+    )
   end
 
   example 'two BioSample, inconsistent model' do
