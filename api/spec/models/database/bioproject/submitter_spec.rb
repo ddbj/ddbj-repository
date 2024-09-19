@@ -23,7 +23,7 @@ RSpec.describe Database::BioProject::Submitter do
 
   example 'submit' do
     travel_to '2024-01-02 12:34:56'
-    
+
     submission = create_submission(visibility: :private, file: 'bioproject/valid/hup.xml')
 
     Database::BioProject::Submitter.new.submit submission
