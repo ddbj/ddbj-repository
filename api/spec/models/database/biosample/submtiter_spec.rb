@@ -128,20 +128,6 @@ RSpec.describe Database::BioSample::Submitter do
     )
   end
 
-  example 'no BioSampleSet' do
-    submission = create_submission(file_fixture('biosample/no_biosample_set.xml'))
-
-    Database::BioSample::Submitter.new.submit submission
-
-    expect(BioSample::ContactForm.sole).to have_attributes(
-      submission_id: 'SSUB000001',
-      first_name:    'Haruno',
-      last_name:     'Yoshida',
-      email:         'harunoy@lisci.kitasato-u.ac.jp.ddbj.test',
-      seq_no:        1
-    )
-  end
-
   example 'two BioSample, valid' do
     submission = create_submission(file_fixture('biosample/SSUB000019_db_ok_two_biosamples.xml'))
 

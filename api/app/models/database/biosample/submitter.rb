@@ -33,7 +33,7 @@ class Database::BioSample::Submitter
       content = submission.validation.objs.find_by!(_id: "BioSample").file.download
       doc     = Nokogiri::XML.parse(content)
 
-      contacts = biosamples(doc).map { |biosample|
+      contacts = doc.xpath("BioSampleSet/BioSample").map { |biosample|
         biosample.xpath("Owner/Contacts/Contact").map { |contact|
           {
             first_name: contact.at("Name/First")&.text,
@@ -55,7 +55,7 @@ class Database::BioSample::Submitter
         }
       }
 
-      package_id = biosamples(doc).map { |biosample|
+      package_id = doc.xpath("BioSampleSet/BioSample").map { |biosample|
         biosample.at("Models/Model")&.text
       }.then { |models|
         raise "Inconsistent Models/Model: #{models.inspect}" if models.uniq.size > 1
@@ -65,7 +65,7 @@ class Database::BioSample::Submitter
 
       package_attributes(package_id) => { package_group:, env_package: }
 
-      attributes_list = biosamples(doc).map { |biosample|
+      attributes_list = doc.xpath("BioSampleSet/BioSample").map { |biosample|
         biosample.xpath("Attributes/Attribute").map { |attribute|
           [
             attribute[:attribute_name],
@@ -87,7 +87,7 @@ class Database::BioSample::Submitter
         }
       end
 
-      organization = biosamples(doc).map { |biosample|
+      organization = doc.xpath("BioSampleSet/BioSample").map { |biosample|
         biosample.at("Owner/Name")&.text
       }.then { |orgnaizations|
         raise "Inconsistent Owner/Name: #{orgnaizations.inspect}" if orgnaizations.uniq.size > 1
@@ -95,7 +95,7 @@ class Database::BioSample::Submitter
         orgnaizations.first
       }
 
-      organization_url = biosamples(doc).map { |biosample|
+      organization_url = doc.xpath("BioSampleSet/BioSample").map { |biosample|
         biosample.at("Owner/Name/@url")&.text
       }.then { |organization_urls|
         raise "Inconsistent Owner/Name/@url: #{organization_urls.inspect}" if organization_urls.uniq.size > 1
@@ -103,7 +103,7 @@ class Database::BioSample::Submitter
         organization_urls.first
       }
 
-      comment = biosamples(doc).map { |biosample|
+      comment = doc.xpath("BioSampleSet/BioSample").map { |biosample|
         biosample.at("Description/Comment/Paragraph")&.text
       }.then { |comments|
         raise "Inconsistent Description/Comment/Paragraph: #{comments.inspect}" if comments.uniq.size > 1
@@ -126,7 +126,7 @@ class Database::BioSample::Submitter
         env_package:
       )
 
-      links = biosamples(doc).map { |biosample|
+      links = doc.xpath("BioSampleSet/BioSample").map { |biosample|
         biosample.xpath("Links/Link").map { |link|
           {
             description: link[:label],
@@ -180,10 +180,6 @@ class Database::BioSample::Submitter
     raise SubmissionIDOverflow if num >= 999_999
 
     "SSUB#{num.succ.to_s.rjust(6, '0')}"
-  end
-
-  def biosamples(doc, &block)
-    doc.xpath("BioSample|BioSampleSet/BioSample")
   end
 
   def package_attributes(package_id)
