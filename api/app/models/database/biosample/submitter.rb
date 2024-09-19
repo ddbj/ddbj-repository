@@ -1,12 +1,37 @@
 class Database::BioSample::Submitter
+  class SubmissionIDOverflow < StandardError; end
+
   def submit(submission)
     user         = submission.validation.user
     submitter_id = user.uid
 
     BioSample::Record.transaction isolation: Rails.env.test? ? nil : :serializable do |tx|
-      submission_id = next_submission_id
-      content       = submission.validation.objs.find_by!(_id: "BioSample").file.download
-      doc           = Nokogiri::XML.parse(content)
+      begin
+        submission_id = next_submission_id
+      rescue SubmissionIDOverflow
+        tx.after_rollback do
+          BioSample::OperationHistory.create!(
+            type:         :fatal,
+            summary:      "[repository:CreateNewSubmission] Number of submission surpass the upper limit",
+            date:         Time.current,
+            submitter_id:
+          )
+        end
+
+        raise
+      end
+
+      tx.after_rollback do
+        BioSample::OperationHistory.create!(
+          type:         :error,
+          summary:      "[repository:CreateNewSubmission] rollback transaction",
+          date:         Time.current,
+          submitter_id:
+        )
+      end
+
+      content = submission.validation.objs.find_by!(_id: "BioSample").file.download
+      doc     = Nokogiri::XML.parse(content)
 
       contacts = biosamples(doc).map { |biosample|
         biosample.xpath("Owner/Contacts/Contact").map { |contact|
@@ -124,6 +149,14 @@ class Database::BioSample::Submitter
         }
       end
 
+      BioSample::OperationHistory.create!(
+        type:          :info,
+        summary:       "[repository:CreateNewSubmission] Create new submission",
+        date:          Time.current,
+        submitter_id:,
+        submission_id:
+      )
+
       tx.after_commit do
         DRMDB::ExtEntity.create!(
           acc_type: :study,
@@ -143,6 +176,8 @@ class Database::BioSample::Submitter
   def next_submission_id
     submission_id = BioSample::SubmissionForm.order(submission_id: :desc).pick(:submission_id) || "SSUB000000"
     num           = submission_id.delete_prefix("SSUB").to_i
+
+    raise SubmissionIDOverflow if num >= 999_999
 
     "SSUB#{num.succ.to_s.rjust(6, '0')}"
   end
