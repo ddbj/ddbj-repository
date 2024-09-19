@@ -55,7 +55,7 @@ RSpec.describe Database::BioSample::Submitter do
 
   example 'submit' do
     travel_to '2024-01-02 12:34:56'
-    
+
     submission = create_submission(file_fixture('biosample/SSUB000019_db_ok.xml'))
 
     Database::BioSample::Submitter.new.submit submission
@@ -142,7 +142,7 @@ RSpec.describe Database::BioSample::Submitter do
 
   example 'submission id is overflow' do
     travel_to '2024-01-02 12:34:56'
-    
+
     BioSample::SubmissionForm.create! submission_id: 'SSUB999999', submitter_id: user.uid, status_id: :new
 
     expect {
