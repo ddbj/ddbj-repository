@@ -64,10 +64,11 @@ services:
       context: ../ddbj_validator
 
     environment:
+      DDBJ_VALIDATOR_APP_NAMED_GRAPHE_URI_TAXONOMY: http://ddbj.nig.ac.jp/ontologies/taxonomy-private
       DDBJ_VALIDATOR_APP_POSTGRES_HOST:
       DDBJ_VALIDATOR_APP_POSTGRES_PASSWD:
       DDBJ_VALIDATOR_APP_POSTGRES_PORT:
-      DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:         '30'
+      DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:          '30'
       DDBJ_VALIDATOR_APP_POSTGRES_USER:
-      DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER: http://virtuoso:8890/sparql
-      TZ:                                          Japan
+      DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER:  http://virtuoso:8890/sparql
+      TZ:                                           Japan
