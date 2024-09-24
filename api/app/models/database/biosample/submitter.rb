@@ -33,83 +33,12 @@ class Database::BioSample::Submitter
       content = submission.validation.objs.find_by!(_id: "BioSample").file.download
       doc     = Nokogiri::XML.parse(content)
 
-      contacts = doc.xpath("BioSampleSet/BioSample").map { |biosample|
-        biosample.xpath("Owner/Contacts/Contact").map { |contact|
-          {
-            first_name: contact.at("Name/First")&.text,
-            last_name:  contact.at("Name/Last")&.text,
-            email:      contact[:email]
-          }
-        }
-      }.then { |contacts_list|
-        raise "Inconsistent Owner/Contacts/Contact: #{contacts_list.inspect}" if contacts_list.uniq.size > 1
-
-        contacts_list.first
-      }
-
-      BioSample::ContactForm.insert_all contacts.map.with_index(1) { |contact, i|
-        {
-          **contact,
-          submission_id:,
-          seq_no:        i
-        }
-      }
-
-      package_id = doc.xpath("BioSampleSet/BioSample").map { |biosample|
-        biosample.at("Models/Model")&.text
-      }.then { |models|
-        raise "Inconsistent Models/Model: #{models.inspect}" if models.uniq.size > 1
-
-        models.first
-      }
+      organization     = organization(doc)
+      organization_url = organization_url(doc)
+      attributes_assoc = attributes_assoc(doc)
+      package_id       = package_id(doc)
 
       package_attributes(package_id) => { package_group:, env_package: }
-
-      attributes_list = doc.xpath("BioSampleSet/BioSample").map { |biosample|
-        biosample.xpath("Attributes/Attribute").map { |attribute|
-          [
-            attribute[:attribute_name],
-            attribute.text
-          ]
-        }.to_h
-      }.tap { |attributes_list|
-        keys_list = attributes_list.map(&:keys)
-
-        raise "Inconsistent Attributes/Attribute/@attribute_name: #{keys_list.inspect}" if keys_list.uniq.size > 1
-      }
-
-      unless attributes_list.empty?
-        attribute_file = CSV.generate(col_sep: "\t") { |tsv|
-          attributes_list.each_with_index do |attributes, i|
-            tsv << attributes.keys if i.zero?
-            tsv << attributes.values
-          end
-        }
-      end
-
-      organization = doc.xpath("BioSampleSet/BioSample").map { |biosample|
-        biosample.at("Owner/Name")&.text
-      }.then { |orgnaizations|
-        raise "Inconsistent Owner/Name: #{orgnaizations.inspect}" if orgnaizations.uniq.size > 1
-
-        orgnaizations.first
-      }
-
-      organization_url = doc.xpath("BioSampleSet/BioSample").map { |biosample|
-        biosample.at("Owner/Name/@url")&.text
-      }.then { |organization_urls|
-        raise "Inconsistent Owner/Name/@url: #{organization_urls.inspect}" if organization_urls.uniq.size > 1
-
-        organization_urls.first
-      }
-
-      comment = doc.xpath("BioSampleSet/BioSample").map { |biosample|
-        biosample.at("Description/Comment/Paragraph")&.text
-      }.then { |comments|
-        raise "Inconsistent Description/Comment/Paragraph: #{comments.inspect}" if comments.uniq.size > 1
-
-        comments.first
-      }
 
       BioSample::SubmissionForm.create!(
         submission_id:,
@@ -119,34 +48,97 @@ class Database::BioSample::Submitter
         organization_url:,
         release_type:        submission.visibility_public? ? "release" : "hold",
         attribute_file_name: "#{submission_id}.tsv",
-        attribute_file:,
-        comment:,
+        attribute_file:      attribute_file(attributes_assoc),
+        comment:             comment(doc),
         package_group:,
         package:             package_id,
         env_package:
       )
 
-      links = doc.xpath("BioSampleSet/BioSample").map { |biosample|
-        biosample.xpath("Links/Link").map { |link|
-          {
-            description: link[:label],
-            url:         link.text
-          }
-        }
-      }.then { |links_list|
-        raise "Inconsistent Links/Link: #{links_list.inspect}" if links_list.uniq.size > 1
+      BioSample::Submission.create!(
+        submission_id:,
+        submitter_id:,
+        organization:,
+        organization_url:,
+        charge_id:        1 # NO_CHARGE
+      )
 
-        links_list.first
+      contacts = contacts(doc)
+
+      BioSample::ContactForm.insert_all contacts.map.with_index(1) { |contact, i|
+        {
+          **contact,
+          submission_id:,
+          seq_no:        i
+        }
       }
 
-      if links
-        BioSample::LinkForm.insert_all! links.map.with_index(1) { |link, i|
+      BioSample::Contact.insert_all contacts.map.with_index(1) { |contact, i|
+        {
+          **contact,
+          submission_id:,
+          seq_no:        i
+        }
+      }
+
+      links = links(doc)
+
+      BioSample::LinkForm.insert_all! links.map.with_index(1) { |link, i|
+        {
+          **link,
+          submission_id:,
+          seq_no:        i
+        }
+      }
+
+      sample_names(doc).each do |sample_name|
+        sample = BioSample::Sample.create!(
+          submission_id:,
+          sample_name:,
+          release_type:     submission.visibility_public? ? "release" : "hold",
+          release_date:     nil,
+          package_group:,
+          package:          package_id,
+          env_package:,
+          status_id:        :submission_accepted
+        )
+
+        attributes = attributes_assoc.fetch(sample_name)
+
+        sample._attributes.insert_all! attributes.map.with_index(1) { |(name, value), i|
           {
-            **link,
-            submission_id:,
-            seq_no:        i
+            attribute_name:  name,
+            attribute_value: value,
+            seq_no:          i
           }
         }
+
+        sample.links.insert_all! links.map.with_index(1) { |link, i|
+          {
+            **link,
+            seq_no: i
+          }
+        }
+
+        version = (sample.xmls.maximum(:version) || 0) + 1
+        xml     = doc.at_xpath("/BioSampleSet/BioSample[Description/SampleName='#{sample_name}']")
+
+        sample.xmls.create!(
+          version:,
+          content: xml.to_xml
+        )
+
+        tx.after_commit do
+          DRMDB::ExtEntity.create!(
+            acc_type: :sample,
+            ref_name: sample.smp_id,
+            status:   :valid
+          ) do |entity|
+            entity.ext_permits.build(
+              submitter_id:
+            )
+          end
+        end
       end
 
       BioSample::OperationHistory.create!(
@@ -156,18 +148,6 @@ class Database::BioSample::Submitter
         submitter_id:,
         submission_id:
       )
-
-      tx.after_commit do
-        DRMDB::ExtEntity.create!(
-          acc_type: :study,
-          ref_name: submission_id,
-          status:   :inputting
-        ) do |entity|
-          entity.ext_permits.build(
-            submitter_id:
-          )
-        end
-      end
     end
   end
 
@@ -180,6 +160,36 @@ class Database::BioSample::Submitter
     raise SubmissionIDOverflow if num >= 999_999
 
     "SSUB#{num.succ.to_s.rjust(6, '0')}"
+  end
+
+  def organization(doc)
+    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
+      biosample.at("Owner/Name")&.text
+    }.then { |orgnaizations|
+      raise "Inconsistent Owner/Name: #{orgnaizations.inspect}" if orgnaizations.uniq.size > 1
+
+      orgnaizations.first
+    }
+  end
+
+  def organization_url(doc)
+    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
+      biosample.at("Owner/Name/@url")&.text
+    }.then { |organization_urls|
+      raise "Inconsistent Owner/Name/@url: #{organization_urls.inspect}" if organization_urls.uniq.size > 1
+
+      organization_urls.first
+    }
+  end
+
+  def package_id(doc)
+    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
+      biosample.at("Models/Model")&.text
+    }.then { |models|
+      raise "Inconsistent Models/Model: #{models.inspect}" if models.uniq.size > 1
+
+      models.first
+    }
   end
 
   def package_attributes(package_id)
@@ -206,6 +216,79 @@ class Database::BioSample::Submitter
     {
       package_group: package_group.fetch(:package_group_id),
       env_package:   package.fetch(:env_package)
+    }
+  end
+
+  def attributes_assoc(doc)
+    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
+      biosample.xpath("Attributes/Attribute").map { |attribute|
+        [
+          attribute[:attribute_name],
+          attribute.text
+        ]
+      }.to_h
+    }.then { |attributes_list|
+      keys_list = attributes_list.map(&:keys)
+
+      raise "Inconsistent Attributes/Attribute/@attribute_name: #{keys_list.inspect}" if keys_list.uniq.size > 1
+
+      attributes_list.index_by { _1.fetch("sample_name") }
+    }
+  end
+
+  def attribute_file(assoc)
+    CSV.generate(col_sep: "\t") { |tsv|
+      assoc.values.each_with_index do |attributes, i|
+        tsv << attributes.keys if i.zero?
+        tsv << attributes.values
+      end
+    }
+  end
+
+  def comment(doc)
+    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
+      biosample.at("Description/Comment/Paragraph")&.text
+    }.then { |comments|
+      raise "Inconsistent Description/Comment/Paragraph: #{comments.inspect}" if comments.uniq.size > 1
+
+      comments.first
+    }
+  end
+
+  def contacts(doc)
+    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
+      biosample.xpath("Owner/Contacts/Contact").map { |contact|
+        {
+          first_name: contact.at("Name/First")&.text,
+          last_name:  contact.at("Name/Last")&.text,
+          email:      contact[:email]
+        }
+      }
+    }.then { |contacts_list|
+      raise "Inconsistent Owner/Contacts/Contact: #{contacts_list.inspect}" if contacts_list.uniq.size > 1
+
+      contacts_list.first
+    }
+  end
+
+  def links(doc)
+    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
+      biosample.xpath("Links/Link").map { |link|
+        {
+          description: link[:label],
+          url:         link.text
+        }
+      }
+    }.then { |links_list|
+      raise "Inconsistent Links/Link: #{links_list.inspect}" if links_list.uniq.size > 1
+
+      links_list.first
+    }
+  end
+
+  def sample_names(doc)
+    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
+      biosample.xpath("Description/SampleName")&.text
     }
   end
 end
