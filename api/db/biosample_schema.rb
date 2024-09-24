@@ -16,12 +16,36 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_29_001416) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
+  create_table "attribute", primary_key: ["smp_id", "attribute_name"], force: :cascade do |t|
+    t.integer "seq_no", null: false
+    t.text "attribute_name", null: false
+    t.text "attribute_value"
+    t.bigint "smp_id", null: false
+  end
+
+  create_table "contact", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
+    t.text "submission_id", null: false
+    t.integer "seq_no", null: false
+    t.text "email"
+    t.text "first_name"
+    t.text "last_name"
+    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+  end
+
   create_table "contact_form", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
     t.text "submission_id", null: false
     t.integer "seq_no", null: false
     t.text "email"
     t.text "first_name"
     t.text "last_name"
+  end
+
+  create_table "link", primary_key: ["smp_id", "seq_no"], force: :cascade do |t|
+    t.integer "seq_no", null: false
+    t.text "description"
+    t.text "url"
+    t.bigint "smp_id", null: false
   end
 
   create_table "link_form", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
@@ -41,6 +65,24 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_29_001416) do
     t.integer "serial"
     t.text "submitter_id"
     t.text "submission_id"
+  end
+
+  create_table "sample", primary_key: "smp_id", force: :cascade do |t|
+    t.text "submission_id", null: false
+    t.text "sample_name", null: false
+    t.integer "release_type"
+    t.datetime "release_date", precision: nil
+    t.integer "core_package"
+    t.integer "pathogen"
+    t.integer "mixs"
+    t.integer "env_pkg"
+    t.integer "status_id"
+    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "dist_date", precision: nil
+    t.text "package_group"
+    t.text "package"
+    t.text "env_package"
   end
 
   create_table "submission", primary_key: "submission_id", id: :text, force: :cascade do |t|
@@ -71,5 +113,14 @@ ActiveRecord::Schema[7.2].define(version: 2024_08_29_001416) do
     t.text "package_group"
     t.text "package"
     t.text "env_package"
+  end
+
+  create_table "xml", primary_key: ["smp_id", "version"], force: :cascade do |t|
+    t.text "accession_id"
+    t.integer "version", null: false
+    t.text "content", null: false
+    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.bigint "smp_id", null: false
   end
 end

@@ -116,10 +116,12 @@ RSpec.describe Database::BioSample::Submitter do
 
     ext_entity = DRMDB::ExtEntity.sole
 
+    sample = BioSample::Sample.sole
+
     expect(ext_entity).to have_attributes(
-      acc_type: 'study',
-      ref_name: 'SSUB000001',
-      status:   'inputting'
+      acc_type: 'sample',
+      ref_name: sample.id.to_s,
+      status:   'valid'
     )
 
     expect(DRMDB::ExtPermit.sole).to have_attributes(
@@ -136,7 +138,7 @@ RSpec.describe Database::BioSample::Submitter do
     expect(BioSample::SubmissionForm.sole.attribute_file).to eq(<<~TSV)
       sample_name	strain	env_biome
       MTB313	MTB313	urban biome
-      MTB313	MTB313	urban biome
+      MTB314	MTB314	urban biome
     TSV
   end
 
