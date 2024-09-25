@@ -36,7 +36,7 @@
         <Id is_primary="1" namespace="BioSample">SAMD00000328</Id>
     </Ids>
     <Description>
-        <SampleName>MTB313</SampleName>
+        <SampleName>MTB314</SampleName>
         <Title>Streptococcus pyogenes</Title>
         <Organism taxonomy_id="1314">
             <OrganismName>Streptococcus pyogenes</OrganismName>

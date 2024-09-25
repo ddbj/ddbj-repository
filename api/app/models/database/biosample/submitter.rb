@@ -73,7 +73,7 @@ class Database::BioSample::Submitter
         }
       }
 
-      BioSample::Contact.insert_all contacts.map.with_index(1) { |contact, i|
+      BioSample::Contact.insert_all! contacts.map.with_index(1) { |contact, i|
         {
           **contact,
           submission_id:,
@@ -95,12 +95,12 @@ class Database::BioSample::Submitter
         sample = BioSample::Sample.create!(
           submission_id:,
           sample_name:,
-          release_type:     submission.visibility_public? ? "release" : "hold",
-          release_date:     nil,
+          release_type:  submission.visibility_public? ? "release" : "hold",
+          release_date:  nil,
           package_group:,
-          package:          package_id,
+          package:       package_id,
           env_package:,
-          status_id:        :submission_accepted
+          status_id:     :submission_accepted
         )
 
         attributes = attributes_assoc.fetch(sample_name)

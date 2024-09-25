@@ -5,6 +5,11 @@ class BioSample::Sample < BioSample::Record
   has_many :links,       class_name: "BioSample::Link",      foreign_key: "smp_id"
   has_many :xmls,        class_name: "BioSample::XML",       foreign_key: "smp_id"
 
+  enum :release_type, {
+    release: 1,
+    hold:    2
+  }
+
   enum :status_id, {
     new_submission:      5000,
     submission_accepted: 5100,

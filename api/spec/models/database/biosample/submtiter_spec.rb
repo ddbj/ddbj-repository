@@ -60,14 +60,6 @@ RSpec.describe Database::BioSample::Submitter do
 
     Database::BioSample::Submitter.new.submit submission
 
-    expect(BioSample::ContactForm.sole).to have_attributes(
-      submission_id: 'SSUB000001',
-      first_name:    'Haruno',
-      last_name:     'Yoshida',
-      email:         'harunoy@lisci.kitasato-u.ac.jp.ddbj.test',
-      seq_no:        1
-    )
-
     attribute_file = {
       sample_name:       'MTB313',
       strain:            'MTB313',
@@ -100,11 +92,83 @@ RSpec.describe Database::BioSample::Submitter do
       attribute_file:,
       comment:             nil,
       package_group:       'MIGS.ba',
-      package:             "MIGS.ba.microbial",
-      env_package:         "microbial mat/biofilm"
+      package:             'MIGS.ba.microbial',
+      env_package:         'microbial mat/biofilm'
     )
 
-    expect(BioSample::LinkForm.count).to eq(0)
+    expect(BioSample::Submission.sole).to have_attributes(
+      submission_id:    'SSUB000001',
+      submitter_id:     'alice',
+      organization:     'Kitasato Institute of Life Sciences',
+      organization_url: 'https://www.kitasato-u.ac.jp/lisci/',
+      charge_id:        1
+    )
+
+    expect(BioSample::ContactForm.sole).to have_attributes(
+      submission_id: 'SSUB000001',
+      first_name:    'Haruno',
+      last_name:     'Yoshida',
+      email:         'harunoy@lisci.kitasato-u.ac.jp.ddbj.test',
+      seq_no:        1
+    )
+
+    expect(BioSample::Contact.sole).to have_attributes(
+      submission_id: 'SSUB000001',
+      first_name:    'Haruno',
+      last_name:     'Yoshida',
+      email:         'harunoy@lisci.kitasato-u.ac.jp.ddbj.test',
+      seq_no:        1
+    )
+
+    expect(BioSample::LinkForm.sole).to have_attributes(
+      description:   'Example',
+      url:           'http://example.com',
+      submission_id: 'SSUB000001',
+      seq_no:        1
+    )
+
+    sample = BioSample::Sample.sole
+
+    expect(sample).to have_attributes(
+      submission_id: 'SSUB000001',
+      sample_name:   'MTB313',
+      release_type:  'release',
+      release_date:  nil,
+      package_group: 'MIGS.ba',
+      package:       'MIGS.ba.microbial',
+      env_package:   'microbial mat/biofilm',
+      status_id:     'submission_accepted'
+    )
+
+    expect(sample._attributes.count).to eq(18)
+
+    expect(sample._attributes).to include(
+      have_attributes(
+        attribute_name:  'sample_name',
+        attribute_value: 'MTB313',
+        seq_no:          1
+      ),
+      have_attributes(
+        attribute_name:  'env_medium',
+        attribute_value: 'missing',
+        seq_no:          18
+      )
+    )
+
+    expect(sample.links.sole).to have_attributes(
+      description: 'Example',
+      url:         'http://example.com',
+      seq_no:      1
+    )
+
+    xml = sample.xmls.sole
+
+    expect(xml).to have_attributes(
+      version: 1,
+      content: instance_of(String)
+    )
+
+    expect(Nokogiri::XML.parse(xml.content).at('/BioSample/Description/SampleName').text).to eq('MTB313')
 
     expect(BioSample::OperationHistory.sole).to have_attributes(
       type:          'info',
@@ -115,8 +179,6 @@ RSpec.describe Database::BioSample::Submitter do
     )
 
     ext_entity = DRMDB::ExtEntity.sole
-
-    sample = BioSample::Sample.sole
 
     expect(ext_entity).to have_attributes(
       acc_type: 'sample',
@@ -140,6 +202,74 @@ RSpec.describe Database::BioSample::Submitter do
       MTB313	MTB313	urban biome
       MTB314	MTB314	urban biome
     TSV
+
+    samples = BioSample::Sample.order(:smp_id)
+
+    expect(samples.count).to eq(2)
+
+    expect(samples.first).to have_attributes(
+      submission_id: 'SSUB000001',
+      sample_name:   'MTB313',
+      release_type:  'release',
+      release_date:  nil,
+      package_group: 'MIGS.ba',
+      package:       'MIGS.ba.microbial',
+      env_package:   'microbial mat/biofilm',
+      status_id:     'submission_accepted'
+    )
+
+    expect(samples.first._attributes.count).to eq(3)
+
+    expect(samples.first._attributes).to include(
+      have_attributes(
+        attribute_name:  'sample_name',
+        attribute_value: 'MTB313',
+        seq_no:          1
+      )
+    )
+
+    expect(samples.first.links.count).to eq(0)
+
+    xml = samples.first.xmls.sole
+
+    expect(xml).to have_attributes(
+      version: 1,
+      content: instance_of(String)
+    )
+
+    expect(Nokogiri::XML.parse(xml.content).at('/BioSample/Description/SampleName').text).to eq('MTB313')
+
+    expect(samples.second).to have_attributes(
+      submission_id: 'SSUB000001',
+      sample_name:   'MTB314',
+      release_type:  'release',
+      release_date:  nil,
+      package_group: 'MIGS.ba',
+      package:       'MIGS.ba.microbial',
+      env_package:   'microbial mat/biofilm',
+      status_id:     'submission_accepted'
+    )
+
+    expect(samples.second._attributes.count).to eq(3)
+
+    expect(samples.second._attributes).to include(
+      have_attributes(
+        attribute_name:  'sample_name',
+        attribute_value: 'MTB314',
+        seq_no:          1
+      )
+    )
+
+    expect(samples.second.links.count).to eq(0)
+
+    xml = samples.second.xmls.sole
+
+    expect(xml).to have_attributes(
+      version: 1,
+      content: instance_of(String)
+    )
+
+    expect(Nokogiri::XML.parse(xml.content).at('/BioSample/Description/SampleName').text).to eq('MTB314')
   end
 
   example 'submission id is overflow' do

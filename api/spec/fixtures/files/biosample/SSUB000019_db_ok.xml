@@ -45,5 +45,8 @@
         <Attribute attribute_name="env_local_scale">missing</Attribute>
         <Attribute attribute_name="env_medium">missing</Attribute>
     </Attributes>
+    <Links>
+        <Link label="Example">http://example.com</Link>
+    </Links>
   </BioSample>
 </BioSampleSet>
