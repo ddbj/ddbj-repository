@@ -30,20 +30,24 @@ src  = Rails.root.join('tmp/bioproject_xml_cleaned')
 dest = Rails.root.join('tmp/bioproject_validate').tap(&:mkpath)
 
 Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
-  puts path.basename
+  Timeout.timeout 30 do
+    puts path.basename
 
-  res = path.open { |file|
-    body = fetch("#{ENV.fetch('API_URL')}/validations/via-file", **{
-      method: :post,
+    res = path.open { |file|
+      body = fetch("#{ENV.fetch('API_URL')}/validations/via-file", **{
+        method: :post,
 
-      body: Fetch::FormData.build(
-        db:                 'BioProject',
-        'BioProject[file]': file
-      )
-    }).json
+        body: Fetch::FormData.build(
+          db:                 'BioProject',
+          'BioProject[file]': file
+        )
+      }).json
 
-    wait_for_finish(body.fetch(:url))
-  }
+      wait_for_finish(body.fetch(:url))
+    }
 
-  dest.join("#{path.basename(".xml")}.json").write JSON.pretty_generate(res.json)
+    dest.join("#{path.basename(".xml")}.json").write JSON.pretty_generate(res.json)
+  end
+rescue Timeout::Error
+  # do nothing
 end
