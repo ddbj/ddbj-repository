@@ -70,5 +70,6 @@ services:
       DDBJ_VALIDATOR_APP_POSTGRES_PORT:
       DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:          '30'
       DDBJ_VALIDATOR_APP_POSTGRES_USER:
+      DDBJ_VALIDATOR_APP_VALIDATOR_LOG_DIR:         /usr/src/ddbj_validator/logs
       DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER:  http://virtuoso:8890/sparql
       TZ:                                           Japan
