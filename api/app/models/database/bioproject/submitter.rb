@@ -53,7 +53,7 @@ class Database::BioProject::Submitter
         submission_id:,
         submitter_id:,
         status_id:         :data_submitted,
-        form_status_flags: ""
+        form_status_flags: "000000"
       )
 
       is_public = submission.visibility_public?

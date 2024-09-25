@@ -30,7 +30,7 @@ RSpec.describe Database::BioProject::Submitter do
       submission_id:     'PSUB000001',
       submitter_id:      'alice',
       status_id:         'data_submitted',
-      form_status_flags: ''
+      form_status_flags: '000000'
     )
 
     expect(BioProject::Project.sole).to have_attributes(
