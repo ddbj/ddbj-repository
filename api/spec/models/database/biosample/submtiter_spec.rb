@@ -84,7 +84,7 @@ RSpec.describe Database::BioSample::Submitter do
     expect(BioSample::SubmissionForm.sole).to have_attributes(
       submission_id:       'SSUB000001',
       submitter_id:        'alice',
-      status_id:           'new',
+      status_id:           'data_submitted',
       organization:        'Kitasato Institute of Life Sciences',
       organization_url:    'https://www.kitasato-u.ac.jp/lisci/',
       release_type:        'release',
@@ -275,7 +275,7 @@ RSpec.describe Database::BioSample::Submitter do
   example 'submission id is overflow' do
     travel_to '2024-01-02 12:34:56'
 
-    BioSample::SubmissionForm.create! submission_id: 'SSUB999999', submitter_id: user.uid, status_id: :new
+    create :biosample_submission_form, submission_id: 'SSUB999999'
 
     expect {
       Database::BioSample::Submitter.new.submit create_submission(file_fixture('biosample/SSUB000019_db_ok.xml'))

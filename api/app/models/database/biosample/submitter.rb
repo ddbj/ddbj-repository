@@ -43,7 +43,7 @@ class Database::BioSample::Submitter
       BioSample::SubmissionForm.create!(
         submission_id:,
         submitter_id:,
-        status_id:           :new,
+        status_id:           :data_submitted,
         organization:,
         organization_url:,
         release_type:        submission.visibility_public? ? "release" : "hold",
