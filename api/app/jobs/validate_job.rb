@@ -9,6 +9,7 @@ class ValidateJob < ApplicationJob
     next if validation.canceled?
 
     ActiveRecord::Base.transaction do
+      validation.update! progress: :finished, finished_at: Time.current
       validation.objs.base.validity_error!
 
       validation.objs.base.validation_details.create!(
@@ -29,7 +30,9 @@ class ValidateJob < ApplicationJob
 
       raise ActiveRecord::Rollback if validation.reload.canceled?
     end
-  ensure
-    validation.update! progress: :finished, finished_at: Time.current unless validation.canceled?
+
+    return if validation.canceled?
+
+    validation.update! progress: :finished, finished_at: Time.current
   end
 end
