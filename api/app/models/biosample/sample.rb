@@ -1,6 +1,8 @@
 class BioSample::Sample < BioSample::Record
   self.table_name = "sample"
 
+  belongs_to :submission, class_name: "BioSample::Submission", foreign_key: "submission_id"
+
   has_many :_attributes, class_name: "BioSample::Attribute", foreign_key: "smp_id"
   has_many :links,       class_name: "BioSample::Link",      foreign_key: "smp_id"
   has_many :xmls,        class_name: "BioSample::XML",       foreign_key: "smp_id"

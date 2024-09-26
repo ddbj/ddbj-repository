@@ -40,7 +40,7 @@ class Database::BioSample::Submitter
 
       package_attributes(package_id) => { package_group:, env_package: }
 
-      BioSample::SubmissionForm.create!(
+      bs_submission_form = BioSample::SubmissionForm.create!(
         submission_id:,
         submitter_id:,
         status_id:           :data_submitted,
@@ -55,8 +55,7 @@ class Database::BioSample::Submitter
         env_package:
       )
 
-      BioSample::Submission.create!(
-        submission_id:,
+      bs_submission = bs_submission_form.create_submission!(
         submitter_id:,
         organization:,
         organization_url:,
@@ -65,35 +64,31 @@ class Database::BioSample::Submitter
 
       contacts = contacts(doc)
 
-      BioSample::ContactForm.insert_all contacts.map.with_index(1) { |contact, i|
+      bs_submission_form.contact_forms.insert_all contacts.map.with_index(1) { |contact, i|
         {
           **contact,
-          submission_id:,
-          seq_no:        i
+          seq_no: i
         }
       }
 
-      BioSample::Contact.insert_all! contacts.map.with_index(1) { |contact, i|
+      bs_submission.contacts.insert_all! contacts.map.with_index(1) { |contact, i|
         {
           **contact,
-          submission_id:,
-          seq_no:        i
+          seq_no: i
         }
       }
 
       links = links(doc)
 
-      BioSample::LinkForm.insert_all! links.map.with_index(1) { |link, i|
+      bs_submission_form.link_forms.insert_all! links.map.with_index(1) { |link, i|
         {
           **link,
-          submission_id:,
-          seq_no:        i
+          seq_no: i
         }
       }
 
       sample_names(doc).each do |sample_name|
-        sample = BioSample::Sample.create!(
-          submission_id:,
+        sample = bs_submission.samples.create!(
           sample_name:,
           release_type:  submission.visibility_public? ? "release" : "hold",
           release_date:  nil,
