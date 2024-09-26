@@ -1,32 +1,37 @@
 class ValidateJob < ApplicationJob
-  def perform(validation)
+  retry_on Errno::ECONNREFUSED, wait: :polynomially_longer
+
+  after_discard do |job, error|
+    Rails.error.report error
+
+    validation = job.arguments.first
+
+    next if validation.canceled?
+
     ActiveRecord::Base.transaction do
-      validation.update! progress: :running, started_at: Time.current
+      validation.objs.base.validity_error!
 
-      validator = "Database::#{validation.db}::Validator".constantize.new
+      validation.objs.base.validation_details.create!(
+        severity: "error",
+        message:  error.message
+      )
+    end
+  end
 
-      Rails.error.handle do
-        begin
-          validator.validate validation
-        rescue => e
-          validation.objs.base.validity_error!
+  def perform(validation)
+    validation.update! progress: :running, started_at: Time.current
 
-          validation.objs.base.validation_details.create!(
-            severity: "error",
-            message:  e.message
-          )
+    begin
+      ActiveRecord::Base.transaction do
+        validator = "Database::#{validation.db}::Validator".constantize.new
 
-          raise
-        else
-          validation.objs.base.validity_valid! unless validation.objs.base.validity
-        end
+        validator.validate validation
+        validation.objs.base.validity_valid! unless validation.objs.base.validity
+
+        raise ActiveRecord::Rollback if validation.reload.canceled?
       end
-
-      raise ActiveRecord::Rollback if validation.reload.canceled?
     ensure
-      unless validation.canceled?
-        validation.update! progress: :finished, finished_at: Time.current
-      end
+      validation.update! progress: :finished, finished_at: Time.current unless validation.canceled?
     end
   end
 end

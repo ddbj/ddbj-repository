@@ -15,7 +15,7 @@ RSpec.describe ValidateJob, type: :job do
 
   example 'valid' do
     allow(validator).to receive(:validate) {
-      validation.reload.objs.each &:validity_valid!
+      validation.reload.objs.each(&:validity_valid!)
     }
 
     ValidateJob.perform_now validation
@@ -36,7 +36,7 @@ RSpec.describe ValidateJob, type: :job do
     expect(validation).to have_attributes(
       progress:    'canceled',
       validity:    nil,
-      finished_at: Time.zone.parse('2024-01-02 03:04:56')
+      finished_at: '2024-01-02 03:04:56'.to_time
     )
   end
 
@@ -45,7 +45,11 @@ RSpec.describe ValidateJob, type: :job do
 
     expect_any_instance_of(ErrorSubscriber).to receive(:report)
 
-    ValidateJob.perform_now validation
+    expect {
+      ValidateJob.perform_now validation
+    }.to raise_error('something went wrong')
+
+    validation.reload
 
     expect(validation).to have_attributes(
       progress: 'finished',
