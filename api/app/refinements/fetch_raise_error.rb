@@ -9,7 +9,7 @@ module FetchRaiseError
   class ServerError < Error; end
 
   refine Fetch::Response do
-    def ensure_ok!
+    def ensure_ok
       case status
       when 400..499
         raise ClientError, self

@@ -73,8 +73,8 @@ module DDBJValidator
   end
 
   def fetch(path, **options)
-    Retriable.with_context(:ddbj_validator) {
-      Fetch::API.fetch("#{ENV.fetch("DDBJ_VALIDATOR_URL")}#{path}", **options).ensure_ok!
+    Retriable.with_context(:fetch) {
+      Fetch::API.fetch("#{ENV.fetch("DDBJ_VALIDATOR_URL")}#{path}", **options).ensure_ok
     }
   end
 

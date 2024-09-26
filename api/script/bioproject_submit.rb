@@ -1,37 +1,26 @@
 require_relative '../config/environment'
 
-class AlreadySubmitted < StandardError; end
+using FetchRaiseError
 
 def fetch(url, **opts)
-  Fetch::API.fetch(url, **{
-    headers: {
-      Authorization:    "Bearer #{ENV.fetch('API_KEY')}",
-      'X-Dway-User-Id': ENV['PROXY_USER_ID']
-    }.compact,
+  Retriable.with_context(:fetch) {
+    Fetch::API.fetch(url, **{
+      headers: {
+        Authorization:    "Bearer #{ENV.fetch('API_KEY')}",
+        'X-Dway-User-Id': ENV['PROXY_USER_ID']
+      }.compact,
 
-    **opts
-  }).tap { |res|
-    case res.status
-    when 200..299
-      # do nothing
-    when 422
-      if res.json[:error].end_with?('Validation is already submitted')
-        raise AlreadySubmitted
-      else
-        raise "#{res.status} #{res.status_text}: #{res.body}"
-      end
-    else
-      raise "#{res.status} #{res.status_text}: #{res.body}"
-    end
+      **opts
+    })
   }
 end
 
 def wait_for_finish(url)
   loop do
-    res = fetch(url)
+    res = fetch(url).ensure_ok
 
     case res.json.fetch(:progress)
-    when "waiting", "running"
+    when 'waiting', 'running'
       sleep 1
     else
       return res
@@ -50,9 +39,9 @@ Parallel.each json_src.glob('*.json'), in_threads: 3 do |path|
 
   xml        = xml_src.join("#{path.basename('.json')}.xml")
   doc        = Nokogiri::XML.parse(xml.read)
-  visibility = doc.at("/PackageSet/Package/Submission/Submission/Description/Hold") ? 'private' : 'public'
+  visibility = doc.at('/PackageSet/Package/Submission/Submission/Description/Hold') ? 'private' : 'public'
 
-  body = fetch("#{ENV.fetch('API_URL')}/submissions", **{
+  res = fetch("#{ENV.fetch('API_URL')}/submissions", **{
     method: :post,
 
     body: Fetch::URLSearchParams.new(
@@ -61,13 +50,17 @@ Parallel.each json_src.glob('*.json'), in_threads: 3 do |path|
       visibility:,
       umbrella:      false
     )
-  }).json
+  })
 
-  res = wait_for_finish(body.fetch(:url))
+  if res.status == 422 && res.json.fetch(:error).end_with?('Validation is already submitted')
+    puts "#{path.basename}: skipped"
+    next
+  end
+
+  body = res.ensure_ok.json
+  res  = wait_for_finish(body.fetch(:url))
 
   dest.join(path.basename).write JSON.pretty_generate(res.json)
 
   puts "#{path.basename}: submitted"
-rescue AlreadySubmitted
-  puts "#{path.basename}: skipped"
 end
