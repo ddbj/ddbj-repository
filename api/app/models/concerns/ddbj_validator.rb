@@ -1,10 +1,6 @@
-module DDBJValidator
-  class NotOk < StandardError
-    def initialize(res)
-      super "#{res.status} #{res.status_text}: #{res.body}"
-    end
-  end
+using FetchRaiseError
 
+module DDBJValidator
   def validate(validation)
     validation.write_files_to_tmp do |dir|
       obj = validation.objs.without_base.sole # either BioProject or BioSample
@@ -21,7 +17,7 @@ module DDBJValidator
         }
 
         finished, body = wait_for_finish(res.json.fetch(:uuid))
-      rescue NotOk => e
+      rescue => e
         obj.validity_error!
 
         obj.validation_details.create!(
@@ -77,8 +73,8 @@ module DDBJValidator
   end
 
   def fetch(path, **options)
-    Fetch::API.fetch("#{ENV.fetch("DDBJ_VALIDATOR_URL")}#{path}", **options).tap { |res|
-      raise NotOk, res unless res.ok
+    Retriable.with_context(:ddbj_validator) {
+      Fetch::API.fetch("#{ENV.fetch("DDBJ_VALIDATOR_URL")}#{path}", **options).ensure_ok!
     }
   end
 

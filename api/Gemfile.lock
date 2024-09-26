@@ -313,6 +313,7 @@ GEM
     regexp_parser (2.9.2)
     reline (0.5.10)
       io-console (~> 0.5)
+    retriable (3.1.2)
     rexml (3.3.6)
       strscan
     roo (2.10.1)
@@ -447,6 +448,7 @@ DEPENDENCIES
   rails (~> 7.2.0)
   rails-controller-testing
   rambulance
+  retriable
   rspec-default_http_header
   rspec-rails
   rubocop-rails-omakase

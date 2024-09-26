@@ -1,3 +1,5 @@
+using FetchRaiseError
+
 class Database::BioSample::Submitter
   class SubmissionIDOverflow < StandardError; end
 
@@ -188,9 +190,9 @@ class Database::BioSample::Submitter
   end
 
   def package_attributes(package_id)
-    res = Fetch::API.fetch("#{ENV.fetch('DDBJ_VALIDATOR_URL')}/package_and_group_list")
-
-    raise res.inspect unless res.ok
+    res = Retriable.with_context(:ddbj_validator) {
+      Fetch::API.fetch("#{ENV.fetch('DDBJ_VALIDATOR_URL')}/package_and_group_list").ensure_ok!
+    }
 
     body = res.json
 
