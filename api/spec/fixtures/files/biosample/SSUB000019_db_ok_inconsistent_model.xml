@@ -36,7 +36,7 @@
         <Id is_primary="1" namespace="BioSample">SAMD00000328</Id>
     </Ids>
     <Description>
-        <SampleName>MTB313</SampleName>
+        <SampleName>MTB314</SampleName>
         <Title>Streptococcus pyogenes</Title>
         <Organism taxonomy_id="1314">
             <OrganismName>Streptococcus pyogenes</OrganismName>
@@ -57,8 +57,8 @@
         <Model>MIGS.ba</Model>
     </Models>
     <Attributes>
-        <Attribute attribute_name="sample_name">MTB313</Attribute>
-        <Attribute attribute_name="strain">MTB313</Attribute>
+        <Attribute attribute_name="sample_name">MTB314</Attribute>
+        <Attribute attribute_name="strain">MTB314</Attribute>
         <Attribute attribute_name="env_biome">urban biome</Attribute>
     </Attributes>
   </BioSample>
