@@ -20,7 +20,7 @@ RSpec.describe Database::BioSample::Submitter do
   let(:user) { create(:user, uid: 'alice') }
 
   before do
-    stub_request(:get, 'validator.example.com/api/package_group_list').to_return_json(
+    stub_request(:get, 'validator.example.com/api/package_and_group_list').to_return_json(
       body: [
         {
           package_group_uri:  "http://ddbj.nig.ac.jp/ontologies/biosample/MIxS_PackageGroup",

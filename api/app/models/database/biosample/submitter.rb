@@ -193,7 +193,7 @@ class Database::BioSample::Submitter
   end
 
   def package_attributes(package_id)
-    res = Fetch::API.fetch("#{ENV.fetch('DDBJ_VALIDATOR_URL')}/package_group_list")
+    res = Fetch::API.fetch("#{ENV.fetch('DDBJ_VALIDATOR_URL')}/package_and_group_list")
 
     raise res.inspect unless res.ok
 
