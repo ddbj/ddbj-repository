@@ -190,8 +190,8 @@ class Database::BioSample::Submitter
   end
 
   def package_attributes(package_id)
-    res = Retriable.with_context(:ddbj_validator) {
-      Fetch::API.fetch("#{ENV.fetch('DDBJ_VALIDATOR_URL')}/package_and_group_list").ensure_ok!
+    res = Retriable.with_context(:fetch) {
+      Fetch::API.fetch("#{ENV.fetch('DDBJ_VALIDATOR_URL')}/package_and_group_list").ensure_ok
     }
 
     body = res.json

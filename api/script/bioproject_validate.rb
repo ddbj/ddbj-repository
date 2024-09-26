@@ -1,21 +1,23 @@
 require_relative '../config/environment'
 
-def fetch(url, **opts)
-  Fetch::API.fetch(url, **{
-    headers: {
-      Authorization:    "Bearer #{ENV.fetch('API_KEY')}",
-      'X-Dway-User-Id': ENV['PROXY_USER_ID']
-    }.compact,
+using FetchRaiseError
 
-    **opts
-  }).tap { |res|
-    raise "#{res.status} #{res.status_text}: #{res.body}" unless res.ok
+def fetch(url, **opts)
+  Retriable.with_context(:fetch) {
+    Fetch::API.fetch(url, **{
+      headers: {
+        Authorization:    "Bearer #{ENV.fetch('API_KEY')}",
+        'X-Dway-User-Id': ENV['PROXY_USER_ID']
+      }.compact,
+
+      **opts
+    })
   }
 end
 
 def wait_for_finish(url)
   loop do
-    res = fetch(url)
+    res = fetch(url).ensure_ok
 
     case res.json.fetch(:progress)
     when 'waiting', 'running'
@@ -40,7 +42,7 @@ Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
         db:                 'BioProject',
         'BioProject[file]': file
       )
-    }).json
+    }).ensure_ok.json
 
     wait_for_finish(body.fetch(:url))
   }

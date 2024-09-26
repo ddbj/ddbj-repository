@@ -1,7 +1,7 @@
 require_relative "../../app/refinements/fetch_raise_error"
 
 Retriable.configure do |config|
-  config.contexts[:ddbj_validator] = {
+  config.contexts[:fetch] = {
     on: [
       Errno::ECONNREFUSED,
       FetchRaiseError::ServerError,
