@@ -22,6 +22,8 @@ RSpec.describe Database::BioProject::Submitter do
   let(:user) { create(:user, uid: 'alice') }
 
   example 'submit' do
+    travel_to '2024-01-02 12:34:56'
+
     submission = create_submission(visibility: :private, file: 'bioproject/valid/hup.xml')
 
     Database::BioProject::Submitter.new.submit submission
@@ -39,14 +41,14 @@ RSpec.describe Database::BioProject::Submitter do
       status_id:     'private',
       release_date:  nil,
       dist_date:     nil,
-      modified_date: instance_of(ActiveSupport::TimeWithZone)
+      modified_date: '2024-01-02 12:34:56'.to_time
     )
 
     expect(BioProject::XML.sole).to have_attributes(
       submission_id:   'PSUB000001',
       content:         instance_of(String),
       version:         1,
-      registered_date: instance_of(String)
+      registered_date: '2024-01-02 12:34:56 +0900'
     )
 
     doc        = Nokogiri::XML.parse(BioProject::XML.sole.content)
@@ -58,7 +60,7 @@ RSpec.describe Database::BioProject::Submitter do
     expect(BioProject::ActionHistory.sole).to have_attributes(
       submission_id: 'PSUB000001',
       action:        '[repository:CreateNewSubmission] Create new submission',
-      action_date:   instance_of(ActiveSupport::TimeWithZone),
+      action_date:   '2024-01-02 12:34:56'.to_time,
       result:        true,
       action_level:  'info',
       submitter_id:  'alice'
@@ -97,6 +99,8 @@ RSpec.describe Database::BioProject::Submitter do
   end
 
   example 'visibility: public' do
+    travel_to '2024-01-02 12:34:56'
+
     submission = create_submission(visibility: :public, file: 'bioproject/valid/nonhup.xml')
 
     Database::BioProject::Submitter.new.submit submission
@@ -105,9 +109,9 @@ RSpec.describe Database::BioProject::Submitter do
       submission_id: 'PSUB000001',
       project_type:  'primary',
       status_id:     'public',
-      release_date:  instance_of(ActiveSupport::TimeWithZone),
-      dist_date:     instance_of(ActiveSupport::TimeWithZone),
-      modified_date: instance_of(ActiveSupport::TimeWithZone)
+      release_date:  '2024-01-02 12:34:56'.to_time,
+      dist_date:     '2024-01-02 12:34:56'.to_time,
+      modified_date: '2024-01-02 12:34:56'.to_time
     )
   end
 
@@ -324,19 +328,9 @@ RSpec.describe Database::BioProject::Submitter do
     ])
   end
 
-  example 'hold and visibility mismathed' do
-    expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: 'bioproject/valid/hup.xml')
-    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is public, but Hold exist in XML.')
-
-    expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/valid/nonhup.xml')
-    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is private, but Hold does not exist in XML.')
-
-    expect(BioProject::Submission.count).to eq(0)
-  end
-
   example 'submission id is overflow' do
+    travel_to '2024-01-02 12:34:56'
+
     BioProject::Submission.create! submission_id: 'PSUB999999', submitter_id: user.uid
 
     expect {
@@ -348,27 +342,35 @@ RSpec.describe Database::BioProject::Submitter do
     expect(BioProject::ActionHistory.sole).to have_attributes(
       submission_id: nil,
       action:        '[repository:CreateNewSubmission] Number of submission surpass the upper limit',
-      action_date:   instance_of(ActiveSupport::TimeWithZone),
+      action_date:   '2024-01-02 12:34:56'.to_time,
       result:        false,
       action_level:  'fatal',
       submitter_id:  'alice'
     )
   end
 
-  example 'submission failed' do
+  example 'visibility is public and hold exist' do
+    travel_to '2024-01-02 12:34:56'
+
     expect {
       Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: 'bioproject/valid/hup.xml')
-    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch)
+    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is public, but Hold exist in XML.')
 
     expect(BioProject::Submission.count).to eq(0)
 
     expect(BioProject::ActionHistory.sole).to have_attributes(
       submission_id: nil,
       action:        '[repository:CreateNewSubmission] rollback transaction',
-      action_date:   instance_of(ActiveSupport::TimeWithZone),
+      action_date:   '2024-01-02 12:34:56'.to_time,
       result:        false,
       action_level:  'error',
       submitter_id:  'alice'
     )
+  end
+
+  example 'visibility is private and hold does not exist' do
+    expect {
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/valid/nonhup.xml')
+    }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, 'Visibility is private, but Hold does not exist in XML.')
   end
 end

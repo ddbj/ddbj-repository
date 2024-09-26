@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BioSampleSet submitter_id="harunoy" submission_id="SSUB000019">
+  <BioSample access="public" last_update="2014-03-20T10:32:03.806+09:00">
+    <Ids>
+        <Id is_primary="1" namespace="BioSample">SAMD00000328</Id>
+    </Ids>
+    <Description>
+        <SampleName>MTB313</SampleName>
+        <Title>Streptococcus pyogenes</Title>
+        <Organism taxonomy_id="1314">
+            <OrganismName>Streptococcus pyogenes</OrganismName>
+        </Organism>
+    </Description>
+    <Owner>
+        <Name url="https://www.kitasato-u.ac.jp/lisci/">Kitasato Institute of Life Sciences</Name>
+        <Contacts>
+            <Contact email="harunoy@lisci.kitasato-u.ac.jp.ddbj.test">
+                <Name>
+                    <First>Haruno</First>
+                    <Last>Yoshida</Last>
+                </Name>
+            </Contact>
+        </Contacts>
+    </Owner>
+    <Models>
+        <Model>MIGS.ba.microbial</Model>
+    </Models>
+    <Attributes>
+        <Attribute attribute_name="sample_name">MTB313</Attribute>
+        <Attribute attribute_name="strain">MTB313</Attribute>
+        <Attribute attribute_name="env_biome">urban biome</Attribute>
+    </Attributes>
+  </BioSample>
+  <BioSample access="public" last_update="2014-03-20T10:32:03.806+09:00">
+    <Ids>
+        <Id is_primary="1" namespace="BioSample">SAMD00000328</Id>
+    </Ids>
+    <Description>
+        <SampleName>MTB314</SampleName>
+        <Title>Streptococcus pyogenes</Title>
+        <Organism taxonomy_id="1314">
+            <OrganismName>Streptococcus pyogenes</OrganismName>
+        </Organism>
+    </Description>
+    <Owner>
+        <Name url="https://www.kitasato-u.ac.jp/lisci/">Kitasato Institute of Life Sciences</Name>
+        <Contacts>
+            <Contact email="harunoy@lisci.kitasato-u.ac.jp.ddbj.test">
+                <Name>
+                    <First>Haruno</First>
+                    <Last>Yoshida</Last>
+                </Name>
+            </Contact>
+        </Contacts>
+    </Owner>
+    <Models>
+        <Model>MIGS.ba.microbial</Model>
+    </Models>
+    <Attributes>
+        <Attribute attribute_name="sample_name">MTB314</Attribute>
+        <Attribute attribute_name="strain">MTB314</Attribute>
+        <Attribute attribute_name="env_biome">urban biome</Attribute>
+    </Attributes>
+    <Links>
+        <Link label="Wonderland">https://www.wonderland.com</Link>
+    </Links>
+  </BioSample>
+</BioSampleSet>
