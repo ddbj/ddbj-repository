@@ -1,5 +1,5 @@
 class ValidateJob < ApplicationJob
-  retry_on Errno::ECONNREFUSED, wait: :polynomially_longer
+  retry_on Errno::ECONNREFUSED, Socket::ResolutionError, wait: :polynomially_longer
 
   after_discard do |job, error|
     Rails.error.report error
