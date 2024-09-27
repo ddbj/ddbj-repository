@@ -45,10 +45,7 @@ RSpec.describe ValidateJob, type: :job do
 
     expect_any_instance_of(ErrorSubscriber).to receive(:report)
 
-    expect {
-      ValidateJob.perform_now validation
-    }.to raise_error('something went wrong')
-
+    ValidateJob.perform_now validation
     validation.reload
 
     expect(validation).to have_attributes(
