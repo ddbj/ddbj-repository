@@ -9,7 +9,7 @@ class TestBioProject < Thor
 
   desc 'dump', 'Dump BioProject XMLs'
   def dump
-    dir = Rails.root.join('tmp/bioproject_xml')
+    dir = Rails.root.join('tmp/bioproject_xml').tap(&:mkpath)
 
     cond = <<~SQL
       (submission_id, version) IN (
@@ -65,7 +65,7 @@ class TestBioProject < Thor
         wait_for_finish(body.fetch(:url))
       }
 
-      dest.join("#{path.basename(".xml")}.json").write JSON.pretty_generate(res.json)
+      dest.join("#{path.basename('.xml')}.json").write JSON.pretty_generate(res.json)
     end
   end
 
