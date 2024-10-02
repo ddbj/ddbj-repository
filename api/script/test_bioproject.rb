@@ -60,7 +60,7 @@ class TestBioProject < Thor
             db:                 'BioProject',
             'BioProject[file]': file
           )
-        }).ensure_ok.json
+        }).json
 
         wait_for_finish(body.fetch(:url))
       }
@@ -84,26 +84,32 @@ class TestBioProject < Thor
       doc        = Nokogiri::XML.parse(xml.read)
       visibility = doc.at('/PackageSet/Package/Submission/Submission/Description/Hold') ? 'private' : 'public'
 
-      res = fetch("#{ENV.fetch('API_URL')}/submissions", **{
-        method: :post,
+      res = begin
+        fetch("#{ENV.fetch('API_URL')}/submissions", **{
+          method: :post,
 
-        body: Fetch::URLSearchParams.new(
-          db:            'BioProject',
-          validation_id: json.fetch(:id),
-          visibility:,
-          umbrella:      false
-        )
-      })
+          body: Fetch::URLSearchParams.new(
+            db:            'BioProject',
+            validation_id: json.fetch(:id),
+            visibility:,
+            umbrella:      false
+          )
+        })
+      rescue FetchRaiseError::ClientError => e
+        res = e.response
 
-      if res.status == 422 && res.json.fetch(:error).include?('Validation is already submitted')
-        say "#{path.basename}: skipped"
-        next
+        if res.status == 422 && res.json.fetch(:error).include?('Validation is already submitted')
+          say "#{path.basename}: skipped"
+          next
+        else
+          raise
+        end
       end
 
-      body = res.ensure_ok.json
+      body = res.json
       res  = wait_for_finish(body.fetch(:url))
 
-      dest.join(path.basename).write JSON.pretty_generate(res.json)
+      dest.join(path.basename).write JSON.pretty_generate(body)
 
       say "#{path.basename}: submitted"
     end
@@ -144,13 +150,13 @@ class TestBioProject < Thor
         }.compact,
 
         **opts
-      })
+      }).ensure_ok
     }
   end
 
   def wait_for_finish(url)
     loop do
-      res = fetch(url).ensure_ok
+      res = fetch(url)
 
       case res.json.fetch(:progress)
       when 'waiting', 'running'

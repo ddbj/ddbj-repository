@@ -44,7 +44,7 @@ class TestBioSample < Thor
             db:                'BioSample',
             'BioSample[file]': file
           )
-        }).ensure_ok.json
+        }).json
 
         wait_for_finish(body.fetch(:url))
       }
@@ -63,25 +63,31 @@ class TestBioSample < Thor
 
       next unless json.fetch(:validity) == 'valid'
 
-      res = fetch("#{ENV.fetch('API_URL')}/submissions", **{
-        method: :post,
+      res = begin
+        fetch("#{ENV.fetch('API_URL')}/submissions", **{
+          method: :post,
 
-        body: Fetch::URLSearchParams.new(
-          db:            'BioSample',
-          validation_id: json.fetch(:id),
-          visibility:    'public'
-        )
-      })
+          body: Fetch::URLSearchParams.new(
+            db:            'BioSample',
+            validation_id: json.fetch(:id),
+            visibility:    'public'
+          )
+        })
+      rescue FetchRaiseError::ClientError => e
+        res = e.response
 
-      if res.status == 422 && res.json.fetch(:error).include?('Validation is already submitted')
-        say "#{path.basename}: skipped"
-        next
+        if res.status == 422 && res.json.fetch(:error).include?('Validation is already submitted')
+          say "#{path.basename}: skipped"
+          next
+        else
+          raise
+        end
       end
 
-      body = res.ensure_ok.json
+      body = res.json
       res  = wait_for_finish(body.fetch(:url))
 
-      dest.join(path.basename).write JSON.pretty_generate(res.json)
+      dest.join(path.basename).write JSON.pretty_generate(body)
 
       say "#{path.basename}: submitted"
     end
@@ -122,13 +128,13 @@ class TestBioSample < Thor
         }.compact,
 
         **opts
-      })
+      }).ensure_ok
     }
   end
 
   def wait_for_finish(url)
     loop do
-      res = fetch(url).ensure_ok
+      res = fetch(url)
 
       case res.json.fetch(:progress)
       when 'waiting', 'running'
