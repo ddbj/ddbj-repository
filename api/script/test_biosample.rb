@@ -12,7 +12,7 @@ class TestBioSample < Thor
     dir = Rails.root.join('tmp/biosample_xml').tap(&:mkpath)
 
     BioSample::Submission.includes(samples: :xmls).find_each do |submission|
-      xmls = submission.samples.map { |sample|
+      xmls = submission.samples.filter_map { |sample|
         sample.xmls.sort_by(&:version).last
       }
 
