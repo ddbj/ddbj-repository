@@ -42,6 +42,7 @@ services:
       MINIO_SECRET_ACCESS_KEY:
       OIDC_CLIENT_ID:
       OIDC_ISSUER_URL:
+      RAILS_MAX_THREADS:       16
       REPOSITORY_DIR:          /data/repository
       SECRET_KEY_BASE:
       SENTRY_CURRENT_ENV:
@@ -54,7 +55,6 @@ services:
       SMTP_USERNAME:
       TZ:                      Japan
       USER_HOME_DIR:           /data/home
-      WEB_CONCURRENCY:         2
 
     depends_on:
       - ddbj-validator
