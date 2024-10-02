@@ -87,6 +87,30 @@ class TestBioSample < Thor
     end
   end
 
+  desc 'classify', 'Classify BioSample JSONs'
+  def classify
+    src = Rails.root.join('tmp/biosample_validate')
+
+    src.glob '*.json' do |path|
+      json     = JSON.parse(path.read, symbolize_names: true)
+      validity = json.fetch(:validity)
+
+      errors = json.fetch(:results).flat_map {
+        _1.fetch(:details)
+      }.select {
+        _1.fetch(:severity) == 'error'
+      }
+
+      say "#{path.basename('.json')}: #{validity}".then { |msg|
+        if errors.empty?
+          msg
+        else
+          "#{msg} (#{errors.map { _1.fetch(:message) }.join(', ')})"
+        end
+      }
+    end
+  end
+
   private
 
   def fetch(url, **opts)
