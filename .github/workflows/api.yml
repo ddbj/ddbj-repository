@@ -56,7 +56,7 @@ jobs:
 
       - run: bundle exec submission-excel2xml download_xsd
 
-      - run: bin/rails db:prepare
+      - run: bin/rails db:test:prepare
       - run: bundle exec rspec
 
   scan_ruby:
