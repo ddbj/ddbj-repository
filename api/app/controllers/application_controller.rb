@@ -20,8 +20,10 @@ class ApplicationController < ActionController::API
   private
 
   def authenticate
+    return if current_user
+
     render json: {
       error: "Unauthorized"
-    }, status: :unauthorized unless current_user
+    }, status: :unauthorized
   end
 end

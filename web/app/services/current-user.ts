@@ -51,9 +51,9 @@ export default class CurrentUserService extends Service {
   }
 
   ensureLogout() {
-    if (this.isLoggedIn) {
-      this.router.transitionTo('index');
-    }
+    if (!this.isLoggedIn) return;
+
+    this.router.transitionTo('index');
   }
 
   async login(apiKey: string) {
