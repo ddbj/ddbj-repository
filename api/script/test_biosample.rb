@@ -28,9 +28,29 @@ class TestBioSample < Thor
     end
   end
 
+  desc 'cleanse', 'Cleanse BioSample XMLs'
+  def cleanse
+    src  = Rails.root.join('tmp/biosample_xml')
+    dest = Rails.root.join('tmp/biosample_xml_cleaned').tap(&:mkpath)
+
+    src.glob '*.xml' do |path|
+      doc = Nokogiri::XML.parse(path.read)
+
+      doc.xpath('/BioSampleSet/BioSample/Attributes/Attribute[@attribute_name="collection_date"]').map { |attribute|
+        attribute.content = '1900'
+      }
+
+      doc.xpath('/BioSampleSet/BioSample/Attributes/Attribute[@attribute_name="geo_loc_name"]').map { |attribute|
+        attribute.content = 'Japan'
+      }
+
+      dest.join(path.basename).write doc.to_xml
+    end
+  end
+
   desc 'validate', 'Validate BioSample XMLs'
   def validate
-    src  = Rails.root.join('tmp/biosample_xml')
+    src  = Rails.root.join('tmp/biosample_xml_cleaned')
     dest = Rails.root.join('tmp/biosample_validate').tap(&:mkpath)
 
     Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
