@@ -1,7 +1,11 @@
 module FetchRaiseError
   class Error < StandardError
+    attr_reader :response
+
     def initialize(res)
       super "#{res.status} #{res.status_text}: #{res.body}"
+
+      @response = res
     end
   end
 
