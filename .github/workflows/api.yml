@@ -32,12 +32,9 @@ jobs:
         working-directory: api
 
     env:
-      BUNDLE_WITHOUT: development
-      OIDC_ISSUER_URL: https://oidc.example.com
       PGHOST: localhost
       PGUSER: postgres
       RAILS_ENV: test
-      TZ: Japan
 
     steps:
       - uses: actions/checkout@v4

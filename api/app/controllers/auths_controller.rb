@@ -2,7 +2,7 @@ class AuthsController < ApplicationController
   skip_before_action :authenticate
 
   def self.oidc_config
-    @oidc_config ||= OpenIDConnect::Discovery::Provider::Config.discover!(ENV.fetch("OIDC_ISSUER_URL"))
+    @oidc_config ||= OpenIDConnect::Discovery::Provider::Config.discover!(Rails.configuration.x.oidc_issuer_url)
   end
 
   def login
