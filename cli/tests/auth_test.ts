@@ -65,7 +65,6 @@ await snapshotTest({
     }, async () => {
       // @ts-expect-error for test
       const keypressStub = stub(_internals, 'keypress', returnsNext([Promise.resolve({ key: 'a' })]));
-      // @ts-expect-error for test
       const openStub = stub(_internals, 'open', returnsNext([Promise.resolve()]));
 
       try {

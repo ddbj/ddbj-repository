@@ -7,10 +7,12 @@ const apiKeyFilePath = join(configHome, 'ddbj-repository', 'api-key');
 function read() {
   try {
     return Deno.readTextFileSync(apiKeyFilePath);
-  } catch (err: any) {
-    if (err.name !== 'NotFound') throw err;
-
-    return undefined;
+  } catch (err) {
+    if (err instanceof Error && err.name === 'NotFound') {
+      return undefined;
+    } else {
+      throw err;
+    }
   }
 }
 
@@ -22,8 +24,12 @@ function write(apiKey: string) {
 function remove() {
   try {
     Deno.removeSync(apiKeyFilePath);
-  } catch (err: any) {
-    if (err.name !== 'NotFound') throw err;
+  } catch (err) {
+    if (err instanceof Error && err.name === 'NotFound') {
+      // do nothing
+    } else {
+      throw err;
+    }
   }
 }
 
