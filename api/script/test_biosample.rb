@@ -37,11 +37,11 @@ class TestBioSample < Thor
       doc = Nokogiri::XML.parse(path.read)
 
       doc.xpath('/BioSampleSet/BioSample/Attributes/Attribute[@attribute_name="collection_date"]').map { |attribute|
-        attribute.content = '1900'
+        attribute.content = 'missing: lab stock'
       }
 
       doc.xpath('/BioSampleSet/BioSample/Attributes/Attribute[@attribute_name="geo_loc_name"]').map { |attribute|
-        attribute.content = 'Japan'
+        attribute.content = 'missing: lab stock'
       }
 
       dest.join(path.basename).write doc.to_xml
