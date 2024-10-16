@@ -1,0 +1,18 @@
+servers:
+  network:
+    - repository-production
+
+proxy:
+  host: repository.ddbj.nig.ac.jp
+  http_port: 3300
+
+env:
+  clear:
+    API_URL:         https://repository.ddbj.nig.ac.jp/api
+    MINIO_ENDPOINT:  https://repository.ddbj.nig.ac.jp
+    OIDC_ISSUER_URL: https://accounts.ddbj.nig.ac.jp/realms/master
+
+accessories:
+  ddbj_validator:
+    options:
+      network: repository-production

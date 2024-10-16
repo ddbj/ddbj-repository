@@ -1,0 +1,19 @@
+servers:
+  network:
+    - repository-staging
+
+proxy:
+  host: repository-staging.ddbj.nig.ac.jp
+  http_port: 3301
+
+env:
+  clear:
+    API_URL:            https://repository-staging.ddbj.nig.ac.jp/api
+    MINIO_ENDPOINT:     https://repository-staging.ddbj.nig.ac.jp
+    OIDC_ISSUER_URL:    https://accounts-staging.ddbj.nig.ac.jp/realms/master
+    SENTRY_CURRENT_ENV: staging
+
+accessories:
+  ddbj_validator:
+    options:
+      network: repository-staging

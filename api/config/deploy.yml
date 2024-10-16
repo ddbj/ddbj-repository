@@ -1,0 +1,69 @@
+service: repository
+image: ddbj/ddbj-repository
+require_destination: true
+
+servers:
+  web:
+    - at026
+
+proxy:
+  ssl: false
+
+registry:
+  server: ghcr.io
+  username: ursm
+
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    APP_GID:            '11370'
+    APP_UID:            '2233'
+    DDBJ_VALIDATOR_URL: http://ddbj-validator:3000/api
+    MINIO_BUCKET:       uploads
+    RAILS_MAX_THREADS:  '16'
+    REPOSITORY_DIR:     /data/repository
+    TZ:                 Japan
+    USER_HOME_DIR:      /data/home
+
+  secret:
+    - DATABASE_URL
+    - DATABASE_URL_DWAY
+    - MINIO_ACCESS_KEY_ID
+    - MINIO_SECRET_ACCESS_KEY
+    - OIDC_CLIENT_ID
+    - SECRET_KEY_BASE
+
+aliases:
+  console: app exec --interactive --reuse "bin/rails console"
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  dbc: app exec --interactive --reuse "bin/rails dbconsole"
+
+asset_path: /rails/public/assets
+
+builder:
+  arch: amd64
+
+ssh:
+  user: w3const
+
+accessories:
+  ddbj_validator:
+    image: ghcr.io/ddbj/ddbj_validator
+    host: at026
+
+    env:
+      clear:
+        DDBJ_VALIDATOR_APP_NAMED_GRAPHE_URI_TAXONOMY: http://ddbj.nig.ac.jp/ontologies/taxonomy-private
+        DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:          '30'
+        DDBJ_VALIDATOR_APP_VALIDATOR_LOG_DIR:         /usr/src/ddbj_validator/logs
+        DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER:  http://virtuoso:8890/sparql
+        TZ:                                           Japan
+
+      secret:
+        - DDBJ_VALIDATOR_APP_POSTGRES_HOST
+        - DDBJ_VALIDATOR_APP_POSTGRES_PASSWD
+        - DDBJ_VALIDATOR_APP_POSTGRES_PORT
+        - DDBJ_VALIDATOR_APP_POSTGRES_USER
