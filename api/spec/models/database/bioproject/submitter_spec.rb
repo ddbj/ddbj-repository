@@ -373,4 +373,20 @@ RSpec.describe Database::BioProject::Submitter do
       Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: "bioproject/valid/nonhup.xml")
     }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, "Visibility is private, but Hold does not exist in XML.")
   end
+
+  example "search tax id when taxID is not exist" do
+    create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 42
+
+    submission = create_submission(visibility: :private, file: "bioproject/valid/no_tax_id.xml")
+
+    Database::BioProject::Submitter.new.submit submission
+
+    expect(BioProject::SubmissionDatum.all).to include(
+      have_attributes(
+        form_name:  "target",
+        data_name:  "taxonomy_id",
+        data_value: "42"
+      )
+    )
+  end
 end
