@@ -123,37 +123,37 @@ RSpec.describe Database::BioProject::Submitter do
     expect(BioProject::SubmissionDatum.all.map { _1.slice(:form_name, :data_name, :data_value, :t_order).symbolize_keys }).to eq([
       {
         form_name:  "submitter",
-        data_name:  "first_name.1",
+        data_name:  "first_name",
         data_value: "submitter.first_name.1?",
         t_order:    1
       },
       {
         form_name:  "submitter",
-        data_name:  "last_name.1",
+        data_name:  "last_name",
         data_value: "submitter.last_name.1",
         t_order:    1
       },
       {
         form_name:  "submitter",
-        data_name:  "email.1",
+        data_name:  "email",
         data_value: "submitter.email.1?",
         t_order:    1
       },
       {
         form_name:  "submitter",
-        data_name:  "first_name.2",
+        data_name:  "first_name",
         data_value: "submitter.first_name.2?",
         t_order:    2
       },
       {
         form_name:  "submitter",
-        data_name:  "last_name.2",
+        data_name:  "last_name",
         data_value: "submitter.last_name.2",
         t_order:    2
       },
       {
         form_name:  "submitter",
-        data_name:  "email.2",
+        data_name:  "email",
         data_value: "submitter.email.2?",
         t_order:    2
       },
@@ -189,49 +189,49 @@ RSpec.describe Database::BioProject::Submitter do
       },
       {
         form_name:  "general_info",
-        data_name:  "link_description.1",
+        data_name:  "link_description",
         data_value: "general_info.link_description.1",
         t_order:    1
       },
       {
         form_name:  "general_info",
-        data_name:  "link_url.1",
+        data_name:  "link_url",
         data_value: "general_info.link_uri.1",
         t_order:    1
       },
       {
         form_name:  "general_info",
-        data_name:  "link_description.2",
+        data_name:  "link_description",
         data_value: "general_info.link_description.2",
         t_order:    2
       },
       {
         form_name:  "general_info",
-        data_name:  "link_url.2",
+        data_name:  "link_url",
         data_value: "general_info.link_uri.2",
         t_order:    2
       },
       {
         form_name:  "general_info",
-        data_name:  "agency.1",
+        data_name:  "agency",
         data_value: "general_info.agency.1",
         t_order:    1
       },
       {
         form_name:  "general_info",
-        data_name:  "agency_abbreviation.1",
+        data_name:  "agency_abbreviation",
         data_value: "general_info.agency_abbreviation.1",
         t_order:    1
       },
       {
         form_name:  "general_info",
-        data_name:  "grant_id.1",
+        data_name:  "grant_id",
         data_value: "general_info.grant_id.1",
         t_order:    1
       },
       {
         form_name:  "general_info",
-        data_name:  "grant_title.1",
+        data_name:  "grant_title",
         data_value: "general_info.grant_title.1",
         t_order:    1
       },
@@ -285,7 +285,7 @@ RSpec.describe Database::BioProject::Submitter do
       },
       {
         form_name:  "project_type",
-        data_name:  "objective.1",
+        data_name:  "objective",
         data_value: "project_type.objective.1*",
         t_order:    1
       },
@@ -315,13 +315,13 @@ RSpec.describe Database::BioProject::Submitter do
       },
       {
         form_name:  "publication",
-        data_name:  "pubmed_id.1",
+        data_name:  "pubmed_id",
         data_value: "publication.pubmed_id.1",
         t_order:    1
       },
       {
         form_name:  "publication",
-        data_name:  "doi.2",
+        data_name:  "doi",
         data_value: "publication.doi.2",
         t_order:    2
       }

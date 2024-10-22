@@ -149,9 +149,9 @@ class Database::BioProject::Submitter
         email      = contact[:email]
 
         [
-          [ "submitter", "first_name.#{i}", first_name&.text, i ],
-          [ "submitter", "last_name.#{i}",  last_name&.text,  i ],
-          [ "submitter", "email.#{i}",      email,            i ]
+          [ "submitter", "first_name", first_name&.text, i ],
+          [ "submitter", "last_name",  last_name&.text,  i ],
+          [ "submitter", "email",      email,            i ]
         ]
       },
 
@@ -177,8 +177,8 @@ class Database::BioProject::Submitter
         url = link.at("URL")
 
         [
-          [ "general_info", "link_description.#{i}", link[:label], i ],
-          [ "general_info", "link_url.#{i}",         url&.text,    i ]
+          [ "general_info", "link_description", link[:label], i ],
+          [ "general_info", "link_url",         url&.text,    i ]
         ]
       },
 
@@ -188,10 +188,10 @@ class Database::BioProject::Submitter
         title  = grant.at("Title")
 
         [
-          [ "general_info", "agency.#{i}",              agency&.text,    i ],
-          [ "general_info", "agency_abbreviation.#{i}", abbr&.text,      i ],
-          [ "general_info", "grant_id.#{i}",            grant[:GrantId], i ],
-          [ "general_info", "grant_title.#{i}",         title&.text,     i ]
+          [ "general_info", "agency",              agency&.text,    i ],
+          [ "general_info", "agency_abbreviation", abbr&.text,      i ],
+          [ "general_info", "grant_id",            grant[:GrantId], i ],
+          [ "general_info", "grant_title",         title&.text,     i ]
         ]
       },
 
@@ -229,7 +229,7 @@ class Database::BioProject::Submitter
       *doc.xpath("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Objectives").map.with_index(1) { |objectives, i|
         data = objectives.at("Data")
 
-        [ "project_type", "objective.#{i}", data&.[](:data_type), i ]
+        [ "project_type", "objective", data&.[](:data_type), i ]
       },
 
       doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").then {
@@ -253,9 +253,9 @@ class Database::BioProject::Submitter
       *doc.xpath("/PackageSet/Package/Project/Project/ProjectDescr/Publication").map.with_index(1) { |publication, i|
         case dbtype = publication.at("Reference/DbType")&.text
         when "ePubmed"
-          [ "publication", "pubmed_id.#{i}", publication[:id], i ]
+          [ "publication", "pubmed_id", publication[:id], i ]
         when "eDOI"
-          [ "publication", "doi.#{i}", publication[:id], i ]
+          [ "publication", "doi", publication[:id], i ]
         else
           raise "Unsupported publication type: #{dbtype.inspect}"
         end
