@@ -50,7 +50,7 @@
         <ProjectType>
           <ProjectTypeSubmission>
             <Target sample_scope="project_type.sample_scope" material="project_type.material" capture="project_type.capture">
-              <Organism taxID="target.taxonomy_id || 0">
+              <Organism taxID="42">
                 <OrganismName>target.organism_name</OrganismName>
                 <Label>target.isolate_name_or_label?</Label>
                 <Strain>target.strain_breed_cultivar</Strain>

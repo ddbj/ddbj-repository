@@ -1,5 +1,6 @@
 class Database::BioProject::Submitter
   class VisibilityMismatch < StandardError; end
+  class TaxIdMismatch < StandardError; end
   class SubmissionIDOverflow < StandardError; end
 
   PROJECT_DATA_TYPES = {
@@ -237,12 +238,20 @@ class Database::BioProject::Submitter
       },
 
       doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism").then {
-        tax_id = _1&.[](:taxID) || begin
-          if organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName")&.text
-            DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pick(:tax_id)
-          else
-            nil
-          end
+        xml_tax_id = _1&.[](:taxID)
+
+        tax_id = if organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName")&.text
+           drasearch_tax_id = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pick(:tax_id)
+
+           if xml_tax_id
+             raise TaxIdMismatch if xml_tax_id != drasearch_tax_id.to_s
+
+             xml_tax_id
+           else
+             drasearch_tax_id
+           end
+        else
+          nil
         end
 
         [ "target", "taxonomy_id", tax_id == "0" ? nil : tax_id, -1 ]

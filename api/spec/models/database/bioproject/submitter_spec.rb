@@ -116,6 +116,8 @@ RSpec.describe Database::BioProject::Submitter do
   end
 
   example "full" do
+    create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 42
+
     submission = create_submission(visibility: :private, file: "bioproject/valid/full.xml")
 
     Database::BioProject::Submitter.new.submit submission
@@ -298,7 +300,7 @@ RSpec.describe Database::BioProject::Submitter do
       {
         form_name:  "target",
         data_name:  "taxonomy_id",
-        data_value: "target.taxonomy_id || 0",
+        data_value: "42",
         t_order:    -1
       },
       {
