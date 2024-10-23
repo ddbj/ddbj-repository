@@ -241,15 +241,15 @@ class Database::BioProject::Submitter
         xml_tax_id = _1&.[](:taxID)
 
         tax_id = if organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName")&.text
-           drasearch_tax_id = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pick(:tax_id)
+          drasearch_tax_id = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pick(:tax_id)
 
-           if xml_tax_id
-             raise TaxIdMismatch if xml_tax_id != drasearch_tax_id.to_s
+          if xml_tax_id
+            raise TaxIdMismatch if xml_tax_id != drasearch_tax_id.to_s
 
-             xml_tax_id
-           else
-             drasearch_tax_id
-           end
+            xml_tax_id
+          else
+            drasearch_tax_id
+          end
         else
           nil
         end
