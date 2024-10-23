@@ -24,6 +24,12 @@ submitterdb_default: &submitterdb_default
   <<: *dway_default
   migrations_paths: db/submitterdb_migrate
 
+drasearch_default: &drasearch_default
+  <<: *default
+  schema_search_path: sra,public
+  default_timezone: local
+  migrations_paths: db/drasearch_migrate
+
 development:
   primary:
     <<: *default
@@ -45,6 +51,10 @@ development:
     <<: *submitterdb_default
     database: submitterdb_development
 
+  drasearch:
+    <<: *drasearch_default
+    database: drasearch_development
+
 test:
   primary:
     <<: *default
@@ -65,6 +75,10 @@ test:
   submitterdb:
     <<: *submitterdb_default
     database: submitterdb_test
+
+  drasearch:
+    <<: *drasearch_default
+    database: drasearch_test
 
 production:
   primary:
@@ -100,4 +114,10 @@ production:
     <<: *submitterdb_default
     url: <%= ENV["DATABASE_URL_DWAY"] %>
     database: submitterdb
+    database_tasks: false
+
+  drasearch:
+    <<: *drasearch_default
+    url: <%= ENV["DATABASE_URL_DRASEARCH"] %>
+    database: drasearch
     database_tasks: false

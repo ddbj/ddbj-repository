@@ -237,7 +237,13 @@ class Database::BioProject::Submitter
       },
 
       doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism").then {
-        tax_id = _1&.[](:taxID)
+        tax_id = _1&.[](:taxID) || begin
+          if organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName")&.text
+            DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pick(:tax_id)
+          else
+            nil
+          end
+        end
 
         [ "target", "taxonomy_id", tax_id == "0" ? nil : tax_id, -1 ]
       },
