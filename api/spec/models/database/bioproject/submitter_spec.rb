@@ -373,4 +373,39 @@ RSpec.describe Database::BioProject::Submitter do
       Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: "bioproject/valid/nonhup.xml")
     }.to raise_error(Database::BioProject::Submitter::VisibilityMismatch, "Visibility is private, but Hold does not exist in XML.")
   end
+
+  example "xml does not contain tax id, but contain unknown organism name" do
+    submission = create_submission(visibility: :private, file: "bioproject/valid/no_tax_id.xml")
+
+    expect {
+      Database::BioProject::Submitter.new.submit submission
+    }.to raise_error(Database::BioProject::Submitter::UnknownOrganismName)
+  end
+
+  example "xml does not contain tax id, but contain valid organism name" do
+    create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 42
+
+    submission = create_submission(visibility: :private, file: "bioproject/valid/no_tax_id.xml")
+    Database::BioProject::Submitter.new.submit submission
+
+    expect(BioProject::SubmissionDatum.all.map { _1.slice(:form_name, :data_name, :data_value, :t_order).symbolize_keys }).to include(
+      {
+        form_name:  "target",
+        data_name:  "taxonomy_id",
+        data_value: "42",
+        t_order:    -1
+      }
+    )
+  end
+
+  example "xml does not contain tax id, but contain ambiguous organism name" do
+    create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 42
+    create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 43
+
+    submission = create_submission(visibility: :private, file: "bioproject/valid/no_tax_id.xml")
+
+    expect {
+      Database::BioProject::Submitter.new.submit submission
+    }.to raise_error(Database::BioProject::Submitter::AmbiguousOrganismName)
+  end
 end

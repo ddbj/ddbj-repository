@@ -1,6 +1,8 @@
 class Database::BioProject::Submitter
   class VisibilityMismatch < StandardError; end
   class SubmissionIDOverflow < StandardError; end
+  class UnknownOrganismName < StandardError; end
+  class AmbiguousOrganismName < StandardError; end
 
   PROJECT_DATA_TYPES = {
     "Genome Sequencing"                => "genome_sequencing",
@@ -237,7 +239,21 @@ class Database::BioProject::Submitter
       },
 
       doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism").then {
-        tax_id = _1&.[](:taxID)
+        tax_id = _1&.[](:taxID) || begin
+          organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").text
+          tax_ids = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pluck(:tax_id)
+
+          case tax_ids.length
+          when 0
+            nil
+          when 1
+            tax_ids.first
+          else
+            raise AmbiguousOrganismName
+          end
+        end
+
+        raise UnknownOrganismName unless tax_id
 
         [ "target", "taxonomy_id", tax_id == "0" ? nil : tax_id, -1 ]
       },

@@ -12,7 +12,11 @@
         </ProjectDescr>
         <ProjectType>
           <ProjectTypeSubmission>
-            <Target sample_scope="eEnvironment" material="ePartialGenome" capture="eTargetedLocusLoci"></Target>
+            <Target sample_scope="eEnvironment" material="ePartialGenome" capture="eTargetedLocusLoci">
+              <Organism taxID="target.taxonomy_id || 0">
+                <OrganismName>target.organism_name</OrganismName>
+              </Organism>
+            </Target>
             <Method method_type="eSequencing" />
             <Objectives>
               <Data data_type="eRawSequenceReads" />
