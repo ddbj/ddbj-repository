@@ -127,11 +127,16 @@ class TestBioSample < Thor
         _1.fetch(:severity) == 'error'
       }
 
-      say "#{path.basename('.json')}: #{validity}".then { |msg|
+      say "#{path.basename('.json')}: #{validity}".then { |banner|
         if errors.empty?
-          msg
+          banner
         else
-          "#{msg} (#{errors.map { _1.fetch(:message) }.join(', ')})"
+          messages = errors.map {
+            _1 => { code:, message: }
+            "[#{code}] #{message}"
+          }
+
+          "#{banner} (#{messages.join('; ')})"
         end
       }
     end
