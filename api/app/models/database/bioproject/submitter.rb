@@ -147,15 +147,17 @@ class Database::BioProject::Submitter
     return if doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/@taxID")
 
     organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").text
-    tax_ids       = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pluck(:tax_id)
+    names         = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").order(:tax_id)
 
-    tax_id = case tax_ids.size
+    tax_id = case names.size
     when 0
       nil
     when 1
-      tax_ids.first
+      names.first.tax_id
     else
-      raise AmbiguousOrganismName
+      ids = names.map { "[#{_1.tax_id}] #{_1.uniq_name}" }.join(", ")
+
+      raise AmbiguousOrganismName, "Organism name is ambiguous, please set one of the following taxonomy IDs: #{ids}"
     end
 
     raise UnknownOrganismName unless tax_id

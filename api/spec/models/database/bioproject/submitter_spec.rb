@@ -404,13 +404,13 @@ RSpec.describe Database::BioProject::Submitter do
   end
 
   example "xml does not contain tax id, but contain ambiguous organism name" do
-    create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 42
-    create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 43
+    create :drasearch_tax_names, name_class: "scientific name", search_name: "target.organism_name", uniq_name: "foo", tax_id: 42
+    create :drasearch_tax_names, name_class: "scientific name", search_name: "target.organism_name", uniq_name: "bar", tax_id: 43
 
     submission = create_submission(visibility: :private, file: "bioproject/valid/no_tax_id.xml")
 
     expect {
       Database::BioProject::Submitter.new.submit submission
-    }.to raise_error(Database::BioProject::Submitter::AmbiguousOrganismName)
+    }.to raise_error(Database::BioProject::Submitter::AmbiguousOrganismName, "Organism name is ambiguous, please set one of the following taxonomy IDs: [42] foo, [43] bar")
   end
 end
