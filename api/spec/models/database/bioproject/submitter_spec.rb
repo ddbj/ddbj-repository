@@ -396,6 +396,11 @@ RSpec.describe Database::BioProject::Submitter do
         t_order:    -1
       }
     )
+
+    doc    = Nokogiri::XML.parse(BioProject::XML.find_by(submission_id: "PSUB000001").content)
+    tax_id = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/@taxID").text
+
+    expect(tax_id).to eq("42")
   end
 
   example "xml does not contain tax id, but contain ambiguous organism name" do

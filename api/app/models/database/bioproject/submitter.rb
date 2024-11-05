@@ -79,15 +79,17 @@ class Database::BioProject::Submitter
 
       version = (BioProject::XML.where(submission_id:).order(version: :desc).pick(:version) || 0) + 1
 
-      modify_xml doc, submission_id, is_public
+      set_accession_and_archive doc, submission_id
+      set_release_date doc if is_public
+      set_tax_id doc
+
+      bp_submission.submission_data.insert_all submission_data_attrs(submission, doc)
 
       bp_submission.xmls.create!(
         content:         doc.to_s,
         version:,
         registered_date: Time.current
       )
-
-      bp_submission.submission_data.insert_all submission_data_attrs(submission, doc)
 
       bp_submission.action_histories.create!(
         action:       "[repository:CreateNewSubmission] Create new submission",
@@ -122,25 +124,43 @@ class Database::BioProject::Submitter
     "PSUB#{num.succ.to_s.rjust(6, '0')}"
   end
 
-  def modify_xml(doc, project_id, is_public)
+  def set_accession_and_archive(doc, project_id)
     archive_id = doc.at("/PackageSet/Package/Project/Project/ProjectID/ArchiveID")
 
     archive_id[:accession] = project_id
     archive_id[:archive]   = "DDBJ"
+  end
 
-    if is_public
-      doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")&.remove
+  def set_release_date(doc)
+    doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")&.remove
 
-      if release_date = doc.at("/PackageSet/Package/Project/Project/ProjectDescr/ProjectReleaseDate")
-        if release_date.text.empty?
-          release_date.content = Time.current.iso8601
-        end
-      else
-        # TODO: Error handling
+    if release_date = doc.at("/PackageSet/Package/Project/Project/ProjectDescr/ProjectReleaseDate")
+      if release_date.text.empty?
+        release_date.content = Time.current.iso8601
       end
+    else
+      # TODO: Error handling
+    end
+  end
+
+  def set_tax_id(doc)
+    return if doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/@taxID")
+
+    organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").text
+    tax_ids       = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pluck(:tax_id)
+
+    tax_id = case tax_ids.size
+    when 0
+      nil
+    when 1
+      tax_ids.first
+    else
+      raise AmbiguousOrganismName
     end
 
-    doc
+    raise UnknownOrganismName unless tax_id
+
+    doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism")[:taxID] = tax_id
   end
 
   def submission_data_attrs(submission, doc)
@@ -238,24 +258,8 @@ class Database::BioProject::Submitter
         [ "target", "organism_name", _1&.text, -1 ]
       },
 
-      doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism").then {
-        tax_id = _1&.[](:taxID) || begin
-          organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").text
-          tax_ids = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").pluck(:tax_id)
-
-          case tax_ids.length
-          when 0
-            nil
-          when 1
-            tax_ids.first
-          else
-            raise AmbiguousOrganismName
-          end
-        end
-
-        raise UnknownOrganismName unless tax_id
-
-        [ "target", "taxonomy_id", tax_id == "0" ? nil : tax_id, -1 ]
+      doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/@taxID").then {
+        [ "target", "taxonomy_id", _1.text == "0" ? nil : _1.text, -1 ]
       },
 
       doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Strain").then {
