@@ -1,8 +1,6 @@
 class Database::BioProject::Submitter
-  class VisibilityMismatch < StandardError; end
-  class SubmissionIDOverflow < StandardError; end
-  class UnknownOrganismName < StandardError; end
-  class AmbiguousOrganismName < StandardError; end
+  class Error < StandardError; end
+  class SubmissionIDOverflow < Error; end
 
   PROJECT_DATA_TYPES = {
     "Genome Sequencing"                => "genome_sequencing",
@@ -27,10 +25,10 @@ class Database::BioProject::Submitter
     BioProject::Record.transaction isolation: Rails.env.test? ? nil : :serializable do |tx|
       begin
         submission_id = next_submission_id
-      rescue SubmissionIDOverflow
+      rescue SubmissionIDOverflow => e
         tx.after_rollback do
           BioProject::ActionHistory.create!(
-            action:       "[repository:CreateNewSubmission] Number of submission surpass the upper limit",
+            action:       "[repository:CreateNewSubmission] #{e.message}",
             action_date:  Time.current,
             result:       false,
             action_level: "fatal",
@@ -58,16 +56,20 @@ class Database::BioProject::Submitter
         form_status_flags: "000000"
       )
 
-      is_public = submission.visibility_public?
       content   = submission.validation.objs.find_by!(_id: "BioProject").file.download
       doc       = Nokogiri::XML.parse(content)
+      is_public = submission.visibility_public?
       hold      = doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")
 
       if is_public && hold
-        raise VisibilityMismatch, "Visibility is public, but Hold exist in XML."
+        raise Error, "Visibility is public, but Hold exist in XML."
       elsif !is_public && !hold
-        raise VisibilityMismatch, "Visibility is private, but Hold does not exist in XML."
+        raise Error, "Visibility is private, but Hold does not exist in XML."
       end
+
+      set_accession_and_archive doc, submission_id
+      set_release_date doc if is_public
+      set_tax_id doc
 
       bp_submission.create_project!(
         project_type:  "primary",
@@ -77,13 +79,9 @@ class Database::BioProject::Submitter
         modified_date: Time.current
       )
 
-      version = (BioProject::XML.where(submission_id:).order(version: :desc).pick(:version) || 0) + 1
-
-      set_accession_and_archive doc, submission_id
-      set_release_date doc if is_public
-      set_tax_id doc
-
       bp_submission.submission_data.insert_all submission_data_attrs(submission, doc)
+
+      version = (BioProject::XML.where(submission_id:).order(version: :desc).pick(:version) || 0) + 1
 
       bp_submission.xmls.create!(
         content:         doc.to_s,
@@ -119,7 +117,7 @@ class Database::BioProject::Submitter
     submission_id = BioProject::Submission.order(submission_id: :desc).pick(:submission_id) || "PSUB000000"
     num           = submission_id.delete_prefix("PSUB").to_i
 
-    raise SubmissionIDOverflow if num >= 999_999
+    raise SubmissionIDOverflow, "Number of submission surpass the upper limit" if num >= 999_999
 
     "PSUB#{num.succ.to_s.rjust(6, '0')}"
   end
@@ -157,10 +155,10 @@ class Database::BioProject::Submitter
     else
       ids = names.map { "[#{_1.tax_id}] #{_1.uniq_name}" }.join(", ")
 
-      raise AmbiguousOrganismName, "Organism name is ambiguous, please set one of the following taxonomy IDs: #{ids}"
+      raise Error, "Organism name is ambiguous, please set one of the following taxonomy IDs: #{ids}"
     end
 
-    raise UnknownOrganismName unless tax_id
+    raise Error, "No entry found for the given organism name." unless tax_id
 
     doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism")[:taxID] = tax_id
   end
@@ -279,7 +277,7 @@ class Database::BioProject::Submitter
         when "eDOI"
           [ "publication", "doi", publication[:id], i ]
         else
-          raise "Unsupported publication type: #{dbtype.inspect}"
+          raise Error, "Unsupported publication type: #{dbtype.inspect}"
         end
       }
     ].compact.map { |form_name, data_name, data_value, t_order|
