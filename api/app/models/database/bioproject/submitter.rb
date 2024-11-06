@@ -1,6 +1,6 @@
 class Database::BioProject::Submitter
-  class VisibilityMismatch < StandardError; end
-  class SubmissionIDOverflow < StandardError; end
+  class Error < StandardError; end
+  class SubmissionIDOverflow < Error; end
 
   PROJECT_DATA_TYPES = {
     "Genome Sequencing"                => "genome_sequencing",
@@ -25,10 +25,10 @@ class Database::BioProject::Submitter
     BioProject::Record.transaction isolation: Rails.env.test? ? nil : :serializable do |tx|
       begin
         submission_id = next_submission_id
-      rescue SubmissionIDOverflow
+      rescue SubmissionIDOverflow => e
         tx.after_rollback do
           BioProject::ActionHistory.create!(
-            action:       "[repository:CreateNewSubmission] Number of submission surpass the upper limit",
+            action:       "[repository:CreateNewSubmission] #{e.message}",
             action_date:  Time.current,
             result:       false,
             action_level: "fatal",
@@ -56,16 +56,20 @@ class Database::BioProject::Submitter
         form_status_flags: "000000"
       )
 
-      is_public = submission.visibility_public?
       content   = submission.validation.objs.find_by!(_id: "BioProject").file.download
       doc       = Nokogiri::XML.parse(content)
+      is_public = submission.visibility_public?
       hold      = doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")
 
       if is_public && hold
-        raise VisibilityMismatch, "Visibility is public, but Hold exist in XML."
+        raise Error, "Visibility is public, but Hold exist in XML."
       elsif !is_public && !hold
-        raise VisibilityMismatch, "Visibility is private, but Hold does not exist in XML."
+        raise Error, "Visibility is private, but Hold does not exist in XML."
       end
+
+      set_accession_and_archive doc, submission_id
+      set_release_date doc if is_public
+      set_tax_id doc
 
       bp_submission.create_project!(
         project_type:  "primary",
@@ -75,17 +79,15 @@ class Database::BioProject::Submitter
         modified_date: Time.current
       )
 
-      version = (BioProject::XML.where(submission_id:).order(version: :desc).pick(:version) || 0) + 1
+      bp_submission.submission_data.insert_all submission_data_attrs(submission, doc)
 
-      modify_xml doc, submission_id, is_public
+      version = (BioProject::XML.where(submission_id:).order(version: :desc).pick(:version) || 0) + 1
 
       bp_submission.xmls.create!(
         content:         doc.to_s,
         version:,
         registered_date: Time.current
       )
-
-      bp_submission.submission_data.insert_all submission_data_attrs(submission, doc)
 
       bp_submission.action_histories.create!(
         action:       "[repository:CreateNewSubmission] Create new submission",
@@ -115,30 +117,50 @@ class Database::BioProject::Submitter
     submission_id = BioProject::Submission.order(submission_id: :desc).pick(:submission_id) || "PSUB000000"
     num           = submission_id.delete_prefix("PSUB").to_i
 
-    raise SubmissionIDOverflow if num >= 999_999
+    raise SubmissionIDOverflow, "Number of submission surpass the upper limit" if num >= 999_999
 
     "PSUB#{num.succ.to_s.rjust(6, '0')}"
   end
 
-  def modify_xml(doc, project_id, is_public)
+  def set_accession_and_archive(doc, project_id)
     archive_id = doc.at("/PackageSet/Package/Project/Project/ProjectID/ArchiveID")
 
     archive_id[:accession] = project_id
     archive_id[:archive]   = "DDBJ"
+  end
 
-    if is_public
-      doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")&.remove
+  def set_release_date(doc)
+    doc.at("/PackageSet/Package/Submission/Submission/Description/Hold")&.remove
 
-      if release_date = doc.at("/PackageSet/Package/Project/Project/ProjectDescr/ProjectReleaseDate")
-        if release_date.text.empty?
-          release_date.content = Time.current.iso8601
-        end
-      else
-        # TODO: Error handling
+    if release_date = doc.at("/PackageSet/Package/Project/Project/ProjectDescr/ProjectReleaseDate")
+      if release_date.text.empty?
+        release_date.content = Time.current.iso8601
       end
+    else
+      # TODO: Error handling
+    end
+  end
+
+  def set_tax_id(doc)
+    return if doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/@taxID")
+
+    organism_name = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/OrganismName").text
+    names         = DRASearch::TaxName.where(search_name: organism_name, name_class: "scientific name").order(:tax_id)
+
+    tax_id = case names.size
+    when 0
+      nil
+    when 1
+      names.first.tax_id
+    else
+      ids = names.map { "[#{_1.tax_id}] #{_1.uniq_name}" }.join(", ")
+
+      raise Error, "Organism name is ambiguous, please set one of the following taxonomy IDs: #{ids}"
     end
 
-    doc
+    raise Error, "No entry found for the given organism name." unless tax_id
+
+    doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism")[:taxID] = tax_id
   end
 
   def submission_data_attrs(submission, doc)
@@ -236,10 +258,8 @@ class Database::BioProject::Submitter
         [ "target", "organism_name", _1&.text, -1 ]
       },
 
-      doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism").then {
-        tax_id = _1&.[](:taxID)
-
-        [ "target", "taxonomy_id", tax_id == "0" ? nil : tax_id, -1 ]
+      doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/@taxID").then {
+        [ "target", "taxonomy_id", _1.text == "0" ? nil : _1.text, -1 ]
       },
 
       doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/Strain").then {
@@ -257,7 +277,7 @@ class Database::BioProject::Submitter
         when "eDOI"
           [ "publication", "doi", publication[:id], i ]
         else
-          raise "Unsupported publication type: #{dbtype.inspect}"
+          raise Error, "Unsupported publication type: #{dbtype.inspect}"
         end
       }
     ].compact.map { |form_name, data_name, data_value, t_order|
