@@ -24,7 +24,7 @@ RSpec.describe Database::BioProject::Submitter do
   example "submit" do
     travel_to "2024-01-02 12:34:56"
 
-    submission = create_submission(visibility: :private, file: "bioproject/valid/hup.xml")
+    submission = create_submission(visibility: :private, file: "bioproject/hup.xml")
 
     Database::BioProject::Submitter.new.submit submission
 
@@ -101,7 +101,7 @@ RSpec.describe Database::BioProject::Submitter do
   example "visibility: public" do
     travel_to "2024-01-02 12:34:56"
 
-    submission = create_submission(visibility: :public, file: "bioproject/valid/nonhup.xml")
+    submission = create_submission(visibility: :public, file: "bioproject/nonhup.xml")
 
     Database::BioProject::Submitter.new.submit submission
 
@@ -116,7 +116,7 @@ RSpec.describe Database::BioProject::Submitter do
   end
 
   example "full" do
-    submission = create_submission(visibility: :private, file: "bioproject/valid/full.xml")
+    submission = create_submission(visibility: :private, file: "bioproject/full.xml")
 
     Database::BioProject::Submitter.new.submit submission
 
@@ -334,7 +334,7 @@ RSpec.describe Database::BioProject::Submitter do
     BioProject::Submission.create! submission_id: "PSUB999999", submitter_id: user.uid
 
     expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: "bioproject/valid/hup.xml")
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: "bioproject/hup.xml")
     }.to raise_error(Database::BioProject::Submitter::SubmissionIDOverflow, "Number of submission surpass the upper limit")
 
     expect(BioProject::Submission.count).to eq(1)
@@ -353,7 +353,7 @@ RSpec.describe Database::BioProject::Submitter do
     travel_to "2024-01-02 12:34:56"
 
     expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: "bioproject/valid/hup.xml")
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: "bioproject/hup.xml")
     }.to raise_error(Database::BioProject::Submitter::Error, "Visibility is public, but Hold exist in XML.")
 
     expect(BioProject::Submission.count).to eq(0)
@@ -370,12 +370,12 @@ RSpec.describe Database::BioProject::Submitter do
 
   example "visibility is private and hold does not exist" do
     expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: "bioproject/valid/nonhup.xml")
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: "bioproject/nonhup.xml")
     }.to raise_error(Database::BioProject::Submitter::Error, "Visibility is private, but Hold does not exist in XML.")
   end
 
   example "xml does not contain tax id, but contain unknown organism name" do
-    submission = create_submission(visibility: :private, file: "bioproject/valid/no_tax_id.xml")
+    submission = create_submission(visibility: :private, file: "bioproject/no_tax_id.xml")
 
     expect {
       Database::BioProject::Submitter.new.submit submission
@@ -385,7 +385,7 @@ RSpec.describe Database::BioProject::Submitter do
   example "xml does not contain tax id, but contain valid organism name" do
     create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 42
 
-    submission = create_submission(visibility: :private, file: "bioproject/valid/no_tax_id.xml")
+    submission = create_submission(visibility: :private, file: "bioproject/no_tax_id.xml")
     Database::BioProject::Submitter.new.submit submission
 
     expect(BioProject::SubmissionDatum.all.map { _1.slice(:form_name, :data_name, :data_value, :t_order).symbolize_keys }).to include(
@@ -407,7 +407,7 @@ RSpec.describe Database::BioProject::Submitter do
     create :drasearch_tax_names, name_class: "scientific name", search_name: "target.organism_name", uniq_name: "foo", tax_id: 42
     create :drasearch_tax_names, name_class: "scientific name", search_name: "target.organism_name", uniq_name: "bar", tax_id: 43
 
-    submission = create_submission(visibility: :private, file: "bioproject/valid/no_tax_id.xml")
+    submission = create_submission(visibility: :private, file: "bioproject/no_tax_id.xml")
 
     expect {
       Database::BioProject::Submitter.new.submit submission

@@ -3,9 +3,9 @@ require "rails_helper"
 RSpec.describe Database::DRA::Validator, type: :model do
   example "valid" do
     validation = create(:validation, id: 42, db: "DRA") { |validation|
-      create :obj, validation:, _id: "Submission", file: file_fixture_upload("dra/valid/example-0001_dra_Submission.xml")
-      create :obj, validation:, _id: "Experiment", file: file_fixture_upload("dra/valid/example-0001_dra_Experiment.xml")
-      create :obj, validation:, _id: "Run",        file: file_fixture_upload("dra/valid/example-0001_dra_Run.xml")
+      create :obj, validation:, _id: "Submission", file: file_fixture_upload("dra/example-0001_dra_Submission.xml")
+      create :obj, validation:, _id: "Experiment", file: file_fixture_upload("dra/example-0001_dra_Experiment.xml")
+      create :obj, validation:, _id: "Run",        file: file_fixture_upload("dra/example-0001_dra_Run.xml")
       create :obj, validation:, _id: "RunFile",    file: uploaded_file(name: "runfile.xml")
     }
 
@@ -64,9 +64,9 @@ RSpec.describe Database::DRA::Validator, type: :model do
 
   example "invalid" do
     validation = create(:validation, id: 42, db: "DRA") { |validation|
-      create :obj, validation:, _id: "Submission", file: file_fixture_upload("dra/invalid/example-0001_dra_Submission.xml")
-      create :obj, validation:, _id: "Experiment", file: file_fixture_upload("dra/invalid/example-0001_dra_Experiment.xml")
-      create :obj, validation:, _id: "Run",        file: file_fixture_upload("dra/invalid/example-0001_dra_Run.xml")
+      create :obj, validation:, _id: "Submission", file: file_fixture_upload("dra/example-0003_dra_Submission.xml")
+      create :obj, validation:, _id: "Experiment", file: file_fixture_upload("dra/example-0003_dra_Experiment.xml")
+      create :obj, validation:, _id: "Run",        file: file_fixture_upload("dra/example-0003_dra_Run.xml")
       create :obj, validation:, _id: "RunFile",    file: uploaded_file(name: "runfile.xml")
     }
 
@@ -105,11 +105,11 @@ RSpec.describe Database::DRA::Validator, type: :model do
 
   example "with Analysis and AnalysisFile, valid" do
     validation = create(:validation, id: 42, db: "DRA") { |validation|
-      create :obj, validation:, _id: "Submission",   file: file_fixture_upload("dra/valid/example-0002_dra_Submission.xml")
-      create :obj, validation:, _id: "Experiment",   file: file_fixture_upload("dra/valid/example-0002_dra_Experiment.xml")
-      create :obj, validation:, _id: "Run",          file: file_fixture_upload("dra/valid/example-0002_dra_Run.xml")
+      create :obj, validation:, _id: "Submission",   file: file_fixture_upload("dra/example-0002_dra_Submission.xml")
+      create :obj, validation:, _id: "Experiment",   file: file_fixture_upload("dra/example-0002_dra_Experiment.xml")
+      create :obj, validation:, _id: "Run",          file: file_fixture_upload("dra/example-0002_dra_Run.xml")
       create :obj, validation:, _id: "RunFile",      file: uploaded_file(name: "runfile.xml")
-      create :obj, validation:, _id: "Analysis",     file: file_fixture_upload("dra/valid/example-0002_dra_Analysis.xml")
+      create :obj, validation:, _id: "Analysis",     file: file_fixture_upload("dra/example-0002_dra_Analysis.xml")
       create :obj, validation:, _id: "AnalysisFile", file: uploaded_file(name: "analysisfile.xml")
     }
 
@@ -142,9 +142,9 @@ RSpec.describe Database::DRA::Validator, type: :model do
 
   example "with multiple RunFile, valid" do
     validation = create(:validation, id: 42, db: "DRA") { |validation|
-      create :obj, validation:, _id: "Submission", file: file_fixture_upload("dra/valid/example-0001_dra_Submission.xml")
-      create :obj, validation:, _id: "Experiment", file: file_fixture_upload("dra/valid/example-0001_dra_Experiment.xml")
-      create :obj, validation:, _id: "Run",        file: file_fixture_upload("dra/valid/example-0001_dra_Run.xml")
+      create :obj, validation:, _id: "Submission", file: file_fixture_upload("dra/example-0001_dra_Submission.xml")
+      create :obj, validation:, _id: "Experiment", file: file_fixture_upload("dra/example-0001_dra_Experiment.xml")
+      create :obj, validation:, _id: "Run",        file: file_fixture_upload("dra/example-0001_dra_Run.xml")
       create :obj, validation:, _id: "RunFile",    file: uploaded_file(name: "runfile1.xml")
       create :obj, validation:, _id: "RunFile",    file: uploaded_file(name: "runfile2.xml")
     }

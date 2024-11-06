@@ -7,8 +7,8 @@ RSpec.describe SubmitJob, type: :job do
   example "simple" do
     submission = create(:submission, id: 42, **{
       validation: create(:validation, :valid, db: "MetaboBank") { |validation|
-        create :obj, validation:, _id: "IDF",  file: file_fixture_upload("metabobank/valid/MTBKS231.idf.txt"), validity: "valid"
-        create :obj, validation:, _id: "SDRF", file: file_fixture_upload("metabobank/valid/MTBKS231.sdrf.txt"), validity: "valid"
+        create :obj, validation:, _id: "IDF",  file: file_fixture_upload("metabobank/MTBKS231.idf.txt"), validity: "valid"
+        create :obj, validation:, _id: "SDRF", file: file_fixture_upload("metabobank/MTBKS231.sdrf.txt"), validity: "valid"
       }
     }).reload
 
@@ -30,9 +30,9 @@ RSpec.describe SubmitJob, type: :job do
   example "complex" do
     submission = create(:submission, id: 42, **{
       validation: create(:validation, :valid, db: "MetaboBank") { |validation|
-        create :obj, validation:, _id: "IDF",  file: file_fixture_upload("metabobank/valid/MTBKS231.idf.txt"),  validity: "valid"
-        create :obj, validation:, _id: "SDRF", file: file_fixture_upload("metabobank/valid/MTBKS231.sdrf.txt"), validity: "valid"
-        create :obj, validation:, _id: "MAF",  file: file_fixture_upload("metabobank/valid/MTBKS231.maf.txt"),  validity: "valid"
+        create :obj, validation:, _id: "IDF",  file: file_fixture_upload("metabobank/MTBKS231.idf.txt"),  validity: "valid"
+        create :obj, validation:, _id: "SDRF", file: file_fixture_upload("metabobank/MTBKS231.sdrf.txt"), validity: "valid"
+        create :obj, validation:, _id: "MAF",  file: file_fixture_upload("metabobank/MTBKS231.maf.txt"),  validity: "valid"
 
         create :obj, validation:, _id: "RawDataFile", file: uploaded_file(name: "010_10_1_010.lcd"),  destination: "raw", validity: "valid"
         create :obj, validation:, _id: "RawDataFile", file: uploaded_file(name: "011_11_4_011.lcd"),  destination: "raw", validity: "valid"

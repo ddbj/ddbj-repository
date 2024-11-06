@@ -3,8 +3,8 @@ require "rails_helper"
 RSpec.describe Database::GEA::Validator, type: :model do
   example "valid" do
     validation = create(:validation, id: 42, db: "GEA") { |validation|
-      create :obj, validation:, _id: "IDF",  file: file_fixture_upload("gea/valid/E-GEAD-282.idf.txt")
-      create :obj, validation:, _id: "SDRF", file: file_fixture_upload("gea/valid/E-GEAD-282.sdrf.txt")
+      create :obj, validation:, _id: "IDF",  file: file_fixture_upload("gea/E-GEAD-282.idf.txt")
+      create :obj, validation:, _id: "SDRF", file: file_fixture_upload("gea/E-GEAD-282.sdrf.txt")
     }
 
     Database::GEA::Validator.new.validate validation
