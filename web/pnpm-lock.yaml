@@ -21,8 +21,8 @@ importers:
         specifier: ^4.0.4
         version: 4.0.4(@babel/core@7.26.0)(@glint/template@1.5.0)(ember-source@5.12.0(@glimmer/component@1.1.2(@babel/core@7.26.0))(@glint/template@1.5.0)(rsvp@4.8.5)(webpack@5.96.1))
       '@embroider/compat':
-        specifier: ^3.6.5
-        version: 3.6.5(@embroider/core@3.4.19(@glint/template@1.5.0))(@glint/template@1.5.0)
+        specifier: ^3.7.0
+        version: 3.7.0(@embroider/core@3.4.19(@glint/template@1.5.0))(@glint/template@1.5.0)
       '@embroider/core':
         specifier: ^3.4.19
         version: 3.4.19(@glint/template@1.5.0)
@@ -264,14 +264,6 @@ packages:
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
     engines: {node: '>=6.0.0'}
 
-  '@babel/code-frame@7.25.7':
-    resolution: {integrity: sha512-0xZJFNE5XMpENsgfHYTw8FbX4kv53mFLn2i3XPoq69LyhYSCBJtitaHx9QnsVTrsogI4Z3+HtEfZ2/GFPOtf5g==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/code-frame@7.25.9':
-    resolution: {integrity: sha512-z88xeGxnzehn2sqZ8UdGQEvYErF1odv2CftxInpSYJt6uHuPe9YjahKZITGs3l5LeI9d2ROG+obuDAoSlqbNfQ==}
-    engines: {node: '>=6.9.0'}
-
   '@babel/code-frame@7.26.2':
     resolution: {integrity: sha512-RJlIHRueQgwWitWgF8OdFYGZX328Ax5BCemNGlqHfplnRT9ESi8JkFlvaVYbS+UubVY6dpv87Fs2u5M29iNFVQ==}
     engines: {node: '>=6.9.0'}
@@ -350,10 +342,6 @@ packages:
 
   '@babel/helper-member-expression-to-functions@7.24.7':
     resolution: {integrity: sha512-LGeMaf5JN4hAT471eJdBs/GK1DoYIJ5GCtZN/EsL6KUiiDZOvO/eKE11AMZJa2zP4zk4qe9V2O/hxAmkRc8p6w==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/helper-module-imports@7.25.7':
-    resolution: {integrity: sha512-o0xCgpNmRohmnoWKQ0Ij8IdddjyBFE4T2kagL/x6M3+4zUgc+4qTOUBoNe4XxDskt1HPKO007ZPiMgLDq2s7Kw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/helper-module-imports@7.25.9':
@@ -438,14 +426,6 @@ packages:
 
   '@babel/helpers@7.26.0':
     resolution: {integrity: sha512-tbhNuIxNcVb21pInl3ZSjksLCvgdZy9KwJ8brv993QtIVKJBBkYXz4q4ZbAv31GdnC+R90np23L5FbEBlthAEw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/highlight@7.25.7':
-    resolution: {integrity: sha512-iYyACpW3iW8Fw+ZybQK+drQre+ns/tKpXbNESfrhNnPLIklLbXr7MYJ6gPEd0iETGLOK+SxMjVvKb/ffmk+FEw==}
-    engines: {node: '>=6.9.0'}
-
-  '@babel/highlight@7.25.9':
-    resolution: {integrity: sha512-llL88JShoCsth8fF8R4SJnIn+WLvR6ccFxu1H3FlMhDontdcmZWf2HgIZ7AIqV3Xcck1idlohrN4EUBQz6klbw==}
     engines: {node: '>=6.9.0'}
 
   '@babel/parser@7.25.7':
@@ -1042,8 +1022,8 @@ packages:
     peerDependencies:
       '@embroider/core': ^3.4.0
 
-  '@embroider/compat@3.6.5':
-    resolution: {integrity: sha512-h4ZeE28IXMU3JjVZuO3D0ZhKDz0TZxNjkrSWw6VZ3YEyX5fMcIxJTYf6sS362STsTjvIaPHZxG2t3CXmh7ct6Q==}
+  '@embroider/compat@3.7.0':
+    resolution: {integrity: sha512-hv9BNWB278NgxGkpLaKT6VSaGckTX17EiddQpNGlqFEPw4jNuqpEeUGUgFBrSUBsO64wOGrY0U8pbRJsvGGE+Q==}
     engines: {node: 12.* || 14.* || >= 16}
     hasBin: true
     peerDependencies:
@@ -6298,16 +6278,6 @@ snapshots:
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
 
-  '@babel/code-frame@7.25.7':
-    dependencies:
-      '@babel/highlight': 7.25.7
-      picocolors: 1.0.1
-
-  '@babel/code-frame@7.25.9':
-    dependencies:
-      '@babel/highlight': 7.25.9
-      picocolors: 1.0.1
-
   '@babel/code-frame@7.26.2':
     dependencies:
       '@babel/helper-validator-identifier': 7.25.9
@@ -6348,7 +6318,7 @@ snapshots:
 
   '@babel/generator@7.25.9':
     dependencies:
-      '@babel/types': 7.25.9
+      '@babel/types': 7.26.0
       '@jridgewell/gen-mapping': 0.3.5
       '@jridgewell/trace-mapping': 0.3.25
       jsesc: 3.0.2
@@ -6363,7 +6333,7 @@ snapshots:
 
   '@babel/helper-annotate-as-pure@7.24.7':
     dependencies:
-      '@babel/types': 7.25.9
+      '@babel/types': 7.26.0
 
   '@babel/helper-builder-binary-assignment-operator-visitor@7.24.7(supports-color@8.1.1)':
     dependencies:
@@ -6438,13 +6408,6 @@ snapshots:
     dependencies:
       '@babel/traverse': 7.25.9(supports-color@8.1.1)
       '@babel/types': 7.26.0
-    transitivePeerDependencies:
-      - supports-color
-
-  '@babel/helper-module-imports@7.25.7':
-    dependencies:
-      '@babel/traverse': 7.25.9(supports-color@8.1.1)
-      '@babel/types': 7.25.9
     transitivePeerDependencies:
       - supports-color
 
@@ -6544,27 +6507,13 @@ snapshots:
       '@babel/template': 7.25.9
       '@babel/types': 7.26.0
 
-  '@babel/highlight@7.25.7':
-    dependencies:
-      '@babel/helper-validator-identifier': 7.25.9
-      chalk: 2.4.2
-      js-tokens: 4.0.0
-      picocolors: 1.0.1
-
-  '@babel/highlight@7.25.9':
-    dependencies:
-      '@babel/helper-validator-identifier': 7.25.9
-      chalk: 2.4.2
-      js-tokens: 4.0.0
-      picocolors: 1.0.1
-
   '@babel/parser@7.25.7':
     dependencies:
       '@babel/types': 7.25.9
 
   '@babel/parser@7.25.9':
     dependencies:
-      '@babel/types': 7.25.9
+      '@babel/types': 7.26.0
 
   '@babel/parser@7.26.2':
     dependencies:
@@ -7011,7 +6960,7 @@ snapshots:
   '@babel/plugin-transform-runtime@7.24.7(@babel/core@7.26.0)':
     dependencies:
       '@babel/core': 7.26.0(supports-color@8.1.1)
-      '@babel/helper-module-imports': 7.25.7
+      '@babel/helper-module-imports': 7.25.9(supports-color@8.1.1)
       '@babel/helper-plugin-utils': 7.25.7
       babel-plugin-polyfill-corejs2: 0.4.11(@babel/core@7.26.0)(supports-color@8.1.1)
       babel-plugin-polyfill-corejs3: 0.10.4(@babel/core@7.26.0)(supports-color@8.1.1)
@@ -7207,7 +7156,7 @@ snapshots:
 
   '@babel/traverse@7.25.7':
     dependencies:
-      '@babel/code-frame': 7.25.9
+      '@babel/code-frame': 7.26.2
       '@babel/generator': 7.25.9
       '@babel/parser': 7.25.9
       '@babel/template': 7.25.9
@@ -7301,7 +7250,7 @@ snapshots:
       calculate-cache-key-for-tree: 2.0.0
       ember-cli-babel: 7.26.11
       ember-cli-version-checker: 5.1.2
-      semver: 7.6.2
+      semver: 7.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -7310,7 +7259,7 @@ snapshots:
       '@embroider/shared-internals': 2.8.1(supports-color@8.1.1)
       broccoli-funnel: 3.0.8
       common-ancestor-path: 1.0.1
-      semver: 7.6.2
+      semver: 7.6.3
     transitivePeerDependencies:
       - supports-color
 
@@ -7323,9 +7272,9 @@ snapshots:
       - supports-color
       - webpack
 
-  '@embroider/compat@3.6.5(@embroider/core@3.4.19(@glint/template@1.5.0))(@glint/template@1.5.0)':
+  '@embroider/compat@3.7.0(@embroider/core@3.4.19(@glint/template@1.5.0))(@glint/template@1.5.0)':
     dependencies:
-      '@babel/code-frame': 7.25.7
+      '@babel/code-frame': 7.26.2
       '@babel/core': 7.26.0(supports-color@8.1.1)
       '@babel/plugin-syntax-decorators': 7.24.7(@babel/core@7.26.0)
       '@babel/plugin-syntax-dynamic-import': 7.8.3(@babel/core@7.26.0)
@@ -7333,7 +7282,7 @@ snapshots:
       '@babel/plugin-transform-runtime': 7.24.7(@babel/core@7.26.0)
       '@babel/preset-env': 7.24.7(@babel/core@7.26.0)(supports-color@8.1.1)
       '@babel/runtime': 7.24.7
-      '@babel/traverse': 7.25.7
+      '@babel/traverse': 7.25.9(supports-color@8.1.1)
       '@embroider/core': 3.4.19(@glint/template@1.5.0)
       '@embroider/macros': 1.16.9(@glint/template@1.5.0)
       '@types/babel__code-frame': 7.0.6
@@ -7363,7 +7312,7 @@ snapshots:
       pkg-up: 3.1.0
       resolve: 1.22.8
       resolve-package-path: 4.0.3
-      semver: 7.6.2
+      semver: 7.6.3
       symlink-or-copy: 1.3.1
       tree-sync: 2.1.0
       typescript-memoize: 1.1.1
@@ -7424,7 +7373,7 @@ snapshots:
       find-up: 5.0.0
       lodash: 4.17.21
       resolve: 1.22.8
-      semver: 7.6.2
+      semver: 7.6.3
     optionalDependencies:
       '@glint/template': 1.5.0
     transitivePeerDependencies:
@@ -7439,7 +7388,7 @@ snapshots:
       find-up: 5.0.0
       lodash: 4.17.21
       resolve: 1.22.8
-      semver: 7.6.2
+      semver: 7.6.3
     optionalDependencies:
       '@glint/template': 1.5.0
     transitivePeerDependencies:
@@ -7455,7 +7404,7 @@ snapshots:
       lodash: 4.17.21
       minimatch: 3.1.2
       resolve-package-path: 4.0.3
-      semver: 7.6.2
+      semver: 7.6.3
       typescript-memoize: 1.1.1
     transitivePeerDependencies:
       - supports-color
@@ -7472,7 +7421,7 @@ snapshots:
       minimatch: 3.1.2
       pkg-entry-points: 1.1.0
       resolve-package-path: 4.0.3
-      semver: 7.6.2
+      semver: 7.6.3
       typescript-memoize: 1.1.1
     transitivePeerDependencies:
       - supports-color
@@ -8337,7 +8286,7 @@ snapshots:
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.5
-      semver: 7.6.2
+      semver: 7.6.3
       ts-api-utils: 1.3.0(typescript@5.6.3)
     optionalDependencies:
       typescript: 5.6.3
@@ -9522,7 +9471,7 @@ snapshots:
       postcss-modules-values: 4.0.0(postcss@8.4.39)
       postcss-value-parser: 4.2.0
       schema-utils: 3.3.0
-      semver: 7.6.2
+      semver: 7.6.3
       webpack: 5.96.1
 
   css-tree@1.1.3:
@@ -9854,7 +9803,7 @@ snapshots:
       hash-for-dep: 1.5.1
       heimdalljs-logger: 0.1.10
       json-stable-stringify: 1.1.1
-      semver: 7.6.2
+      semver: 7.6.3
       silent-error: 1.1.1
       strip-bom: 4.0.0
       walk-sync: 2.2.0
@@ -9945,7 +9894,7 @@ snapshots:
       fs-extra: 9.1.0
       resolve: 1.22.8
       rsvp: 4.8.5
-      semver: 7.6.2
+      semver: 7.6.3
       stagehand: 1.0.1
       walk-sync: 2.2.0
     transitivePeerDependencies:
@@ -9967,7 +9916,7 @@ snapshots:
   ember-cli-version-checker@5.1.2:
     dependencies:
       resolve-package-path: 3.1.0
-      semver: 7.6.2
+      semver: 7.6.3
       silent-error: 1.1.1
     transitivePeerDependencies:
       - supports-color
@@ -12241,7 +12190,7 @@ snapshots:
     dependencies:
       growly: 1.3.0
       is-wsl: 2.2.0
-      semver: 7.6.2
+      semver: 7.6.3
       shellwords: 0.1.1
       uuid: 8.3.2
       which: 2.0.2
@@ -12258,7 +12207,7 @@ snapshots:
     dependencies:
       hosted-git-info: 4.1.0
       is-core-module: 2.14.0
-      semver: 7.6.2
+      semver: 7.6.3
       validate-npm-package-license: 3.0.4
 
   normalize-path@2.1.1:
@@ -12271,7 +12220,7 @@ snapshots:
     dependencies:
       hosted-git-info: 6.1.1
       proc-log: 3.0.0
-      semver: 7.6.2
+      semver: 7.6.3
       validate-npm-package-name: 5.0.1
 
   npm-run-path@2.0.2:
@@ -12440,7 +12389,7 @@ snapshots:
 
   parse-json@5.2.0:
     dependencies:
-      '@babel/code-frame': 7.25.9
+      '@babel/code-frame': 7.26.2
       error-ex: 1.3.2
       json-parse-even-better-errors: 2.3.1
       lines-and-columns: 1.2.4
@@ -13794,7 +13743,7 @@ snapshots:
   validate-peer-dependencies@1.2.0:
     dependencies:
       resolve-package-path: 3.1.0
-      semver: 7.6.2
+      semver: 7.6.3
 
   vary@1.1.2: {}
 
