@@ -18,14 +18,14 @@ module DDBJValidator
 
         finished, body = wait_for_finish(res.json.fetch(:uuid))
       rescue => e
+        Rails.error.report e
+
         obj.validity_error!
 
         obj.validation_details.create!(
           severity: "error",
           message:  e.message
         )
-
-        Rails.error.report e
       else
         validation.update! raw_result: body
 

@@ -5,20 +5,18 @@ class SubmitJob < ApplicationJob
 
       submitter = Database::MAPPING.fetch(submission.validation.db)::Submitter.new
 
-      Rails.error.handle do
-        begin
-          submitter.submit submission
-        rescue => e
-          submission.update!(
-            result:        :failure,
-            error_message: e.message
-          )
+      begin
+        submitter.submit submission
+      rescue => e
+        Rails.error.report e
 
-          raise
-        else
-          submission.validation.write_submission_files to: submission.dir
-          submission.success!
-        end
+        submission.update!(
+          result:        :failure,
+          error_message: e.message
+        )
+      else
+        submission.validation.write_submission_files to: submission.dir
+        submission.success!
       end
     ensure
       submission.update! progress: :finished, finished_at: Time.current
