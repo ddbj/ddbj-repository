@@ -121,7 +121,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
     expect(response).to have_http_status(400)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
-      error: "param is missing or the value is empty: SDRF"
+      error: "param is missing or the value is empty or invalid: SDRF"
     )
 
     expect(ValidateJob).not_to have_been_enqueued

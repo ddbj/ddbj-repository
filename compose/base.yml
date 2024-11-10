@@ -54,6 +54,7 @@ services:
       SMTP_PASSWORD:
       SMTP_PORT:
       SMTP_USERNAME:
+      SOLID_QUEUE_IN_PUMA:     'true'
       TZ:                      Japan
       USER_HOME_DIR:           /data/home
 
