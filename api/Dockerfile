@@ -1,13 +1,32 @@
-# syntax = docker/dockerfile:1
+# syntax=docker/dockerfile:1
+# check=error=true
 
 # This Dockerfile is designed for production, not development. Use with Kamal or build'n'run by hand:
-# docker build -t my-app .
-# docker run -d -p 80:80 -p 443:443 --name my-app -e RAILS_MASTER_KEY=<value from config/master.key> my-app
+# docker build -t ddbj_repository .
+# docker run -d -p 80:80 -e RAILS_MASTER_KEY=<value from config/master.key> --name ddbj_repository ddbj_repository
 
-ARG NODE_VERSION
-ARG RUBY_VERSION
+# For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
-FROM docker.io/library/ruby:$RUBY_VERSION-slim as noodles_gff
+# Make sure RUBY_VERSION matches the Ruby version in .ruby-version
+ARG RUBY_VERSION=3.3.6
+FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
+
+# Rails app lives here
+WORKDIR /app/api
+
+# Install base packages
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y curl libjemalloc2 libvips postgresql-client && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Set production environment
+ENV RAILS_ENV="production" \
+    BUNDLE_DEPLOYMENT="1" \
+    BUNDLE_PATH="/usr/local/bundle" \
+    BUNDLE_WITHOUT="development:test" \
+    TZ="Japan"
+
+FROM docker.io/library/ruby:$RUBY_VERSION-slim AS noodles_gff
 
 ENV PATH="/root/.cargo/bin:${PATH}"
 
@@ -24,7 +43,29 @@ COPY noodles_gff-rb/ .
 RUN bundle install
 RUN bundle exec rake compile
 
-FROM docker.io/library/node:${NODE_VERSION:?} as web
+# Throw-away build stage to reduce size of final image
+FROM base AS build
+
+COPY --from=noodles_gff /app/noodles_gff-rb /app/noodles_gff-rb
+
+# Install packages needed to build gems
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential git libpq-dev pkg-config && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+# Install application gems
+COPY api/Gemfile api/Gemfile.lock ./
+RUN bundle install && \
+    rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
+    bundle exec bootsnap precompile --gemfile
+
+# Copy application code
+COPY api/ .
+
+# Precompile bootsnap code for faster boot times
+RUN bundle exec bootsnap precompile app/ lib/
+
+FROM docker.io/library/node:22.11.0 AS web
 
 ARG API_URL
 ENV API_URL=${API_URL:?}
@@ -38,54 +79,14 @@ RUN corepack enable pnpm
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
-# Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
-
-# Rails app lives here
-WORKDIR /app/api
-
-# Install base packages
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl libjemalloc2 libvips postgresql-client && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
-# Set production environment
-ENV RAILS_ENV="production" \
-    BUNDLE_DEPLOYMENT="1" \
-    BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development:test" \
-    TZ=Japan
-
-# Throw-away build stage to reduce size of final image
-FROM base as build
-
-COPY --from=noodles_gff /app/noodles_gff-rb /app/noodles_gff-rb
-
-# Install packages needed to build gems
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git libpq-dev pkg-config && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
-# Install application gems
-COPY api/Gemfile api/Gemfile.lock api/.ruby-version ./
-RUN bundle install && \
-    rm -rf ~/.bundle/ "${BUNDLE_PATH}"/ruby/*/cache "${BUNDLE_PATH}"/ruby/*/bundler/gems/*/.git && \
-    bundle exec bootsnap precompile --gemfile
-
-# Copy application code
-COPY api/ .
-
-# Precompile bootsnap code for faster boot times
-RUN bundle exec bootsnap precompile app/ lib/
-
 
 
 
 # Final stage for app image
 FROM base
 
-ARG APP_GID
 ARG APP_UID
+ARG APP_GID
 
 # Copy built artifacts: gems, application
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
@@ -98,7 +99,7 @@ COPY schema /app/schema
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid ${APP_GID:?} rails && \
     useradd rails --uid ${APP_UID:?} --gid ${APP_GID:?} --create-home --shell /bin/bash && \
-    chown -R rails:rails log tmp
+    chown -R rails:rails db log storage tmp
 USER ${APP_UID:?}:${APP_GID:?}
 
 RUN bundle exec submission-excel2xml download_xsd
@@ -106,6 +107,6 @@ RUN bundle exec submission-excel2xml download_xsd
 # Entrypoint prepares the database.
 ENTRYPOINT ["/app/api/bin/docker-entrypoint"]
 
-# Start the server by default, this can be overwritten at runtime
-EXPOSE 3000
-CMD ["./bin/rails", "server"]
+# Start server via Thruster by default, this can be overwritten at runtime
+EXPOSE 80
+CMD ["./bin/thrust", "./bin/rails", "server"]
