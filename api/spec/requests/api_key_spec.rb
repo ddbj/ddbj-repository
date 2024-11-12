@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe "API key" do
+RSpec.describe "API key", type: :request do
   describe "GET /api/api-key" do
     example do
       get "/api/api-key"
