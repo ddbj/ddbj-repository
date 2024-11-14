@@ -5,7 +5,7 @@ import { FetchFailed } from 'ddbj-repository/utils/safe-fetch';
 
 export interface Signature {
   Args: {
-    error: Error | object;
+    error?: Error | object;
   };
 }
 
@@ -40,7 +40,7 @@ export default class ErrorMessageComponent extends Component<Signature> {
     } else if (error instanceof Error) {
       this.message = error.message;
     } else {
-      this.message = error.toString();
+      this.message = error?.toString();
     }
   }
 

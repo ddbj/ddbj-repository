@@ -1,5 +1,4 @@
 import { on } from '@ember/modifier';
-// @ts-expect-error https://github.com/emberjs/ember.js/pull/20464
 import { uniqueId } from '@ember/-internals/glimmer';
 
 import type { TOC } from '@ember/component/template-only';

@@ -35,7 +35,7 @@ export default class ApplicationRoute extends Route {
 
     controller.isLoading = true;
 
-    transition.promise.finally(() => {
+    transition.promise?.finally(() => {
       controller.isLoading = false;
     });
 

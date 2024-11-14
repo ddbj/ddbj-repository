@@ -3,7 +3,6 @@ import { modifier } from 'ember-modifier';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
-// @ts-expect-error https://github.com/emberjs/ember.js/pull/20464
 import { uniqueId } from '@ember/-internals/glimmer';
 
 import { eq, gt, notEq } from 'ember-truth-helpers';

@@ -15,7 +15,7 @@ export interface Model {
   lastPage: number;
 }
 
-export default abstract class ValidationsIndexBaseRoute<TParams extends object> extends Route {
+export default abstract class ValidationsIndexBaseRoute<TParams extends Record<string, unknown>> extends Route {
   @service declare currentUser: CurrentUserService;
 
   timer?: number;

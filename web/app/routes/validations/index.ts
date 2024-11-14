@@ -12,6 +12,7 @@ export interface Params {
   progress?: string;
   validity?: string;
   submitted?: boolean;
+  [key: string]: unknown;
 }
 
 export const queryParams = {
