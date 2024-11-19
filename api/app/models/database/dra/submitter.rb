@@ -20,57 +20,35 @@ class Database::DRA::Submitter
         create_date:  Date.current
       )
 
-      dra_submission.status_histories.create!(
-        status: :new
-      )
-
       submission_group = dra_submission.create_submission_group!(
         submit_version: 1,
         valid:          true,
         serial_version: 1
       )
 
-      DRMDB::OperationHistory.create!(
-        type:         :info,
-        summary:      "Status update to new",
-        usr_id:       user_id,
-        serial:,
-        submitter_id:
-      )
-
       submission_id = "#{submitter_id}-#{serial.to_s.rjust(4, '0')}"
 
-      entity = DRMDB::ExtEntity.create!(
-        acc_type: :submission,
-        ref_name: submission_id,
-        status:   :inputting
-      )
-
-      DRMDB::ExtPermit.create!(
-        ext_id: entity.ext_id,
-        submitter_id:
-      )
-
-      host, user, key_data = ENV.values_at("DRA_SSH_HOST", "DRA_SSH_USER", "DRA_SSH_KEY_DATA")
-
-      Net::SSH.start host, user, key_data: [ key_data ] do |ssh|
-        ssh.exec! "sudo /usr/local/sbin/chroot-createdir.sh #{submitter_id} #{submission_id}"
-      end
-
       submission.validation.objs.where(_id: ACC_TYPES.keys).each do |obj|
-        submission_group.accession_relations.create! do |relation|
-          relation.accession_entities.create!(
-            alias:       "#{submission_id}_#{obj._id}_0001",
-            center_name: "National Institute of Genetics",
-            acc_type:    ACC_TYPES.fetch(obj._id),
-          )
+        entity = DRMDB::AccessionEntity.create!(
+          alias:       "#{submission_id}_#{obj._id}_0001",
+          center_name: "National Institute of Genetics",
+          acc_type:    ACC_TYPES.fetch(obj._id),
+        )
 
-          relation.create_meta_entitiy!(
+        submission_group.accession_relations.create! acc_id: entity.acc_id do |relation|
+          relation.build_meta_entity(
+            acc_id:       entity.acc_id,
             meta_version: 0,
             type:         obj._id.downcase,
             content:      obj.file.download
           )
         end
+      end
+
+      host, user, key_data = ENV.values_at("DRA_SSH_HOST", "DRA_SSH_USER", "DRA_SSH_KEY_DATA")
+
+      Net::SSH.start host, user, key_data: [ key_data ] do |ssh|
+        ssh.exec! "sudo /usr/local/sbin/chroot-createdir.sh #{submitter_id} #{submission_id}"
       end
     end
   end
