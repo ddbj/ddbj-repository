@@ -29,18 +29,34 @@ class Database::DRA::Submitter
       submission_id = "#{submitter_id}-#{serial.to_s.rjust(4, '0')}"
 
       submission.validation.objs.where(_id: ACC_TYPES.keys).each do |obj|
-        entity = DRMDB::AccessionEntity.create!(
+        acc_entity = DRMDB::AccessionEntity.create!(
           alias:       "#{submission_id}_#{obj._id}_0001",
           center_name: "National Institute of Genetics",
           acc_type:    ACC_TYPES.fetch(obj._id),
         )
 
-        submission_group.accession_relations.create! acc_id: entity.acc_id do |relation|
+        submission_group.accession_relations.create! acc_id: acc_entity.acc_id do |relation|
           relation.build_meta_entity(
-            acc_id:       entity.acc_id,
-            meta_version: 0,
+            acc_id:       acc_entity.acc_id,
+            meta_version: 1,
             type:         obj._id.downcase,
             content:      obj.file.download
+          )
+        end
+
+        ext_entity = DRMDB::ExtEntity.create!(
+          acc_type: :submission,
+          ref_name: '160053',
+          status:   :valid
+        )
+
+        submission_group.ext_relations.create!(
+          acc_id: acc_entity.acc_id,
+          ext_id: ext_entity.ext_id
+        ) do |relation|
+          relation.build_ext_permit(
+            ext_id:       ext_entity.ext_id,
+            submitter_id:
           )
         end
       end

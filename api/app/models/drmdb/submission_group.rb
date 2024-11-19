@@ -8,6 +8,8 @@ class DRMDB::SubmissionGroup < DRMDB::Record
 
   has_many :accession_entities, through: :accession_relations
   has_many :meta_entities,      through: :accession_relations
+  has_many :ext_entities,       through: :ext_relations
+  has_many :ext_permits,        through: :ext_relations
 
   class << self
     def instance_method_already_implemented?(method_name)
