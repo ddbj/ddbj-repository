@@ -1,20 +1,20 @@
-require 'rails_helper'
+require "rails_helper"
 
 RSpec.describe Database::DRA::Submitter, type: :model do
   example do
     submission = create(:submission, {
       validation: build(:validation, :valid, {
-        user: build(:user, uid: 'alice')
+        user: build(:user, uid: "alice")
       })
     })
 
-    create :obj, validation: submission.validation, _id: 'Submission', validity: 'valid'
-    create :obj, validation: submission.validation, _id: 'Experiment', validity: 'valid'
-    create :obj, validation: submission.validation, _id: 'Run',        validity: 'valid'
-    create :obj, validation: submission.validation, _id: 'Analysis',   validity: 'valid'
+    create :obj, validation: submission.validation, _id: "Submission", validity: "valid"
+    create :obj, validation: submission.validation, _id: "Experiment", validity: "valid"
+    create :obj, validation: submission.validation, _id: "Run",        validity: "valid"
+    create :obj, validation: submission.validation, _id: "Analysis",   validity: "valid"
 
     user_id = create(:submitterdb_login, **{
-      submitter_id: 'alice'
+      submitter_id: "alice"
     }).usr_id
 
     expect(Net::SSH).to receive(:start)
@@ -25,7 +25,7 @@ RSpec.describe Database::DRA::Submitter, type: :model do
 
     expect(submission).to have_attributes(
       usr_id:       user_id,
-      submitter_id: 'alice',
+      submitter_id: "alice",
       serial:       1
     )
 
@@ -39,81 +39,81 @@ RSpec.describe Database::DRA::Submitter, type: :model do
 
     expect(submission_group.accession_entities).to contain_exactly(
       have_attributes(
-        alias:       'alice-0001_Submission_0001',
-        center_name: 'National Institute of Genetics',
-        acc_type:    'DRA'
+        alias:       "alice-0001_Submission_0001",
+        center_name: "National Institute of Genetics",
+        acc_type:    "DRA"
       ),
       have_attributes(
-        alias:       'alice-0001_Experiment_0001',
-        center_name: 'National Institute of Genetics',
-        acc_type:    'DRX'
+        alias:       "alice-0001_Experiment_0001",
+        center_name: "National Institute of Genetics",
+        acc_type:    "DRX"
       ),
       have_attributes(
-        alias:       'alice-0001_Run_0001',
-        center_name: 'National Institute of Genetics',
-        acc_type:    'DRR'
+        alias:       "alice-0001_Run_0001",
+        center_name: "National Institute of Genetics",
+        acc_type:    "DRR"
       ),
       have_attributes(
-        alias:       'alice-0001_Analysis_0001',
-        center_name: 'National Institute of Genetics',
-        acc_type:    'DRZ'
+        alias:       "alice-0001_Analysis_0001",
+        center_name: "National Institute of Genetics",
+        acc_type:    "DRZ"
       )
     )
 
     expect(submission_group.meta_entities).to contain_exactly(
       have_attributes(
         meta_version: 1,
-        type:         'submission'
+        type:         "submission"
       ),
       have_attributes(
         meta_version: 1,
-        type:         'experiment'
+        type:         "experiment"
       ),
       have_attributes(
         meta_version: 1,
-        type:         'run'
+        type:         "run"
       ),
       have_attributes(
         meta_version: 1,
-        type:         'analysis'
+        type:         "analysis"
       )
     )
 
     expect(submission_group.ext_entities).to contain_exactly(
       have_attributes(
-        acc_type: 'submission',
-        ref_name: '160053',
-        status:   'valid'
+        acc_type: "submission",
+        ref_name: "160053",
+        status:   "valid"
       ),
       have_attributes(
-        acc_type: 'submission',
-        ref_name: '160053',
-        status:   'valid'
+        acc_type: "submission",
+        ref_name: "160053",
+        status:   "valid"
       ),
       have_attributes(
-        acc_type: 'submission',
-        ref_name: '160053',
-        status:   'valid'
+        acc_type: "submission",
+        ref_name: "160053",
+        status:   "valid"
       ),
       have_attributes(
-        acc_type: 'submission',
-        ref_name: '160053',
-        status:   'valid'
+        acc_type: "submission",
+        ref_name: "160053",
+        status:   "valid"
       )
     )
 
     expect(submission_group.ext_permits).to contain_exactly(
       have_attributes(
-        submitter_id: 'alice'
+        submitter_id: "alice"
       ),
       have_attributes(
-        submitter_id: 'alice'
+        submitter_id: "alice"
       ),
       have_attributes(
-        submitter_id: 'alice'
+        submitter_id: "alice"
       ),
       have_attributes(
-        submitter_id: 'alice'
+        submitter_id: "alice"
       )
     )
   end

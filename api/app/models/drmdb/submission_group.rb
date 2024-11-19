@@ -13,7 +13,7 @@ class DRMDB::SubmissionGroup < DRMDB::Record
 
   class << self
     def instance_method_already_implemented?(method_name)
-      return true if method_name == 'valid?'
+      return true if method_name == "valid?"
       super
     end
   end

@@ -46,7 +46,7 @@ class Database::DRA::Submitter
 
         ext_entity = DRMDB::ExtEntity.create!(
           acc_type: :submission,
-          ref_name: '160053',
+          ref_name: "160053",
           status:   :valid
         )
 
