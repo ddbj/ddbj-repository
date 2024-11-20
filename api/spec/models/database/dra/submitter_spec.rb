@@ -50,22 +50,22 @@ RSpec.describe Database::DRA::Submitter, type: :model do
       have_attributes(
         alias:       "alice-0001_Submission_0001",
         center_name: "Wonderland Inc.",
-        acc_type:    "DRA"
+        acc_type:    "submission"
       ),
       have_attributes(
         alias:       "alice-0001_Experiment_0001",
         center_name: "Wonderland Inc.",
-        acc_type:    "DRX"
+        acc_type:    "experiment"
       ),
       have_attributes(
         alias:       "alice-0001_Run_0001",
         center_name: "Wonderland Inc.",
-        acc_type:    "DRR"
+        acc_type:    "run"
       ),
       have_attributes(
         alias:       "alice-0001_Analysis_0001",
         center_name: "Wonderland Inc.",
-        acc_type:    "DRZ"
+        acc_type:    "analysis"
       )
     )
 
