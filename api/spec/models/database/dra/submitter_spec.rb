@@ -17,6 +17,11 @@ RSpec.describe Database::DRA::Submitter, type: :model do
       submitter_id: "alice"
     }).usr_id
 
+    create :submitterdb_organization, **{
+      submitter_id: "alice",
+      center_name:  "Wonderland Inc."
+    }
+
     expect(Net::SSH).to receive(:start)
 
     Database::DRA::Submitter.new.submit submission
@@ -44,22 +49,22 @@ RSpec.describe Database::DRA::Submitter, type: :model do
     expect(submission_group.accession_entities).to contain_exactly(
       have_attributes(
         alias:       "alice-0001_Submission_0001",
-        center_name: "National Institute of Genetics",
+        center_name: "Wonderland Inc.",
         acc_type:    "DRA"
       ),
       have_attributes(
         alias:       "alice-0001_Experiment_0001",
-        center_name: "National Institute of Genetics",
+        center_name: "Wonderland Inc.",
         acc_type:    "DRX"
       ),
       have_attributes(
         alias:       "alice-0001_Run_0001",
-        center_name: "National Institute of Genetics",
+        center_name: "Wonderland Inc.",
         acc_type:    "DRR"
       ),
       have_attributes(
         alias:       "alice-0001_Analysis_0001",
-        center_name: "National Institute of Genetics",
+        center_name: "Wonderland Inc.",
         acc_type:    "DRZ"
       )
     )

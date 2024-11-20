@@ -29,11 +29,12 @@ class Database::DRA::Submitter
       )
 
       submission_id = "#{submitter_id}-#{serial.to_s.rjust(4, '0')}"
+      center_name   = SubmitterDB::Organization.where(submitter_id:).pick(:center_name)
 
       submission.validation.objs.where(_id: ACC_TYPES.keys).each do |obj|
         acc_entity = DRMDB::AccessionEntity.create!(
           alias:       "#{submission_id}_#{obj._id}_0001",
-          center_name: "National Institute of Genetics",
+          center_name:,
           acc_type:    ACC_TYPES.fetch(obj._id),
         )
 
