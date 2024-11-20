@@ -20,6 +20,8 @@ class Database::DRA::Submitter
         create_date:  Date.current
       )
 
+      dra_submission.status_histories.create! status: :data_validated
+
       submission_group = dra_submission.create_submission_group!(
         submit_version: 1,
         valid:          true,

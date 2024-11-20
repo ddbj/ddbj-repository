@@ -29,6 +29,10 @@ RSpec.describe Database::DRA::Submitter, type: :model do
       serial:       1
     )
 
+    expect(submission.status_histories.sole).to have_attributes(
+      status: "data_validated"
+    )
+
     submission_group = DRMDB::SubmissionGroup.sole
 
     expect(submission_group).to have_attributes(
