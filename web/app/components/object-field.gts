@@ -2,7 +2,6 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
-// @ts-expect-error https://github.com/emberjs/ember.js/pull/20464
 import { uniqueId } from '@ember/-internals/glimmer';
 
 import { eq } from 'ember-truth-helpers';
