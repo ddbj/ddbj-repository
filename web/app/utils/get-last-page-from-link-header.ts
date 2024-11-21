@@ -1,4 +1,4 @@
-export default function getLastPageFromLinkHeader(header: string | null) {
+export default function getLastPageFromLinkHeader(header?: string | null) {
   if (!header) return undefined;
 
   const match = header.match(/(?<=<)(\S+)(?=>; rel="last")/);

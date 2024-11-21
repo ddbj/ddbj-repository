@@ -5,6 +5,7 @@ import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-
 import safeFetch from 'ddbj-repository/utils/safe-fetch';
 
 import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type RequestService from 'ddbj-repository/services/request';
 import type ValidationsIndexBaseController from 'ddbj-repository/controllers/validations-index-base';
 import type { components } from 'schema/openapi';
 
@@ -17,6 +18,7 @@ export interface Model {
 
 export default abstract class ValidationsIndexBaseRoute<TParams extends Record<string, unknown>> extends Route {
   @service declare currentUser: CurrentUserService;
+  @service declare request: RequestService;
 
   timer?: number;
 
@@ -24,14 +26,11 @@ export default abstract class ValidationsIndexBaseRoute<TParams extends Record<s
 
   async model(params: TParams) {
     const url = this.buildURL(params);
-
-    const res = await safeFetch(url, {
-      headers: this.currentUser.authorizationHeader,
-    });
+    const res = await this.request.request({ url: url.toString() });
 
     return {
-      validations: await res.json(),
-      lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
+      validations: res.content,
+      lastPage: getLastPageFromLinkHeader(res.response?.headers.get('Link')),
     };
   }
 
