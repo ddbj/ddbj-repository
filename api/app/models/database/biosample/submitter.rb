@@ -15,7 +15,6 @@ class Database::BioSample::Submitter
           BioSample::OperationHistory.create!(
             type:         :fatal,
             summary:      "[repository:CreateNewSubmission] Number of submission surpass the upper limit",
-            date:         Time.current,
             submitter_id:
           )
         end
@@ -27,7 +26,6 @@ class Database::BioSample::Submitter
         BioSample::OperationHistory.create!(
           type:         :error,
           summary:      "[repository:CreateNewSubmission] rollback transaction",
-          date:         Time.current,
           submitter_id:
         )
       end
@@ -142,7 +140,6 @@ class Database::BioSample::Submitter
       BioSample::OperationHistory.create!(
         type:          :info,
         summary:       "[repository:CreateNewSubmission] Create new submission",
-        date:          Time.current,
         submitter_id:,
         submission_id:
       )

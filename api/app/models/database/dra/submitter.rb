@@ -85,6 +85,13 @@ class Database::DRA::Submitter
       Net::SSH.start host, user, key_data: [ key_data ] do |ssh|
         ssh.exec! "sudo /usr/local/sbin/chroot-createdir.sh #{submitter_id} #{submission_id}"
       end
+
+      DRMDB::OperationHistory.create!(
+        type:         :info,
+        summary:      "Direct submission via repository",
+        usr_id:       user_id,
+        submitter_id:
+      )
     end
   end
 end
