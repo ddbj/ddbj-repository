@@ -10,11 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_10_23_004659) do
+ActiveRecord::Schema[8.0].define(version: 2024_10_23_004659) do
   create_schema "sra"
 
   # These are extensions that must be enabled in order to support this database
-  enable_extension "plpgsql"
+  enable_extension "pg_catalog.plpgsql"
 
   create_table "tax_names", primary_key: ["tax_id", "name_class"], force: :cascade do |t|
     t.integer "tax_id", null: false
