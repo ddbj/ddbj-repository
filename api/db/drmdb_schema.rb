@@ -10,11 +10,11 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_08_27_024216) do
+ActiveRecord::Schema[8.0].define(version: 2024_08_27_024216) do
   create_schema "mass"
 
   # These are extensions that must be enabled in order to support this database
-  enable_extension "plpgsql"
+  enable_extension "pg_catalog.plpgsql"
 
   create_table "ext_entity", primary_key: "ext_id", force: :cascade do |t|
     t.text "acc_type", null: false
