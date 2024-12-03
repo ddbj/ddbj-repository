@@ -30,6 +30,17 @@ ActiveRecord::Schema[8.0].define(version: 2024_08_27_024216) do
     t.bigint "p_acc_id"
   end
 
+  create_table "batch", primary_key: "bat_id", force: :cascade do |t|
+    t.integer "status", null: false
+    t.datetime "updated", precision: nil, default: -> { "date_trunc('second'::text, now())" }, null: false
+    t.bigint "main_meta_id", null: false
+    t.bigint "sub_meta_id", null: false
+    t.bigint "usr_id", null: false
+    t.integer "serial", null: false
+    t.text "machine"
+    t.integer "priority", default: 50, null: false
+  end
+
   create_table "ext_entity", primary_key: "ext_id", force: :cascade do |t|
     t.text "acc_type", null: false
     t.text "ref_name", null: false
@@ -83,6 +94,12 @@ ActiveRecord::Schema[8.0].define(version: 2024_08_27_024216) do
     t.date "dist_date"
     t.date "finish_date"
     t.text "note"
+  end
+
+  create_table "submission_component", primary_key: "det_id", force: :cascade do |t|
+    t.bigint "grp_id", null: false
+    t.text "field_key", null: false
+    t.text "field_value", null: false
   end
 
   create_table "submission_group", primary_key: "grp_id", force: :cascade do |t|

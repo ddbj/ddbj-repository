@@ -1,4 +1,4 @@
-class DRMDBInit < ActiveRecord::Migration[7.2]
+class DRMDBInit < ActiveRecord::Migration[8.0]
   def change
     execute 'CREATE SCHEMA mass'
 
@@ -18,6 +18,19 @@ class DRMDBInit < ActiveRecord::Migration[7.2]
       t.bigint :grp_id, null: false
       t.bigint :acc_id, null: false
       t.bigint :p_acc_id
+    end
+
+    create_table 'mass.batch', id: false do |t|
+      t.bigint :bat_id, primary_key: true
+
+      t.integer   :status,       null: false
+      t.timestamp :updated,      null: false, default: -> { "DATE_TRUNC('second', NOW())" }
+      t.bigint    :main_meta_id, null: false
+      t.bigint    :sub_meta_id,  null: false
+      t.bigint    :usr_id,       null: false
+      t.integer   :serial,       null: false
+      t.text      :machine
+      t.integer   :priority,     null: false, default: 50
     end
 
     create_table 'mass.ext_entity', id: false do |t|
@@ -85,6 +98,14 @@ class DRMDBInit < ActiveRecord::Migration[7.2]
       t.date    :dist_date
       t.date    :finish_date
       t.text    :note
+    end
+
+    create_table 'mass.submission_component', id: false do |t|
+      t.bigint :det_id, primary_key: true
+
+      t.bigint :grp_id,      null: false
+      t.text   :field_key,   null: false
+      t.text   :field_value, null: false
     end
 
     create_table 'mass.submission_group', id: false do |t|
