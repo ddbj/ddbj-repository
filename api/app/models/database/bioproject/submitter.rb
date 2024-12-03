@@ -98,15 +98,16 @@ class Database::BioProject::Submitter
       )
 
       tx.after_commit do
-        DRMDB::ExtEntity.create!(
+        entity = DRMDB::ExtEntity.create!(
           acc_type: :study,
           ref_name: submission_id,
           status:   :valid
-        ) do |entity|
-          entity.ext_permits.build(
-            submitter_id:
-          )
-        end
+        )
+
+        DRMDB::ExtPermit.create!(
+          ext_id: entity.ext_id,
+          submitter_id:
+        )
       end
     end
   end

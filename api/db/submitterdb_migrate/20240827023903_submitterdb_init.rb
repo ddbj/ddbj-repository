@@ -1,4 +1,4 @@
-class SubmitterDBInit < ActiveRecord::Migration[7.2]
+class SubmitterDBInit < ActiveRecord::Migration[8.0]
   def change
     execute 'CREATE SCHEMA mass'
 

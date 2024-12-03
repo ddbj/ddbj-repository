@@ -1,4 +1,4 @@
-class BioProjectInit < ActiveRecord::Migration[7.2]
+class BioProjectInit < ActiveRecord::Migration[8.0]
   def change
     execute 'CREATE SCHEMA mass'
 

@@ -1,7 +1,7 @@
 class DRMDB::ExtEntity < DRMDB::Record
   self.table_name = "ext_entity"
 
-  has_many :ext_permits, class_name: "DRMDB::ExtPermit", foreign_key: "ext_id"
+  belongs_to :ext_relation, optional: true, class_name: "DRMDB::ExtRelation", foreign_key: "ext_id", primary_key: "ext_id"
 
   enum :acc_type, {
     study:      "PSUB",

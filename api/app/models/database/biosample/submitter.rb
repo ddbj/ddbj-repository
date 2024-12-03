@@ -15,7 +15,6 @@ class Database::BioSample::Submitter
           BioSample::OperationHistory.create!(
             type:         :fatal,
             summary:      "[repository:CreateNewSubmission] Number of submission surpass the upper limit",
-            date:         Time.current,
             submitter_id:
           )
         end
@@ -27,7 +26,6 @@ class Database::BioSample::Submitter
         BioSample::OperationHistory.create!(
           type:         :error,
           summary:      "[repository:CreateNewSubmission] rollback transaction",
-          date:         Time.current,
           submitter_id:
         )
       end
@@ -126,22 +124,22 @@ class Database::BioSample::Submitter
         )
 
         tx.after_commit do
-          DRMDB::ExtEntity.create!(
+          entity = DRMDB::ExtEntity.create!(
             acc_type: :sample,
             ref_name: sample.smp_id,
             status:   :valid
-          ) do |entity|
-            entity.ext_permits.build(
-              submitter_id:
-            )
-          end
+          )
+
+          DRMDB::ExtPermit.create!(
+            ext_id: entity.ext_id,
+            submitter_id:
+          )
         end
       end
 
       BioSample::OperationHistory.create!(
         type:          :info,
         summary:       "[repository:CreateNewSubmission] Create new submission",
-        date:          Time.current,
         submitter_id:,
         submission_id:
       )
