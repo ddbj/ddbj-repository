@@ -6,7 +6,7 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 
 import { eq } from 'ember-truth-helpers';
-import { sub } from 'ember-math-helpers/helpers/sub';
+import { sub } from 'ember-math-helpers';
 
 import ErrorCode from 'ddbj-repository/components/error-code';
 import ValidityBadge from 'ddbj-repository/components/validity-badge';
