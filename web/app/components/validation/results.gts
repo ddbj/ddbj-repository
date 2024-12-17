@@ -76,7 +76,7 @@ export default class ValidationResultsComponent extends Component<Signature> {
                   <tbody>
                     {{#each result.details as |detail i|}}
                       <tr>
-                        {{#let (eq i (sub (array result.details.length 1))) as |isLast|}}
+                        {{#let (eq i (sub result.details.length 1)) as |isLast|}}
                           <td class={{if isLast 'border-bottom-0'}}>
                             <ErrorCode @code={{detail.code}} />
                           </td>
