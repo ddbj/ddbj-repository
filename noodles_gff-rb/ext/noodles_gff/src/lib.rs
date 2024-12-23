@@ -1,26 +1,17 @@
 use magnus::{class, define_module, function, Error, ExceptionClass, Module, RClass, RModule};
-use noodles_gff::{Directive, Line, Reader};
+use noodles_gff::{self as gff};
 
 fn parse(input: String) -> Result<(), Error> {
-    let mut reader = Reader::new(input.as_bytes());
+    let mut reader = gff::Reader::new(input.as_bytes());
 
-    for (i, line) in reader.lines().enumerate() {
-        match line {
-            Ok(Line::Directive(Directive::StartOfFasta)) => {
-                return Ok(());
-            }
-
-            Ok(_) => (),
+    for (i, record) in reader.record_bufs().enumerate() {
+        match record {
+            Ok(_) => {},
 
             Err(e) => {
                 let gff = class::object().const_get::<_, RModule>("NoodlesGFF")?;
                 let error = gff.const_get::<_, ExceptionClass>("Error")?;
                 let msg = format!("Line {}: {:?}", i + 1, e);
-
-                let msg = match e.downcast::<noodles_gff::line::ParseError>() {
-                    Ok(e) => format!("Line {}: {:?}", i + 1, e),
-                    Err(_) => msg,
-                };
 
                 return Err(Error::new(error, msg));
             }
