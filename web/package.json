@@ -40,7 +40,7 @@
     "@ember/optional-features": "^2.2.0",
     "@ember/string": "^4.0.0",
     "@ember/test-helpers": "^4.0.4",
-    "@embroider/compat": "^3.7.0",
+    "@embroider/compat": "^3.7.1",
     "@embroider/core": "^3.4.20",
     "@embroider/webpack": "^4.0.8",
     "@glimmer/component": "^1.1.2",
