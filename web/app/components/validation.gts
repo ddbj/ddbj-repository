@@ -20,9 +20,9 @@ interface Signature {
 }
 
 const ValidationComponent: TOC<Signature> = <template>
-  <h1 class='display-6 mb-4'>Validation #{{@validation.id}}</h1>
+  <h1 class="display-6 mb-4">Validation #{{@validation.id}}</h1>
 
-  <dl class='d-flex flex-wrap row-gap-1 column-gap-5'>
+  <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
     <div>
       <dt>ID</dt>
       <dd>{{@validation.id}}</dd>
@@ -88,7 +88,7 @@ const ValidationComponent: TOC<Signature> = <template>
 
       <dd>
         {{#if @validation.submission}}
-          <LinkTo @route='submissions.show' @model={{@validation.submission.id}}>
+          <LinkTo @route="submissions.show" @model={{@validation.submission.id}}>
             {{@validation.submission.id}}
           </LinkTo>
         {{else}}
@@ -98,40 +98,40 @@ const ValidationComponent: TOC<Signature> = <template>
     </div>
   </dl>
 
-  <ul class='nav nav-tabs' id='tab' role='tablist'>
-    <li class='nav-item' role='presentation'>
+  <ul class="nav nav-tabs" id="tab" role="tablist">
+    <li class="nav-item" role="presentation">
       <button
-        class='nav-link active'
-        id='results-tab'
-        data-bs-toggle='tab'
-        data-bs-target='#results-pane'
-        type='button'
-        role='tab'
-        aria-controls='results-pane'
-        aria-selected='true'
+        class="nav-link active"
+        id="results-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#results-pane"
+        type="button"
+        role="tab"
+        aria-controls="results-pane"
+        aria-selected="true"
       >Results</button>
     </li>
 
-    <li class='nav-item' role='presentation'>
+    <li class="nav-item" role="presentation">
       <button
-        class='nav-link'
-        id='submit-tab'
-        data-bs-toggle='tab'
-        data-bs-target='#submit-pane'
-        type='button'
-        role='tab'
-        aria-controls='submit-pane'
-        aria-selected='false'
+        class="nav-link"
+        id="submit-tab"
+        data-bs-toggle="tab"
+        data-bs-target="#submit-pane"
+        type="button"
+        role="tab"
+        aria-controls="submit-pane"
+        aria-selected="false"
       >Submit</button>
     </li>
   </ul>
 
-  <div class='tab-content'>
-    <div class='tab-pane show active' id='results-pane' role='tabpanel' aria-labelledby='results-tab' tabindex='0'>
+  <div class="tab-content">
+    <div class="tab-pane show active" id="results-pane" role="tabpanel" aria-labelledby="results-tab" tabindex="0">
       <ValidationResults @validation={{@validation}} />
     </div>
 
-    <div class='tab-pane' id='submit-pane' role='tabpanel' aria-labelledby='submit-tab' tabindex='0'>
+    <div class="tab-pane" id="submit-pane" role="tabpanel" aria-labelledby="submit-tab" tabindex="0">
       <ValidationSubmitForm @validation={{@validation}} />
     </div>
   </div>

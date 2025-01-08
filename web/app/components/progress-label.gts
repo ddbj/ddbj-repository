@@ -12,12 +12,12 @@ interface Signature {
 }
 
 const ProgressLabelComponent: TOC<Signature> = <template>
-  <div class='d-flex align-items-center gap-1'>
-    {{#if (or (eq @progress 'waiting') (eq @progress 'running'))}}
-      <div class='spinner-border spinner-border-sm text-secondary' role='status'></div>
+  <div class="d-flex align-items-center gap-1">
+    {{#if (or (eq @progress "waiting") (eq @progress "running"))}}
+      <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
     {{/if}}
 
-    <div class='text-capitalize'>{{@progress}}</div>
+    <div class="text-capitalize">{{@progress}}</div>
   </div>
 </template>;
 

@@ -11,7 +11,7 @@ interface Signature {
 
 const ValidityBadgeComponent: TOC<Signature> = <template>
   {{#if @validity}}
-    <span class='badge {{colorClass @validity}} text-capitalize'>{{@validity}}</span>
+    <span class="badge {{colorClass @validity}} text-capitalize">{{@validity}}</span>
   {{else}}
     -
   {{/if}}

@@ -37,69 +37,69 @@ export default class SourceFieldComponent extends Component<Signature> {
   }
 
   <template>
-    <li class='list-group-item'>
-      <div class='mb-3'>
+    <li class="list-group-item">
+      <div class="mb-3">
         {{#let (uniqueId) as |id|}}
-          {{#if (eq @obj.sourceType 'file')}}
-            <label for={{id}} class='form-label'>
+          {{#if (eq @obj.sourceType "file")}}
+            <label for={{id}} class="form-label">
               File
 
               {{#if @source.required}}
-                <span class='text-danger'>*</span>
+                <span class="text-danger">*</span>
               {{/if}}
             </label>
 
             <input
-              type='file'
+              type="file"
               id={{id}}
-              class='form-control'
+              class="form-control"
               required={{@source.required}}
-              {{on 'change' this.setFile}}
+              {{on "change" this.setFile}}
             />
-          {{else if (eq @obj.sourceType 'path')}}
-            <label for={{id}} class='form-label'>
+          {{else if (eq @obj.sourceType "path")}}
+            <label for={{id}} class="form-label">
               Path
 
               {{#if @source.required}}
-                <span class='text-danger'>*</span>
+                <span class="text-danger">*</span>
               {{/if}}
             </label>
 
             <input
-              type='text'
+              type="text"
               value={{@source.path}}
               id={{id}}
-              class='form-control'
+              class="form-control"
               required={{@source.required}}
-              {{on 'change' this.setPath}}
+              {{on "change" this.setPath}}
             />
           {{/if}}
         {{/let}}
       </div>
 
-      <div class='mb-3'>
+      <div class="mb-3">
         {{#let (uniqueId) as |id|}}
-          <label for={{id}} class='form-label'>
+          <label for={{id}} class="form-label">
             Destination
           </label>
 
           <input
-            type='text'
+            type="text"
             value={{@source.destination}}
             id={{id}}
-            class='form-control'
-            {{on 'change' this.setDestination}}
+            class="form-control"
+            {{on "change" this.setDestination}}
           />
         {{/let}}
       </div>
 
       {{#if @obj.schema.multiple}}
-        <div class='text-end mb-3'>
+        <div class="text-end mb-3">
           <button
-            type='button'
+            type="button"
             disabled={{not @obj.canRemoveSource}}
-            class='btn btn-outline-danger'
-            {{on 'click' (fn @obj.removeSource @source)}}
+            class="btn btn-outline-danger"
+            {{on "click" (fn @obj.removeSource @source)}}
           >Remove</button>
         </div>
       {{/if}}

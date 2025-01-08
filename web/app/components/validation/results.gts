@@ -32,7 +32,7 @@ export default class ValidationResultsComponent extends Component<Signature> {
   }
 
   <template>
-    <table class='table'>
+    <table class="table">
       <thead>
         <tr>
           <th>Object</th>
@@ -43,16 +43,16 @@ export default class ValidationResultsComponent extends Component<Signature> {
       </thead>
 
       <tbody>
-        {{#each @validation.results key='object_id' as |result|}}
+        {{#each @validation.results key="object_id" as |result|}}
           <tr>
             <td>{{result.object_id}}</td>
 
             <td>
               {{#if result.file}}
                 <button
-                  type='button'
-                  class='btn btn-link p-0'
-                  {{on 'click' (fn this.downloadFile result.file.url)}}
+                  type="button"
+                  class="btn btn-link p-0"
+                  {{on "click" (fn this.downloadFile result.file.url)}}
                 >{{result.file.path}}</button>
               {{else}}
                 -
@@ -61,9 +61,9 @@ export default class ValidationResultsComponent extends Component<Signature> {
 
             <td><ValidityBadge @validity={{result.validity}} /></td>
 
-            <td class='p-0'>
+            <td class="p-0">
               {{#if result.details}}
-                <table class='table m-0'>
+                <table class="table m-0">
                   <thead>
                     <tr>
                       <th>Code</th>
@@ -76,15 +76,15 @@ export default class ValidationResultsComponent extends Component<Signature> {
                     {{#each result.details as |detail i|}}
                       <tr>
                         {{#let (eq i (sub result.details.length 1)) as |isLast|}}
-                          <td class={{if isLast 'border-bottom-0'}}>
+                          <td class={{if isLast "border-bottom-0"}}>
                             <ErrorCode @code={{detail.code}} />
                           </td>
 
-                          <td class={{if isLast 'border-bottom-0'}}>
-                            {{if detail.severity detail.severity '-'}}
+                          <td class={{if isLast "border-bottom-0"}}>
+                            {{if detail.severity detail.severity "-"}}
                           </td>
 
-                          <td class={{if isLast 'border-bottom-0'}}>
+                          <td class={{if isLast "border-bottom-0"}}>
                             {{detail.message}}
                           </td>
                         {{/let}}

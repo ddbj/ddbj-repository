@@ -48,15 +48,15 @@ export default class NewValidationFormComponent extends Component<Signature> {
   });
 
   <template>
-    <form {{on 'submit' this.create.perform}}>
+    <form {{on "submit" this.create.perform}}>
       {{#each @db.objs as |obj|}}
         <ObjectField @obj={{obj}} />
       {{/each}}
 
-      <button type='submit' class='btn btn-primary' disabled={{this.create.isRunning}}>
+      <button type="submit" class="btn btn-primary" disabled={{this.create.isRunning}}>
         {{#if this.create.isRunning}}
-          <span class='spinner-border spinner-border-sm' aria-hidden='true'></span>
-          <span role='status'>Uploading...</span>
+          <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          <span role="status">Uploading...</span>
         {{else}}
           Validate
         {{/if}}

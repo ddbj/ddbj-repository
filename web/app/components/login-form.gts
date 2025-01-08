@@ -44,18 +44,18 @@ export default class LoginFormComponent extends Component<Signature> {
   });
 
   <template>
-    <div class='card mx-auto' {{style width='32rem'}}>
-      <div class='card-body'>
-        <form {{on 'submit' this.login.perform}}>
-          <div class='mb-3'>
-            <label for='apiKey' class='form-label'>API key</label>
-            <input type='text' name='apiKey' id='apiKey' class='form-control' required />
+    <div class="card mx-auto" {{style width="32rem"}}>
+      <div class="card-body">
+        <form {{on "submit" this.login.perform}}>
+          <div class="mb-3">
+            <label for="apiKey" class="form-label">API key</label>
+            <input type="text" name="apiKey" id="apiKey" class="form-control" required />
           </div>
 
-          <button type='submit' disabled={{this.login.isRunning}} class='btn btn-primary mb-3'>Login</button>
+          <button type="submit" disabled={{this.login.isRunning}} class="btn btn-primary mb-3">Login</button>
 
-          <p class='mb-0'>
-            <a href={{@loginURL}} target='_blank' rel='noopener noreferrer'>
+          <p class="mb-0">
+            <a href={{@loginURL}} target="_blank" rel="noopener noreferrer">
               Your API key can be obtained here.
             </a>
           </p>

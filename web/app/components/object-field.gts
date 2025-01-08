@@ -25,52 +25,52 @@ export default class ObjectFieldComponent extends Component<Signature> {
   }
 
   <template>
-    <div class='card mb-3'>
-      <div class='card-header'>
+    <div class="card mb-3">
+      <div class="card-header">
         {{@obj.schema.id}}
       </div>
 
-      <div class='card-body'>
+      <div class="card-body">
         {{#let (uniqueId) as |name|}}
-          <div class='form-check form-check-inline'>
+          <div class="form-check form-check-inline">
             {{#let (uniqueId) as |id|}}
               <input
-                type='radio'
-                checked={{eq @obj.sourceType 'file'}}
+                type="radio"
+                checked={{eq @obj.sourceType "file"}}
                 name={{name}}
                 id={{id}}
-                {{on 'click' (fn this.setSourceType 'file')}}
+                {{on "click" (fn this.setSourceType "file")}}
               />
-              <label class='form-check-label' for={{id}}>File</label>
+              <label class="form-check-label" for={{id}}>File</label>
             {{/let}}
           </div>
 
-          <div class='form-check form-check-inline'>
+          <div class="form-check form-check-inline">
             {{#let (uniqueId) as |id|}}
               <input
-                type='radio'
-                checked={{eq @obj.sourceType 'path'}}
+                type="radio"
+                checked={{eq @obj.sourceType "path"}}
                 name={{name}}
                 id={{id}}
-                {{on 'click' (fn this.setSourceType 'path')}}
+                {{on "click" (fn this.setSourceType "path")}}
               />
-              <label class='form-check-label' for={{id}}>Path</label>
+              <label class="form-check-label" for={{id}}>Path</label>
             {{/let}}
           </div>
         {{/let}}
       </div>
 
-      <ul class='list-group list-group-flush'>
+      <ul class="list-group list-group-flush">
         {{#each @obj.sources as |source|}}
           <SourceField @obj={{@obj}} @source={{source}} />
         {{else}}
-          <li class='list-group-item py-3'>No items.</li>
+          <li class="list-group-item py-3">No items.</li>
         {{/each}}
       </ul>
 
       {{#if @obj.schema.multiple}}
-        <div class='card-body text-end'>
-          <button type='button' class='btn btn-outline-primary' {{on 'click' @obj.addSource}}>Add</button>
+        <div class="card-body text-end">
+          <button type="button" class="btn btn-outline-primary" {{on "click" @obj.addSource}}>Add</button>
         </div>
       {{/if}}
     </div>
