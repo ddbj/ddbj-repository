@@ -14,7 +14,7 @@ export default class LoginRoute extends Route {
   }
 
   async model() {
-    const res = await safeFetch(`${ENV.apiURL}/api-key`);
+    const res = await safeFetch(`${ENV.apiURL}/api_key`);
 
     return (await res.json()) as { login_url: string };
   }

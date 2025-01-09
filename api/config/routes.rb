@@ -7,7 +7,7 @@ Rails.application.routes.draw do
   end
 
   scope :api, defaults: { format: :json } do
-    resource :api_key, path: "api-key", only: %i[show] do
+    resource :api_key, only: %i[show] do
       post :regenerate
     end
 
@@ -16,7 +16,7 @@ Rails.application.routes.draw do
     resources :validations, only: %i[index show destroy] do
       scope module: "validations" do
         collection do
-          resource :via_file, only: %i[create], path: "via-file"
+          resource :via_file, only: %i[create]
         end
 
         get "files/*path" => "files#show", format: false, as: "file"

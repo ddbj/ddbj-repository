@@ -5,7 +5,7 @@
 
 
 export interface paths {
-  "/api-key": {
+  "/api_key": {
     /** @description Get login URL. */
     get: {
       responses: {
@@ -21,7 +21,7 @@ export interface paths {
       };
     };
   };
-  "/api-key/regenerate": {
+  "/api_key/regenerate": {
     /** @description Re-generate API key. */
     post: {
       responses: {
@@ -87,7 +87,7 @@ export interface paths {
       };
     };
   };
-  "/validations/via-file": {
+  "/validations/via_file": {
     /** @description Validate submission files. */
     post: {
       requestBody: components["requestBodies"]["ViaFile"];

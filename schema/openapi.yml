@@ -13,7 +13,7 @@ security:
   - BearerAuth: []
 
 paths:
-  /api-key:
+  /api_key:
     get:
       description: Get login URL.
 
@@ -38,7 +38,7 @@ paths:
                     type: string
                     format: uri
 
-  /api-key/regenerate:
+  /api_key/regenerate:
     post:
       description: Re-generate API key.
 
@@ -223,7 +223,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /validations/via-file:
+  /validations/via_file:
     post:
       description: Validate submission files.
 
