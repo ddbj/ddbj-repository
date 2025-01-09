@@ -38,7 +38,7 @@ export default class LoginFormComponent extends Component<Signature> {
       if (err instanceof LoginError) {
         this.toast.show('Login failed, please check your API key.', 'danger');
       } else {
-        this.errorModal.show(err as object);
+        this.errorModal.show(err as Error);
       }
     }
   });

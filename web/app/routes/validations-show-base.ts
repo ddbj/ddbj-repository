@@ -19,7 +19,7 @@ export default abstract class ValidationsShowBaseRoute extends Route {
       headers: this.currentUser.authorizationHeader,
     });
 
-    return await res.json();
+    return (await res.json()) as Validation;
   }
 
   afterModel({ progress }: Validation) {

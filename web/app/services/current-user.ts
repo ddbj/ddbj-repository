@@ -70,7 +70,7 @@ export default class CurrentUserService extends Service {
     }
   }
 
-  async logout() {
+  logout() {
     this.clear();
     localStorage.removeItem('apiKey');
 
@@ -98,7 +98,7 @@ export default class CurrentUserService extends Service {
       throw new LoginError();
     }
 
-    const { uid, admin } = await res.json();
+    const { uid, admin } = (await res.json()) as { uid: string; admin: boolean };
 
     this.uid = uid;
     this.isAdmin = admin;

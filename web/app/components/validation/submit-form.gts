@@ -45,10 +45,10 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
     };
   });
 
-  submit = task({ drop: true }, async (e) => {
+  submit = task({ drop: true }, async (e: Event) => {
     e.preventDefault();
 
-    const formData = new FormData(e.target);
+    const formData = new FormData(e.target as HTMLFormElement);
 
     const res = await safeFetchWithModal(
       `${ENV.apiURL}/submissions`,
@@ -60,7 +60,7 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
       this.errorModal,
     );
 
-    const { id: submissionId } = await res.json();
+    const { id: submissionId } = (await res.json()) as { id: string };
 
     this.router.transitionTo('submissions.show', submissionId);
     this.toast.show('Validation was successfully submitted.', 'success');

@@ -30,7 +30,7 @@ export default abstract class ValidationsIndexBaseRoute<TParams extends Record<s
     });
 
     return {
-      validations: await res.json(),
+      validations: (await res.json()) as Validation[],
       lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
     };
   }
