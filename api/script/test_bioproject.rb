@@ -53,7 +53,7 @@ class TestBioProject < Thor
       say path.basename
 
       res = path.open { |file|
-        body = fetch("#{ENV.fetch('API_URL')}/validations/via-file", **{
+        body = fetch("#{ENV.fetch('API_URL')}/validations/via_file", **{
           method: :post,
 
           body: Fetch::FormData.build(

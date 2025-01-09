@@ -6,7 +6,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
   end
 
   example "happy case" do
-    post "/api/validations/via-file", params: {
+    post "/api/validations/via_file", params: {
       db:   "MetaboBank",
       IDF:  { file: file_fixture_upload("metabobank/MTBKS231.idf.txt") },
       SDRF: { file: file_fixture_upload("metabobank/MTBKS231.sdrf.txt") }
@@ -19,7 +19,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
 
   example "if path does not exist" do
     with_exceptions_app do
-      post "/api/validations/via-file", params: {
+      post "/api/validations/via_file", params: {
         db:    "JVar",
         Excel: { path: "_foo" }
       }
@@ -33,7 +33,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
   end
 
   example "if obj is multiple and path is directory, read recursive" do
-    post "/api/validations/via-file", params: {
+    post "/api/validations/via_file", params: {
       db: "MetaboBank",
 
       IDF: {
@@ -81,7 +81,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
 
   example "if obj is not multiple and path is directory" do
     with_exceptions_app do
-      post "/api/validations/via-file", params: {
+      post "/api/validations/via_file", params: {
         db:    "JVar",
         Excel: { path: "foo" }
       }
@@ -96,7 +96,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
 
   example "if path is duplicated" do
     with_exceptions_app do
-      post "/api/validations/via-file", params: {
+      post "/api/validations/via_file", params: {
         db:   "MetaboBank",
         IDF:  { file: uploaded_file(name: "idf.txt") },
         SDRF: { file: uploaded_file(name: "idf.txt") }
@@ -112,7 +112,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
 
   example "no required parameters" do
     with_exceptions_app do
-      post "/api/validations/via-file", params: {
+      post "/api/validations/via_file", params: {
         db:   "MetaboBank",
         IDF: { file: file_fixture_upload("metabobank/MTBKS231.idf.txt") }
       }
@@ -129,7 +129,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
 
   example "unknown db" do
     with_exceptions_app do
-      post "/api/validations/via-file", params: {
+      post "/api/validations/via_file", params: {
         db: "foo"
       }
     end

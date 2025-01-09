@@ -32,7 +32,7 @@ export default class NewValidationFormComponent extends Component<Signature> {
     e.preventDefault();
 
     const res = await safeFetchWithModal(
-      `${ENV.apiURL}/validations/via-file`,
+      `${ENV.apiURL}/validations/via_file`,
       {
         method: 'POST',
         headers: this.currentUser.authorizationHeader,

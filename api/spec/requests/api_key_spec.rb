@@ -1,9 +1,9 @@
 require "rails_helper"
 
 RSpec.describe "API key", type: :request do
-  describe "GET /api/api-key" do
+  describe "GET /api/api_key" do
     example do
-      get "/api/api-key"
+      get "/api/api_key"
 
       expect(response).to conform_schema(200)
 
@@ -13,7 +13,7 @@ RSpec.describe "API key", type: :request do
     end
   end
 
-  describe "POST /api/api-key/regenerate", authorized: true do
+  describe "POST /api/api_key/regenerate", authorized: true do
     let!(:user) { create(:user, api_key: "API_KEY") }
 
     before do
@@ -21,7 +21,7 @@ RSpec.describe "API key", type: :request do
     end
 
     example do
-      post "/api/api-key/regenerate"
+      post "/api/api_key/regenerate"
 
       expect(response).to conform_schema(200)
 

@@ -113,7 +113,7 @@ async function createValidation(apiUrl: string, apiKey: string, db: DBSchema, ob
 
   await Promise.all(promises);
 
-  const res = await fetch(`${apiUrl}/validations/via-file`, {
+  const res = await fetch(`${apiUrl}/validations/via_file`, {
     method: 'post',
     headers: { 'Authorization': `Bearer ${apiKey}` },
     body,

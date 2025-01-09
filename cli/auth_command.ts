@@ -60,7 +60,7 @@ const authCommand: Command<Options> = new Command<Options>()
 export default authCommand;
 
 async function openLoginURL(apiUrl: string) {
-  const res = await fetch(`${apiUrl}/api-key`);
+  const res = await fetch(`${apiUrl}/api_key`);
   const { login_url } = await res.json();
 
   console.log(colors.bold('cli: Press any key to open up the browser to login or q to exit:'));
