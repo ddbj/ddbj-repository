@@ -18,14 +18,14 @@ export interface Signature {
 const CheckboxComponent: TOC<Signature> = <template>
   {{#let (uniqueId) as |id|}}
     <input
-      type='checkbox'
+      type="checkbox"
       value={{@value}}
       checked={{@isSelected @value}}
       id={{id}}
-      class='form-check-input'
-      {{on 'change' @onChange}}
+      class="form-check-input"
+      {{on "change" @onChange}}
     />
-    <label for={{id}} class='form-check-label'>{{yield}}</label>
+    <label for={{id}} class="form-check-label">{{yield}}</label>
   {{/let}}
 </template>;
 

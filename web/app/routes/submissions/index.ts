@@ -61,7 +61,7 @@ export default class SubmissionsIndexRoute extends Route {
     });
 
     return {
-      submissions: await res.json(),
+      submissions: (await res.json()) as Submission[],
       lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
     };
   }

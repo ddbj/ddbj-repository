@@ -12,7 +12,7 @@ interface Signature {
 const DetailsCountComponent: TOC<Signature> = <template>
   {{#let (detailsCount @results) as |count|}}
     {{#if count}}
-      <span class='badge bg-secondary'>{{count}}</span>
+      <span class="badge bg-secondary">{{count}}</span>
     {{/if}}
   {{/let}}
 </template>;

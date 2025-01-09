@@ -70,21 +70,21 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
   ] as const;
 
   <template>
-    <dl class='horizontal align-items-center' ...attributes>
+    <dl class="horizontal align-items-center" ...attributes>
       {{#if @showUser}}
         {{#let (uniqueId) as |id|}}
           <dt>
             <label for={{id}}>User</label>
           </dt>
 
-          <dd class='mb-0 d-flex flex-wrap gap-3 align-items-center'>
+          <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
             <input
-              type='text'
+              type="text"
               value={{@uid}}
               id={{id}}
-              class='form-control'
-              placeholder='alice,bob'
-              {{on 'input' @onUIDChange.perform}}
+              class="form-control"
+              placeholder="alice,bob"
+              {{on "input" @onUIDChange.perform}}
             />
           </dd>
         {{/let}}
@@ -92,10 +92,10 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
 
       <dt>DB</dt>
 
-      <dd class='mb-0 d-flex flex-wrap gap-3 align-items-center'>
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         <CheckboxGroup @values={{@dbs}} @selected={{@selectedDBs}} @onChange={{@onSelectedDBsChange}} as |group|>
           {{#each @dbs as |db|}}
-            <div class='form-check'>
+            <div class="form-check">
               <group.checkbox @value={{db}}>
                 {{db}}
               </group.checkbox>
@@ -106,19 +106,19 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
 
       <dt>Created</dt>
 
-      <dd class='mb-0 d-flex flex-wrap gap-3 align-items-center'>
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         {{#each this.createdOptions as |opt|}}
-          <div class='form-check'>
+          <div class="form-check">
             {{#let (uniqueId) as |id|}}
               <input
-                type='radio'
-                name='created'
+                type="radio"
+                name="created"
                 checked={{eq @created opt.value}}
                 id={{id}}
-                class='form-check-input'
-                {{on 'change' (fn @onCreatedChange opt.value)}}
+                class="form-check-input"
+                {{on "change" (fn @onCreatedChange opt.value)}}
               />
-              <label for={{id}} class='form-check-label'>{{opt.label}}</label>
+              <label for={{id}} class="form-check-label">{{opt.label}}</label>
             {{/let}}
           </div>
         {{/each}}
@@ -126,7 +126,7 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
 
       <dt>Progress</dt>
 
-      <dd class='mb-0 d-flex flex-wrap gap-3 align-items-center'>
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         <CheckboxGroup
           @values={{@progresses}}
           @selected={{@selectedProgresses}}
@@ -134,7 +134,7 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
           as |group|
         >
           {{#each this.progressOptions as |opt|}}
-            <div class='form-check'>
+            <div class="form-check">
               <group.checkbox @value={{opt.value}}>
                 {{opt.label}}
               </group.checkbox>
@@ -145,7 +145,7 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
 
       <dt>Validity</dt>
 
-      <dd class='mb-0 d-flex flex-wrap gap-3 align-items-center'>
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         <CheckboxGroup
           @values={{@validities}}
           @selected={{@selectedValidities}}
@@ -153,7 +153,7 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
           as |group|
         >
           {{#each this.validityOptions as |opt|}}
-            <div class='form-check'>
+            <div class="form-check">
               <group.checkbox @value={{opt.value}}>
                 {{opt.label}}
               </group.checkbox>
@@ -164,19 +164,19 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
 
       <dt>Submission</dt>
 
-      <dd class='mb-0 d-flex flex-wrap gap-3 align-items-center'>
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         {{#each this.submittedOptions as |opt|}}
-          <div class='form-check'>
+          <div class="form-check">
             {{#let (uniqueId) as |id|}}
               <input
-                type='radio'
-                name='submitted'
+                type="radio"
+                name="submitted"
                 checked={{eq @submitted opt.value}}
                 id={{id}}
-                class='form-check-input'
-                {{on 'change' (fn @onSubmittedChange opt.value)}}
+                class="form-check-input"
+                {{on "change" (fn @onSubmittedChange opt.value)}}
               />
-              <label for={{id}} class='form-check-label'>{{opt.label}}</label>
+              <label for={{id}} class="form-check-label">{{opt.label}}</label>
             {{/let}}
           </div>
         {{/each}}

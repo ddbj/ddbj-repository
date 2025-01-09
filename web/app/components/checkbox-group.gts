@@ -47,9 +47,9 @@ export default class CheckboxGroupComponent extends Component<Signature> {
   <template>
     {{yield (hash checkbox=(component Checkbox onChange=this.onChange isSelected=this.isSelected))}}
 
-    <div class='btn-group btn-group-sm'>
-      <button type='button' class='btn btn-link' {{on 'click' this.checkAll}}>Check all</button>
-      <button type='button' class='btn btn-link' {{on 'click' this.clear}}>Clear</button>
+    <div class="btn-group btn-group-sm">
+      <button type="button" class="btn btn-link" {{on "click" this.checkAll}}>Check all</button>
+      <button type="button" class="btn btn-link" {{on "click" this.clear}}>Clear</button>
     </div>
   </template>
 }

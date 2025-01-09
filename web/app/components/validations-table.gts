@@ -27,7 +27,7 @@ interface Signature {
 
 const ValidationsTableComponent: TOC<Signature> = <template>
   <Table @items={{@validations}}>
-    <thead class='table-light'>
+    <thead class="table-light">
       <tr>
         <th>ID</th>
 
@@ -46,10 +46,10 @@ const ValidationsTableComponent: TOC<Signature> = <template>
     </thead>
 
     <tbody>
-      {{#each @validations key='id' as |validation|}}
+      {{#each @validations key="id" as |validation|}}
         <tr>
-          <td class='position-relative'>
-            <LinkTo @route={{@showRoute}} @model={{validation}} class='stretched-link'>
+          <td class="position-relative">
+            <LinkTo @route={{@showRoute}} @model={{validation}} class="stretched-link">
               {{validation.id}}
             </LinkTo>
           </td>
@@ -84,9 +84,9 @@ const ValidationsTableComponent: TOC<Signature> = <template>
             <DetailsCount @results={{validation.results}} />
           </td>
 
-          <td class='position-relative'>
+          <td class="position-relative">
             {{#if validation.submission}}
-              <LinkTo @route='submissions.show' @model={{validation.submission.id}} class='stretched-link'>
+              <LinkTo @route="submissions.show" @model={{validation.submission.id}} class="stretched-link">
                 {{validation.submission.id}}
               </LinkTo>
             {{else}}

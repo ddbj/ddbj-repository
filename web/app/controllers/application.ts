@@ -21,7 +21,7 @@ export default class ApplicationController extends Controller {
   @service declare toast: ToastService;
 
   @tracked isLoading = false;
-  @tracked error?: object;
+  @tracked error?: Error;
   @tracked toastData: ToastData[] = [];
 
   errorModal?: Modal;
@@ -59,28 +59,26 @@ export default class ApplicationController extends Controller {
   });
 
   @action
-  async logout() {
-    await this.currentUser.logout();
+  logout() {
+    this.currentUser.logout();
 
     this.toast.show('Logged out.', 'success');
   }
 
   @action
-  showErrorModal(error: Error | object) {
+  showErrorModal(error: Error) {
     this.error = error;
 
     if (this.errorModal) {
       this.errorModal.show();
     } else {
-      const details = error instanceof Error ? error.stack : JSON.stringify(error, null, 2);
-
       alert(`Error:
 Something went wrong. Please try again later.
 
-${error}
+${error.message}
 
 Details:
-${details}`);
+${error.stack}`);
     }
   }
 

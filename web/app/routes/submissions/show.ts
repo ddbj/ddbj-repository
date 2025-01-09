@@ -19,7 +19,7 @@ export default class SubmissionsShowRoute extends Route {
       headers: this.currentUser.authorizationHeader,
     });
 
-    return await res.json();
+    return (await res.json()) as Submission;
   }
 
   afterModel({ progress }: Submission) {

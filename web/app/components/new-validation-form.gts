@@ -41,22 +41,22 @@ export default class NewValidationFormComponent extends Component<Signature> {
       this.errorModal,
     );
 
-    const { id } = await res.json();
+    const { id } = (await res.json()) as { id: string };
 
     this.router.transitionTo('validations.show', id);
     this.toast.show('Validation has started.', 'success');
   });
 
   <template>
-    <form {{on 'submit' this.create.perform}}>
+    <form {{on "submit" this.create.perform}}>
       {{#each @db.objs as |obj|}}
         <ObjectField @obj={{obj}} />
       {{/each}}
 
-      <button type='submit' class='btn btn-primary' disabled={{this.create.isRunning}}>
+      <button type="submit" class="btn btn-primary" disabled={{this.create.isRunning}}>
         {{#if this.create.isRunning}}
-          <span class='spinner-border spinner-border-sm' aria-hidden='true'></span>
-          <span role='status'>Uploading...</span>
+          <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          <span role="status">Uploading...</span>
         {{else}}
           Validate
         {{/if}}
@@ -73,17 +73,18 @@ declare module '@glint/environment-ember-loose/registry' {
 
 function jsonToFormData(obj: object, key?: string, formData = new FormData()) {
   if (Array.isArray(obj)) {
-    for (const v of obj) {
+    for (const v of obj as object[]) {
       jsonToFormData(v, `${key}[]`, formData);
     }
   } else if (Object.prototype.toString.call(obj) === '[object Object]') {
-    for (const [k, v] of Object.entries(obj)) {
+    for (const [k, v] of Object.entries(obj) as [string, object][]) {
       jsonToFormData(v, key ? `${key}[${k}]` : k, formData);
     }
   } else {
     if (!key) throw new Error('key is empty');
 
     if (obj !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       formData.append(key, obj instanceof Blob ? obj : obj.toString());
     }
   }

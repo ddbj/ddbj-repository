@@ -29,13 +29,13 @@ export default class SubmissionsSearchFormComponent extends Component<Signature>
   ] as const;
 
   <template>
-    <dl class='horizontal align-items-center' ...attributes>
+    <dl class="horizontal align-items-center" ...attributes>
       <dt>DB</dt>
 
-      <dd class='mb-0 d-flex flex-wrap gap-3 align-items-center'>
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         <CheckboxGroup @values={{@dbs}} @selected={{@selectedDBs}} @onChange={{@onSelectedDBsChange}} as |group|>
           {{#each @dbs as |db|}}
-            <div class='form-check'>
+            <div class="form-check">
               <group.checkbox @value={{db}}>
                 {{db}}
               </group.checkbox>
@@ -46,19 +46,19 @@ export default class SubmissionsSearchFormComponent extends Component<Signature>
 
       <dt>Created</dt>
 
-      <dd class='mb-0 d-flex flex-wrap gap-3 align-items-center'>
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         {{#each this.createdOptions as |opt|}}
-          <div class='form-check'>
+          <div class="form-check">
             {{#let (uniqueId) as |id|}}
               <input
-                type='radio'
-                name='created'
+                type="radio"
+                name="created"
                 checked={{eq @created opt.value}}
                 id={{id}}
-                class='form-check-input'
-                {{on 'change' (fn @onCreatedChange opt.value)}}
+                class="form-check-input"
+                {{on "change" (fn @onCreatedChange opt.value)}}
               />
-              <label for={{id}} class='form-check-label'>{{opt.label}}</label>
+              <label for={{id}} class="form-check-label">{{opt.label}}</label>
             {{/let}}
           </div>
         {{/each}}

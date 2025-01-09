@@ -45,10 +45,10 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
     };
   });
 
-  submit = task({ drop: true }, async (e) => {
+  submit = task({ drop: true }, async (e: Event) => {
     e.preventDefault();
 
-    const formData = new FormData(e.target);
+    const formData = new FormData(e.target as HTMLFormElement);
 
     const res = await safeFetchWithModal(
       `${ENV.apiURL}/submissions`,
@@ -60,7 +60,7 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
       this.errorModal,
     );
 
-    const { id: submissionId } = await res.json();
+    const { id: submissionId } = (await res.json()) as { id: string };
 
     this.router.transitionTo('submissions.show', submissionId);
     this.toast.show('Validation was successfully submitted.', 'success');
@@ -69,50 +69,50 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
   <template>
     <div {{this.calculateElapsed}}>
       {{#if @validation.submission}}
-        <div class='alert alert-danger mt-3'>You have already submitted this validation.</div>
-      {{else if (notEq @validation.validity 'valid')}}
-        <div class='alert alert-danger mt-3'>This validation is not valid.</div>
+        <div class="alert alert-danger mt-3">You have already submitted this validation.</div>
+      {{else if (notEq @validation.validity "valid")}}
+        <div class="alert alert-danger mt-3">This validation is not valid.</div>
       {{else if (gt this.elapsedFromValidationFinished oneDay)}}
-        <div class='alert alert-danger mt-3'>This validation is expired.</div>
+        <div class="alert alert-danger mt-3">This validation is expired.</div>
       {{else}}
-        <form {{on 'submit' this.submit.perform}} class='p-3'>
-          <input type='hidden' name='validation_id' value={{@validation.id}} />
-          <input type='hidden' name='db' value={{@validation.db}} />
+        <form {{on "submit" this.submit.perform}} class="p-3">
+          <input type="hidden" name="validation_id" value={{@validation.id}} />
+          <input type="hidden" name="db" value={{@validation.db}} />
 
-          <div class='mb-3'>
-            <label class='form-label'>Visibility</label>
+          <div class="mb-3">
+            <label class="form-label">Visibility</label>
 
             <div>
-              <div class='form-check form-check-inline'>
+              <div class="form-check form-check-inline">
                 {{#let (uniqueId) as |id|}}
-                  <input class='form-check-input' id={{id}} type='radio' name='visibility' value='public' required />
-                  <label class='form-check-label' for={{id}}>Public</label>
+                  <input class="form-check-input" id={{id}} type="radio" name="visibility" value="public" required />
+                  <label class="form-check-label" for={{id}}>Public</label>
                 {{/let}}
               </div>
 
-              <div class='form-check form-check-inline'>
+              <div class="form-check form-check-inline">
                 {{#let (uniqueId) as |id|}}
-                  <input class='form-check-input' id={{id}} type='radio' name='visibility' value='private' required />
-                  <label class='form-check-label' for={{id}}>Private</label>
+                  <input class="form-check-input" id={{id}} type="radio" name="visibility" value="private" required />
+                  <label class="form-check-label" for={{id}}>Private</label>
                 {{/let}}
               </div>
             </div>
           </div>
 
-          {{#if (eq @validation.db 'BioProject')}}
-            <div class='mb-3'>
-              <div class='form-check'>
-                <input type='hidden' name='umbrella' value='false' />
+          {{#if (eq @validation.db "BioProject")}}
+            <div class="mb-3">
+              <div class="form-check">
+                <input type="hidden" name="umbrella" value="false" />
 
                 {{#let (uniqueId) as |id|}}
-                  <input class='form-check-input' id={{id}} type='checkbox' name='umbrella' value='true' />
-                  <label class='form-check-label' for={{id}}>Umbrella project</label>
+                  <input class="form-check-input" id={{id}} type="checkbox" name="umbrella" value="true" />
+                  <label class="form-check-label" for={{id}}>Umbrella project</label>
                 {{/let}}
               </div>
             </div>
           {{/if}}
 
-          <button class='btn btn-primary' type='submit'>Submit</button>
+          <button class="btn btn-primary" type="submit">Submit</button>
         </form>
       {{/if}}
     </div>

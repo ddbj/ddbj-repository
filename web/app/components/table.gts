@@ -16,11 +16,11 @@ export interface Signature {
 
 const TableComponent: TOC<Signature> = <template>
   {{#if @items}}
-    <table class='table border' ...attributes>
+    <table class="table border" ...attributes>
       {{yield}}
     </table>
   {{else}}
-    <div class='text-center text-muted border rounded py-5' {{style --bs-border-style='dashed'}}>
+    <div class="text-center text-muted border rounded py-5" {{style --bs-border-style="dashed"}}>
       There are no items.
     </div>
   {{/if}}
