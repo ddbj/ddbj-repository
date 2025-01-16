@@ -7,7 +7,7 @@ GIT
 
 GIT
   remote: https://github.com/ddbj/submission-excel2xml.git
-  revision: 2afdaa2ad7eb275ef82202756b498d70df781b79
+  revision: ba34d957da4995afeab2bf923c93767bb788cf32
   specs:
     submission-excel2xml (0.1.0)
       builder (~> 3)
@@ -369,7 +369,7 @@ GEM
       rubocop-performance
       rubocop-rails
     ruby-progressbar (1.13.0)
-    rubyzip (2.3.2)
+    rubyzip (2.4.1)
     securerandom (0.4.1)
     sentry-rails (5.22.1)
       railties (>= 5.0)
