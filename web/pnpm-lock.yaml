@@ -87,8 +87,8 @@ importers:
         specifier: ^1.5.1
         version: 1.5.1
       '@tsconfig/ember':
-        specifier: ^3.0.8
-        version: 3.0.8
+        specifier: ^3.0.9
+        version: 3.0.9
       '@types/bootstrap':
         specifier: ^5.2.10
         version: 5.2.10
@@ -1507,8 +1507,8 @@ packages:
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
 
-  '@tsconfig/ember@3.0.8':
-    resolution: {integrity: sha512-OVnIsZIt/8q0VEtcdz3rRryNrm6gdJTxXlxefkGIrkZnME0wqslmwHlUEZ7mvh377df9FqBhNKrYNarhCW8zJA==}
+  '@tsconfig/ember@3.0.9':
+    resolution: {integrity: sha512-0B44GyEafxJLAZSixH9VBnm9kDFCpaLXu86httaJSDEm1nfl3WWI/XfY4diPsOyOg+pc9N1/YfqH7uKM2dF0lA==}
 
   '@types/babel__code-frame@7.0.6':
     resolution: {integrity: sha512-Anitqkl3+KrzcW2k77lRlg/GfLZLWXBuNgbEcIOU6M92yw42vsd3xV/Z/yAHEj8m+KUjL6bWOVOFqX8PFPJ4LA==}
@@ -4685,6 +4685,7 @@ packages:
 
   lodash.omit@4.5.0:
     resolution: {integrity: sha512-XeqSp49hNGmlkj2EJlfrQFIzQ6lXdNro9sddtQzcJY8QaoC2GO0DT7xaIokHeyM+mIT0mPMlPvkYzg2xCuHdZg==}
+    deprecated: This package is deprecated. Use destructuring assignment syntax instead.
 
   lodash.truncate@4.4.2:
     resolution: {integrity: sha512-jttmRe7bRse52OsWIMDLaXxWqRAmtIUccAQ3garviCqJjafXOfNMO0yMfNpdD6zbGaTU0P5Nz7e7gAT6cKmJRw==}
@@ -8419,7 +8420,7 @@ snapshots:
 
   '@socket.io/component-emitter@3.1.2': {}
 
-  '@tsconfig/ember@3.0.8': {}
+  '@tsconfig/ember@3.0.9': {}
 
   '@types/babel__code-frame@7.0.6': {}
 
