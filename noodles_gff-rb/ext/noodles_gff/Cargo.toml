@@ -11,4 +11,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 magnus = "0.7"
-noodles-gff = "0.42"
+noodles-gff = "0.43"
