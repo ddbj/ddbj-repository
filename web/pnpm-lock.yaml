@@ -75,8 +75,8 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2
       '@glint/core':
-        specifier: ^1.5.1
-        version: 1.5.1(typescript@5.7.3)
+        specifier: ^1.5.2
+        version: 1.5.2(typescript@5.7.3)
       '@glint/environment-ember-loose':
         specifier: ^1.5.1
         version: 1.5.1(@glimmer/component@1.1.2(@babel/core@7.26.0))(@glint/template@1.5.1)(@types/ember__array@4.0.10(@babel/core@7.26.0))(@types/ember__component@4.0.22(@babel/core@7.26.0))(@types/ember__controller@4.0.12(@babel/core@7.26.0))(@types/ember__object@4.0.12(@babel/core@7.26.0))(@types/ember__routing@4.0.22(@babel/core@7.26.0))(ember-cli-htmlbars@6.3.0)(ember-modifier@4.2.0(@babel/core@7.26.0)(ember-source@6.1.0(@glimmer/component@1.1.2(@babel/core@7.26.0))(@glint/template@1.5.1)(rsvp@4.8.5)(webpack@5.97.1)))
@@ -1353,8 +1353,8 @@ packages:
   '@glimmer/wire-format@0.94.1':
     resolution: {integrity: sha512-GN+F5DoN3Zk26O/xscAWXob3m74vSryh+sjK1THY0oXl2fVObw1ggAyW8rai29GaxKdNOj2yruCJ1vNr7DEv3Q==}
 
-  '@glint/core@1.5.1':
-    resolution: {integrity: sha512-5VDL/7z9CrirHyx4XyCARDOjujl2Z92hftp19ChXWEPLypukoXW+uDG/awgYCh2T1eNtxufX4j2Liqw0m1eAEw==}
+  '@glint/core@1.5.2':
+    resolution: {integrity: sha512-kbEt8jBEkH65yDB20tBq/rnZl+iigmAenKQcgu1cqex6/eT6LrQ5E9QxyKtqe9S18qZv0c/LNa0qE7jwbAEKMA==}
     hasBin: true
     peerDependencies:
       typescript: '>=4.8.0'
@@ -6401,8 +6401,8 @@ packages:
   vscode-languageserver-protocol@3.17.3:
     resolution: {integrity: sha512-924/h0AqsMtA5yK22GgMtCYiMdCOtWTSGgUOkgEDX+wk2b0x4sAfLiO4NxBxqbiVtz7K7/1/RgVrVI0NClZwqA==}
 
-  vscode-languageserver-textdocument@1.0.11:
-    resolution: {integrity: sha512-X+8T3GoiwTVlJbicx/sIAF+yuJAqz8VvwJyoMVhwEMoEKE/fkDmrqUgDMyBECcM2A2frVZIUj5HI/ErRXCfOeA==}
+  vscode-languageserver-textdocument@1.0.12:
+    resolution: {integrity: sha512-cxWNPesCnQCcMPeenjKKsOCKQZ/L6Tv19DTRIGuLWe32lyzWhihGVJ/rcckZXJxfdKCFvRLS3fpBIsV/ZGX4zA==}
 
   vscode-languageserver-types@3.17.3:
     resolution: {integrity: sha512-SYU4z1dL0PyIMd4Vj8YOqFvHu7Hz/enbWtpfnVbJHU4Nd1YNYx8u0ennumc6h48GQNeOLxmwySmnADouT/AuZA==}
@@ -8291,7 +8291,7 @@ snapshots:
       '@glimmer/interfaces': 0.94.1
     optional: true
 
-  '@glint/core@1.5.1(typescript@5.7.3)':
+  '@glint/core@1.5.2(typescript@5.7.3)':
     dependencies:
       '@glimmer/syntax': 0.84.3
       escape-string-regexp: 4.0.0
@@ -8300,7 +8300,7 @@ snapshots:
       typescript: 5.7.3
       uuid: 8.3.2
       vscode-languageserver: 8.1.0
-      vscode-languageserver-textdocument: 1.0.11
+      vscode-languageserver-textdocument: 1.0.12
       vscode-uri: 3.0.8
       yargs: 17.7.2
     transitivePeerDependencies:
@@ -14681,7 +14681,7 @@ snapshots:
       vscode-jsonrpc: 8.1.0
       vscode-languageserver-types: 3.17.3
 
-  vscode-languageserver-textdocument@1.0.11: {}
+  vscode-languageserver-textdocument@1.0.12: {}
 
   vscode-languageserver-types@3.17.3: {}
 
