@@ -102,7 +102,7 @@ importers:
         specifier: ^4.0.9
         version: 4.0.9
       '@typescript-eslint/eslint-plugin':
-        specifier: ^8.22.0
+        specifier: ^8.23.0
         version: 8.23.0(@typescript-eslint/parser@8.23.0(eslint@9.19.0)(typescript@5.7.3))(eslint@9.19.0)(typescript@5.7.3)
       '@typescript-eslint/parser':
         specifier: ^8.23.0
@@ -6500,7 +6500,7 @@ snapshots:
       '@babel/core': 7.26.7(supports-color@8.1.1)
       '@babel/helper-compilation-targets': 7.25.9
       '@babel/helper-plugin-utils': 7.25.7
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@8.1.1)
       lodash.debounce: 4.0.8
       resolve: 1.22.8
     transitivePeerDependencies:
@@ -8265,14 +8265,14 @@ snapshots:
       '@types/ember__array': 4.0.10(@babel/core@7.26.7)
       '@types/ember__component': 4.0.22(@babel/core@7.26.7)
       '@types/ember__controller': 4.0.12(@babel/core@7.26.7)
-      '@types/ember__debug': 4.0.8
-      '@types/ember__engine': 4.0.11
+      '@types/ember__debug': 4.0.8(@babel/core@7.26.7)
+      '@types/ember__engine': 4.0.11(@babel/core@7.26.7)
       '@types/ember__error': 4.0.6
       '@types/ember__object': 4.0.12(@babel/core@7.26.7)
       '@types/ember__polyfills': 4.0.6
       '@types/ember__routing': 4.0.22(@babel/core@7.26.7)
-      '@types/ember__runloop': 4.0.10(@babel/core@7.26.7)
-      '@types/ember__service': 4.0.9
+      '@types/ember__runloop': 4.0.10
+      '@types/ember__service': 4.0.9(@babel/core@7.26.7)
       '@types/ember__string': 3.0.15
       '@types/ember__template': 4.0.7
       '@types/ember__test': 4.0.6(@babel/core@7.26.7)
@@ -8286,14 +8286,14 @@ snapshots:
       '@types/ember__array': 4.0.10(@babel/core@7.26.7)
       '@types/ember__component': 4.0.22(@babel/core@7.26.7)
       '@types/ember__controller': 4.0.12(@babel/core@7.26.7)
-      '@types/ember__debug': 4.0.8
-      '@types/ember__engine': 4.0.11
+      '@types/ember__debug': 4.0.8(@babel/core@7.26.7)
+      '@types/ember__engine': 4.0.11(@babel/core@7.26.7)
       '@types/ember__error': 4.0.6
       '@types/ember__object': 4.0.12(@babel/core@7.26.7)
       '@types/ember__polyfills': 4.0.6
       '@types/ember__routing': 4.0.22(@babel/core@7.26.7)
       '@types/ember__runloop': 4.0.10(@babel/core@7.26.7)
-      '@types/ember__service': 4.0.9
+      '@types/ember__service': 4.0.9(@babel/core@7.26.7)
       '@types/ember__string': 3.0.15
       '@types/ember__template': 4.0.7
       '@types/ember__test': 4.0.6(@babel/core@7.26.7)
@@ -8308,7 +8308,7 @@ snapshots:
     dependencies:
       '@glimmer/component': 1.1.2(@babel/core@7.26.7)
       '@types/ember': 4.0.11
-      '@types/ember__engine': 4.0.11
+      '@types/ember__engine': 4.0.11(@babel/core@7.26.7)
       '@types/ember__object': 4.0.12(@babel/core@7.26.7)
       '@types/ember__owner': 4.0.9
       '@types/ember__routing': 4.0.22(@babel/core@7.26.7)
@@ -8343,16 +8343,22 @@ snapshots:
       - supports-color
     optional: true
 
-  '@types/ember__debug@4.0.8':
+  '@types/ember__debug@4.0.8(@babel/core@7.26.7)':
     dependencies:
       '@types/ember__object': 4.0.12(@babel/core@7.26.7)
       '@types/ember__owner': 4.0.9
+    transitivePeerDependencies:
+      - '@babel/core'
+      - supports-color
     optional: true
 
-  '@types/ember__engine@4.0.11':
+  '@types/ember__engine@4.0.11(@babel/core@7.26.7)':
     dependencies:
       '@types/ember__object': 4.0.12(@babel/core@7.26.7)
       '@types/ember__owner': 4.0.9
+    transitivePeerDependencies:
+      - '@babel/core'
+      - supports-color
     optional: true
 
   '@types/ember__error@4.0.6':
@@ -8397,10 +8403,15 @@ snapshots:
       '@types/ember': 4.0.11(@babel/core@7.26.7)
       '@types/ember__controller': 4.0.12(@babel/core@7.26.7)
       '@types/ember__object': 4.0.12(@babel/core@7.26.7)
-      '@types/ember__service': 4.0.9
+      '@types/ember__service': 4.0.9(@babel/core@7.26.7)
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
+    optional: true
+
+  '@types/ember__runloop@4.0.10':
+    dependencies:
+      '@types/ember': 4.0.11
     optional: true
 
   '@types/ember__runloop@4.0.10(@babel/core@7.26.7)':
@@ -8411,9 +8422,12 @@ snapshots:
       - supports-color
     optional: true
 
-  '@types/ember__service@4.0.9':
+  '@types/ember__service@4.0.9(@babel/core@7.26.7)':
     dependencies:
       '@types/ember__object': 4.0.12(@babel/core@7.26.7)
+    transitivePeerDependencies:
+      - '@babel/core'
+      - supports-color
     optional: true
 
   '@types/ember__string@3.0.15':
@@ -8591,7 +8605,7 @@ snapshots:
       '@typescript-eslint/types': 8.23.0
       '@typescript-eslint/visitor-keys': 8.23.0
       debug: 4.4.0(supports-color@8.1.1)
-      fast-glob: 3.3.2
+      fast-glob: 3.3.3
       is-glob: 4.0.3
       minimatch: 9.0.5
       semver: 7.6.3
@@ -10217,7 +10231,7 @@ snapshots:
     dependencies:
       ansi-to-html: 0.6.15
       broccoli-stew: 3.0.0
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@8.1.1)
       execa: 4.1.0
       fs-extra: 9.1.0
       resolve: 1.22.8
@@ -13419,7 +13433,7 @@ snapshots:
 
   stagehand@1.0.1:
     dependencies:
-      debug: 4.3.5(supports-color@8.1.1)
+      debug: 4.4.0(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
