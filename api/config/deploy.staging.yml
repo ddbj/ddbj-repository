@@ -1,0 +1,39 @@
+servers:
+  web:
+    - repository-staging 
+
+proxy:
+  host: repository-dev.ddbj.nig.ac.jp
+
+env:
+  clear:
+    API_URL:            https://repository-dev.ddbj.nig.ac.jp/api
+    MINIO_ENDPOINT:     https://repository-storage-dev.ddbj.nig.ac.jp
+    OIDC_ISSUER_URL:    https://accounts-dev.ddbj.nig.ac.jp/realms/master
+    SENTRY_CURRENT_ENV: staging
+    DDBJ_VALIDATOR_URL: http://validator-staging:3000/api
+
+volumes:
+  - "repository_storage:/app/api/storage"
+
+accessories:
+  postgres:
+    host: repository-staging
+
+    volumes:
+      - ./volumes/repository-staging/postgres:/var/lib/postgresql/data
+
+  minio:
+    host: repository-staging
+
+    volumes:
+      - ./volumes/repository-staging/minio:/data
+
+  virtuoso:
+    host: repository-staging
+
+    volumes:
+      - ./volumes/repository-staging/virtuoso:/database
+
+  validator:
+    host: repository-staging
