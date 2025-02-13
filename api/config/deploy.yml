@@ -46,6 +46,7 @@ builder:
   args:
     APP_GID: 11370
     APP_UID: 2233
+    API_URL: https://repository-dev.ddbj.nig.ac.jp/api
 
 ssh:
   user: w3const
