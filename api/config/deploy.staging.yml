@@ -14,7 +14,7 @@ env:
     DDBJ_VALIDATOR_URL: http://validator-staging:3000/api
 
 volumes:
-  - "repository_storage:/app/api/storage"
+  - ./volumes/repository-staging/storage:/app/api/storage
 
 accessories:
   postgres:
