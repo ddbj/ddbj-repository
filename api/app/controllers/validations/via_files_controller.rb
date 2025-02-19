@@ -43,10 +43,10 @@ class Validations::ViaFilesController < ApplicationController
     in {file:, **rest}
       validation.objs.create! _id: id, file: file, **rest.slice(:destination)
     in {path: relative_path, **rest}
-      user_home = Pathname.new(ENV.fetch("USER_HOME_DIR")).join(current_user.uid)
-      path      = user_home.join(relative_path)
+      mass_dir = Pathname.new(ENV.fetch("MASS_DIR_PATH_TEMPLATE").gsub("{user}", current_user.uid))
+      path     = mass_dir.join(relative_path)
 
-      raise UnprocessableEntity, "path must be in #{user_home}" unless user_home.contain?(path)
+      raise UnprocessableEntity, "path must be in #{mass_dir}" unless mass_dir.contain?(path)
 
       destination = rest[:destination]
 
