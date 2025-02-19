@@ -1,17 +1,15 @@
 servers:
   web:
     hosts:
-      - repository-staging 
-    options:
-      group_add: 60000
+      - repository-staging
 
 proxy:
-  host: repository-dev.ddbj.nig.ac.jp
+  host: repository-staging.ddbj.nig.ac.jp
 
 env:
   clear:
-    MINIO_ENDPOINT:     https://repository-storage-dev.ddbj.nig.ac.jp
-    OIDC_ISSUER_URL:    https://accounts-dev.ddbj.nig.ac.jp/realms/master
+    MINIO_ENDPOINT:     https://repository-storage-staging.ddbj.nig.ac.jp
+    OIDC_ISSUER_URL:    https://accounts-staging.ddbj.nig.ac.jp/realms/master
     SENTRY_CURRENT_ENV: staging
     DDBJ_VALIDATOR_URL: http://repository-validator:3000/api
 
