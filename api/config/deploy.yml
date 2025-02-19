@@ -5,7 +5,7 @@ require_destination: true
 servers:
   web:
     options:
-      group_add: 60000
+      group-add: 60000
 
 registry:
   username: w3const
@@ -18,23 +18,16 @@ env:
     - DATABASE_URL
     - DATABASE_URL_DRASEARCH
     - DATABASE_URL_DWAY
-    - RAILS_MASTER_KEY
     - MINIO_ACCESS_KEY_ID
     - MINIO_SECRET_ACCESS_KEY
-    - SMTP_USERNAME
-    - SMTP_PASSWORD
     - SECRET_KEY_BASE
     - SENTRY_DSN
 
   clear:
     MASS_DIR_PATH_TEMPLATE: '/submission/{user}/submission/{user}/mass'
     MINIO_BUCKET:           uploads
-    OIDC_CLIENT_ID:         ddbj-repository
+    OIDC_CLIENT_ID:         repository
     REPOSITORY_DIR:         /api/app/storage/repository
-    SMTP_ADDRESS:           mail1i
-    SMTP_AUTHENTICATION:    plain
-    SMTP_DOMAIN:            ddbj.nig.ac.jp
-    SMTP_PORT:              465
     SOLID_QUEUE_IN_PUMA:    'true'
     TZ:                     Asia/Tokyo
 
@@ -47,14 +40,13 @@ aliases:
   logs: app logs -f
   dbc: app exec --interactive --reuse "bin/rails dbconsole"
 
-asset_path: /app/api/public/assets
+asset_path: /app/api/public/web
 
 builder:
   arch: amd64
   context: ..
 
   args:
-    API_URL: https://repository-dev.ddbj.nig.ac.jp/api
     APP_GID: 11370
     APP_UID: 2233
 
@@ -128,10 +120,8 @@ accessories:
         - DDBJ_VALIDATOR_APP_POSTGRES_USER
 
       clear:
-        DDBJ_VALIDATOR_APP_POSTGRES_HOST:             at098
-        DDBJ_VALIDATOR_APP_POSTGRES_PORT:             54301
         DDBJ_VALIDATOR_APP_NAMED_GRAPHE_URI_TAXONOMY: http://ddbj.nig.ac.jp/ontologies/taxonomy-private
-        DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:          '30'
+        DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:          30
         DDBJ_VALIDATOR_APP_VALIDATOR_LOG_DIR:         /usr/src/ddbj_validator/logs
-        DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER:  http://virtuoso:8890/sparql
+        DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER:  http://repository-virtuoso:8890/sparql
         TZ:                                           Asia/Tokyo

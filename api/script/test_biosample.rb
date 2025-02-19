@@ -4,6 +4,8 @@ require 'thor'
 
 using FetchRaiseError
 
+API_URL = "#{ENV.fetch("APP_URL")}/api"
+
 class TestBioSample < Thor
   def self.exit_on_failure? = true
 

@@ -70,12 +70,13 @@ FROM docker.io/library/node:22.11.0 AS web
 ARG API_URL
 ENV API_URL=${API_URL:?}
 
+RUN npm install --global pnpm@9
+
 WORKDIR /app/web
 
 COPY web ./
 COPY schema /app/schema
 
-RUN npm install --global pnpm@9
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
