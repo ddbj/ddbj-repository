@@ -40,7 +40,7 @@ aliases:
   logs: app logs -f
   dbc: app exec --interactive --reuse "bin/rails dbconsole"
 
-asset_path: /app/api/public/web
+asset_path: /app/api/public/web/assets
 
 builder:
   arch: amd64
