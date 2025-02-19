@@ -22,16 +22,20 @@ env:
     - SENTRY_DSN
 
   clear:
-    MINIO_BUCKET:        uploads
-    OIDC_CLIENT_ID:      ddbj-repository
-    REPOSITORY_DIR:      /data/repository
-    SMTP_ADDRESS:        smtp.gmail.com
-    SMTP_AUTHENTICATION: plain
-    SMTP_DOMAIN:         ddbj.nig.ac.jp
-    SMTP_PORT:           587
-    SOLID_QUEUE_IN_PUMA: 'true'
-    TZ:                  Asia/Tokyo
-    USER_HOME_DIR:       /data/home
+    MASS_DIR_PATH_TEMPLATE: '/submission/{user}/submission/{user}/mass'
+    MINIO_BUCKET:           uploads
+    OIDC_CLIENT_ID:         ddbj-repository
+    REPOSITORY_DIR:         /data/repository
+    SMTP_ADDRESS:           smtp.gmail.com
+    SMTP_AUTHENTICATION:    plain
+    SMTP_DOMAIN:            ddbj.nig.ac.jp
+    SMTP_PORT:              587
+    SOLID_QUEUE_IN_PUMA:    'true'
+    TZ:                     Asia/Tokyo
+    USER_HOME_DIR:          /data/home
+
+volumes:
+  - /mnt/submission:/submission
 
 aliases:
   console: app exec --interactive --reuse "bin/rails console"

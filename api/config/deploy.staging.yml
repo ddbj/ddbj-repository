@@ -17,8 +17,6 @@ env:
 
 volumes:
   - ./volumes/repository-staging/storage:/app/api/storage
-  - ~/repository/staging:/data/repository
-  - /home:/data/home
 
 accessories:
   postgres:
