@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/ddbj/metabobank_tools.git
-  revision: f92142e5ea996f36d55dc7c7d39fb7a39fdc5410
+  revision: 3d2c2f6b5c8076647215026b48e243100fb052b8
   specs:
     metabobank_tools (0.1.0)
       csv
