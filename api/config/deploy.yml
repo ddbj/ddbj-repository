@@ -113,7 +113,14 @@ accessories:
         VIRT_SPARQL_ResultSetMaxRows:           1000000
 
   validator:
-    image: ghcr.io/ddbj/ddbj_validator:main
+    image: ddbj/ddbj_validator:main
+
+    registry:
+      server: ghcr.io
+      username:
+        - GHCR_USERNAME
+      password:
+        - GHCR_PASSWORD
 
     env:
       secret:
