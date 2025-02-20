@@ -31,6 +31,9 @@ accessories:
   minio:
     host: repository-staging
 
+    proxy:
+      host: repository-storage-staging.ddbj.nig.ac.jp
+
     volumes:
       - ./volumes/repository-staging/minio:/data
 
