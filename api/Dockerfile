@@ -50,7 +50,7 @@ COPY --from=noodles_gff /app/noodles_gff-rb /app/noodles_gff-rb
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential git libpq-dev pkg-config && \
+    apt-get install --no-install-recommends -y build-essential git libpq-dev pkg-config libyaml-dev && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Install application gems
@@ -70,12 +70,13 @@ FROM docker.io/library/node:22.11.0 AS web
 ARG API_URL
 ENV API_URL=${API_URL:?}
 
+RUN npm install --global pnpm@9
+
 WORKDIR /app/web
 
 COPY web ./
 COPY schema /app/schema
 
-RUN corepack enable pnpm
 RUN pnpm install --frozen-lockfile
 RUN pnpm build
 
