@@ -28,7 +28,7 @@ env:
     MINIO_BUCKET:           uploads
     OIDC_CLIENT_ID:         repository
     REPOSITORY_DIR:         /api/app/storage/repository
-    SOLID_QUEUE_IN_PUMA:    'true'
+    SOLID_QUEUE_IN_PUMA:    true
     TZ:                     Asia/Tokyo
 
 volumes:
