@@ -21,10 +21,6 @@ RSpec.describe "authentication", type: :request do
     double(:access_token)
   }
 
-  around do |example|
-    ClimateControl.modify OIDC_CLIENT_ID: "CLIENT_ID", &example
-  end
-
   before do
     allow_any_instance_of(AuthsController).to receive(:oidc_client) { oidc_client }
 
