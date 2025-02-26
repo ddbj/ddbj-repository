@@ -25,8 +25,6 @@ env:
 
   clear:
     MASS_DIR_PATH_TEMPLATE: '/submission/{user}/submission/{user}/mass'
-    MINIO_BUCKET:           uploads
-    OIDC_CLIENT_ID:         repository
     REPOSITORY_DIR:         /api/app/storage/repository
     SOLID_QUEUE_IN_PUMA:    true
     TZ:                     Asia/Tokyo
