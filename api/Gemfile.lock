@@ -7,7 +7,7 @@ GIT
 
 GIT
   remote: https://github.com/ddbj/submission-excel2xml.git
-  revision: ba34d957da4995afeab2bf923c93767bb788cf32
+  revision: a5631003a253e1f4df670adbc17e454ab17623ed
   specs:
     submission-excel2xml (0.1.0)
       builder (~> 3)
@@ -345,7 +345,7 @@ GEM
     reline (0.6.0)
       io-console (~> 0.5)
     retriable (3.1.2)
-    rexml (3.4.0)
+    rexml (3.4.1)
     roo (2.10.1)
       nokogiri (~> 1)
       rubyzip (>= 1.3.0, < 3.0.0)
