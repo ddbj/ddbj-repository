@@ -9,7 +9,6 @@ proxy:
 env:
   clear:
     APP_URL:            https://repository-staging.ddbj.nig.ac.jp
-    DDBJ_VALIDATOR_URL: http://repository-validator:3000/api
     MINIO_ENDPOINT:     https://repository-storage-staging.ddbj.nig.ac.jp
     OIDC_ISSUER_URL:    https://idp-staging.ddbj.nig.ac.jp/realms/master
     SENTRY_CURRENT_ENV: staging
@@ -49,4 +48,3 @@ accessories:
     env:
       clear:
         DDBJ_VALIDATOR_APP_POSTGRES_HOST: a012
-        DDBJ_VALIDATOR_APP_POSTGRES_PORT: 54301
