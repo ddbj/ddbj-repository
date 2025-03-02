@@ -14,7 +14,7 @@ env:
     SENTRY_CURRENT_ENV: production
 
 volumes:
-  - ./volumes/repository-production/storage:/app/api/storage
+  - ./volumes/repository-production/storage:/rails/storage
 
 builder:
   args:

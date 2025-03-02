@@ -20,7 +20,7 @@ GIT
       thor (~> 1)
 
 PATH
-  remote: ../noodles_gff-rb
+  remote: noodles_gff-rb
   specs:
     noodles_gff (0.1.0)
 

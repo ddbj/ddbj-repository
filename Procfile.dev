@@ -1,4 +1,4 @@
-api: cd api && bin/rails server --port 3000
+api: bin/rails server --port 3000
 web: cd web && pnpm start --port 4200
 ddbj_validator: cd ddbj_validator && docker compose up
 minio: docker run --rm --name repository_minio --publish 9000:9000 --publish 9001:9001 --volume repository_minio:/data minio/minio server /data --console-address ':9001'
