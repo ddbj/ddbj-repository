@@ -1,0 +1,50 @@
+servers:
+  web:
+    hosts:
+      - repository-production
+
+proxy:
+  host: repository.ddbj.nig.ac.jp
+
+env:
+  clear:
+    APP_URL:            https://repository.ddbj.nig.ac.jp
+    MINIO_ENDPOINT:     https://repository-storage.ddbj.nig.ac.jp
+    OIDC_ISSUER_URL:    https://idp.ddbj.nig.ac.jp/realms/master
+    SENTRY_CURRENT_ENV: production
+
+volumes:
+  - ./volumes/repository-production/storage:/app/api/storage
+
+builder:
+  args:
+    API_URL: https://repository.ddbj.nig.ac.jp/api
+
+accessories:
+  postgres:
+    host: repository-production
+
+    volumes:
+      - ./volumes/repository-production/postgres:/var/lib/postgresql/data
+
+  minio:
+    host: repository-production
+
+    proxy:
+      host: repository-storage.ddbj.nig.ac.jp
+
+    volumes:
+      - ./volumes/repository-production/minio:/data
+
+  virtuoso:
+    host: repository-production
+
+    volumes:
+      - ./volumes/repository-production/virtuoso:/database
+
+  validator:
+    host: repository-production
+
+    env:
+      clear:
+        DDBJ_VALIDATOR_APP_POSTGRES_HOST: a011
