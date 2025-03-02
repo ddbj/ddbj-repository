@@ -26,7 +26,7 @@ env:
   clear:
     DDBJ_VALIDATOR_URL:     http://repository-validator:3000/api
     MASS_DIR_PATH_TEMPLATE: '/submission/{user}/submission/{user}/mass'
-    REPOSITORY_DIR:         /api/app/storage/repository
+    REPOSITORY_DIR:         /rails/storage/repository
     SOLID_QUEUE_IN_PUMA:    true
     TZ:                     Asia/Tokyo
 
@@ -39,11 +39,10 @@ aliases:
   logs: app logs -f
   dbc: app exec --interactive --reuse "bin/rails dbconsole"
 
-asset_path: /app/api/public/web/assets
+asset_path: /rails/public/web/assets
 
 builder:
   arch: amd64
-  context: ..
 
   args:
     APP_GID: 11370

@@ -10,7 +10,7 @@ gem "jb"
 gem "json"
 gem "kamal", require: false
 gem "metabobank_tools", github: "ddbj/metabobank_tools"
-gem "noodles_gff", path: "../noodles_gff-rb"
+gem "noodles_gff", path: "noodles_gff-rb"
 gem "openid_connect"
 gem "pagy"
 gem "parallel"
