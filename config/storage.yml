@@ -5,7 +5,7 @@ test:
 <% else %>
 minio:
   service:           S3
-  endpoint:          <%= ENV.fetch('MINIO_ENDPOINT') %>
+  endpoint:          <%= ENV.fetch('MINIO_ENDPOINT', 'http://localhost:9000') %>
   force_path_style:  true
   bucket:            uploads
   access_key_id:     <%= ENV.fetch('MINIO_ACCESS_KEY_ID') %>

@@ -21,7 +21,7 @@ module.exports = function (environment) {
       // when it is created
     },
 
-    apiURL: process.env.API_URL,
+    apiURL: process.env.API_URL || 'http://localhost:3000/api',
     dbs,
   };
 
