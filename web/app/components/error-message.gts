@@ -3,6 +3,8 @@ import { tracked } from '@glimmer/tracking';
 
 import { FetchFailed } from 'ddbj-repository/utils/safe-fetch';
 
+import type Owner from '@ember/owner';
+
 export interface Signature {
   Args: {
     error: Error;
@@ -13,7 +15,7 @@ export default class ErrorMessageComponent extends Component<Signature> {
   @tracked message?: string;
   @tracked details?: string;
 
-  constructor(owner: unknown, args: Signature['Args']) {
+  constructor(owner: Owner, args: Signature['Args']) {
     super(owner, args);
 
     const { error } = this.args;
