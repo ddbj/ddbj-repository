@@ -80,44 +80,47 @@ test:
     <<: *drasearch_default
     database: drasearch_test
 
-production:
+production: &production
   primary:
     <<: *default
-    url: <%= ENV["DATABASE_URL"] %>
+    url: <%= Rails.application.credentials.dig(:database_url, :primary) %>
     database: ddbj_repository
 
   queue:
     <<: *default
-    url: <%= ENV["DATABASE_URL"] %>
+    url: <%= Rails.application.credentials.dig(:database_url, :primary) %>
     database: ddbj_repository_queue
     migrations_paths: db/queue_migrate
 
   bioproject:
     <<: *bioproject_default
-    url: <%= ENV["DATABASE_URL_DWAY"] %>
+    url: <%= Rails.application.credentials.dig(:database_url, :dway) %>
     database: bioproject
     database_tasks: false
 
   biosample:
     <<: *biosample_default
-    url: <%= ENV["DATABASE_URL_DWAY"] %>
+    url: <%= Rails.application.credentials.dig(:database_url, :dway) %>
     database: biosample
     database_tasks: false
 
   drmdb:
     <<: *drmdb_default
-    url: <%= ENV["DATABASE_URL_DWAY"] %>
+    url: <%= Rails.application.credentials.dig(:database_url, :dway) %>
     database: drmdb
     database_tasks: false
 
   submitterdb:
     <<: *submitterdb_default
-    url: <%= ENV["DATABASE_URL_DWAY"] %>
+    url: <%= Rails.application.credentials.dig(:database_url, :dway) %>
     database: submitterdb
     database_tasks: false
 
   drasearch:
     <<: *drasearch_default
-    url: <%= ENV["DATABASE_URL_DRASEARCH"] %>
+    url: <%= Rails.application.credentials.dig(:database_url, :drasearch) %>
     database: drasearch
     database_tasks: false
+
+staging:
+  <<: *production

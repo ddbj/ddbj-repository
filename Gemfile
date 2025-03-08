@@ -31,7 +31,6 @@ group :development do
 end
 
 group :test do
-  gem "climate_control"
   gem "factory_bot_rails", group: :development
   gem "rails-controller-testing"
   gem "rspec-default_http_header"

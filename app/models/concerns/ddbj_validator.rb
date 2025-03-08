@@ -74,7 +74,7 @@ module DDBJValidator
 
   def fetch(path, **options)
     Retriable.with_context(:fetch) {
-      Fetch::API.fetch("#{ENV.fetch("DDBJ_VALIDATOR_URL", "http://localhost:18840")}#{path}", **options).ensure_ok
+      Fetch::API.fetch("#{Rails.application.config_for(:app).validator_url!}#{path}", **options).ensure_ok
     }
   end
 

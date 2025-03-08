@@ -4,7 +4,7 @@ require 'thor'
 
 using FetchRaiseError
 
-API_URL = "#{ENV.fetch("APP_URL")}/api"
+API_URL = "#{Rails.application.config_for(:app).app_url!}/api"
 
 class TestBioSample < Thor
   def self.exit_on_failure? = true
@@ -59,7 +59,7 @@ class TestBioSample < Thor
       say path.basename
 
       res = path.open { |file|
-        body = fetch("#{ENV.fetch('API_URL')}/validations/via_file", **{
+        body = fetch("#{API_URL}/validations/via_file", **{
           method: :post,
 
           body: Fetch::FormData.build(
@@ -86,7 +86,7 @@ class TestBioSample < Thor
       next unless json.fetch(:validity) == 'valid'
 
       res = begin
-        fetch("#{ENV.fetch('API_URL')}/submissions", **{
+        fetch("#{API_URL}/submissions", **{
           method: :post,
 
           body: Fetch::URLSearchParams.new(

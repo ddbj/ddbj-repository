@@ -1,0 +1,13 @@
+development:
+  access_key_id:     repository
+  endpoint:          http://minio.localhost:9000
+  secret_access_key: notasecret
+
+production: &production
+  access_key_id:     <%= Rails.application.credentials.dig(:minio, :access_key_id) %>
+  endpoint:          https://repository-storage.ddbj.nig.ac.jp
+  secret_access_key: <%= Rails.application.credentials.dig(:minio, :secret_access_key) %>
+
+staging:
+  <<: *production
+  endpoint: https://repository-storage-staging.ddbj.nig.ac.jp

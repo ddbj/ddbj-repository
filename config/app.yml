@@ -1,0 +1,25 @@
+development:
+  app_url:                http://repository.localhost:3000
+  mass_dir_path_template: <%= Rails.root.join("storage/mass/{user}") %>
+  oidc_issuer_url:        http://keycloak.localhost:8080/realms/master
+  repository_dir:         <%= Rails.root.join("storage/repository") %>
+  validator_url:          http://validator.localhost:18840/api
+
+test:
+  app_url:                http://repository.example.com
+  mass_dir_path_template: <%= Rails.root.join("spec/fixtures/files/submission/{user}") %>
+  oidc_issuer_url:        http://keycloak.example.com/realms/master
+  repository_dir:         <%= Rails.root.join("tmp/storage/repository") %>
+  validator_url:          http://validator.example.com/api
+
+production: &production
+  app_url:                http://repository.ddbj.nig.ac.jp
+  mass_dir_path_template: /submission/{user}/submission/{user}/mass
+  oidc_issuer_url:        https://idp.ddbj.nig.ac.jp/realms/master
+  repository_dir:         <%= Rails.root.join("storage/repository") %>
+  validator_url:          http://repository-validator:3000/api
+
+staging:
+  <<: *production
+  app_url:         https://repository-staging.ddbj.nig.ac.jp
+  oidc_issuer_url: https://idp-staging.ddbj.nig.ac.jp/realms/master

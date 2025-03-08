@@ -8,10 +8,7 @@ proxy:
 
 env:
   clear:
-    APP_URL:            https://repository-staging.ddbj.nig.ac.jp
-    MINIO_ENDPOINT:     https://repository-storage-staging.ddbj.nig.ac.jp
-    OIDC_ISSUER_URL:    https://idp-staging.ddbj.nig.ac.jp/realms/master
-    SENTRY_CURRENT_ENV: staging
+    RAILS_ENV: staging
 
 volumes:
   - ./volumes/repository-staging/storage:/rails/storage

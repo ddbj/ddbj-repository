@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe SubmitJob, type: :job do
   let!(:user)          { create_default(:user, uid: "alice") }
-  let(:submission_dir) { Pathname.new(ENV.fetch("REPOSITORY_DIR")).join("alice/submissions/X-42") }
+  let(:submission_dir) { Pathname.new(Rails.application.config_for(:app).repository_dir!).join("alice/submissions/X-42") }
 
   example "simple" do
     submission = create(:submission, id: 42, **{

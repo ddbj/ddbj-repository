@@ -43,7 +43,7 @@ class Validations::ViaFilesController < ApplicationController
     in {file:, **rest}
       validation.objs.create! _id: id, file: file, **rest.slice(:destination)
     in {path: relative_path, **rest}
-      template = ENV.fetch("MASS_DIR_PATH_TEMPLATE", Rails.root.join("tmp/submission/{user}/mass").to_s)
+      template = Rails.application.config_for(:app).mass_dir_path_template!
       mass_dir = Pathname.new(template.gsub("{user}", current_user.uid))
       path     = mass_dir.join(relative_path)
 
