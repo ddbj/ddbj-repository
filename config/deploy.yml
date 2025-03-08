@@ -14,21 +14,12 @@ registry:
     - KAMAL_REGISTRY_PASSWORD
 
 env:
-  secret:
-    - DATABASE_URL
-    - DATABASE_URL_DRASEARCH
-    - DATABASE_URL_DWAY
-    - MINIO_ACCESS_KEY_ID
-    - MINIO_SECRET_ACCESS_KEY
-    - SECRET_KEY_BASE
-    - SENTRY_DSN
-
   clear:
-    DDBJ_VALIDATOR_URL:     http://repository-validator:3000/api
-    MASS_DIR_PATH_TEMPLATE: '/submission/{user}/submission/{user}/mass'
-    REPOSITORY_DIR:         /rails/storage/repository
-    SOLID_QUEUE_IN_PUMA:    true
-    TZ:                     Asia/Tokyo
+    SOLID_QUEUE_IN_PUMA: true
+    TZ:                  Asia/Tokyo
+
+  secret:
+    - RAILS_MASTER_KEY
 
 volumes:
   - /mnt/submission:/submission

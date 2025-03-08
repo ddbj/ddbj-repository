@@ -5,7 +5,7 @@ if Rails.env.test?
     port:     80
   }
 else
-  url = URI.parse(ENV.fetch("APP_URL"))
+  url = URI.parse(Rails.application.config_for(:app).app_url!)
 
   Rails.application.routes.default_url_options = {
     protocol: url.scheme,

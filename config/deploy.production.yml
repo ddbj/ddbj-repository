@@ -6,13 +6,6 @@ servers:
 proxy:
   host: repository.ddbj.nig.ac.jp
 
-env:
-  clear:
-    APP_URL:            https://repository.ddbj.nig.ac.jp
-    MINIO_ENDPOINT:     https://repository-storage.ddbj.nig.ac.jp
-    OIDC_ISSUER_URL:    https://idp.ddbj.nig.ac.jp/realms/master
-    SENTRY_CURRENT_ENV: production
-
 volumes:
   - ./volumes/repository-production/storage:/rails/storage
 

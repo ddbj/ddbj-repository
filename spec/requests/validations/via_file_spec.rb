@@ -28,7 +28,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
     expect(response).to have_http_status(422)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
-      error: "path does not exist: spec/fixtures/files/submission/alice/_foo"
+      error: "path does not exist: #{Rails.root}/spec/fixtures/files/submission/alice/_foo"
     )
   end
 
@@ -90,7 +90,7 @@ RSpec.describe "validate via file", type: :request, authorized: true do
     expect(response).to have_http_status(422)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
-      error: "path is directory: spec/fixtures/files/submission/alice/foo"
+      error: "path is directory: #{Rails.root}/spec/fixtures/files/submission/alice/foo"
     )
   end
 

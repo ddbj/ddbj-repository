@@ -20,7 +20,7 @@ class Submission < ApplicationRecord
   def public_id = id ? "X-#{id}" : nil
 
   def dir
-    base = ENV.fetch("REPOSITORY_DIR", Rails.root.join("tmp/repository").to_s)
+    base = Rails.application.config_for(:app).repository_dir!
 
     Pathname.new(base).join(validation.user.uid, "submissions", public_id)
   end
