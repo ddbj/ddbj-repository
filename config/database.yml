@@ -33,7 +33,7 @@ drasearch_default: &drasearch_default
 development:
   primary:
     <<: *default
-    database: ddbj_repository_development
+    database: repository_development
 
   bioproject:
     <<: *bioproject_default
@@ -58,7 +58,7 @@ development:
 test:
   primary:
     <<: *default
-    database: ddbj_repository_test
+    database: repository_test
 
   bioproject:
     <<: *bioproject_default
@@ -84,12 +84,12 @@ production: &production
   primary:
     <<: *default
     url: <%= Rails.application.credentials.dig(:database_url, :primary) %>
-    database: ddbj_repository
+    database: repository
 
   queue:
     <<: *default
     url: <%= Rails.application.credentials.dig(:database_url, :primary) %>
-    database: ddbj_repository_queue
+    database: repository_queue
     migrations_paths: db/queue_migrate
 
   bioproject:
