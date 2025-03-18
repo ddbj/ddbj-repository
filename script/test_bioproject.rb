@@ -11,7 +11,7 @@ class TestBioProject < Thor
 
   desc 'dump', 'Dump BioProject XMLs'
   def dump
-    dir = Rails.root.join('tmp/bioproject_xml').tap(&:mkpath)
+    dir = Rails.root.join('storage/bioproject_xml').tap(&:mkpath)
 
     cond = <<~SQL
       (submission_id, version) IN (
@@ -28,8 +28,8 @@ class TestBioProject < Thor
 
   desc 'cleanse', 'Cleanse BioProject XMLs'
   def cleanse
-    src  = Rails.root.join('tmp/bioproject_xml')
-    dest = Rails.root.join('tmp/bioproject_xml_cleaned').tap(&:mkpath)
+    src  = Rails.root.join('storage/bioproject_xml')
+    dest = Rails.root.join('storage/bioproject_xml_cleaned').tap(&:mkpath)
 
     src.glob '*.xml' do |path|
       doc = Nokogiri::XML.parse(path.read)
@@ -48,8 +48,8 @@ class TestBioProject < Thor
 
   desc 'validate', 'Validate BioProject XMLs'
   def validate
-    src  = Rails.root.join('tmp/bioproject_xml_cleaned')
-    dest = Rails.root.join('tmp/bioproject_validate').tap(&:mkpath)
+    src  = Rails.root.join('storage/bioproject_xml_cleaned')
+    dest = Rails.root.join('storage/bioproject_validate').tap(&:mkpath)
 
     Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
       say path.basename
@@ -73,9 +73,9 @@ class TestBioProject < Thor
 
   desc 'submit', 'Submit BioProject JSONs'
   def submit
-    json_src = Rails.root.join('tmp/bioproject_validate')
-    xml_src  = Rails.root.join('tmp/bioproject_xml_cleaned')
-    dest     = Rails.root.join('tmp/bioproject_submit').tap(&:mkpath)
+    json_src = Rails.root.join('storage/bioproject_validate')
+    xml_src  = Rails.root.join('storage/bioproject_xml_cleaned')
+    dest     = Rails.root.join('storage/bioproject_submit').tap(&:mkpath)
 
     Parallel.each json_src.glob('*.json'), in_threads: 3 do |path|
       json = JSON.parse(path.read, symbolize_names: true)
@@ -119,7 +119,7 @@ class TestBioProject < Thor
 
   desc 'classify', 'Classify BioProject JSONs'
   def classify
-    src = Rails.root.join('tmp/bioproject_validate')
+    src = Rails.root.join('storage/bioproject_validate')
 
     src.glob '*.json' do |path|
       json     = JSON.parse(path.read, symbolize_names: true)
