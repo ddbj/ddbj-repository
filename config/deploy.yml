@@ -78,27 +78,6 @@ accessories:
       clear:
         TZ: Asia/Tokyo
 
-  virtuoso:
-    image: openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
-
-    options:
-      user: 2233:11370
-
-    env:
-      secret:
-        - DBA_PASSWORD
-
-      clear:
-        VIRT_Client_SQL_PREFETCH_BYTES:         160000
-        VIRT_Client_SQL_PREFETCH_ROWS:          10000
-        VIRT_Parameters_DirsAllowed:            ., ../vad, /usr/share/proj, /database
-        VIRT_Parameters_MaxDirtyBuffers:        130000
-        VIRT_Parameters_NumberOfBuffers:        170000
-        VIRT_SPARQL_MaxQueryCostEstimationTime: -1
-        VIRT_SPARQL_MaxQueryExecutionTime:      300
-        VIRT_SPARQL_MaxSortedTopRows:           100000
-        VIRT_SPARQL_ResultSetMaxRows:           1000000
-
   validator:
     image: ddbj/ddbj_validator:main
 
@@ -122,4 +101,27 @@ accessories:
         DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:          30
         DDBJ_VALIDATOR_APP_VALIDATOR_LOG_DIR:         /usr/src/ddbj_validator/logs
         DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER:  http://repository-virtuoso:8890/sparql
+        GID:                                          11370
         TZ:                                           Asia/Tokyo
+        UID:                                          2233
+
+  virtuoso:
+    image: openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
+
+    options:
+      user: 2233:11370
+
+    env:
+      secret:
+        - DBA_PASSWORD
+
+      clear:
+        VIRT_Client_SQL_PREFETCH_BYTES:         160000
+        VIRT_Client_SQL_PREFETCH_ROWS:          10000
+        VIRT_Parameters_DirsAllowed:            ., ../vad, /usr/share/proj, /database
+        VIRT_Parameters_MaxDirtyBuffers:        130000
+        VIRT_Parameters_NumberOfBuffers:        170000
+        VIRT_SPARQL_MaxQueryCostEstimationTime: -1
+        VIRT_SPARQL_MaxQueryExecutionTime:      300
+        VIRT_SPARQL_MaxSortedTopRows:           100000
+        VIRT_SPARQL_ResultSetMaxRows:           1000000
