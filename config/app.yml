@@ -3,7 +3,7 @@ development:
   mass_dir_path_template: <%= Rails.root.join("storage/mass/{user}") %>
   oidc_issuer_url:        http://keycloak.localhost:8080/realms/master
   repository_dir:         <%= Rails.root.join("storage/repository") %>
-  validator_url:          http://validator.localhost:18840/api
+  validator_url:          http://localhost:3001/api
 
 test:
   app_url:                http://repository.example.com

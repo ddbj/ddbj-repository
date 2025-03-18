@@ -1,5 +1,6 @@
 api: bin/rails server --port 3000
 web: cd web && pnpm start --port 4200
-ddbj_validator: cd ddbj_validator && docker compose up
+validator: docker run --rm --name repository-validator --publish 3001:3000 --volume ./validator/logs:/usr/src/ddbj_validator/logs --volume ./validator/conf/pub:/usr/src/ddbj_validator/conf/pub --volume ./validator/conf/coll_dump:/usr/src/ddbj_validator/conf/coll_dump --env DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER=http://repository-virtuso:8890/sparql --env DDBJ_VALIDATOR_APP_NAMED_GRAPHE_URI_TAXONOMY=http://ddbj.nig.ac.jp/ontologies/taxonomy-private --network repository ghcr.io/ddbj/ddbj_validator:main
+virtuoso: docker run --rm --name repository-virtuso --volume ./virtuso/database:/database --network repository openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
 minio: docker run --rm --name repository-minio --publish 9000:9000 --publish 9001:9001 --volume repository_minio:/data minio/minio:RELEASE.2025-03-12T18-04-18Z server /data --console-address ':9001'
 keycloak: docker run --rm --name repository-keycloak --publish 8080:8080 --env KEYCLOAK_ADMIN=keycloak --env KEYCLOAK_ADMIN_PASSWORD=keycloak --volume repository_keycloak:/opt/keycloak/data keycloak/keycloak:26.1.4 start-dev
