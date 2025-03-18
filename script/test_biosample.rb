@@ -11,7 +11,7 @@ class TestBioSample < Thor
 
   desc 'dump', 'Dump BioSample XMLs'
   def dump
-    dir = Rails.root.join('tmp/biosample_xml').tap(&:mkpath)
+    dir = Rails.root.join('storage/biosample_xml').tap(&:mkpath)
 
     BioSample::Submission.includes(samples: :xmls).find_each do |submission|
       xmls = submission.samples.filter_map { |sample|
@@ -32,8 +32,8 @@ class TestBioSample < Thor
 
   desc 'cleanse', 'Cleanse BioSample XMLs'
   def cleanse
-    src  = Rails.root.join('tmp/biosample_xml')
-    dest = Rails.root.join('tmp/biosample_xml_cleaned').tap(&:mkpath)
+    src  = Rails.root.join('storage/biosample_xml')
+    dest = Rails.root.join('storage/biosample_xml_cleaned').tap(&:mkpath)
 
     src.glob '*.xml' do |path|
       doc = Nokogiri::XML.parse(path.read)
@@ -52,8 +52,8 @@ class TestBioSample < Thor
 
   desc 'validate', 'Validate BioSample XMLs'
   def validate
-    src  = Rails.root.join('tmp/biosample_xml_cleaned')
-    dest = Rails.root.join('tmp/biosample_validate').tap(&:mkpath)
+    src  = Rails.root.join('storage/biosample_xml_cleaned')
+    dest = Rails.root.join('storage/biosample_validate').tap(&:mkpath)
 
     Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
       say path.basename
@@ -77,8 +77,8 @@ class TestBioSample < Thor
 
   desc 'submit', 'Submit BioSample JSONs'
   def submit
-    src  = Rails.root.join('tmp/biosample_validate')
-    dest = Rails.root.join('tmp/biosample_submit').tap(&:mkpath)
+    src  = Rails.root.join('storage/biosample_validate')
+    dest = Rails.root.join('storage/biosample_submit').tap(&:mkpath)
 
     Parallel.each src.glob('*.json'), in_threads: 3 do |path|
       json = JSON.parse(path.read, symbolize_names: true)
@@ -117,7 +117,7 @@ class TestBioSample < Thor
 
   desc 'classify', 'Classify BioSample JSONs'
   def classify
-    src = Rails.root.join('tmp/biosample_validate')
+    src = Rails.root.join('storage/biosample_validate')
 
     src.glob '*.json' do |path|
       json     = JSON.parse(path.read, symbolize_names: true)
