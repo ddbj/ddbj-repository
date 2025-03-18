@@ -122,4 +122,6 @@ accessories:
         DDBJ_VALIDATOR_APP_POSTGRES_TIMEOUT:          30
         DDBJ_VALIDATOR_APP_VALIDATOR_LOG_DIR:         /usr/src/ddbj_validator/logs
         DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER:  http://repository-virtuoso:8890/sparql
+        GID:                                          11370
         TZ:                                           Asia/Tokyo
+        UID:                                          2233
