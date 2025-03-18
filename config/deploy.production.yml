@@ -41,3 +41,8 @@ accessories:
     env:
       clear:
         DDBJ_VALIDATOR_APP_POSTGRES_HOST: a011
+
+    volumes:
+      - ./volumes/repository-production/validator/conf/pub:/usr/src/ddbj_validator/conf/pub
+      - ./volumes/repository-production/validator/conf/coll_dump:/usr/src/ddbj_validator/conf/coll_dump
+      - ./volumes/repository-production/validator/logs:/usr/src/ddbj_validator/logs

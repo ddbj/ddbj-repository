@@ -1,6 +1,6 @@
 development:
   access_key_id:     repository
-  endpoint:          http://minio.localhost:9000
+  endpoint:          http://localhost:9000
   secret_access_key: notasecret
 
 production: &production
