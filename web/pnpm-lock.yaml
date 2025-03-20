@@ -160,7 +160,7 @@ importers:
         version: 10.1.1(eslint@9.22.0)
       eslint-plugin-ember:
         specifier: ^12.5.0
-        version: 12.5.0(@babel/core@7.26.10)(@typescript-eslint/parser@8.26.1(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0)
+        version: 12.5.0(@babel/core@7.26.10)(@typescript-eslint/parser@8.27.0(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0)
       eslint-plugin-n:
         specifier: ^17.16.2
         version: 17.16.2(eslint@9.22.0)
@@ -204,8 +204,8 @@ importers:
         specifier: ^5.8.2
         version: 5.8.2
       typescript-eslint:
-        specifier: ^8.26.1
-        version: 8.26.1(eslint@9.22.0)(typescript@5.8.2)
+        specifier: ^8.27.0
+        version: 8.27.0(eslint@9.22.0)(typescript@5.8.2)
       webpack:
         specifier: ^5.98.0
         version: 5.98.0
@@ -926,8 +926,8 @@ packages:
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
 
-  '@eslint-community/eslint-utils@4.5.0':
-    resolution: {integrity: sha512-RoV8Xs9eNwiDvhv7M+xcL4PWyRyIXRY/FLp3buU4h1EYfdF7unWUy3dOjPqb3C7rMUewIcqwW850PgS8h1o1yg==}
+  '@eslint-community/eslint-utils@4.5.1':
+    resolution: {integrity: sha512-soEIOALTfTK6EjmKMMoLugwaP0rzkad90iIWd1hMO9ARkSAyjfMfkRRhLvD5qH7vvM0Cg72pieUfR6yh6XxC4w==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
@@ -982,8 +982,8 @@ packages:
   '@glimmer/destroyable@0.92.3':
     resolution: {integrity: sha512-vQ+mzT9Vkf+JueY7L5XbZqK0WyEVTKv0HOLrw/zDw9F5Szn3F/8Ea/qbAClo3QK3oZeg+ulFTa/61rdjSFYHGA==}
 
-  '@glimmer/destroyable@0.94.7':
-    resolution: {integrity: sha512-fNJZGYhwWhmktXkPea90R399AP3I3gAePqtSgjj1YybmvhkpzU1FeCJNlK+q3Uwdr1KQVIu+UufMcxZ8wIB0/g==}
+  '@glimmer/destroyable@0.94.8':
+    resolution: {integrity: sha512-IWNz34Q5IYnh20M/3xVv9jIdCATQyaO+8sdUSyUqiz1bAblW5vTXUNXn3uFzGF+CnP6ZSgPxHN/c1sNMAh+lAA==}
 
   '@glimmer/di@0.1.11':
     resolution: {integrity: sha512-moRwafNDwHTnTHzyyZC9D+mUSvYrs1Ak0tRPjjmCghdoHHIvMshVbEnwKb/1WmW5CUlKc2eL9rlAV32n3GiItg==}
@@ -991,8 +991,8 @@ packages:
   '@glimmer/encoder@0.92.3':
     resolution: {integrity: sha512-DJ8DB33LxODjzCWRrxozHUaRqVyZj4p8jDLG42aCNmWo3smxrsjshcaVUwDmib24DW+dzR7kMc39ObMqT5zK0w==}
 
-  '@glimmer/encoder@0.93.7':
-    resolution: {integrity: sha512-XSDsy1B8BY3LVpnplBaJrnFzATdRfJ5G78UPXYOqaq7B/Og560x2sHO5Jk4YFCHhdPBoXY833Mw9kURaCbghaA==}
+  '@glimmer/encoder@0.93.8':
+    resolution: {integrity: sha512-G7ZbC+T+rn7UliG8Y3cn7SIACh7K5HgCxgFhJxU15HtmTUObs52mVR1SyhUBsbs86JHlCqaGguKE1WqP1jt+2g==}
 
   '@glimmer/env@0.1.7':
     resolution: {integrity: sha512-JKF/a9I9jw6fGoz8kA7LEQslrwJ5jms5CXhu/aqkBWk+PmZ6pTl8mlb/eJ/5ujBGTiQzBhy5AIWF712iA+4/mw==}
@@ -1003,8 +1003,8 @@ packages:
   '@glimmer/global-context@0.92.3':
     resolution: {integrity: sha512-tvlK5pt6oSe3furJ1KsO9vG/KmF9S98HLrcR48XbfwXlkuxvUeS94cdQId4GCN5naeX4OC4xm6eEjZWdc2s+jw==}
 
-  '@glimmer/global-context@0.93.3':
-    resolution: {integrity: sha512-ZIN8BSp+wFYN5Mys5mK3rMkYQXlbRAKN++DaGlErcpS5MNvGjaykvHO+ZJbjN5U+4szpcLxCKrL7icLbqVpxaA==}
+  '@glimmer/global-context@0.93.4':
+    resolution: {integrity: sha512-Yw9xkDReAcC5oS/hY3PjGrFKRygYFA4pdO7tvuxReoVOyUtjoBOAwHJUileiElERDdMWIMfoLema8Td1mqkjhA==}
 
   '@glimmer/interfaces@0.84.3':
     resolution: {integrity: sha512-dk32ykoNojt0mvEaIW6Vli5MGTbQo58uy3Epj7ahCgTHmWOKuw/0G83f2UmFprRwFx689YTXG38I/vbpltEjzg==}
@@ -1018,8 +1018,8 @@ packages:
   '@glimmer/manager@0.92.4':
     resolution: {integrity: sha512-YMoarZT/+Ft2YSd+Wuu5McVsdP9y6jeAdVQGYFpno3NlL3TXYbl7ELtK7OGxFLjzQE01BdiUZZRvcY+a/s9+CQ==}
 
-  '@glimmer/manager@0.94.8':
-    resolution: {integrity: sha512-Kt3xs3cVYpeuMBb6Ub1losq/cm1KMDwyQ8/B77W3gAohj2hEXDNFY5SHqXSGwkrzuaUrJsl41rQP8qb5Fo09kA==}
+  '@glimmer/manager@0.94.9':
+    resolution: {integrity: sha512-AQT90eSRbgx6O4VnyRgR+y3SqKChPrpZs5stENa0UnqOSbt7dF6XdqAmllfznKFpLlKmJSV7JaVpCarVTR/JQQ==}
 
   '@glimmer/node@0.92.4':
     resolution: {integrity: sha512-a5GME7HQJZFJPQDdSetQI6jjKXXQi0Vdr3WuUrYwhienVTV5LG0uClbFE2yYWC7TX97YDHpRrNk1CC258rujkQ==}
@@ -1027,20 +1027,20 @@ packages:
   '@glimmer/opcode-compiler@0.92.4':
     resolution: {integrity: sha512-WnZSBwxNqW/PPD/zfxEg6BVR5tHwTm8fp76piix8BNCQ6CuzVn6HUJ5SlvBsOwyoRCmzt/pkKmBJn+I675KG4w==}
 
-  '@glimmer/opcode-compiler@0.94.8':
-    resolution: {integrity: sha512-g3nVV5w0XV+Ts2QJRMhOQ8pUc8ZWPhQbNdSJQXVfYEFNXPA+4tC1i43atTjJoIvVCTMm8l2htyC8mYDlPqPfCg==}
+  '@glimmer/opcode-compiler@0.94.9':
+    resolution: {integrity: sha512-LlBniSmtBoIlkxzPKHyOw4Nj946Cczelo8RAnqoG/egkHuk4hoO/7ycSgNpPvV3G14BA4Fpy5ExBffx6iuRxQQ==}
 
   '@glimmer/owner@0.92.3':
     resolution: {integrity: sha512-ZxmXIUCy6DOobhGDhA6kMpaXZS7HAucEgIl/qcjV9crlzGOO8H4j+n2x6nA/8zpuqvO0gYaBzqdNdu+7EgOEmw==}
 
-  '@glimmer/owner@0.93.3':
-    resolution: {integrity: sha512-c3xV5/7IehNRh03Rd14kvVG4Gcsq5WvYoM02PVaNBy3cwrfAGnd4Y6piLSBb3+tcZDl95xNuotw2++zVUpfoEg==}
+  '@glimmer/owner@0.93.4':
+    resolution: {integrity: sha512-xoclaVdCF4JH/yx8dHplCj6XFAa7ggwc7cyeOthRvTNGsp/J/CNKHT6NEkdERBYqy6tvg5GoONvWFdm8Wd5Uig==}
 
   '@glimmer/program@0.92.4':
     resolution: {integrity: sha512-fkquujQ11lsGCWl/+XpZW2E7bjHj/g6/Ht292A7pSoANBD8Bz/gPYiPM+XuMwes9MApEsTEMjV4EXlyk2/Cirg==}
 
-  '@glimmer/program@0.94.8':
-    resolution: {integrity: sha512-CaDoItB6dRRdKmJOnwmbP3/uXokNdfjBGR6JQiFE9lEjOuCU2S7wXIQ/hZjuHqWwiVW0/99xcU9wnYO6pOK4hA==}
+  '@glimmer/program@0.94.9':
+    resolution: {integrity: sha512-KA3TXYL2iDdR92pPnB/sw1tgIC7B40l2P60iD1sqkYbyxAbrUPHSToA1ycmK4DwmxDOT3Hz9dvpceoCMbh0xjA==}
 
   '@glimmer/reference@0.84.3':
     resolution: {integrity: sha512-lV+p/aWPVC8vUjmlvYVU7WQJsLh319SdXuAWoX/SE3pq340BJlAJiEcAc6q52y9JNhT57gMwtjMX96W5Xcx/qw==}
@@ -1048,14 +1048,14 @@ packages:
   '@glimmer/reference@0.92.3':
     resolution: {integrity: sha512-Ud4LE689mEXL6BJnJx0ZPt2dt/A540C+TAnBFXHpcAjROz5gT337RN+tgajwudEUqpufExhcPSMGzs1pvWYCJg==}
 
-  '@glimmer/reference@0.94.7':
-    resolution: {integrity: sha512-Q5oHZMUdYtBRUTxb1sljLtAjQi8DKOWUSTpLJnIy2n9DnLTN4mt2WAk7oYUK8j8ptrIEKylXvfb8aVc7iOkmDQ==}
+  '@glimmer/reference@0.94.8':
+    resolution: {integrity: sha512-FPoXBRMXJupO9nAq/Vw3EY/FCY3xbd+VALqZupyu6ds9vjNiKAkD9+ujIjYa1f+d/ez2ONhy8QjEFoBsyW2flA==}
 
   '@glimmer/runtime@0.92.4':
     resolution: {integrity: sha512-ISqM/8hVh+fY/gnLAAPKfts4CvnJBOyCYAXgGccIlzzQrSVLaz0NoRiWTLGj5B/3xyPbqLwYPDvlTsOjYtvPoA==}
 
-  '@glimmer/runtime@0.94.9':
-    resolution: {integrity: sha512-hyamRY67Es56tCgLT/FLk3G3EoFar99AkAoqi1673C+xLyHNPG7hgEzsazWFVntFmgzzB5BU1969UG1Jq42MuQ==}
+  '@glimmer/runtime@0.94.10':
+    resolution: {integrity: sha512-eRe9TmP02ESVXJn2ZOOEm/Hm/Ro7X0kRvZsU8OVtXOqWU8JxeKMwjCEiLbJBQKbYfycRy1u8jZ2wuH0qM/d3EQ==}
 
   '@glimmer/syntax@0.84.3':
     resolution: {integrity: sha512-ioVbTic6ZisLxqTgRBL2PCjYZTFIwobifCustrozRU2xGDiYvVIL0vt25h2c1ioDsX59UgVlDkIK4YTAQQSd2A==}
@@ -1075,8 +1075,8 @@ packages:
   '@glimmer/util@0.92.3':
     resolution: {integrity: sha512-K1oH93gGU36slycxJ9CcFpUTsdOc4XQ6RuZFu5oRsxFYtEF5PSu7ik11h58fyeoaWOr1ebfkyAMawbeI2AJ5GA==}
 
-  '@glimmer/util@0.94.7':
-    resolution: {integrity: sha512-zJdmxYe6tu0RE6SPZHxbuQn5XJgEwx/NrXMbXfKgq+4msA33LLNHJXR27/LTlHEmCi544zlFxMUgRCJWTAaVtQ==}
+  '@glimmer/util@0.94.8':
+    resolution: {integrity: sha512-HfCKeZ74clF9BsPDBOqK/yRNa/ke6niXFPM6zRn9OVYw+ZAidLs7V8He/xljUHlLRL322kaZZY8XxRW7ALEwyg==}
 
   '@glimmer/validator@0.44.0':
     resolution: {integrity: sha512-i01plR0EgFVz69GDrEuFgq1NheIjZcyTy3c7q+w7d096ddPVeVcRzU3LKaqCfovvLJ+6lJx40j45ecycASUUyw==}
@@ -1087,8 +1087,8 @@ packages:
   '@glimmer/validator@0.92.3':
     resolution: {integrity: sha512-HKrMYeW0YhiksSeKYqX2chUR/rz82j12DcY7p2dORQlTV3qlAfiE5zRTJH1KRA1X3ZMf7DI2/GOzkXwYp0o+3Q==}
 
-  '@glimmer/validator@0.94.7':
-    resolution: {integrity: sha512-NBk+hbnurueqOkAmmP82sBsyV+361+nSJiBSLceXzV3H71yPK+aACIRH0Iq3kUC/6rKhn9/IQf6zg80agKxw3w==}
+  '@glimmer/validator@0.94.8':
+    resolution: {integrity: sha512-vTP6hAcrxE5/0dG2w+tHSteXxgWmkBwMzu5ZTxMg+EkqthWl8B5r5skLiviQ6SdKAOBJGhzf6tF4ltHo5y83hQ==}
 
   '@glimmer/vm-babel-plugins@0.92.3':
     resolution: {integrity: sha512-VpkKsHc3oiq9ruiwT7sN4RuOIc5n10PCeWX7tYSNZ85S1bETcAFn0XbyNjI+G3uFshQGEK0T8Fn3+/8VTNIQIg==}
@@ -1097,14 +1097,14 @@ packages:
   '@glimmer/vm@0.92.3':
     resolution: {integrity: sha512-DNMQz7nn2zRwKO1irVZ4alg1lH+VInwR3vkWVgobUs0yh7OoHVGXKMd5uxzIksqJEUw1XOX9Qgu/GYZB1PiH3w==}
 
-  '@glimmer/vm@0.94.7':
-    resolution: {integrity: sha512-+GKT/CnF9OMpYrKpg81g/QsCKkMLD7lVBV4e42mo5/FkezNVwJFttQ6zKKv1nVyjnInZYx0cEu2bteZ56EGikA==}
+  '@glimmer/vm@0.94.8':
+    resolution: {integrity: sha512-0E8BVNRE/1qlK9OQRUmGlQXwWmoco7vL3yIyLZpTWhbv22C1zEcM826wQT3ioaoUQSlvRsKKH6IEEUal2d3wxQ==}
 
   '@glimmer/wire-format@0.92.3':
     resolution: {integrity: sha512-gFz81Q9+V7Xs0X8mSq6y8qacHm0dPaGJo2/Bfcsdow1hLOKNgTCLr4XeDBhRML8f6I6Gk9ugH4QDxyIOXOpC4w==}
 
-  '@glimmer/wire-format@0.94.7':
-    resolution: {integrity: sha512-BjXSfe6kHdIcPcyg0eqkDsOsgBIXdHXvMnip00KqoOThCKUVxA/bv5Ny0sQg4q5/JnIVf3eIs5M/ZTThdotlLQ==}
+  '@glimmer/wire-format@0.94.8':
+    resolution: {integrity: sha512-A+Cp5m6vZMAEu0Kg/YwU2dJZXyYxVJs2zI57d3CP6NctmX7FsT8WjViiRUmt5abVmMmRH5b8BUovqY6GSMAdrw==}
 
   '@glint/core@1.5.2':
     resolution: {integrity: sha512-kbEt8jBEkH65yDB20tBq/rnZl+iigmAenKQcgu1cqex6/eT6LrQ5E9QxyKtqe9S18qZv0c/LNa0qE7jwbAEKMA==}
@@ -1430,51 +1430,51 @@ packages:
   '@types/yargs@17.0.33':
     resolution: {integrity: sha512-WpxBCKWPLr4xSsHgz511rFJAM+wS28w2zEO1QDNY5zM/S8ok70NNfztH0xwhqKyaK0OHCbN98LDAZuy1ctxDkA==}
 
-  '@typescript-eslint/eslint-plugin@8.26.1':
-    resolution: {integrity: sha512-2X3mwqsj9Bd3Ciz508ZUtoQQYpOhU/kWoUqIf49H8Z0+Vbh6UF/y0OEYp0Q0axOGzaBGs7QxRwq0knSQ8khQNA==}
+  '@typescript-eslint/eslint-plugin@8.27.0':
+    resolution: {integrity: sha512-4henw4zkePi5p252c8ncBLzLce52SEUz2Ebj8faDnuUXz2UuHEONYcJ+G0oaCF+bYCWVZtrGzq3FD7YXetmnSA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       '@typescript-eslint/parser': ^8.0.0 || ^8.0.0-alpha.0
       eslint: ^8.57.0 || ^9.0.0
       typescript: '>=4.8.4 <5.9.0'
 
-  '@typescript-eslint/parser@8.26.1':
-    resolution: {integrity: sha512-w6HZUV4NWxqd8BdeFf81t07d7/YV9s7TCWrQQbG5uhuvGUAW+fq1usZ1Hmz9UPNLniFnD8GLSsDpjP0hm1S4lQ==}
+  '@typescript-eslint/parser@8.27.0':
+    resolution: {integrity: sha512-XGwIabPallYipmcOk45DpsBSgLC64A0yvdAkrwEzwZ2viqGqRUJ8eEYoPz0CWnutgAFbNMPdsGGvzjSmcWVlEA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
       typescript: '>=4.8.4 <5.9.0'
 
-  '@typescript-eslint/scope-manager@8.26.1':
-    resolution: {integrity: sha512-6EIvbE5cNER8sqBu6V7+KeMZIC1664d2Yjt+B9EWUXrsyWpxx4lEZrmvxgSKRC6gX+efDL/UY9OpPZ267io3mg==}
+  '@typescript-eslint/scope-manager@8.27.0':
+    resolution: {integrity: sha512-8oI9GwPMQmBryaaxG1tOZdxXVeMDte6NyJA4i7/TWa4fBwgnAXYlIQP+uYOeqAaLJ2JRxlG9CAyL+C+YE9Xknw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@typescript-eslint/type-utils@8.26.1':
-    resolution: {integrity: sha512-Kcj/TagJLwoY/5w9JGEFV0dclQdyqw9+VMndxOJKtoFSjfZhLXhYjzsQEeyza03rwHx2vFEGvrJWJBXKleRvZg==}
-    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-    peerDependencies:
-      eslint: ^8.57.0 || ^9.0.0
-      typescript: '>=4.8.4 <5.9.0'
-
-  '@typescript-eslint/types@8.26.1':
-    resolution: {integrity: sha512-n4THUQW27VmQMx+3P+B0Yptl7ydfceUj4ON/AQILAASwgYdZ/2dhfymRMh5egRUrvK5lSmaOm77Ry+lmXPOgBQ==}
-    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@typescript-eslint/typescript-estree@8.26.1':
-    resolution: {integrity: sha512-yUwPpUHDgdrv1QJ7YQal3cMVBGWfnuCdKbXw1yyjArax3353rEJP1ZA+4F8nOlQ3RfS2hUN/wze3nlY+ZOhvoA==}
-    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-    peerDependencies:
-      typescript: '>=4.8.4 <5.9.0'
-
-  '@typescript-eslint/utils@8.26.1':
-    resolution: {integrity: sha512-V4Urxa/XtSUroUrnI7q6yUTD3hDtfJ2jzVfeT3VK0ciizfK2q/zGC0iDh1lFMUZR8cImRrep6/q0xd/1ZGPQpg==}
+  '@typescript-eslint/type-utils@8.27.0':
+    resolution: {integrity: sha512-wVArTVcz1oJOIEJxui/nRhV0TXzD/zMSOYi/ggCfNq78EIszddXcJb7r4RCp/oBrjt8n9A0BSxRMKxHftpDxDA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
       typescript: '>=4.8.4 <5.9.0'
 
-  '@typescript-eslint/visitor-keys@8.26.1':
-    resolution: {integrity: sha512-AjOC3zfnxd6S4Eiy3jwktJPclqhFHNyd8L6Gycf9WUPoKZpgM5PjkxY1X7uSy61xVpiJDhhk7XT2NVsN3ALTWg==}
+  '@typescript-eslint/types@8.27.0':
+    resolution: {integrity: sha512-/6cp9yL72yUHAYq9g6DsAU+vVfvQmd1a8KyA81uvfDE21O2DwQ/qxlM4AR8TSdAu+kJLBDrEHKC5/W2/nxsY0A==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/typescript-estree@8.27.0':
+    resolution: {integrity: sha512-BnKq8cqPVoMw71O38a1tEb6iebEgGA80icSxW7g+kndx0o6ot6696HjG7NdgfuAVmVEtwXUr3L8R9ZuVjoQL6A==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <5.9.0'
+
+  '@typescript-eslint/utils@8.27.0':
+    resolution: {integrity: sha512-njkodcwH1yvmo31YWgRHNb/x1Xhhq4/m81PhtvmRngD8iHPehxffz1SNCO+kwaePhATC+kOa/ggmvPoPza5i0Q==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      eslint: ^8.57.0 || ^9.0.0
+      typescript: '>=4.8.4 <5.9.0'
+
+  '@typescript-eslint/visitor-keys@8.27.0':
+    resolution: {integrity: sha512-WsXQwMkILJvffP6z4U3FYJPlbf/j07HIxmDjZpbNvBJkMfvwXj5ACRkkHwBDvLBbDbtX5TdU64/rcvKJ/vuInQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@webassemblyjs/ast@1.14.1':
@@ -5827,8 +5827,8 @@ packages:
   typedarray-to-buffer@3.1.5:
     resolution: {integrity: sha512-zdu8XMNEDepKKR+XYOXAVPtWui0ly0NtohUscw+UmaHiAWT8hrV1rr//H6V+0DvJ3OQ19S979M0laLfX8rm82Q==}
 
-  typescript-eslint@8.26.1:
-    resolution: {integrity: sha512-t/oIs9mYyrwZGRpDv3g+3K6nZ5uhKEMt2oNmAPwaY4/ye0+EH4nXIPYNtkYFS6QHm+1DFg34DbglYBz5P9Xysg==}
+  typescript-eslint@8.27.0:
+    resolution: {integrity: sha512-ZZ/8+Y0rRUMuW1gJaPtLWe4ryHbsPLzzibk5Sq+IFa2aOH1Vo0gPr1fbA6pOnzBke7zC2Da4w8AyCgxKXo3lqA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
@@ -7219,7 +7219,7 @@ snapshots:
       eslint: 9.22.0
       eslint-visitor-keys: 3.4.3
 
-  '@eslint-community/eslint-utils@4.5.0(eslint@9.22.0)':
+  '@eslint-community/eslint-utils@4.5.1(eslint@9.22.0)':
     dependencies:
       eslint: 9.22.0
       eslint-visitor-keys: 3.4.3
@@ -7312,9 +7312,9 @@ snapshots:
       '@glimmer/interfaces': 0.92.3
       '@glimmer/util': 0.92.3
 
-  '@glimmer/destroyable@0.94.7':
+  '@glimmer/destroyable@0.94.8':
     dependencies:
-      '@glimmer/global-context': 0.93.3
+      '@glimmer/global-context': 0.93.4
       '@glimmer/interfaces': 0.94.6
     optional: true
 
@@ -7326,10 +7326,10 @@ snapshots:
       '@glimmer/interfaces': 0.92.3
       '@glimmer/vm': 0.92.3
 
-  '@glimmer/encoder@0.93.7':
+  '@glimmer/encoder@0.93.8':
     dependencies:
       '@glimmer/interfaces': 0.94.6
-      '@glimmer/vm': 0.94.7
+      '@glimmer/vm': 0.94.8
     optional: true
 
   '@glimmer/env@0.1.7': {}
@@ -7340,7 +7340,7 @@ snapshots:
 
   '@glimmer/global-context@0.92.3': {}
 
-  '@glimmer/global-context@0.93.3':
+  '@glimmer/global-context@0.93.4':
     optional: true
 
   '@glimmer/interfaces@0.84.3':
@@ -7369,15 +7369,15 @@ snapshots:
       '@glimmer/validator': 0.92.3
       '@glimmer/vm': 0.92.3
 
-  '@glimmer/manager@0.94.8':
+  '@glimmer/manager@0.94.9':
     dependencies:
-      '@glimmer/destroyable': 0.94.7
-      '@glimmer/global-context': 0.93.3
+      '@glimmer/destroyable': 0.94.8
+      '@glimmer/global-context': 0.93.4
       '@glimmer/interfaces': 0.94.6
-      '@glimmer/reference': 0.94.7
-      '@glimmer/util': 0.94.7
-      '@glimmer/validator': 0.94.7
-      '@glimmer/vm': 0.94.7
+      '@glimmer/reference': 0.94.8
+      '@glimmer/util': 0.94.8
+      '@glimmer/validator': 0.94.8
+      '@glimmer/vm': 0.94.8
     optional: true
 
   '@glimmer/node@0.92.4':
@@ -7400,21 +7400,21 @@ snapshots:
       '@glimmer/vm': 0.92.3
       '@glimmer/wire-format': 0.92.3
 
-  '@glimmer/opcode-compiler@0.94.8':
+  '@glimmer/opcode-compiler@0.94.9':
     dependencies:
-      '@glimmer/encoder': 0.93.7
+      '@glimmer/encoder': 0.93.8
       '@glimmer/interfaces': 0.94.6
-      '@glimmer/manager': 0.94.8
-      '@glimmer/util': 0.94.7
-      '@glimmer/vm': 0.94.7
-      '@glimmer/wire-format': 0.94.7
+      '@glimmer/manager': 0.94.9
+      '@glimmer/util': 0.94.8
+      '@glimmer/vm': 0.94.8
+      '@glimmer/wire-format': 0.94.8
     optional: true
 
   '@glimmer/owner@0.92.3':
     dependencies:
       '@glimmer/util': 0.92.3
 
-  '@glimmer/owner@0.93.3':
+  '@glimmer/owner@0.93.4':
     optional: true
 
   '@glimmer/program@0.92.4':
@@ -7428,14 +7428,14 @@ snapshots:
       '@glimmer/vm': 0.92.3
       '@glimmer/wire-format': 0.92.3
 
-  '@glimmer/program@0.94.8':
+  '@glimmer/program@0.94.9':
     dependencies:
       '@glimmer/interfaces': 0.94.6
-      '@glimmer/manager': 0.94.8
-      '@glimmer/opcode-compiler': 0.94.8
-      '@glimmer/util': 0.94.7
-      '@glimmer/vm': 0.94.7
-      '@glimmer/wire-format': 0.94.7
+      '@glimmer/manager': 0.94.9
+      '@glimmer/opcode-compiler': 0.94.9
+      '@glimmer/util': 0.94.8
+      '@glimmer/vm': 0.94.8
+      '@glimmer/wire-format': 0.94.8
     optional: true
 
   '@glimmer/reference@0.84.3':
@@ -7454,12 +7454,12 @@ snapshots:
       '@glimmer/util': 0.92.3
       '@glimmer/validator': 0.92.3
 
-  '@glimmer/reference@0.94.7':
+  '@glimmer/reference@0.94.8':
     dependencies:
-      '@glimmer/global-context': 0.93.3
+      '@glimmer/global-context': 0.93.4
       '@glimmer/interfaces': 0.94.6
-      '@glimmer/util': 0.94.7
-      '@glimmer/validator': 0.94.7
+      '@glimmer/util': 0.94.8
+      '@glimmer/validator': 0.94.8
     optional: true
 
   '@glimmer/runtime@0.92.4':
@@ -7477,18 +7477,18 @@ snapshots:
       '@glimmer/vm': 0.92.3
       '@glimmer/wire-format': 0.92.3
 
-  '@glimmer/runtime@0.94.9':
+  '@glimmer/runtime@0.94.10':
     dependencies:
-      '@glimmer/destroyable': 0.94.7
-      '@glimmer/global-context': 0.93.3
+      '@glimmer/destroyable': 0.94.8
+      '@glimmer/global-context': 0.93.4
       '@glimmer/interfaces': 0.94.6
-      '@glimmer/manager': 0.94.8
-      '@glimmer/owner': 0.93.3
-      '@glimmer/program': 0.94.8
-      '@glimmer/reference': 0.94.7
-      '@glimmer/util': 0.94.7
-      '@glimmer/validator': 0.94.7
-      '@glimmer/vm': 0.94.7
+      '@glimmer/manager': 0.94.9
+      '@glimmer/owner': 0.93.4
+      '@glimmer/program': 0.94.9
+      '@glimmer/reference': 0.94.8
+      '@glimmer/util': 0.94.8
+      '@glimmer/validator': 0.94.8
+      '@glimmer/vm': 0.94.8
     optional: true
 
   '@glimmer/syntax@0.84.3':
@@ -7525,7 +7525,7 @@ snapshots:
       '@glimmer/env': 0.1.7
       '@glimmer/interfaces': 0.92.3
 
-  '@glimmer/util@0.94.7':
+  '@glimmer/util@0.94.8':
     dependencies:
       '@glimmer/interfaces': 0.94.6
     optional: true
@@ -7544,9 +7544,9 @@ snapshots:
       '@glimmer/interfaces': 0.92.3
       '@glimmer/util': 0.92.3
 
-  '@glimmer/validator@0.94.7':
+  '@glimmer/validator@0.94.8':
     dependencies:
-      '@glimmer/global-context': 0.93.3
+      '@glimmer/global-context': 0.93.4
       '@glimmer/interfaces': 0.94.6
     optional: true
 
@@ -7561,7 +7561,7 @@ snapshots:
       '@glimmer/interfaces': 0.92.3
       '@glimmer/util': 0.92.3
 
-  '@glimmer/vm@0.94.7':
+  '@glimmer/vm@0.94.8':
     dependencies:
       '@glimmer/interfaces': 0.94.6
     optional: true
@@ -7571,7 +7571,7 @@ snapshots:
       '@glimmer/interfaces': 0.92.3
       '@glimmer/util': 0.92.3
 
-  '@glimmer/wire-format@0.94.7':
+  '@glimmer/wire-format@0.94.8':
     dependencies:
       '@glimmer/interfaces': 0.94.6
     optional: true
@@ -7845,8 +7845,8 @@ snapshots:
 
   '@types/ember__helper@4.0.8(@babel/core@7.26.10)':
     dependencies:
-      '@glimmer/manager': 0.94.8
-      '@glimmer/runtime': 0.94.9
+      '@glimmer/manager': 0.94.9
+      '@glimmer/runtime': 0.94.10
       '@types/ember': 4.0.11(@babel/core@7.26.10)
     transitivePeerDependencies:
       - '@babel/core'
@@ -8032,14 +8032,14 @@ snapshots:
     dependencies:
       '@types/yargs-parser': 21.0.3
 
-  '@typescript-eslint/eslint-plugin@8.26.1(@typescript-eslint/parser@8.26.1(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0)(typescript@5.8.2)':
+  '@typescript-eslint/eslint-plugin@8.27.0(@typescript-eslint/parser@8.27.0(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0)(typescript@5.8.2)':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
-      '@typescript-eslint/parser': 8.26.1(eslint@9.22.0)(typescript@5.8.2)
-      '@typescript-eslint/scope-manager': 8.26.1
-      '@typescript-eslint/type-utils': 8.26.1(eslint@9.22.0)(typescript@5.8.2)
-      '@typescript-eslint/utils': 8.26.1(eslint@9.22.0)(typescript@5.8.2)
-      '@typescript-eslint/visitor-keys': 8.26.1
+      '@typescript-eslint/parser': 8.27.0(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/scope-manager': 8.27.0
+      '@typescript-eslint/type-utils': 8.27.0(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/utils': 8.27.0(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/visitor-keys': 8.27.0
       eslint: 9.22.0
       graphemer: 1.4.0
       ignore: 5.3.2
@@ -8049,27 +8049,27 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/parser@8.26.1(eslint@9.22.0)(typescript@5.8.2)':
+  '@typescript-eslint/parser@8.27.0(eslint@9.22.0)(typescript@5.8.2)':
     dependencies:
-      '@typescript-eslint/scope-manager': 8.26.1
-      '@typescript-eslint/types': 8.26.1
-      '@typescript-eslint/typescript-estree': 8.26.1(typescript@5.8.2)
-      '@typescript-eslint/visitor-keys': 8.26.1
+      '@typescript-eslint/scope-manager': 8.27.0
+      '@typescript-eslint/types': 8.27.0
+      '@typescript-eslint/typescript-estree': 8.27.0(typescript@5.8.2)
+      '@typescript-eslint/visitor-keys': 8.27.0
       debug: 4.4.0(supports-color@8.1.1)
       eslint: 9.22.0
       typescript: 5.8.2
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/scope-manager@8.26.1':
+  '@typescript-eslint/scope-manager@8.27.0':
     dependencies:
-      '@typescript-eslint/types': 8.26.1
-      '@typescript-eslint/visitor-keys': 8.26.1
+      '@typescript-eslint/types': 8.27.0
+      '@typescript-eslint/visitor-keys': 8.27.0
 
-  '@typescript-eslint/type-utils@8.26.1(eslint@9.22.0)(typescript@5.8.2)':
+  '@typescript-eslint/type-utils@8.27.0(eslint@9.22.0)(typescript@5.8.2)':
     dependencies:
-      '@typescript-eslint/typescript-estree': 8.26.1(typescript@5.8.2)
-      '@typescript-eslint/utils': 8.26.1(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/typescript-estree': 8.27.0(typescript@5.8.2)
+      '@typescript-eslint/utils': 8.27.0(eslint@9.22.0)(typescript@5.8.2)
       debug: 4.4.0(supports-color@8.1.1)
       eslint: 9.22.0
       ts-api-utils: 2.0.1(typescript@5.8.2)
@@ -8077,12 +8077,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/types@8.26.1': {}
+  '@typescript-eslint/types@8.27.0': {}
 
-  '@typescript-eslint/typescript-estree@8.26.1(typescript@5.8.2)':
+  '@typescript-eslint/typescript-estree@8.27.0(typescript@5.8.2)':
     dependencies:
-      '@typescript-eslint/types': 8.26.1
-      '@typescript-eslint/visitor-keys': 8.26.1
+      '@typescript-eslint/types': 8.27.0
+      '@typescript-eslint/visitor-keys': 8.27.0
       debug: 4.4.0(supports-color@8.1.1)
       fast-glob: 3.3.3
       is-glob: 4.0.3
@@ -8093,20 +8093,20 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/utils@8.26.1(eslint@9.22.0)(typescript@5.8.2)':
+  '@typescript-eslint/utils@8.27.0(eslint@9.22.0)(typescript@5.8.2)':
     dependencies:
-      '@eslint-community/eslint-utils': 4.5.0(eslint@9.22.0)
-      '@typescript-eslint/scope-manager': 8.26.1
-      '@typescript-eslint/types': 8.26.1
-      '@typescript-eslint/typescript-estree': 8.26.1(typescript@5.8.2)
+      '@eslint-community/eslint-utils': 4.5.1(eslint@9.22.0)
+      '@typescript-eslint/scope-manager': 8.27.0
+      '@typescript-eslint/types': 8.27.0
+      '@typescript-eslint/typescript-estree': 8.27.0(typescript@5.8.2)
       eslint: 9.22.0
       typescript: 5.8.2
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/visitor-keys@8.26.1':
+  '@typescript-eslint/visitor-keys@8.27.0':
     dependencies:
-      '@typescript-eslint/types': 8.26.1
+      '@typescript-eslint/types': 8.27.0
       eslint-visitor-keys: 4.2.0
 
   '@webassemblyjs/ast@1.14.1':
@@ -9952,7 +9952,7 @@ snapshots:
       - '@babel/core'
       - supports-color
 
-  ember-eslint-parser@0.5.9(@babel/core@7.26.10)(@typescript-eslint/parser@8.26.1(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0):
+  ember-eslint-parser@0.5.9(@babel/core@7.26.10)(@typescript-eslint/parser@8.27.0(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0):
     dependencies:
       '@babel/core': 7.26.10(supports-color@8.1.1)
       '@babel/eslint-parser': 7.26.10(@babel/core@7.26.10)(eslint@9.22.0)
@@ -9963,7 +9963,7 @@ snapshots:
       mathml-tag-names: 2.1.3
       svg-tags: 1.0.0
     optionalDependencies:
-      '@typescript-eslint/parser': 8.26.1(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/parser': 8.27.0(eslint@9.22.0)(typescript@5.8.2)
     transitivePeerDependencies:
       - eslint
 
@@ -10336,11 +10336,11 @@ snapshots:
 
   eslint-formatter-kakoune@1.0.0: {}
 
-  eslint-plugin-ember@12.5.0(@babel/core@7.26.10)(@typescript-eslint/parser@8.26.1(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0):
+  eslint-plugin-ember@12.5.0(@babel/core@7.26.10)(@typescript-eslint/parser@8.27.0(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0):
     dependencies:
       '@ember-data/rfc395-data': 0.0.4
       css-tree: 3.1.0
-      ember-eslint-parser: 0.5.9(@babel/core@7.26.10)(@typescript-eslint/parser@8.26.1(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0)
+      ember-eslint-parser: 0.5.9(@babel/core@7.26.10)(@typescript-eslint/parser@8.27.0(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0)
       ember-rfc176-data: 0.3.18
       eslint: 9.22.0
       eslint-utils: 3.0.0(eslint@9.22.0)
@@ -10350,7 +10350,7 @@ snapshots:
       requireindex: 1.2.0
       snake-case: 3.0.4
     optionalDependencies:
-      '@typescript-eslint/parser': 8.26.1(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/parser': 8.27.0(eslint@9.22.0)(typescript@5.8.2)
     transitivePeerDependencies:
       - '@babel/core'
 
@@ -13551,11 +13551,11 @@ snapshots:
     dependencies:
       is-typedarray: 1.0.0
 
-  typescript-eslint@8.26.1(eslint@9.22.0)(typescript@5.8.2):
+  typescript-eslint@8.27.0(eslint@9.22.0)(typescript@5.8.2):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.26.1(@typescript-eslint/parser@8.26.1(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0)(typescript@5.8.2)
-      '@typescript-eslint/parser': 8.26.1(eslint@9.22.0)(typescript@5.8.2)
-      '@typescript-eslint/utils': 8.26.1(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/eslint-plugin': 8.27.0(@typescript-eslint/parser@8.27.0(eslint@9.22.0)(typescript@5.8.2))(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/parser': 8.27.0(eslint@9.22.0)(typescript@5.8.2)
+      '@typescript-eslint/utils': 8.27.0(eslint@9.22.0)(typescript@5.8.2)
       eslint: 9.22.0
       typescript: 5.8.2
     transitivePeerDependencies:
