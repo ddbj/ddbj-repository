@@ -10,10 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_09_06_084910) do
-  # These are extensions that must be enabled in order to support this database
-  enable_extension "pg_catalog.plpgsql"
-
+ActiveRecord::Schema[8.0].define(version: 2025_03_19_145522) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -102,7 +99,7 @@ ActiveRecord::Schema[8.0].define(version: 2024_09_06_084910) do
     t.datetime "updated_at", null: false
     t.datetime "finished_at"
     t.datetime "started_at"
-    t.jsonb "raw_result"
+    t.string "raw_result"
     t.index ["created_at"], name: "index_validations_on_created_at"
     t.index ["db"], name: "index_validations_on_db"
     t.index ["progress"], name: "index_validations_on_progress"
