@@ -1,10 +1,15 @@
 default: &default
+  adapter: sqlite3
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+
+postgres_default: &postgres_default
   adapter: postgresql
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
 dway_default: &dway_default
-  <<: *default
+  <<: *postgres_default
   schema_search_path: mass,public
   default_timezone: local
 
@@ -25,7 +30,7 @@ submitterdb_default: &submitterdb_default
   migrations_paths: db/submitterdb_migrate
 
 drasearch_default: &drasearch_default
-  <<: *default
+  <<: *postgres_default
   schema_search_path: sra,public
   default_timezone: local
   migrations_paths: db/drasearch_migrate
@@ -33,7 +38,7 @@ drasearch_default: &drasearch_default
 development:
   primary:
     <<: *default
-    database: repository_development
+    database: storage/development.sqlite3
 
   bioproject:
     <<: *bioproject_default
@@ -58,7 +63,7 @@ development:
 test:
   primary:
     <<: *default
-    database: repository_test
+    database: storage/test.sqlite3
 
   bioproject:
     <<: *bioproject_default
@@ -83,18 +88,15 @@ test:
 production: &production
   primary:
     <<: *default
-    url: <%= Rails.application.credentials.dig(:database_url, :primary) %>
-    database: repository
+    database: storage/production.sqlite3
 
   queue:
     <<: *default
-    url: <%= Rails.application.credentials.dig(:database_url, :primary) %>
-    database: repository_queue
+    database: storage/production_queue.sqlite3
     migrations_paths: db/queue_migrate
 
   bioproject:
     <<: *bioproject_default
-    url: <%= Rails.application.credentials.dig(:database_url, :dway) %>
     database: bioproject
     database_tasks: false
 

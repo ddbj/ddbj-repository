@@ -43,20 +43,6 @@ ssh:
   user: w3const
 
 accessories:
-  postgres:
-    image: postgres:17.4
-
-    options:
-      user: 2233:11370
-
-    env:
-      secret:
-        - POSTGRES_PASSWORD
-
-      clear:
-        POSTGRES_DB: repository
-        TZ:          Asia/Tokyo
-
   minio:
     image: minio/minio:RELEASE.2025-03-12T18-04-18Z
     cmd: server /data

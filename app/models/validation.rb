@@ -9,6 +9,8 @@ class Validation < ApplicationRecord
     end
   end
 
+  serialize :raw_result, coder: JSON
+
   validates :db, inclusion: { in: DB.map { _1[:id] } }
 
   validates :started_at,  presence: true, if: :running?
