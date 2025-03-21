@@ -225,7 +225,7 @@ GEM
       net-smtp
     marcel (1.0.4)
     mini_mime (1.1.5)
-    minitest (5.25.4)
+    minitest (5.25.5)
     msgpack (1.8.0)
     net-http (0.6.0)
       uri
@@ -244,11 +244,11 @@ GEM
       net-protocol
     net-ssh (7.3.0)
     nio4r (2.7.4)
-    nokogiri (1.18.3-aarch64-linux-gnu)
+    nokogiri (1.18.5-aarch64-linux-gnu)
       racc (~> 1.4)
-    nokogiri (1.18.3-arm64-darwin)
+    nokogiri (1.18.5-arm64-darwin)
       racc (~> 1.4)
-    nokogiri (1.18.3-x86_64-linux-gnu)
+    nokogiri (1.18.5-x86_64-linux-gnu)
       racc (~> 1.4)
     open3 (0.2.1)
     openid_connect (2.3.1)
@@ -407,7 +407,7 @@ GEM
     skooma (0.3.4)
       json_skooma (~> 0.2.5)
       zeitwerk (~> 2.6)
-    solid_queue (1.1.3)
+    solid_queue (1.1.4)
       activejob (>= 7.1)
       activerecord (>= 7.1)
       concurrent-ruby (>= 1.3.1)
