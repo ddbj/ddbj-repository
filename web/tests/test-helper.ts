@@ -1,5 +1,5 @@
-import Application from 'ddbj-repository/app';
-import config from 'ddbj-repository/config/environment';
+import Application from 'repository/app';
+import config from 'repository/config/environment';
 import * as QUnit from 'qunit';
 import { setApplication } from '@ember/test-helpers';
 import { setup } from 'qunit-dom';

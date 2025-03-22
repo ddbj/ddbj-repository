@@ -1,9 +1,9 @@
-import ValidationsIndexBaseRoute from 'ddbj-repository/routes/validations-index-base';
+import ValidationsIndexBaseRoute from 'repository/routes/validations-index-base';
 
-import ENV from 'ddbj-repository/config/environment';
-import convertCreatedToDate from 'ddbj-repository/utils/convert-created-to-date';
+import ENV from 'repository/config/environment';
+import convertCreatedToDate from 'repository/utils/convert-created-to-date';
 
-import type { Created } from 'ddbj-repository/components/validations-search-form';
+import type { Created } from 'repository/components/validations-search-form';
 
 export interface Params {
   page?: number;

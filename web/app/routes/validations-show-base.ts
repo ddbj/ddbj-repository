@@ -1,10 +1,10 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import ENV from 'ddbj-repository/config/environment';
-import safeFetch from 'ddbj-repository/utils/safe-fetch';
+import ENV from 'repository/config/environment';
+import safeFetch from 'repository/utils/safe-fetch';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type CurrentUserService from 'repository/services/current-user';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];

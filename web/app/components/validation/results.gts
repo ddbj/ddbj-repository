@@ -7,11 +7,11 @@ import { service } from '@ember/service';
 import { eq } from 'ember-truth-helpers';
 import { sub } from 'ember-math-helpers';
 
-import ErrorCode from 'ddbj-repository/components/error-code';
-import ValidityBadge from 'ddbj-repository/components/validity-badge';
-import downloadFile from 'ddbj-repository/utils/download-file';
+import ErrorCode from 'repository/components/error-code';
+import ValidityBadge from 'repository/components/validity-badge';
+import downloadFile from 'repository/utils/download-file';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type CurrentUserService from 'repository/services/current-user';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];

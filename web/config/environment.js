@@ -4,7 +4,7 @@ const dbs = require('../../schema/db.json');
 
 module.exports = function (environment) {
   const ENV = {
-    modulePrefix: 'ddbj-repository',
+    modulePrefix: 'repository',
     environment,
     rootURL: '/web/',
     locationType: 'history',

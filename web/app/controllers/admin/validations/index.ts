@@ -2,8 +2,8 @@ import { tracked } from '@glimmer/tracking';
 
 import { task, timeout } from 'ember-concurrency';
 
-import ValidationsIndexBaseController from 'ddbj-repository/controllers/validations-index-base';
-import { queryParams } from 'ddbj-repository/controllers/validations/index';
+import ValidationsIndexBaseController from 'repository/controllers/validations-index-base';
+import { queryParams } from 'repository/controllers/validations/index';
 
 export default class AdminValidationsIndexController extends ValidationsIndexBaseController {
   queryParams = [

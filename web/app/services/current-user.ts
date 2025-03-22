@@ -1,7 +1,7 @@
 import Service, { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
-import ENV from 'ddbj-repository/config/environment';
+import ENV from 'repository/config/environment';
 
 import type Router from '@ember/routing/router';
 import type Transition from '@ember/routing/transition';

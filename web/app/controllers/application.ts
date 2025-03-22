@@ -7,8 +7,8 @@ import { tracked } from '@glimmer/tracking';
 import { Modal, Toast } from 'bootstrap';
 import { scheduleTask } from 'ember-lifeline';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
-import type ToastService from 'ddbj-repository/services/toast';
+import type CurrentUserService from 'repository/services/current-user';
+import type ToastService from 'repository/services/toast';
 
 export interface ToastData {
   id: string;

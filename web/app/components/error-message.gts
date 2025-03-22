@@ -1,7 +1,7 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 
-import { FetchFailed } from 'ddbj-repository/utils/safe-fetch';
+import { FetchFailed } from 'repository/utils/safe-fetch';
 
 import type Owner from '@ember/owner';
 

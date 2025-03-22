@@ -2,10 +2,10 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 import { action } from '@ember/object';
 
-import { LoginError } from 'ddbj-repository/services/current-user';
+import { LoginError } from 'repository/services/current-user';
 
-import type ApplicationController from 'ddbj-repository/controllers/application';
-import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type ApplicationController from 'repository/controllers/application';
+import type CurrentUserService from 'repository/services/current-user';
 import type Router from '@ember/routing/router';
 import type Transition from '@ember/routing/transition';
 

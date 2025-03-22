@@ -5,7 +5,7 @@ import { uniqueId } from '@ember/-internals/glimmer';
 
 import { eq } from 'ember-truth-helpers';
 
-import CheckboxGroup from 'ddbj-repository/components/checkbox-group';
+import CheckboxGroup from 'repository/components/checkbox-group';
 
 interface Signature {
   Element: HTMLDListElement;

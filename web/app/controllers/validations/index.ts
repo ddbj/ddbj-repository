@@ -1,4 +1,4 @@
-import ValidationsIndexBaseController from 'ddbj-repository/controllers/validations-index-base';
+import ValidationsIndexBaseController from 'repository/controllers/validations-index-base';
 
 export const queryParams = [
   {

@@ -9,8 +9,8 @@
     // work with TypeScript.
     "baseUrl": ".",
     "paths": {
-      "ddbj-repository/tests/*": ["tests/*"],
-      "ddbj-repository/*": ["app/*"],
+      "repository/tests/*": ["tests/*"],
+      "repository/*": ["app/*"],
       "schema/*": ["../schema/*"],
       "*": ["types/*"]
     },

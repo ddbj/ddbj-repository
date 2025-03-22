@@ -6,9 +6,9 @@ import { uniqueId } from '@ember/-internals/glimmer';
 
 import { eq } from 'ember-truth-helpers';
 
-import SourceField from 'ddbj-repository/components/source-field';
+import SourceField from 'repository/components/source-field';
 
-import type Obj from 'ddbj-repository/models/obj';
+import type Obj from 'repository/models/obj';
 
 interface Signature {
   Args: {

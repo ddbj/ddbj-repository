@@ -6,8 +6,8 @@ import { uniqueId } from '@ember/-internals/glimmer';
 
 import { eq, not } from 'ember-truth-helpers';
 
-import type Obj from 'ddbj-repository/models/obj';
-import type Source from 'ddbj-repository/models/source';
+import type Obj from 'repository/models/obj';
+import type Source from 'repository/models/source';
 
 interface Signature {
   obj: Obj;

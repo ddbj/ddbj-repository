@@ -6,11 +6,11 @@ import { tracked } from '@glimmer/tracking';
 import style from 'ember-style-modifier';
 import { task } from 'ember-concurrency';
 
-import { LoginError } from 'ddbj-repository/services/current-user';
+import { LoginError } from 'repository/services/current-user';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
-import type ErrorModalService from 'ddbj-repository/services/error-modal';
-import type ToastService from 'ddbj-repository/services/toast';
+import type CurrentUserService from 'repository/services/current-user';
+import type ErrorModalService from 'repository/services/error-modal';
+import type ToastService from 'repository/services/toast';
 
 interface Signature {
   Args: {

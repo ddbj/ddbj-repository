@@ -1,4 +1,4 @@
-import Obj from 'ddbj-repository/models/obj';
+import Obj from 'repository/models/obj';
 
 import type { DBSchema } from 'schema/db';
 

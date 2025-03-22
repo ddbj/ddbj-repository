@@ -2,12 +2,12 @@ import { LinkTo } from '@ember/routing';
 
 import { notEq } from 'ember-truth-helpers';
 
-import DetailsCount from 'ddbj-repository/components/details-count';
-import Pagination from 'ddbj-repository/components/pagination';
-import ProgressLabel from 'ddbj-repository/components/progress-label';
-import Table from 'ddbj-repository/components/table';
-import ValidityBadge from 'ddbj-repository/components/validity-badge';
-import formatDatetime from 'ddbj-repository/helpers/format-datetime';
+import DetailsCount from 'repository/components/details-count';
+import Pagination from 'repository/components/pagination';
+import ProgressLabel from 'repository/components/progress-label';
+import Table from 'repository/components/table';
+import ValidityBadge from 'repository/components/validity-badge';
+import formatDatetime from 'repository/helpers/format-datetime';
 
 import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';

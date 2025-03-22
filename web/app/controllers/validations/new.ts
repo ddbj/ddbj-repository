@@ -2,8 +2,8 @@ import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
-import DB from 'ddbj-repository/models/db';
-import ENV from 'ddbj-repository/config/environment';
+import DB from 'repository/models/db';
+import ENV from 'repository/config/environment';
 
 export default class ValidationsNewController extends Controller {
   queryParams = [{ db: { type: 'string' } as const }];

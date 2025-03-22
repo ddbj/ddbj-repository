@@ -1,6 +1,6 @@
 import { tracked } from '@glimmer/tracking';
 
-import type Obj from 'ddbj-repository/models/obj';
+import type Obj from 'repository/models/obj';
 
 export default class Source {
   obj: Obj;

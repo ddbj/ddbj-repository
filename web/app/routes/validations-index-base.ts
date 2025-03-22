@@ -1,11 +1,11 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
-import safeFetch from 'ddbj-repository/utils/safe-fetch';
+import getLastPageFromLinkHeader from 'repository/utils/get-last-page-from-link-header';
+import safeFetch from 'repository/utils/safe-fetch';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
-import type ValidationsIndexBaseController from 'ddbj-repository/controllers/validations-index-base';
+import type CurrentUserService from 'repository/services/current-user';
+import type ValidationsIndexBaseController from 'repository/controllers/validations-index-base';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
