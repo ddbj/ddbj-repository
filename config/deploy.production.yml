@@ -14,12 +14,6 @@ builder:
     API_URL: https://repository.ddbj.nig.ac.jp/api
 
 accessories:
-  postgres:
-    host: repository-production
-
-    volumes:
-      - ./volumes/repository-production/postgres:/var/lib/postgresql/data
-
   minio:
     host: repository-production
 
