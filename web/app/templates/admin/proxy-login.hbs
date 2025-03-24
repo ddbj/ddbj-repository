@@ -1,20 +1,27 @@
-{{page-title 'Proxy Login'}}
+{{page-title "Proxy Login"}}
 
 <div class="card">
   <div class="card-body">
-    <form {{on 'submit' this.submit}}>
+    <form {{on "submit" this.submit}}>
       <div class="mb-3">
         {{#let (unique-id) as |id|}}
           <label for={{id}} class="form-label">
             D-way User ID
           </label>
 
-          <input type="text" value={{this.uid}} readonly={{this.currentUser.isProxyLoggedIn}} id={{id}} class={{if this.currentUser.isProxyLoggedIn "form-control-plaintext" "form-control"}} {{on 'change' this.setUid}} />
+          <input
+            type="text"
+            value={{this.uid}}
+            readonly={{this.currentUser.isProxyLoggedIn}}
+            id={{id}}
+            class={{if this.currentUser.isProxyLoggedIn "form-control-plaintext" "form-control"}}
+            {{on "change" this.setUid}}
+          />
         {{/let}}
       </div>
 
       {{#if this.currentUser.isProxyLoggedIn}}
-        <button type="button" class="btn btn-danger" {{on 'click' this.exit}}>Deactivate</button>
+        <button type="button" class="btn btn-danger" {{on "click" this.exit}}>Deactivate</button>
       {{else}}
         <button type="submit" class="btn btn-primary">Switch User</button>
       {{/if}}

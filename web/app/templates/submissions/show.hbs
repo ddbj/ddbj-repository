@@ -1,4 +1,4 @@
-{{page-title (concat 'Submission ' @model.id)}}
+{{page-title (concat "Submission " @model.id)}}
 
 <div class="mb-3">
   <LinkTo @route="submissions.index" @query={{hash page=this.indexPage}}>&laquo; Back to index</LinkTo>
@@ -72,7 +72,7 @@
     <dd>{{@model.visibility}}</dd>
   </div>
 
-  {{#if (eq @model.validation.db 'BioProject')}}
+  {{#if (eq @model.validation.db "BioProject")}}
     <div>
       <dt>Umbrella</dt>
       {{! @glint-expect-error }}
@@ -104,7 +104,11 @@
           <ul class="list-unstyled mb-0">
             {{#each obj.files as |file|}}
               <li>
-                <button type="button" class="btn btn-link p-0" {{on 'click' (fn this.downloadFile file.url)}}>{{file.path}}</button>
+                <button
+                  type="button"
+                  class="btn btn-link p-0"
+                  {{on "click" (fn this.downloadFile file.url)}}
+                >{{file.path}}</button>
               </li>
             {{/each}}
           </ul>
