@@ -1,11 +1,16 @@
-{{page-title 'New Validation'}}
+{{page-title "New Validation"}}
 
 <h1 class="display-6 mb-4">New Validation</h1>
 
 <ul class="nav nav-tabs mb-3" role="tablist">
   {{#each this.dbs as |db|}}
     <li class="nav-item" role="presentation">
-      <button type="button" class="nav-link {{if (eq db this.selectedDb) 'active' ''}}" aria-current={{if (eq db this.selectedDb) 'page' ''}} {{on 'click' (fn this.selectDb db)}}>
+      <button
+        type="button"
+        class="nav-link {{if (eq db this.selectedDb) 'active' ''}}"
+        aria-current={{if (eq db this.selectedDb) "page" ""}}
+        {{on "click" (fn this.selectDb db)}}
+      >
         {{db.schema.id}}
       </button>
     </li>
