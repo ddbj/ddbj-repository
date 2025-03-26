@@ -15,3 +15,6 @@ export default class App extends Application {
 }
 
 loadInitializers(App, config.modulePrefix);
+
+import 'bootstrap';
+import 'bootstrap/dist/css/bootstrap.css';
