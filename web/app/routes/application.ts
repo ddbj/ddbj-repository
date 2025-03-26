@@ -2,9 +2,6 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 import { action } from '@ember/object';
 
-import 'bootstrap';
-import 'bootstrap/dist/css/bootstrap.css';
-
 import { LoginError } from 'ddbj-repository/services/current-user';
 
 import type ApplicationController from 'ddbj-repository/controllers/application';
