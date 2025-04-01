@@ -25,7 +25,7 @@ export default class ApplicationController extends Controller {
   @tracked toastData: ToastData[] = [];
 
   errorModal?: Modal;
-  toasts: Map<Element, Toast> = new Map();
+  toasts: Map<string, Toast> = new Map();
 
   setErrorModal = modifier((el) => {
     this.errorModal = new Modal(el);
@@ -44,10 +44,10 @@ export default class ApplicationController extends Controller {
   setToast = modifier((el) => {
     const toast = new Toast(el);
 
-    this.toasts.set(el, toast);
+    this.toasts.set(el.id, toast);
 
     const handler = () => {
-      this.toasts.delete(el);
+      this.toasts.delete(el.id);
       this.toastData = this.toastData.filter(({ id }) => id !== el.id);
     };
 
@@ -88,11 +88,9 @@ ${error.stack}`);
     this.toastData = [...this.toastData, { id, ...data }];
 
     scheduleTask(this, 'render', () => {
-      const entry = [...this.toasts].find(([el]) => el.id === id);
+      const toast = this.toasts.get(id);
 
-      if (!entry) return;
-
-      const [, toast] = entry;
+      if (!toast) return;
 
       toast.show();
     });
