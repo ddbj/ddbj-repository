@@ -3,7 +3,6 @@ source "https://rubygems.org"
 gem "rails", "~> 8.0.1"
 
 gem "aws-sdk-s3"
-gem "base62-rb"
 gem "bootsnap", require: false
 gem "fetch-api"
 gem "jb"
