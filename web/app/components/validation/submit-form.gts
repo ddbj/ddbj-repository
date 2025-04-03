@@ -3,7 +3,7 @@ import { modifier } from 'ember-modifier';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
-import { uniqueId } from '@ember/-internals/glimmer';
+import { uniqueId } from '@ember/helper';
 
 import { eq, gt, notEq } from 'ember-truth-helpers';
 import { task } from 'ember-concurrency';

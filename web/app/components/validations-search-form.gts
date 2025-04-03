@@ -1,7 +1,6 @@
 import Component from '@glimmer/component';
-import { fn } from '@ember/helper';
+import { fn, uniqueId } from '@ember/helper';
 import { on } from '@ember/modifier';
-import { uniqueId } from '@ember/helper';
 
 import { eq } from 'ember-truth-helpers';
 
