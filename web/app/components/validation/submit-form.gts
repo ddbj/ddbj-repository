@@ -8,13 +8,13 @@ import { uniqueId } from '@ember/-internals/glimmer';
 import { eq, gt, notEq } from 'ember-truth-helpers';
 import { task } from 'ember-concurrency';
 
-import ENV from 'ddbj-repository/config/environment';
-import { safeFetchWithModal } from 'ddbj-repository/utils/safe-fetch';
+import ENV from 'repository/config/environment';
+import { safeFetchWithModal } from 'repository/utils/safe-fetch';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
-import type ErrorModalService from 'ddbj-repository/services/error-modal';
+import type CurrentUserService from 'repository/services/current-user';
+import type ErrorModalService from 'repository/services/error-modal';
 import type Router from '@ember/routing/router';
-import type ToastService from 'ddbj-repository/services/toast';
+import type ToastService from 'repository/services/toast';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];

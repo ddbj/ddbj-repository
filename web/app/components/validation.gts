@@ -1,11 +1,11 @@
 import { LinkTo } from '@ember/routing';
 
-import DetailsCount from 'ddbj-repository/components/details-count';
-import ProgressLabel from 'ddbj-repository/components/progress-label';
-import ValidationResults from 'ddbj-repository/components/validation/results';
-import ValidationSubmitForm from 'ddbj-repository/components/validation/submit-form';
-import ValidityBadge from 'ddbj-repository/components/validity-badge';
-import formatDatetime from 'ddbj-repository/helpers/format-datetime';
+import DetailsCount from 'repository/components/details-count';
+import ProgressLabel from 'repository/components/progress-label';
+import ValidationResults from 'repository/components/validation/results';
+import ValidationSubmitForm from 'repository/components/validation/submit-form';
+import ValidityBadge from 'repository/components/validity-badge';
+import formatDatetime from 'repository/helpers/format-datetime';
 
 import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';

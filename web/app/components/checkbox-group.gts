@@ -3,7 +3,7 @@ import { action } from '@ember/object';
 import { hash } from '@ember/helper';
 import { on } from '@ember/modifier';
 
-import Checkbox from 'ddbj-repository/components/checkbox-group/checkbox';
+import Checkbox from 'repository/components/checkbox-group/checkbox';
 
 import type { WithBoundArgs } from '@glint/template';
 

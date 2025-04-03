@@ -3,7 +3,7 @@ import { action } from '@ember/object';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
+import type CurrentUserService from 'repository/services/current-user';
 
 export default class AdminProxyLoginController extends Controller {
   @service declare currentUser: CurrentUserService;

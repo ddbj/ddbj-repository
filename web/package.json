@@ -1,8 +1,8 @@
 {
-  "name": "ddbj-repository",
+  "name": "repository",
   "version": "0.0.0",
   "private": true,
-  "description": "Small description for ddbj-repository goes here",
+  "description": "Small description for repository goes here",
   "repository": "",
   "license": "Apache-2.0",
   "author": "",

@@ -1,7 +1,7 @@
-import ValidationsIndexBaseRoute from 'ddbj-repository/routes/validations-index-base';
-import ValidationsIndexRoute, { queryParams } from 'ddbj-repository/routes/validations/index';
+import ValidationsIndexBaseRoute from 'repository/routes/validations-index-base';
+import ValidationsIndexRoute, { queryParams } from 'repository/routes/validations/index';
 
-import type { Params as ParamsForUser } from 'ddbj-repository/routes/validations/index';
+import type { Params as ParamsForUser } from 'repository/routes/validations/index';
 
 interface Params extends ParamsForUser {
   uid?: string;

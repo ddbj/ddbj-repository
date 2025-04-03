@@ -1,14 +1,14 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import ENV from 'ddbj-repository/config/environment';
-import convertCreatedToDate from 'ddbj-repository/utils/convert-created-to-date';
-import getLastPageFromLinkHeader from 'ddbj-repository/utils/get-last-page-from-link-header';
-import safeFetch from 'ddbj-repository/utils/safe-fetch';
+import ENV from 'repository/config/environment';
+import convertCreatedToDate from 'repository/utils/convert-created-to-date';
+import getLastPageFromLinkHeader from 'repository/utils/get-last-page-from-link-header';
+import safeFetch from 'repository/utils/safe-fetch';
 
-import type CurrentUserService from 'ddbj-repository/services/current-user';
-import type SubmissionsIndexController from 'ddbj-repository/controllers/submissions';
-import type { Created } from 'ddbj-repository/components/validations-search-form';
+import type CurrentUserService from 'repository/services/current-user';
+import type SubmissionsIndexController from 'repository/controllers/submissions';
+import type { Created } from 'repository/components/validations-search-form';
 import type { components } from 'schema/openapi';
 
 type Submission = components['schemas']['Submission'];

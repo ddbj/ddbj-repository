@@ -1,9 +1,9 @@
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
-import Source from 'ddbj-repository/models/source';
+import Source from 'repository/models/source';
 
-import type DB from 'ddbj-repository/models/db';
+import type DB from 'repository/models/db';
 import type { ObjSchema } from 'schema/db';
 
 export default class Obj {

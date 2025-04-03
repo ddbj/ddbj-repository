@@ -1,4 +1,4 @@
-import type ErrorModalService from 'ddbj-repository/services/error-modal';
+import type ErrorModalService from 'repository/services/error-modal';
 
 export default async function safeFetch(url: RequestInfo | URL, init?: RequestInit) {
   const res = await fetch(url, init);

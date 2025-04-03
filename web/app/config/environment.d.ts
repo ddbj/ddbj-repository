@@ -2,7 +2,7 @@ import type { DBSchema } from 'schema/db';
 
 /**
  * Type declarations for
- *    import config from 'ddbj-repository/config/environment'
+ *    import config from 'repository/config/environment'
  */
 declare const config: {
   environment: string;

@@ -1,7 +1,7 @@
 import Controller from '@ember/controller';
 import { getOwner } from '@ember/owner';
 
-import type AdminValidationsIndexController from 'ddbj-repository/controllers/admin/validations/index';
+import type AdminValidationsIndexController from 'repository/controllers/admin/validations/index';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];

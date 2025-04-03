@@ -2,9 +2,9 @@ import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
-import ENV from 'ddbj-repository/config/environment';
+import ENV from 'repository/config/environment';
 
-import type { Model } from 'ddbj-repository/routes/submissions/index';
+import type { Model } from 'repository/routes/submissions/index';
 
 export default class SubmissionsIndexController extends Controller {
   queryParams = [
