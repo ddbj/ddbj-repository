@@ -1,5 +1,5 @@
 import { on } from '@ember/modifier';
-import { uniqueId } from '@ember/-internals/glimmer';
+import { uniqueId } from '@ember/helper';
 
 import type { TOC } from '@ember/component/template-only';
 

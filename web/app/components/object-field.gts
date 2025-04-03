@@ -2,7 +2,7 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
-import { uniqueId } from '@ember/-internals/glimmer';
+import { uniqueId } from '@ember/helper';
 
 import { eq } from 'ember-truth-helpers';
 
