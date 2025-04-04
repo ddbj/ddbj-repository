@@ -72,8 +72,8 @@ importers:
         specifier: ^4.0.9
         version: 4.0.9
       bootstrap:
-        specifier: ^5.3.3
-        version: 5.3.3(@popperjs/core@2.11.8)
+        specifier: ^5.3.4
+        version: 5.3.4(@popperjs/core@2.11.8)
       broccoli-asset-rev:
         specifier: ^3.0.0
         version: 3.0.0
@@ -1887,8 +1887,8 @@ packages:
   body@5.1.0:
     resolution: {integrity: sha512-chUsBxGRtuElD6fmw1gHLpvnKdVLK302peeFa9ZqAEk8TyzZ3fygLyUEDDPTJvL9+Bor0dIwn6ePOsRM2y0zQQ==}
 
-  bootstrap@5.3.3:
-    resolution: {integrity: sha512-8HLCdWgyoMguSO9o+aH+iuZ+aht+mzW0u3HIMzVu7Srrpv7EBBxTnrFlSCskwdY1+EOFQSm7uMJhNQHkdPcmjg==}
+  bootstrap@5.3.4:
+    resolution: {integrity: sha512-q2oK3ZPDTa5I44FTyY3H76+SDTJREvOBxtX1HNLHcxMni50jMvUtOh+dgFdgpsAHtJ9bfNAWr6d6VezJHJ/7tg==}
     peerDependencies:
       '@popperjs/core': ^2.11.8
 
@@ -8561,7 +8561,7 @@ snapshots:
       raw-body: 1.1.7
       safe-json-parse: 1.0.1
 
-  bootstrap@5.3.3(@popperjs/core@2.11.8):
+  bootstrap@5.3.4(@popperjs/core@2.11.8):
     dependencies:
       '@popperjs/core': 2.11.8
 
