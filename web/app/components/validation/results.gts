@@ -9,9 +9,8 @@ import { sub } from 'ember-math-helpers';
 
 import ErrorCode from 'repository/components/error-code';
 import ValidityBadge from 'repository/components/validity-badge';
-import downloadFile from 'repository/utils/download-file';
 
-import type CurrentUserService from 'repository/services/current-user';
+import type RequestService from 'repository/services/request';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
@@ -24,11 +23,11 @@ interface Signature {
 }
 
 export default class ValidationResultsComponent extends Component<Signature> {
-  @service declare currentUser: CurrentUserService;
+  @service declare request: RequestService;
 
   @action
   async downloadFile(url: string) {
-    await downloadFile(url, this.currentUser);
+    await this.request.downloadFile(url);
   }
 
   <template>

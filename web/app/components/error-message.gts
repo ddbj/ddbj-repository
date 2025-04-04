@@ -1,7 +1,7 @@
 import Component from '@glimmer/component';
 import { tracked } from '@glimmer/tracking';
 
-import { FetchFailed } from 'repository/utils/safe-fetch';
+import { FetchError } from 'repository/services/request';
 
 import type Owner from '@ember/owner';
 
@@ -25,7 +25,7 @@ export default class ErrorMessageComponent extends Component<Signature> {
   }
 
   async setMessage(error: Error) {
-    if (error instanceof FetchFailed) {
+    if (error instanceof FetchError) {
       const { response } = error;
 
       try {

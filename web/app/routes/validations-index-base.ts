@@ -2,9 +2,8 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
 import getLastPageFromLinkHeader from 'repository/utils/get-last-page-from-link-header';
-import safeFetch from 'repository/utils/safe-fetch';
 
-import type CurrentUserService from 'repository/services/current-user';
+import type RequestService from 'repository/services/request';
 import type ValidationsIndexBaseController from 'repository/controllers/validations-index-base';
 import type { components } from 'schema/openapi';
 
@@ -16,7 +15,7 @@ export interface Model {
 }
 
 export default abstract class ValidationsIndexBaseRoute<TParams extends Record<string, unknown>> extends Route {
-  @service declare currentUser: CurrentUserService;
+  @service declare request: RequestService;
 
   timer?: number;
 
@@ -24,10 +23,7 @@ export default abstract class ValidationsIndexBaseRoute<TParams extends Record<s
 
   async model(params: TParams) {
     const url = this.buildURL(params);
-
-    const res = await safeFetch(url, {
-      headers: this.currentUser.authorizationHeader,
-    });
+    const res = await this.request.fetch(url.toString());
 
     return {
       validations: (await res.json()) as Validation[],
