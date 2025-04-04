@@ -1,23 +1,18 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import ENV from 'repository/config/environment';
-import safeFetch from 'repository/utils/safe-fetch';
-
-import type CurrentUserService from 'repository/services/current-user';
+import type RequestService from 'repository/services/request';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
 export default abstract class ValidationsShowBaseRoute extends Route {
-  @service declare currentUser: CurrentUserService;
+  @service declare request: RequestService;
 
   timer?: number;
 
   async model({ id }: { id: string }) {
-    const res = await safeFetch(`${ENV.apiURL}/validations/${id}`, {
-      headers: this.currentUser.authorizationHeader,
-    });
+    const res = await this.request.fetch(`/validations/${id}`);
 
     return (await res.json()) as Validation;
   }

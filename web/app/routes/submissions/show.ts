@@ -1,23 +1,18 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import ENV from 'repository/config/environment';
-import safeFetch from 'repository/utils/safe-fetch';
-
-import type CurrentUserService from 'repository/services/current-user';
+import type RequestService from 'repository/services/request';
 import type { components } from 'schema/openapi';
 
 type Submission = components['schemas']['Submission'];
 
 export default class SubmissionsShowRoute extends Route {
-  @service declare currentUser: CurrentUserService;
+  @service declare request: RequestService;
 
   timer?: number;
 
   async model({ id }: { id: string }) {
-    const res = await safeFetch(`${ENV.apiURL}/submissions/${id}`, {
-      headers: this.currentUser.authorizationHeader,
-    });
+    const res = await this.request.fetch(`/submissions/${id}`);
 
     return (await res.json()) as Submission;
   }

@@ -8,11 +8,7 @@ import { uniqueId } from '@ember/helper';
 import { eq, gt, notEq } from 'ember-truth-helpers';
 import { task } from 'ember-concurrency';
 
-import ENV from 'repository/config/environment';
-import { safeFetchWithModal } from 'repository/utils/safe-fetch';
-
-import type CurrentUserService from 'repository/services/current-user';
-import type ErrorModalService from 'repository/services/error-modal';
+import type RequestService from 'repository/services/request';
 import type Router from '@ember/routing/router';
 import type ToastService from 'repository/services/toast';
 import type { components } from 'schema/openapi';
@@ -26,8 +22,7 @@ interface Signature {
 }
 
 export default class ValidationSubmitFormComponent extends Component<Signature> {
-  @service declare currentUser: CurrentUserService;
-  @service declare errorModal: ErrorModalService;
+  @service declare request: RequestService;
   @service declare router: Router;
   @service declare toast: ToastService;
 
@@ -50,15 +45,12 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
 
     const formData = new FormData(e.target as HTMLFormElement);
 
-    const res = await safeFetchWithModal(
-      `${ENV.apiURL}/submissions`,
-      {
-        method: 'POST',
-        headers: this.currentUser.authorizationHeader,
-        body: formData,
-      },
-      this.errorModal,
-    );
+    const res = await this.request.fetchWithModal('/submissions', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!res) return;
 
     const { id: submissionId } = (await res.json()) as { id: string };
 

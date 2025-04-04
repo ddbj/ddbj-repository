@@ -4,9 +4,8 @@ import { service } from '@ember/service';
 import ENV from 'repository/config/environment';
 import convertCreatedToDate from 'repository/utils/convert-created-to-date';
 import getLastPageFromLinkHeader from 'repository/utils/get-last-page-from-link-header';
-import safeFetch from 'repository/utils/safe-fetch';
 
-import type CurrentUserService from 'repository/services/current-user';
+import type RequestService from 'repository/services/request';
 import type SubmissionsIndexController from 'repository/controllers/submissions';
 import type { Created } from 'repository/components/validations-search-form';
 import type { components } from 'schema/openapi';
@@ -25,7 +24,7 @@ interface Params {
 }
 
 export default class SubmissionsIndexRoute extends Route {
-  @service declare currentUser: CurrentUserService;
+  @service declare request: RequestService;
 
   timer?: number;
 
@@ -56,9 +55,7 @@ export default class SubmissionsIndexRoute extends Route {
       url.searchParams.set('created_at_after', convertCreatedToDate(params.created).toISOString());
     }
 
-    const res = await safeFetch(url, {
-      headers: this.currentUser.authorizationHeader,
-    });
+    const res = await this.request.fetch(url.toString());
 
     return {
       submissions: (await res.json()) as Submission[],

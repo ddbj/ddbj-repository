@@ -3,16 +3,14 @@ import { action } from '@ember/object';
 import { getOwner } from '@ember/owner';
 import { service } from '@ember/service';
 
-import downloadFile from 'repository/utils/download-file';
-
-import type CurrentUserService from 'repository/services/current-user';
+import type RequestService from 'repository/services/request';
 import type SubmissionsIndexController from 'repository/controllers/submissions/index';
 import type { components } from 'schema/openapi';
 
 type Submission = components['schemas']['Submission'];
 
 export default class SubmissionsShowController extends Controller {
-  @service declare currentUser: CurrentUserService;
+  @service declare request: RequestService;
 
   declare model: Submission;
 
@@ -24,6 +22,6 @@ export default class SubmissionsShowController extends Controller {
 
   @action
   async downloadFile(url: string) {
-    await downloadFile(url, this.currentUser);
+    await this.request.downloadFile(url);
   }
 }
