@@ -97,6 +97,7 @@ production: &production
 
   bioproject:
     <<: *bioproject_default
+    url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
     database: bioproject
     database_tasks: false
 
