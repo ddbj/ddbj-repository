@@ -32,8 +32,6 @@ export default class NewValidationFormComponent extends Component<Signature> {
       body: jsonToFormData(db.toJSON()),
     });
 
-    if (!res) return;
-
     const { id } = (await res.json()) as { id: string };
 
     this.router.transitionTo('validations.show', id);

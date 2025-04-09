@@ -50,8 +50,6 @@ export default class ValidationSubmitFormComponent extends Component<Signature> 
       body: formData,
     });
 
-    if (!res) return;
-
     const { id: submissionId } = (await res.json()) as { id: string };
 
     this.router.transitionTo('submissions.show', submissionId);

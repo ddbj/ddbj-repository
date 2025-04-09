@@ -33,6 +33,8 @@ export default class RequestService extends Service {
       return await this.fetch(url, init);
     } catch (e) {
       this.errorModal.show(e as Error);
+
+      throw e;
     }
   }
 
