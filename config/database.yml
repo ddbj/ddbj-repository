@@ -8,25 +8,25 @@ postgres_default: &postgres_default
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
 
-dway_default: &dway_default
+xsmdb_default: &xsmdb_default
   <<: *postgres_default
   schema_search_path: mass,public
   default_timezone: local
 
 bioproject_default: &bioproject_default
-  <<: *dway_default
+  <<: *xsmdb_default
   migrations_paths: db/bioproject_migrate
 
 biosample_default: &biosample_default
-  <<: *dway_default
+  <<: *xsmdb_default
   migrations_paths: db/biosample_migrate
 
 drmdb_default: &drmdb_default
-  <<: *dway_default
+  <<: *xsmdb_default
   migrations_paths: db/drmdb_migrate
 
 submitterdb_default: &submitterdb_default
-  <<: *dway_default
+  <<: *xsmdb_default
   migrations_paths: db/submitterdb_migrate
 
 drasearch_default: &drasearch_default
@@ -102,19 +102,19 @@ production: &production
 
   biosample:
     <<: *biosample_default
-    url: <%= Rails.application.credentials.dig(:database_url, :dway) %>
+    url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
     database: biosample
     database_tasks: false
 
   drmdb:
     <<: *drmdb_default
-    url: <%= Rails.application.credentials.dig(:database_url, :dway) %>
+    url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
     database: drmdb
     database_tasks: false
 
   submitterdb:
     <<: *submitterdb_default
-    url: <%= Rails.application.credentials.dig(:database_url, :dway) %>
+    url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
     database: submitterdb
     database_tasks: false
 
