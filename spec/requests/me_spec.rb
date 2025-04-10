@@ -1,8 +1,10 @@
 require "rails_helper"
 
 RSpec.describe "me", type: :request, authorized: true do
+  let_it_be(:user) { create_default(:user, uid: "alice", api_key: "API_KEY") }
+
   before do
-    create :user, uid: "alice", api_key: "API_KEY", admin: false
+    default_headers[:Authorization] = "Bearer #{user.token}"
   end
 
   example do
@@ -11,8 +13,9 @@ RSpec.describe "me", type: :request, authorized: true do
     expect(response).to conform_schema(200)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
-      uid:   "alice",
-      admin: false
+      uid:     "alice",
+      api_key: "API_KEY",
+      admin:   false
     )
   end
 end

@@ -42,5 +42,8 @@ module Repository
     config.api_only = true
 
     config.time_zone = "Japan"
+
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore
   end
 end

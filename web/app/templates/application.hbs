@@ -15,7 +15,7 @@
             <LinkTo @route="submissions" class="nav-link">Submissions</LinkTo>
           </li>
 
-          {{#if this.currentUser.isAdmin}}
+          {{#if this.currentUser.user.isAdmin}}
             <li class="nav-item">
               <LinkTo @route="admin" class="nav-link">Administration</LinkTo>
             </li>
@@ -29,11 +29,17 @@
                 {{this.currentUser.proxyUid}}
                 (proxy)
               {{else}}
-                {{this.currentUser.uid}}
+                {{this.currentUser.user.uid}}
               {{/if}}
             </button>
 
             <ul class="dropdown-menu">
+              <li>
+                <LinkTo @route="account" class="dropdown-item">Account</LinkTo>
+              </li>
+
+              <li><hr class="dropdown-divider" /></li>
+
               <li>
                 <button type="button" class="dropdown-item" {{on "click" this.logout}}>Logout</button>
               </li>

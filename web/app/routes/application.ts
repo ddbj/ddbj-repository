@@ -18,7 +18,7 @@ export default class ApplicationRoute extends Route {
       await this.currentUser.restore();
     } catch (err) {
       if (err instanceof LoginError) {
-        this.router.transitionTo('login');
+        this.router.transitionTo('index');
       } else {
         throw err;
       }

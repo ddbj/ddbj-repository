@@ -1,8 +1,13 @@
 require "rails_helper"
 
 RSpec.describe "validate via file", type: :request, authorized: true do
+  let_it_be(:user) { create_default(:user, uid: "alice") }
+
   before do
-    create :user, uid: "alice", api_key: "API_KEY"
+    default_headers[:Authorization] = "Bearer #{user.token}"
+  end
+
+  before do
   end
 
   example "happy case" do

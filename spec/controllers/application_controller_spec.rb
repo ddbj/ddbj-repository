@@ -14,9 +14,9 @@ RSpec.describe ApplicationController, type: :controller do
   end
 
   example "authorized" do
-    create :user, uid: "alice", api_key: "API_KEY"
+    alice = create(:user, uid: "alice")
 
-    request.headers["Authorization"] = "Bearer API_KEY"
+    request.headers["Authorization"] = "Bearer #{alice.token}"
 
     get :index
 
@@ -25,10 +25,11 @@ RSpec.describe ApplicationController, type: :controller do
   end
 
   example "admin can login as proxy" do
-    create :user, uid: "alice", api_key: "API_KEY", admin: true
+    alice = create(:user, uid: "alice", admin: true)
+
     create :user, uid: "bob"
 
-    request.headers["Authorization"]  = "Bearer API_KEY"
+    request.headers["Authorization"]  = "Bearer #{alice.token}"
     request.headers["X-Dway-User-Id"] = "bob"
 
     get :index
@@ -38,10 +39,11 @@ RSpec.describe ApplicationController, type: :controller do
   end
 
   example "other user cannot login as proxy" do
-    create :user, uid: "alice", api_key: "API_KEY", admin: false
+    alice = create(:user, uid: "alice", admin: false)
+
     create :user, uid: "bob"
 
-    request.headers["Authorization"]  = "Bearer API_KEY"
+    request.headers["Authorization"]  = "Bearer #{alice.token}"
     request.headers["X-Dway-User-Id"] = "bob"
 
     get :index

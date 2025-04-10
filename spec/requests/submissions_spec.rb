@@ -1,7 +1,11 @@
 require "rails_helper"
 
 RSpec.describe "submissions", type: :request, authorized: true do
-  let!(:user) { create_default(:user, uid: "alice", api_key: "API_KEY") }
+  let_it_be(:user) { create_default(:user, uid: "alice") }
+
+  before do
+    default_headers[:Authorization] = "Bearer #{user.token}"
+  end
 
   example "GET /api/submissions" do
     create :submission, id: 42

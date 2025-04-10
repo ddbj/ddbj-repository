@@ -1,4 +1,1 @@
-Rails.application.configure do
-  config.middleware.use ActionDispatch::Cookies
-  config.middleware.use ActionDispatch::Session::CookieStore, key: "_repository"
-end
+Rails.application.config.session_store :cookie_store, key: "_repository"
