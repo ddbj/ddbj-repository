@@ -1,4 +1,5 @@
 {
-  uid:   @user.uid,
-  admin: @user.admin
+  uid:     @user.uid,
+  api_key: @user.api_key,
+  admin:   @user.admin
 }

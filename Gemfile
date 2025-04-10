@@ -7,10 +7,11 @@ gem "bootsnap", require: false
 gem "fetch-api"
 gem "jb"
 gem "json"
+gem "jwt"
 gem "kamal", require: false
 gem "metabobank_tools", github: "ddbj/metabobank_tools"
 gem "noodles_gff", path: "noodles_gff-rb"
-gem "openid_connect"
+gem "omniauth_openid_connect"
 gem "pagy"
 gem "parallel"
 gem "pg"

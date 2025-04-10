@@ -13,31 +13,6 @@ security:
   - BearerAuth: []
 
 paths:
-  /api_key:
-    get:
-      description: Get login URL.
-
-      tags:
-        - Authentication
-
-      security: []
-
-      responses:
-        '200':
-          description: Returns the login URL. Open this URL in your browser.
-
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: false
-                required: [login_url]
-
-                properties:
-                  login_url:
-                    type: string
-                    format: uri
-
   /api_key/regenerate:
     post:
       description: Re-generate API key.
@@ -65,24 +40,27 @@ paths:
 
   /me:
     get:
-      description: Get your login ID.
+      description: Get your information.
 
       tags:
         - Authentication
 
       responses:
         '200':
-          description: Returns the user's login ID.
+          description: Returns the user.
 
           content:
             application/json:
               schema:
                 type: object
                 additionalProperties: false
-                required: [uid, admin]
+                required: [uid, api_key, admin]
 
                 properties:
                   uid:
+                    type: string
+
+                  api_key:
                     type: string
 
                   admin:

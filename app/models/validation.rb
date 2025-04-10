@@ -1,7 +1,7 @@
 class Validation < ApplicationRecord
   belongs_to :user
 
-  has_one :submission, dependent: :restrict_with_exception
+  has_one :submission, dependent: :destroy
 
   has_many :objs, -> { order(:id) }, dependent: :destroy do
     def base

@@ -8,6 +8,7 @@ export default class Router extends EmberRouter {
 
 Router.map(function () {
   this.route('login');
+  this.route('account');
 
   this.route('validations', function () {
     this.route('new');

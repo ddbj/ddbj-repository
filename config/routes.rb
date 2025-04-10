@@ -1,13 +1,11 @@
 Rails.application.routes.draw do
   root to: redirect("/web/")
 
-  resource :auth, only: %i[] do
-    get :login
-    get :callback
-  end
+  get "auth/:provider/callback", to: "sessions#create"
+  get "auth/failure",            to: "sessions#failure"
 
   scope :api, defaults: { format: :json } do
-    resource :api_key, only: %i[show] do
+    resource :api_key, only: [] do
       post :regenerate
     end
 

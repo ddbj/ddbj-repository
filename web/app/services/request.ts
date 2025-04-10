@@ -18,7 +18,7 @@ export default class RequestService extends Service {
       ...init,
 
       headers: {
-        Authorization: `Bearer ${this.currentUser.apiKey}`,
+        ...this.currentUser.authorizationHeader,
         ...init?.headers,
       },
     });

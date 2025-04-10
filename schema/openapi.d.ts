@@ -5,22 +5,6 @@
 
 
 export interface paths {
-  "/api_key": {
-    /** @description Get login URL. */
-    get: {
-      responses: {
-        /** @description Returns the login URL. Open this URL in your browser. */
-        200: {
-          content: {
-            "application/json": {
-              /** Format: uri */
-              login_url: string;
-            };
-          };
-        };
-      };
-    };
-  };
   "/api_key/regenerate": {
     /** @description Re-generate API key. */
     post: {
@@ -38,14 +22,15 @@ export interface paths {
     };
   };
   "/me": {
-    /** @description Get your login ID. */
+    /** @description Get your information. */
     get: {
       responses: {
-        /** @description Returns the user's login ID. */
+        /** @description Returns the user. */
         200: {
           content: {
             "application/json": {
               uid: string;
+              api_key: string;
               admin: boolean;
             };
           };

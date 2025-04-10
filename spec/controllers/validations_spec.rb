@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe ValidationsController, type: :controller do
   def login(user)
-    request.headers["Authorization"] = "Bearer #{user.api_key}"
+    request.headers["Authorization"] = "Bearer #{user.token}"
   end
 
   describe "get :index" do

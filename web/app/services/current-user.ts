@@ -1,25 +1,26 @@
 import Service, { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
-import ENV from 'repository/config/environment';
+import User from 'repository/models/user';
 
+import type RequestService from 'repository/services/request';
 import type Router from '@ember/routing/router';
 import type Transition from '@ember/routing/transition';
 
 export class LoginError extends Error {}
 
 export default class CurrentUserService extends Service {
+  @service declare request: RequestService;
   @service declare router: Router;
 
-  @tracked apiKey?: string;
-  @tracked isAdmin?: boolean;
+  @tracked token?: string;
+  @tracked user?: User;
   @tracked proxyUid?: string;
-  @tracked uid?: string;
 
   previousTransition?: Transition;
 
   get isLoggedIn() {
-    return Boolean(this.apiKey);
+    return Boolean(this.token);
   }
 
   get isProxyLoggedIn() {
@@ -28,7 +29,7 @@ export default class CurrentUserService extends Service {
 
   get authorizationHeader() {
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.apiKey}`,
+      Authorization: `Bearer ${this.token}`,
     };
 
     if (this.proxyUid) {
@@ -40,7 +41,7 @@ export default class CurrentUserService extends Service {
 
   ensureLogin(transition: Transition, requireAdmin = false) {
     if (requireAdmin) {
-      if (this.isLoggedIn && this.isAdmin) return;
+      if (this.isLoggedIn && this.user?.isAdmin) return;
     } else {
       if (this.isLoggedIn) return;
     }
@@ -56,9 +57,9 @@ export default class CurrentUserService extends Service {
     this.router.transitionTo('index');
   }
 
-  async login(apiKey: string) {
+  async login(token: string) {
     this.clear();
-    localStorage.setItem('apiKey', apiKey);
+    localStorage.setItem('token', token);
 
     await this.restore();
 
@@ -72,7 +73,7 @@ export default class CurrentUserService extends Service {
 
   logout() {
     this.clear();
-    localStorage.removeItem('apiKey');
+    localStorage.removeItem('token');
 
     this.router.transitionTo('index');
   }
@@ -80,31 +81,34 @@ export default class CurrentUserService extends Service {
   async restore() {
     if (this.isLoggedIn) return;
 
-    this.apiKey = localStorage.getItem('apiKey') || undefined;
+    this.token = localStorage.getItem('token') || undefined;
 
     if (!this.isLoggedIn) {
       this.clear();
       return;
     }
 
-    const res = await fetch(`${ENV.apiURL}/me`, {
-      headers: this.authorizationHeader,
-    });
+    let res: Response;
 
-    if (!res.ok) {
+    try {
+      res = await this.request.fetchWithModal('/me');
+    } catch {
       this.clear();
-      localStorage.removeItem('apiKey');
+      localStorage.removeItem('token');
 
       throw new LoginError();
     }
 
-    const { uid, admin } = (await res.json()) as { uid: string; admin: boolean };
+    const { uid, api_key, admin } = (await res.json()) as {
+      uid: string;
+      api_key: string;
+      admin: boolean;
+    };
 
-    this.uid = uid;
-    this.isAdmin = admin;
+    this.user = new User(uid, api_key, admin);
   }
 
   clear() {
-    this.apiKey = this.uid = this.isAdmin = this.proxyUid = undefined;
+    this.token = this.user = this.proxyUid = undefined;
   }
 }

@@ -1,12 +1,16 @@
 require "rails_helper"
 
 RSpec.describe "download submission files", type: :request, authorized: true do
-  before_all do
-    user = create(:user, api_key: "API_KEY")
+  let_it_be(:user) { create(:user) }
 
+  before_all do
     create :validation, id: 100, user:, db: "JVar" do |validation|
       create :obj, validation:, _id: "Excel", file: uploaded_file(name: "myexcel.xlsx"), destination: "dest", validity: "valid"
     end
+  end
+
+  before do
+    default_headers[:Authorization] = "Bearer #{user.token}"
   end
 
   example "from validation" do
