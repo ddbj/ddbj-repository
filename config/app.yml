@@ -13,11 +13,11 @@ test:
   web_url:                http://repository.example.com:4200
 
 production: &production
-  app_url:                http://repository.ddbj.nig.ac.jp
+  app_url:                https://repository.ddbj.nig.ac.jp
   mass_dir_path_template: /submission/{user}/submission/{user}/mass
   repository_dir:         <%= Rails.root.join("storage/repository") %>
   validator_url:          http://repository-validator:3000/api
-  web_url:                http://repository.ddbj.nig.ac.jp
+  web_url:                https://repository.ddbj.nig.ac.jp
 
 staging:
   <<: *production
