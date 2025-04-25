@@ -12,8 +12,8 @@ importers:
         specifier: ^6.7.6
         version: 6.7.6
       quicktype:
-        specifier: ^23.0.171
-        version: 23.0.171
+        specifier: ^23.0.172
+        version: 23.0.172
 
 packages:
 
@@ -28,8 +28,8 @@ packages:
   '@glideapps/ts-necessities@2.2.3':
     resolution: {integrity: sha512-gXi0awOZLHk3TbW55GZLCPP6O+y/b5X1pBXKBVckFONSwF1z1E5ND2BGJsghQFah+pW7pkkyFb2VhUQI2qhL5w==}
 
-  '@glideapps/ts-necessities@2.3.2':
-    resolution: {integrity: sha512-tOXo3SrEeLu+4X2q6O2iNPXdGI1qoXEz/KrbkElTsWiWb69tFH4GzWz2K++0nBD6O3qO2Ft1C4L4ZvUfE2QDlQ==}
+  '@glideapps/ts-necessities@2.4.0':
+    resolution: {integrity: sha512-mDC+qosuNa4lxR3ioMBb6CD0XLRsQBplU+zRPUYiMLXKeVPZ6UYphdNG/EGReig0YyfnVlBKZEXl1wzTotYmPA==}
 
   '@jridgewell/resolve-uri@3.1.2':
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
@@ -72,8 +72,8 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@types/node@16.18.124':
-    resolution: {integrity: sha512-8ADCm5WzM/IpWxjs1Jhtwo6j+Fb8z4yr/CobP5beUUPdyCI0mg87/bqQYxNcqnhZ24Dc9RME8SQWu5eI/FmSGA==}
+  '@types/node@16.18.126':
+    resolution: {integrity: sha512-OTcgaiwfGFBKacvfwuHzzn1KLxH/er8mluiy8/uM3sGXHaRe73RrSIj01jow9t4kJEW633Ov+cOexXeiApTyAw==}
 
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
@@ -83,8 +83,8 @@ packages:
     resolution: {integrity: sha512-ueEepnujpqee2o5aIYnvHU6C0A42MNdsIDeqy5BydrkuC5R1ZuUFnm27EeFJGoEHJQgn3uleRvmTXaJgfXbt4g==}
     engines: {node: '>=0.4.0'}
 
-  acorn@8.14.0:
-    resolution: {integrity: sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==}
+  acorn@8.14.1:
+    resolution: {integrity: sha512-OvQ/2pUDKmgfCg++xsTX1wGxfTaszcHVcTctW4UJB4hibJx2HXxxO5UmVgyjMa+ZDsiaf5wWLXYpRWMmBI0QHg==}
     engines: {node: '>=0.4.0'}
     hasBin: true
 
@@ -334,17 +334,17 @@ packages:
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
 
-  quicktype-core@23.0.171:
-    resolution: {integrity: sha512-2kFUFtVdCbc54IBlCG30Yzsb5a1l6lX/8UjKaf2B009WFsqvduidaSOdJ4IKMhMi7DCrq60mnU7HZ1fDazGRlw==}
+  quicktype-core@23.0.172:
+    resolution: {integrity: sha512-2NZny/l2EBwYu1SjsBJa24UDTycw1ERm/49fMjkLE4JOYhsZWl/fEM4vGUdPcaXbX1xMBj3aaPTB1YEC1TXVuQ==}
 
-  quicktype-graphql-input@23.0.171:
-    resolution: {integrity: sha512-1QKMAILFxuIGLVhv2f7KJbi5sO/tv1w2Q/jWYmYBYiAMYujAP0cCSvth036Doa4270WnE1V7rhXr2SlrKIL57A==}
+  quicktype-graphql-input@23.0.172:
+    resolution: {integrity: sha512-AOAPWTBAPA+zbkWj5081YPJm2Q4aXd7XDbVITtiV1eIA4nV8LwQdhifRTtwcHvwHFxNnM/ew5XDXSzAye43bQw==}
 
-  quicktype-typescript-input@23.0.171:
-    resolution: {integrity: sha512-m2wz3Jk42nnOgrbafCWn1KeSb7DsjJv30sXJaJ0QcdJLrbn4+caBqVzaSHTImUVJbf3L0HN7NlanMts+ylEPWw==}
+  quicktype-typescript-input@23.0.172:
+    resolution: {integrity: sha512-GicJ1gJD1g/vrdNKjnGRIuGilWjJhpXoQKvSSyb1eSUA/gKKU1VtFDwGGEtLRh3vdOKm+n7iC2E+avh5NaBDsw==}
 
-  quicktype@23.0.171:
-    resolution: {integrity: sha512-/pYesD3nn9PWRtCYsTvrh134SpNQ0I1ATESMDge2aGYIQe8k7ZnUBzN6ea8Lwqd8axDbQU9JaesOWqC5Zv9ZfQ==}
+  quicktype@23.0.172:
+    resolution: {integrity: sha512-vyC31hnFhkH9zD5K/W2lmCF85QrgS0UkjqgWa3JVDgBU1Bt2W22//4hDrdS/gZDNgo+wK+7Dxusr57OuTWdczw==}
     engines: {node: '>=18.12.0'}
     hasBin: true
 
@@ -495,8 +495,8 @@ packages:
     resolution: {integrity: sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==}
     engines: {node: '>=10'}
 
-  yaml@2.7.0:
-    resolution: {integrity: sha512-+hSoy/QHluxmC9kCIJyL/uyFmLmc+e5CFR5Wa+bpIhIj85LVb9ZH2nVnqrHoSvKogwODv0ClqZkmiSSaIH5LTA==}
+  yaml@2.7.1:
+    resolution: {integrity: sha512-10ULxpnOCQXxJvBgxsn9ptjq6uviG/htZKk9veJGhlqn3w/DxQ631zFF+nlQXLwmImeS5amR2dl2U8sg6U9jsQ==}
     engines: {node: '>= 14'}
     hasBin: true
 
@@ -522,7 +522,7 @@ snapshots:
 
   '@glideapps/ts-necessities@2.2.3': {}
 
-  '@glideapps/ts-necessities@2.3.2': {}
+  '@glideapps/ts-necessities@2.4.0': {}
 
   '@jridgewell/resolve-uri@3.1.2': {}
 
@@ -536,11 +536,11 @@ snapshots:
   '@mark.probst/typescript-json-schema@0.55.0':
     dependencies:
       '@types/json-schema': 7.0.15
-      '@types/node': 16.18.124
+      '@types/node': 16.18.126
       glob: 7.2.3
       path-equal: 1.2.5
       safe-stable-stringify: 2.5.0
-      ts-node: 10.9.2(@types/node@16.18.124)(typescript@4.9.4)
+      ts-node: 10.9.2(@types/node@16.18.126)(typescript@4.9.4)
       typescript: 4.9.4
       yargs: 17.7.2
     transitivePeerDependencies:
@@ -569,7 +569,7 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/node@16.18.124': {}
+  '@types/node@16.18.126': {}
 
   abort-controller@3.0.0:
     dependencies:
@@ -577,9 +577,9 @@ snapshots:
 
   acorn-walk@8.3.4:
     dependencies:
-      acorn: 8.14.0
+      acorn: 8.14.1
 
-  acorn@8.14.0: {}
+  acorn@8.14.1: {}
 
   ansi-colors@4.1.3: {}
 
@@ -798,7 +798,7 @@ snapshots:
 
   queue-microtask@1.2.3: {}
 
-  quicktype-core@23.0.171:
+  quicktype-core@23.0.172:
     dependencies:
       '@glideapps/ts-necessities': 2.2.3
       browser-or-node: 3.0.0
@@ -813,31 +813,31 @@ snapshots:
       unicode-properties: 1.4.1
       urijs: 1.19.11
       wordwrap: 1.0.0
-      yaml: 2.7.0
+      yaml: 2.7.1
     transitivePeerDependencies:
       - encoding
 
-  quicktype-graphql-input@23.0.171:
+  quicktype-graphql-input@23.0.172:
     dependencies:
       collection-utils: 1.0.1
       graphql: 0.11.7
-      quicktype-core: 23.0.171
+      quicktype-core: 23.0.172
     transitivePeerDependencies:
       - encoding
 
-  quicktype-typescript-input@23.0.171:
+  quicktype-typescript-input@23.0.172:
     dependencies:
       '@mark.probst/typescript-json-schema': 0.55.0
-      quicktype-core: 23.0.171
+      quicktype-core: 23.0.172
       typescript: 4.9.5
     transitivePeerDependencies:
       - '@swc/core'
       - '@swc/wasm'
       - encoding
 
-  quicktype@23.0.171:
+  quicktype@23.0.172:
     dependencies:
-      '@glideapps/ts-necessities': 2.3.2
+      '@glideapps/ts-necessities': 2.4.0
       chalk: 4.1.2
       collection-utils: 1.0.1
       command-line-args: 5.2.1
@@ -846,9 +846,9 @@ snapshots:
       graphql: 0.11.7
       lodash: 4.17.21
       moment: 2.30.1
-      quicktype-core: 23.0.171
-      quicktype-graphql-input: 23.0.171
-      quicktype-typescript-input: 23.0.171
+      quicktype-core: 23.0.172
+      quicktype-graphql-input: 23.0.172
+      quicktype-typescript-input: 23.0.172
       readable-stream: 4.7.0
       stream-json: 1.8.0
       string-to-stream: 3.0.1
@@ -935,15 +935,15 @@ snapshots:
 
   tr46@0.0.3: {}
 
-  ts-node@10.9.2(@types/node@16.18.124)(typescript@4.9.4):
+  ts-node@10.9.2(@types/node@16.18.126)(typescript@4.9.4):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
-      '@types/node': 16.18.124
-      acorn: 8.14.0
+      '@types/node': 16.18.126
+      acorn: 8.14.1
       acorn-walk: 8.3.4
       arg: 4.1.3
       create-require: 1.1.1
@@ -1002,7 +1002,7 @@ snapshots:
 
   y18n@5.0.8: {}
 
-  yaml@2.7.0: {}
+  yaml@2.7.1: {}
 
   yargs-parser@21.1.1: {}
 
