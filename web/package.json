@@ -28,9 +28,9 @@
     "test:ember": "ember test"
   },
   "devDependencies": {
-    "@babel/core": "^7.26.10",
-    "@babel/eslint-parser": "^7.27.0",
-    "@babel/plugin-proposal-decorators": "^7.25.9",
+    "@babel/core": "^7.27.1",
+    "@babel/eslint-parser": "^7.27.1",
+    "@babel/plugin-proposal-decorators": "^7.27.1",
     "@ember/optional-features": "^2.2.0",
     "@ember/test-helpers": "^5.2.1",
     "@embroider/compat": "^3.9.0",
@@ -71,7 +71,7 @@
     "ember-page-title": "^9.0.1",
     "ember-qunit": "^9.0.2",
     "ember-resolver": "^13.1.0",
-    "ember-source": "~6.3.0",
+    "ember-source": "~6.4.0",
     "ember-style-modifier": "^4.4.0",
     "ember-template-imports": "^4.3.0",
     "ember-template-lint": "^7.2.0",
@@ -88,12 +88,12 @@
     "prettier-plugin-ember-template-tag": "^2.0.5",
     "qunit": "^2.24.1",
     "qunit-dom": "^3.4.0",
-    "stylelint": "^16.19.0",
+    "stylelint": "^16.19.1",
     "stylelint-config-standard": "^38.0.0",
     "tracked-built-ins": "^4.0.0",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.31.0",
-    "webpack": "^5.99.6"
+    "typescript-eslint": "^8.31.1",
+    "webpack": "^5.99.7"
   },
   "engines": {
     "node": ">= 18"
