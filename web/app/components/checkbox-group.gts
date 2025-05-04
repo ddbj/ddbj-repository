@@ -19,7 +19,7 @@ interface Signature {
   };
 }
 
-export default class CheckboxGroupComponent extends Component<Signature> {
+export default class CheckboxGroup extends Component<Signature> {
   isSelected = (val: string) => this.args.selected.includes(val);
 
   @action
@@ -56,6 +56,6 @@ export default class CheckboxGroupComponent extends Component<Signature> {
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    CheckboxGroup: typeof CheckboxGroupComponent;
+    CheckboxGroup: typeof CheckboxGroup;
   }
 }

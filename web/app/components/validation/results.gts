@@ -22,7 +22,7 @@ interface Signature {
   };
 }
 
-export default class ValidationResultsComponent extends Component<Signature> {
+export default class ValidationResults extends Component<Signature> {
   @service declare request: RequestService;
 
   @action
@@ -103,18 +103,18 @@ export default class ValidationResultsComponent extends Component<Signature> {
     {{#if @validation.raw_result}}
       <details>
         <summary>Raw result</summary>
-        <pre><code>{{jsonStringify @validation.raw_result}}</code></pre>
+        <pre><code>{{toJson @validation.raw_result}}</code></pre>
       </details>
     {{/if}}
   </template>
 }
 
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    'Validation::Results': typeof ValidationResultsComponent;
-  }
+function toJson(obj: unknown): string {
+  return JSON.stringify(obj, null, 2);
 }
 
-function jsonStringify(value: unknown) {
-  return JSON.stringify(value, null, 2);
+declare module '@glint/environment-ember-loose/registry' {
+  export default interface Registry {
+    'Validation::Results': typeof ValidationResults;
+  }
 }

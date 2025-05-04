@@ -2,19 +2,7 @@ import style from 'ember-style-modifier';
 
 import type { TOC } from '@ember/component/template-only';
 
-export interface Signature {
-  Element: HTMLTableElement;
-
-  Args: {
-    items: unknown[];
-  };
-
-  Blocks: {
-    default: [];
-  };
-}
-
-const TableComponent: TOC<Signature> = <template>
+const Table = <template>
   {{#if @items}}
     <table class="table border" ...attributes>
       {{yield}}
@@ -24,12 +12,22 @@ const TableComponent: TOC<Signature> = <template>
       There are no items.
     </div>
   {{/if}}
-</template>;
+</template> satisfies TOC<{
+  Element: HTMLTableElement;
 
-export default TableComponent;
+  Args: {
+    items: unknown[];
+  };
+
+  Blocks: {
+    default: [];
+  };
+}>;
+
+export default Table;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    Table: typeof TableComponent;
+    Table: typeof Table;
   }
 }

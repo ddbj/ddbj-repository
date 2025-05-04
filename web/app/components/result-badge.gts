@@ -3,25 +3,23 @@ import type { components } from 'schema/openapi';
 
 type Result = components['schemas']['Submission']['result'];
 
-interface Signature {
-  Args: {
-    result: Result;
-  };
-}
-
-const ResultBadgeComponent: TOC<Signature> = <template>
+const ResultBadge = <template>
   {{#if @result}}
     <span class="badge {{colorClass @result}} text-capitalize">{{@result}}</span>
   {{else}}
     -
   {{/if}}
-</template>;
+</template> satisfies TOC<{
+  Args: {
+    result: Result;
+  };
+}>;
 
-export default ResultBadgeComponent;
+export default ResultBadge;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    ResultBadge: typeof ResultBadgeComponent;
+    ResultBadge: typeof ResultBadge;
   }
 }
 

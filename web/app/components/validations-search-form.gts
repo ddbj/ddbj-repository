@@ -39,7 +39,7 @@ interface Signature {
   Args: ArgsForUser | ArgsForAdmin;
 }
 
-export default class ValidationsSearchFormComponent extends Component<Signature> {
+export default class ValidationsSearchForm extends Component<Signature> {
   createdOptions = [
     { label: 'All', value: undefined },
     { label: 'Within 1 day', value: 'within_one_day' },
@@ -184,10 +184,10 @@ export default class ValidationsSearchFormComponent extends Component<Signature>
   </template>
 }
 
-export type Created = ValidationsSearchFormComponent['createdOptions'][number]['value'];
+export type Created = ValidationsSearchForm['createdOptions'][number]['value'];
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    ValidationsSearchForm: typeof ValidationsSearchFormComponent;
+    ValidationsSearchForm: typeof ValidationsSearchForm;
   }
 }

@@ -3,13 +3,7 @@ import type { components } from 'schema/openapi';
 
 type Code = components['schemas']['ValidationResult']['details'][0]['code'];
 
-interface Signature {
-  Args: {
-    code: Code;
-  };
-}
-
-const ErrorCodeComponent: TOC<Signature> = <template>
+const ErrorCode = <template>
   {{#if @code}}
     {{#let (url @code) as |url|}}
       {{#if url}}
@@ -21,13 +15,17 @@ const ErrorCodeComponent: TOC<Signature> = <template>
   {{else}}
     -
   {{/if}}
-</template>;
+</template> satisfies TOC<{
+  Args: {
+    code: Code;
+  };
+}>;
 
-export default ErrorCodeComponent;
+export default ErrorCode;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    ErrorCode: typeof ErrorCodeComponent;
+    ErrorCode: typeof ErrorCode;
   }
 }
 

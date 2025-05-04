@@ -3,25 +3,23 @@ import type { components } from 'schema/openapi';
 
 type Results = components['schemas']['Validation']['results'];
 
-interface Signature {
-  Args: {
-    results: Results;
-  };
-}
-
-const DetailsCountComponent: TOC<Signature> = <template>
+const DetailsCount = <template>
   {{#let (detailsCount @results) as |count|}}
     {{#if count}}
       <span class="badge bg-secondary">{{count}}</span>
     {{/if}}
   {{/let}}
-</template>;
+</template> satisfies TOC<{
+  Args: {
+    results: Results;
+  };
+}>;
 
-export default DetailsCountComponent;
+export default DetailsCount;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    DetailsCount: typeof DetailsCountComponent;
+    DetailsCount: typeof DetailsCount;
   }
 }
 

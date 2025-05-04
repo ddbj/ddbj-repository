@@ -13,7 +13,7 @@ interface Signature {
   source: Source;
 }
 
-export default class SourceFieldComponent extends Component<Signature> {
+export default class SourceField extends Component<Signature> {
   @action
   setFile(e: Event) {
     const { source } = this.args;
@@ -108,6 +108,6 @@ export default class SourceFieldComponent extends Component<Signature> {
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    SourceField: typeof SourceFieldComponent;
+    SourceField: typeof SourceField;
   }
 }

@@ -17,7 +17,7 @@ interface Signature {
   };
 }
 
-export default class NewValidationFormComponent extends Component<Signature> {
+export default class NewValidationForm extends Component<Signature> {
   @service declare request: RequestService;
   @service declare router: Router;
   @service declare toast: ToastService;
@@ -58,7 +58,7 @@ export default class NewValidationFormComponent extends Component<Signature> {
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    NewValidationForm: typeof NewValidationFormComponent;
+    NewValidationForm: typeof NewValidationForm;
   }
 }
 
