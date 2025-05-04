@@ -103,14 +103,10 @@ export default class ValidationResults extends Component<Signature> {
     {{#if @validation.raw_result}}
       <details>
         <summary>Raw result</summary>
-        <pre><code>{{toJson @validation.raw_result}}</code></pre>
+        <pre><code>{{globalThis.JSON.stringify @validation.raw_result null 2}}</code></pre>
       </details>
     {{/if}}
   </template>
-}
-
-function toJson(obj: unknown): string {
-  return JSON.stringify(obj, null, 2);
 }
 
 declare module '@glint/environment-ember-loose/registry' {
