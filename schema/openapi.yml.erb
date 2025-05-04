@@ -475,6 +475,158 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /accessions/{id}/hold_date:
+    put:
+      description: Update the hold date of the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - $ref: '#/components/parameters/AccessionIDs'
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [hold_date]
+
+              properties:
+                hold_date:
+                  type: string
+                  format: date
+
+      responses:
+        '200':
+          description: Updated successfully.
+
+  /accessions/{id}/references:
+    put:
+      description: Update the references of the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - $ref: '#/components/parameters/AccessionIDs'
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [references]
+
+              properties:
+                references:
+                  type: array
+
+                  items:
+                    type: string
+
+            example:
+              references:
+                - PMID:12345678
+                - DOI:10.1234/5678
+
+      responses:
+        '200':
+          description: Updated successfully.
+
+  /accessions/{id}/contact_person:
+    put:
+      description: Update the contact person of the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - $ref: '#/components/parameters/AccessionIDs'
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+
+              properties:
+                contact:
+                  type: string
+
+                email:
+                  type: string
+                  format: email
+
+                institution:
+                  type: string
+
+      responses:
+        '200':
+          description: Updated successfully.
+
+  /accessions/{id}/visibility:
+    put:
+      description: Update the visibility of the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - $ref: '#/components/parameters/AccessionIDs'
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [visibility]
+
+              properties:
+                visibility:
+                  type: string
+
+                  enum:
+                    - public
+                    - private
+
+      responses:
+        '200':
+          description: Updated successfully.
+
+  /accessions/{id}/derived_from:
+    put:
+      description: Update the derived_from of the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - $ref: '#/components/parameters/AccessionIDs'
+
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [derived_from]
+
+              properties:
+                derived_from:
+                  type: string
+
+            example:
+              derived_from: DRR000002
+
+      responses:
+        '200':
+          description: Updated successfully.
+
 components:
   securitySchemes:
     BearerAuth:
@@ -904,6 +1056,19 @@ components:
 
         <%- end -%>
       <%- end -%>
+  parameters:
+    AccessionIDs:
+      name: id
+      in: path
+      required: true
+
+      schema:
+        type: array
+
+      example:
+        - DRR000001
+        - DRR000002-DRR000005
+
   requestBodies:
     ViaFile:
       content:

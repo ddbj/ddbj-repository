@@ -218,6 +218,139 @@ export interface paths {
       };
     };
   };
+  "/accessions/{id}/hold_date": {
+    /** @description Update the hold date of the accession. */
+    put: {
+      parameters: {
+        path: {
+          id: components["parameters"]["AccessionIDs"];
+        };
+      };
+      requestBody?: {
+        content: {
+          "application/json": {
+            /** Format: date */
+            hold_date: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Updated successfully. */
+        200: {
+          content: never;
+        };
+      };
+    };
+  };
+  "/accessions/{id}/references": {
+    /** @description Update the references of the accession. */
+    put: {
+      parameters: {
+        path: {
+          id: components["parameters"]["AccessionIDs"];
+        };
+      };
+      requestBody?: {
+        content: {
+          /**
+           * @example {
+           *   "references": [
+           *     "PMID:12345678",
+           *     "DOI:10.1234/5678"
+           *   ]
+           * }
+           */
+          "application/json": {
+            references: string[];
+          };
+        };
+      };
+      responses: {
+        /** @description Updated successfully. */
+        200: {
+          content: never;
+        };
+      };
+    };
+  };
+  "/accessions/{id}/contact_person": {
+    /** @description Update the contact person of the accession. */
+    put: {
+      parameters: {
+        path: {
+          id: components["parameters"]["AccessionIDs"];
+        };
+      };
+      requestBody?: {
+        content: {
+          "application/json": {
+            contact?: string;
+            /** Format: email */
+            email?: string;
+            institution?: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Updated successfully. */
+        200: {
+          content: never;
+        };
+      };
+    };
+  };
+  "/accessions/{id}/visibility": {
+    /** @description Update the visibility of the accession. */
+    put: {
+      parameters: {
+        path: {
+          id: components["parameters"]["AccessionIDs"];
+        };
+      };
+      requestBody?: {
+        content: {
+          "application/json": {
+            /** @enum {string} */
+            visibility: "public" | "private";
+          };
+        };
+      };
+      responses: {
+        /** @description Updated successfully. */
+        200: {
+          content: never;
+        };
+      };
+    };
+  };
+  "/accessions/{id}/derived_from": {
+    /** @description Update the derived_from of the accession. */
+    put: {
+      parameters: {
+        path: {
+          id: components["parameters"]["AccessionIDs"];
+        };
+      };
+      requestBody?: {
+        content: {
+          /**
+           * @example {
+           *   "derived_from": "DRR000002"
+           * }
+           */
+          "application/json": {
+            derived_from: string;
+          };
+        };
+      };
+      responses: {
+        /** @description Updated successfully. */
+        200: {
+          content: never;
+        };
+      };
+    };
+  };
 }
 
 export type webhooks = Record<string, never>;
@@ -903,7 +1036,15 @@ export interface components {
       };
     };
   };
-  parameters: never;
+  parameters: {
+    /**
+     * @example [
+     *   "DRR000001",
+     *   "DRR000002-DRR000005"
+     * ]
+     */
+    AccessionIDs: unknown[];
+  };
   requestBodies: {
     ViaFile?: {
       content: {
