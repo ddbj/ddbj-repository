@@ -3,19 +3,7 @@ import { uniqueId } from '@ember/helper';
 
 import type { TOC } from '@ember/component/template-only';
 
-export interface Signature {
-  Args: {
-    value: string;
-    onChange: (e: Event) => void;
-    isSelected: (value: string) => boolean;
-  };
-
-  Blocks: {
-    default: [];
-  };
-}
-
-const CheckboxComponent: TOC<Signature> = <template>
+const Checkbox = <template>
   {{#let (uniqueId) as |id|}}
     <input
       type="checkbox"
@@ -27,12 +15,22 @@ const CheckboxComponent: TOC<Signature> = <template>
     />
     <label for={{id}} class="form-check-label">{{yield}}</label>
   {{/let}}
-</template>;
+</template> satisfies TOC<{
+  Args: {
+    value: string;
+    onChange: (e: Event) => void;
+    isSelected: (value: string) => boolean;
+  };
 
-export default CheckboxComponent;
+  Blocks: {
+    default: [];
+  };
+}>;
+
+export default Checkbox;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    'checkbox-group/checkbox': typeof CheckboxComponent;
+    'checkbox-group/checkbox': typeof Checkbox;
   }
 }

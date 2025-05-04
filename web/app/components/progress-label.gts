@@ -5,13 +5,7 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
-interface Signature {
-  Args: {
-    progress: Validation['progress'];
-  };
-}
-
-const ProgressLabelComponent: TOC<Signature> = <template>
+const ProgressLabel = <template>
   <div class="d-flex align-items-center gap-1">
     {{#if (or (eq @progress "waiting") (eq @progress "running"))}}
       <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
@@ -19,12 +13,16 @@ const ProgressLabelComponent: TOC<Signature> = <template>
 
     <div class="text-capitalize">{{@progress}}</div>
   </div>
-</template>;
+</template> satisfies TOC<{
+  Args: {
+    progress: Validation['progress'];
+  };
+}>;
 
-export default ProgressLabelComponent;
+export default ProgressLabel;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    ProgressLabel: typeof ProgressLabelComponent;
+    ProgressLabel: typeof ProgressLabel;
   }
 }

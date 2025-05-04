@@ -3,25 +3,23 @@ import type { components } from 'schema/openapi';
 
 type Validity = components['schemas']['Validation']['validity'];
 
-interface Signature {
-  Args: {
-    validity: Validity;
-  };
-}
-
-const ValidityBadgeComponent: TOC<Signature> = <template>
+const ValidityBadge = <template>
   {{#if @validity}}
     <span class="badge {{colorClass @validity}} text-capitalize">{{@validity}}</span>
   {{else}}
     -
   {{/if}}
-</template>;
+</template> satisfies TOC<{
+  Args: {
+    validity: Validity;
+  };
+}>;
 
-export default ValidityBadgeComponent;
+export default ValidityBadge;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    ValidityBadge: typeof ValidityBadgeComponent;
+    ValidityBadge: typeof ValidityBadge;
   }
 }
 

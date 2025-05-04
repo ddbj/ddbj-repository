@@ -18,7 +18,7 @@ interface Signature {
   };
 }
 
-export default class SubmissionsSearchFormComponent extends Component<Signature> {
+export default class SubmissionsSearchForm extends Component<Signature> {
   createdOptions = [
     { label: 'All', value: undefined },
     { label: 'Within 1 day', value: 'within_one_day' },
@@ -68,6 +68,6 @@ export default class SubmissionsSearchFormComponent extends Component<Signature>
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    SubmissionsSearchForm: typeof SubmissionsSearchFormComponent;
+    SubmissionsSearchForm: typeof SubmissionsSearchForm;
   }
 }

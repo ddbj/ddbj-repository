@@ -16,7 +16,7 @@ interface Signature {
 
 const window = 5;
 
-export default class PaginationComponent extends Component<Signature> {
+export default class Pagination extends Component<Signature> {
   get pages() {
     const { current, last } = this.args;
 
@@ -127,6 +127,6 @@ export default class PaginationComponent extends Component<Signature> {
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    Pagination: typeof PaginationComponent;
+    Pagination: typeof Pagination;
   }
 }

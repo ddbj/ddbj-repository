@@ -15,7 +15,7 @@ interface Signature {
   };
 }
 
-export default class ObjectFieldComponent extends Component<Signature> {
+export default class ObjectField extends Component<Signature> {
   @action
   setSourceType(val: Obj['sourceType']) {
     const { obj } = this.args;
@@ -78,6 +78,6 @@ export default class ObjectFieldComponent extends Component<Signature> {
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    ObjectField: typeof ObjectFieldComponent;
+    ObjectField: typeof ObjectField;
   }
 }

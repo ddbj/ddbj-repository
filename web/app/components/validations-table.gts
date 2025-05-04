@@ -14,18 +14,7 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
-interface Signature {
-  Args: {
-    showUser?: boolean;
-    validations: Validation[];
-    page: number;
-    lastPage: number;
-    indexRoute: string;
-    showRoute: string;
-  };
-}
-
-const ValidationsTableComponent: TOC<Signature> = <template>
+const ValidationsTable = <template>
   <Table @items={{@validations}}>
     <thead class="table-light">
       <tr>
@@ -101,12 +90,21 @@ const ValidationsTableComponent: TOC<Signature> = <template>
   {{#if (notEq @lastPage 1)}}
     <Pagination @route={{@indexRoute}} @current={{@page}} @last={{@lastPage}} />
   {{/if}}
-</template>;
+</template> satisfies TOC<{
+  Args: {
+    showUser?: boolean;
+    validations: Validation[];
+    page: number;
+    lastPage: number;
+    indexRoute: string;
+    showRoute: string;
+  };
+}>;
 
-export default ValidationsTableComponent;
+export default ValidationsTable;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    ValidationsTable: typeof ValidationsTableComponent;
+    ValidationsTable: typeof ValidationsTable;
   }
 }

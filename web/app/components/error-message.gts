@@ -11,7 +11,7 @@ export interface Signature {
   };
 }
 
-export default class ErrorMessageComponent extends Component<Signature> {
+export default class ErrorMessage extends Component<Signature> {
   @tracked message?: string;
   @tracked details?: string;
 
@@ -61,6 +61,6 @@ export default class ErrorMessageComponent extends Component<Signature> {
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    ErrorMessage: typeof ErrorMessageComponent;
+    ErrorMessage: typeof ErrorMessage;
   }
 }

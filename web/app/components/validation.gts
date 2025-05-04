@@ -12,14 +12,7 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
-interface Signature {
-  Args: {
-    showUser?: boolean;
-    validation: Validation;
-  };
-}
-
-const ValidationComponent: TOC<Signature> = <template>
+const Validation = <template>
   <h1 class="display-6 mb-4">Validation #{{@validation.id}}</h1>
 
   <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
@@ -135,12 +128,17 @@ const ValidationComponent: TOC<Signature> = <template>
       <ValidationSubmitForm @validation={{@validation}} />
     </div>
   </div>
-</template>;
+</template> satisfies TOC<{
+  Args: {
+    showUser?: boolean;
+    validation: Validation;
+  };
+}>;
 
-export default ValidationComponent;
+export default Validation;
 
 declare module '@glint/environment-ember-loose/registry' {
   export default interface Registry {
-    Validation: typeof ValidationComponent;
+    Validation: typeof Validation;
   }
 }
