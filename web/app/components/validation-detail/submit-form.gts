@@ -21,6 +21,8 @@ interface Signature {
   };
 }
 
+const oneDay = 24 * 60 * 60 * 1000;
+
 export default class ValidationSubmitForm extends Component<Signature> {
   @service declare request: RequestService;
   @service declare router: Router;
@@ -108,11 +110,3 @@ export default class ValidationSubmitForm extends Component<Signature> {
     </div>
   </template>
 }
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    'Validation::SubmitForm': typeof ValidationSubmitForm;
-  }
-}
-
-const oneDay = 24 * 60 * 60 * 1000;

@@ -7,7 +7,7 @@ import getLastPageFromLinkHeader from 'repository/utils/get-last-page-from-link-
 
 import type RequestService from 'repository/services/request';
 import type SubmissionsIndexController from 'repository/controllers/submissions';
-import type { Created } from 'repository/components/validations-search-form';
+import type { Created } from 'repository/models/criteria';
 import type { components } from 'schema/openapi';
 
 type Submission = components['schemas']['Submission'];

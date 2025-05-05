@@ -14,7 +14,7 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
-const ValidationsTable = <template>
+export default <template>
   <Table @items={{@validations}}>
     <thead class="table-light">
       <tr>
@@ -100,11 +100,3 @@ const ValidationsTable = <template>
     showRoute: string;
   };
 }>;
-
-export default ValidationsTable;
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ValidationsTable: typeof ValidationsTable;
-  }
-}

@@ -3,7 +3,7 @@ import { uniqueId } from '@ember/helper';
 
 import type { TOC } from '@ember/component/template-only';
 
-const Checkbox = <template>
+export default <template>
   {{#let (uniqueId) as |id|}}
     <input
       type="checkbox"
@@ -26,11 +26,3 @@ const Checkbox = <template>
     default: [];
   };
 }>;
-
-export default Checkbox;
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    'checkbox-group/checkbox': typeof Checkbox;
-  }
-}

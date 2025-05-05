@@ -2,8 +2,8 @@ import { LinkTo } from '@ember/routing';
 
 import DetailsCount from 'repository/components/details-count';
 import ProgressLabel from 'repository/components/progress-label';
-import ValidationResults from 'repository/components/validation/results';
-import ValidationSubmitForm from 'repository/components/validation/submit-form';
+import Results from 'repository/components/validation-detail/results';
+import SubmitForm from 'repository/components/validation-detail/submit-form';
 import ValidityBadge from 'repository/components/validity-badge';
 import formatDatetime from 'repository/helpers/format-datetime';
 
@@ -12,7 +12,7 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
-const Validation = <template>
+export default <template>
   <h1 class="display-6 mb-4">Validation #{{@validation.id}}</h1>
 
   <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
@@ -121,11 +121,11 @@ const Validation = <template>
 
   <div class="tab-content">
     <div class="tab-pane show active" id="results-pane" role="tabpanel" aria-labelledby="results-tab" tabindex="0">
-      <ValidationResults @validation={{@validation}} />
+      <Results @validation={{@validation}} />
     </div>
 
     <div class="tab-pane" id="submit-pane" role="tabpanel" aria-labelledby="submit-tab" tabindex="0">
-      <ValidationSubmitForm @validation={{@validation}} />
+      <SubmitForm @validation={{@validation}} />
     </div>
   </div>
 </template> satisfies TOC<{
@@ -134,11 +134,3 @@ const Validation = <template>
     validation: Validation;
   };
 }>;
-
-export default Validation;
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    Validation: typeof Validation;
-  }
-}

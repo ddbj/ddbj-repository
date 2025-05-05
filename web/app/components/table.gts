@@ -2,7 +2,7 @@ import style from 'ember-style-modifier';
 
 import type { TOC } from '@ember/component/template-only';
 
-const Table = <template>
+export default <template>
   {{#if @items}}
     <table class="table border" ...attributes>
       {{yield}}
@@ -23,11 +23,3 @@ const Table = <template>
     default: [];
   };
 }>;
-
-export default Table;
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    Table: typeof Table;
-  }
-}

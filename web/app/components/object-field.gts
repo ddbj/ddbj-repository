@@ -75,9 +75,3 @@ export default class ObjectField extends Component<Signature> {
     </div>
   </template>
 }
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ObjectField: typeof ObjectField;
-  }
-}

@@ -3,7 +3,7 @@ import type { components } from 'schema/openapi';
 
 type Results = components['schemas']['Validation']['results'];
 
-const DetailsCount = <template>
+export default <template>
   {{#let (detailsCount @results) as |count|}}
     {{#if count}}
       <span class="badge bg-secondary">{{count}}</span>
@@ -14,14 +14,6 @@ const DetailsCount = <template>
     results: Results;
   };
 }>;
-
-export default DetailsCount;
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    DetailsCount: typeof DetailsCount;
-  }
-}
 
 function detailsCount(results: Results) {
   return results.reduce((acc, { details }) => acc + details.length, 0);

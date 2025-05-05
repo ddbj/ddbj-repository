@@ -3,8 +3,9 @@ import { service } from '@ember/service';
 
 import getLastPageFromLinkHeader from 'repository/utils/get-last-page-from-link-header';
 
+import type AdminController from 'repository/controllers/admin/validations/index';
+import type Controller from 'repository/controllers/validations/index';
 import type RequestService from 'repository/services/request';
-import type ValidationsIndexBaseController from 'repository/controllers/validations-index-base';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
@@ -39,7 +40,7 @@ export default abstract class ValidationsIndexBaseRoute<TParams extends Record<s
     }
   }
 
-  resetController(controller: ValidationsIndexBaseController, isExiting: boolean) {
+  resetController(controller: Controller | AdminController, isExiting: boolean) {
     if (isExiting) {
       controller.pageBefore = controller.page;
       controller.page = 1;

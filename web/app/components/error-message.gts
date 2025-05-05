@@ -58,9 +58,3 @@ export default class ErrorMessage extends Component<Signature> {
     </details>
   </template>
 }
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ErrorMessage: typeof ErrorMessage;
-  }
-}
