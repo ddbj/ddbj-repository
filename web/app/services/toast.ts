@@ -1,7 +1,7 @@
 import Service from '@ember/service';
-import { tracked } from '@glimmer/tracking';
 
 import { Toast } from 'bootstrap';
+import { TrackedArray } from 'tracked-built-ins';
 import { runTask } from 'ember-lifeline';
 
 export interface Data {
@@ -11,18 +11,17 @@ export interface Data {
 }
 
 export default class ToastService extends Service {
-  @tracked data: Data[] = [];
-
-  toasts: Map<string, Toast> = new Map();
+  data = new TrackedArray<Data>();
+  refs = new Map<string, Toast>();
 
   register(el: Element) {
     const toast = new Toast(el);
 
-    this.toasts.set(el.id, toast);
+    this.refs.set(el.id, toast);
 
     const handler = () => {
-      this.toasts.delete(el.id);
-      this.data = this.data.filter(({ id }) => id !== el.id);
+      this.refs.delete(el.id);
+      this.data.splice(0, this.data.length, ...this.data.filter(({ id }) => id !== el.id));
     };
 
     el.addEventListener('hidden.bs.toast', handler);
@@ -35,10 +34,10 @@ export default class ToastService extends Service {
   show(body: string, color: string) {
     const id = crypto.randomUUID();
 
-    this.data = [...this.data, { id, body, color }];
+    this.data.push({ id, body, color });
 
     runTask(this, () => {
-      const toast = this.toasts.get(id);
+      const toast = this.refs.get(id);
 
       if (!toast) return;
 
