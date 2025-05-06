@@ -14,6 +14,17 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
+interface Signature {
+  Args: {
+    showUser?: boolean;
+    validations: Validation[];
+    page: number;
+    lastPage: number;
+    indexRoute: string;
+    showRoute: string;
+  };
+}
+
 export default <template>
   <Table @items={{@validations}}>
     <thead class="table-light">
@@ -90,13 +101,4 @@ export default <template>
   {{#if (notEq @lastPage 1)}}
     <Pagination @route={{@indexRoute}} @current={{@page}} @last={{@lastPage}} />
   {{/if}}
-</template> satisfies TOC<{
-  Args: {
-    showUser?: boolean;
-    validations: Validation[];
-    page: number;
-    lastPage: number;
-    indexRoute: string;
-    showRoute: string;
-  };
-}>;
+</template> satisfies TOC<Signature>;

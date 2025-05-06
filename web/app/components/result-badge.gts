@@ -3,17 +3,19 @@ import type { components } from 'schema/openapi';
 
 type Result = components['schemas']['Submission']['result'];
 
+interface Signature {
+  Args: {
+    result: Result;
+  };
+}
+
 export default <template>
   {{#if @result}}
     <span class="badge {{colorClass @result}} text-capitalize">{{@result}}</span>
   {{else}}
     -
   {{/if}}
-</template> satisfies TOC<{
-  Args: {
-    result: Result;
-  };
-}>;
+</template> satisfies TOC<Signature>;
 
 function colorClass(result: Exclude<Result, null>) {
   switch (result) {
