@@ -32,13 +32,15 @@ export default class CheckboxGroup<T extends string> extends Component<Signature
     onChange(newSelected);
   }
 
-  @action checkAll() {
+  @action
+  checkAll() {
     const { onChange, values } = this.args;
 
     onChange(values);
   }
 
-  @action clear() {
+  @action
+  clear() {
     const { onChange } = this.args;
 
     onChange([]);
