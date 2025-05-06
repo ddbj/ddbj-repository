@@ -1,11 +1,12 @@
-[
+export default [
   {
     "id": "BioProject",
     "objects": [
       {
         "id": "BioProject",
         "ext": "xml",
-        "required": true
+        "required": true,
+        "multiple": false
       }
     ]
   },
@@ -15,7 +16,8 @@
       {
         "id": "BioSample",
         "ext": "xml",
-        "required": true
+        "required": true,
+        "multiple": false
       }
     ]
   },
@@ -42,17 +44,20 @@
       {
         "id": "Submission",
         "ext": "xml",
-        "required": true
+        "required": true,
+        "multiple": false
       },
       {
         "id": "Experiment",
         "ext": "xml",
-        "required": true
+        "required": true,
+        "multiple": false
       },
       {
         "id": "Run",
         "ext": "xml",
-        "required": true
+        "required": true,
+        "multiple": false
       },
       {
         "id": "RunFile",
@@ -62,11 +67,14 @@
       },
       {
         "id": "Analysis",
-        "ext": "xml"
+        "ext": "xml",
+        "required": false,
+        "multiple": false
       },
       {
         "id": "AnalysisFile",
         "ext": "raw",
+        "required": false,
         "multiple": true
       }
     ]
@@ -77,26 +85,31 @@
       {
         "id": "IDF",
         "ext": "idf.txt",
-        "required": true
+        "required": true,
+        "multiple": false
       },
       {
         "id": "SDRF",
         "ext": "sdrf.txt",
-        "required": true
+        "required": true,
+        "multiple": false
       },
       {
         "id": "ADF",
         "ext": "adf.txt",
+        "required": false,
         "multiple": true
       },
       {
         "id": "RawDataFile",
         "ext": "raw",
+        "required": false,
         "multiple": true
       },
       {
         "id": "ProcessedDataFile",
         "ext": "raw",
+        "required": false,
         "multiple": true
       }
     ]
@@ -107,31 +120,38 @@
       {
         "id": "IDF",
         "ext": "idf.txt",
-        "required": true
+        "required": true,
+        "multiple": false
       },
       {
         "id": "SDRF",
         "ext": "sdrf.txt",
-        "required": true
+        "required": true,
+        "multiple": false
       },
       {
         "id": "MAF",
         "ext": "maf.txt",
+        "required": false,
         "multiple": true
       },
       {
         "id": "RawDataFile",
         "ext": "raw",
+        "required": false,
         "multiple": true
       },
       {
         "id": "ProcessedDataFile",
         "ext": "raw",
+        "required": false,
         "multiple": true
       },
       {
         "id": "BioSample",
-        "ext": "tsv"
+        "ext": "tsv",
+        "required": false,
+        "multiple": false
       }
     ]
   },
@@ -141,11 +161,13 @@
       {
         "id": "Excel",
         "ext": "xlsx",
-        "required": true
+        "required": true,
+        "multiple": false
       },
       {
         "id": "VariantCallFile",
         "ext": "vcf",
+        "required": false,
         "multiple": true
       }
     ]
@@ -173,4 +195,4 @@
       }
     ]
   }
-]
+] as const;

@@ -8,9 +8,11 @@ import { eq } from 'ember-truth-helpers';
 
 import CheckboxGroup from 'repository/components/checkbox-group';
 import arrayToQueryValue from 'repository/utils/array-to-query-value';
-import { dbs, createdOptions } from 'repository/models/criteria';
+import { createdOptions } from 'repository/models/criteria';
+import { dbNames } from 'repository/models/db';
 
 import type { Created } from 'repository/models/criteria';
+import type { DBName } from 'repository/models/db';
 
 export interface Query {
   db?: string;
@@ -26,18 +28,18 @@ interface Signature {
 }
 
 export default class SubmissionsSearchForm extends Component<Signature> {
-  @tracked selectedDBs: string[] = dbs;
+  @tracked selectedDBs = dbNames;
   @tracked created?: Created;
 
   get query() {
     return {
-      db: arrayToQueryValue(this.selectedDBs, dbs),
+      db: arrayToQueryValue(this.selectedDBs, dbNames),
       created: this.created,
     } satisfies Query;
   }
 
   @action
-  onSelectedDBsChange(selectedDBs: string[]) {
+  onSelectedDBsChange(selectedDBs: DBName[]) {
     this.selectedDBs = selectedDBs;
 
     this.args.onChange(this.query);
@@ -55,8 +57,13 @@ export default class SubmissionsSearchForm extends Component<Signature> {
       <dt>DB</dt>
 
       <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
-        <CheckboxGroup @values={{dbs}} @selected={{this.selectedDBs}} @onChange={{this.onSelectedDBsChange}} as |group|>
-          {{#each dbs as |db|}}
+        <CheckboxGroup
+          @values={{dbNames}}
+          @selected={{this.selectedDBs}}
+          @onChange={{this.onSelectedDBsChange}}
+          as |group|
+        >
+          {{#each dbNames as |db|}}
             <div class="form-check">
               <group.checkbox @value={{db}}>
                 {{db}}

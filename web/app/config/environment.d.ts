@@ -1,5 +1,3 @@
-import type { DBSchema } from 'schema/db';
-
 /**
  * Type declarations for
  *    import config from 'repository/config/environment'
@@ -12,7 +10,6 @@ declare const config: {
   rootURL: string;
   APP: Record<string, unknown>;
   apiURL: string;
-  dbs: DBSchema[];
 };
 
 export default config;

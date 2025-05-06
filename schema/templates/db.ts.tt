@@ -1,0 +1,1 @@
+export default <%= JSON.pretty_generate(config[:dbs]) %> as const;

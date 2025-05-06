@@ -2,18 +2,20 @@ import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
 import Source from 'repository/models/source';
+import schema from 'schema/db';
 
 import type DB from 'repository/models/db';
-import type { ObjSchema } from 'schema/db';
+
+type Schema = (typeof schema)[number]['objects'][number];
 
 export default class Obj {
   db: DB;
-  schema: ObjSchema;
+  schema: Schema;
 
   @tracked sourceType: 'file' | 'path' = 'file';
   @tracked sources: Source[];
 
-  constructor(db: DB, schema: ObjSchema) {
+  constructor(db: DB, schema: Schema) {
     const { required, multiple } = schema;
 
     this.db = db;

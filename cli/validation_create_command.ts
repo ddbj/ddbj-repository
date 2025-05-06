@@ -7,11 +7,13 @@ import { Command } from 'cliffy/command/mod.ts';
 import { Table } from 'cliffy/table/mod.ts';
 import { colors } from 'cliffy/ansi/colors.ts';
 
-import dbs from '../schema/db.json' with { type: 'json' };
+import dbs from '../schema/db.ts';
 import { defaultApiUrl, ensureLogin, ensureSuccess, formatDatetime } from './util.ts';
 
-import type { DBSchema, ObjSchema } from '../schema/db.d.ts';
 import type { components } from '../schema/openapi.d.ts';
+
+type DBSchema = typeof dbs[number];
+type ObjSchema = DBSchema['objects'][number];
 
 type Options = {
   apiUrl?: string;
