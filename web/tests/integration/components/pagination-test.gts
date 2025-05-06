@@ -1,13 +1,14 @@
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'repository/tests/helpers';
 import { render } from '@ember/test-helpers';
-import { hbs } from 'ember-cli-htmlbars';
+
+import Pagination from 'repository/components/pagination';
 
 module('Integration | Component | pagination', function (hooks) {
   setupRenderingTest(hooks);
 
   test('current=1, last=3', async function (assert) {
-    await render(hbs`<Pagination @route="validations.index" @current={{1}} @last={{3}} />`);
+    await render(<template><Pagination @route="validations.index" @current={{1}} @last={{3}} /></template>);
 
     assert.dom('[data-test-start]').hasClass('disabled');
     assert.dom('[data-test-start] a').hasAttribute('href', '#');
@@ -32,7 +33,7 @@ module('Integration | Component | pagination', function (hooks) {
   });
 
   test('current=2, last=3', async function (assert) {
-    await render(hbs`<Pagination @route="validations.index" @current={{2}} @last={{3}} />`);
+    await render(<template><Pagination @route="validations.index" @current={{2}} @last={{3}} /></template>);
 
     assert.dom('[data-test-start]').doesNotHaveClass('disabled');
     assert.dom('[data-test-start] a').hasAttribute('href', '/web/validations');
@@ -52,7 +53,7 @@ module('Integration | Component | pagination', function (hooks) {
   });
 
   test('current=3, last=3', async function (assert) {
-    await render(hbs`<Pagination @route="validations.index" @current={{3}} @last={{3}} />`);
+    await render(<template><Pagination @route="validations.index" @current={{3}} @last={{3}} /></template>);
 
     assert.dom('[data-test-start]').doesNotHaveClass('disabled');
     assert.dom('[data-test-start] a').hasAttribute('href', '/web/validations');

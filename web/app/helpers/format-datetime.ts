@@ -13,12 +13,6 @@ export default function formatDatetime(date: Date | string): string {
   return `${year}-${month}-${_date} ${hours}:${minutes}:${seconds}`;
 }
 
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    'format-datetime': typeof formatDatetime;
-  }
-}
-
 function padZero(n: number) {
   return n.toString().padStart(2, '0');
 }

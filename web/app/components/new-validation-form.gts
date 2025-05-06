@@ -56,12 +56,6 @@ export default class NewValidationForm extends Component<Signature> {
   </template>
 }
 
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    NewValidationForm: typeof NewValidationForm;
-  }
-}
-
 function jsonToFormData(obj: object, key?: string, formData = new FormData()) {
   if (Array.isArray(obj)) {
     for (const v of obj as object[]) {

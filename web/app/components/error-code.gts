@@ -3,7 +3,7 @@ import type { components } from 'schema/openapi';
 
 type Code = components['schemas']['ValidationResult']['details'][0]['code'];
 
-const ErrorCode = <template>
+export default <template>
   {{#if @code}}
     {{#let (url @code) as |url|}}
       {{#if url}}
@@ -20,14 +20,6 @@ const ErrorCode = <template>
     code: Code;
   };
 }>;
-
-export default ErrorCode;
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ErrorCode: typeof ErrorCode;
-  }
-}
 
 function url(code: Exclude<Code, null>) {
   if (/^BS_R\d{4}$/.test(code)) {

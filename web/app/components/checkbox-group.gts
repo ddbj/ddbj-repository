@@ -7,11 +7,11 @@ import Checkbox from 'repository/components/checkbox-group/checkbox';
 
 import type { WithBoundArgs } from '@glint/template';
 
-interface Signature {
+interface Signature<T extends string> {
   Args: {
-    values: string[];
-    selected: string[];
-    onChange: (values: string[]) => void;
+    values: T[];
+    selected: T[];
+    onChange: (values: T[]) => void;
   };
 
   Blocks: {
@@ -19,15 +19,15 @@ interface Signature {
   };
 }
 
-export default class CheckboxGroup extends Component<Signature> {
-  isSelected = (val: string) => this.args.selected.includes(val);
+export default class CheckboxGroup<T extends string> extends Component<Signature<T>> {
+  isSelected = (val: string) => this.args.selected.includes(val as T);
 
   @action
   onChange(e: Event) {
     const { checked, value } = e.target as HTMLInputElement;
     const { selected, onChange } = this.args;
 
-    const newSelected = checked ? [...selected, value] : selected.filter((val) => val !== value);
+    const newSelected = checked ? [...selected, value as T] : selected.filter((val) => val !== value);
 
     onChange(newSelected);
   }
@@ -52,10 +52,4 @@ export default class CheckboxGroup extends Component<Signature> {
       <button type="button" class="btn btn-link" {{on "click" this.clear}}>Clear</button>
     </div>
   </template>
-}
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    CheckboxGroup: typeof CheckboxGroup;
-  }
 }

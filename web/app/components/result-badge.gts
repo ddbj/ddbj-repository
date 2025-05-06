@@ -3,7 +3,7 @@ import type { components } from 'schema/openapi';
 
 type Result = components['schemas']['Submission']['result'];
 
-const ResultBadge = <template>
+export default <template>
   {{#if @result}}
     <span class="badge {{colorClass @result}} text-capitalize">{{@result}}</span>
   {{else}}
@@ -14,14 +14,6 @@ const ResultBadge = <template>
     result: Result;
   };
 }>;
-
-export default ResultBadge;
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ResultBadge: typeof ResultBadge;
-  }
-}
 
 function colorClass(result: Exclude<Result, null>) {
   switch (result) {

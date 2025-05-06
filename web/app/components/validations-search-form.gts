@@ -1,72 +1,108 @@
 import Component from '@glimmer/component';
+import { action } from '@ember/object';
 import { fn, uniqueId } from '@ember/helper';
 import { on } from '@ember/modifier';
+import { tracked } from '@glimmer/tracking';
 
 import { eq } from 'ember-truth-helpers';
+import { restartableTask, timeout } from 'ember-concurrency';
 
 import CheckboxGroup from 'repository/components/checkbox-group';
+import arrayToQueryValue from 'repository/utils/array-to-query-value';
 
-import type { Task } from 'ember-concurrency';
+import {
+  dbs,
+  createdOptions,
+  progressOptions,
+  progresses,
+  submittedOptions,
+  validityOptions,
+  validities,
+} from 'repository/models/criteria';
 
-interface Args {
-  dbs: string[];
-  selectedDBs: string[];
-  onSelectedDBsChange: (selected: string[]) => void;
-  created?: string;
-  onCreatedChange: (created?: string) => void;
-  progresses: string[];
-  selectedProgresses: string[];
-  onSelectedProgressesChange: (selected: string[]) => void;
-  validities: string[];
-  selectedValidities: string[];
-  onSelectedValiditiesChange: (selected: string[]) => void;
-  submitted?: boolean;
-  onSubmittedChange: (submitted?: boolean) => void;
-}
+import type { Created, Progress, Validity, Submitted } from 'repository/models/criteria';
 
-interface ArgsForUser extends Args {
-  showUser?: false;
-}
-
-interface ArgsForAdmin extends Args {
-  showUser: true;
+export interface Query {
   uid?: string;
-  onUIDChange: Task<void, [Event]>;
+  db?: string;
+  created?: string;
+  progress?: string;
+  validity?: string;
+  submitted?: boolean;
 }
 
 interface Signature {
   Element: HTMLDListElement;
-  Args: ArgsForUser | ArgsForAdmin;
+
+  Args: {
+    showUser?: boolean;
+    onChange: (query: Query) => void;
+  };
 }
 
 export default class ValidationsSearchForm extends Component<Signature> {
-  createdOptions = [
-    { label: 'All', value: undefined },
-    { label: 'Within 1 day', value: 'within_one_day' },
-    { label: 'Within 1 week', value: 'within_one_week' },
-    { label: 'Within 1 month', value: 'within_one_month' },
-    { label: 'Within 1 year', value: 'within_one_year' },
-  ] as const;
+  @tracked uid?: string;
+  @tracked selectedDBs: string[] = dbs;
+  @tracked created: Created;
+  @tracked selectedProgresses: Progress[] = progresses;
+  @tracked selectedValidities: Validity[] = validities;
+  @tracked submitted: Submitted;
 
-  progressOptions = [
-    { label: 'Waiting', value: 'waiting' },
-    { label: 'Running', value: 'running' },
-    { label: 'Finished', value: 'finished' },
-    { label: 'Canceled', value: 'canceled' },
-  ] as const;
+  get query() {
+    return {
+      uid: this.uid,
+      db: arrayToQueryValue(this.selectedDBs, dbs),
+      created: this.created,
+      progress: arrayToQueryValue(this.selectedProgresses, progresses),
+      validity: arrayToQueryValue(this.selectedValidities, validities),
+      submitted: this.submitted,
+    } satisfies Query;
+  }
 
-  validityOptions = [
-    { label: 'Valid', value: 'valid' },
-    { label: 'Invalid', value: 'invalid' },
-    { label: 'Error', value: 'error' },
-    { label: '-', value: 'null' },
-  ] as const;
+  onUIDChange = restartableTask(async (e: Event) => {
+    const value = (e.target as HTMLInputElement).value;
 
-  submittedOptions = [
-    { label: 'All', value: undefined },
-    { label: 'Submitted', value: true },
-    { label: 'Not submitted', value: false },
-  ] as const;
+    await timeout(250);
+
+    this.uid = value === '' ? undefined : value;
+
+    this.args.onChange(this.query);
+  });
+
+  @action
+  onSelectedDBsChange(selectedDBs: string[]) {
+    this.selectedDBs = selectedDBs;
+
+    this.args.onChange(this.query);
+  }
+
+  @action
+  onCreatedChange(created: Created) {
+    this.created = created;
+
+    this.args.onChange(this.query);
+  }
+
+  @action
+  onSelectedProgressesChange(selectedProgresses: Progress[]) {
+    this.selectedProgresses = selectedProgresses;
+
+    this.args.onChange(this.query);
+  }
+
+  @action
+  onSelectedValiditiesChange(selectedValidities: Validity[]) {
+    this.selectedValidities = selectedValidities;
+
+    this.args.onChange(this.query);
+  }
+
+  @action
+  onSubmittedChange(submitted: Submitted) {
+    this.submitted = submitted;
+
+    this.args.onChange(this.query);
+  }
 
   <template>
     <dl class="horizontal align-items-center" ...attributes>
@@ -79,11 +115,11 @@ export default class ValidationsSearchForm extends Component<Signature> {
           <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
             <input
               type="text"
-              value={{@uid}}
+              value={{this.uid}}
               id={{id}}
               class="form-control"
               placeholder="alice,bob"
-              {{on "input" @onUIDChange.perform}}
+              {{on "input" this.onUIDChange.perform}}
             />
           </dd>
         {{/let}}
@@ -92,8 +128,8 @@ export default class ValidationsSearchForm extends Component<Signature> {
       <dt>DB</dt>
 
       <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
-        <CheckboxGroup @values={{@dbs}} @selected={{@selectedDBs}} @onChange={{@onSelectedDBsChange}} as |group|>
-          {{#each @dbs as |db|}}
+        <CheckboxGroup @values={{dbs}} @selected={{this.selectedDBs}} @onChange={{this.onSelectedDBsChange}} as |group|>
+          {{#each dbs as |db|}}
             <div class="form-check">
               <group.checkbox @value={{db}}>
                 {{db}}
@@ -106,16 +142,16 @@ export default class ValidationsSearchForm extends Component<Signature> {
       <dt>Created</dt>
 
       <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
-        {{#each this.createdOptions as |opt|}}
+        {{#each createdOptions as |opt|}}
           <div class="form-check">
             {{#let (uniqueId) as |id|}}
               <input
                 type="radio"
                 name="created"
-                checked={{eq @created opt.value}}
+                checked={{eq this.created opt.value}}
                 id={{id}}
                 class="form-check-input"
-                {{on "change" (fn @onCreatedChange opt.value)}}
+                {{on "change" (fn this.onCreatedChange opt.value)}}
               />
               <label for={{id}} class="form-check-label">{{opt.label}}</label>
             {{/let}}
@@ -127,12 +163,12 @@ export default class ValidationsSearchForm extends Component<Signature> {
 
       <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         <CheckboxGroup
-          @values={{@progresses}}
-          @selected={{@selectedProgresses}}
-          @onChange={{@onSelectedProgressesChange}}
+          @values={{progresses}}
+          @selected={{this.selectedProgresses}}
+          @onChange={{this.onSelectedProgressesChange}}
           as |group|
         >
-          {{#each this.progressOptions as |opt|}}
+          {{#each progressOptions as |opt|}}
             <div class="form-check">
               <group.checkbox @value={{opt.value}}>
                 {{opt.label}}
@@ -146,12 +182,12 @@ export default class ValidationsSearchForm extends Component<Signature> {
 
       <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
         <CheckboxGroup
-          @values={{@validities}}
-          @selected={{@selectedValidities}}
-          @onChange={{@onSelectedValiditiesChange}}
+          @values={{validities}}
+          @selected={{this.selectedValidities}}
+          @onChange={{this.onSelectedValiditiesChange}}
           as |group|
         >
-          {{#each this.validityOptions as |opt|}}
+          {{#each validityOptions as |opt|}}
             <div class="form-check">
               <group.checkbox @value={{opt.value}}>
                 {{opt.label}}
@@ -164,16 +200,16 @@ export default class ValidationsSearchForm extends Component<Signature> {
       <dt>Submission</dt>
 
       <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
-        {{#each this.submittedOptions as |opt|}}
+        {{#each submittedOptions as |opt|}}
           <div class="form-check">
             {{#let (uniqueId) as |id|}}
               <input
                 type="radio"
                 name="submitted"
-                checked={{eq @submitted opt.value}}
+                checked={{eq this.submitted opt.value}}
                 id={{id}}
                 class="form-check-input"
-                {{on "change" (fn @onSubmittedChange opt.value)}}
+                {{on "change" (fn this.onSubmittedChange opt.value)}}
               />
               <label for={{id}} class="form-check-label">{{opt.label}}</label>
             {{/let}}
@@ -182,12 +218,4 @@ export default class ValidationsSearchForm extends Component<Signature> {
       </dd>
     </dl>
   </template>
-}
-
-export type Created = ValidationsSearchForm['createdOptions'][number]['value'];
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    ValidationsSearchForm: typeof ValidationsSearchForm;
-  }
 }

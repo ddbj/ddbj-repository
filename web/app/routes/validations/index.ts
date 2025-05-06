@@ -3,7 +3,7 @@ import ValidationsIndexBaseRoute from 'repository/routes/validations-index-base'
 import ENV from 'repository/config/environment';
 import convertCreatedToDate from 'repository/utils/convert-created-to-date';
 
-import type { Created } from 'repository/components/validations-search-form';
+import type { Created, Submitted } from 'repository/models/criteria';
 
 export interface Params {
   page?: number;
@@ -11,7 +11,7 @@ export interface Params {
   created?: Created;
   progress?: string;
   validity?: string;
-  submitted?: boolean;
+  submitted?: Submitted;
   [key: string]: unknown;
 }
 

@@ -4,13 +4,14 @@ import { action } from '@ember/object';
 
 import { LoginError } from 'repository/services/current-user';
 
-import type ApplicationController from 'repository/controllers/application';
 import type CurrentUserService from 'repository/services/current-user';
+import type LoadingService from 'repository/services/loading';
 import type Router from '@ember/routing/router';
 import type Transition from '@ember/routing/transition';
 
 export default class ApplicationRoute extends Route {
   @service declare currentUser: CurrentUserService;
+  @service('loading') declare _loading: LoadingService;
   @service declare router: Router;
 
   async beforeModel() {
@@ -27,13 +28,10 @@ export default class ApplicationRoute extends Route {
 
   @action
   loading(transition: Transition) {
-    // eslint-disable-next-line ember/no-controller-access-in-routes
-    const controller = this.controllerFor('application') as ApplicationController;
-
-    controller.isLoading = true;
+    this._loading.start();
 
     transition.promise?.finally(() => {
-      controller.isLoading = false;
+      this._loading.stop();
     });
 
     return true;

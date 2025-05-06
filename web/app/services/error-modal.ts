@@ -1,14 +1,38 @@
 import Service from '@ember/service';
-import { getOwner } from '@ember/owner';
 
-import type ApplicationController from 'repository/controllers/application';
+import { Modal } from 'bootstrap';
 
 export default class ErrorModalService extends Service {
+  error?: Error;
+  modal?: Modal;
+
+  register(el: Element) {
+    this.modal = new Modal(el);
+
+    const handler = () => {
+      this.error = undefined;
+    };
+
+    el.addEventListener('hidden.bs.modal', handler);
+
+    return () => {
+      el.removeEventListener('hidden.bs.modal', handler);
+    };
+  }
+
   show(error: Error) {
-    const controller = getOwner(this)!.lookup('controller:application') as ApplicationController;
+    this.error = error;
 
-    controller.showErrorModal(error);
+    if (this.modal) {
+      this.modal.show();
+    } else {
+      alert(`Error:
+Something went wrong. Please try again later.
 
-    throw error;
+${error.message}
+
+Details:
+${error.stack}`);
+    }
   }
 }

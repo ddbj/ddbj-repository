@@ -1,26 +1,26 @@
+import Controller from '@ember/controller';
 import { tracked } from '@glimmer/tracking';
 
-import { task, timeout } from 'ember-concurrency';
-
-import ValidationsIndexBaseController from 'repository/controllers/validations-index-base';
-import { queryParams } from 'repository/controllers/validations/index';
-
-export default class AdminValidationsIndexController extends ValidationsIndexBaseController {
+export default class AdminValidationsIndexController extends Controller {
   queryParams = [
     {
-      ...queryParams[0],
+      page: { type: 'number' } as const,
       uid: { type: 'string' } as const,
+      db: { type: 'string' } as const,
+      created: { type: 'string' } as const,
+      progress: { type: 'string' } as const,
+      validity: { type: 'string' } as const,
+      submitted: { type: 'boolean' } as const,
     },
   ];
 
+  @tracked page = 1;
+  @tracked pageBefore?: number;
+
   @tracked uid?: string;
-
-  onUIDChange = task({ restartable: true }, async (e: Event) => {
-    const uid = (e.target as HTMLInputElement).value;
-
-    await timeout(500);
-
-    this.page = 1;
-    this.uid = uid === '' ? undefined : uid;
-  });
+  @tracked db?: string;
+  @tracked created?: string;
+  @tracked progress?: string;
+  @tracked validity?: string;
+  @tracked submitted?: boolean;
 }

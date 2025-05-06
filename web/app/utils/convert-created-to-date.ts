@@ -1,6 +1,6 @@
 import { subDays, subWeeks, subMonths, subYears } from 'date-fns';
 
-import type { Created } from 'repository/components/validations-search-form';
+import type { Created } from 'repository/models/criteria';
 
 export default function convertCreatedToDate(created: NonNullable<Created>) {
   const now = new Date();

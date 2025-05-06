@@ -105,9 +105,3 @@ export default class SourceField extends Component<Signature> {
     </li>
   </template>
 }
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    SourceField: typeof SourceField;
-  }
-}

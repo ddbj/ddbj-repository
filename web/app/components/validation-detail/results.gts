@@ -108,9 +108,3 @@ export default class ValidationResults extends Component<Signature> {
     {{/if}}
   </template>
 }
-
-declare module '@glint/environment-ember-loose/registry' {
-  export default interface Registry {
-    'Validation::Results': typeof ValidationResults;
-  }
-}
