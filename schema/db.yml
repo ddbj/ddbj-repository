@@ -1,19 +1,18 @@
 - id: BioProject
-
   objects:
     - id: BioProject
       ext: xml
       required: true
+      multiple: false
 
 - id: BioSample
-
   objects:
     - id: BioSample
       ext: xml
       required: true
+      multiple: false
 
 - id: Trad
-
   objects:
     - id: Sequence
       ext: fasta
@@ -25,79 +24,94 @@
       multiple: true
 
 - id: DRA
-
   objects:
     - id: Submission
       ext: xml
       required: true
+      multiple: false
     - id: Experiment
       ext: xml
       required: true
+      multiple: false
     - id: Run
       ext: xml
       required: true
+      multiple: false
     - id: RunFile
       ext: fastq
       required: true
       multiple: true
     - id: Analysis
       ext: xml
+      required: false
+      multiple: false
     - id: AnalysisFile
       ext: raw
+      required: false
       multiple: true
 
 - id: GEA
-
   objects:
     - id: IDF
       ext: idf.txt
       required: true
+      multiple: false
     - id: SDRF
       ext: sdrf.txt
       required: true
+      multiple: false
     - id: ADF
       ext: adf.txt
+      required: false
       multiple: true
     - id: RawDataFile
       ext: raw
+      required: false
       multiple: true
     - id: ProcessedDataFile
       ext: raw
+      required: false
       multiple: true
 
 - id: MetaboBank
-
   objects:
     - id: IDF
       ext: idf.txt
       required: true
+      multiple: false
     - id: SDRF
       ext: sdrf.txt
       required: true
+      multiple: false
     - id: MAF
       ext: maf.txt
+      required: false
       multiple: true
     - id: RawDataFile
       ext: raw
+      required: false
       multiple: true
     - id: ProcessedDataFile
       ext: raw
+      required: false
       multiple: true
     - id: BioSample
       ext: tsv
+      required: false
+      multiple: false
 
 - id: JVar
-
   objects:
     - id: Excel
       ext: xlsx
       required: true
+      multiple: false
     - id: VariantCallFile
       ext: vcf
+      required: false
       multiple: true
 
 - id: Trad2
-
   objects:
     - id: Sequence
       ext: fasta

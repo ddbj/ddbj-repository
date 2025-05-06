@@ -9,9 +9,9 @@ import { restartableTask, timeout } from 'ember-concurrency';
 
 import CheckboxGroup from 'repository/components/checkbox-group';
 import arrayToQueryValue from 'repository/utils/array-to-query-value';
+import { dbNames } from 'repository/models/db';
 
 import {
-  dbs,
   createdOptions,
   progressOptions,
   progresses,
@@ -21,6 +21,7 @@ import {
 } from 'repository/models/criteria';
 
 import type { Created, Progress, Validity, Submitted } from 'repository/models/criteria';
+import type { DBName } from 'repository/models/db';
 
 export interface Query {
   uid?: string;
@@ -42,7 +43,7 @@ interface Signature {
 
 export default class ValidationsSearchForm extends Component<Signature> {
   @tracked uid?: string;
-  @tracked selectedDBs: string[] = dbs;
+  @tracked selectedDBs = dbNames;
   @tracked created: Created;
   @tracked selectedProgresses: Progress[] = progresses;
   @tracked selectedValidities: Validity[] = validities;
@@ -51,7 +52,7 @@ export default class ValidationsSearchForm extends Component<Signature> {
   get query() {
     return {
       uid: this.uid,
-      db: arrayToQueryValue(this.selectedDBs, dbs),
+      db: arrayToQueryValue(this.selectedDBs, dbNames),
       created: this.created,
       progress: arrayToQueryValue(this.selectedProgresses, progresses),
       validity: arrayToQueryValue(this.selectedValidities, validities),
@@ -70,7 +71,7 @@ export default class ValidationsSearchForm extends Component<Signature> {
   });
 
   @action
-  onSelectedDBsChange(selectedDBs: string[]) {
+  onSelectedDBsChange(selectedDBs: DBName[]) {
     this.selectedDBs = selectedDBs;
 
     this.args.onChange(this.query);
@@ -128,8 +129,13 @@ export default class ValidationsSearchForm extends Component<Signature> {
       <dt>DB</dt>
 
       <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
-        <CheckboxGroup @values={{dbs}} @selected={{this.selectedDBs}} @onChange={{this.onSelectedDBsChange}} as |group|>
-          {{#each dbs as |db|}}
+        <CheckboxGroup
+          @values={{dbNames}}
+          @selected={{this.selectedDBs}}
+          @onChange={{this.onSelectedDBsChange}}
+          as |group|
+        >
+          {{#each dbNames as |db|}}
             <div class="form-check">
               <group.checkbox @value={{db}}>
                 {{db}}

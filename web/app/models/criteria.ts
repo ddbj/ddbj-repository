@@ -1,7 +1,3 @@
-import ENV from 'repository/config/environment';
-
-export const dbs = ENV.dbs.map((db) => db.id);
-
 export const createdOptions = [
   { label: 'All', value: undefined },
   { label: 'Within 1 day', value: 'within_one_day' },

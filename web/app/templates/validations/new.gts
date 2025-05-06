@@ -7,9 +7,9 @@ import { eq } from 'ember-truth-helpers';
 import { pageTitle } from 'ember-page-title';
 
 import DB from 'repository/models/db';
-import ENV from 'repository/config/environment';
 import NewValidationForm from 'repository/components/new-validation-form';
 import ValidationsNewController from 'repository/controllers/validations/new';
+import schema from 'schema/db';
 
 interface Signature {
   Args: {
@@ -17,7 +17,7 @@ interface Signature {
   };
 }
 
-const dbs = ENV.dbs.map((db) => new DB(db));
+const dbs = schema.map((db) => new DB(db));
 
 export default class extends Component<Signature> {
   get selectedDb() {

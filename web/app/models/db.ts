@@ -1,12 +1,17 @@
 import Obj from 'repository/models/obj';
+import schema from 'schema/db';
 
-import type { DBSchema } from 'schema/db';
+type Schema = (typeof schema)[number];
+
+export const dbNames = schema.map(({ id }) => id);
+
+export type DBName = (typeof dbNames)[number];
 
 export default class DB {
-  schema: DBSchema;
+  schema: Schema;
   objs: Obj[];
 
-  constructor(schema: DBSchema) {
+  constructor(schema: Schema) {
     this.schema = schema;
     this.objs = this.schema.objects.map((obj) => new Obj(this, obj));
   }

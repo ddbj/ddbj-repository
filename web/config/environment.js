@@ -1,7 +1,5 @@
 'use strict';
 
-const dbs = require('../../schema/db.json');
-
 module.exports = function (environment) {
   const ENV = {
     modulePrefix: 'repository',
@@ -22,7 +20,6 @@ module.exports = function (environment) {
     },
 
     apiURL: process.env.API_URL || 'http://repository.localhost:3000/api',
-    dbs,
   };
 
   if (environment === 'development') {

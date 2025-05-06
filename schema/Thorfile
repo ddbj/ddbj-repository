@@ -1,3 +1,5 @@
+# vim: ft=ruby
+
 require 'json'
 require 'yaml'
 
@@ -5,18 +7,28 @@ class Schema < Thor
   include Thor::Actions
 
   def self.exit_on_failure? = true
+  def self.source_root      = __dir__
 
   desc 'generate', 'Generate schemas'
   def generate
     inside __dir__ do
       dbs = YAML.load_file('db.yml', symbolize_names: true)
-      erb = ERB.new(File.read('openapi.yml.erb'), trim_mode: '-')
 
-      File.write 'db.json',     JSON.pretty_generate(dbs)
-      File.write 'openapi.yml', erb.result_with_hash(dbs:)
-
-      run 'pnpm exec quicktype --lang typescript --just-types --top-level DBSchema db.json | sed s/Object/ObjSchema/g > db.d.ts'
-      run 'pnpm exec openapi-typescript openapi.yml --output openapi.d.ts'
+      generate_db      dbs
+      generate_openapi dbs
     end
+  end
+
+  private
+
+  def generate_db(dbs)
+    template 'templates/db.ts.tt', 'db.ts', dbs: dbs
+  end
+
+  def generate_openapi(dbs)
+    erb = ERB.new(File.read('openapi.yml.erb'), trim_mode: '-')
+
+    File.write 'openapi.yml', erb.result_with_hash(dbs:)
+    run 'pnpm exec openapi-typescript openapi.yml --output openapi.d.ts'
   end
 end
