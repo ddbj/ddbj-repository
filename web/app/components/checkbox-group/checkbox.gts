@@ -3,6 +3,18 @@ import { uniqueId } from '@ember/helper';
 
 import type { TOC } from '@ember/component/template-only';
 
+interface Signature {
+  Args: {
+    value: string;
+    onChange: (e: Event) => void;
+    isSelected: (value: string) => boolean;
+  };
+
+  Blocks: {
+    default: [];
+  };
+}
+
 export default <template>
   {{#let (uniqueId) as |id|}}
     <input
@@ -15,14 +27,4 @@ export default <template>
     />
     <label for={{id}} class="form-check-label">{{yield}}</label>
   {{/let}}
-</template> satisfies TOC<{
-  Args: {
-    value: string;
-    onChange: (e: Event) => void;
-    isSelected: (value: string) => boolean;
-  };
-
-  Blocks: {
-    default: [];
-  };
-}>;
+</template> satisfies TOC<Signature>;

@@ -5,6 +5,12 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
+interface Signature {
+  Args: {
+    progress: Validation['progress'];
+  };
+}
+
 export default <template>
   <div class="d-flex align-items-center gap-1">
     {{#if (or (eq @progress "waiting") (eq @progress "running"))}}
@@ -13,8 +19,4 @@ export default <template>
 
     <div class="text-capitalize">{{@progress}}</div>
   </div>
-</template> satisfies TOC<{
-  Args: {
-    progress: Validation['progress'];
-  };
-}>;
+</template> satisfies TOC<Signature>;

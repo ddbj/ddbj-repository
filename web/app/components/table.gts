@@ -2,6 +2,18 @@ import style from 'ember-style-modifier';
 
 import type { TOC } from '@ember/component/template-only';
 
+interface Signature {
+  Element: HTMLTableElement;
+
+  Args: {
+    items: unknown[];
+  };
+
+  Blocks: {
+    default: [];
+  };
+}
+
 export default <template>
   {{#if @items}}
     <table class="table border" ...attributes>
@@ -12,14 +24,4 @@ export default <template>
       There are no items.
     </div>
   {{/if}}
-</template> satisfies TOC<{
-  Element: HTMLTableElement;
-
-  Args: {
-    items: unknown[];
-  };
-
-  Blocks: {
-    default: [];
-  };
-}>;
+</template> satisfies TOC<Signature>;

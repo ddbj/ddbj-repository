@@ -3,17 +3,19 @@ import type { components } from 'schema/openapi';
 
 type Validity = components['schemas']['Validation']['validity'];
 
+interface Signature {
+  Args: {
+    validity: Validity;
+  };
+}
+
 export default <template>
   {{#if @validity}}
     <span class="badge {{colorClass @validity}} text-capitalize">{{@validity}}</span>
   {{else}}
     -
   {{/if}}
-</template> satisfies TOC<{
-  Args: {
-    validity: Validity;
-  };
-}>;
+</template> satisfies TOC<Signature>;
 
 function colorClass(validity: Exclude<Validity, null>) {
   switch (validity) {

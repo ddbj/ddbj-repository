@@ -12,6 +12,13 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
+interface Signature {
+  Args: {
+    showUser?: boolean;
+    validation: Validation;
+  };
+}
+
 export default <template>
   <h1 class="display-6 mb-4">Validation #{{@validation.id}}</h1>
 
@@ -128,9 +135,4 @@ export default <template>
       <SubmitForm @validation={{@validation}} />
     </div>
   </div>
-</template> satisfies TOC<{
-  Args: {
-    showUser?: boolean;
-    validation: Validation;
-  };
-}>;
+</template> satisfies TOC<Signature>;

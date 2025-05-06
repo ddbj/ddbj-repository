@@ -3,6 +3,12 @@ import type { components } from 'schema/openapi';
 
 type Code = components['schemas']['ValidationResult']['details'][0]['code'];
 
+interface Signature {
+  Args: {
+    code: Code;
+  };
+}
+
 export default <template>
   {{#if @code}}
     {{#let (url @code) as |url|}}
@@ -15,11 +21,7 @@ export default <template>
   {{else}}
     -
   {{/if}}
-</template> satisfies TOC<{
-  Args: {
-    code: Code;
-  };
-}>;
+</template> satisfies TOC<Signature>;
 
 function url(code: Exclude<Code, null>) {
   if (/^BS_R\d{4}$/.test(code)) {
