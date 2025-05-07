@@ -22,7 +22,7 @@ class Schema < Thor
   private
 
   def generate_db(dbs)
-    template 'templates/db.ts.tt', 'db.ts', dbs: dbs
+    template 'db.ts', dbs: dbs
   end
 
   def generate_openapi(dbs)
