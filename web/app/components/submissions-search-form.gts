@@ -87,6 +87,7 @@ export default class SubmissionsSearchForm extends Component<Signature> {
                 class="form-check-input"
                 {{on "change" (fn this.onCreatedChange opt.value)}}
               />
+
               <label for={{id}} class="form-check-label">{{opt.label}}</label>
             {{/let}}
           </div>
