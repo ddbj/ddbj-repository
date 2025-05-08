@@ -40,15 +40,11 @@
 /.dockerignore
 /Dockerfile*
 
-/ddbj_validator/.git
-/ddbj_validator/.github
-/ddbj_validator/.gitignore
-/ddbj_validator/.gitignore
-/ddbj_validator/logs
 /noodles_gff-rb/lib/noodles_gff/noodles_gff.so
 /noodles_gff-rb/target
 /noodles_gff-rb/tmp
 /schema/node_modules
+/validator
 /web/.github
 /web/.gitignore
 /web/dist
