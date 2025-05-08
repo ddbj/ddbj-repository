@@ -1,3 +1,0 @@
-[submodule "validator/conf/pub"]
-	path = validator/conf/pub
-	url = https://github.com/ddbj/pub.git
