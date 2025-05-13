@@ -102,7 +102,6 @@ export default class ValidationResults extends Component<Signature> {
 
     {{#if @validation.raw_result}}
       <details>
-        {{! template-lint-disable no-nested-interactive }}
         <summary>Raw result</summary>
         <pre><code>{{globalThis.JSON.stringify @validation.raw_result null 2}}</code></pre>
       </details>
