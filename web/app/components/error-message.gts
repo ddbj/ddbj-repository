@@ -53,7 +53,6 @@ export default class ErrorMessage extends Component<Signature> {
     <p>{{this.message}}</p>
 
     <details>
-      {{! template-lint-disable no-nested-interactive }}
       <summary>Details</summary>
       <pre class="text-bg-dark text-pre-wrap p-3"><code>{{this.details}}</code></pre>
     </details>
