@@ -65,7 +65,7 @@ COPY . .
 # Precompile bootsnap code for faster boot times
 RUN bundle exec bootsnap precompile app/ lib/
 
-FROM docker.io/library/node:22.15.1 AS web
+FROM docker.io/library/node:22.16.0 AS web
 
 ARG API_URL
 ENV API_URL=${API_URL:?}
