@@ -68,6 +68,9 @@ importers:
       '@types/rsvp':
         specifier: ^4.0.9
         version: 4.0.9
+      babel-plugin-module-resolver:
+        specifier: ^5.0.2
+        version: 5.0.2
       bootstrap:
         specifier: ^5.3.6
         version: 5.3.6(@popperjs/core@2.11.8)
@@ -7625,7 +7628,7 @@ snapshots:
       '@types/ember__object': 4.0.12(@babel/core@7.27.3)
       '@types/ember__polyfills': 4.0.6
       '@types/ember__routing': 4.0.22(@babel/core@7.27.3)
-      '@types/ember__runloop': 4.0.10
+      '@types/ember__runloop': 4.0.10(@babel/core@7.27.3)
       '@types/ember__service': 4.0.9(@babel/core@7.27.3)
       '@types/ember__string': 3.0.15
       '@types/ember__template': 4.0.7
@@ -7761,11 +7764,6 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
-    optional: true
-
-  '@types/ember__runloop@4.0.10':
-    dependencies:
-      '@types/ember': 4.0.11
     optional: true
 
   '@types/ember__runloop@4.0.10(@babel/core@7.27.3)':

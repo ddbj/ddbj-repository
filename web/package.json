@@ -48,6 +48,7 @@
     "@types/bootstrap": "^5.2.10",
     "@types/qunit": "^2.19.12",
     "@types/rsvp": "^4.0.9",
+    "babel-plugin-module-resolver": "^5.0.2",
     "bootstrap": "^5.3.6",
     "broccoli-asset-rev": "^3.0.0",
     "concurrently": "^9.1.2",

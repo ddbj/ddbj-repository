@@ -2,6 +2,8 @@
 
 const EmberApp = require('ember-cli/lib/broccoli/ember-app');
 
+const path = require('path');
+
 module.exports = function (defaults) {
   const app = new EmberApp(defaults, {
     emberData: {
@@ -17,7 +19,20 @@ module.exports = function (defaults) {
     'ember-cli-babel': { enableTypeScriptTransform: true },
 
     babel: {
-      plugins: [require.resolve('ember-concurrency/async-arrow-task-transform')],
+      plugins: [
+        require.resolve('ember-concurrency/async-arrow-task-transform'),
+
+        [
+          require.resolve('babel-plugin-module-resolver'),
+          {
+            extensions: ['.js', '.ts', '.gjs', '.gts'],
+
+            alias: {
+              schema: path.resolve(__dirname, '../schema'),
+            },
+          },
+        ],
+      ],
     },
   });
 
