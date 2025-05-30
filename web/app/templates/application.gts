@@ -1,7 +1,6 @@
 import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
 import { action } from '@ember/object';
-import { modifier } from 'ember-modifier';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 
@@ -19,14 +18,6 @@ export default class extends Component {
   @service declare errorModal: ErrorModalService;
   @service declare loading: LoadingService;
   @service declare toast: ToastService;
-
-  setToast = modifier((el) => {
-    this.toast.register(el);
-  });
-
-  setErrorModal = modifier((el) => {
-    this.errorModal.register(el);
-  });
 
   @action
   logout() {
@@ -109,7 +100,7 @@ export default class extends Component {
             role="alert"
             aria-live="assertive"
             aria-atomic="true"
-            {{this.setToast}}
+            {{this.toast.register}}
           >
             <div class="d-flex">
               <div class="toast-body">{{toast.body}}</div>
@@ -126,7 +117,7 @@ export default class extends Component {
       </div>
     </div>
 
-    <div class="modal fade" tabindex="-1" {{this.setErrorModal}}>
+    <div class="modal fade" tabindex="-1" {{this.errorModal.register}}>
       <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
           <div class="modal-header">

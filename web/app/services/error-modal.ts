@@ -1,4 +1,5 @@
 import Service from '@ember/service';
+import { modifier } from 'ember-modifier';
 
 import { Modal } from 'bootstrap';
 
@@ -6,7 +7,7 @@ export default class ErrorModalService extends Service {
   error?: Error;
   modal?: Modal;
 
-  register(el: Element) {
+  register = modifier((el: Element) => {
     this.modal = new Modal(el);
 
     const handler = () => {
@@ -18,7 +19,7 @@ export default class ErrorModalService extends Service {
     return () => {
       el.removeEventListener('hidden.bs.modal', handler);
     };
-  }
+  });
 
   show(error: Error) {
     this.error = error;
