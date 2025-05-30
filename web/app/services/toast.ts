@@ -1,4 +1,5 @@
 import Service from '@ember/service';
+import { modifier } from 'ember-modifier';
 
 import { Toast } from 'bootstrap';
 import { TrackedArray } from 'tracked-built-ins';
@@ -14,7 +15,7 @@ export default class ToastService extends Service {
   data = new TrackedArray<Data>();
   refs = new Map<string, Toast>();
 
-  register(el: Element) {
+  register = modifier((el: Element) => {
     const toast = new Toast(el);
 
     this.refs.set(el.id, toast);
@@ -29,7 +30,7 @@ export default class ToastService extends Service {
     return () => {
       el.removeEventListener('hidden.bs.toast', handler);
     };
-  }
+  });
 
   show(body: string, color: string) {
     const id = crypto.randomUUID();
