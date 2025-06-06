@@ -183,8 +183,8 @@ importers:
         specifier: ^3.5.3
         version: 3.5.3
       prettier-plugin-ember-template-tag:
-        specifier: ^2.0.5
-        version: 2.0.5(prettier@3.5.3)
+        specifier: ^2.0.6
+        version: 2.0.6(prettier@3.5.3)
       qunit:
         specifier: ^2.24.1
         version: 2.24.1
@@ -4820,8 +4820,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier-plugin-ember-template-tag@2.0.5:
-    resolution: {integrity: sha512-G9lbK3wmryIBSzqBKKoy254v7hIjqzqYpqWxi9NvOxcxNtwLyrC1u9NLJJFm+x9blzqHQOzKGOseVnbLtEwEbg==}
+  prettier-plugin-ember-template-tag@2.0.6:
+    resolution: {integrity: sha512-fo40XXhSEvpi5BQcG/EdKkij9M0s1KiIhPyXHpnAqHOwsd883fJ9YtTkz2RwzMwKU4XtVQ0bWNWXy+vgjlaMcQ==}
     engines: {node: 18.* || >= 20}
     peerDependencies:
       prettier: '>= 3.0.0'
@@ -7526,27 +7526,6 @@ snapshots:
     dependencies:
       '@types/node': 22.15.21
 
-  '@types/ember@4.0.11':
-    dependencies:
-      '@types/ember__application': 4.0.11(@babel/core@7.27.4)
-      '@types/ember__array': 4.0.10(@babel/core@7.27.4)
-      '@types/ember__component': 4.0.22(@babel/core@7.27.4)
-      '@types/ember__controller': 4.0.12(@babel/core@7.27.4)
-      '@types/ember__debug': 4.0.8(@babel/core@7.27.4)
-      '@types/ember__engine': 4.0.11(@babel/core@7.27.4)
-      '@types/ember__error': 4.0.6
-      '@types/ember__object': 4.0.12(@babel/core@7.27.4)
-      '@types/ember__polyfills': 4.0.6
-      '@types/ember__routing': 4.0.22(@babel/core@7.27.4)
-      '@types/ember__runloop': 4.0.10
-      '@types/ember__service': 4.0.9(@babel/core@7.27.4)
-      '@types/ember__string': 3.0.15
-      '@types/ember__template': 4.0.7
-      '@types/ember__test': 4.0.6(@babel/core@7.27.4)
-      '@types/ember__utils': 4.0.7
-      '@types/rsvp': 4.0.9
-    optional: true
-
   '@types/ember@4.0.11(@babel/core@7.27.4)':
     dependencies:
       '@types/ember__application': 4.0.11(@babel/core@7.27.4)
@@ -7574,7 +7553,7 @@ snapshots:
   '@types/ember__application@4.0.11(@babel/core@7.27.4)':
     dependencies:
       '@glimmer/component': 1.1.2(@babel/core@7.27.4)
-      '@types/ember': 4.0.11
+      '@types/ember': 4.0.11(@babel/core@7.27.4)
       '@types/ember__engine': 4.0.11(@babel/core@7.27.4)
       '@types/ember__object': 4.0.12(@babel/core@7.27.4)
       '@types/ember__owner': 4.0.9
@@ -7676,11 +7655,6 @@ snapshots:
       - supports-color
     optional: true
 
-  '@types/ember__runloop@4.0.10':
-    dependencies:
-      '@types/ember': 4.0.11
-    optional: true
-
   '@types/ember__runloop@4.0.10(@babel/core@7.27.4)':
     dependencies:
       '@types/ember': 4.0.11(@babel/core@7.27.4)
@@ -7709,11 +7683,6 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
-    optional: true
-
-  '@types/ember__utils@4.0.7':
-    dependencies:
-      '@types/ember': 4.0.11
     optional: true
 
   '@types/ember__utils@4.0.7(@babel/core@7.27.4)':
@@ -12102,7 +12071,7 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier-plugin-ember-template-tag@2.0.5(prettier@3.5.3):
+  prettier-plugin-ember-template-tag@2.0.6(prettier@3.5.3):
     dependencies:
       '@babel/core': 7.27.4(supports-color@8.1.1)
       content-tag: 3.1.3
