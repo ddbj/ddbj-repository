@@ -150,8 +150,8 @@ importers:
         specifier: ^4.3.0
         version: 4.3.0
       ember-template-lint:
-        specifier: ^7.8.1
-        version: 7.8.1
+        specifier: ^7.9.0
+        version: 7.9.0
       ember-test-selectors:
         specifier: ^7.1.0
         version: 7.1.0
@@ -1318,6 +1318,9 @@ packages:
 
   '@types/estree@1.0.7':
     resolution: {integrity: sha512-w28IoSUCJpidD/TGviZwwMJckNESJZXFu7NBZ5YJ4mEUnNraUn9Pm8HSZm/jDF1pDWYKspWE7oVphigUPRakIQ==}
+
+  '@types/estree@1.0.8':
+    resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
   '@types/express-serve-static-core@4.19.6':
     resolution: {integrity: sha512-N4LZ2xG7DatVqhCZzOGb1Yi5lMbXSZcmdLDe9EzSndPV2HpWYWzRbaerl2n27irrm94EPpprqa8KpskPT085+A==}
@@ -2877,8 +2880,8 @@ packages:
     resolution: {integrity: sha512-jZ5D6KLKU8up/AynZltmKh4lkXBPgTGSPgomprI/55XvIVqn42UNUpEz7ra/mO3QiGODDZOUesbggPe49i38sQ==}
     engines: {node: 16.* || >= 18}
 
-  ember-template-lint@7.8.1:
-    resolution: {integrity: sha512-SFVTR6YdxvldbBL3ArphAbDhYOXyD8Tt9rTKEWKYpQTilq7Hl9mTrKP59q3GOcnDaR/rNk0cg4rJHYAg6/SCGw==}
+  ember-template-lint@7.9.0:
+    resolution: {integrity: sha512-J2/d9S5mnNVoE2ZjWmbeCd3Dk6y0e5DyK4/z4BoY8XlyBkkA1Jg4wttlN15Jd2dQhPQZK7KMMLj9ZxLY4U7jZQ==}
     engines: {node: ^18.18.0 || >= 20.9.0}
     hasBin: true
 
@@ -7526,27 +7529,6 @@ snapshots:
     dependencies:
       '@types/node': 22.15.21
 
-  '@types/ember@4.0.11':
-    dependencies:
-      '@types/ember__application': 4.0.11(@babel/core@7.27.4)
-      '@types/ember__array': 4.0.10(@babel/core@7.27.4)
-      '@types/ember__component': 4.0.22(@babel/core@7.27.4)
-      '@types/ember__controller': 4.0.12(@babel/core@7.27.4)
-      '@types/ember__debug': 4.0.8(@babel/core@7.27.4)
-      '@types/ember__engine': 4.0.11(@babel/core@7.27.4)
-      '@types/ember__error': 4.0.6
-      '@types/ember__object': 4.0.12(@babel/core@7.27.4)
-      '@types/ember__polyfills': 4.0.6
-      '@types/ember__routing': 4.0.22(@babel/core@7.27.4)
-      '@types/ember__runloop': 4.0.10
-      '@types/ember__service': 4.0.9(@babel/core@7.27.4)
-      '@types/ember__string': 3.0.15
-      '@types/ember__template': 4.0.7
-      '@types/ember__test': 4.0.6(@babel/core@7.27.4)
-      '@types/ember__utils': 4.0.7
-      '@types/rsvp': 4.0.9
-    optional: true
-
   '@types/ember@4.0.11(@babel/core@7.27.4)':
     dependencies:
       '@types/ember__application': 4.0.11(@babel/core@7.27.4)
@@ -7574,7 +7556,7 @@ snapshots:
   '@types/ember__application@4.0.11(@babel/core@7.27.4)':
     dependencies:
       '@glimmer/component': 1.1.2(@babel/core@7.27.4)
-      '@types/ember': 4.0.11
+      '@types/ember': 4.0.11(@babel/core@7.27.4)
       '@types/ember__engine': 4.0.11(@babel/core@7.27.4)
       '@types/ember__object': 4.0.12(@babel/core@7.27.4)
       '@types/ember__owner': 4.0.9
@@ -7676,11 +7658,6 @@ snapshots:
       - supports-color
     optional: true
 
-  '@types/ember__runloop@4.0.10':
-    dependencies:
-      '@types/ember': 4.0.11
-    optional: true
-
   '@types/ember__runloop@4.0.10(@babel/core@7.27.4)':
     dependencies:
       '@types/ember': 4.0.11(@babel/core@7.27.4)
@@ -7711,11 +7688,6 @@ snapshots:
       - supports-color
     optional: true
 
-  '@types/ember__utils@4.0.7':
-    dependencies:
-      '@types/ember': 4.0.11
-    optional: true
-
   '@types/ember__utils@4.0.7(@babel/core@7.27.4)':
     dependencies:
       '@types/ember': 4.0.11(@babel/core@7.27.4)
@@ -7731,7 +7703,7 @@ snapshots:
 
   '@types/eslint@8.56.12':
     dependencies:
-      '@types/estree': 1.0.7
+      '@types/estree': 1.0.8
       '@types/json-schema': 7.0.15
 
   '@types/eslint@9.6.1':
@@ -7740,6 +7712,8 @@ snapshots:
       '@types/json-schema': 7.0.15
 
   '@types/estree@1.0.7': {}
+
+  '@types/estree@1.0.8': {}
 
   '@types/express-serve-static-core@4.19.6':
     dependencies:
@@ -9889,7 +9863,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  ember-template-lint@7.8.1:
+  ember-template-lint@7.9.0:
     dependencies:
       '@lint-todo/utils': 13.1.1
       content-tag: 3.1.3
