@@ -63,6 +63,6 @@ RSpec.describe NoodlesGFF do
       NoodlesGFF.parse <<~GFF
         chr1	feature	gene	1	1967	.	-	.	ID=Mp1g00005a;Name=Mp1g00005a;locus_type=rRNA;note=partial;foo
       GFF
-    }.to raise_error(NoodlesGFF::Error, 'Line 1: Custom { kind: InvalidData, error: "invalid field" }')
+    }.to raise_error(NoodlesGFF::Error, 'Line 1: Custom { kind: InvalidData, error: "invalid tag" }')
   end
 end
