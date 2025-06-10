@@ -2,7 +2,7 @@ use magnus::{class, define_module, function, Error, ExceptionClass, Module, RCla
 use noodles_gff::{self as gff};
 
 fn parse(input: String) -> Result<(), Error> {
-    let mut reader = gff::Reader::new(input.as_bytes());
+    let mut reader = gff::io::Reader::new(input.as_bytes());
 
     for (i, record) in reader.record_bufs().enumerate() {
         match record {
