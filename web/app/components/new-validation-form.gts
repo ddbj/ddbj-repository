@@ -8,7 +8,7 @@ import ObjectField from 'repository/components/object-field';
 
 import type DB from 'repository/models/db';
 import type RequestService from 'repository/services/request';
-import type Router from '@ember/routing/router';
+import type RouterService from '@ember/routing/router-service';
 import type ToastService from 'repository/services/toast';
 
 interface Signature {
@@ -19,7 +19,7 @@ interface Signature {
 
 export default class NewValidationForm extends Component<Signature> {
   @service declare request: RequestService;
-  @service declare router: Router;
+  @service declare router: RouterService;
   @service declare toast: ToastService;
 
   create = task({ drop: true }, async (e: Event) => {

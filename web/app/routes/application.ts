@@ -6,13 +6,13 @@ import { LoginError } from 'repository/services/current-user';
 
 import type CurrentUserService from 'repository/services/current-user';
 import type LoadingService from 'repository/services/loading';
-import type Router from '@ember/routing/router';
+import type RouterService from '@ember/routing/router-service';
 import type Transition from '@ember/routing/transition';
 
 export default class ApplicationRoute extends Route {
   @service declare currentUser: CurrentUserService;
   @service('loading') declare _loading: LoadingService;
-  @service declare router: Router;
+  @service declare router: RouterService;
 
   async beforeModel() {
     try {

@@ -2,11 +2,11 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
 import type CurrentUser from 'repository/services/current-user';
-import type Router from '@ember/routing/router';
+import type RouterService from '@ember/routing/router-service';
 
 export default class IndexRoute extends Route {
   @service declare currentUser: CurrentUser;
-  @service declare router: Router;
+  @service declare router: RouterService;
 
   beforeModel() {
     if (this.currentUser.isLoggedIn) {
