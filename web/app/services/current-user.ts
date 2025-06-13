@@ -4,14 +4,14 @@ import { tracked } from '@glimmer/tracking';
 import User from 'repository/models/user';
 
 import type RequestService from 'repository/services/request';
-import type Router from '@ember/routing/router';
+import type RouterService from '@ember/routing/router-service';
 import type Transition from '@ember/routing/transition';
 
 export class LoginError extends Error {}
 
 export default class CurrentUserService extends Service {
   @service declare request: RequestService;
-  @service declare router: Router;
+  @service declare router: RouterService;
 
   @tracked token?: string;
   @tracked user?: User;

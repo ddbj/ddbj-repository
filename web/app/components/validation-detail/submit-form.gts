@@ -9,7 +9,7 @@ import { eq, gt, notEq } from 'ember-truth-helpers';
 import { task } from 'ember-concurrency';
 
 import type RequestService from 'repository/services/request';
-import type Router from '@ember/routing/router';
+import type RouterService from '@ember/routing/router-service';
 import type ToastService from 'repository/services/toast';
 import type { components } from 'schema/openapi';
 
@@ -25,7 +25,7 @@ const oneDay = 24 * 60 * 60 * 1000;
 
 export default class ValidationSubmitForm extends Component<Signature> {
   @service declare request: RequestService;
-  @service declare router: Router;
+  @service declare router: RouterService;
   @service declare toast: ToastService;
 
   @tracked elapsedFromValidationFinished = 0;
