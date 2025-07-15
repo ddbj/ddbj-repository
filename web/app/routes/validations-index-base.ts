@@ -1,8 +1,6 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import getLastPageFromLinkHeader from 'repository/utils/get-last-page-from-link-header';
-
 import type AdminController from 'repository/controllers/admin/validations/index';
 import type Controller from 'repository/controllers/validations/index';
 import type RequestService from 'repository/services/request';
@@ -12,7 +10,7 @@ type Validation = components['schemas']['Validation'];
 
 export interface Model {
   validations: Validation[];
-  lastPage: number;
+  totalPages: number;
 }
 
 export default abstract class ValidationsIndexBaseRoute<TParams extends Record<string, unknown>> extends Route {
@@ -28,7 +26,7 @@ export default abstract class ValidationsIndexBaseRoute<TParams extends Record<s
 
     return {
       validations: (await res.json()) as Validation[],
-      lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
+      totalPages: parseInt(res.headers.get('Total-Pages')!),
     };
   }
 

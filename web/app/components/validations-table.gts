@@ -19,7 +19,7 @@ interface Signature {
     showUser?: boolean;
     validations: Validation[];
     page: number;
-    lastPage: number;
+    totalPages: number;
     indexRoute: string;
     showRoute: string;
   };
@@ -98,7 +98,7 @@ export default <template>
     </tbody>
   </Table>
 
-  {{#if (notEq @lastPage 1)}}
-    <Pagination @route={{@indexRoute}} @current={{@page}} @last={{@lastPage}} />
+  {{#if (notEq @totalPages 1)}}
+    <Pagination @route={{@indexRoute}} @current={{@page}} @total={{@totalPages}} />
   {{/if}}
 </template> satisfies TOC<Signature>;

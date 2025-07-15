@@ -94,8 +94,8 @@ export default class extends Component<Signature> {
       </tbody>
     </Table>
 
-    {{#if (notEq @model.lastPage 1)}}
-      <Pagination @route="submissions.index" @current={{or @controller.page 1}} @last={{@model.lastPage}} />
+    {{#if (notEq @model.totalPages 1)}}
+      <Pagination @route="submissions.index" @current={{or @controller.page 1}} @total={{@model.totalPages}} />
     {{/if}}
   </template>
 }

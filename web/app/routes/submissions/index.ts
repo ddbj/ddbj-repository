@@ -3,7 +3,6 @@ import { service } from '@ember/service';
 
 import ENV from 'repository/config/environment';
 import convertCreatedToDate from 'repository/utils/convert-created-to-date';
-import getLastPageFromLinkHeader from 'repository/utils/get-last-page-from-link-header';
 
 import type RequestService from 'repository/services/request';
 import type SubmissionsIndexController from 'repository/controllers/submissions';
@@ -14,7 +13,7 @@ type Submission = components['schemas']['Submission'];
 
 export interface Model {
   submissions: Submission[];
-  lastPage: number;
+  totalPages: number;
 }
 
 interface Params {
@@ -59,7 +58,7 @@ export default class SubmissionsIndexRoute extends Route {
 
     return {
       submissions: (await res.json()) as Submission[],
-      lastPage: getLastPageFromLinkHeader(res.headers.get('Link')),
+      totalPages: parseInt(res.headers.get('Total-Pages')!),
     };
   }
 

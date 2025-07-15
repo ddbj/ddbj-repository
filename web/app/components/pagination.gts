@@ -10,7 +10,7 @@ interface Signature {
   Args: {
     route: string;
     current: number;
-    last: number;
+    total: number;
   };
 }
 
@@ -18,10 +18,10 @@ const window = 5;
 
 export default class Pagination extends Component<Signature> {
   get pages() {
-    const { current, last } = this.args;
+    const { current, total } = this.args;
 
     const start = Math.max(1, current - window);
-    const end = Math.min(last, current + window);
+    const end = Math.min(total, current + window);
 
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }
@@ -33,9 +33,9 @@ export default class Pagination extends Component<Signature> {
   }
 
   get next() {
-    const { current, last } = this.args;
+    const { current, total } = this.args;
 
-    return current === last ? undefined : current + 1;
+    return current === total ? undefined : current + 1;
   }
 
   get hasPrevGap() {
@@ -45,9 +45,9 @@ export default class Pagination extends Component<Signature> {
   }
 
   get hasNextGap() {
-    const { current, last } = this.args;
+    const { current, total } = this.args;
 
-    return current < last - window;
+    return current < total - window;
   }
 
   <template>
@@ -111,7 +111,7 @@ export default class Pagination extends Component<Signature> {
 
         <li class="page-item {{unless this.next 'disabled' ''}}" data-test-last>
           {{#if this.next}}
-            <LinkTo @route={{@route}} @query={{hash page=@last}} class="page-link" aria-label="Last">
+            <LinkTo @route={{@route}} @query={{hash page=@total}} class="page-link" aria-label="Last">
               <span aria-hidden="true">»</span>
             </LinkTo>
           {{else}}
