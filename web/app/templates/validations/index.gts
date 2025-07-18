@@ -34,7 +34,7 @@ export default class extends Component<Signature> {
     <ValidationsTable
       @validations={{@model.validations}}
       @page={{@controller.page}}
-      @lastPage={{@model.lastPage}}
+      @totalPages={{@model.totalPages}}
       @indexRoute="validations.index"
       @showRoute="validations.show"
     />

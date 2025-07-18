@@ -32,7 +32,7 @@ export default class extends Component<Signature> {
       @showUser={{true}}
       @validations={{@model.validations}}
       @page={{@controller.page}}
-      @lastPage={{@model.lastPage}}
+      @totalPages={{@model.totalPages}}
       @indexRoute="admin.validations.index"
       @showRoute="admin.validations.show"
     />
