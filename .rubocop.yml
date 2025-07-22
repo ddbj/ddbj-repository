@@ -11,3 +11,11 @@ AllCops:
   Exclude:
     - validator/**/*
     - web/**/*
+
+Style/StringLiterals:
+  inherit_mode:
+    merge:
+      - Include
+
+  Include:
+    - spec/**/*
