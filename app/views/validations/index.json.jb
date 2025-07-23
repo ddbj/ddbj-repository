@@ -1,1 +1,1 @@
-render partial: "validation", collection: @validations, as: :validation
+render(partial: "validation", collection: @validations)

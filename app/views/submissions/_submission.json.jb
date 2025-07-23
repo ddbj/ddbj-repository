@@ -10,5 +10,5 @@
   validation:    render("validations/validation", validation: submission.validation),
   visibility:    submission.visibility,
 
-  **(submission.param&.as_json || {})
+  **submission.param&.as_json
 }
