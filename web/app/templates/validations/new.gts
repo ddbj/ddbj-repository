@@ -20,6 +20,8 @@ interface Signature {
 const dbs = schema.map((db) => new DB(db));
 
 export default class extends Component<Signature> {
+  type: "file" | "ddbjRecord" = "file";
+
   get selectedDb() {
     return dbs.find((db) => db.schema.id === this.args.controller.db)!;
   }
@@ -27,6 +29,11 @@ export default class extends Component<Signature> {
   @action
   selectDb(db: DB) {
     this.args.controller.db = db.schema.id;
+  }
+
+  @action
+  selectType(type: "file" | "ddbjRecord") {
+    this.type = type;
   }
 
   <template>
@@ -49,6 +56,6 @@ export default class extends Component<Signature> {
       {{/each}}
     </ul>
 
-    <NewValidationForm @db={{this.selectedDb}} />
+    <NewValidationForm @db={{this.selectedDb}} @type={{this.type}} @onTypeChange={{this.selectType}} />
   </template>
 }
