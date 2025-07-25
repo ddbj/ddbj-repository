@@ -12,6 +12,8 @@ class Obj < ApplicationRecord
   enum :_id, DB.flat_map { _1[:objects] }.map { _1[:id] }.uniq.concat(['_base']).index_by(&:to_sym)
   enum :validity, %w[valid invalid error].index_by(&:to_sym), prefix: true
 
+  validates :file, attached: true
+
   validate :destination_must_not_be_malformed
   validate :path_must_be_unique_in_request
 
