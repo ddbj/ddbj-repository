@@ -2,6 +2,7 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
+import { tracked } from '@glimmer/tracking';
 
 import { eq } from 'ember-truth-helpers';
 import { pageTitle } from 'ember-page-title';
@@ -20,7 +21,7 @@ interface Signature {
 const dbs = schema.map((db) => new DB(db));
 
 export default class extends Component<Signature> {
-  type: "file" | "ddbjRecord" = "file";
+  @tracked type: "file" | "ddbjRecord" = "file";
 
   get selectedDb() {
     return dbs.find((db) => db.schema.id === this.args.controller.db)!;
