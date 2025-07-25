@@ -31,7 +31,9 @@ export default class NewValidationForm extends Component<Signature> {
 
     e.preventDefault();
 
-    const res = await this.request.fetchWithModal(`/validations/via_file`, {
+    const url = type === "file" ? "/validations/via_file" : "/validations/via_ddbj_record";
+
+    const res = await this.request.fetchWithModal(url, {
       method: 'POST',
       body: jsonToFormData(db.toJSON(type)),
     });
@@ -75,15 +77,16 @@ export default class NewValidationForm extends Component<Signature> {
             </li>
           </ul>
           <div class="tab-content mt-3" id="tradTabContent">
-            <div class="tab-pane fade show active" id="file-tab-pane" role="tabpanel">
-              {{#each @db.objs.file as |obj|}}
-                <ObjectField @obj={{obj}} />
-              {{/each}}
-            </div>
-            <div class="tab-pane fade show actove" id="ddbj-record-tab-pane" role="tabpanel">
-              {{#each @db.objs.ddbjRecord as |obj|}}
-                <ObjectField @obj={{obj}} />
-              {{/each}}
+            <div class="tab-pane fade show active" role="tabpanel">
+              {{#if (eq @type "file")}}
+                {{#each @db.objs.file as |obj|}}
+                  <ObjectField @obj={{obj}} />
+                {{/each}}
+              {{else}}
+                {{#each @db.objs.ddbjRecord as |obj|}}
+                  <ObjectField @obj={{obj}} />
+                {{/each}}
+              {{/if}}
             </div>
           </div>
         </div>
