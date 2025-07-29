@@ -9,6 +9,7 @@ export type DBName = (typeof dbNames)[number];
 
 export default class DB {
   schema: Schema;
+
   objs: {
     file: Obj[];
     ddbjRecord: Obj[];
@@ -18,11 +19,11 @@ export default class DB {
     this.schema = schema;
     this.objs = {
       file: this.schema.objects.file.map((obj) => new Obj(this, obj)),
-      ddbjRecord: this.schema.objects.ddbj_record.map((obj) => new Obj(this, obj))
+      ddbjRecord: this.schema.objects.ddbj_record.map((obj) => new Obj(this, obj)),
     };
   }
 
-  toJSON(type: "file" | "ddbjRecord" ) {
+  toJSON(type: 'file' | 'ddbjRecord') {
     return this.objs[type].reduce(
       (acc, obj) => ({
         ...acc,

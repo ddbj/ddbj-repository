@@ -21,7 +21,7 @@ interface Signature {
 const dbs = schema.map((db) => new DB(db));
 
 export default class extends Component<Signature> {
-  @tracked type: "file" | "ddbjRecord" = "file";
+  @tracked type: 'file' | 'ddbjRecord' = 'file';
 
   get selectedDb() {
     return dbs.find((db) => db.schema.id === this.args.controller.db)!;
@@ -33,7 +33,7 @@ export default class extends Component<Signature> {
   }
 
   @action
-  selectType(type: "file" | "ddbjRecord") {
+  selectType(type: 'file' | 'ddbjRecord') {
     this.type = type;
   }
 

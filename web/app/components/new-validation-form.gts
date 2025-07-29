@@ -16,8 +16,8 @@ import type ToastService from 'repository/services/toast';
 interface Signature {
   Args: {
     db: DB;
-    type: "file" | "ddbjRecord";
-    onTypeChange: (type: "file" | "ddbjRecord") => void;
+    type: 'file' | 'ddbjRecord';
+    onTypeChange: (type: 'file' | 'ddbjRecord') => void;
   };
 }
 
@@ -31,7 +31,7 @@ export default class NewValidationForm extends Component<Signature> {
 
     e.preventDefault();
 
-    const url = type === "file" ? "/validations/via_file" : "/validations/via_ddbj_record";
+    const url = type === 'file' ? '/validations/via_file' : '/validations/via_ddbj_record';
 
     const res = await this.request.fetchWithModal(url, {
       method: 'POST',
@@ -46,52 +46,36 @@ export default class NewValidationForm extends Component<Signature> {
 
   <template>
     <form {{on "submit" this.create.perform}}>
-      {{#if (eq @db.schema.id "Trad")}}
-        <div class="mb-3">
-          <ul class="nav nav-tabs" id="tradTab" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link active"
-                id="file"
-                data-bs-toggle="tab"
-                data-bs-target="#file-tab-pane"
-                type="button"
-                role="tab"
-                aria-controls="file-tab-pane"
-                aria-selected="true"
-                {{on "click" (fn @onTypeChange "file")}}
-              >File</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link"
-                id="ddbj-record"
-                data-bs-toggle="tab"
-                data-bs-target="#ddbj-record-tab-pane"
-                type="button"
-                role="tab"
-                aria-controls="ddbj-record-tab-pane"
-                aria-selected="false"
-                {{on "click" (fn @onTypeChange "ddbjRecord")}}
-              >DDBJ Record</button>
-            </li>
-          </ul>
-          <div class="tab-content mt-3" id="tradTabContent">
-            <div class="tab-pane fade show active" role="tabpanel">
-              {{#if (eq @type "file")}}
-                {{#each @db.objs.file as |obj|}}
-                  <ObjectField @obj={{obj}} />
-                {{/each}}
-              {{else}}
-                {{#each @db.objs.ddbjRecord as |obj|}}
-                  <ObjectField @obj={{obj}} />
-                {{/each}}
-              {{/if}}
-            </div>
-          </div>
-        </div>
-      {{else}}
+      {{#if @db.objs.ddbjRecord}}
+        <ul class="nav nav-tabs mb-3" id="tradTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link {{if (eq @type 'file') 'active'}}"
+              id="file"
+              type="button"
+              role="tab"
+              {{on "click" (fn @onTypeChange "file")}}
+            >File</button>
+          </li>
+
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link {{if (eq @type 'ddbjRecord') 'active'}}"
+              id="ddbj-record"
+              type="button"
+              role="tab"
+              {{on "click" (fn @onTypeChange "ddbjRecord")}}
+            >DDBJ Record</button>
+          </li>
+        </ul>
+      {{/if}}
+
+      {{#if (eq @type "file")}}
         {{#each @db.objs.file as |obj|}}
+          <ObjectField @obj={{obj}} />
+        {{/each}}
+      {{else}}
+        {{#each @db.objs.ddbjRecord as |obj|}}
           <ObjectField @obj={{obj}} />
         {{/each}}
       {{/if}}
