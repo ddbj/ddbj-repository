@@ -23,7 +23,7 @@ class Validations::ViaFilesController < ApplicationController
 
       validation.objs.create! _id: '_base'
 
-      db[:objects].each do |obj|
+      db[:objects][:file].each do |obj|
         obj => {id:}
         val = obj[:required] ? params.require(id) : params[id]
 
