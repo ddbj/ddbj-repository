@@ -25,10 +25,10 @@ class ValidationsController < ApplicationController
         error: "Validation has been #{validation.progress}."
       }, status: :unprocessable_entity
     else
-      validation.update! progress: "canceled", finished_at: Time.current
+      validation.update! progress: 'canceled', finished_at: Time.current
 
       render json: {
-        message: "Validation canceled successfully."
+        message: 'Validation canceled successfully.'
       }
     end
   end
@@ -45,13 +45,13 @@ class ValidationsController < ApplicationController
     created_at_after  = Time.zone.parse(created_at_after)  if created_at_after
     created_at_before = Time.zone.parse(created_at_before) if created_at_before
 
-    validations = current_user.admin? && everyone == "true" ? Validation.all : current_user.validations
+    validations = current_user.admin? && everyone == 'true' ? Validation.all : current_user.validations
 
-    validations = validations.joins(:user).where(user: { uid: uid.split(",") })         if current_user.admin? && uid
-    validations = validations.where(db: db.split(","))                                  if db
+    validations = validations.joins(:user).where(user: {uid: uid.split(',')})         if current_user.admin? && uid
+    validations = validations.where(db: db.split(','))                                  if db
     validations = validations.where(created_at: created_at_after..created_at_before)    if created_at_after || created_at_before
-    validations = validations.where(progress: progress.split(","))                      if progress
-    validations = validations.validity(*validity.split(","))                            if validity
+    validations = validations.where(progress: progress.split(','))                      if progress
+    validations = validations.validity(*validity.split(','))                            if validity
     validations = validations.submitted(ActiveModel::Type::Boolean.new.cast(submitted)) if submitted
 
     eager_load(validations).order(id: :desc)

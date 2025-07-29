@@ -5,13 +5,13 @@ class Validation < ApplicationRecord
 
   has_many :objs, -> { order(:id) }, dependent: :destroy do
     def base
-      find { _1._id == "_base" }
+      find { _1._id == '_base' }
     end
   end
 
   serialize :raw_result, coder: JSON
 
-  validates :db, inclusion: { in: DB.map { _1[:id] } }
+  validates :db, inclusion: {in: DB.map { _1[:id] }}
 
   validates :started_at,  presence: true, if: :running?
   validates :finished_at, presence: true, if: ->(validation) { validation.finished? || validation.canceled? }
@@ -21,9 +21,9 @@ class Validation < ApplicationRecord
   scope :validity, ->(*validities) {
     return none if validities.empty?
 
-    sql = validities.map { |validity|
+    sql = validities.map {|validity|
       case validity
-      when "valid"
+      when 'valid'
         <<~SQL
           NOT EXISTS (
             SELECT 1 FROM objs
@@ -31,7 +31,7 @@ class Validation < ApplicationRecord
               AND (objs.validity <> 'valid' OR objs.validity IS NULL)
           )
         SQL
-      when "invalid"
+      when 'invalid'
         <<~SQL
           NOT EXISTS (
             SELECT 1 FROM objs
@@ -39,9 +39,9 @@ class Validation < ApplicationRecord
               AND objs.validity = 'error'
           ) AND objs.validity = 'invalid'
         SQL
-      when "error"
+      when 'error'
         %(objs.validity = 'error')
-      when "null"
+      when 'null'
         <<~SQL
           NOT EXISTS (
             SELECT 1 FROM objs
@@ -52,7 +52,7 @@ class Validation < ApplicationRecord
       else
         raise ArgumentError, validity
       end
-    }.join(" OR ")
+    }.join(' OR ')
 
     joins(:objs).where(sql)
   }
@@ -63,11 +63,11 @@ class Validation < ApplicationRecord
 
   def validity
     if objs.all?(&:validity_valid?)
-      "valid"
+      'valid'
     elsif objs.any?(&:validity_error?)
-      "error"
+      'error'
     elsif objs.any?(&:validity_invalid?)
-      "invalid"
+      'invalid'
     else
       nil
     end
@@ -78,7 +78,7 @@ class Validation < ApplicationRecord
   end
 
   def write_files_to_tmp(&block)
-    Dir.mktmpdir { |tmpdir|
+    Dir.mktmpdir {|tmpdir|
       tmpdir = Pathname.new(tmpdir)
 
       objs.without_base.each do |obj|
@@ -95,14 +95,14 @@ class Validation < ApplicationRecord
   end
 
   def write_submission_files(to:)
-    to.tap(&:mkpath).join("validation-report.json").write JSON.pretty_generate(results)
+    to.tap(&:mkpath).join('validation-report.json').write JSON.pretty_generate(results)
 
     objs.each do |obj|
       obj_dir = to.join(obj._id)
 
       if obj.base?
         obj_dir.mkpath
-        obj_dir.join("validation-report.json").write JSON.pretty_generate(obj.validation_result)
+        obj_dir.join('validation-report.json').write JSON.pretty_generate(obj.validation_result)
       else
         path = obj_dir.join(obj.path)
         path.dirname.mkpath

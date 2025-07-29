@@ -1,4 +1,4 @@
-require_relative "uploaded_file"
+require_relative 'uploaded_file'
 
 RSpec.configure do |config|
   config.include ActionDispatch::TestProcess::FixtureFile

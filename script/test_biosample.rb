@@ -14,11 +14,11 @@ class TestBioSample < Thor
     dir = Rails.root.join('storage/biosample_xml').tap(&:mkpath)
 
     BioSample::Submission.includes(samples: :xmls).find_each do |submission|
-      xmls = submission.samples.filter_map { |sample|
+      xmls = submission.samples.filter_map {|sample|
         sample.xmls.sort_by(&:version).last
       }
 
-      xml = Nokogiri::XML::Builder.new { |xml|
+      xml = Nokogiri::XML::Builder.new {|xml|
         xml.BioSampleSet do
           xmls.each do |biosample|
             xml << biosample.content
@@ -38,11 +38,11 @@ class TestBioSample < Thor
     src.glob '*.xml' do |path|
       doc = Nokogiri::XML.parse(path.read)
 
-      doc.xpath('/BioSampleSet/BioSample/Attributes/Attribute[@attribute_name="collection_date"]').map { |attribute|
+      doc.xpath('/BioSampleSet/BioSample/Attributes/Attribute[@attribute_name="collection_date"]').map {|attribute|
         attribute.content = 'missing: lab stock'
       }
 
-      doc.xpath('/BioSampleSet/BioSample/Attributes/Attribute[@attribute_name="geo_loc_name"]').map { |attribute|
+      doc.xpath('/BioSampleSet/BioSample/Attributes/Attribute[@attribute_name="geo_loc_name"]').map {|attribute|
         attribute.content = 'missing: lab stock'
       }
 
@@ -58,7 +58,7 @@ class TestBioSample < Thor
     Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
       say path.basename
 
-      res = path.open { |file|
+      res = path.open {|file|
         body = fetch("#{API_URL}/validations/via_file", **{
           method: :post,
 
@@ -129,7 +129,7 @@ class TestBioSample < Thor
         _1.fetch(:severity) == 'error'
       }
 
-      say "#{path.basename('.json')}: #{validity}".then { |banner|
+      say "#{path.basename('.json')}: #{validity}".then {|banner|
         if errors.empty?
           banner
         else

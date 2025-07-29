@@ -1,1 +1,1 @@
-Rails.application.config.session_store :cookie_store, key: "_repository"
+Rails.application.config.session_store :cookie_store, key: '_repository'

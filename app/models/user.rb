@@ -11,6 +11,6 @@ class User < ApplicationRecord
   end
 
   def token
-    JWT.encode({ user_id: id }, Rails.application.secret_key_base, "HS512")
+    JWT.encode({user_id: id}, Rails.application.secret_key_base, 'HS512')
   end
 end

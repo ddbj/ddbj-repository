@@ -6,10 +6,10 @@ class ApplicationController < ActionController::API
   def current_user
     return @current_user if defined?(@current_user)
 
-    @current_user = authenticate_with_http_token { |token|
-      next nil unless user = token.count(".") == 2 ? find_user_from_jwt(token) : find_user_from_api_key(token)
+    @current_user = authenticate_with_http_token {|token|
+      next nil unless user = token.count('.') == 2 ? find_user_from_jwt(token) : find_user_from_api_key(token)
 
-      if user.admin? && uid = request.headers["X-Dway-User-Id"]
+      if user.admin? && uid = request.headers['X-Dway-User-Id']
         User.find_by(uid:)
       else
         user
@@ -23,15 +23,15 @@ class ApplicationController < ActionController::API
     return if current_user
 
     render json: {
-      error: "Unauthorized"
+      error: 'Unauthorized'
     }, status: :unauthorized
   end
 
   def find_user_from_jwt(token)
     Rails.error.handle(JWT::DecodeError) {
-      payload, = JWT.decode(token, Rails.application.secret_key_base, true, algorithm: "HS512")
+      payload, = JWT.decode(token, Rails.application.secret_key_base, true, algorithm: 'HS512')
 
-      User.find_by(id: payload.fetch("user_id"))
+      User.find_by(id: payload.fetch('user_id'))
     }
   end
 

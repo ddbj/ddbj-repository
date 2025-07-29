@@ -21,7 +21,7 @@ class Validations::ViaFilesController < ApplicationController
 
       validation = current_user.validations.create!(db: db[:id])
 
-      validation.objs.create! _id: "_base"
+      validation.objs.create! _id: '_base'
 
       db[:objects].each do |obj|
         obj => {id:}
@@ -44,7 +44,7 @@ class Validations::ViaFilesController < ApplicationController
       validation.objs.create! _id: id, file: file, **rest.slice(:destination)
     in {path: relative_path, **rest}
       template = Rails.application.config_for(:app).mass_dir_path_template!
-      mass_dir = Pathname.new(template.gsub("{user}", current_user.uid))
+      mass_dir = Pathname.new(template.gsub('{user}', current_user.uid))
       path     = mass_dir.join(relative_path)
 
       raise UnprocessableEntity, "path must be in #{mass_dir}" unless mass_dir.contain?(path)
@@ -52,11 +52,11 @@ class Validations::ViaFilesController < ApplicationController
       destination = rest[:destination]
 
       if obj[:multiple] && path.directory?
-        path.glob("**/*").reject(&:directory?).each do |fpath|
+        path.glob('**/*').reject(&:directory?).each do |fpath|
           destination = [
             destination,
             fpath.relative_path_from(path).dirname.to_s
-          ].reject { _1.blank? || _1 == "." }.join("/").presence
+          ].reject { _1.blank? || _1 == '.' }.join('/').presence
 
           create_object validation, id, fpath, destination
         end

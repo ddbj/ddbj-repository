@@ -3,7 +3,7 @@ class Submission < ApplicationRecord
 
   delegated_type :param, types: %w[BioProjectSubmissionParam], optional: true, dependent: :destroy
 
-  validates :validation_id, uniqueness: { message: "is already submitted" }
+  validates :validation_id, uniqueness: {message: 'is already submitted'}
 
   validate :validation_must_be_valid
   validate :validation_finished_at_must_be_in_24_hours
@@ -22,20 +22,20 @@ class Submission < ApplicationRecord
   def dir
     base = Rails.application.config_for(:app).repository_dir!
 
-    Pathname.new(base).join(validation.user.uid, "submissions", public_id)
+    Pathname.new(base).join(validation.user.uid, 'submissions', public_id)
   end
 
   private
 
   def validation_must_be_valid
-    unless validation.validity == "valid"
-      errors.add :validation, "must be valid"
+    unless validation.validity == 'valid'
+      errors.add :validation, 'must be valid'
     end
   end
 
   def validation_finished_at_must_be_in_24_hours
-    if validation.validity == "valid" && validation.finished_at <= 1.day.ago
-      errors.add :validation, "finished_at must be in 24 hours"
+    if validation.validity == 'valid' && validation.finished_at <= 1.day.ago
+      errors.add :validation, 'finished_at must be in 24 hours'
     end
   end
 end

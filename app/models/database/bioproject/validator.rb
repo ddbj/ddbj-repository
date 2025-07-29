@@ -6,8 +6,8 @@ class Database::BioProject::Validator
     annotations = error.fetch(:annotation, []).index_by { _1.fetch(:key) }
 
     case error.fetch(:id)
-    when "BP_R0002"
-      xsd_message = annotations.fetch("XSD error message").fetch(:value)
+    when 'BP_R0002'
+      xsd_message = annotations.fetch('XSD error message').fetch(:value)
 
       "#{message} #{xsd_message}"
     else

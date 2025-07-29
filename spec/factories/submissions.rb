@@ -4,7 +4,7 @@ FactoryBot.define do
     visibility { :public }
 
     param {
-      if validation.db == "BioProject"
+      if validation.db == 'BioProject'
         association(:bioproject_submission_param)
       else
         nil
