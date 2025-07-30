@@ -2943,30 +2943,6 @@ components:
                 $ref: '#/components/schemas/Destination'
 
 
-    BioProjectViaDDBJRecord:
-      type: object
-      additionalProperties: false
-
-      required:
-        - db
-
-      properties:
-        db:
-          type: string
-          enum: [BioProject]
-
-    BioSampleViaDDBJRecord:
-      type: object
-      additionalProperties: false
-
-      required:
-        - db
-
-      properties:
-        db:
-          type: string
-          enum: [BioSample]
-
     TradViaDDBJRecord:
       type: object
       additionalProperties: false
@@ -2997,66 +2973,6 @@ components:
 
             destination:
               $ref: '#/components/schemas/Destination'
-
-    DRAViaDDBJRecord:
-      type: object
-      additionalProperties: false
-
-      required:
-        - db
-
-      properties:
-        db:
-          type: string
-          enum: [DRA]
-
-    GEAViaDDBJRecord:
-      type: object
-      additionalProperties: false
-
-      required:
-        - db
-
-      properties:
-        db:
-          type: string
-          enum: [GEA]
-
-    MetaboBankViaDDBJRecord:
-      type: object
-      additionalProperties: false
-
-      required:
-        - db
-
-      properties:
-        db:
-          type: string
-          enum: [MetaboBank]
-
-    JVarViaDDBJRecord:
-      type: object
-      additionalProperties: false
-
-      required:
-        - db
-
-      properties:
-        db:
-          type: string
-          enum: [JVar]
-
-    Trad2ViaDDBJRecord:
-      type: object
-      additionalProperties: false
-
-      required:
-        - db
-
-      properties:
-        db:
-          type: string
-          enum: [Trad2]
 
   requestBodies:
     ViaFile:
@@ -3091,27 +3007,13 @@ components:
         multipart/form-data:
           schema:
             oneOf:
-              - $ref: '#/components/schemas/BioProjectViaDDBJRecord'
-              - $ref: '#/components/schemas/BioSampleViaDDBJRecord'
               - $ref: '#/components/schemas/TradViaDDBJRecord'
-              - $ref: '#/components/schemas/DRAViaDDBJRecord'
-              - $ref: '#/components/schemas/GEAViaDDBJRecord'
-              - $ref: '#/components/schemas/MetaboBankViaDDBJRecord'
-              - $ref: '#/components/schemas/JVarViaDDBJRecord'
-              - $ref: '#/components/schemas/Trad2ViaDDBJRecord'
 
             discriminator:
               propertyName: db
 
               mapping:
-                BioProject: '#/components/schemas/BioProjectViaDDBJRecord'
-                BioSample: '#/components/schemas/BioSampleViaDDBJRecord'
                 Trad: '#/components/schemas/TradViaDDBJRecord'
-                DRA: '#/components/schemas/DRAViaDDBJRecord'
-                GEA: '#/components/schemas/GEAViaDDBJRecord'
-                MetaboBank: '#/components/schemas/MetaboBankViaDDBJRecord'
-                JVar: '#/components/schemas/JVarViaDDBJRecord'
-                Trad2: '#/components/schemas/Trad2ViaDDBJRecord'
 
   responses:
     Validations:
