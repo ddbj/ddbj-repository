@@ -173,6 +173,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/validations/via_ddbj_record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Validate DDBJRecord. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["ViaDDBJRecord"];
+            responses: {
+                /** @description The validation process initiated successfully. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Validation"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                422: components["responses"]["UnprocessableEntity"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/validations/{id}": {
         parameters: {
             query?: never;
@@ -885,7 +924,7 @@ export interface components {
         };
         Objects: {
             /** @enum {string} */
-            id: "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
+            id: "BioProject" | "BioSample" | "Sequence" | "Annotation" | "DDBJRecord" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
             files: {
                 path: string;
                 /** Format: uri */
@@ -894,7 +933,7 @@ export interface components {
         }[];
         ValidationResult: {
             /** @enum {string} */
-            object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
+            object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "DDBJRecord" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
             /** @enum {string|null} */
             validity: "valid" | "invalid" | "error" | null;
             details: {
@@ -1106,6 +1145,67 @@ export interface components {
                 destination?: components["schemas"]["Destination"];
             } & (unknown | unknown))[];
         };
+        BioProjectViaDDBJRecord: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            db: "BioProject";
+        };
+        BioSampleViaDDBJRecord: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            db: "BioSample";
+        };
+        TradViaDDBJRecord: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            db: "Trad";
+            DDBJRecord: {
+                file?: components["schemas"]["File"];
+                path?: components["schemas"]["Path"];
+                destination?: components["schemas"]["Destination"];
+            } & (unknown | unknown);
+        };
+        DRAViaDDBJRecord: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            db: "DRA";
+        };
+        GEAViaDDBJRecord: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            db: "GEA";
+        };
+        MetaboBankViaDDBJRecord: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            db: "MetaboBank";
+        };
+        JVarViaDDBJRecord: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            db: "JVar";
+        };
+        Trad2ViaDDBJRecord: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            db: "Trad2";
+        };
     };
     responses: {
         /** @description Return your validations. */
@@ -1170,6 +1270,11 @@ export interface components {
         ViaFile: {
             content: {
                 "multipart/form-data": components["schemas"]["BioProjectViaFile"] | components["schemas"]["BioSampleViaFile"] | components["schemas"]["TradViaFile"] | components["schemas"]["DRAViaFile"] | components["schemas"]["GEAViaFile"] | components["schemas"]["MetaboBankViaFile"] | components["schemas"]["JVarViaFile"] | components["schemas"]["Trad2ViaFile"];
+            };
+        };
+        ViaDDBJRecord: {
+            content: {
+                "multipart/form-data": components["schemas"]["BioProjectViaDDBJRecord"] | components["schemas"]["BioSampleViaDDBJRecord"] | components["schemas"]["TradViaDDBJRecord"] | components["schemas"]["DRAViaDDBJRecord"] | components["schemas"]["GEAViaDDBJRecord"] | components["schemas"]["MetaboBankViaDDBJRecord"] | components["schemas"]["JVarViaDDBJRecord"] | components["schemas"]["Trad2ViaDDBJRecord"];
             };
         };
     };

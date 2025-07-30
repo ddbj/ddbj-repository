@@ -224,6 +224,34 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
+  /validations/via_ddbj_record:
+    post:
+      description: Validate DDBJRecord.
+
+      tags:
+        - Validation
+
+      requestBody:
+        $ref: '#/components/requestBodies/ViaDDBJRecord'
+
+      responses:
+        '201':
+          description: The validation process initiated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Validation'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   /validations/{id}:
     get:
       description: Get the validation.
@@ -734,7 +762,7 @@ components:
             type: string
 
             enum:
-              <%- dbs.flat_map { _1[:objects] }.map { _1[:id] }.uniq.each do |obj_id| -%>
+              <%- dbs.flat_map { _1[:objects].values.flatten }.map { _1[:id] }.uniq.each do |obj_id| -%>
               - <%= obj_id %>
               <%- end -%>
 
@@ -765,7 +793,7 @@ components:
 
           enum:
             - _base
-            <%- dbs.flat_map { _1[:objects] }.uniq { _1[:id] }.each do |obj| -%>
+            <%- dbs.flat_map { _1[:objects].values.flatten }.uniq { _1[:id] }.each do |obj| -%>
             - <%= obj[:id] %>
             <%- end -%>
 
@@ -851,7 +879,7 @@ components:
 
       required:
         - db
-        <%- db[:objects].select { _1[:required] }.each do |obj| -%>
+        <%- db[:objects][:file].select { _1[:required] }.each do |obj| -%>
         - <%= obj[:id] %>
         <%- end -%>
 
@@ -860,7 +888,68 @@ components:
           type: string
           enum: [<%= db[:id] %>]
 
-        <%- db[:objects].each do |obj| -%>
+        <%- db[:objects][:file].each do |obj| -%>
+        <%= obj[:id] %>:
+          <%- if obj[:multiple] -%>
+          type: array
+          minItems: <%= obj[:required] ? 1 : 0 %>
+
+          items:
+            type: object
+            additionalProperties: false
+
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+          <%- else -%>
+          type: object
+          additionalProperties: false
+
+          oneOf:
+            - required: [file]
+            - required: [path]
+
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
+          <%- end -%>
+
+        <%- end -%>
+      <%- end -%>
+
+    <%- dbs.each do |db| -%>
+    <%= db[:id] %>ViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+        <%- db[:objects][:ddbj_record]&.select { _1[:required] }.each do |obj| -%>
+        - <%= obj[:id] %>
+        <%- end -%>
+
+      properties:
+        db:
+          type: string
+          enum: [<%= db[:id] %>]
+
+        <%- db[:objects][:ddbj_record].each do |obj| -%>
         <%= obj[:id] %>:
           <%- if obj[:multiple] -%>
           type: array
@@ -920,6 +1009,23 @@ components:
               mapping:
                 <%- dbs.each do |db| -%>
                 <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>ViaFile'
+                <%- end -%>
+
+    ViaDDBJRecord:
+      content:
+        multipart/form-data:
+          schema:
+            oneOf:
+              <%- dbs.each do |db| -%>
+              - $ref: '#/components/schemas/<%= db[:id] %>ViaDDBJRecord'
+              <%- end -%>
+
+            discriminator:
+              propertyName: db
+
+              mapping:
+                <%- dbs.each do |db| -%>
+                <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>ViaDDBJRecord'
                 <%- end -%>
 
   responses:

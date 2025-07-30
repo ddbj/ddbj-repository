@@ -229,6 +229,34 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
+  /validations/via_ddbj_record:
+    post:
+      description: Validate DDBJRecord.
+
+      tags:
+        - Validation
+
+      requestBody:
+        $ref: '#/components/requestBodies/ViaDDBJRecord'
+
+      responses:
+        '201':
+          description: The validation process initiated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Validation'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   /validations/{id}:
     get:
       description: Get the validation.
@@ -2138,6 +2166,7 @@ components:
               - BioSample
               - Sequence
               - Annotation
+              - DDBJRecord
               - Submission
               - Experiment
               - Run
@@ -2185,6 +2214,7 @@ components:
             - BioSample
             - Sequence
             - Annotation
+            - DDBJRecord
             - Submission
             - Experiment
             - Run
@@ -2912,6 +2942,122 @@ components:
               destination:
                 $ref: '#/components/schemas/Destination'
 
+
+    BioProjectViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+
+      properties:
+        db:
+          type: string
+          enum: [BioProject]
+
+    BioSampleViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+
+      properties:
+        db:
+          type: string
+          enum: [BioSample]
+
+    TradViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+        - DDBJRecord
+
+      properties:
+        db:
+          type: string
+          enum: [Trad]
+
+        DDBJRecord:
+          type: object
+          additionalProperties: false
+
+          oneOf:
+            - required: [file]
+            - required: [path]
+
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
+
+    DRAViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+
+      properties:
+        db:
+          type: string
+          enum: [DRA]
+
+    GEAViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+
+      properties:
+        db:
+          type: string
+          enum: [GEA]
+
+    MetaboBankViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+
+      properties:
+        db:
+          type: string
+          enum: [MetaboBank]
+
+    JVarViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+
+      properties:
+        db:
+          type: string
+          enum: [JVar]
+
+    Trad2ViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+
+      properties:
+        db:
+          type: string
+          enum: [Trad2]
+
   requestBodies:
     ViaFile:
       content:
@@ -2939,6 +3085,33 @@ components:
                 MetaboBank: '#/components/schemas/MetaboBankViaFile'
                 JVar: '#/components/schemas/JVarViaFile'
                 Trad2: '#/components/schemas/Trad2ViaFile'
+
+    ViaDDBJRecord:
+      content:
+        multipart/form-data:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/BioProjectViaDDBJRecord'
+              - $ref: '#/components/schemas/BioSampleViaDDBJRecord'
+              - $ref: '#/components/schemas/TradViaDDBJRecord'
+              - $ref: '#/components/schemas/DRAViaDDBJRecord'
+              - $ref: '#/components/schemas/GEAViaDDBJRecord'
+              - $ref: '#/components/schemas/MetaboBankViaDDBJRecord'
+              - $ref: '#/components/schemas/JVarViaDDBJRecord'
+              - $ref: '#/components/schemas/Trad2ViaDDBJRecord'
+
+            discriminator:
+              propertyName: db
+
+              mapping:
+                BioProject: '#/components/schemas/BioProjectViaDDBJRecord'
+                BioSample: '#/components/schemas/BioSampleViaDDBJRecord'
+                Trad: '#/components/schemas/TradViaDDBJRecord'
+                DRA: '#/components/schemas/DRAViaDDBJRecord'
+                GEA: '#/components/schemas/GEAViaDDBJRecord'
+                MetaboBank: '#/components/schemas/MetaboBankViaDDBJRecord'
+                JVar: '#/components/schemas/JVarViaDDBJRecord'
+                Trad2: '#/components/schemas/Trad2ViaDDBJRecord'
 
   responses:
     Validations:
