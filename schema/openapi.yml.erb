@@ -933,7 +933,7 @@ components:
         <%- end -%>
       <%- end -%>
 
-    <%- dbs.each do |db| -%>
+    <%- dbs.reject { it[:objects][:ddbj_record].empty? }.each do |db| -%>
     <%= db[:id] %>ViaDDBJRecord:
       type: object
       additionalProperties: false
@@ -1016,7 +1016,7 @@ components:
         multipart/form-data:
           schema:
             oneOf:
-              <%- dbs.each do |db| -%>
+              <%- dbs.reject { it[:objects][:ddbj_record].empty? }.each do |db| -%>
               - $ref: '#/components/schemas/<%= db[:id] %>ViaDDBJRecord'
               <%- end -%>
 
@@ -1024,7 +1024,7 @@ components:
               propertyName: db
 
               mapping:
-                <%- dbs.each do |db| -%>
+                <%- dbs.reject { it[:objects][:ddbj_record].empty? }.each do |db| -%>
                 <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>ViaDDBJRecord'
                 <%- end -%>
 

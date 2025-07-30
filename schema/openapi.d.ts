@@ -1145,20 +1145,6 @@ export interface components {
                 destination?: components["schemas"]["Destination"];
             } & (unknown | unknown))[];
         };
-        BioProjectViaDDBJRecord: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            db: "BioProject";
-        };
-        BioSampleViaDDBJRecord: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            db: "BioSample";
-        };
         TradViaDDBJRecord: {
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -1170,41 +1156,6 @@ export interface components {
                 path?: components["schemas"]["Path"];
                 destination?: components["schemas"]["Destination"];
             } & (unknown | unknown);
-        };
-        DRAViaDDBJRecord: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            db: "DRA";
-        };
-        GEAViaDDBJRecord: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            db: "GEA";
-        };
-        MetaboBankViaDDBJRecord: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            db: "MetaboBank";
-        };
-        JVarViaDDBJRecord: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            db: "JVar";
-        };
-        Trad2ViaDDBJRecord: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            db: "Trad2";
         };
     };
     responses: {
@@ -1274,7 +1225,7 @@ export interface components {
         };
         ViaDDBJRecord: {
             content: {
-                "multipart/form-data": components["schemas"]["BioProjectViaDDBJRecord"] | components["schemas"]["BioSampleViaDDBJRecord"] | components["schemas"]["TradViaDDBJRecord"] | components["schemas"]["DRAViaDDBJRecord"] | components["schemas"]["GEAViaDDBJRecord"] | components["schemas"]["MetaboBankViaDDBJRecord"] | components["schemas"]["JVarViaDDBJRecord"] | components["schemas"]["Trad2ViaDDBJRecord"];
+                "multipart/form-data": components["schemas"]["TradViaDDBJRecord"];
             };
         };
     };

@@ -46,7 +46,7 @@ export default [
       ],
       "ddbj_record": [
         {
-          "id": "DDBJ Record",
+          "id": "DDBJRecord",
           "ext": "json",
           "required": true,
           "multiple": false
