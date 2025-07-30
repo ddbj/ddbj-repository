@@ -5,7 +5,7 @@ module TradValidation
 
       unless exts.any? { obj.path.end_with?(_1) }
         obj.validation_details.create!(
-          severity: "error",
+          severity: 'error',
           message:  "The extension should be one of the following: #{exts.join(', ')}"
         )
       end
@@ -13,11 +13,11 @@ module TradValidation
   end
 
   def validate_nwise(objs, assoc)
-    objs.group_by { |obj|
+    objs.group_by {|obj|
       exts = assoc.fetch(obj._id)
       ext  = exts.find { obj.path.end_with?(_1) }
 
-      ext ? obj.path.delete_suffix(ext) : obj.path.sub(/\..+?\z/, "")
+      ext ? obj.path.delete_suffix(ext) : obj.path.sub(/\..+?\z/, '')
     }.each do |basename, objs|
       objs_by_id = objs.group_by(&:_id)
 
@@ -29,7 +29,7 @@ module TradValidation
         when 0
           other_objs.each do |obj|
             obj.validation_details.create!(
-              severity: "error",
+              severity: 'error',
               message:  "There is no corresponding #{id.downcase} file."
             )
           end
@@ -38,7 +38,7 @@ module TradValidation
         else
           objs.each do |obj|
             obj.validation_details.create!(
-              severity: "error",
+              severity: 'error',
               message:  "Duplicate #{id.downcase} files with the same name exist."
             )
           end
@@ -48,11 +48,11 @@ module TradValidation
   end
 
   def validate_seq(objs)
-    objs.select { _1._id == "Sequence" }.each do |obj|
+    objs.select { _1._id == 'Sequence' }.each do |obj|
       unless contain_at_least_one_entry_in_seq?(obj.file)
         obj.validation_details.create!(
-          severity: "error",
-          message:  "No entries found."
+          severity: 'error',
+          message:  'No entries found.'
         )
       end
     end
@@ -62,7 +62,7 @@ module TradValidation
     bol = true
 
     file.download do |chunk|
-      return true if bol && chunk.start_with?(">")
+      return true if bol && chunk.start_with?('>')
       return true if /[\r\n]>/.match?(chunk)
 
       bol = chunk.end_with?("\r", "\n")

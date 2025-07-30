@@ -54,7 +54,7 @@ class TestBioProject < Thor
     Parallel.each src.glob('*.xml'), in_threads: 3 do |path|
       say path.basename
 
-      res = path.open { |file|
+      res = path.open {|file|
         body = fetch("#{API_URL}/validations/via_file", **{
           method: :post,
 
@@ -131,7 +131,7 @@ class TestBioProject < Thor
         _1.fetch(:severity) == 'error'
       }
 
-      say "#{path.basename('.json')}: #{validity}".then { |banner|
+      say "#{path.basename('.json')}: #{validity}".then {|banner|
         if errors.empty?
           banner
         else

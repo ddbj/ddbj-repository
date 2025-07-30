@@ -1,10 +1,10 @@
 class BioSample::SubmissionForm < BioSample::Record
-  self.table_name = "submission_form"
+  self.table_name = 'submission_form'
 
-  has_one :submission, class_name: "BioSample::Submission", foreign_key: "submission_id", inverse_of: :form
+  has_one :submission, class_name: 'BioSample::Submission', foreign_key: 'submission_id', inverse_of: :form
 
-  has_many :contact_forms, class_name: "BioSample::ContactForm", foreign_key: "submission_id"
-  has_many :link_forms,    class_name: "BioSample::LinkForm",    foreign_key: "submission_id"
+  has_many :contact_forms, class_name: 'BioSample::ContactForm', foreign_key: 'submission_id'
+  has_many :link_forms,    class_name: 'BioSample::LinkForm',    foreign_key: 'submission_id'
 
   enum :release_type, {
     hold:    1,

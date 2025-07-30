@@ -1,1 +1,1 @@
-render(partial: "submission", collection: @submissions)
+render(partial: 'submission', collection: @submissions)

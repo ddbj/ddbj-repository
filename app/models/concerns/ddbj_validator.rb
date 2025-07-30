@@ -6,8 +6,8 @@ module DDBJValidator
       obj = validation.objs.without_base.sole # either BioProject or BioSample
 
       begin
-        res = dir.join(obj.path).open { |file|
-          fetch("/validation", **{
+        res = dir.join(obj.path).open {|file|
+          fetch('/validation', **{
             method: :post,
 
             body: Fetch::FormData.build(
@@ -23,14 +23,14 @@ module DDBJValidator
         obj.validity_error!
 
         obj.validation_details.create!(
-          severity: "error",
+          severity: 'error',
           message:  e.message
         )
       else
         validation.update! raw_result: body
 
         if finished
-          obj.update! validity: body.dig(:result, :validity) ? "valid" : "invalid"
+          obj.update! validity: body.dig(:result, :validity) ? 'valid' : 'invalid'
 
           body.dig(:result, :messages).each do |error|
             code, severity = error.fetch_values(:id, :level)
@@ -42,7 +42,7 @@ module DDBJValidator
           obj.validity_error!
 
           obj.validation_details.create!(
-            severity: "error",
+            severity: 'error',
             message:  body.fetch(:message)
           )
         end
@@ -60,12 +60,12 @@ module DDBJValidator
       status = body.fetch(:status)
 
       case status
-      when "accepted", "running"
+      when 'accepted', 'running'
         sleep 1 unless Rails.env.test?
-      when "finished", "error"
+      when 'finished', 'error'
         res = fetch("/validation/#{uuid}")
 
-        return [ status == "finished", res.json ]
+        return [status == 'finished', res.json]
       else
         raise "must not happen: #{body.to_json}"
       end

@@ -1,1 +1,1 @@
-render(partial: "validation", collection: @validations)
+render(partial: 'validation', collection: @validations)

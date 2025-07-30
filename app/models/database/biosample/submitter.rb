@@ -14,7 +14,7 @@ class Database::BioSample::Submitter
         tx.after_rollback do
           BioSample::OperationHistory.create!(
             type:         :fatal,
-            summary:      "[repository:CreateNewSubmission] Number of submission surpass the upper limit",
+            summary:      '[repository:CreateNewSubmission] Number of submission surpass the upper limit',
             date:         Time.current,
             submitter_id:
           )
@@ -26,13 +26,13 @@ class Database::BioSample::Submitter
       tx.after_rollback do
         BioSample::OperationHistory.create!(
           type:         :error,
-          summary:      "[repository:CreateNewSubmission] rollback transaction",
+          summary:      '[repository:CreateNewSubmission] rollback transaction',
           date:         Time.current,
           submitter_id:
         )
       end
 
-      content = submission.validation.objs.find_by!(_id: "BioSample").file.download
+      content = submission.validation.objs.find_by!(_id: 'BioSample').file.download
       doc     = Nokogiri::XML.parse(content)
 
       organization     = organization(doc)
@@ -48,7 +48,7 @@ class Database::BioSample::Submitter
         status_id:           :data_submitted,
         organization:,
         organization_url:,
-        release_type:        submission.visibility_public? ? "release" : "hold",
+        release_type:        submission.visibility_public? ? 'release' : 'hold',
         attribute_file_name: "#{submission_id}.tsv",
         attribute_file:      attribute_file(attributes_assoc),
         comment:             comment(doc),
@@ -66,14 +66,14 @@ class Database::BioSample::Submitter
 
       contacts = contacts(doc)
 
-      bs_submission_form.contact_forms.insert_all contacts.map.with_index(1) { |contact, i|
+      bs_submission_form.contact_forms.insert_all contacts.map.with_index(1) {|contact, i|
         {
           **contact,
           seq_no: i
         }
       }
 
-      bs_submission.contacts.insert_all! contacts.map.with_index(1) { |contact, i|
+      bs_submission.contacts.insert_all! contacts.map.with_index(1) {|contact, i|
         {
           **contact,
           seq_no: i
@@ -82,7 +82,7 @@ class Database::BioSample::Submitter
 
       links = links(doc)
 
-      bs_submission_form.link_forms.insert_all! links.map.with_index(1) { |link, i|
+      bs_submission_form.link_forms.insert_all! links.map.with_index(1) {|link, i|
         {
           **link,
           seq_no: i
@@ -92,7 +92,7 @@ class Database::BioSample::Submitter
       sample_names(doc).each do |sample_name|
         sample = bs_submission.samples.create!(
           sample_name:,
-          release_type:  submission.visibility_public? ? "release" : "hold",
+          release_type:  submission.visibility_public? ? 'release' : 'hold',
           release_date:  nil,
           package_group:,
           package:       package_id,
@@ -102,7 +102,7 @@ class Database::BioSample::Submitter
 
         attributes = attributes_assoc.fetch(sample_name)
 
-        sample._attributes.insert_all! attributes.map.with_index(1) { |(name, value), i|
+        sample._attributes.insert_all! attributes.map.with_index(1) {|(name, value), i|
           {
             attribute_name:  name,
             attribute_value: value,
@@ -110,7 +110,7 @@ class Database::BioSample::Submitter
           }
         }
 
-        sample.links.insert_all! links.map.with_index(1) { |link, i|
+        sample.links.insert_all! links.map.with_index(1) {|link, i|
           {
             **link,
             seq_no: i
@@ -140,7 +140,7 @@ class Database::BioSample::Submitter
 
       BioSample::OperationHistory.create!(
         type:          :info,
-        summary:       "[repository:CreateNewSubmission] Create new submission",
+        summary:       '[repository:CreateNewSubmission] Create new submission',
         date:          Time.current,
         submitter_id:,
         submission_id:
@@ -151,8 +151,8 @@ class Database::BioSample::Submitter
   private
 
   def next_submission_id
-    submission_id = BioSample::SubmissionForm.order(submission_id: :desc).pick(:submission_id) || "SSUB000000"
-    num           = submission_id.delete_prefix("SSUB").to_i
+    submission_id = BioSample::SubmissionForm.order(submission_id: :desc).pick(:submission_id) || 'SSUB000000'
+    num           = submission_id.delete_prefix('SSUB').to_i
 
     raise SubmissionIDOverflow if num >= 999_999
 
@@ -160,9 +160,9 @@ class Database::BioSample::Submitter
   end
 
   def organization(doc)
-    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
-      biosample.at("Owner/Name")&.text
-    }.then { |orgnaizations|
+    doc.xpath('/BioSampleSet/BioSample').map {|biosample|
+      biosample.at('Owner/Name')&.text
+    }.then {|orgnaizations|
       raise "Inconsistent Owner/Name: #{orgnaizations.inspect}" if orgnaizations.uniq.size > 1
 
       orgnaizations.first
@@ -170,9 +170,9 @@ class Database::BioSample::Submitter
   end
 
   def organization_url(doc)
-    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
-      biosample.at("Owner/Name/@url")&.text
-    }.then { |organization_urls|
+    doc.xpath('/BioSampleSet/BioSample').map {|biosample|
+      biosample.at('Owner/Name/@url')&.text
+    }.then {|organization_urls|
       raise "Inconsistent Owner/Name/@url: #{organization_urls.inspect}" if organization_urls.uniq.size > 1
 
       organization_urls.first
@@ -180,9 +180,9 @@ class Database::BioSample::Submitter
   end
 
   def package_id(doc)
-    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
-      biosample.at("Models/Model")&.text
-    }.then { |models|
+    doc.xpath('/BioSampleSet/BioSample').map {|biosample|
+      biosample.at('Models/Model')&.text
+    }.then {|models|
       raise "Inconsistent Models/Model: #{models.inspect}" if models.uniq.size > 1
 
       models.first
@@ -204,8 +204,8 @@ class Database::BioSample::Submitter
 
     packages = collect_packages.call(body)
 
-    packages_assoc       = packages.select { _1.fetch(:type) == "package" }.index_by { _1.fetch(:package_id) }
-    package_groups_assoc = packages.select { _1.fetch(:type) == "package_group" }.index_by { _1.fetch(:package_group_uri) }
+    packages_assoc       = packages.select { _1.fetch(:type) == 'package' }.index_by { _1.fetch(:package_id) }
+    package_groups_assoc = packages.select { _1.fetch(:type) == 'package_group' }.index_by { _1.fetch(:package_group_uri) }
 
     package       = packages_assoc.fetch(package_id)
     package_group = package_groups_assoc.fetch(package.fetch(:parent_package_group_uri))
@@ -217,24 +217,24 @@ class Database::BioSample::Submitter
   end
 
   def attributes_assoc(doc)
-    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
-      biosample.xpath("Attributes/Attribute").map { |attribute|
+    doc.xpath('/BioSampleSet/BioSample').map {|biosample|
+      biosample.xpath('Attributes/Attribute').map {|attribute|
         [
           attribute[:attribute_name],
           attribute.text
         ]
       }.to_h
-    }.then { |attributes_list|
+    }.then {|attributes_list|
       keys_list = attributes_list.map(&:keys)
 
       raise "Inconsistent Attributes/Attribute/@attribute_name: #{keys_list.inspect}" if keys_list.uniq.size > 1
 
-      attributes_list.index_by { _1.fetch("sample_name") }
+      attributes_list.index_by { _1.fetch('sample_name') }
     }
   end
 
   def attribute_file(assoc)
-    CSV.generate(col_sep: "\t") { |tsv|
+    CSV.generate(col_sep: "\t") {|tsv|
       assoc.values.each_with_index do |attributes, i|
         tsv << attributes.keys if i.zero?
         tsv << attributes.values
@@ -243,9 +243,9 @@ class Database::BioSample::Submitter
   end
 
   def comment(doc)
-    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
-      biosample.at("Description/Comment/Paragraph")&.text
-    }.then { |comments|
+    doc.xpath('/BioSampleSet/BioSample').map {|biosample|
+      biosample.at('Description/Comment/Paragraph')&.text
+    }.then {|comments|
       raise "Inconsistent Description/Comment/Paragraph: #{comments.inspect}" if comments.uniq.size > 1
 
       comments.first
@@ -253,15 +253,15 @@ class Database::BioSample::Submitter
   end
 
   def contacts(doc)
-    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
-      biosample.xpath("Owner/Contacts/Contact").map { |contact|
+    doc.xpath('/BioSampleSet/BioSample').map {|biosample|
+      biosample.xpath('Owner/Contacts/Contact').map {|contact|
         {
-          first_name: contact.at("Name/First")&.text,
-          last_name:  contact.at("Name/Last")&.text,
+          first_name: contact.at('Name/First')&.text,
+          last_name:  contact.at('Name/Last')&.text,
           email:      contact[:email]
         }
       }
-    }.then { |contacts_list|
+    }.then {|contacts_list|
       raise "Inconsistent Owner/Contacts/Contact: #{contacts_list.inspect}" if contacts_list.uniq.size > 1
 
       contacts_list.first
@@ -269,14 +269,14 @@ class Database::BioSample::Submitter
   end
 
   def links(doc)
-    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
-      biosample.xpath("Links/Link").map { |link|
+    doc.xpath('/BioSampleSet/BioSample').map {|biosample|
+      biosample.xpath('Links/Link').map {|link|
         {
           description: link[:label],
           url:         link.text
         }
       }
-    }.then { |links_list|
+    }.then {|links_list|
       raise "Inconsistent Links/Link: #{links_list.inspect}" if links_list.uniq.size > 1
 
       links_list.first
@@ -284,8 +284,8 @@ class Database::BioSample::Submitter
   end
 
   def sample_names(doc)
-    doc.xpath("/BioSampleSet/BioSample").map { |biosample|
-      biosample.xpath("Description/SampleName")&.text
+    doc.xpath('/BioSampleSet/BioSample').map {|biosample|
+      biosample.xpath('Description/SampleName')&.text
     }
   end
 end

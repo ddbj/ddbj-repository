@@ -1,3 +1,3 @@
 class DRASearch::TaxName < DRASearch::Record
-  self.table_name = "tax_names"
+  self.table_name = 'tax_names'
 end

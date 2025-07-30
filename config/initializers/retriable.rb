@@ -1,4 +1,4 @@
-require_relative "../../app/refinements/fetch_raise_error"
+require_relative '../../app/refinements/fetch_raise_error'
 
 Retriable.configure do |config|
   config.contexts[:fetch] = {

@@ -1,7 +1,7 @@
 if Rails.env.test?
   Rails.application.routes.default_url_options = {
-    protocol: "http",
-    host:     "www.example.com",
+    protocol: 'http',
+    host:     'www.example.com',
     port:     80
   }
 else

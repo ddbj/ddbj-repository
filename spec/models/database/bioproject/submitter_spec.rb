@@ -1,4 +1,4 @@
-require "rails_helper"
+require 'rails_helper'
 
 RSpec.describe Database::BioProject::Submitter do
   def create_submission(visibility:, file:)
@@ -10,7 +10,7 @@ RSpec.describe Database::BioProject::Submitter do
 
         objs: [
           build(:obj, **{
-            _id:      "BioProject",
+            _id:      'BioProject',
             file:     file_fixture(file),
             validity: :valid
           })
@@ -19,398 +19,398 @@ RSpec.describe Database::BioProject::Submitter do
     })
   end
 
-  let(:user) { create(:user, uid: "alice") }
+  let(:user) { create(:user, uid: 'alice') }
 
-  example "submit" do
-    travel_to "2024-01-02 12:34:56"
+  example 'submit' do
+    travel_to '2024-01-02 12:34:56'
 
-    submission = create_submission(visibility: :private, file: "bioproject/hup.xml")
+    submission = create_submission(visibility: :private, file: 'bioproject/hup.xml')
 
     Database::BioProject::Submitter.new.submit submission
 
     expect(BioProject::Submission.sole).to have_attributes(
-      submission_id:     "PSUB000001",
-      submitter_id:      "alice",
-      status_id:         "data_submitted",
-      form_status_flags: "000000"
+      submission_id:     'PSUB000001',
+      submitter_id:      'alice',
+      status_id:         'data_submitted',
+      form_status_flags: '000000'
     )
 
     expect(BioProject::Project.sole).to have_attributes(
-      submission_id: "PSUB000001",
-      project_type:  "primary",
-      status_id:     "private",
+      submission_id: 'PSUB000001',
+      project_type:  'primary',
+      status_id:     'private',
       release_date:  nil,
       dist_date:     nil,
-      modified_date: "2024-01-02 12:34:56".to_time
+      modified_date: '2024-01-02 12:34:56'.to_time
     )
 
     expect(BioProject::XML.sole).to have_attributes(
-      submission_id:   "PSUB000001",
+      submission_id:   'PSUB000001',
       content:         instance_of(String),
       version:         1,
-      registered_date: "2024-01-02 12:34:56 +0900"
+      registered_date: '2024-01-02 12:34:56 +0900'
     )
 
     doc        = Nokogiri::XML.parse(BioProject::XML.sole.content)
-    archive_id = doc.at("/PackageSet/Package/Project/Project/ProjectID/ArchiveID")
+    archive_id = doc.at('/PackageSet/Package/Project/Project/ProjectID/ArchiveID')
 
-    expect(archive_id[:accession]).to eq("PSUB000001")
-    expect(archive_id[:archive]).to eq("DDBJ")
+    expect(archive_id[:accession]).to eq('PSUB000001')
+    expect(archive_id[:archive]).to eq('DDBJ')
 
     expect(BioProject::ActionHistory.sole).to have_attributes(
-      submission_id: "PSUB000001",
-      action:        "[repository:CreateNewSubmission] Create new submission",
-      action_date:   "2024-01-02 12:34:56".to_time,
+      submission_id: 'PSUB000001',
+      action:        '[repository:CreateNewSubmission] Create new submission',
+      action_date:   '2024-01-02 12:34:56'.to_time,
       result:        true,
-      action_level:  "info",
-      submitter_id:  "alice"
+      action_level:  'info',
+      submitter_id:  'alice'
     )
 
     ext_entity = DRMDB::ExtEntity.sole
 
     expect(ext_entity).to have_attributes(
       ext_id:   instance_of(Integer),
-      acc_type: "study",
-      ref_name: "PSUB000001",
-      status:   "valid"
+      acc_type: 'study',
+      ref_name: 'PSUB000001',
+      status:   'valid'
     )
 
     expect(DRMDB::ExtPermit.sole).to have_attributes(
       ext_id:       ext_entity.ext_id,
-      submitter_id: "alice"
+      submitter_id: 'alice'
     )
 
     expect(BioProject::SubmissionDatum.all).to include(
       have_attributes(
-        submission_id: "PSUB000001",
-        form_name:     "general_info",
-        data_name:     "project_title",
-        data_value:    "Title text",
+        submission_id: 'PSUB000001',
+        form_name:     'general_info',
+        data_name:     'project_title',
+        data_value:    'Title text',
         t_order:       -1
       ),
       have_attributes(
-        submission_id: "PSUB000001",
-        form_name:     "general_info",
-        data_name:     "public_description",
-        data_value:    "Description text",
+        submission_id: 'PSUB000001',
+        form_name:     'general_info',
+        data_name:     'public_description',
+        data_value:    'Description text',
         t_order:       -1
       )
     )
   end
 
-  example "visibility: public" do
-    travel_to "2024-01-02 12:34:56"
+  example 'visibility: public' do
+    travel_to '2024-01-02 12:34:56'
 
-    submission = create_submission(visibility: :public, file: "bioproject/nonhup.xml")
+    submission = create_submission(visibility: :public, file: 'bioproject/nonhup.xml')
 
     Database::BioProject::Submitter.new.submit submission
 
     expect(BioProject::Project.sole).to have_attributes(
-      submission_id: "PSUB000001",
-      project_type:  "primary",
-      status_id:     "public",
-      release_date:  "2024-01-02 12:34:56".to_time,
-      dist_date:     "2024-01-02 12:34:56".to_time,
-      modified_date: "2024-01-02 12:34:56".to_time
+      submission_id: 'PSUB000001',
+      project_type:  'primary',
+      status_id:     'public',
+      release_date:  '2024-01-02 12:34:56'.to_time,
+      dist_date:     '2024-01-02 12:34:56'.to_time,
+      modified_date: '2024-01-02 12:34:56'.to_time
     )
   end
 
-  example "full" do
-    submission = create_submission(visibility: :private, file: "bioproject/full.xml")
+  example 'full' do
+    submission = create_submission(visibility: :private, file: 'bioproject/full.xml')
 
     Database::BioProject::Submitter.new.submit submission
 
     expect(BioProject::SubmissionDatum.all.map { _1.slice(:form_name, :data_name, :data_value, :t_order).symbolize_keys }).to eq([
       {
-        form_name:  "submitter",
-        data_name:  "first_name",
-        data_value: "submitter.first_name.1?",
+        form_name:  'submitter',
+        data_name:  'first_name',
+        data_value: 'submitter.first_name.1?',
         t_order:    1
       },
       {
-        form_name:  "submitter",
-        data_name:  "last_name",
-        data_value: "submitter.last_name.1",
+        form_name:  'submitter',
+        data_name:  'last_name',
+        data_value: 'submitter.last_name.1',
         t_order:    1
       },
       {
-        form_name:  "submitter",
-        data_name:  "email",
-        data_value: "submitter.email.1?",
+        form_name:  'submitter',
+        data_name:  'email',
+        data_value: 'submitter.email.1?',
         t_order:    1
       },
       {
-        form_name:  "submitter",
-        data_name:  "first_name",
-        data_value: "submitter.first_name.2?",
+        form_name:  'submitter',
+        data_name:  'first_name',
+        data_value: 'submitter.first_name.2?',
         t_order:    2
       },
       {
-        form_name:  "submitter",
-        data_name:  "last_name",
-        data_value: "submitter.last_name.2",
+        form_name:  'submitter',
+        data_name:  'last_name',
+        data_value: 'submitter.last_name.2',
         t_order:    2
       },
       {
-        form_name:  "submitter",
-        data_name:  "email",
-        data_value: "submitter.email.2?",
+        form_name:  'submitter',
+        data_name:  'email',
+        data_value: 'submitter.email.2?',
         t_order:    2
       },
       {
-        form_name:  "submitter",
-        data_name:  "organization_name",
-        data_value: "submitter.organization_name",
+        form_name:  'submitter',
+        data_name:  'organization_name',
+        data_value: 'submitter.organization_name',
         t_order:    -1
       },
       {
-        form_name:  "submitter",
-        data_name:  "organization_url",
-        data_value: "submitter.organization_url?",
+        form_name:  'submitter',
+        data_name:  'organization_url',
+        data_value: 'submitter.organization_url?',
         t_order:    -1
       },
       {
-        form_name:  "submitter",
-        data_name:  "data_release",
-        data_value: "hup",
+        form_name:  'submitter',
+        data_name:  'data_release',
+        data_value: 'hup',
         t_order:    -1
       },
       {
-        form_name:  "general_info",
-        data_name:  "project_title",
-        data_value: "general_info.project_title",
+        form_name:  'general_info',
+        data_name:  'project_title',
+        data_value: 'general_info.project_title',
         t_order:    -1
       },
       {
-        form_name:  "general_info",
-        data_name:  "public_description",
-        data_value: "general_info.public_description",
+        form_name:  'general_info',
+        data_name:  'public_description',
+        data_value: 'general_info.public_description',
         t_order:    -1
       },
       {
-        form_name:  "general_info",
-        data_name:  "link_description",
-        data_value: "general_info.link_description.1",
+        form_name:  'general_info',
+        data_name:  'link_description',
+        data_value: 'general_info.link_description.1',
         t_order:    1
       },
       {
-        form_name:  "general_info",
-        data_name:  "link_url",
-        data_value: "general_info.link_uri.1",
+        form_name:  'general_info',
+        data_name:  'link_url',
+        data_value: 'general_info.link_uri.1',
         t_order:    1
       },
       {
-        form_name:  "general_info",
-        data_name:  "link_description",
-        data_value: "general_info.link_description.2",
+        form_name:  'general_info',
+        data_name:  'link_description',
+        data_value: 'general_info.link_description.2',
         t_order:    2
       },
       {
-        form_name:  "general_info",
-        data_name:  "link_url",
-        data_value: "general_info.link_uri.2",
+        form_name:  'general_info',
+        data_name:  'link_url',
+        data_value: 'general_info.link_uri.2',
         t_order:    2
       },
       {
-        form_name:  "general_info",
-        data_name:  "agency",
-        data_value: "general_info.agency.1",
+        form_name:  'general_info',
+        data_name:  'agency',
+        data_value: 'general_info.agency.1',
         t_order:    1
       },
       {
-        form_name:  "general_info",
-        data_name:  "agency_abbreviation",
-        data_value: "general_info.agency_abbreviation.1",
+        form_name:  'general_info',
+        data_name:  'agency_abbreviation',
+        data_value: 'general_info.agency_abbreviation.1',
         t_order:    1
       },
       {
-        form_name:  "general_info",
-        data_name:  "grant_id",
-        data_value: "general_info.grant_id.1",
+        form_name:  'general_info',
+        data_name:  'grant_id',
+        data_value: 'general_info.grant_id.1',
         t_order:    1
       },
       {
-        form_name:  "general_info",
-        data_name:  "grant_title",
-        data_value: "general_info.grant_title.1",
+        form_name:  'general_info',
+        data_name:  'grant_title',
+        data_value: 'general_info.grant_title.1',
         t_order:    1
       },
       {
-        form_name:  "project_type",
-        data_name:  "project_data_type",
-        data_value: "genome_sequencing",
+        form_name:  'project_type',
+        data_name:  'project_data_type',
+        data_value: 'genome_sequencing',
         t_order:    1
       },
       {
-        form_name:  "project_type",
-        data_name:  "project_data_type",
-        data_value: "other",
+        form_name:  'project_type',
+        data_name:  'project_data_type',
+        data_value: 'other',
         t_order:    2
       },
       {
-        form_name:  "project_type",
-        data_name:  "project_data_type_description",
-        data_value: "project_type.project_data_type_description.2",
+        form_name:  'project_type',
+        data_name:  'project_data_type_description',
+        data_value: 'project_type.project_data_type_description.2',
         t_order:    2
       },
       {
-        form_name:  "project_type",
-        data_name:  "sample_scope",
-        data_value: "project_type.sample_scope",
+        form_name:  'project_type',
+        data_name:  'sample_scope',
+        data_value: 'project_type.sample_scope',
         t_order:    -1
       },
       {
-        form_name:  "project_type",
-        data_name:  "material",
-        data_value: "project_type.material",
+        form_name:  'project_type',
+        data_name:  'material',
+        data_value: 'project_type.material',
         t_order:    -1
       },
       {
-        form_name:  "project_type",
-        data_name:  "capture",
-        data_value: "project_type.capture",
+        form_name:  'project_type',
+        data_name:  'capture',
+        data_value: 'project_type.capture',
         t_order:    -1
       },
       {
-        form_name:  "project_type",
-        data_name:  "methodology",
-        data_value: "project_type.methodology",
+        form_name:  'project_type',
+        data_name:  'methodology',
+        data_value: 'project_type.methodology',
         t_order:    -1
       },
       {
-        form_name:  "project_type",
-        data_name:  "methodology_description",
+        form_name:  'project_type',
+        data_name:  'methodology_description',
         data_value: nil,
         t_order:    -1
       },
       {
-        form_name:  "project_type",
-        data_name:  "objective",
-        data_value: "project_type.objective.1*",
+        form_name:  'project_type',
+        data_name:  'objective',
+        data_value: 'project_type.objective.1*',
         t_order:    1
       },
       {
-        form_name:  "target",
-        data_name:  "organism_name",
-        data_value: "target.organism_name",
+        form_name:  'target',
+        data_name:  'organism_name',
+        data_value: 'target.organism_name',
         t_order:    -1
       },
       {
-        form_name:  "target",
-        data_name:  "taxonomy_id",
-        data_value: "target.taxonomy_id || 0",
+        form_name:  'target',
+        data_name:  'taxonomy_id',
+        data_value: 'target.taxonomy_id || 0',
         t_order:    -1
       },
       {
-        form_name:  "target",
-        data_name:  "strain_breed_cultivar",
-        data_value: "target.strain_breed_cultivar",
+        form_name:  'target',
+        data_name:  'strain_breed_cultivar',
+        data_value: 'target.strain_breed_cultivar',
         t_order:    -1
       },
       {
-        form_name:  "target",
-        data_name:  "isolate_name_or_label",
-        data_value: "target.isolate_name_or_label?",
+        form_name:  'target',
+        data_name:  'isolate_name_or_label',
+        data_value: 'target.isolate_name_or_label?',
         t_order:    -1
       },
       {
-        form_name:  "publication",
-        data_name:  "pubmed_id",
-        data_value: "publication.pubmed_id.1",
+        form_name:  'publication',
+        data_name:  'pubmed_id',
+        data_value: 'publication.pubmed_id.1',
         t_order:    1
       },
       {
-        form_name:  "publication",
-        data_name:  "doi",
-        data_value: "publication.doi.2",
+        form_name:  'publication',
+        data_name:  'doi',
+        data_value: 'publication.doi.2',
         t_order:    2
       }
     ])
   end
 
-  example "submission id is overflow" do
-    travel_to "2024-01-02 12:34:56"
+  example 'submission id is overflow' do
+    travel_to '2024-01-02 12:34:56'
 
-    BioProject::Submission.create! submission_id: "PSUB999999", submitter_id: user.uid
+    BioProject::Submission.create! submission_id: 'PSUB999999', submitter_id: user.uid
 
     expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: "bioproject/hup.xml")
-    }.to raise_error(Database::BioProject::Submitter::SubmissionIDOverflow, "Number of submission surpass the upper limit")
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/hup.xml')
+    }.to raise_error(Database::BioProject::Submitter::SubmissionIDOverflow, 'Number of submission surpass the upper limit')
 
     expect(BioProject::Submission.count).to eq(1)
 
     expect(BioProject::ActionHistory.sole).to have_attributes(
       submission_id: nil,
-      action:        "[repository:CreateNewSubmission] Number of submission surpass the upper limit",
-      action_date:   "2024-01-02 12:34:56".to_time,
+      action:        '[repository:CreateNewSubmission] Number of submission surpass the upper limit',
+      action_date:   '2024-01-02 12:34:56'.to_time,
       result:        false,
-      action_level:  "fatal",
-      submitter_id:  "alice"
+      action_level:  'fatal',
+      submitter_id:  'alice'
     )
   end
 
-  example "visibility is public and hold exist" do
-    travel_to "2024-01-02 12:34:56"
+  example 'visibility is public and hold exist' do
+    travel_to '2024-01-02 12:34:56'
 
     expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: "bioproject/hup.xml")
-    }.to raise_error(Database::BioProject::Submitter::Error, "Visibility is public, but Hold exist in XML.")
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :public, file: 'bioproject/hup.xml')
+    }.to raise_error(Database::BioProject::Submitter::Error, 'Visibility is public, but Hold exist in XML.')
 
     expect(BioProject::Submission.count).to eq(0)
 
     expect(BioProject::ActionHistory.sole).to have_attributes(
       submission_id: nil,
-      action:        "[repository:CreateNewSubmission] rollback transaction",
-      action_date:   "2024-01-02 12:34:56".to_time,
+      action:        '[repository:CreateNewSubmission] rollback transaction',
+      action_date:   '2024-01-02 12:34:56'.to_time,
       result:        false,
-      action_level:  "error",
-      submitter_id:  "alice"
+      action_level:  'error',
+      submitter_id:  'alice'
     )
   end
 
-  example "visibility is private and hold does not exist" do
+  example 'visibility is private and hold does not exist' do
     expect {
-      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: "bioproject/nonhup.xml")
-    }.to raise_error(Database::BioProject::Submitter::Error, "Visibility is private, but Hold does not exist in XML.")
+      Database::BioProject::Submitter.new.submit create_submission(visibility: :private, file: 'bioproject/nonhup.xml')
+    }.to raise_error(Database::BioProject::Submitter::Error, 'Visibility is private, but Hold does not exist in XML.')
   end
 
-  example "xml does not contain tax id, but contain unknown organism name" do
-    submission = create_submission(visibility: :private, file: "bioproject/no_tax_id.xml")
+  example 'xml does not contain tax id, but contain unknown organism name' do
+    submission = create_submission(visibility: :private, file: 'bioproject/no_tax_id.xml')
 
     expect {
       Database::BioProject::Submitter.new.submit submission
-    }.to raise_error(Database::BioProject::Submitter::Error, "No entry found for the given organism name.")
+    }.to raise_error(Database::BioProject::Submitter::Error, 'No entry found for the given organism name.')
   end
 
-  example "xml does not contain tax id, but contain valid organism name" do
-    create :drasearch_tax_names, search_name: "target.organism_name", name_class: "scientific name", tax_id: 42
+  example 'xml does not contain tax id, but contain valid organism name' do
+    create :drasearch_tax_names, search_name: 'target.organism_name', name_class: 'scientific name', tax_id: 42
 
-    submission = create_submission(visibility: :private, file: "bioproject/no_tax_id.xml")
+    submission = create_submission(visibility: :private, file: 'bioproject/no_tax_id.xml')
     Database::BioProject::Submitter.new.submit submission
 
     expect(BioProject::SubmissionDatum.all.map { _1.slice(:form_name, :data_name, :data_value, :t_order).symbolize_keys }).to include(
       {
-        form_name:  "target",
-        data_name:  "taxonomy_id",
-        data_value: "42",
+        form_name:  'target',
+        data_name:  'taxonomy_id',
+        data_value: '42',
         t_order:    -1
       }
     )
 
-    doc    = Nokogiri::XML.parse(BioProject::XML.find_by(submission_id: "PSUB000001").content)
-    tax_id = doc.at("/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/@taxID").text
+    doc    = Nokogiri::XML.parse(BioProject::XML.find_by(submission_id: 'PSUB000001').content)
+    tax_id = doc.at('/PackageSet/Package/Project/Project/ProjectType/ProjectTypeSubmission/Target/Organism/@taxID').text
 
-    expect(tax_id).to eq("42")
+    expect(tax_id).to eq('42')
   end
 
-  example "xml does not contain tax id, but contain ambiguous organism name" do
-    create :drasearch_tax_names, name_class: "scientific name", search_name: "target.organism_name", uniq_name: "foo", tax_id: 42
-    create :drasearch_tax_names, name_class: "scientific name", search_name: "target.organism_name", uniq_name: "bar", tax_id: 43
+  example 'xml does not contain tax id, but contain ambiguous organism name' do
+    create :drasearch_tax_names, name_class: 'scientific name', search_name: 'target.organism_name', uniq_name: 'foo', tax_id: 42
+    create :drasearch_tax_names, name_class: 'scientific name', search_name: 'target.organism_name', uniq_name: 'bar', tax_id: 43
 
-    submission = create_submission(visibility: :private, file: "bioproject/no_tax_id.xml")
+    submission = create_submission(visibility: :private, file: 'bioproject/no_tax_id.xml')
 
     expect {
       Database::BioProject::Submitter.new.submit submission
-    }.to raise_error(Database::BioProject::Submitter::Error, "Organism name is ambiguous, please set one of the following taxonomy IDs: [42] foo, [43] bar")
+    }.to raise_error(Database::BioProject::Submitter::Error, 'Organism name is ambiguous, please set one of the following taxonomy IDs: [42] foo, [43] bar')
   end
 end
