@@ -16,8 +16,8 @@ import type ToastService from 'repository/services/toast';
 interface Signature {
   Args: {
     db: DB;
-    type: 'file' | 'ddbjRecord';
-    onTypeChange: (type: 'file' | 'ddbjRecord') => void;
+    via: 'file' | 'ddbjRecord';
+    onViaChange: (via: 'file' | 'ddbjRecord') => void;
   };
 }
 
@@ -27,15 +27,15 @@ export default class NewValidationForm extends Component<Signature> {
   @service declare toast: ToastService;
 
   create = task({ drop: true }, async (e: Event) => {
-    const { db, type } = this.args;
+    const { db, via } = this.args;
 
     e.preventDefault();
 
-    const url = type === 'file' ? '/validations/via_file' : '/validations/via_ddbj_record';
+    const url = via === 'file' ? '/validations/via_file' : '/validations/via_ddbj_record';
 
     const res = await this.request.fetchWithModal(url, {
       method: 'POST',
-      body: jsonToFormData(db.toJSON(type)),
+      body: jsonToFormData(db.toJSON(via)),
     });
 
     const { id } = (await res.json()) as { id: string };
@@ -50,27 +50,27 @@ export default class NewValidationForm extends Component<Signature> {
         <ul class="nav nav-tabs mb-3" id="tradTab" role="tablist">
           <li class="nav-item" role="presentation">
             <button
-              class="nav-link {{if (eq @type 'file') 'active'}}"
+              class="nav-link {{if (eq @via 'file') 'active'}}"
               id="file"
               type="button"
               role="tab"
-              {{on "click" (fn @onTypeChange "file")}}
+              {{on "click" (fn @onViaChange "file")}}
             >File</button>
           </li>
 
           <li class="nav-item" role="presentation">
             <button
-              class="nav-link {{if (eq @type 'ddbjRecord') 'active'}}"
+              class="nav-link {{if (eq @via 'ddbjRecord') 'active'}}"
               id="ddbj-record"
               type="button"
               role="tab"
-              {{on "click" (fn @onTypeChange "ddbjRecord")}}
+              {{on "click" (fn @onViaChange "ddbjRecord")}}
             >DDBJ Record</button>
           </li>
         </ul>
       {{/if}}
 
-      {{#if (eq @type "file")}}
+      {{#if (eq @via "file")}}
         {{#each @db.objs.file as |obj|}}
           <ObjectField @obj={{obj}} />
         {{/each}}
