@@ -19,7 +19,10 @@ class Validations::ViaFilesController < ApplicationController
         raise UnprocessableContent, "unknown db: #{params[:db]}"
       end
 
-      validation = current_user.validations.create!(db: db[:id])
+      validation = current_user.validations.create!(
+        db:  db[:id],
+        via: :file
+      )
 
       validation.objs.create! _id: '_base'
 

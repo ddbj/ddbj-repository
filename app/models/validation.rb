@@ -17,6 +17,7 @@ class Validation < ApplicationRecord
   validates :finished_at, presence: true, if: ->(validation) { validation.finished? || validation.canceled? }
 
   enum :progress, %w[waiting running finished canceled].index_by(&:to_sym)
+  enum :via,      %w[file ddbj_record].index_by(&:to_sym), prefix: true
 
   scope :validity, ->(*validities) {
     return none if validities.empty?
