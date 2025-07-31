@@ -10,8 +10,8 @@ class CreateAccessions < ActiveRecord::Migration[8.0]
 
       t.timestamps
 
-      t.index :number,              unique: true
-      t.index %i[entry_id version], unique: true
+      t.index :number, unique: true
+      t.index %i[number entry_id version], unique: true
     end
 
     create_table :sequences do |t|
