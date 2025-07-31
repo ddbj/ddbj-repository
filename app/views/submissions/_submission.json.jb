@@ -9,6 +9,7 @@
   error_message: submission.error_message,
   validation:    render('validations/validation', validation: submission.validation),
   visibility:    submission.visibility,
+  accessions:    render(partial: 'accession', collection: submission.accessions),
 
   **submission.param&.as_json
 }

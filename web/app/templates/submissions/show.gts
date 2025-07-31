@@ -159,5 +159,29 @@ export default class extends Component<Signature> {
         {{/each}}
       </tbody>
     </table>
+
+    <h2>Accessions</h2>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Accession</th>
+          <th>Entry ID</th>
+          <th>Version</th>
+          <th>Last updated</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {{#each @model.accessions as |accession|}}
+          <tr>
+            <td>{{accession.number}}</td>
+            <td>{{accession.entry_id}}</td>
+            <td>{{accession.version}}</td>
+            <td>{{formatDatetime accession.last_updated_at}}</td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
   </template>
 }

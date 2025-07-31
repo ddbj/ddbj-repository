@@ -679,6 +679,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
         <%- if db[:id] == 'BioProject' -%>
         - umbrella
         <%- end -%>
@@ -742,6 +743,33 @@ components:
           enum:
             - public
             - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
         <%- if db[:id] == 'BioProject' -%>
 
         umbrella:

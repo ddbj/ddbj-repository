@@ -787,6 +787,13 @@ export interface components {
             validation: components["schemas"]["BioProjectValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
             umbrella: boolean;
         };
         BioSampleSubmission: {
@@ -807,6 +814,13 @@ export interface components {
             validation: components["schemas"]["BioSampleValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         TradSubmission: {
             id: string;
@@ -826,6 +840,13 @@ export interface components {
             validation: components["schemas"]["TradValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         DRASubmission: {
             id: string;
@@ -845,6 +866,13 @@ export interface components {
             validation: components["schemas"]["DRAValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         GEASubmission: {
             id: string;
@@ -864,6 +892,13 @@ export interface components {
             validation: components["schemas"]["GEAValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         MetaboBankSubmission: {
             id: string;
@@ -883,6 +918,13 @@ export interface components {
             validation: components["schemas"]["MetaboBankValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         JVarSubmission: {
             id: string;
@@ -902,6 +944,13 @@ export interface components {
             validation: components["schemas"]["JVarValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         Trad2Submission: {
             id: string;
@@ -921,6 +970,13 @@ export interface components {
             validation: components["schemas"]["Trad2Validation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         Objects: {
             /** @enum {string} */
