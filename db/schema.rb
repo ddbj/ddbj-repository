@@ -10,7 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_30_022943) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_30_023558) do
+  create_table "accessions", force: :cascade do |t|
+    t.integer "submission_id", null: false
+    t.string "number", null: false
+    t.string "entry_id", null: false
+    t.integer "version", default: 1, null: false
+    t.datetime "last_updated_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["entry_id", "version"], name: "index_accessions_on_entry_id_and_version", unique: true
+    t.index ["number"], name: "index_accessions_on_number", unique: true
+    t.index ["submission_id"], name: "index_accessions_on_submission_id"
+  end
+
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -54,6 +67,14 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_30_022943) do
     t.string "destination"
     t.index ["validation_id"], name: "index_objs_on_validation_id"
     t.index ["validity"], name: "index_objs_on_validity"
+  end
+
+  create_table "sequences", force: :cascade do |t|
+    t.string "scope", null: false
+    t.bigint "next", default: 1, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["scope"], name: "index_sequences_on_scope", unique: true
   end
 
   create_table "submissions", force: :cascade do |t|
@@ -107,6 +128,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_30_022943) do
     t.index ["user_id"], name: "index_validations_on_user_id"
   end
 
+  add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "objs", "validations"

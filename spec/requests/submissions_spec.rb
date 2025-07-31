@@ -39,6 +39,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       progress:      'waiting',
       result:        nil,
       error_message: nil,
+      accessions:    [],
 
       validation:    {
         id:          100,

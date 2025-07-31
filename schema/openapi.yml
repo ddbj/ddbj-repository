@@ -1552,6 +1552,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
         - umbrella
 
       properties:
@@ -1614,6 +1615,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
         umbrella:
           type: boolean
 
@@ -1632,6 +1660,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1693,6 +1722,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     TradSubmission:
       type: object
       additionalProperties: false
@@ -1708,6 +1764,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1769,6 +1826,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     DRASubmission:
       type: object
       additionalProperties: false
@@ -1784,6 +1868,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1845,6 +1930,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     GEASubmission:
       type: object
       additionalProperties: false
@@ -1860,6 +1972,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1921,6 +2034,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     MetaboBankSubmission:
       type: object
       additionalProperties: false
@@ -1936,6 +2076,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1997,6 +2138,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     JVarSubmission:
       type: object
       additionalProperties: false
@@ -2012,6 +2180,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -2073,6 +2242,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     Trad2Submission:
       type: object
       additionalProperties: false
@@ -2088,6 +2284,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -2148,6 +2345,33 @@ components:
           enum:
             - public
             - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
 
     Objects:
       type: array
