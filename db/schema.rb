@@ -19,7 +19,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_30_023558) do
     t.datetime "last_updated_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["entry_id", "version"], name: "index_accessions_on_entry_id_and_version", unique: true
+    t.index ["number", "entry_id", "version"], name: "index_accessions_on_number_and_entry_id_and_version", unique: true
     t.index ["number"], name: "index_accessions_on_number", unique: true
     t.index ["submission_id"], name: "index_accessions_on_submission_id"
   end
