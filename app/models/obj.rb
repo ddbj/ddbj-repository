@@ -9,8 +9,10 @@ class Obj < ApplicationRecord
 
   scope :without_base, -> { where.not(_id: '_base') }
 
-  enum :_id, DB.flat_map { _1[:objects] }.map { _1[:id] }.uniq.concat(['_base']).index_by(&:to_sym)
+  enum :_id, DB.flat_map { it[:objects].values.flatten }.pluck(:id).uniq.concat(['_base']).index_by(&:to_sym)
   enum :validity, %w[valid invalid error].index_by(&:to_sym), prefix: true
+
+  validates :file, attached: true, unless: :base?
 
   validate :destination_must_not_be_malformed
   validate :path_must_be_unique_in_request

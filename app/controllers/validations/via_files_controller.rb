@@ -19,11 +19,14 @@ class Validations::ViaFilesController < ApplicationController
         raise UnprocessableEntity, "unknown db: #{params[:db]}"
       end
 
-      validation = current_user.validations.create!(db: db[:id])
+      validation = current_user.validations.create!(
+        db:  db[:id],
+        via: :file
+      )
 
       validation.objs.create! _id: '_base'
 
-      db[:objects].each do |obj|
+      db[:objects][:file].each do |obj|
         obj => {id:}
         val = obj[:required] ? params.require(id) : params[id]
 
