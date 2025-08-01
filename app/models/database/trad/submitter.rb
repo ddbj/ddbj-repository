@@ -41,7 +41,7 @@ class Database::Trad::Submitter
 
         file: {
           io:           StringIO.new(JSON.pretty_generate(record)),
-          filename:     "#{filename.base}-processed.#{filename.extension}",
+          filename:     "#{filename.base}-#{Time.current.iso8601}.#{filename.extension}",
           content_type: obj.file.content_type
         }
       )
