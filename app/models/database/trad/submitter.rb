@@ -4,7 +4,7 @@ class Database::Trad::Submitter
 
     return unless validation.via_ddbj_record?
 
-    obj     = validation.objs.find_by!(_id: 'DDBJRecord')
+    obj     = validation.objs.find_sole_by(_id: 'DDBJRecord')
     record  = JSON.parse(obj.file.download, symbolize_names: true)
     entries = record.dig(:sequence, :entries)
 
@@ -31,8 +31,20 @@ class Database::Trad::Submitter
           last_updated: Time.zone.parse(last_updated_at).iso8601
         )
       end
-    end
 
-    puts JSON.pretty_generate(record)
+      filename = obj.file.filename
+
+      validation.objs.create!(
+        _id:         'DDBJRecord',
+        validity:    :valid,
+        destination: obj.destination,
+
+        file: {
+          io:           StringIO.new(JSON.pretty_generate(record)),
+          filename:     "#{filename.base}-processed.#{filename.extension}",
+          content_type: obj.file.content_type
+        }
+      )
+    end
   end
 end
