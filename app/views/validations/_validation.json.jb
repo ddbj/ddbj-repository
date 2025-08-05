@@ -1,3 +1,5 @@
+# locals: (validation:, submission: false)
+
 {
   id:  validation.id,
   url: validation_url(validation),
@@ -16,14 +18,7 @@
   results:     validation.results,
   raw_result:  validation.raw_result,
 
-  submission: validation.submission.then {|submission|
-    if submission
-      {
-        id:  submission.public_id,
-        url: submission_url(submission)
-      }
-    else
-      nil
-    end
-  }
+  **(submission ? {
+    submission: validation.submission.then { it ? render(it) : nil }
+  } : nil)
 }

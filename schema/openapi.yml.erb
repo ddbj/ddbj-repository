@@ -503,6 +503,36 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /accessions/{id}:
+    get:
+      description: Get the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Return the accession.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accession'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   securitySchemes:
     BearerAuth:
@@ -809,6 +839,25 @@ components:
                 url:
                   type: string
                   format: uri
+
+    Accession:
+      type: object
+      additionalProperties: false
+      required: [number, entry_id, version, last_updated_at]
+
+      properties:
+        number:
+          type: string
+
+        entry_id:
+          type: string
+
+        version:
+          type: integer
+
+        last_updated_at:
+          type: string
+          format: date-time
 
     ValidationResult:
       type: object

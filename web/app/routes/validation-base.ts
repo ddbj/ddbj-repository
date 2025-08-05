@@ -6,13 +6,13 @@ import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
 
-export default abstract class ValidationsShowBaseRoute extends Route {
+export default abstract class ValidationBaseRoute extends Route {
   @service declare request: RequestService;
 
   timer?: number;
 
-  async model({ id }: { id: string }) {
-    const res = await this.request.fetch(`/validations/${id}`);
+  async model({ validation_id }: { validation_id: string }) {
+    const res = await this.request.fetch(`/validations/${validation_id}`);
 
     return (await res.json()) as Validation;
   }

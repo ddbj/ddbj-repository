@@ -12,6 +12,9 @@ import type DB from 'repository/models/db';
 import type RequestService from 'repository/services/request';
 import type RouterService from '@ember/routing/router-service';
 import type ToastService from 'repository/services/toast';
+import type { components } from 'schema/openapi';
+
+type Validation = components['schemas']['Validation'];
 
 interface Signature {
   Args: {
@@ -38,9 +41,9 @@ export default class NewValidationForm extends Component<Signature> {
       body: jsonToFormData(db.toJSON(via)),
     });
 
-    const { id } = (await res.json()) as { id: string };
+    const validation = (await res.json()) as Validation;
 
-    this.router.transitionTo('validations.show', id);
+    this.router.transitionTo('validation', validation);
     this.toast.show('Validation has started.', 'success');
   });
 

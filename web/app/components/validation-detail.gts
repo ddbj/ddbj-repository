@@ -88,7 +88,7 @@ export default <template>
 
       <dd>
         {{#if @validation.submission}}
-          <LinkTo @route="submissions.show" @model={{@validation.submission.id}}>
+          <LinkTo @route="submission" @model={{@validation.submission}}>
             {{@validation.submission.id}}
           </LinkTo>
         {{else}}

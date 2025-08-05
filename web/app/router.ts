@@ -12,16 +12,18 @@ Router.map(function () {
 
   this.route('validations', function () {
     this.route('new');
-    this.route('show', { path: ':id' });
+    this.route('validation', { path: ':validation_id', resetNamespace: true });
   });
 
   this.route('submissions', function () {
-    this.route('show', { path: ':id' });
+    this.route('submission', { path: ':submission_id', resetNamespace: true }, function () {
+      this.route('accession', { path: '/accessions/:number', resetNamespace: true });
+    });
   });
 
   this.route('admin', function () {
     this.route('validations', function () {
-      this.route('show', { path: ':id' });
+      this.route('validation', { path: ':validation_id' });
     });
 
     this.route('proxy-login');

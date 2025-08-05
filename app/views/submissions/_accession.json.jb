@@ -1,6 +1,0 @@
-{
-  number:          accession.number,
-  entry_id:        accession.entry_id,
-  version:         accession.version,
-  last_updated_at: accession.last_updated_at.iso8601
-}
