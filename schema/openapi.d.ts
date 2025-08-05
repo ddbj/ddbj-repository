@@ -434,6 +434,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accessions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get the accession. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Return the accession. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Accession"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -987,6 +1027,13 @@ export interface components {
                 url: string;
             }[];
         }[];
+        Accession: {
+            number: string;
+            entry_id: string;
+            version: number;
+            /** Format: date-time */
+            last_updated_at: string;
+        };
         ValidationResult: {
             /** @enum {string} */
             object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "DDBJRecord" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";

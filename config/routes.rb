@@ -23,6 +23,7 @@ Rails.application.routes.draw do
     end
 
     resources :submissions, only: %i[index show create]
+    resources :accessions,  only: %i[show update], param: :number
   end
 
   get 'web/*paths', to: 'webs#show'

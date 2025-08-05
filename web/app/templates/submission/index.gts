@@ -105,7 +105,7 @@ export default class extends Component<Signature> {
         <dt>Validation</dt>
 
         <dd>
-          <LinkTo @route="validations.show" @model={{@model.validation.id}}>#{{@model.validation.id}}</LinkTo>
+          <LinkTo @route="validation" @model={{@model.validation}}>#{{@model.validation.id}}</LinkTo>
         </dd>
       </div>
 
@@ -165,7 +165,7 @@ export default class extends Component<Signature> {
     <table class="table">
       <thead>
         <tr>
-          <th>Accession</th>
+          <th>Number</th>
           <th>Entry ID</th>
           <th>Version</th>
           <th>Last updated</th>
@@ -175,7 +175,12 @@ export default class extends Component<Signature> {
       <tbody>
         {{#each @model.accessions as |accession|}}
           <tr>
-            <td>{{accession.number}}</td>
+            <td>
+              <LinkTo @route="accession" @model={{accession.number}}>
+                {{accession.number}}
+              </LinkTo>
+            </td>
+
             <td>{{accession.entry_id}}</td>
             <td>{{accession.version}}</td>
             <td>{{formatDatetime accession.last_updated_at}}</td>

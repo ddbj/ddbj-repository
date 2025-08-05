@@ -14,6 +14,7 @@ import type ToastService from 'repository/services/toast';
 import type { components } from 'schema/openapi';
 
 type Validation = components['schemas']['Validation'];
+type Submission = components['schemas']['Submission'];
 
 interface Signature {
   Args: {
@@ -52,9 +53,9 @@ export default class ValidationSubmitForm extends Component<Signature> {
       body: formData,
     });
 
-    const { id: submissionId } = (await res.json()) as { id: string };
+    const submission = (await res.json()) as Submission;
 
-    this.router.transitionTo('submissions.show', submissionId);
+    this.router.transitionTo('submission', submission);
     this.toast.show('Validation was successfully submitted.', 'success');
   });
 

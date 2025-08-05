@@ -1,3 +1,5 @@
+# locals: (submission:)
+
 {
   id:            submission.public_id,
   url:           submission_url(submission),
@@ -7,9 +9,9 @@
   progress:      submission.progress,
   result:        submission.result,
   error_message: submission.error_message,
-  validation:    render('validations/validation', validation: submission.validation),
   visibility:    submission.visibility,
-  accessions:    render(partial: 'accession', collection: submission.accessions),
+  validation:    render(submission.validation),
+  accessions:    render(partial: 'accessions/accession', collection: submission.accessions),
 
   **submission.param&.as_json
 }
