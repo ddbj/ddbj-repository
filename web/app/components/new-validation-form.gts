@@ -50,7 +50,7 @@ export default class NewValidationForm extends Component<Signature> {
   <template>
     <form {{on "submit" this.create.perform}}>
       {{#if @db.objs.ddbjRecord}}
-        <ul class="nav nav-tabs mb-3" id="tradTab" role="tablist">
+        <ul class="nav nav-pills mb-3" id="tradTab" role="tablist">
           <li class="nav-item" role="presentation">
             <button
               class="nav-link {{if (eq @via 'file') 'active'}}"
