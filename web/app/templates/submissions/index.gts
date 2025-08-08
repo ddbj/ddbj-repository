@@ -87,7 +87,7 @@ export default class extends Component<Signature> {
               <LinkTo
                 @route="validation"
                 @model={{submission.validation}}
-              >#{{submission.validation.id}}</LinkTo>
+              >Validation-{{submission.validation.id}}</LinkTo>
             </td>
           </tr>
         {{/each}}

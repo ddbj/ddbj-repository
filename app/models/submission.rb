@@ -18,13 +18,10 @@ class Submission < ApplicationRecord
     submission.dir.rmtree
   end
 
-  def to_param  = public_id
-  def public_id = id ? "X-#{id}" : nil
-
   def dir
     base = Rails.application.config_for(:app).repository_dir!
 
-    Pathname.new(base).join(validation.user.uid, 'submissions', public_id)
+    Pathname.new(base).join(validation.user.uid, 'submissions', id.to_s)
   end
 
   private

@@ -87,7 +87,7 @@ export default <template>
           <td class="position-relative">
             {{#if validation.submission}}
               <LinkTo @route="submission" @model={{validation.submission}} class="stretched-link">
-                {{validation.submission.id}}
+                Submission-{{validation.submission.id}}
               </LinkTo>
             {{else}}
               -

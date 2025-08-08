@@ -40,13 +40,13 @@ export default class extends Component<Signature> {
   }
 
   <template>
-    {{pageTitle (concat "Submission " @model.id)}}
+    {{pageTitle (concat "Submission-" @model.id)}}
 
     <div class="mb-3">
       <LinkTo @route="submissions.index" @query={{hash page=this.indexPage}}>&laquo; Back to index</LinkTo>
     </div>
 
-    <h1 class="display-6 mb-4">Submission {{@model.id}}</h1>
+    <h1 class="display-6 mb-4">Submission-{{@model.id}}</h1>
 
     <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
       <div>
