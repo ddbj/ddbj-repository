@@ -1,11 +1,11 @@
 # locals: (submission:)
 
 {
-  id:            submission.public_id,
+  id:            submission.id,
   url:           submission_url(submission),
-  created_at:    submission.created_at,
-  started_at:    submission.started_at,
-  finished_at:   submission.finished_at,
+  created_at:    submission.created_at.iso8601,
+  started_at:    submission.started_at&.iso8601,
+  finished_at:   submission.finished_at&.iso8601,
   progress:      submission.progress,
   result:        submission.result,
   error_message: submission.error_message,

@@ -20,7 +20,7 @@ interface Signature {
 }
 
 export default <template>
-  <h1 class="display-6 mb-4">Validation #{{@validation.id}}</h1>
+  <h1 class="display-6 mb-4">Validation-{{@validation.id}}</h1>
 
   <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
     <div>

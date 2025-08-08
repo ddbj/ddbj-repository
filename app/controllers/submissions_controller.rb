@@ -14,7 +14,7 @@ class SubmissionsController < ApplicationController
   end
 
   def show
-    @submission = user_submissions.find(params[:id].delete_prefix('X-'))
+    @submission = user_submissions.find(params.expect(:id))
   end
 
   def create
