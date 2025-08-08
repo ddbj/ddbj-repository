@@ -9,17 +9,19 @@ class Database::Trad::Submitter
     entries = record.dig(:sequence, :entries)
 
     ActiveRecord::Base.transaction do
-      start_num = Sequence.claim('accessions.number/AB', count: entries.size)
+      nums = Sequence.allocate!(:jpo_na, count: entries.size)
 
-      entry_id_to_attrs = submission.accessions.insert_all(entries.map.with_index {|entry, i|
+      entry_id_to_attrs = submission.accessions.insert_all(entries.zip(nums).map {|entry, number|
         {
-          number:   "AB#{(start_num + i).to_s.rjust(6, '0')}",
+          number:,
           entry_id: entry[:id]
         }
       }, **{
         unique_by: %i[number entry_id version],
         returning: %i[entry_id number version last_updated_at]
-      }).index_by { it['entry_id'] }.transform_values(&:deep_symbolize_keys)
+      }).index_by {
+        it['entry_id']
+      }.transform_values(&:deep_symbolize_keys)
 
       entries.each do |entry|
         entry_id_to_attrs.fetch(entry[:id]) => {number: accession, version:, last_updated_at:}

@@ -15,8 +15,10 @@ class CreateAccessions < ActiveRecord::Migration[8.0]
     end
 
     create_table :sequences do |t|
-      t.string :scope, null: false
-      t.bigint :next,  null: false, default: 1
+      t.string  :scope,  null: false
+      t.string  :prefix, null: false
+      t.bigint  :next,   null: false, default: 1
+      t.integer :digits, null: false
 
       t.timestamps
 

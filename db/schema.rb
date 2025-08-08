@@ -71,7 +71,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_30_023558) do
 
   create_table "sequences", force: :cascade do |t|
     t.string "scope", null: false
+    t.string "prefix", null: false
     t.bigint "next", default: 1, null: false
+    t.integer "digits", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["scope"], name: "index_sequences_on_scope", unique: true
