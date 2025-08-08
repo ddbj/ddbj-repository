@@ -558,7 +558,7 @@ components:
     <%= db[:id] %>Validation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -634,21 +634,6 @@ components:
           type:
             - object
             - 'null'
-
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
 
     <%- end -%>
     <%- dbs.each do |db| -%>
