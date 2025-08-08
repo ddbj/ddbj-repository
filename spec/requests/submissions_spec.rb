@@ -39,6 +39,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       progress:      'waiting',
       result:        nil,
       error_message: nil,
+      accessions:    [],
 
       validation:    {
         id:          100,
@@ -83,12 +84,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
           }
         ],
 
-        raw_result: nil,
-
-        submission: {
-          id:  'X-200',
-          url: 'http://www.example.com/api/submissions/X-200'
-        }
+        raw_result: nil
       },
 
       visibility: 'public'

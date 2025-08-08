@@ -1,6 +1,8 @@
 import Component from '@glimmer/component';
+import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import { eq } from 'ember-truth-helpers';
 
 import { task } from 'ember-concurrency';
 
@@ -10,10 +12,15 @@ import type DB from 'repository/models/db';
 import type RequestService from 'repository/services/request';
 import type RouterService from '@ember/routing/router-service';
 import type ToastService from 'repository/services/toast';
+import type { components } from 'schema/openapi';
+
+type Validation = components['schemas']['Validation'];
 
 interface Signature {
   Args: {
     db: DB;
+    via: 'file' | 'ddbjRecord';
+    onViaChange: (via: 'file' | 'ddbjRecord') => void;
   };
 }
 
@@ -23,26 +30,58 @@ export default class NewValidationForm extends Component<Signature> {
   @service declare toast: ToastService;
 
   create = task({ drop: true }, async (e: Event) => {
-    const { db } = this.args;
+    const { db, via } = this.args;
 
     e.preventDefault();
 
-    const res = await this.request.fetchWithModal(`/validations/via_file`, {
+    const url = via === 'file' ? '/validations/via_file' : '/validations/via_ddbj_record';
+
+    const res = await this.request.fetchWithModal(url, {
       method: 'POST',
-      body: jsonToFormData(db.toJSON()),
+      body: jsonToFormData(db.toJSON(via)),
     });
 
-    const { id } = (await res.json()) as { id: string };
+    const validation = (await res.json()) as Validation;
 
-    this.router.transitionTo('validations.show', id);
+    this.router.transitionTo('validation', validation);
     this.toast.show('Validation has started.', 'success');
   });
 
   <template>
     <form {{on "submit" this.create.perform}}>
-      {{#each @db.objs as |obj|}}
-        <ObjectField @obj={{obj}} />
-      {{/each}}
+      {{#if @db.objs.ddbjRecord}}
+        <ul class="nav nav-pills mb-3" id="tradTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link {{if (eq @via 'file') 'active'}}"
+              id="file"
+              type="button"
+              role="tab"
+              {{on "click" (fn @onViaChange "file")}}
+            >File</button>
+          </li>
+
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link {{if (eq @via 'ddbjRecord') 'active'}}"
+              id="ddbj-record"
+              type="button"
+              role="tab"
+              {{on "click" (fn @onViaChange "ddbjRecord")}}
+            >DDBJ Record</button>
+          </li>
+        </ul>
+      {{/if}}
+
+      {{#if (eq @via "file")}}
+        {{#each @db.objs.file as |obj|}}
+          <ObjectField @obj={{obj}} />
+        {{/each}}
+      {{else}}
+        {{#each @db.objs.ddbjRecord as |obj|}}
+          <ObjectField @obj={{obj}} />
+        {{/each}}
+      {{/if}}
 
       <button type="submit" class="btn btn-primary" disabled={{this.create.isRunning}}>
         {{#if this.create.isRunning}}

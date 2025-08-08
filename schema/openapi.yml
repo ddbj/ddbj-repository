@@ -229,6 +229,34 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
+  /validations/via_ddbj_record:
+    post:
+      description: Validate DDBJRecord.
+
+      tags:
+        - Validation
+
+      requestBody:
+        $ref: '#/components/requestBodies/ViaDDBJRecord'
+
+      responses:
+        '201':
+          description: The validation process initiated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Validation'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   /validations/{id}:
     get:
       description: Get the validation.
@@ -495,6 +523,36 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /accessions/{id}:
+    get:
+      description: Get the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Return the accession.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accession'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   securitySchemes:
     BearerAuth:
@@ -529,7 +587,7 @@ components:
     BioProjectValidation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -606,25 +664,10 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
-
     BioSampleValidation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -701,25 +744,10 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
-
     TradValidation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -796,25 +824,10 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
-
     DRAValidation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -891,25 +904,10 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
-
     GEAValidation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -986,25 +984,10 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
-
     MetaboBankValidation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -1081,25 +1064,10 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
-
     JVarValidation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -1176,25 +1144,10 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
-
     Trad2Validation:
       type: object
       additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
 
       properties:
         id:
@@ -1270,21 +1223,6 @@ components:
           type:
             - object
             - 'null'
-
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
 
     SubmissionRequestBioProject:
       type: object
@@ -1524,6 +1462,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
         - umbrella
 
       properties:
@@ -1586,6 +1525,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
         umbrella:
           type: boolean
 
@@ -1604,6 +1570,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1665,6 +1632,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     TradSubmission:
       type: object
       additionalProperties: false
@@ -1680,6 +1674,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1741,6 +1736,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     DRASubmission:
       type: object
       additionalProperties: false
@@ -1756,6 +1778,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1817,6 +1840,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     GEASubmission:
       type: object
       additionalProperties: false
@@ -1832,6 +1882,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1893,6 +1944,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     MetaboBankSubmission:
       type: object
       additionalProperties: false
@@ -1908,6 +1986,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -1969,6 +2048,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     JVarSubmission:
       type: object
       additionalProperties: false
@@ -1984,6 +2090,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -2045,6 +2152,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     Trad2Submission:
       type: object
       additionalProperties: false
@@ -2060,6 +2194,7 @@ components:
         - error_message
         - validation
         - visibility
+        - accessions
 
       properties:
         id:
@@ -2121,6 +2256,33 @@ components:
             - public
             - private
 
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     Objects:
       type: array
 
@@ -2138,6 +2300,7 @@ components:
               - BioSample
               - Sequence
               - Annotation
+              - DDBJRecord
               - Submission
               - Experiment
               - Run
@@ -2170,6 +2333,25 @@ components:
                   type: string
                   format: uri
 
+    Accession:
+      type: object
+      additionalProperties: false
+      required: [number, entry_id, version, last_updated_at]
+
+      properties:
+        number:
+          type: string
+
+        entry_id:
+          type: string
+
+        version:
+          type: integer
+
+        last_updated_at:
+          type: string
+          format: date-time
+
     ValidationResult:
       type: object
       additionalProperties: false
@@ -2185,6 +2367,7 @@ components:
             - BioSample
             - Sequence
             - Annotation
+            - DDBJRecord
             - Submission
             - Experiment
             - Run
@@ -2912,6 +3095,38 @@ components:
               destination:
                 $ref: '#/components/schemas/Destination'
 
+
+    TradViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+        - DDBJRecord
+
+      properties:
+        db:
+          type: string
+          enum: [Trad]
+
+        DDBJRecord:
+          type: object
+          additionalProperties: false
+
+          oneOf:
+            - required: [file]
+            - required: [path]
+
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
+
   requestBodies:
     ViaFile:
       content:
@@ -2939,6 +3154,19 @@ components:
                 MetaboBank: '#/components/schemas/MetaboBankViaFile'
                 JVar: '#/components/schemas/JVarViaFile'
                 Trad2: '#/components/schemas/Trad2ViaFile'
+
+    ViaDDBJRecord:
+      content:
+        multipart/form-data:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/TradViaDDBJRecord'
+
+            discriminator:
+              propertyName: db
+
+              mapping:
+                Trad: '#/components/schemas/TradViaDDBJRecord'
 
   responses:
     Validations:

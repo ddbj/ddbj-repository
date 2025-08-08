@@ -2,13 +2,13 @@ require 'rails_helper'
 
 RSpec.describe SubmitJob, type: :job do
   let!(:user)          { create_default(:user, uid: 'alice') }
-  let(:submission_dir) { Pathname.new(Rails.application.config_for(:app).repository_dir!).join('alice/submissions/X-42') }
+  let(:submission_dir) { Pathname.new(Rails.application.config_for(:app).repository_dir!).join('alice/submissions/42') }
 
   example 'simple' do
     submission = create(:submission, id: 42, **{
       validation: create(:validation, :valid, db: 'MetaboBank') {|validation|
-        create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/MTBKS231.idf.txt'), validity: 'valid'
-        create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/MTBKS231.sdrf.txt'), validity: 'valid'
+        create :obj, :valid, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/MTBKS231.idf.txt')
+        create :obj, :valid, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/MTBKS231.sdrf.txt')
       }
     }).reload
 
