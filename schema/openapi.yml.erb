@@ -438,8 +438,7 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/Submission'
-
+                  - $ref: '#/components/schemas/Submission'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -661,7 +660,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -712,118 +711,119 @@ components:
 
     <%- dbs.each do |db| -%>
     <%= db[:id] %>Submission:
-      type: object
-      additionalProperties: false
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
+          <%- if db[:id] == 'BioProject' -%>
+          required:
+            - umbrella
 
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
-        <%- if db[:id] == 'BioProject' -%>
-        - umbrella
-        <%- end -%>
-
-      properties:
-        id:
-          type: string
-
-        url:
-          type: string
-          format: uri
-
-        created_at:
-          type: string
-          format: date-time
-
-        started_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        finished_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        progress:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-        result:
-          type:
-            - string
-            - 'null'
-
-          enum:
-            - success
-            - failure
-            - null
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        validation:
-          $ref: '#/components/schemas/<%= db[:id] %>Validation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
-        <%- if db[:id] == 'BioProject' -%>
-
-        umbrella:
-          type: boolean
-        <%- end -%>
-
+          properties:
+            umbrella:
+              type: boolean
+          <%- end -%>
     <%- end -%>
+  SubmissionBase:
+    type: object
+    addtionalProperties: false
+    required:
+      - id
+      - url
+      - created_at
+      - started_at
+      - finished_at
+      - progress
+      - result
+      - error_message
+      - visibility
+      - accessions
+
+    properties:
+      id:
+        type: integer
+
+      url:
+        type: string
+        format: uri
+
+      created_at:
+        type: string
+        format: date-time
+
+      started_at:
+        type:
+          - string
+          - 'null'
+
+        format: date-time
+
+      finished_at:
+        type:
+          - string
+          - 'null'
+
+        format: date-time
+
+      progress:
+        type: string
+
+        enum:
+          - waiting
+          - running
+          - finished
+          - canceled
+
+      result:
+        type:
+          - string
+          - 'null'
+
+        enum:
+          - success
+          - failure
+          - null
+
+      error_message:
+        type:
+          - string
+          - 'null'
+
+      visibility:
+        type: string
+
+        enum:
+          - public
+          - private
+
+      accessions:
+        type: array
+
+        items:
+          type: object
+          additionalProperties: false
+
+          required:
+            - number
+            - entry_id
+            - version
+            - last_updated_at
+
+          properties:
+            number:
+              type: string
+
+            entry_id:
+              type: string
+
+            version:
+              type: integer
+
+            last_updated_at:
+              type: string
+              format: date-time
+        validation:
+          $ref: '#/components/schemas/Validation'
+
     Objects:
       type: array
 

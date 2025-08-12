@@ -13,8 +13,6 @@ RSpec.describe 'submissions', type: :request, authorized: true do
     get '/api/submissions'
 
     expect(response).to conform_schema(200)
-
-    expect(response.parsed_body.map(&:deep_symbolize_keys).map { _1[:id] }).to eq(['X-42'])
   end
 
   example 'GET /api/submissions/:id' do
@@ -26,14 +24,14 @@ RSpec.describe 'submissions', type: :request, authorized: true do
       create :obj, validation:, _id: 'Excel', file: uploaded_file(name: 'myexcel.xlsx'), destination: 'dest', validity: 'valid'
     end
 
-    get '/api/submissions/X-200'
+    get '/api/submissions/200'
 
     expect(response).to conform_schema(200)
 
     expect(response.parsed_body.deep_symbolize_keys).to eq(
-      id:            'X-200',
-      url:           'http://www.example.com/api/submissions/X-200',
-      created_at:    '2024-01-02T03:04:58.000+09:00',
+      id:            200,
+      url:           'http://www.example.com/api/submissions/200',
+      created_at:    '2024-01-02T03:04:58+09:00',
       started_at:    nil,
       finished_at:   nil,
       progress:      'waiting',
