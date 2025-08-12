@@ -414,6 +414,23 @@ paths:
             type: string
             format: date-time
 
+        - in: query
+          name: result
+          style: form
+          explode: false
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - success
+                - failure
+                - error
+                - 'null'
+
       responses:
         '200':
           description: Return your submissions.
@@ -431,8 +448,7 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/Submission'
-
+                  - $ref: '#/components/schemas/Submission'
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -673,7 +689,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -768,7 +784,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -863,7 +879,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -958,7 +974,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -1053,7 +1069,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -1148,7 +1164,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -1243,7 +1259,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -1338,7 +1354,7 @@ components:
 
           properties:
             id:
-              type: string
+              type: integer
 
             url:
               type: string
@@ -1568,840 +1584,143 @@ components:
         - $ref: '#/components/schemas/Trad2Submission'
 
     BioProjectSubmission:
-      type: object
-      additionalProperties: false
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
+          required:
+            - umbrella
 
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
-        - umbrella
-
-      properties:
-        id:
-          type: string
-
-        url:
-          type: string
-          format: uri
-
-        created_at:
-          type: string
-          format: date-time
-
-        started_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        finished_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        progress:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-        result:
-          type:
-            - string
-            - 'null'
-
-          enum:
-            - success
-            - failure
-            - null
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        validation:
-          $ref: '#/components/schemas/BioProjectValidation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
-
-        umbrella:
-          type: boolean
-
+          properties:
+            umbrella:
+              type: boolean
     BioSampleSubmission:
-      type: object
-      additionalProperties: false
-
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
-
-      properties:
-        id:
-          type: string
-
-        url:
-          type: string
-          format: uri
-
-        created_at:
-          type: string
-          format: date-time
-
-        started_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        finished_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        progress:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-        result:
-          type:
-            - string
-            - 'null'
-
-          enum:
-            - success
-            - failure
-            - null
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        validation:
-          $ref: '#/components/schemas/BioSampleValidation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
-
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
     TradSubmission:
-      type: object
-      additionalProperties: false
-
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
-
-      properties:
-        id:
-          type: string
-
-        url:
-          type: string
-          format: uri
-
-        created_at:
-          type: string
-          format: date-time
-
-        started_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        finished_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        progress:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-        result:
-          type:
-            - string
-            - 'null'
-
-          enum:
-            - success
-            - failure
-            - null
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        validation:
-          $ref: '#/components/schemas/TradValidation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
-
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
     DRASubmission:
-      type: object
-      additionalProperties: false
-
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
-
-      properties:
-        id:
-          type: string
-
-        url:
-          type: string
-          format: uri
-
-        created_at:
-          type: string
-          format: date-time
-
-        started_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        finished_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        progress:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-        result:
-          type:
-            - string
-            - 'null'
-
-          enum:
-            - success
-            - failure
-            - null
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        validation:
-          $ref: '#/components/schemas/DRAValidation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
-
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
     GEASubmission:
-      type: object
-      additionalProperties: false
-
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
-
-      properties:
-        id:
-          type: string
-
-        url:
-          type: string
-          format: uri
-
-        created_at:
-          type: string
-          format: date-time
-
-        started_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        finished_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        progress:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-        result:
-          type:
-            - string
-            - 'null'
-
-          enum:
-            - success
-            - failure
-            - null
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        validation:
-          $ref: '#/components/schemas/GEAValidation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
-
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
     MetaboBankSubmission:
-      type: object
-      additionalProperties: false
-
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
-
-      properties:
-        id:
-          type: string
-
-        url:
-          type: string
-          format: uri
-
-        created_at:
-          type: string
-          format: date-time
-
-        started_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        finished_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        progress:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-        result:
-          type:
-            - string
-            - 'null'
-
-          enum:
-            - success
-            - failure
-            - null
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        validation:
-          $ref: '#/components/schemas/MetaboBankValidation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
-
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
     JVarSubmission:
-      type: object
-      additionalProperties: false
-
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
-
-      properties:
-        id:
-          type: string
-
-        url:
-          type: string
-          format: uri
-
-        created_at:
-          type: string
-          format: date-time
-
-        started_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        finished_at:
-          type:
-            - string
-            - 'null'
-
-          format: date-time
-
-        progress:
-          type: string
-
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
-
-        result:
-          type:
-            - string
-            - 'null'
-
-          enum:
-            - success
-            - failure
-            - null
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        validation:
-          $ref: '#/components/schemas/JVarValidation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
-
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
     Trad2Submission:
-      type: object
-      additionalProperties: false
+      allOf:
+        - $ref: '#/components/schemas/SubmissionBase'
+        - type: object
+  SubmissionBase:
+    type: object
+    addtionalProperties: false
+    required:
+      - id
+      - url
+      - created_at
+      - started_at
+      - finished_at
+      - progress
+      - result
+      - error_message
+      - visibility
+      - accessions
 
-      required:
-        - id
-        - url
-        - created_at
-        - started_at
-        - finished_at
-        - progress
-        - result
-        - error_message
-        - validation
-        - visibility
-        - accessions
+    properties:
+      id:
+        type: integer
 
-      properties:
-        id:
-          type: string
+      url:
+        type: string
+        format: uri
 
-        url:
-          type: string
-          format: uri
+      created_at:
+        type: string
+        format: date-time
 
-        created_at:
-          type: string
-          format: date-time
+      started_at:
+        type:
+          - string
+          - 'null'
 
-        started_at:
-          type:
-            - string
-            - 'null'
+        format: date-time
 
-          format: date-time
+      finished_at:
+        type:
+          - string
+          - 'null'
 
-        finished_at:
-          type:
-            - string
-            - 'null'
+        format: date-time
 
-          format: date-time
+      progress:
+        type: string
 
-        progress:
-          type: string
+        enum:
+          - waiting
+          - running
+          - finished
+          - canceled
 
-          enum:
-            - waiting
-            - running
-            - finished
-            - canceled
+      result:
+        type:
+          - string
+          - 'null'
 
-        result:
-          type:
-            - string
-            - 'null'
+        enum:
+          - success
+          - failure
+          - null
 
-          enum:
-            - success
-            - failure
-            - null
+      error_message:
+        type:
+          - string
+          - 'null'
 
-        error_message:
-          type:
-            - string
-            - 'null'
+      visibility:
+        type: string
 
+        enum:
+          - public
+          - private
+
+      accessions:
+        type: array
+
+        items:
+          type: object
+          additionalProperties: false
+
+          required:
+            - number
+            - entry_id
+            - version
+            - last_updated_at
+
+          properties:
+            number:
+              type: string
+
+            entry_id:
+              type: string
+
+            version:
+              type: integer
+
+            last_updated_at:
+              type: string
+              format: date-time
         validation:
-          $ref: '#/components/schemas/Trad2Validation'
-
-        visibility:
-          type: string
-
-          enum:
-            - public
-            - private
-
-        accessions:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - number
-              - entry_id
-              - version
-              - last_updated_at
-
-            properties:
-              number:
-                type: string
-
-              entry_id:
-                type: string
-
-              version:
-                type: integer
-
-              last_updated_at:
-                type: string
-                format: date-time
+          $ref: '#/components/schemas/Validation'
 
     Objects:
       type: array

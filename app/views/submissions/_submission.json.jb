@@ -1,4 +1,4 @@
-# locals: (submission:)
+# locals: (submission:, validation: false)
 
 {
   id:            submission.id,
@@ -10,7 +10,9 @@
   result:        submission.result,
   error_message: submission.error_message,
   visibility:    submission.visibility,
-  validation:    render(submission.validation),
+
+  **(validation ? {validation: render(submission.validation)} : nil),
+
   accessions:    render(partial: 'accessions/accession', collection: submission.accessions),
 
   **submission.param&.as_json

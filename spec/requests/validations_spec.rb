@@ -100,54 +100,14 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           raw_result: nil,
           submission: {
             accessions: [],
-            created_at: '2024-01-02T00:00:00.000+09:00',
+            created_at: '2024-01-02T00:00:00+09:00',
             error_message: nil,
             finished_at: nil,
-            id: 'X-200',
+            id: 200,
             progress: 'waiting',
             result: nil,
             started_at: nil,
-            url: 'http://www.example.com/api/submissions/X-200',
-            validation: {
-              created_at: '2024-01-02T03:04:56.000+09:00',
-              db: 'GEA',
-              finished_at: '2024-01-02T03:04:58.000+09:00',
-              id: 100,
-              objects: [
-                {
-                  files: [
-                    {
-                      path: 'myidf.txt',
-                      url: 'http://www.example.com/api/validations/100/files/myidf.txt'}],
-                      id: 'IDF'
-                    }
-                  ],
-              progress: 'finished',
-              raw_result: nil,
-              results: [
-                {
-                  details: [],
-                  file: nil,
-                  object_id: '_base',
-                  validity: 'valid'
-                },
-                {
-                  details: [],
-                  file: {
-                    path: 'myidf.txt',
-                    url: 'http://www.example.com/api/validations/100/files/myidf.txt'
-                  },
-                 object_id: 'IDF',
-                 validity: 'valid'
-                }
-              ],
-              started_at: '2024-01-02T03:04:57.000+09:00',
-              url: 'http://www.example.com/api/validations/100',
-              user: {
-                uid: 'alice'
-              },
-              validity: 'valid'
-            },
+            url: 'http://www.example.com/api/submissions/200',
             visibility: 'public'
           }
         }
@@ -197,36 +157,14 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
         raw_result: nil,
         submission: {
           accessions: [],
-          created_at: '2024-01-02T00:00:00.000+09:00',
+          created_at: '2024-01-02T00:00:00+09:00',
           error_message: nil,
           finished_at: nil,
-          id: 'X-200',
+          id: 200,
           progress: 'waiting',
           result: nil,
           started_at: nil,
-          url: 'http://www.example.com/api/submissions/X-200',
-          validation: {
-            created_at: '2024-01-02T03:04:56.000+09:00',
-            db: 'BioSample',
-            finished_at: '2024-01-02T03:04:58.000+09:00',
-            id: 100, objects: [],
-            progress: 'finished',
-            raw_result: nil,
-            results: [
-              {
-                details: [],
-                file: nil,
-                object_id: '_base',
-                validity: 'valid'
-              }
-            ],
-            started_at: '2024-01-02T03:04:57.000+09:00',
-            url: 'http://www.example.com/api/validations/100',
-            user: {
-              uid: 'alice'
-            },
-            validity: 'valid'
-          },
+          url: 'http://www.example.com/api/submissions/200',
           visibility: 'public'
         }
 
