@@ -504,6 +504,11 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
+            submission?: {
+                id: string;
+                /** Format: uri */
+                url: string;
+            } | null;
         };
         BioSampleValidation: {
             id: number;
@@ -530,6 +535,11 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
+            submission?: {
+                id: string;
+                /** Format: uri */
+                url: string;
+            } | null;
         };
         TradValidation: {
             id: number;
@@ -556,6 +566,11 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
+            submission?: {
+                id: string;
+                /** Format: uri */
+                url: string;
+            } | null;
         };
         DRAValidation: {
             id: number;
@@ -582,6 +597,11 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
+            submission?: {
+                id: string;
+                /** Format: uri */
+                url: string;
+            } | null;
         };
         GEAValidation: {
             id: number;
@@ -608,6 +628,11 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
+            submission?: {
+                id: string;
+                /** Format: uri */
+                url: string;
+            } | null;
         };
         MetaboBankValidation: {
             id: number;
@@ -634,6 +659,11 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
+            submission?: {
+                id: string;
+                /** Format: uri */
+                url: string;
+            } | null;
         };
         JVarValidation: {
             id: number;
@@ -660,6 +690,11 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
+            submission?: {
+                id: string;
+                /** Format: uri */
+                url: string;
+            } | null;
         };
         Trad2Validation: {
             id: number;
@@ -686,6 +721,11 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
+            submission?: {
+                id: string;
+                /** Format: uri */
+                url: string;
+            } | null;
         };
         SubmissionRequestBioProject: {
             /**

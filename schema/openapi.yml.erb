@@ -635,6 +635,21 @@ components:
             - object
             - 'null'
 
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
     <%- end -%>
     <%- dbs.each do |db| -%>
     SubmissionRequest<%= db[:id] %>:

@@ -664,6 +664,21 @@ components:
             - object
             - 'null'
 
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
     BioSampleValidation:
       type: object
       additionalProperties: false
@@ -743,6 +758,21 @@ components:
           type:
             - object
             - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
 
     TradValidation:
       type: object
@@ -824,6 +854,21 @@ components:
             - object
             - 'null'
 
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
     DRAValidation:
       type: object
       additionalProperties: false
@@ -903,6 +948,21 @@ components:
           type:
             - object
             - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
 
     GEAValidation:
       type: object
@@ -984,6 +1044,21 @@ components:
             - object
             - 'null'
 
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
     MetaboBankValidation:
       type: object
       additionalProperties: false
@@ -1063,6 +1138,21 @@ components:
           type:
             - object
             - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
 
     JVarValidation:
       type: object
@@ -1144,6 +1234,21 @@ components:
             - object
             - 'null'
 
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
+
     Trad2Validation:
       type: object
       additionalProperties: false
@@ -1223,6 +1328,21 @@ components:
           type:
             - object
             - 'null'
+
+        submission:
+          type:
+            - object
+            - 'null'
+
+          required: [id, url]
+
+          properties:
+            id:
+              type: string
+
+            url:
+              type: string
+              format: uri
 
     SubmissionRequestBioProject:
       type: object
