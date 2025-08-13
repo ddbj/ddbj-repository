@@ -26,10 +26,18 @@ export const submittedOptions = [
   { label: 'Not submitted', value: false },
 ] as const;
 
+export const resultOptions = [
+  { label: 'Success', value: 'success' },
+  { label: 'Failure', value: 'failure' },
+  { label: 'Error', value: 'error' },
+] as const;
+
 export const progresses = progressOptions.map((opt) => opt.value);
 export const validities = validityOptions.map((opt) => opt.value);
+export const results = resultOptions.map((opt) => opt.value);
 
 export type Created = (typeof createdOptions)[number]['value'];
 export type Progress = (typeof progressOptions)[number]['value'];
 export type Validity = (typeof validityOptions)[number]['value'];
 export type Submitted = (typeof submittedOptions)[number]['value'];
+export type Result = (typeof resultOptions)[number]['value'];

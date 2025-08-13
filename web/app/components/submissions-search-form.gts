@@ -10,13 +10,15 @@ import CheckboxGroup from 'repository/components/checkbox-group';
 import arrayToQueryValue from 'repository/utils/array-to-query-value';
 import { createdOptions } from 'repository/models/criteria';
 import { dbNames } from 'repository/models/db';
+import { resultOptions, results } from 'repository/models/criteria';
 
-import type { Created } from 'repository/models/criteria';
+import type { Created, Result } from 'repository/models/criteria';
 import type { DBName } from 'repository/models/db';
 
 export interface Query {
   db?: string;
   created?: string;
+  result?: string;
 }
 
 interface Signature {
@@ -30,11 +32,13 @@ interface Signature {
 export default class SubmissionsSearchForm extends Component<Signature> {
   @tracked selectedDBs = dbNames;
   @tracked created?: Created;
+  @tracked selectedResults = results;
 
   get query() {
     return {
       db: arrayToQueryValue(this.selectedDBs, dbNames),
       created: this.created,
+      result: arrayToQueryValue(this.selectedResults, results),
     } satisfies Query;
   }
 
@@ -48,6 +52,13 @@ export default class SubmissionsSearchForm extends Component<Signature> {
   @action
   onCreatedChange(created: Created) {
     this.created = created;
+
+    this.args.onChange(this.query);
+  }
+
+  @action
+  onSelectedResultsChange(selectedResults: Result[]) {
+    this.selectedResults = selectedResults;
 
     this.args.onChange(this.query);
   }
@@ -92,6 +103,25 @@ export default class SubmissionsSearchForm extends Component<Signature> {
             {{/let}}
           </div>
         {{/each}}
+      </dd>
+
+      <dt>Result</dt>
+
+      <dd class="mb-0 d-flex flex-wrap gap-3 align-items-center">
+        <CheckboxGroup
+          @values={{results}}
+          @selected={{this.selectedResults}}
+          @onChange={{this.onSelectedResultsChange}}
+          as |group|
+        >
+          {{#each resultOptions as |opt|}}
+            <div class="form-check">
+              <group.checkbox @value={{opt.value}}>
+                {{opt.label}}
+              </group.checkbox>
+            </div>
+          {{/each}}
+        </CheckboxGroup>
       </dd>
     </dl>
   </template>
