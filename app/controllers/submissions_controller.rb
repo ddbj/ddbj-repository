@@ -47,12 +47,18 @@ class SubmissionsController < ApplicationController
   end
 
   def search_submissions
-    db, created_at_after, created_at_before = params.values_at(:db, :created_at_after, :created_at_before)
+    db, created_at_after, created_at_before, result = params.values_at(
+      :db,
+      :created_at_after,
+      :created_at_before,
+      :result
+    ).map(&:presence)
 
     submissions = user_submissions
 
-    submissions = submissions.where(validations: {db: db.split(',')})              if db
+    submissions = submissions.where(validations: {db: db.split(',')})                if db
     submissions = submissions.where(created_at: created_at_after..created_at_before) if created_at_after || created_at_before
+    submissions = submissions.where(result: result.split(','))                       if result
 
     submissions
   end

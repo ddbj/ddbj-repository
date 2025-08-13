@@ -404,6 +404,23 @@ paths:
             type: string
             format: date-time
 
+        - in: query
+          name: result
+          style: form
+          explode: false
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - success
+                - failure
+                - error
+                - 'null'
+
       responses:
         '200':
           description: Return your submissions.
