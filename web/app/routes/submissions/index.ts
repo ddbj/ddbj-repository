@@ -20,6 +20,7 @@ interface Params {
   page?: number;
   db?: string;
   created?: Created;
+  result?: string;
 }
 
 export default class SubmissionsIndexRoute extends Route {
@@ -37,6 +38,9 @@ export default class SubmissionsIndexRoute extends Route {
     created: {
       refreshModel: true,
     },
+    result: {
+      refreshModel: true,
+    },
   };
 
   async model(params: Params) {
@@ -52,6 +56,10 @@ export default class SubmissionsIndexRoute extends Route {
 
     if (params.created !== undefined) {
       url.searchParams.set('created_at_after', convertCreatedToDate(params.created).toISOString());
+    }
+
+    if (params.result !== undefined) {
+      url.searchParams.set('result', params.result);
     }
 
     const res = await this.request.fetch(url.toString());

@@ -14,7 +14,8 @@ Rails.application.routes.draw do
     resources :validations, only: %i[index show destroy] do
       scope module: 'validations' do
         collection do
-          resource :via_file, only: %i[create]
+          resource :via_file,        only: %i[create]
+          resource :via_ddbj_record, only: %i[create]
         end
 
         get 'files/*path' => 'files#show', format: false, as: 'file'
@@ -22,6 +23,7 @@ Rails.application.routes.draw do
     end
 
     resources :submissions, only: %i[index show create]
+    resources :accessions,  only: %i[show update], param: :number
   end
 
   get 'web/*paths', to: 'webs#show'

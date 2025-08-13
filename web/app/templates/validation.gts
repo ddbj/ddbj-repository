@@ -26,7 +26,7 @@ export default class extends Component<Signature> {
   }
 
   <template>
-    {{pageTitle (concat "Validation #" @model.id)}}
+    {{pageTitle (concat "Validation-" @model.id)}}
 
     <div class="mb-3">
       <LinkTo @route="validations.index" @query={{hash page=this.indexPage}}>&laquo; Back to index</LinkTo>
