@@ -193,7 +193,22 @@ paths:
 
       responses:
         '200':
-          $ref: '#/components/responses/Validations'
+          description: Return your validations.
+
+          headers:
+            Link:
+              schema:
+                type: string
+
+              description: GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/ValidationWithSubmission'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -218,7 +233,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Validation'
+                $ref: '#/components/schemas/ValidationWithSubmission'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -246,7 +261,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Validation'
+                $ref: '#/components/schemas/ValidationWithSubmission'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -279,7 +294,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Validation'
+                $ref: '#/components/schemas/ValidationWithSubmission'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -448,7 +463,8 @@ paths:
                 type: array
 
                 items:
-                  - $ref: '#/components/schemas/Submission'
+                  $ref: '#/components/schemas/SubmissionWithValidation'
+
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -498,7 +514,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Submission'
+                $ref: '#/components/schemas/SubmissionWithValidation'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -531,7 +547,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Submission'
+                $ref: '#/components/schemas/SubmissionWithValidation'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -576,6 +592,39 @@ components:
       scheme: bearer
 
   schemas:
+    ValidationWithSubmission:
+      allOf:
+        - oneOf:
+            - $ref: '#/components/schemas/BioProjectValidation'
+            - $ref: '#/components/schemas/BioSampleValidation'
+            - $ref: '#/components/schemas/TradValidation'
+            - $ref: '#/components/schemas/DRAValidation'
+            - $ref: '#/components/schemas/GEAValidation'
+            - $ref: '#/components/schemas/MetaboBankValidation'
+            - $ref: '#/components/schemas/JVarValidation'
+            - $ref: '#/components/schemas/Trad2Validation'
+          discriminator:
+            propertyName: db
+
+            mapping:
+              BioProject: '#/components/schemas/BioProjectValidation'
+              BioSample: '#/components/schemas/BioSampleValidation'
+              Trad: '#/components/schemas/TradValidation'
+              DRA: '#/components/schemas/DRAValidation'
+              GEA: '#/components/schemas/GEAValidation'
+              MetaboBank: '#/components/schemas/MetaboBankValidation'
+              JVar: '#/components/schemas/JVarValidation'
+              Trad2: '#/components/schemas/Trad2Validation'
+
+        - type: object
+
+          required:
+            - submission
+
+          properties:
+            submission:
+              $ref: '#/components/schemas/Submission'
+
     Validation:
       oneOf:
         - $ref: '#/components/schemas/BioProjectValidation'
@@ -602,8 +651,19 @@ components:
 
     BioProjectValidation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -680,25 +740,21 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
-
     BioSampleValidation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -775,25 +831,21 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
-
     TradValidation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -870,25 +922,21 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
-
     DRAValidation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -965,25 +1013,21 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
-
     GEAValidation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -1060,25 +1104,21 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
-
     MetaboBankValidation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -1155,25 +1195,21 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
-
     JVarValidation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -1250,25 +1286,21 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
-
     Trad2Validation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -1344,21 +1376,6 @@ components:
           type:
             - object
             - 'null'
-
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
 
     SubmissionRequestBioProject:
       type: object
@@ -1572,6 +1589,19 @@ components:
             - public
             - private
 
+    SubmissionWithValidation:
+      allOf:
+        - $ref: '#/components/schemas/Submission'
+        - type: object
+          additionalProperties: false
+
+          required:
+            - validation
+
+          properties:
+            validation:
+              $ref: '#/components/schemas/Validation'
+
     Submission:
       oneOf:
         - $ref: '#/components/schemas/BioProjectSubmission'
@@ -1584,143 +1614,800 @@ components:
         - $ref: '#/components/schemas/Trad2Submission'
 
     BioProjectSubmission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
-          required:
-            - umbrella
+      type: object
+      addtionalProperties: false
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
+        - umbrella
 
-          properties:
-            umbrella:
-              type: boolean
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
+        umbrella:
+          type: boolean
+
     BioSampleSubmission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
+      type: object
+      addtionalProperties: false
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     TradSubmission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
+      type: object
+      addtionalProperties: false
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     DRASubmission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
+      type: object
+      addtionalProperties: false
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     GEASubmission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
+      type: object
+      addtionalProperties: false
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     MetaboBankSubmission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
+      type: object
+      addtionalProperties: false
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     JVarSubmission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
+      type: object
+      addtionalProperties: false
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+
     Trad2Submission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
-  SubmissionBase:
-    type: object
-    addtionalProperties: false
-    required:
-      - id
-      - url
-      - created_at
-      - started_at
-      - finished_at
-      - progress
-      - result
-      - error_message
-      - visibility
-      - accessions
+      type: object
+      addtionalProperties: false
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
 
-    properties:
-      id:
-        type: integer
+      properties:
+        id:
+          type: integer
 
-      url:
-        type: string
-        format: uri
+        url:
+          type: string
+          format: uri
 
-      created_at:
-        type: string
-        format: date-time
+        created_at:
+          type: string
+          format: date-time
 
-      started_at:
-        type:
-          - string
-          - 'null'
+        started_at:
+          type:
+            - string
+            - 'null'
 
-        format: date-time
+          format: date-time
 
-      finished_at:
-        type:
-          - string
-          - 'null'
+        finished_at:
+          type:
+            - string
+            - 'null'
 
-        format: date-time
+          format: date-time
 
-      progress:
-        type: string
+        progress:
+          type: string
 
-        enum:
-          - waiting
-          - running
-          - finished
-          - canceled
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
 
-      result:
-        type:
-          - string
-          - 'null'
+        result:
+          type:
+            - string
+            - 'null'
 
-        enum:
-          - success
-          - failure
-          - null
+          enum:
+            - success
+            - failure
+            - null
 
-      error_message:
-        type:
-          - string
-          - 'null'
+        error_message:
+          type:
+            - string
+            - 'null'
 
-      visibility:
-        type: string
+        visibility:
+          type: string
 
-        enum:
-          - public
-          - private
+          enum:
+            - public
+            - private
 
-      accessions:
-        type: array
+        accessions:
+          type: array
 
-        items:
-          type: object
-          additionalProperties: false
+          items:
+            type: object
+            additionalProperties: false
 
-          required:
-            - number
-            - entry_id
-            - version
-            - last_updated_at
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
 
-          properties:
-            number:
-              type: string
+            properties:
+              number:
+                type: string
 
-            entry_id:
-              type: string
+              entry_id:
+                type: string
 
-            version:
-              type: integer
+              version:
+                type: integer
 
-            last_updated_at:
-              type: string
-              format: date-time
-        validation:
-          $ref: '#/components/schemas/Validation'
+              last_updated_at:
+                type: string
+                format: date-time
 
     Objects:
       type: array
@@ -2608,24 +3295,6 @@ components:
                 Trad: '#/components/schemas/TradViaDDBJRecord'
 
   responses:
-    Validations:
-      description: Return your validations.
-
-      headers:
-        Link:
-          schema:
-            type: string
-
-          description: GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details.
-
-      content:
-        application/json:
-          schema:
-            type: array
-
-            items:
-              $ref: '#/components/schemas/Validation'
-
     BadRequest:
       description: Unexpected parameter specified.
 

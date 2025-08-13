@@ -188,7 +188,22 @@ paths:
 
       responses:
         '200':
-          $ref: '#/components/responses/Validations'
+          description: Return your validations.
+
+          headers:
+            Link:
+              schema:
+                type: string
+
+              description: GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/ValidationWithSubmission'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -213,7 +228,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Validation'
+                $ref: '#/components/schemas/ValidationWithSubmission'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -241,7 +256,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Validation'
+                $ref: '#/components/schemas/ValidationWithSubmission'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -274,7 +289,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Validation'
+                $ref: '#/components/schemas/ValidationWithSubmission'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -438,7 +453,8 @@ paths:
                 type: array
 
                 items:
-                  - $ref: '#/components/schemas/Submission'
+                  $ref: '#/components/schemas/SubmissionWithValidation'
+
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -478,7 +494,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Submission'
+                $ref: '#/components/schemas/SubmissionWithValidation'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -511,7 +527,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Submission'
+                $ref: '#/components/schemas/SubmissionWithValidation'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -556,6 +572,29 @@ components:
       scheme: bearer
 
   schemas:
+    ValidationWithSubmission:
+      allOf:
+        - oneOf:
+            <%- dbs.each do |db| -%>
+            - $ref: '#/components/schemas/<%= db[:id] %>Validation'
+            <%- end -%>
+          discriminator:
+            propertyName: db
+
+            mapping:
+              <%- dbs.each do |db| -%>
+              <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>Validation'
+              <%- end -%>
+
+        - type: object
+
+          required:
+            - submission
+
+          properties:
+            submission:
+              $ref: '#/components/schemas/Submission'
+
     Validation:
       oneOf:
         <%- dbs.each do |db| -%>
@@ -573,8 +612,19 @@ components:
     <%- dbs.each do |db| -%>
     <%= db[:id] %>Validation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -651,21 +701,6 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: integer
-
-            url:
-              type: string
-              format: uri
-
     <%- end -%>
     <%- dbs.each do |db| -%>
     SubmissionRequest<%= db[:id] %>:
@@ -703,6 +738,19 @@ components:
         <%- end -%>
 
     <%- end -%>
+    SubmissionWithValidation:
+      allOf:
+        - $ref: '#/components/schemas/Submission'
+        - type: object
+          additionalProperties: false
+
+          required:
+            - validation
+
+          properties:
+            validation:
+              $ref: '#/components/schemas/Validation'
+
     Submission:
       oneOf:
         <%- dbs.each do |db| -%>
@@ -711,119 +759,114 @@ components:
 
     <%- dbs.each do |db| -%>
     <%= db[:id] %>Submission:
-      allOf:
-        - $ref: '#/components/schemas/SubmissionBase'
-        - type: object
-          <%- if db[:id] == 'BioProject' -%>
-          required:
-            - umbrella
+      type: object
+      addtionalProperties: false
 
-          properties:
-            umbrella:
-              type: boolean
-          <%- end -%>
+      required:
+        - id
+        - url
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - result
+        - error_message
+        - visibility
+        - accessions
+        <%- if db[:id] == 'BioProject' -%>
+        - umbrella
+        <%- end -%>
+
+      properties:
+        id:
+          type: integer
+
+        url:
+          type: string
+          format: uri
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        result:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - success
+            - failure
+            - null
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        visibility:
+          type: string
+
+          enum:
+            - public
+            - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
+        <%- if db[:id] == 'BioProject' -%>
+
+        umbrella:
+          type: boolean
+        <%- end -%>
+
     <%- end -%>
-  SubmissionBase:
-    type: object
-    addtionalProperties: false
-    required:
-      - id
-      - url
-      - created_at
-      - started_at
-      - finished_at
-      - progress
-      - result
-      - error_message
-      - visibility
-      - accessions
-
-    properties:
-      id:
-        type: integer
-
-      url:
-        type: string
-        format: uri
-
-      created_at:
-        type: string
-        format: date-time
-
-      started_at:
-        type:
-          - string
-          - 'null'
-
-        format: date-time
-
-      finished_at:
-        type:
-          - string
-          - 'null'
-
-        format: date-time
-
-      progress:
-        type: string
-
-        enum:
-          - waiting
-          - running
-          - finished
-          - canceled
-
-      result:
-        type:
-          - string
-          - 'null'
-
-        enum:
-          - success
-          - failure
-          - null
-
-      error_message:
-        type:
-          - string
-          - 'null'
-
-      visibility:
-        type: string
-
-        enum:
-          - public
-          - private
-
-      accessions:
-        type: array
-
-        items:
-          type: object
-          additionalProperties: false
-
-          required:
-            - number
-            - entry_id
-            - version
-            - last_updated_at
-
-          properties:
-            number:
-              type: string
-
-            entry_id:
-              type: string
-
-            version:
-              type: integer
-
-            last_updated_at:
-              type: string
-              format: date-time
-        validation:
-          $ref: '#/components/schemas/Validation'
-
     Objects:
       type: array
 
@@ -1123,24 +1166,6 @@ components:
                 <%- end -%>
 
   responses:
-    Validations:
-      description: Return your validations.
-
-      headers:
-        Link:
-          schema:
-            type: string
-
-          description: GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details.
-
-      content:
-        application/json:
-          schema:
-            type: array
-
-            items:
-              $ref: '#/components/schemas/Validation'
-
     BadRequest:
       description: Unexpected parameter specified.
 
