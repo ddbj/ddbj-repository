@@ -105,7 +105,7 @@ export default class extends Component<Signature> {
         <dt>Validation</dt>
 
         <dd>
-          <LinkTo @route="validation" @model={{@model.validation}}>#{{@model.validation.id}}</LinkTo>
+          <LinkTo @route="validation" @model={{@model.validation}}>Validation-{{@model.validation.id}}</LinkTo>
         </dd>
       </div>
 
