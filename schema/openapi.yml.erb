@@ -479,14 +479,6 @@ paths:
                 - $ref: '#/components/schemas/SubmissionRequest<%= db[:id] %>'
                 <%- end -%>
 
-              discriminator:
-                propertyName: db
-
-                mapping:
-                  <%- dbs.each do |db| -%>
-                  <%= db[:id] %>: '#/components/schemas/SubmissionRequest<%= db[:id] %>'
-                  <%- end -%>
-
       responses:
         '201':
           description: Submitted successfully.
@@ -578,13 +570,6 @@ components:
             <%- dbs.each do |db| -%>
             - $ref: '#/components/schemas/<%= db[:id] %>Validation'
             <%- end -%>
-          discriminator:
-            propertyName: db
-
-            mapping:
-              <%- dbs.each do |db| -%>
-              <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>Validation'
-              <%- end -%>
 
         - type: object
 
@@ -593,21 +578,17 @@ components:
 
           properties:
             submission:
-              $ref: '#/components/schemas/Submission'
+              oneOf:
+                - $ref: '#/components/schemas/Submission'
+                - type: 'null'
+
+      unevaluatedProperties: false
 
     Validation:
       oneOf:
         <%- dbs.each do |db| -%>
         - $ref: '#/components/schemas/<%= db[:id] %>Validation'
         <%- end -%>
-
-      discriminator:
-        propertyName: db
-
-        mapping:
-          <%- dbs.each do |db| -%>
-          <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>Validation'
-          <%- end -%>
 
     <%- dbs.each do |db| -%>
     <%= db[:id] %>Validation:
@@ -644,10 +625,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - <%= db[:id] %>
+          const: <%= db[:id] %>
 
         created_at:
           type: string
@@ -717,10 +695,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - <%= db[:id] %>
+          const: <%= db[:id] %>
 
         validation_id:
           type: integer
@@ -741,8 +716,8 @@ components:
     SubmissionWithValidation:
       allOf:
         - $ref: '#/components/schemas/Submission'
+
         - type: object
-          additionalProperties: false
 
           required:
             - validation
@@ -750,6 +725,8 @@ components:
           properties:
             validation:
               $ref: '#/components/schemas/Validation'
+
+      unevaluatedProperties: false
 
     Submission:
       oneOf:
@@ -760,11 +737,11 @@ components:
     <%- dbs.each do |db| -%>
     <%= db[:id] %>Submission:
       type: object
-      addtionalProperties: false
 
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -784,6 +761,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: <%= db[:id] %>
 
         created_at:
           type: string
@@ -1022,8 +1002,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [<%= db[:id] %>]
+          const: <%= db[:id] %>
 
         <%- db[:objects][:file].each do |obj| -%>
         <%= obj[:id] %>:
@@ -1083,8 +1062,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [<%= db[:id] %>]
+          const: <%= db[:id] %>
 
         <%- db[:objects][:ddbj_record].each do |obj| -%>
         <%= obj[:id] %>:
@@ -1140,14 +1118,6 @@ components:
               - $ref: '#/components/schemas/<%= db[:id] %>ViaFile'
               <%- end -%>
 
-            discriminator:
-              propertyName: db
-
-              mapping:
-                <%- dbs.each do |db| -%>
-                <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>ViaFile'
-                <%- end -%>
-
     ViaDDBJRecord:
       content:
         multipart/form-data:
@@ -1156,14 +1126,6 @@ components:
               <%- dbs.reject { it[:objects][:ddbj_record].empty? }.each do |db| -%>
               - $ref: '#/components/schemas/<%= db[:id] %>ViaDDBJRecord'
               <%- end -%>
-
-            discriminator:
-              propertyName: db
-
-              mapping:
-                <%- dbs.reject { it[:objects][:ddbj_record].empty? }.each do |db| -%>
-                <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>ViaDDBJRecord'
-                <%- end -%>
 
   responses:
     BadRequest:

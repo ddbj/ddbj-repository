@@ -98,17 +98,19 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           ],
 
           raw_result: nil,
+
           submission: {
-            accessions: [],
-            created_at: '2024-01-02T00:00:00+09:00',
+            id:            200,
+            url:           'http://www.example.com/api/submissions/200',
+            db:            'GEA',
+            created_at:    '2024-01-02T00:00:00+09:00',
+            started_at:    nil,
+            finished_at:   nil,
+            progress:      'waiting',
+            result:        nil,
             error_message: nil,
-            finished_at: nil,
-            id: 200,
-            progress: 'waiting',
-            result: nil,
-            started_at: nil,
-            url: 'http://www.example.com/api/submissions/200',
-            visibility: 'public'
+            visibility:    'public',
+            accessions:    []
           }
         }
       ])
@@ -155,17 +157,19 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
         ],
 
         raw_result: nil,
+
         submission: {
-          accessions: [],
-          created_at: '2024-01-02T00:00:00+09:00',
+          id:            200,
+          url:           'http://www.example.com/api/submissions/200',
+          db:            'BioSample',
+          created_at:    '2024-01-02T00:00:00+09:00',
+          started_at:    nil,
+          finished_at:   nil,
+          progress:      'waiting',
+          result:        nil,
           error_message: nil,
-          finished_at: nil,
-          id: 200,
-          progress: 'waiting',
-          result: nil,
-          started_at: nil,
-          url: 'http://www.example.com/api/submissions/200',
-          visibility: 'public'
+          visibility:    'public',
+          accessions:    []
         }
 
       )
