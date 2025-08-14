@@ -494,19 +494,6 @@ paths:
                 - $ref: '#/components/schemas/SubmissionRequestJVar'
                 - $ref: '#/components/schemas/SubmissionRequestTrad2'
 
-              discriminator:
-                propertyName: db
-
-                mapping:
-                  BioProject: '#/components/schemas/SubmissionRequestBioProject'
-                  BioSample: '#/components/schemas/SubmissionRequestBioSample'
-                  Trad: '#/components/schemas/SubmissionRequestTrad'
-                  DRA: '#/components/schemas/SubmissionRequestDRA'
-                  GEA: '#/components/schemas/SubmissionRequestGEA'
-                  MetaboBank: '#/components/schemas/SubmissionRequestMetaboBank'
-                  JVar: '#/components/schemas/SubmissionRequestJVar'
-                  Trad2: '#/components/schemas/SubmissionRequestTrad2'
-
       responses:
         '201':
           description: Submitted successfully.
@@ -603,18 +590,6 @@ components:
             - $ref: '#/components/schemas/MetaboBankValidation'
             - $ref: '#/components/schemas/JVarValidation'
             - $ref: '#/components/schemas/Trad2Validation'
-          discriminator:
-            propertyName: db
-
-            mapping:
-              BioProject: '#/components/schemas/BioProjectValidation'
-              BioSample: '#/components/schemas/BioSampleValidation'
-              Trad: '#/components/schemas/TradValidation'
-              DRA: '#/components/schemas/DRAValidation'
-              GEA: '#/components/schemas/GEAValidation'
-              MetaboBank: '#/components/schemas/MetaboBankValidation'
-              JVar: '#/components/schemas/JVarValidation'
-              Trad2: '#/components/schemas/Trad2Validation'
 
         - type: object
 
@@ -623,7 +598,11 @@ components:
 
           properties:
             submission:
-              $ref: '#/components/schemas/Submission'
+              oneOf:
+                - $ref: '#/components/schemas/Submission'
+                - type: 'null'
+
+      unevaluatedProperties: false
 
     Validation:
       oneOf:
@@ -635,19 +614,6 @@ components:
         - $ref: '#/components/schemas/MetaboBankValidation'
         - $ref: '#/components/schemas/JVarValidation'
         - $ref: '#/components/schemas/Trad2Validation'
-
-      discriminator:
-        propertyName: db
-
-        mapping:
-          BioProject: '#/components/schemas/BioProjectValidation'
-          BioSample: '#/components/schemas/BioSampleValidation'
-          Trad: '#/components/schemas/TradValidation'
-          DRA: '#/components/schemas/DRAValidation'
-          GEA: '#/components/schemas/GEAValidation'
-          MetaboBank: '#/components/schemas/MetaboBankValidation'
-          JVar: '#/components/schemas/JVarValidation'
-          Trad2: '#/components/schemas/Trad2Validation'
 
     BioProjectValidation:
       type: object
@@ -683,10 +649,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - BioProject
+          const: BioProject
 
         created_at:
           type: string
@@ -774,10 +737,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - BioSample
+          const: BioSample
 
         created_at:
           type: string
@@ -865,10 +825,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - Trad
+          const: Trad
 
         created_at:
           type: string
@@ -956,10 +913,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - DRA
+          const: DRA
 
         created_at:
           type: string
@@ -1047,10 +1001,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - GEA
+          const: GEA
 
         created_at:
           type: string
@@ -1138,10 +1089,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - MetaboBank
+          const: MetaboBank
 
         created_at:
           type: string
@@ -1229,10 +1177,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - JVar
+          const: JVar
 
         created_at:
           type: string
@@ -1320,10 +1265,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - Trad2
+          const: Trad2
 
         created_at:
           type: string
@@ -1389,10 +1331,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - BioProject
+          const: BioProject
 
         validation_id:
           type: integer
@@ -1418,10 +1357,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - BioSample
+          const: BioSample
 
         validation_id:
           type: integer
@@ -1444,10 +1380,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - Trad
+          const: Trad
 
         validation_id:
           type: integer
@@ -1470,10 +1403,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - DRA
+          const: DRA
 
         validation_id:
           type: integer
@@ -1496,10 +1426,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - GEA
+          const: GEA
 
         validation_id:
           type: integer
@@ -1522,10 +1449,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - MetaboBank
+          const: MetaboBank
 
         validation_id:
           type: integer
@@ -1548,10 +1472,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - JVar
+          const: JVar
 
         validation_id:
           type: integer
@@ -1574,10 +1495,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - Trad2
+          const: Trad2
 
         validation_id:
           type: integer
@@ -1592,8 +1510,8 @@ components:
     SubmissionWithValidation:
       allOf:
         - $ref: '#/components/schemas/Submission'
+
         - type: object
-          additionalProperties: false
 
           required:
             - validation
@@ -1601,6 +1519,8 @@ components:
           properties:
             validation:
               $ref: '#/components/schemas/Validation'
+
+      unevaluatedProperties: false
 
     Submission:
       oneOf:
@@ -1615,10 +1535,11 @@ components:
 
     BioProjectSubmission:
       type: object
-      addtionalProperties: false
+
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -1636,6 +1557,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: BioProject
 
         created_at:
           type: string
@@ -1718,10 +1642,11 @@ components:
 
     BioSampleSubmission:
       type: object
-      addtionalProperties: false
+
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -1738,6 +1663,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: BioSample
 
         created_at:
           type: string
@@ -1817,10 +1745,11 @@ components:
 
     TradSubmission:
       type: object
-      addtionalProperties: false
+
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -1837,6 +1766,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: Trad
 
         created_at:
           type: string
@@ -1916,10 +1848,11 @@ components:
 
     DRASubmission:
       type: object
-      addtionalProperties: false
+
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -1936,6 +1869,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: DRA
 
         created_at:
           type: string
@@ -2015,10 +1951,11 @@ components:
 
     GEASubmission:
       type: object
-      addtionalProperties: false
+
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -2035,6 +1972,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: GEA
 
         created_at:
           type: string
@@ -2114,10 +2054,11 @@ components:
 
     MetaboBankSubmission:
       type: object
-      addtionalProperties: false
+
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -2134,6 +2075,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: MetaboBank
 
         created_at:
           type: string
@@ -2213,10 +2157,11 @@ components:
 
     JVarSubmission:
       type: object
-      addtionalProperties: false
+
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -2233,6 +2178,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: JVar
 
         created_at:
           type: string
@@ -2312,10 +2260,11 @@ components:
 
     Trad2Submission:
       type: object
-      addtionalProperties: false
+
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
@@ -2332,6 +2281,9 @@ components:
         url:
           type: string
           format: uri
+
+        db:
+          const: Trad2
 
         created_at:
           type: string
@@ -2595,8 +2547,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [BioProject]
+          const: BioProject
 
         BioProject:
           type: object
@@ -2626,8 +2577,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [BioSample]
+          const: BioSample
 
         BioSample:
           type: object
@@ -2658,8 +2608,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [Trad]
+          const: Trad
 
         Sequence:
           type: array
@@ -2718,8 +2667,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [DRA]
+          const: DRA
 
         Submission:
           type: object
@@ -2848,8 +2796,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [GEA]
+          const: GEA
 
         IDF:
           type: object
@@ -2964,8 +2911,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [MetaboBank]
+          const: MetaboBank
 
         IDF:
           type: object
@@ -3097,8 +3043,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [JVar]
+          const: JVar
 
         Excel:
           type: object
@@ -3152,8 +3097,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [Trad2]
+          const: Trad2
 
         Sequence:
           type: array
@@ -3232,8 +3176,7 @@ components:
 
       properties:
         db:
-          type: string
-          enum: [Trad]
+          const: Trad
 
         DDBJRecord:
           type: object
@@ -3268,31 +3211,12 @@ components:
               - $ref: '#/components/schemas/JVarViaFile'
               - $ref: '#/components/schemas/Trad2ViaFile'
 
-            discriminator:
-              propertyName: db
-
-              mapping:
-                BioProject: '#/components/schemas/BioProjectViaFile'
-                BioSample: '#/components/schemas/BioSampleViaFile'
-                Trad: '#/components/schemas/TradViaFile'
-                DRA: '#/components/schemas/DRAViaFile'
-                GEA: '#/components/schemas/GEAViaFile'
-                MetaboBank: '#/components/schemas/MetaboBankViaFile'
-                JVar: '#/components/schemas/JVarViaFile'
-                Trad2: '#/components/schemas/Trad2ViaFile'
-
     ViaDDBJRecord:
       content:
         multipart/form-data:
           schema:
             oneOf:
               - $ref: '#/components/schemas/TradViaDDBJRecord'
-
-            discriminator:
-              propertyName: db
-
-              mapping:
-                Trad: '#/components/schemas/TradViaDDBJRecord'
 
   responses:
     BadRequest:

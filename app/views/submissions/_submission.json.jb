@@ -3,6 +3,7 @@
 {
   id:            submission.id,
   url:           submission_url(submission),
+  db:            submission.validation.db,
   created_at:    submission.created_at.iso8601,
   started_at:    submission.started_at&.iso8601,
   finished_at:   submission.finished_at&.iso8601,

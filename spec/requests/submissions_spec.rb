@@ -31,6 +31,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
     expect(response.parsed_body.deep_symbolize_keys).to eq(
       id:            200,
       url:           'http://www.example.com/api/submissions/200',
+      db:            'JVar',
       created_at:    '2024-01-02T03:04:58+09:00',
       started_at:    nil,
       finished_at:   nil,

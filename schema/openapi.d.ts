@@ -489,11 +489,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ValidationWithSubmission: {
-            db: "ValidationWithSubmission";
-        } & (Omit<components["schemas"]["BioProjectValidation"] | components["schemas"]["BioSampleValidation"] | components["schemas"]["TradValidation"] | components["schemas"]["DRAValidation"] | components["schemas"]["GEAValidation"] | components["schemas"]["MetaboBankValidation"] | components["schemas"]["JVarValidation"] | components["schemas"]["Trad2Validation"], "db"> & {
-            submission: components["schemas"]["Submission"];
-        });
+        ValidationWithSubmission: (components["schemas"]["BioProjectValidation"] | components["schemas"]["BioSampleValidation"] | components["schemas"]["TradValidation"] | components["schemas"]["DRAValidation"] | components["schemas"]["GEAValidation"] | components["schemas"]["MetaboBankValidation"] | components["schemas"]["JVarValidation"] | components["schemas"]["Trad2Validation"]) & {
+            submission: components["schemas"]["Submission"] | null;
+        };
         Validation: components["schemas"]["BioProjectValidation"] | components["schemas"]["BioSampleValidation"] | components["schemas"]["TradValidation"] | components["schemas"]["DRAValidation"] | components["schemas"]["GEAValidation"] | components["schemas"]["MetaboBankValidation"] | components["schemas"]["JVarValidation"] | components["schemas"]["Trad2Validation"];
         BioProjectValidation: {
             id: number;
@@ -502,10 +500,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioProject";
             /** Format: date-time */
             created_at: string;
@@ -528,10 +523,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioSample";
             /** Format: date-time */
             created_at: string;
@@ -554,10 +546,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad";
             /** Format: date-time */
             created_at: string;
@@ -580,10 +569,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "DRA";
             /** Format: date-time */
             created_at: string;
@@ -606,10 +592,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "GEA";
             /** Format: date-time */
             created_at: string;
@@ -632,10 +615,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "MetaboBank";
             /** Format: date-time */
             created_at: string;
@@ -658,10 +638,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "JVar";
             /** Format: date-time */
             created_at: string;
@@ -684,10 +661,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad2";
             /** Format: date-time */
             created_at: string;
@@ -704,10 +678,7 @@ export interface components {
             raw_result?: Record<string, never> | null;
         };
         SubmissionRequestBioProject: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioProject";
             validation_id: number;
             /** @enum {string} */
@@ -715,70 +686,49 @@ export interface components {
             umbrella: boolean;
         };
         SubmissionRequestBioSample: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioSample";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestTrad: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestDRA: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "DRA";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestGEA: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "GEA";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestMetaboBank: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "MetaboBank";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestJVar: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "JVar";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestTrad2: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad2";
             validation_id: number;
             /** @enum {string} */
@@ -792,6 +742,8 @@ export interface components {
             id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "BioProject";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -818,6 +770,8 @@ export interface components {
             id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "BioSample";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -843,6 +797,8 @@ export interface components {
             id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "Trad";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -868,6 +824,8 @@ export interface components {
             id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "DRA";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -893,6 +851,8 @@ export interface components {
             id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "GEA";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -918,6 +878,8 @@ export interface components {
             id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "MetaboBank";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -943,6 +905,8 @@ export interface components {
             id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "JVar";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -968,6 +932,8 @@ export interface components {
             id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "Trad2";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -1034,10 +1000,7 @@ export interface components {
             error: string;
         };
         BioProjectViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioProject";
             BioProject: {
                 file?: components["schemas"]["File"];
@@ -1046,10 +1009,7 @@ export interface components {
             } & (unknown | unknown);
         };
         BioSampleViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioSample";
             BioSample: {
                 file?: components["schemas"]["File"];
@@ -1058,10 +1018,7 @@ export interface components {
             } & (unknown | unknown);
         };
         TradViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad";
             Sequence: ({
                 file?: components["schemas"]["File"];
@@ -1075,10 +1032,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         DRAViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "DRA";
             Submission: {
                 file?: components["schemas"]["File"];
@@ -1112,10 +1066,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         GEAViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "GEA";
             IDF: {
                 file?: components["schemas"]["File"];
@@ -1144,10 +1095,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         MetaboBankViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "MetaboBank";
             IDF: {
                 file?: components["schemas"]["File"];
@@ -1181,10 +1129,7 @@ export interface components {
             } & (unknown | unknown);
         };
         JVarViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "JVar";
             Excel: {
                 file?: components["schemas"]["File"];
@@ -1198,10 +1143,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         Trad2ViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad2";
             Sequence: ({
                 file?: components["schemas"]["File"];
@@ -1220,10 +1162,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         TradViaDDBJRecord: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad";
             DDBJRecord: {
                 file?: components["schemas"]["File"];
