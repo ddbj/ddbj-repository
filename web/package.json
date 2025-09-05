@@ -52,7 +52,7 @@
     "babel-plugin-module-resolver": "^5.0.2",
     "bootstrap": "^5.3.7",
     "broccoli-asset-rev": "^3.0.0",
-    "concurrently": "^9.2.0",
+    "concurrently": "^9.2.1",
     "date-fns": "^4.1.0",
     "ember-auto-import": "^2.10.0",
     "ember-cli": "~6.6.0",
