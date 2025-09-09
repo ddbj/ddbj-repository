@@ -2,7 +2,7 @@ class Sequence < ApplicationRecord
   class Exhausted < StandardError; end
 
   class << self
-    def config = Rails.application.config_for(:prefix)
+    def config = Rails.application.config_for(:sequence)
 
     def ensure_records!
       insert_all config.map {|scope, list|
