@@ -11,7 +11,6 @@ System_Ext(ddbj_validator, "DDBJ Validator")
 Container_Boundary(repository, "DDBJ Repository") {
     ContainerDb(schema, "API Schema", "OpenAPI")
     Container(web, "Web UI", "Ember.js")
-    Container(cli, "CLI", "Deno")
 
     Container_Boundary(api, "API") {
         Container(proxy, "Reverse Proxy", "Varnish")
@@ -28,13 +27,9 @@ Container_Boundary(repository, "DDBJ Repository") {
 Rel(user, accounts, "Logs in to")
 Rel(user, proxy, "Uses for accessing API")
 Rel(user, web, "Accesses Web UI")
-Rel(user, cli, "Uses CLI")
 
 Rel(web, schema, "Uses")
 Rel(web, proxy, "Uses for accessing API")
-
-Rel(cli, schema, "Uses")
-Rel(cli, proxy, "Uses for accessing API")
 
 Rel(proxy, app, "Forwards requests to")
 Rel(proxy, object_storage, "Forwards requests to")

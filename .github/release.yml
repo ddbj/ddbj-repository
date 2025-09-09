@@ -8,10 +8,6 @@ changelog:
       labels:
         - web
 
-    - title: CLI Changes
-      labels:
-        - cli
-
     - title: Other Changes
       labels:
         - '*'
