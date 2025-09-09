@@ -164,7 +164,7 @@ export interface paths {
                 };
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
-                422: components["responses"]["UnprocessableEntity"];
+                422: components["responses"]["UnprocessableContent"];
             };
         };
         delete?: never;
@@ -233,7 +233,7 @@ export interface paths {
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
-                422: components["responses"]["UnprocessableEntity"];
+                422: components["responses"]["UnprocessableContent"];
             };
         };
         options?: never;
@@ -346,7 +346,7 @@ export interface paths {
                 };
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
-                422: components["responses"]["UnprocessableEntity"];
+                422: components["responses"]["UnprocessableContent"];
             };
         };
         delete?: never;
@@ -1156,7 +1156,7 @@ export interface components {
             };
         };
         /** @description Invalid parameter or payload was specified. */
-        UnprocessableEntity: {
+        UnprocessableContent: {
             headers: {
                 [name: string]: unknown;
             };

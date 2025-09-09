@@ -222,7 +222,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/UnprocessableContent'
 
   /validations/{id}:
     get:
@@ -293,7 +293,7 @@ paths:
           $ref: '#/components/responses/NotFound'
 
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/UnprocessableContent'
 
   /validations/{id}/files/{path}:
     get:
@@ -443,7 +443,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          $ref: '#/components/responses/UnprocessableContent'
 
   /submissions/{id}:
     get:
@@ -973,7 +973,7 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
 
-    UnprocessableEntity:
+    UnprocessableContent:
       description: Invalid parameter or payload was specified.
 
       content:
