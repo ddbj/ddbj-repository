@@ -12,6 +12,13 @@ class Sequence < ApplicationRecord
           digits: list.first[:digits]
         }
       }, unique_by: :scope
+    rescue ArgumentError => e
+      if e.message == 'No unique index found for scope'
+        # This can happen if the migration creating the unique IndexError
+        # has not yet been run. We can safely ignore this error.
+      else
+        raise
+      end
     end
 
     def allocate!(scope, count:)
