@@ -1,10 +1,12 @@
 import Service from '@ember/service';
 import { modifier } from 'ember-modifier';
+import { tracked } from '@glimmer/tracking';
 
 import { Modal } from 'bootstrap';
 
 export default class ErrorModalService extends Service {
-  error?: Error;
+  @tracked error?: Error;
+
   modal?: Modal;
 
   register = modifier((el: Element) => {

@@ -11,7 +11,14 @@ class AccessionsController < ApplicationController
     current_record = JSON.parse(objs.last.file.download, symbolize_names: true)
     current_entry  = current_record.dig(:sequence, :entries).find { it[:id] == @accession.entry_id }
     new_record     = JSON.parse(params.expect(:DDBJRecord).read, symbolize_names: true)
-    new_entry      = new_record.dig(:sequence, :entries).find { it[:id] == @accession.entry_id }
+
+    unless new_entry = new_record.dig(:sequence, :entries).find { it[:id] == @accession.entry_id }
+      render json: {
+        error: "The provided record does not contain an entry with ID #{@accession.entry_id}."
+      }, status: :unprocessable_content
+
+      return
+    end
 
     current_entry.replace new_entry
 

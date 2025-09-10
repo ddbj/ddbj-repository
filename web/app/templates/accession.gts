@@ -36,7 +36,7 @@ export default class extends Component<Signature> {
 
     e.preventDefault();
 
-    const res = await this.request.fetchWithModal(`/accessions/${accession.number}`, {
+    await this.request.fetchWithModal(`/accessions/${accession.number}`, {
       method: 'PUT',
       body: new FormData(e.target as HTMLFormElement)
     });
