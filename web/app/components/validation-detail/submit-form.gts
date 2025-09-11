@@ -13,7 +13,7 @@ import type RouterService from '@ember/routing/router-service';
 import type ToastService from 'repository/services/toast';
 import type { components } from 'schema/openapi';
 
-type Validation = components['schemas']['Validation'];
+type Validation = components['schemas']['ValidationWithSubmission'];
 type Submission = components['schemas']['Submission'];
 
 interface Signature {

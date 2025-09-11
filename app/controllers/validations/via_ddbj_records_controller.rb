@@ -13,8 +13,8 @@ class Validations::ViaDDBJRecordsController < ApplicationController
 
       if file = record_params[:file]
         validation.objs.build(
-          _id:      'DDBJRecord',
-          validity: 'valid',
+          _id:         'DDBJRecord',
+          validity:    'valid',
           file:,
           destination:
         )

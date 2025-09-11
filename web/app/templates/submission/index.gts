@@ -17,7 +17,7 @@ import type RequestService from 'repository/services/request';
 import type SubmissionsIndexController from 'repository/controllers/submissions/index';
 import type { components } from 'schema/openapi';
 
-type Submission = components['schemas']['Submission'];
+type Submission = components['schemas']['SubmissionWithValidation'];
 
 interface Signature {
   Args: {

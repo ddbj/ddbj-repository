@@ -14,7 +14,7 @@ export default class AccessionRoute extends Route {
 
     return {
       submission: this.modelFor('submission'),
-      accession: (await res.json()) as Accession
+      accession: (await res.json()) as Accession,
     };
   }
 }

@@ -1,6 +1,6 @@
 import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
-import { concat } from '@ember/helper';
+import { concat, uniqueId } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 
@@ -22,8 +22,8 @@ interface Signature {
     model: {
       submission: Submission;
       accession: Accession;
-    }
-  }
+    };
+  };
 }
 
 export default class extends Component<Signature> {
@@ -38,7 +38,7 @@ export default class extends Component<Signature> {
 
     await this.request.fetchWithModal(`/accessions/${accession.number}`, {
       method: 'PUT',
-      body: new FormData(e.target as HTMLFormElement)
+      body: new FormData(e.target as HTMLFormElement),
     });
 
     this.router.transitionTo('submission', submission);
@@ -79,13 +79,17 @@ export default class extends Component<Signature> {
 
     <form {{on "submit" this.submit.perform}}>
       <div class="card">
-        <div class="card-header">
-          DDBJ Record
-        </div>
+        {{#let (uniqueId) as |id|}}
+          <div class="card-header">
+            <label for={{id}}>
+              DDBJ Record
+            </label>
+          </div>
 
-        <div class="card-body">
-          <input type="file" name="DDBJRecord" class="form-control" accept=".json" required>
-        </div>
+          <div class="card-body">
+            <input type="file" name="DDBJRecord" id={{id}} class="form-control" accept=".json" required />
+          </div>
+        {{/let}}
       </div>
 
       <button type="submit" class="btn btn-primary mt-3" disabled={{this.submit.isRunning}}>

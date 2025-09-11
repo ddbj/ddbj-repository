@@ -9,7 +9,7 @@ import type SubmissionsIndexController from 'repository/controllers/submissions'
 import type { Created } from 'repository/models/criteria';
 import type { components } from 'schema/openapi';
 
-type Submission = components['schemas']['Submission'];
+type Submission = components['schemas']['SubmissionWithValidation'];
 
 export interface Model {
   submissions: Submission[];

@@ -6,7 +6,7 @@ import type Controller from 'repository/controllers/validations/index';
 import type RequestService from 'repository/services/request';
 import type { components } from 'schema/openapi';
 
-type Validation = components['schemas']['Validation'];
+type Validation = components['schemas']['ValidationWithSubmission'];
 
 export interface Model {
   validations: Validation[];
