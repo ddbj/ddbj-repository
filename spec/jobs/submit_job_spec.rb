@@ -116,4 +116,35 @@ RSpec.describe SubmitJob, type: :job do
       validation-report.json
     ])
   end
+
+  describe 'Trad via DDBJRecord' do
+    example 'ok' do
+      submission = create(:submission, id: 42, **{
+        validation: create(:validation, :valid, db: 'Trad', via: :ddbj_record) {|validation|
+          create :obj, :valid, validation:, _id: 'DDBJRecord', file: file_fixture_upload('ddbj_record/example.json')
+        }
+      })
+
+      SubmitJob.perform_now submission
+
+      submission.reload
+
+      expect(submission).to be_finished
+      expect(submission.error_message).to be_nil
+      expect(submission).to be_success
+
+      expect(submission.accessions).to contain_exactly(
+        have_attributes(
+          number:   'QP000001',
+          entry_id: 'ENTRY_1',
+          version:  1
+        ),
+        have_attributes(
+          number:   'QP000002',
+          entry_id: 'ENTRY_2',
+          version:  1
+        )
+      )
+    end
+  end
 end

@@ -169,7 +169,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ValidationWithSubmission"];
+                        "application/json": components["schemas"]["Validation"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -208,7 +208,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ValidationWithSubmission"];
+                        "application/json": components["schemas"]["Validation"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -445,7 +445,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/accessions/{id}": {
+    "/accessions/{number}": {
         parameters: {
             query?: never;
             header?: never;
@@ -458,7 +458,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    id: string;
+                    number: string;
                 };
                 cookie?: never;
             };
@@ -482,7 +482,36 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description Update the accession. */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    number: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        DDBJRecord: components["schemas"]["File"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated successfully. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Accession"];
+                    };
+                };
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
         trace?: never;
     };
 }

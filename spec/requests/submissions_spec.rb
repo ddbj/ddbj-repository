@@ -1,21 +1,21 @@
 require 'rails_helper'
 
-RSpec.describe 'submissions', type: :request, authorized: true do
+RSpec.describe '/api/submissions', type: :request, authorized: true do
   let_it_be(:user) { create_default(:user, uid: 'alice') }
 
   before do
     default_headers[:Authorization] = "Bearer #{user.token}"
   end
 
-  example 'GET /api/submissions' do
-    create :submission, id: 42
+  example 'index' do
+    create :submission
 
     get '/api/submissions'
 
     expect(response).to conform_schema(200)
   end
 
-  example 'GET /api/submissions/:id' do
+  example 'show' do
     travel_to '2024-01-02'
 
     create :validation, :valid, id: 100, db: 'JVar', created_at: '2024-01-02 03:04:56', started_at: '2024-01-02 03:04:57', finished_at: '2024-01-02 03:04:58' do |validation|
@@ -90,7 +90,7 @@ RSpec.describe 'submissions', type: :request, authorized: true do
     )
   end
 
-  describe 'POST /api/submissions' do
+  describe 'create' do
     example 'ok' do
       create :validation, :valid, id: 42, db: 'JVar'
 

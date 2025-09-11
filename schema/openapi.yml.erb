@@ -228,7 +228,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationWithSubmission'
+                $ref: '#/components/schemas/Validation'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -256,7 +256,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ValidationWithSubmission'
+                $ref: '#/components/schemas/Validation'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -527,7 +527,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /accessions/{id}:
+  /accessions/{number}:
     get:
       description: Get the accession.
 
@@ -535,7 +535,7 @@ paths:
         - Accession
 
       parameters:
-        - name: id
+        - name: number
           in: path
           required: true
 
@@ -556,6 +556,46 @@ paths:
 
         '404':
           $ref: '#/components/responses/NotFound'
+
+    patch:
+      description: Update the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              addtionalProperties: false
+
+              required:
+                - DDBJRecord
+
+              properties:
+                DDBJRecord:
+                  $ref: '#/components/schemas/File'
+
+      responses:
+        '200':
+          description: Updated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accession'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
 
 components:
   securitySchemes:
