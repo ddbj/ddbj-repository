@@ -188,7 +188,22 @@ paths:
 
       responses:
         '200':
-          $ref: '#/components/responses/Validations'
+          description: Return your validations.
+
+          headers:
+            Link:
+              schema:
+                type: string
+
+              description: GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/ValidationWithSubmission'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -205,6 +220,34 @@ paths:
 
       requestBody:
         $ref: '#/components/requestBodies/ViaFile'
+
+      responses:
+        '201':
+          description: The validation process initiated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Validation'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+  /validations/via_ddbj_record:
+    post:
+      description: Validate DDBJRecord.
+
+      tags:
+        - Validation
+
+      requestBody:
+        $ref: '#/components/requestBodies/ViaDDBJRecord'
 
       responses:
         '201':
@@ -246,7 +289,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Validation'
+                $ref: '#/components/schemas/ValidationWithSubmission'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -376,6 +419,23 @@ paths:
             type: string
             format: date-time
 
+        - in: query
+          name: result
+          style: form
+          explode: false
+
+          schema:
+            type: array
+
+            items:
+              type: string
+
+              enum:
+                - success
+                - failure
+                - error
+                - 'null'
+
       responses:
         '200':
           description: Return your submissions.
@@ -393,7 +453,7 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/Submission'
+                  $ref: '#/components/schemas/SubmissionWithValidation'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -419,14 +479,6 @@ paths:
                 - $ref: '#/components/schemas/SubmissionRequest<%= db[:id] %>'
                 <%- end -%>
 
-              discriminator:
-                propertyName: db
-
-                mapping:
-                  <%- dbs.each do |db| -%>
-                  <%= db[:id] %>: '#/components/schemas/SubmissionRequest<%= db[:id] %>'
-                  <%- end -%>
-
       responses:
         '201':
           description: Submitted successfully.
@@ -434,7 +486,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Submission'
+                $ref: '#/components/schemas/SubmissionWithValidation'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -467,13 +519,83 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Submission'
+                $ref: '#/components/schemas/SubmissionWithValidation'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
 
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /accessions/{number}:
+    get:
+      description: Get the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - name: number
+          in: path
+          required: true
+
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Return the accession.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accession'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      description: Update the accession.
+
+      tags:
+        - Accession
+
+      parameters:
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: string
+
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              addtionalProperties: false
+
+              required:
+                - DDBJRecord
+
+              properties:
+                DDBJRecord:
+                  $ref: '#/components/schemas/File'
+
+      responses:
+        '200':
+          description: Updated successfully.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Accession'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
 
 components:
   securitySchemes:
@@ -482,25 +604,48 @@ components:
       scheme: bearer
 
   schemas:
+    ValidationWithSubmission:
+      allOf:
+        - oneOf:
+            <%- dbs.each do |db| -%>
+            - $ref: '#/components/schemas/<%= db[:id] %>Validation'
+            <%- end -%>
+
+        - type: object
+
+          required:
+            - submission
+
+          properties:
+            submission:
+              oneOf:
+                - $ref: '#/components/schemas/Submission'
+                - type: 'null'
+
+      unevaluatedProperties: false
+
     Validation:
       oneOf:
         <%- dbs.each do |db| -%>
         - $ref: '#/components/schemas/<%= db[:id] %>Validation'
         <%- end -%>
 
-      discriminator:
-        propertyName: db
-
-        mapping:
-          <%- dbs.each do |db| -%>
-          <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>Validation'
-          <%- end -%>
-
     <%- dbs.each do |db| -%>
     <%= db[:id] %>Validation:
       type: object
-      additionalProperties: false
-      required: [id, url, user, db, created_at, started_at, finished_at, progress, validity, objects, results, submission]
+
+      required:
+        - id
+        - url
+        - user
+        - db
+        - created_at
+        - started_at
+        - finished_at
+        - progress
+        - validity
+        - objects
+        - results
 
       properties:
         id:
@@ -520,10 +665,7 @@ components:
               type: string
 
         db:
-          type: string
-
-          enum:
-            - <%= db[:id] %>
+          const: <%= db[:id] %>
 
         created_at:
           type: string
@@ -577,21 +719,6 @@ components:
             - object
             - 'null'
 
-        submission:
-          type:
-            - object
-            - 'null'
-
-          required: [id, url]
-
-          properties:
-            id:
-              type: string
-
-            url:
-              type: string
-              format: uri
-
     <%- end -%>
     <%- dbs.each do |db| -%>
     SubmissionRequest<%= db[:id] %>:
@@ -608,10 +735,7 @@ components:
 
       properties:
         db:
-          type: string
-
-          enum:
-            - <%= db[:id] %>
+          const: <%= db[:id] %>
 
         validation_id:
           type: integer
@@ -629,6 +753,21 @@ components:
         <%- end -%>
 
     <%- end -%>
+    SubmissionWithValidation:
+      allOf:
+        - $ref: '#/components/schemas/Submission'
+
+        - type: object
+
+          required:
+            - validation
+
+          properties:
+            validation:
+              $ref: '#/components/schemas/Validation'
+
+      unevaluatedProperties: false
+
     Submission:
       oneOf:
         <%- dbs.each do |db| -%>
@@ -638,30 +777,33 @@ components:
     <%- dbs.each do |db| -%>
     <%= db[:id] %>Submission:
       type: object
-      additionalProperties: false
 
       required:
         - id
         - url
+        - db
         - created_at
         - started_at
         - finished_at
         - progress
         - result
         - error_message
-        - validation
         - visibility
+        - accessions
         <%- if db[:id] == 'BioProject' -%>
         - umbrella
         <%- end -%>
 
       properties:
         id:
-          type: string
+          type: integer
 
         url:
           type: string
           format: uri
+
+        db:
+          const: <%= db[:id] %>
 
         created_at:
           type: string
@@ -705,15 +847,39 @@ components:
             - string
             - 'null'
 
-        validation:
-          $ref: '#/components/schemas/<%= db[:id] %>Validation'
-
         visibility:
           type: string
 
           enum:
             - public
             - private
+
+        accessions:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - number
+              - entry_id
+              - version
+              - last_updated_at
+
+            properties:
+              number:
+                type: string
+
+              entry_id:
+                type: string
+
+              version:
+                type: integer
+
+              last_updated_at:
+                type: string
+                format: date-time
         <%- if db[:id] == 'BioProject' -%>
 
         umbrella:
@@ -734,7 +900,7 @@ components:
             type: string
 
             enum:
-              <%- dbs.flat_map { _1[:objects] }.map { _1[:id] }.uniq.each do |obj_id| -%>
+              <%- dbs.flat_map { _1[:objects].values.flatten }.map { _1[:id] }.uniq.each do |obj_id| -%>
               - <%= obj_id %>
               <%- end -%>
 
@@ -754,6 +920,25 @@ components:
                   type: string
                   format: uri
 
+    Accession:
+      type: object
+      additionalProperties: false
+      required: [number, entry_id, version, last_updated_at]
+
+      properties:
+        number:
+          type: string
+
+        entry_id:
+          type: string
+
+        version:
+          type: integer
+
+        last_updated_at:
+          type: string
+          format: date-time
+
     ValidationResult:
       type: object
       additionalProperties: false
@@ -765,7 +950,7 @@ components:
 
           enum:
             - _base
-            <%- dbs.flat_map { _1[:objects] }.uniq { _1[:id] }.each do |obj| -%>
+            <%- dbs.flat_map { _1[:objects].values.flatten }.uniq { _1[:id] }.each do |obj| -%>
             - <%= obj[:id] %>
             <%- end -%>
 
@@ -851,16 +1036,75 @@ components:
 
       required:
         - db
-        <%- db[:objects].select { _1[:required] }.each do |obj| -%>
+        <%- db[:objects][:file].select { _1[:required] }.each do |obj| -%>
         - <%= obj[:id] %>
         <%- end -%>
 
       properties:
         db:
-          type: string
-          enum: [<%= db[:id] %>]
+          const: <%= db[:id] %>
 
-        <%- db[:objects].each do |obj| -%>
+        <%- db[:objects][:file].each do |obj| -%>
+        <%= obj[:id] %>:
+          <%- if obj[:multiple] -%>
+          type: array
+          minItems: <%= obj[:required] ? 1 : 0 %>
+
+          items:
+            type: object
+            additionalProperties: false
+
+            oneOf:
+              - required: [file]
+              - required: [path]
+
+            properties:
+              file:
+                $ref: '#/components/schemas/File'
+
+              path:
+                $ref: '#/components/schemas/Path'
+
+              destination:
+                $ref: '#/components/schemas/Destination'
+          <%- else -%>
+          type: object
+          additionalProperties: false
+
+          oneOf:
+            - required: [file]
+            - required: [path]
+
+          properties:
+            file:
+              $ref: '#/components/schemas/File'
+
+            path:
+              $ref: '#/components/schemas/Path'
+
+            destination:
+              $ref: '#/components/schemas/Destination'
+          <%- end -%>
+
+        <%- end -%>
+      <%- end -%>
+
+    <%- dbs.reject { it[:objects][:ddbj_record].empty? }.each do |db| -%>
+    <%= db[:id] %>ViaDDBJRecord:
+      type: object
+      additionalProperties: false
+
+      required:
+        - db
+        <%- db[:objects][:ddbj_record]&.select { _1[:required] }.each do |obj| -%>
+        - <%= obj[:id] %>
+        <%- end -%>
+
+      properties:
+        db:
+          const: <%= db[:id] %>
+
+        <%- db[:objects][:ddbj_record].each do |obj| -%>
         <%= obj[:id] %>:
           <%- if obj[:multiple] -%>
           type: array
@@ -914,33 +1158,16 @@ components:
               - $ref: '#/components/schemas/<%= db[:id] %>ViaFile'
               <%- end -%>
 
-            discriminator:
-              propertyName: db
-
-              mapping:
-                <%- dbs.each do |db| -%>
-                <%= db[:id] %>: '#/components/schemas/<%= db[:id] %>ViaFile'
-                <%- end -%>
+    ViaDDBJRecord:
+      content:
+        multipart/form-data:
+          schema:
+            oneOf:
+              <%- dbs.reject { it[:objects][:ddbj_record].empty? }.each do |db| -%>
+              - $ref: '#/components/schemas/<%= db[:id] %>ViaDDBJRecord'
+              <%- end -%>
 
   responses:
-    Validations:
-      description: Return your validations.
-
-      headers:
-        Link:
-          schema:
-            type: string
-
-          description: GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details.
-
-      content:
-        application/json:
-          schema:
-            type: array
-
-            items:
-              $ref: '#/components/schemas/Validation'
-
     BadRequest:
       description: Unexpected parameter specified.
 

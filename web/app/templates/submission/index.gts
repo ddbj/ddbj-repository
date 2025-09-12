@@ -17,7 +17,7 @@ import type RequestService from 'repository/services/request';
 import type SubmissionsIndexController from 'repository/controllers/submissions/index';
 import type { components } from 'schema/openapi';
 
-type Submission = components['schemas']['Submission'];
+type Submission = components['schemas']['SubmissionWithValidation'];
 
 interface Signature {
   Args: {
@@ -40,13 +40,13 @@ export default class extends Component<Signature> {
   }
 
   <template>
-    {{pageTitle (concat "Submission " @model.id)}}
+    {{pageTitle (concat "Submission-" @model.id)}}
 
     <div class="mb-3">
       <LinkTo @route="submissions.index" @query={{hash page=this.indexPage}}>&laquo; Back to index</LinkTo>
     </div>
 
-    <h1 class="display-6 mb-4">Submission {{@model.id}}</h1>
+    <h1 class="display-6 mb-4">Submission-{{@model.id}}</h1>
 
     <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
       <div>
@@ -105,7 +105,7 @@ export default class extends Component<Signature> {
         <dt>Validation</dt>
 
         <dd>
-          <LinkTo @route="validations.show" @model={{@model.validation.id}}>#{{@model.validation.id}}</LinkTo>
+          <LinkTo @route="validation" @model={{@model.validation}}>Validation-{{@model.validation.id}}</LinkTo>
         </dd>
       </div>
 
@@ -155,6 +155,35 @@ export default class extends Component<Signature> {
                 {{/each}}
               </ul>
             </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+
+    <h2>Accessions</h2>
+
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Entry ID</th>
+          <th>Version</th>
+          <th>Last updated</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {{#each @model.accessions as |accession|}}
+          <tr>
+            <td>
+              <LinkTo @route="accession" @model={{accession.number}}>
+                {{accession.number}}
+              </LinkTo>
+            </td>
+
+            <td>{{accession.entry_id}}</td>
+            <td>{{accession.version}}</td>
+            <td>{{formatDatetime accession.last_updated_at}}</td>
           </tr>
         {{/each}}
       </tbody>

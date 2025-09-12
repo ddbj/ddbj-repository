@@ -2,13 +2,13 @@ require 'rails_helper'
 
 RSpec.describe SubmitJob, type: :job do
   let!(:user)          { create_default(:user, uid: 'alice') }
-  let(:submission_dir) { Pathname.new(Rails.application.config_for(:app).repository_dir!).join('alice/submissions/X-42') }
+  let(:submission_dir) { Pathname.new(Rails.application.config_for(:app).repository_dir!).join('alice/submissions/42') }
 
   example 'simple' do
     submission = create(:submission, id: 42, **{
       validation: create(:validation, :valid, db: 'MetaboBank') {|validation|
-        create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/MTBKS231.idf.txt'), validity: 'valid'
-        create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/MTBKS231.sdrf.txt'), validity: 'valid'
+        create :obj, :valid, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/MTBKS231.idf.txt')
+        create :obj, :valid, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/MTBKS231.sdrf.txt')
       }
     }).reload
 
@@ -115,5 +115,54 @@ RSpec.describe SubmitJob, type: :job do
       ProcessedDataFile/processed/220629_ppg_conc.txt-validation-report.json
       validation-report.json
     ])
+  end
+
+  describe 'Trad via DDBJRecord' do
+    example 'ok' do
+      submission = create(:submission, id: 42, **{
+        validation: create(:validation, :valid, db: 'Trad', via: :ddbj_record) {|validation|
+          create :obj, :valid, validation:, _id: 'DDBJRecord', file: file_fixture_upload('ddbj_record/example.json')
+        }
+      })
+
+      SubmitJob.perform_now submission
+
+      submission.reload
+
+      expect(submission).to be_finished
+      expect(submission.error_message).to be_nil
+      expect(submission).to be_success
+
+      expect(submission.accessions).to contain_exactly(
+        have_attributes(
+          number:   'QP000001',
+          entry_id: 'ENTRY_1',
+          version:  1
+        ),
+        have_attributes(
+          number:   'QP000002',
+          entry_id: 'ENTRY_2',
+          version:  1
+        )
+      )
+
+      objs = submission.validation.objs.DDBJRecord
+
+      expect(objs.size).to eq(2)
+
+      record = JSON.parse(objs.last.file.download, symbolize_names: true)
+
+      expect(record).to match(
+        sequence: {
+          entries: include(
+            id:           'ENTRY_1',
+            accession:    'QP000001',
+            locus:        'QP000001',
+            version:      1,
+            last_updated: be_a(String)
+          )
+        }
+      )
+    end
   end
 end

@@ -10,7 +10,7 @@ import ValidationDetail from 'repository/components/validation-detail';
 import type AdminValidationsIndexController from 'repository/controllers/admin/validations/index';
 import type { components } from 'schema/openapi';
 
-type Validation = components['schemas']['Validation'];
+type Validation = components['schemas']['ValidationWithSubmission'];
 
 interface Signature {
   Args: {

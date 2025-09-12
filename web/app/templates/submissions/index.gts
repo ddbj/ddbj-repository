@@ -53,7 +53,7 @@ export default class extends Component<Signature> {
         {{#each @model.submissions key="id" as |submission|}}
           <tr>
             <td>
-              <LinkTo @route="submissions.show" @model={{submission}}>{{submission.id}}</LinkTo>
+              <LinkTo @route="submission" @model={{submission}}>{{submission.id}}</LinkTo>
             </td>
 
             <td>{{submission.validation.db}}</td>
@@ -85,9 +85,9 @@ export default class extends Component<Signature> {
 
             <td>
               <LinkTo
-                @route="validations.show"
-                @model={{submission.validation.id}}
-              >#{{submission.validation.id}}</LinkTo>
+                @route="validation"
+                @model={{submission.validation}}
+              >Validation-{{submission.validation.id}}</LinkTo>
             </td>
           </tr>
         {{/each}}
