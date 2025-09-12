@@ -17,11 +17,11 @@ RSpec.describe '/api/accessions', type: :request do
   end
 
   describe 'update' do
-    let(:submission) { create(:submission) }
-
-    before do
-      create :obj, validation: submission.validation, _id: 'DDBJRecord', file: fixture_file_upload('ddbj_record/example.json')
-    end
+    let(:submission) { create(:submission, **{
+      validation: create(:validation, :valid, db: 'Trad', via: :ddbj_record) {|validation|
+        create :obj, :valid, validation:, _id: 'DDBJRecord', file: file_fixture_upload('ddbj_record/example.json')
+      }
+    }) }
 
     example 'ok' do
       accession = create(:accession, entry_id: 'ENTRY_1', submission:)
@@ -31,6 +31,26 @@ RSpec.describe '/api/accessions', type: :request do
       }
 
       expect(response).to have_http_status(:ok)
+
+      submission.reload
+
+      objs = submission.validation.objs.DDBJRecord
+
+      expect(objs.size).to eq(2)
+
+      record = JSON.parse(objs.last.file.download, symbolize_names: true)
+
+      expect(record).to match(
+        sequence: {
+          entries: include(
+            id:           'ENTRY_1',
+            accession:    'QP000001',
+            locus:        'QP000001',
+            version:      2,
+            last_updated: be_a(String)
+          )
+        }
+      )
     end
 
     example 'entry_id did not match' do

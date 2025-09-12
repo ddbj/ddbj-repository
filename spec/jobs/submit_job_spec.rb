@@ -145,6 +145,24 @@ RSpec.describe SubmitJob, type: :job do
           version:  1
         )
       )
+
+      objs = submission.validation.objs.DDBJRecord
+
+      expect(objs.size).to eq(2)
+
+      record = JSON.parse(objs.last.file.download, symbolize_names: true)
+
+      expect(record).to match(
+        sequence: {
+          entries: include(
+            id:           'ENTRY_1',
+            accession:    'QP000001',
+            locus:        'QP000001',
+            version:      1,
+            last_updated: be_a(String)
+          )
+        }
+      )
     end
   end
 end
