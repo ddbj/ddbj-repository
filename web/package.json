@@ -32,7 +32,7 @@
     "@babel/eslint-parser": "^7.28.4",
     "@babel/plugin-proposal-decorators": "^7.28.0",
     "@ember/optional-features": "^2.2.0",
-    "@ember/test-helpers": "^5.2.2",
+    "@ember/test-helpers": "^5.3.0",
     "@embroider/compat": "^3.9.1",
     "@embroider/core": "^3.5.7",
     "@embroider/macros": "^1.18.1",
@@ -55,7 +55,7 @@
     "concurrently": "^9.2.1",
     "date-fns": "^4.1.0",
     "ember-auto-import": "^2.10.0",
-    "ember-cli": "~6.6.0",
+    "ember-cli": "~6.7.0",
     "ember-cli-app-version": "^7.0.0",
     "ember-cli-babel": "^8.2.0",
     "ember-cli-clean-css": "^3.0.0",
@@ -71,18 +71,18 @@
     "ember-math-helpers": "^5.0.0",
     "ember-modifier": "^4.2.2",
     "ember-page-title": "^9.0.3",
-    "ember-qunit": "^9.0.3",
+    "ember-qunit": "^9.0.4",
     "ember-resolver": "^13.1.1",
-    "ember-source": "~6.6.0",
+    "ember-source": "~6.7.0",
     "ember-style-modifier": "^4.5.1",
     "ember-template-imports": "^4.3.0",
     "ember-template-lint": "^7.9.3",
     "ember-test-selectors": "^7.1.0",
-    "ember-truth-helpers": "^4.0.3",
+    "ember-truth-helpers": "^5.0.0",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-ember": "^12.7.3",
-    "eslint-plugin-n": "^17.21.3",
+    "eslint-plugin-n": "^17.22.0",
     "eslint-plugin-qunit": "^8.2.5",
     "globals": "^16.4.0",
     "loader.js": "^4.7.0",
@@ -103,5 +103,5 @@
   "ember": {
     "edition": "octane"
   },
-  "packageManager": "pnpm@10.15.1+sha512.34e538c329b5553014ca8e8f4535997f96180a1d0f614339357449935350d924e22f8614682191264ec33d1462ac21561aff97f6bb18065351c162c7e8f6de67"
+  "packageManager": "pnpm@10.16.1+sha512.0e155aa2629db8672b49e8475da6226aa4bdea85fdcdfdc15350874946d4f3c91faaf64cbdc4a5d1ab8002f473d5c3fcedcd197989cf0390f9badd3c04678706"
 }
