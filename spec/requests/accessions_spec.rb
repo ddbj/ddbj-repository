@@ -27,6 +27,7 @@ RSpec.describe '/api/accessions', type: :request do
 
     example 'ok' do
       SubmitJob.perform_now submission
+
       submission.reload
 
       travel_to 1.second.since
