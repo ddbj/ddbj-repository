@@ -17,11 +17,13 @@ RSpec.describe '/api/accessions', type: :request do
   end
 
   describe 'update' do
-    let(:submission) { create(:submission, **{
-      validation: create(:validation, :valid, db: 'Trad', via: :ddbj_record) {|validation|
-        create :obj, :valid, validation:, _id: 'DDBJRecord', file: file_fixture_upload('ddbj_record/example.json')
-      }
-    }) }
+    let(:submission) {
+      create(:submission, **{
+        validation: create(:validation, :valid, db: 'Trad', via: :ddbj_record) {|validation|
+          create :obj, :valid, validation:, _id: 'DDBJRecord', file: file_fixture_upload('ddbj_record/example.json')
+        }
+      })
+    }
 
     example 'ok' do
       accession = create(:accession, entry_id: 'ENTRY_1', submission:)
