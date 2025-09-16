@@ -20,7 +20,7 @@ class Obj < ApplicationRecord
   def path
     return nil if base?
 
-    [destination, file.filename.sanitized].reject(&:blank?).join('/')
+    [destination, file.filename.sanitized].compact_blank.join('/')
   end
 
   def validation_result
@@ -53,7 +53,7 @@ class Obj < ApplicationRecord
   def path_must_be_unique_in_request
     return if base?
 
-    if validation.objs.to_a.without(self).any? { path == _1.path }
+    if validation.objs.to_a.without(self).any? { path == it.path }
       errors.add :path, "is duplicated: #{path}"
     end
   end
