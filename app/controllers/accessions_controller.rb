@@ -20,7 +20,11 @@ class AccessionsController < ApplicationController
       return
     end
 
-    current_entry.replace new_entry
+    number       = @accession.number
+    version      = @accession.version + 1
+    last_updated = Time.current
+
+    current_entry.replace(**new_entry, accession: number, locus: number, version:, last_updated:)
 
     filename = objs.first.file.filename
 
@@ -38,8 +42,8 @@ class AccessionsController < ApplicationController
       )
 
       @accession.update!(
-        version:         @accession.version + 1,
-        last_updated_at: Time.current
+        version:,
+        last_updated_at: last_updated
       )
     end
 

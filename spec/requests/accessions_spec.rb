@@ -26,9 +26,12 @@ RSpec.describe '/api/accessions', type: :request do
     }
 
     example 'ok' do
-      accession = create(:accession, entry_id: 'ENTRY_1', submission:)
+      SubmitJob.perform_now submission
+      submission.reload
 
-      patch "/api/accessions/#{accession.number}", params: {
+      travel_to 1.second.since
+
+      patch "/api/accessions/#{submission.accessions.first.number}", params: {
         DDBJRecord: fixture_file_upload('ddbj_record/example.json')
       }
 
@@ -38,7 +41,7 @@ RSpec.describe '/api/accessions', type: :request do
 
       objs = submission.validation.objs.DDBJRecord
 
-      expect(objs.size).to eq(2)
+      expect(objs.size).to eq(3)
 
       record = JSON.parse(objs.last.file.download, symbolize_names: true)
 
