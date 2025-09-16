@@ -1,20 +1,21 @@
 # locals: (submission:, validation: false)
 
 {
-  id:            submission.id,
-  url:           submission_url(submission),
-  db:            submission.validation.db,
-  created_at:    submission.created_at.iso8601,
-  started_at:    submission.started_at&.iso8601,
-  finished_at:   submission.finished_at&.iso8601,
-  progress:      submission.progress,
-  result:        submission.result,
-  error_message: submission.error_message,
-  visibility:    submission.visibility,
+  **submission.slice(
+    :id,
+    :created_at,
+    :started_at,
+    :finished_at,
+    :progress,
+    :result,
+    :error_message,
+    :visibility
+  ),
 
-  **(validation ? {validation: render(submission.validation)} : nil),
+  db:         submission.validation.db,
+  url:        submission_url(submission),
+  accessions: render(partial: 'accessions/accession', collection: submission.accessions),
 
-  accessions:    render(partial: 'accessions/accession', collection: submission.accessions),
-
-  **submission.param&.as_json
+  **submission.param&.as_json,
+  **(validation ? {validation: render(submission.validation)} : nil)
 }
