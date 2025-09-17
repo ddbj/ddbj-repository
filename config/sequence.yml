@@ -1,0 +1,12 @@
+shared:
+  jpo_na:
+    <% ('QP'..'QQ').each do |prefix| %>
+    - prefix: '<%= prefix %>'
+      digits: 6
+    <% end %>
+
+  jpo_aa:
+    <% ('ZAA'..'ZZZ').each do |prefix| %>
+    - prefix: '<%= prefix %>'
+      digits: 7
+    <% end %>

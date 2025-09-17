@@ -6,7 +6,7 @@ import schema from 'schema/db';
 
 import type DB from 'repository/models/db';
 
-type Schema = (typeof schema)[number]['objects'][number];
+type Schema = (typeof schema)[number]['objects']['file' | 'ddbj_record'][number];
 
 export default class Obj {
   db: DB;

@@ -121,7 +121,17 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                200: components["responses"]["Validations"];
+                /** @description Return your validations. */
+                200: {
+                    headers: {
+                        /** @description GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details. */
+                        Link?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ValidationWithSubmission"][];
+                    };
+                };
                 400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
             };
@@ -173,6 +183,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/validations/via_ddbj_record": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Validate DDBJRecord. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: components["requestBodies"]["ViaDDBJRecord"];
+            responses: {
+                /** @description The validation process initiated successfully. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Validation"];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/validations/{id}": {
         parameters: {
             query?: never;
@@ -198,7 +247,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Validation"];
+                        "application/json": components["schemas"]["ValidationWithSubmission"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -297,6 +346,7 @@ export interface paths {
                     db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2")[];
                     created_at_after?: string;
                     created_at_before?: string;
+                    result?: ("success" | "failure" | "error" | "null")[];
                 };
                 header?: never;
                 path?: never;
@@ -312,7 +362,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Submission"][];
+                        "application/json": components["schemas"]["SubmissionWithValidation"][];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -341,7 +391,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Submission"];
+                        "application/json": components["schemas"]["SubmissionWithValidation"];
                     };
                 };
                 400: components["responses"]["BadRequest"];
@@ -380,7 +430,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Submission"];
+                        "application/json": components["schemas"]["SubmissionWithValidation"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -395,10 +445,82 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/accessions/{number}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get the accession. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    number: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Return the accession. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Accession"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Update the accession. */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    number: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        DDBJRecord: components["schemas"]["File"];
+                    };
+                };
+            };
+            responses: {
+                /** @description Updated successfully. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Accession"];
+                    };
+                };
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ValidationWithSubmission: (components["schemas"]["BioProjectValidation"] | components["schemas"]["BioSampleValidation"] | components["schemas"]["TradValidation"] | components["schemas"]["DRAValidation"] | components["schemas"]["GEAValidation"] | components["schemas"]["MetaboBankValidation"] | components["schemas"]["JVarValidation"] | components["schemas"]["Trad2Validation"]) & {
+            submission: components["schemas"]["Submission"] | null;
+        };
         Validation: components["schemas"]["BioProjectValidation"] | components["schemas"]["BioSampleValidation"] | components["schemas"]["TradValidation"] | components["schemas"]["DRAValidation"] | components["schemas"]["GEAValidation"] | components["schemas"]["MetaboBankValidation"] | components["schemas"]["JVarValidation"] | components["schemas"]["Trad2Validation"];
         BioProjectValidation: {
             id: number;
@@ -407,10 +529,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioProject";
             /** Format: date-time */
             created_at: string;
@@ -425,11 +544,6 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
-            submission: {
-                id: string;
-                /** Format: uri */
-                url: string;
-            } | null;
         };
         BioSampleValidation: {
             id: number;
@@ -438,10 +552,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioSample";
             /** Format: date-time */
             created_at: string;
@@ -456,11 +567,6 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
-            submission: {
-                id: string;
-                /** Format: uri */
-                url: string;
-            } | null;
         };
         TradValidation: {
             id: number;
@@ -469,10 +575,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad";
             /** Format: date-time */
             created_at: string;
@@ -487,11 +590,6 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
-            submission: {
-                id: string;
-                /** Format: uri */
-                url: string;
-            } | null;
         };
         DRAValidation: {
             id: number;
@@ -500,10 +598,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "DRA";
             /** Format: date-time */
             created_at: string;
@@ -518,11 +613,6 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
-            submission: {
-                id: string;
-                /** Format: uri */
-                url: string;
-            } | null;
         };
         GEAValidation: {
             id: number;
@@ -531,10 +621,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "GEA";
             /** Format: date-time */
             created_at: string;
@@ -549,11 +636,6 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
-            submission: {
-                id: string;
-                /** Format: uri */
-                url: string;
-            } | null;
         };
         MetaboBankValidation: {
             id: number;
@@ -562,10 +644,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "MetaboBank";
             /** Format: date-time */
             created_at: string;
@@ -580,11 +659,6 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
-            submission: {
-                id: string;
-                /** Format: uri */
-                url: string;
-            } | null;
         };
         JVarValidation: {
             id: number;
@@ -593,10 +667,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "JVar";
             /** Format: date-time */
             created_at: string;
@@ -611,11 +682,6 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
-            submission: {
-                id: string;
-                /** Format: uri */
-                url: string;
-            } | null;
         };
         Trad2Validation: {
             id: number;
@@ -624,10 +690,7 @@ export interface components {
             user: {
                 uid: string;
             };
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad2";
             /** Format: date-time */
             created_at: string;
@@ -642,17 +705,9 @@ export interface components {
             objects: components["schemas"]["Objects"];
             results: components["schemas"]["ValidationResult"][];
             raw_result?: Record<string, never> | null;
-            submission: {
-                id: string;
-                /** Format: uri */
-                url: string;
-            } | null;
         };
         SubmissionRequestBioProject: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioProject";
             validation_id: number;
             /** @enum {string} */
@@ -660,80 +715,64 @@ export interface components {
             umbrella: boolean;
         };
         SubmissionRequestBioSample: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioSample";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestTrad: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestDRA: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "DRA";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestGEA: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "GEA";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestMetaboBank: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "MetaboBank";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestJVar: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "JVar";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
         SubmissionRequestTrad2: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad2";
             validation_id: number;
             /** @enum {string} */
             visibility: "public" | "private";
         };
+        SubmissionWithValidation: components["schemas"]["Submission"] & {
+            validation: components["schemas"]["Validation"];
+        };
         Submission: components["schemas"]["BioProjectSubmission"] | components["schemas"]["BioSampleSubmission"] | components["schemas"]["TradSubmission"] | components["schemas"]["DRASubmission"] | components["schemas"]["GEASubmission"] | components["schemas"]["MetaboBankSubmission"] | components["schemas"]["JVarSubmission"] | components["schemas"]["Trad2Submission"];
         BioProjectSubmission: {
-            id: string;
+            id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "BioProject";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -745,15 +784,23 @@ export interface components {
             /** @enum {string|null} */
             result: "success" | "failure" | null;
             error_message: string | null;
-            validation: components["schemas"]["BioProjectValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
             umbrella: boolean;
         };
         BioSampleSubmission: {
-            id: string;
+            id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "BioSample";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -765,14 +812,22 @@ export interface components {
             /** @enum {string|null} */
             result: "success" | "failure" | null;
             error_message: string | null;
-            validation: components["schemas"]["BioSampleValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         TradSubmission: {
-            id: string;
+            id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "Trad";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -784,14 +839,22 @@ export interface components {
             /** @enum {string|null} */
             result: "success" | "failure" | null;
             error_message: string | null;
-            validation: components["schemas"]["TradValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         DRASubmission: {
-            id: string;
+            id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "DRA";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -803,14 +866,22 @@ export interface components {
             /** @enum {string|null} */
             result: "success" | "failure" | null;
             error_message: string | null;
-            validation: components["schemas"]["DRAValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         GEASubmission: {
-            id: string;
+            id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "GEA";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -822,14 +893,22 @@ export interface components {
             /** @enum {string|null} */
             result: "success" | "failure" | null;
             error_message: string | null;
-            validation: components["schemas"]["GEAValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         MetaboBankSubmission: {
-            id: string;
+            id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "MetaboBank";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -841,14 +920,22 @@ export interface components {
             /** @enum {string|null} */
             result: "success" | "failure" | null;
             error_message: string | null;
-            validation: components["schemas"]["MetaboBankValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         JVarSubmission: {
-            id: string;
+            id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "JVar";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -860,14 +947,22 @@ export interface components {
             /** @enum {string|null} */
             result: "success" | "failure" | null;
             error_message: string | null;
-            validation: components["schemas"]["JVarValidation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         Trad2Submission: {
-            id: string;
+            id: number;
             /** Format: uri */
             url: string;
+            /** @constant */
+            db: "Trad2";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -879,22 +974,35 @@ export interface components {
             /** @enum {string|null} */
             result: "success" | "failure" | null;
             error_message: string | null;
-            validation: components["schemas"]["Trad2Validation"];
             /** @enum {string} */
             visibility: "public" | "private";
+            accessions: {
+                number: string;
+                entry_id: string;
+                version: number;
+                /** Format: date-time */
+                last_updated_at: string;
+            }[];
         };
         Objects: {
             /** @enum {string} */
-            id: "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
+            id: "BioProject" | "BioSample" | "Sequence" | "Annotation" | "DDBJRecord" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
             files: {
                 path: string;
                 /** Format: uri */
                 url: string;
             }[];
         }[];
+        Accession: {
+            number: string;
+            entry_id: string;
+            version: number;
+            /** Format: date-time */
+            last_updated_at: string;
+        };
         ValidationResult: {
             /** @enum {string} */
-            object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
+            object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "DDBJRecord" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
             /** @enum {string|null} */
             validity: "valid" | "invalid" | "error" | null;
             details: {
@@ -921,10 +1029,7 @@ export interface components {
             error: string;
         };
         BioProjectViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioProject";
             BioProject: {
                 file?: components["schemas"]["File"];
@@ -933,10 +1038,7 @@ export interface components {
             } & (unknown | unknown);
         };
         BioSampleViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "BioSample";
             BioSample: {
                 file?: components["schemas"]["File"];
@@ -945,10 +1047,7 @@ export interface components {
             } & (unknown | unknown);
         };
         TradViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad";
             Sequence: ({
                 file?: components["schemas"]["File"];
@@ -962,10 +1061,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         DRAViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "DRA";
             Submission: {
                 file?: components["schemas"]["File"];
@@ -999,10 +1095,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         GEAViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "GEA";
             IDF: {
                 file?: components["schemas"]["File"];
@@ -1031,10 +1124,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         MetaboBankViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "MetaboBank";
             IDF: {
                 file?: components["schemas"]["File"];
@@ -1068,10 +1158,7 @@ export interface components {
             } & (unknown | unknown);
         };
         JVarViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "JVar";
             Excel: {
                 file?: components["schemas"]["File"];
@@ -1085,10 +1172,7 @@ export interface components {
             } & (unknown | unknown))[];
         };
         Trad2ViaFile: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
+            /** @constant */
             db: "Trad2";
             Sequence: ({
                 file?: components["schemas"]["File"];
@@ -1106,19 +1190,17 @@ export interface components {
                 destination?: components["schemas"]["Destination"];
             } & (unknown | unknown))[];
         };
+        TradViaDDBJRecord: {
+            /** @constant */
+            db: "Trad";
+            DDBJRecord: {
+                file?: components["schemas"]["File"];
+                path?: components["schemas"]["Path"];
+                destination?: components["schemas"]["Destination"];
+            } & (unknown | unknown);
+        };
     };
     responses: {
-        /** @description Return your validations. */
-        Validations: {
-            headers: {
-                /** @description GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details. */
-                Link?: string;
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["Validation"][];
-            };
-        };
         /** @description Unexpected parameter specified. */
         BadRequest: {
             headers: {
@@ -1170,6 +1252,11 @@ export interface components {
         ViaFile: {
             content: {
                 "multipart/form-data": components["schemas"]["BioProjectViaFile"] | components["schemas"]["BioSampleViaFile"] | components["schemas"]["TradViaFile"] | components["schemas"]["DRAViaFile"] | components["schemas"]["GEAViaFile"] | components["schemas"]["MetaboBankViaFile"] | components["schemas"]["JVarViaFile"] | components["schemas"]["Trad2ViaFile"];
+            };
+        };
+        ViaDDBJRecord: {
+            content: {
+                "multipart/form-data": components["schemas"]["TradViaDDBJRecord"];
             };
         };
     };

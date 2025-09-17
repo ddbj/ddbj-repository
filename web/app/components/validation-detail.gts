@@ -10,7 +10,7 @@ import formatDatetime from 'repository/helpers/format-datetime';
 import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
-type Validation = components['schemas']['Validation'];
+type Validation = components['schemas']['ValidationWithSubmission'];
 
 interface Signature {
   Args: {
@@ -20,7 +20,7 @@ interface Signature {
 }
 
 export default <template>
-  <h1 class="display-6 mb-4">Validation #{{@validation.id}}</h1>
+  <h1 class="display-6 mb-4">Validation-{{@validation.id}}</h1>
 
   <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
     <div>
@@ -88,7 +88,7 @@ export default <template>
 
       <dd>
         {{#if @validation.submission}}
-          <LinkTo @route="submissions.show" @model={{@validation.submission.id}}>
+          <LinkTo @route="submission" @model={{@validation.submission}}>
             {{@validation.submission.id}}
           </LinkTo>
         {{else}}

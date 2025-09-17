@@ -52,7 +52,7 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           ],
 
           raw_result: nil,
-          submission:  nil
+          submission: nil
         },
         {
           id:  100,
@@ -100,8 +100,17 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           raw_result: nil,
 
           submission: {
-            id:  'X-200',
-            url: 'http://www.example.com/api/submissions/X-200'
+            id:            200,
+            url:           'http://www.example.com/api/submissions/200',
+            db:            'GEA',
+            created_at:    '2024-01-02T00:00:00.000+09:00',
+            started_at:    nil,
+            finished_at:   nil,
+            progress:      'waiting',
+            result:        nil,
+            error_message: nil,
+            visibility:    'public',
+            accessions:    []
           }
         }
       ])
@@ -150,9 +159,19 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
         raw_result: nil,
 
         submission: {
-          id:  'X-200',
-          url: 'http://www.example.com/api/submissions/X-200'
+          id:            200,
+          url:           'http://www.example.com/api/submissions/200',
+          db:            'BioSample',
+          created_at:    '2024-01-02T00:00:00.000+09:00',
+          started_at:    nil,
+          finished_at:   nil,
+          progress:      'waiting',
+          result:        nil,
+          error_message: nil,
+          visibility:    'public',
+          accessions:    []
         }
+
       )
     end
   end

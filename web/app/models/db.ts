@@ -9,15 +9,22 @@ export type DBName = (typeof dbNames)[number];
 
 export default class DB {
   schema: Schema;
-  objs: Obj[];
+
+  objs: {
+    file: Obj[];
+    ddbjRecord: Obj[];
+  };
 
   constructor(schema: Schema) {
     this.schema = schema;
-    this.objs = this.schema.objects.map((obj) => new Obj(this, obj));
+    this.objs = {
+      file: this.schema.objects.file.map((obj) => new Obj(this, obj)),
+      ddbjRecord: this.schema.objects.ddbj_record.map((obj) => new Obj(this, obj)),
+    };
   }
 
-  toJSON() {
-    return this.objs.reduce(
+  toJSON(type: 'file' | 'ddbjRecord') {
+    return this.objs[type].reduce(
       (acc, obj) => ({
         ...acc,
         [obj.schema.id]: obj.toJSON(),

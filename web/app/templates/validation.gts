@@ -10,7 +10,7 @@ import ValidationDetail from 'repository/components/validation-detail';
 import type ValidationsIndexController from 'repository/controllers/validations/index';
 import type { components } from 'schema/openapi';
 
-type Validation = components['schemas']['Validation'];
+type Validation = components['schemas']['ValidationWithSubmission'];
 
 interface Signature {
   Args: {
@@ -26,7 +26,7 @@ export default class extends Component<Signature> {
   }
 
   <template>
-    {{pageTitle (concat "Validation #" @model.id)}}
+    {{pageTitle (concat "Validation-" @model.id)}}
 
     <div class="mb-3">
       <LinkTo @route="validations.index" @query={{hash page=this.indexPage}}>&laquo; Back to index</LinkTo>

@@ -1,4 +1,8 @@
+using PathnameContain
+
 class Validation < ApplicationRecord
+  class UnprocessableContent < StandardError; end
+
   belongs_to :user
 
   has_one :submission, dependent: :destroy
@@ -17,6 +21,7 @@ class Validation < ApplicationRecord
   validates :finished_at, presence: true, if: ->(validation) { validation.finished? || validation.canceled? }
 
   enum :progress, %w[waiting running finished canceled].index_by(&:to_sym)
+  enum :via,      %w[file ddbj_record].index_by(&:to_sym), prefix: true
 
   scope :validity, ->(*validities) {
     return none if validities.empty?
@@ -75,6 +80,46 @@ class Validation < ApplicationRecord
 
   def results
     objs.map(&:validation_result)
+  end
+
+  def build_obj_from_path(relative_path, obj_schema:, destination:, user:)
+    template = Rails.application.config_for(:app).mass_dir_path_template!
+    mass_dir = Pathname.new(template.gsub('{user}', user.uid))
+    path     = mass_dir.join(relative_path)
+
+    raise UnprocessableContent, "path must be in #{mass_dir}" unless mass_dir.contain?(path)
+
+    build_obj = ->(obj_schema, path, destination) {
+      objs.build(
+        _id: obj_schema[:id],
+
+        file: {
+          io:       path.open,
+          filename: path.basename
+        },
+
+        destination:
+      )
+    }
+
+    begin
+      if obj_schema[:multiple] && path.directory?
+        path.glob('**/*').reject(&:directory?).each do |fpath|
+          destination = [
+            destination,
+            fpath.relative_path_from(path).dirname.to_s
+          ].reject { _1.blank? || _1 == '.' }.join('/').presence
+
+          build_obj.call(obj_schema, fpath, destination)
+        end
+      else
+        build_obj.call(obj_schema, path, destination)
+      end
+    rescue Errno::ENOENT
+      raise UnprocessableContent, "path does not exist: #{path}"
+    rescue Errno::EISDIR
+      raise UnprocessableContent, "path is directory: #{path}"
+    end
   end
 
   def write_files_to_tmp(&block)

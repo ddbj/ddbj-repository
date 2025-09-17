@@ -7,6 +7,7 @@ export default class SubmissionsIndexController extends Controller {
       page: { type: 'number' } as const,
       db: { type: 'string' } as const,
       created: { type: 'string' } as const,
+      result: { type: 'string' } as const,
     },
   ];
 
@@ -15,4 +16,5 @@ export default class SubmissionsIndexController extends Controller {
 
   @tracked db?: string;
   @tracked created?: string;
+  @tracked result?: string;
 }
