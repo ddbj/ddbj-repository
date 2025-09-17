@@ -21,7 +21,7 @@ class Sequence < ApplicationRecord
       end
     end
 
-    def allocate!(scope, count:)
+    def allocate!(scope, count)
       list = config.fetch(scope)
 
       transaction do
@@ -48,7 +48,7 @@ class Sequence < ApplicationRecord
             digits: next_entry[:digits]
           )
 
-          tail = allocate!(scope, count: count - head.size)
+          tail = allocate!(scope, count - head.size)
 
           head + tail
         else

@@ -9,7 +9,7 @@ class Database::Trad::Submitter
     entries = record.dig(:sequence, :entries)
 
     ActiveRecord::Base.transaction do
-      nums = Sequence.allocate!(:jpo_na, count: entries.size)
+      nums = Sequence.allocate!(:jpo_na, entries.size)
 
       entry_id_to_attrs = submission.accessions.insert_all(entries.zip(nums).map {|entry, number|
         {
