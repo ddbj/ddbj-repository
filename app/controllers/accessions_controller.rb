@@ -1,10 +1,10 @@
 class AccessionsController < ApplicationController
   def show
-    @accession = Accession.find_by!(number: params.expect(:number))
+    @accession = current_user.accessions.find_by!(number: params.expect(:number))
   end
 
   def update
-    @accession = Accession.find_by!(number: params.expect(:number))
+    @accession = current_user.accessions.find_by!(number: params.expect(:number))
 
     validation     = @accession.submission.validation
     objs           = validation.objs.DDBJRecord
