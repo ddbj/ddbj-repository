@@ -1,4 +1,4 @@
-class Database::Trad2::Validator
+class Database::Trad2::FileValidator
   include TradValidation
 
   ASSOC = {
