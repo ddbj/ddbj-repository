@@ -1,4 +1,4 @@
-class Database::Trad::Validator
+class Database::Trad::FileValidator
   class MissingContactPersonInformation < StandardError; end
   class DuplicateContactPersonInformation < StandardError; end
 

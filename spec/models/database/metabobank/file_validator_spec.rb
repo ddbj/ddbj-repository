@@ -1,13 +1,13 @@
 require 'rails_helper'
 
-RSpec.describe Database::MetaboBank::Validator, type: :model do
+RSpec.describe Database::MetaboBank::FileValidator, type: :model do
   example 'valid' do
     validation = create(:validation, id: 42, db: 'MetaboBank') {|validation|
       create :obj, validation:, _id: 'IDF',  file: file_fixture_upload('metabobank/MTBKS231.idf.txt')
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/MTBKS231.sdrf.txt')
     }
 
-    Database::MetaboBank::Validator.new.validate validation
+    Database::MetaboBank::FileValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -73,7 +73,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       create :obj, validation:, _id: 'ProcessedDataFile', file: uploaded_file(name: '220629_ppg_conc.txt'), destination: 'processed'
     }
 
-    Database::MetaboBank::Validator.new.validate validation
+    Database::MetaboBank::FileValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -199,7 +199,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       create :obj, validation:, _id: 'BioSample', file: file_fixture_upload('metabobank/MTBKS231.bs.tsv')
     }
 
-    Database::MetaboBank::Validator.new.validate validation
+    Database::MetaboBank::FileValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -228,7 +228,7 @@ RSpec.describe Database::MetaboBank::Validator, type: :model do
       create :obj, validation:, _id: 'SDRF', file: file_fixture_upload('metabobank/MTBKS201.sdrf.txt')
     }
 
-    Database::MetaboBank::Validator.new.validate validation
+    Database::MetaboBank::FileValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
