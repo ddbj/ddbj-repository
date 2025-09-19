@@ -3,11 +3,7 @@ class ValidateJob < ApplicationJob
     validation.update! progress: :running, started_at: Time.current
 
     ActiveRecord::Base.transaction do
-      validator = if validation.via == 'ddbj_record'
-        "Database::#{validation.db}::DDBJRecordValidator".constantize.new
-      else
-        "Database::#{validation.db}::FileValidator".constantize.new
-      end
+      validator = "Database::#{validation.db}::#{validation.via.camelize}Validator".constantize.new
 
       begin
         validator.validate validation
