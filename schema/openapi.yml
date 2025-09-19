@@ -2470,6 +2470,76 @@ components:
           type: string
           format: date-time
 
+        renewals:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/AccessionRenewal'
+
+    AccessionRenewal:
+      type: object
+      additionalProperties: false
+      required: [id, created_at, started_at, finished_at, progress, validity, validation_details]
+
+      properties:
+        id:
+          type: integer
+
+        created_at:
+          type: string
+          format: date-time
+
+        started_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        progress:
+          type: string
+
+          enum:
+            - waiting
+            - running
+            - finished
+            - canceled
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+            - error
+            - null
+
+        validation_details:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+            required: [severity, message]
+
+            properties:
+              severity:
+                type:
+                  - string
+
+              message:
+                type:
+                  - string
+
     ValidationResult:
       type: object
       additionalProperties: false

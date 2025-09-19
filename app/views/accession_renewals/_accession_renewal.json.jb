@@ -1,0 +1,20 @@
+{
+  **accession_renewal.slice(
+    :id,
+    :started_at,
+    :finished_at,
+    :progress,
+    :validity,
+    :created_at
+  ),
+
+  validation_details: accession_renewal.validation_details.map {|detail|
+    {
+      **detail.slice(
+        :severity
+      ),
+
+      message: detail.message.scrub
+    }
+  }
+}
