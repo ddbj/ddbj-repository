@@ -8,6 +8,7 @@ class ValidateJob < ApplicationJob
       begin
         validator.validate validation
       rescue => e
+        puts '*' * 100, e, '*' * 100
         Rails.error.report e
 
         validation.objs.base.validity_error!
