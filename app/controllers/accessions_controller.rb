@@ -47,6 +47,8 @@ class AccessionsController < ApplicationController
       )
     end
 
+    ValidateJob.perform_later @accession.submission.validation
+
     render :show
   end
 end

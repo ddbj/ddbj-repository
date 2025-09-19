@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Database::Trad2::Validator, type: :model do
+RSpec.describe Database::Trad::FileValidator, type: :model do
   def create_seq(validation, name: 'foo.fasta', content: <<~SEQ)
     >CLN01
     ggacaggctgccgcaggagccaggccgggagcaggaagaggcttcgggggagccggagaa
@@ -17,29 +17,22 @@ RSpec.describe Database::Trad2::Validator, type: :model do
     create(:obj, validation:, _id: 'Sequence', file: uploaded_file(name:, content:))
   end
 
-  def create_ann(validation, name: 'foo.gff', content: <<~GFF)
-    ##gff-version 3
-    ##sequence-region chr1 1 30584173
-    chr1	feature	gene	1	1967	.	-	.	ID=Mp1g00005a;Name=Mp1g00005a;locus_type=rRNA;note=partial
-    chr1	feature	rRNA	1	1967	.	-	.	ID=Mp1g00005a.1;Name=Mp1g00005a.1;Parent=Mp1g00005a;note=partial;product=26S ribosomal RNA
-    chr1	feature	exon	1	1967	.	-	.	ID=Mp1g00005a.1.exon1;Name=Mp1g00005a.1.exon1;Parent=Mp1g00005a.1;note=partial
-  GFF
+  def create_ann(validation, name: 'foo.ann', content: <<~ANN)
+    COMMON	SUBMITTER		contact	Alice Liddell
+    			email	alice@example.com
+    			institute	Wonderland Inc.
+  ANN
 
     create(:obj, validation:, _id: 'Annotation', file: uploaded_file(name:, content:))
-  end
-
-  def create_meta(validation, name: 'foo.tsv', content: '')
-    create(:obj, validation:, _id: 'Metadata', file: uploaded_file(name:, content:))
   end
 
   let(:validation) { create(:validation, id: 42) }
 
   example 'ok' do
-    create_seq  validation, name: 'foo.fasta'
-    create_ann  validation, name: 'foo.gff'
-    create_meta validation, name: 'foo.tsv'
+    create_seq validation, name: 'foo.fasta'
+    create_ann validation, name: 'foo.ann'
 
-    Database::Trad2::Validator.new.validate validation
+    Database::Trad::FileValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -65,18 +58,8 @@ RSpec.describe Database::Trad2::Validator, type: :model do
         details:   [],
 
         file: {
-          path: 'foo.gff',
-          url:  'http://www.example.com/api/validations/42/files/foo.gff'
-        }
-      },
-      {
-        object_id: 'Metadata',
-        validity:  'valid',
-        details:   [],
-
-        file: {
-          path: 'foo.tsv',
-          url:  'http://www.example.com/api/validations/42/files/foo.tsv'
+          path: 'foo.ann',
+          url:  'http://www.example.com/api/validations/42/files/foo.ann'
         }
       }
     )
@@ -84,11 +67,10 @@ RSpec.describe Database::Trad2::Validator, type: :model do
 
   describe 'ext' do
     example do
-      create_seq  validation, name: 'foo.bar'
-      create_ann  validation, name: 'foo.baz'
-      create_meta validation, name: 'foo.qux'
+      create_seq validation, name: 'foo.bar'
+      create_ann validation, name: 'foo.baz'
 
-      Database::Trad2::Validator.new.validate validation
+      Database::Trad::FileValidator.new.validate validation
       validation.reload
 
       expect(validation.results).to contain_exactly(
@@ -113,30 +95,19 @@ RSpec.describe Database::Trad2::Validator, type: :model do
           details: [
             code:     nil,
             severity: 'error',
-            message:  'The extension should be one of the following: .gff'
-          ]
-        ),
-        include(
-          object_id: 'Metadata',
-          validity:  'invalid',
-
-          details: [
-            code:     nil,
-            severity: 'error',
-            message:  'The extension should be one of the following: .tsv'
+            message:  'The extension should be one of the following: .ann, .annt.tsv, .ann.txt'
           ]
         )
       )
     end
   end
 
-  describe 'n-wise' do
+  describe 'pairwise' do
     example 'not paired' do
-      create_seq  validation, name: 'foo.fasta'
-      create_ann  validation, name: 'bar.gff'
-      create_meta validation, name: 'baz.tsv'
+      create_seq validation, name: 'foo.fasta'
+      create_ann validation, name: 'bar.ann'
 
-      Database::Trad2::Validator.new.validate validation
+      Database::Trad::FileValidator.new.validate validation
       validation.reload
 
       expect(validation.results).to contain_exactly(
@@ -149,16 +120,9 @@ RSpec.describe Database::Trad2::Validator, type: :model do
           validity:  'invalid',
 
           details: [
-            {
-              code:     nil,
-              severity: 'error',
-              message:  'There is no corresponding annotation file.'
-            },
-            {
-              code:     nil,
-              severity: 'error',
-              message:  'There is no corresponding metadata file.'
-            }
+            code:     nil,
+            severity: 'error',
+            message:  'There is no corresponding annotation file.'
           ]
         ),
         include(
@@ -166,45 +130,20 @@ RSpec.describe Database::Trad2::Validator, type: :model do
           validity:  'invalid',
 
           details: [
-            {
-              code:     nil,
-              severity: 'error',
-              message:  'There is no corresponding sequence file.'
-            },
-            {
-              code:     nil,
-              severity: 'error',
-              message:  'There is no corresponding metadata file.'
-            }
-          ]
-        ),
-        include(
-          object_id: 'Metadata',
-          validity:  'invalid',
-
-          details: [
-            {
-              code:     nil,
-              severity: 'error',
-              message:  'There is no corresponding sequence file.'
-            },
-            {
-              code:     nil,
-              severity: 'error',
-              message:  'There is no corresponding annotation file.'
-            }
+            code:     nil,
+            severity: 'error',
+            message:  'There is no corresponding sequence file.'
           ]
         )
       )
     end
 
     example 'duplicate seq' do
-      create_seq  validation, name: 'foo.fasta'
-      create_seq  validation, name: 'foo.seq'
-      create_ann  validation, name: 'foo.gff'
-      create_meta validation, name: 'foo.tsv'
+      create_seq validation, name: 'foo.fasta'
+      create_seq validation, name: 'foo.seq'
+      create_ann validation, name: 'foo.ann'
 
-      Database::Trad2::Validator.new.validate validation
+      Database::Trad::FileValidator.new.validate validation
       validation.reload
 
       expect(validation.results).to contain_exactly(
@@ -234,10 +173,6 @@ RSpec.describe Database::Trad2::Validator, type: :model do
         ),
         include(
           object_id: 'Annotation',
-          validity:  'valid'
-        ),
-        include(
-          object_id: 'Metadata',
           validity:  'valid'
         )
       )
@@ -247,7 +182,7 @@ RSpec.describe Database::Trad2::Validator, type: :model do
       create_seq validation, name: 'foo.fasta'
       create_seq validation, name: 'foo.seq'
 
-      Database::Trad2::Validator.new.validate validation
+      Database::Trad::FileValidator.new.validate validation
       validation.reload
 
       expect(validation.results).to contain_exactly(
@@ -269,11 +204,6 @@ RSpec.describe Database::Trad2::Validator, type: :model do
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding annotation file.'
-            },
-            {
-              code:     nil,
-              severity: 'error',
-              message:  'There is no corresponding metadata file.'
             }
           ]
         ),
@@ -291,11 +221,6 @@ RSpec.describe Database::Trad2::Validator, type: :model do
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding annotation file.'
-            },
-            {
-              code:     nil,
-              severity: 'error',
-              message:  'There is no corresponding metadata file.'
             }
           ]
         )
@@ -305,11 +230,10 @@ RSpec.describe Database::Trad2::Validator, type: :model do
 
   describe 'seq' do
     example 'no entries' do
-      create_seq  validation, content: ''
-      create_ann  validation
-      create_meta validation
+      create_seq validation, content: ''
+      create_ann validation
 
-      Database::Trad2::Validator.new.validate validation
+      Database::Trad::FileValidator.new.validate validation
       validation.reload
 
       expect(validation.results).to contain_exactly(
@@ -330,22 +254,17 @@ RSpec.describe Database::Trad2::Validator, type: :model do
         include(
           object_id: 'Annotation',
           validity:  'valid'
-        ),
-        include(
-          object_id: 'Metadata',
-          validity:  'valid'
         )
       )
     end
   end
 
   describe 'ann' do
-    example 'invalid' do
-      create_seq  validation
-      create_ann  validation, content: 'foo'
-      create_meta validation
+    example 'missing contact person' do
+      create_seq validation
+      create_ann validation, content: ''
 
-      Database::Trad2::Validator.new.validate validation
+      Database::Trad::FileValidator.new.validate validation
       validation.reload
 
       expect(validation.results).to contain_exactly(
@@ -364,12 +283,142 @@ RSpec.describe Database::Trad2::Validator, type: :model do
           details: [
             code:     nil,
             severity: 'error',
-            message:  'Line 1: Kind(UnexpectedEof)'
+            message:  'Contact person information (contact, email, institute) is missing.'
           ]
+        )
+      )
+    end
+
+    example 'missing contact person (partial)' do
+      create_seq validation
+
+      create_ann validation, content: <<~ANN
+        COMMON	SUBMITTER		contact	Alice Liddell
+        			email	alice@example.com
+      ANN
+
+      Database::Trad::FileValidator.new.validate validation
+      validation.reload
+
+      expect(validation.results).to contain_exactly(
+        include(
+          object_id: '_base',
+          validity:  nil
         ),
         include(
-          object_id: 'Metadata',
+          object_id: 'Sequence',
           validity:  'valid'
+        ),
+        include(
+          object_id: 'Annotation',
+          validity:  'invalid',
+
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is missing.'
+          ]
+        )
+      )
+    end
+
+    example 'duplicate contact' do
+      create_seq validation
+
+      create_ann validation, content: <<~ANN
+        COMMON	SUBMITTER		contact	Alice Liddell
+        			contact	ALice Liddell
+      ANN
+
+      Database::Trad::FileValidator.new.validate validation
+      validation.reload
+
+      expect(validation.results).to contain_exactly(
+        include(
+          object_id: '_base',
+          validity:  nil
+        ),
+        include(
+          object_id: 'Sequence',
+          validity:  'valid'
+        ),
+        include(
+          object_id: 'Annotation',
+          validity:  'invalid',
+
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is duplicated.'
+          ]
+        )
+      )
+    end
+
+    example 'duplicate email' do
+      create_seq validation
+
+      create_ann validation, content: <<~ANN
+        COMMON	SUBMITTER		contact	Alice Liddell
+        			email	alice@example.com
+        			email	alice@example.com
+      ANN
+
+      Database::Trad::FileValidator.new.validate validation
+      validation.reload
+
+      expect(validation.results).to contain_exactly(
+        include(
+          object_id: '_base',
+          validity:  nil
+        ),
+        include(
+          object_id: 'Sequence',
+          validity:  'valid'
+        ),
+        include(
+          object_id: 'Annotation',
+          validity:  'invalid',
+
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is duplicated.'
+          ]
+        )
+      )
+    end
+
+    example 'duplicate institute' do
+      create_seq validation
+
+      create_ann validation, content: <<~ANN
+        COMMON	SUBMITTER		contact	Alice Liddell
+        			institute	Wonderland Inc.
+        			institute	Wonderland Inc.
+      ANN
+
+      Database::Trad::FileValidator.new.validate validation
+      validation.reload
+
+      expect(validation.results).to contain_exactly(
+        include(
+          object_id: '_base',
+          validity:  nil
+        ),
+        include(
+          object_id: 'Sequence',
+          validity:  'valid'
+        ),
+        include(
+          object_id: 'Annotation',
+          validity:  'invalid',
+
+          details: [
+            code:     nil,
+            severity: 'error',
+            message:  'Contact person information (contact, email, institute) is duplicated.'
+          ]
         )
       )
     end

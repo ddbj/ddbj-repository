@@ -1,4 +1,4 @@
-class Database::BioProject::Validator
+class Database::BioProject::FileValidator
   include DDBJValidator
 
   def translate_error(error)
