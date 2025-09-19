@@ -1,6 +1,6 @@
 class Database::Trad::DDBJRecordValidator
   def validate(validation)
-    obj = validation.objs.without_base.sole
+    obj = validation.objs.without_base.last
 
     begin
       JSON.parse(obj.file.download)
