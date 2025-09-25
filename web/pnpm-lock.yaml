@@ -87,8 +87,8 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       ember-auto-import:
-        specifier: ^2.10.0
-        version: 2.10.0(@glint/template@1.5.2)(webpack@5.101.3)
+        specifier: ^2.10.1
+        version: 2.10.1(@glint/template@1.5.2)(webpack@5.101.3)
       ember-cli:
         specifier: ~6.7.0
         version: 6.7.0(@types/node@24.4.0)(handlebars@4.7.8)(underscore@1.13.7)
@@ -1864,6 +1864,10 @@ packages:
     resolution: {integrity: sha512-mcE+Wr2CAhHNWxXN/DdTI+n4gsPc5QpXpWnyCQWiQYIYZX+ZMJ8juXZgjRa/0/YPJo/NSsgW15/YgmI4nbysYw==}
     hasBin: true
 
+  baseline-browser-mapping@2.8.6:
+    resolution: {integrity: sha512-wrH5NNqren/QMtKUEEJf7z86YjfqW/2uw3IL3/xpqZUC95SSVIFXYQeeGjL6FT/X68IROu6RMehZQS5foy2BXw==}
+    hasBin: true
+
   basic-auth@2.0.1:
     resolution: {integrity: sha512-NF+epuEdnUYVlGuhaxbbq+dvJttwLnGY+YixlXlME5KpQ5W3CnXA5cVTneY3SPbPDRkcjMbifrwmFYcClgOZeg==}
     engines: {node: '>= 0.8'}
@@ -2055,6 +2059,11 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
 
+  browserslist@4.26.2:
+    resolution: {integrity: sha512-ECFzp6uFOSB+dcZ5BK/IBaGWssbSYBHvuMeMt3MMFyhI0Z8SqGgEkBLARgpRH3hutIgPVsALcMwbDrJqPxQ65A==}
+    engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
+    hasBin: true
+
   bser@2.1.1:
     resolution: {integrity: sha512-gQxTNE/GAfIIrmHLUE3oJyp5FO6HRBfhjnw4/wMmA63ZGDJnWBmgY/lyQBpnDUkGmAhbSe39tx2d/iTOAfglwQ==}
 
@@ -2104,6 +2113,9 @@ packages:
 
   caniuse-lite@1.0.30001741:
     resolution: {integrity: sha512-QGUGitqsc8ARjLdgAfxETDhRbJ0REsP6O3I96TAth/mVjh2cYzN2u+3AzPP3aVSm2FehEItaJw1xd+IGBXWeSw==}
+
+  caniuse-lite@1.0.30001743:
+    resolution: {integrity: sha512-e6Ojr7RV14Un7dz6ASD0aZDmQPT/A+eZU+nuTNfjqmRrmkmQlnTNWH0SKmqagx9PeW87UVqapSurtAXifmtdmw==}
 
   capture-exit@2.0.0:
     resolution: {integrity: sha512-PiT/hQmTonHhl/HFGN+Lx3JJUznrVYJ3+AQsnthneZbvW7x+f08Tk7yLJTLEOUvBTbduLeeBkxEaYXUOUrRq6g==}
@@ -2727,8 +2739,11 @@ packages:
   electron-to-chromium@1.5.218:
     resolution: {integrity: sha512-uwwdN0TUHs8u6iRgN8vKeWZMRll4gBkz+QMqdS7DDe49uiK68/UX92lFb61oiFPrpYZNeZIqa4bA7O6Aiasnzg==}
 
-  ember-auto-import@2.10.0:
-    resolution: {integrity: sha512-bcBFDYVTFHyqyq8BNvsj6UO3pE6Uqou/cNmee0WaqBgZ+1nQqFz0UE26usrtnFAT+YaFZSkqF2H36QW84k0/cg==}
+  electron-to-chromium@1.5.223:
+    resolution: {integrity: sha512-qKm55ic6nbEmagFlTFczML33rF90aU+WtrJ9MdTCThrcvDNdUHN4p6QfVN78U06ZmguqXIyMPyYhw2TrbDUwPQ==}
+
+  ember-auto-import@2.10.1:
+    resolution: {integrity: sha512-5K4lYSEBch3DKQn1VElFHDHcHTvhTJnB6aebf24VyIobLL+OMWORcCK1fiwyfPiVABztyuLXH2GiXDweNUtntA==}
     engines: {node: 12.* || 14.* || >= 16}
 
   ember-cli-app-version@7.0.0:
@@ -4072,11 +4087,6 @@ packages:
       canvas:
         optional: true
 
-  jsesc@3.0.2:
-    resolution: {integrity: sha512-xKqzzWXDttJuOcawBt4KnKHHIf5oQ/Cxax+0PWFG+DFDgHNAdi+TXECADI+RYiFUMmx8792xsMbbgXj4CwnP4g==}
-    engines: {node: '>=6'}
-    hasBin: true
-
   jsesc@3.1.0:
     resolution: {integrity: sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA==}
     engines: {node: '>=6'}
@@ -4989,15 +4999,15 @@ packages:
     resolution: {integrity: sha512-dYqgNSZbDwkaJ2ceRd9ojCGjBq+mOm9LmtXnAnEGyHhN/5R7iDW2TRw3h+o/jCFxus3P2LfWIIiwowAjANm7IA==}
     engines: {node: '>= 0.4'}
 
-  regexpu-core@6.3.1:
-    resolution: {integrity: sha512-DzcswPr252wEr7Qz8AyAVbfyBDKLoYp6eRA1We2Fa9qirRFSdtkP5sHr3yglDKy2BbA0fd2T+j/CUSKes3FeVQ==}
+  regexpu-core@6.4.0:
+    resolution: {integrity: sha512-0ghuzq67LI9bLXpOX/ISfve/Mq33a4aFRzoQYhnnok1JOFpmE/A2TBGkNVenOGEeSBCjIiWcc6MVOG5HEQv0sA==}
     engines: {node: '>=4'}
 
   regjsgen@0.8.0:
     resolution: {integrity: sha512-RvwtGe3d7LvWiDQXeQw8p5asZUmfU1G/l6WbUXeHta7Y2PEIvBTwH6E2EfmYUK8pxcxEdEmaomqyp0vZZ7C+3Q==}
 
-  regjsparser@0.12.0:
-    resolution: {integrity: sha512-cnE+y8bz4NhMjISKbgeVJtqNbtf5QpjZP+Bslo+UqkIt9QPnX9q095eiRRASJG1/tz6dlNr6Z5NsBiWYokp6EQ==}
+  regjsparser@0.13.0:
+    resolution: {integrity: sha512-NZQZdC5wOE/H3UT28fVGL+ikOZcEzfMGk/c3iN9UGxzWHMa1op7274oyiUVrAG4B2EuFhus8SvkaYnhvW92p9Q==}
     hasBin: true
 
   remove-trailing-separator@1.1.0:
@@ -5796,8 +5806,8 @@ packages:
     resolution: {integrity: sha512-JQ84qTuMg4nVkx8ga4A16a1epI9H6uTXAknqxkGF/aFfRLw1xC/Bp24HNLaZhHSkWd3+84t8iXnp1J0kYcZHhg==}
     engines: {node: '>=4'}
 
-  unicode-property-aliases-ecmascript@2.1.0:
-    resolution: {integrity: sha512-6t3foTQI9qne+OZoVQB/8x8rk2k1eVy1gRXhV3oFQ5T6R1dqQ1xtin3XqSlx3+ATBkliTaR/hHyJBm+LVPNM8w==}
+  unicode-property-aliases-ecmascript@2.2.0:
+    resolution: {integrity: sha512-hpbDzxUY9BFwX+UeBnxv3Sh1q7HFxj48DTmXchNgRa46lO8uj3/1iEn3MiNUYTg1g9ctIqXCCERn8gYZhHC5lQ==}
     engines: {node: '>=4'}
 
   union-value@1.0.1:
@@ -6171,7 +6181,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.4(supports-color@8.1.1)
       '@babel/helper-annotate-as-pure': 7.27.3
-      regexpu-core: 6.3.1
+      regexpu-core: 6.4.0
       semver: 6.3.1
 
   '@babel/helper-define-polyfill-provider@0.6.5(@babel/core@7.28.4)(supports-color@8.1.1)':
@@ -8433,6 +8443,8 @@ snapshots:
 
   baseline-browser-mapping@2.8.3: {}
 
+  baseline-browser-mapping@2.8.6: {}
+
   basic-auth@2.0.1:
     dependencies:
       safe-buffer: 5.1.2
@@ -8896,6 +8908,14 @@ snapshots:
       node-releases: 2.0.21
       update-browserslist-db: 1.1.3(browserslist@4.26.0)
 
+  browserslist@4.26.2:
+    dependencies:
+      baseline-browser-mapping: 2.8.6
+      caniuse-lite: 1.0.30001743
+      electron-to-chromium: 1.5.223
+      node-releases: 2.0.21
+      update-browserslist-db: 1.1.3(browserslist@4.26.2)
+
   bser@2.1.1:
     dependencies:
       node-int64: 0.4.0
@@ -8956,6 +8976,8 @@ snapshots:
       tmp: 0.0.28
 
   caniuse-lite@1.0.30001741: {}
+
+  caniuse-lite@1.0.30001743: {}
 
   capture-exit@2.0.0:
     dependencies:
@@ -9171,7 +9193,7 @@ snapshots:
 
   core-js-compat@3.45.1:
     dependencies:
-      browserslist: 4.26.0
+      browserslist: 4.26.2
 
   core-js@2.6.12: {}
 
@@ -9394,7 +9416,9 @@ snapshots:
 
   electron-to-chromium@1.5.218: {}
 
-  ember-auto-import@2.10.0(@glint/template@1.5.2)(webpack@5.101.3):
+  electron-to-chromium@1.5.223: {}
+
+  ember-auto-import@2.10.1(@glint/template@1.5.2)(webpack@5.101.3):
     dependencies:
       '@babel/core': 7.28.4(supports-color@8.1.1)
       '@babel/plugin-proposal-class-properties': 7.18.6(@babel/core@7.28.4)
@@ -11457,8 +11481,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  jsesc@3.0.2: {}
-
   jsesc@3.1.0: {}
 
   json-buffer@3.0.1: {}
@@ -12351,20 +12373,20 @@ snapshots:
       gopd: 1.2.0
       set-function-name: 2.0.2
 
-  regexpu-core@6.3.1:
+  regexpu-core@6.4.0:
     dependencies:
       regenerate: 1.4.2
       regenerate-unicode-properties: 10.2.2
       regjsgen: 0.8.0
-      regjsparser: 0.12.0
+      regjsparser: 0.13.0
       unicode-match-property-ecmascript: 2.0.0
       unicode-match-property-value-ecmascript: 2.2.1
 
   regjsgen@0.8.0: {}
 
-  regjsparser@0.12.0:
+  regjsparser@0.13.0:
     dependencies:
-      jsesc: 3.0.2
+      jsesc: 3.1.0
 
   remove-trailing-separator@1.1.0: {}
 
@@ -13384,11 +13406,11 @@ snapshots:
   unicode-match-property-ecmascript@2.0.0:
     dependencies:
       unicode-canonical-property-names-ecmascript: 2.0.1
-      unicode-property-aliases-ecmascript: 2.1.0
+      unicode-property-aliases-ecmascript: 2.2.0
 
   unicode-match-property-value-ecmascript@2.2.1: {}
 
-  unicode-property-aliases-ecmascript@2.1.0: {}
+  unicode-property-aliases-ecmascript@2.2.0: {}
 
   union-value@1.0.1:
     dependencies:
@@ -13417,6 +13439,12 @@ snapshots:
   update-browserslist-db@1.1.3(browserslist@4.26.0):
     dependencies:
       browserslist: 4.26.0
+      escalade: 3.2.0
+      picocolors: 1.1.1
+
+  update-browserslist-db@1.1.3(browserslist@4.26.2):
+    dependencies:
+      browserslist: 4.26.2
       escalade: 3.2.0
       picocolors: 1.1.1
 
