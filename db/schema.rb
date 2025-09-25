@@ -10,7 +10,27 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_30_023558) do
+ActiveRecord::Schema[8.0].define(version: 2025_09_24_000504) do
+  create_table "accession_renewal_validation_details", force: :cascade do |t|
+    t.integer "renewal_id", null: false
+    t.string "severity", null: false
+    t.string "message", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["renewal_id"], name: "index_accession_renewal_validation_details_on_renewal_id"
+  end
+
+  create_table "accession_renewals", force: :cascade do |t|
+    t.integer "accession_id", null: false
+    t.string "progress", default: "waiting", null: false
+    t.string "validity"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["accession_id"], name: "index_accession_renewals_on_accession_id"
+  end
+
   create_table "accessions", force: :cascade do |t|
     t.integer "submission_id", null: false
     t.string "number", null: false
@@ -130,6 +150,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_30_023558) do
     t.index ["user_id"], name: "index_validations_on_user_id"
   end
 
+  add_foreign_key "accession_renewal_validation_details", "accession_renewals", column: "renewal_id"
+  add_foreign_key "accession_renewals", "accessions"
   add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"

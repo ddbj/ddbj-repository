@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Database::BioSample::Validator, type: :model do
+RSpec.describe Database::BioSample::FileValidator, type: :model do
   let(:validation) {
     create(:validation, id: 42, db: 'BioSample') {|validation|
       create :obj, validation:, _id: 'BioSample', file: uploaded_file(name: 'mybiosample.xml')
@@ -41,7 +41,7 @@ RSpec.describe Database::BioSample::Validator, type: :model do
       }
     )
 
-    Database::BioSample::Validator.new.validate validation
+    Database::BioSample::FileValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -93,7 +93,7 @@ RSpec.describe Database::BioSample::Validator, type: :model do
       }
     )
 
-    Database::BioSample::Validator.new.validate validation
+    Database::BioSample::FileValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(
@@ -120,7 +120,7 @@ RSpec.describe Database::BioSample::Validator, type: :model do
       body:   'something went wrong'
     )
 
-    Database::BioSample::Validator.new.validate validation
+    Database::BioSample::FileValidator.new.validate validation
     validation.reload
 
     expect(validation.results).to contain_exactly(

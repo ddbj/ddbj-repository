@@ -5,8 +5,9 @@ class User < ApplicationRecord
 
   has_many :validations, dependent: :destroy
 
-  has_many :submissions, through: :validations
-  has_many :accessions,  through: :submissions
+  has_many :submissions,        through: :validations
+  has_many :accessions,         through: :submissions
+  has_many :accession_renewals, through: :accessions, source: :renewals
 
   before_create do |user|
     user.api_key ||= self.class.generate_api_key

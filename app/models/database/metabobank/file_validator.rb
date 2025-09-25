@@ -1,4 +1,4 @@
-class Database::MetaboBank::Validator
+class Database::MetaboBank::FileValidator
   def validate(validation)
     objs = validation.objs.without_base.index_by(&:_id)
 
