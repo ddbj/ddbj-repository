@@ -6,7 +6,7 @@ import type { components } from 'schema/openapi';
 type Accession = components['schemas']['Accession'];
 
 export default <template>
-  <h1 class="display-6 mb-4">Accession #{{@accession.number}}</h1>
+  <h1 class="display-6 mb-4">Accession {{@accession.number}}</h1>
 
   <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
     <div>

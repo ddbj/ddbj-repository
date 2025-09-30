@@ -8,6 +8,11 @@
     :created_at
   ),
 
+  file: {
+    filename: accession_renewal.file.filename,
+    url:      accession_renewal_file_url(accession_renewal)
+  },
+
   validation_details: accession_renewal.validation_details.map {|detail|
     {
       **detail.slice(

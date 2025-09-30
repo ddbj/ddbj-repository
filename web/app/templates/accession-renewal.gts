@@ -1,4 +1,9 @@
+import Component from '@glimmer/component';
+import { action } from '@ember/object';
 import { LinkTo } from '@ember/routing';
+import { fn } from '@ember/helper';
+import { on } from '@ember/modifier';
+import { service } from '@ember/service';
 
 import ProgressLabel from 'repository/components/progress-label';
 import ValidityBadge from 'repository/components/validity-badge';
@@ -6,7 +11,7 @@ import ValidityBadge from 'repository/components/validity-badge';
 import AccessionSummary from 'repository/components/accession-summary';
 import formatDatetime from 'repository/helpers/format-datetime';
 
-import type { TOC } from '@ember/component/template-only';
+import type RequestService from 'repository/services/request';
 import type { components } from 'schema/openapi';
 
 type Accession = components['schemas']['Accession'];
@@ -21,75 +26,93 @@ interface Signature {
   };
 }
 
-export default <template>
-  <div class="mb-3">
-    <LinkTo @route="accession" @model={{@model.accession.number}}>&laquo; Back to accession</LinkTo>
-  </div>
+export default class extends Component<Signature> {
+  @service declare request: RequestService;
 
-  <AccessionSummary @accession={{@model.accession}} />
+  @action
+  async downloadFile(url: string) {
+    await this.request.downloadFile(url);
+  }
 
-  <h2>Renewal #{{@model.renewal.id}}</h2>
-
-  <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
-    <div>
-      <dt>Created</dt>
-      <dd>{{formatDatetime @model.renewal.created_at}}</dd>
+  <template>
+    <div class="mb-3">
+      <LinkTo @route="accession" @model={{@model.accession.number}}>&laquo; Back to accession</LinkTo>
     </div>
 
-    <div>
-      <dt>Started</dt>
+    <AccessionSummary @accession={{@model.accession}} />
 
-      <dd>
-        {{#if @model.renewal.started_at}}
-          {{formatDatetime @model.renewal.started_at}}
-        {{else}}
-          -
-        {{/if}}
-      </dd>
-    </div>
+    <h2>Renewal #{{@model.renewal.id}}</h2>
 
-    <div>
-      <dt>Finished</dt>
+    <dl class="d-flex flex-wrap row-gap-1 column-gap-5">
+      <div>
+        <dt>Created</dt>
+        <dd>{{formatDatetime @model.renewal.created_at}}</dd>
+      </div>
 
-      <dd>
-        {{#if @model.renewal.finished_at}}
-          {{formatDatetime @model.renewal.finished_at}}
-        {{else}}
-          -
-        {{/if}}
-      </dd>
-    </div>
+      <div>
+        <dt>Started</dt>
 
-    <div>
-      <dt>Progress</dt>
-      <dd><ProgressLabel @progress={{@model.renewal.progress}} /></dd>
-    </div>
+        <dd>
+          {{#if @model.renewal.started_at}}
+            {{formatDatetime @model.renewal.started_at}}
+          {{else}}
+            -
+          {{/if}}
+        </dd>
+      </div>
 
-    <div>
-      <dt>Validity</dt>
-      <dd><ValidityBadge @validity={{@model.renewal.validity}} /></dd>
-    </div>
-  </dl>
+      <div>
+        <dt>Finished</dt>
 
-  {{#if @model.renewal.validation_details.length}}
-    <h3>Validation Results</h3>
+        <dd>
+          {{#if @model.renewal.finished_at}}
+            {{formatDatetime @model.renewal.finished_at}}
+          {{else}}
+            -
+          {{/if}}
+        </dd>
+      </div>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Severity</th>
-          <th>Message</th>
-        </tr>
-      </thead>
+      <div>
+        <dt>Progress</dt>
+        <dd><ProgressLabel @progress={{@model.renewal.progress}} /></dd>
+      </div>
 
-      <tbody>
-        {{#each @model.renewal.validation_details as |detail|}}
+      <div>
+        <dt>Validity</dt>
+        <dd><ValidityBadge @validity={{@model.renewal.validity}} /></dd>
+      </div>
+    </dl>
+
+    {{#if @model.renewal.validation_details.length}}
+      <h3>Validation Results</h3>
+
+      <table class="table">
+        <thead>
           <tr>
-            <td>{{detail.severity}}</td>
-            <td>{{detail.message}}</td>
+            <th>Severity</th>
+            <th>Message</th>
           </tr>
-        {{/each}}
-      </tbody>
-    </table>
-  {{/if}}
-</template> satisfies TOC<Signature>;
+        </thead>
+
+        <tbody>
+          {{#each @model.renewal.validation_details as |detail|}}
+            <tr>
+              <td>{{detail.severity}}</td>
+              <td>{{detail.message}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    {{/if}}
+
+    {{#if @model.renewal.file}}
+      <h3>File</h3>
+      <button
+        type="button"
+        class="btn btn-link p-0"
+        {{on "click" (fn this.downloadFile @model.renewal.file.url)}}
+      >{{@model.renewal.file.filename}}</button>
+    {{/if}}
+  </template>
+}

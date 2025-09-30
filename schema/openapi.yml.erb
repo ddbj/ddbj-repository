@@ -948,7 +948,7 @@ components:
     AccessionRenewal:
       type: object
       additionalProperties: false
-      required: [id, created_at, started_at, finished_at, progress, validity, validation_details]
+      required: [id, created_at, started_at, finished_at, progress, validity, file, validation_details]
 
       properties:
         id:
@@ -991,6 +991,22 @@ components:
             - invalid
             - error
             - null
+
+        file:
+          type:
+            - object
+            - 'null'
+
+          additionalProperties: false
+          required: [filename, url]
+
+          properties:
+            filename:
+              type: string
+
+            url:
+              type: string
+              format: url
 
         validation_details:
           type: array

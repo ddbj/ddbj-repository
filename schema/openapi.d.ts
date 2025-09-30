@@ -1013,6 +1013,11 @@ export interface components {
             progress: "waiting" | "running" | "finished" | "canceled";
             /** @enum {string|null} */
             validity: "valid" | "invalid" | "error" | null;
+            file: {
+                filename: string;
+                /** Format: url */
+                url: string;
+            } | null;
             validation_details: {
                 severity: string;
                 message: string;
