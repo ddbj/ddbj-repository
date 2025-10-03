@@ -164,7 +164,7 @@ export interface paths {
             requestBody?: components["requestBodies"]["ViaFile"];
             responses: {
                 /** @description The validation process initiated successfully. */
-                201: {
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -203,7 +203,7 @@ export interface paths {
             requestBody?: components["requestBodies"]["ViaDDBJRecord"];
             responses: {
                 /** @description The validation process initiated successfully. */
-                201: {
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -386,7 +386,7 @@ export interface paths {
             };
             responses: {
                 /** @description Submitted successfully. */
-                201: {
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };

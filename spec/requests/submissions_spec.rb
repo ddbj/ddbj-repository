@@ -100,7 +100,7 @@ RSpec.describe '/api/submissions', type: :request, authorized: true do
         visibility:    'public'
       }, as: :json
 
-      expect(response).to conform_schema(201)
+      expect(response).to conform_schema(202)
       expect(response.parsed_body.deep_symbolize_keys.dig(:validation, :id)).to eq(42)
     end
 

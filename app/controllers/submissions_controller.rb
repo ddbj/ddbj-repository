@@ -24,7 +24,7 @@ class SubmissionsController < ApplicationController
 
     SubmitJob.perform_later @submission
 
-    render :show, status: :created
+    render :show, status: :accepted
   end
 
   private

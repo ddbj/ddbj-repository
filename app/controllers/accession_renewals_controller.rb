@@ -9,7 +9,7 @@ class AccessionRenewalsController < ApplicationController
 
     RenewAccessionJob.perform_later @renewal
 
-    render :show, status: :created
+    render :show, status: :accepted
   end
 
   private

@@ -3,7 +3,7 @@ class Database::Trad::DDBJRecordValidator
     obj = validation.objs.without_base.last
 
     begin
-      JSON.parse(obj.file.download)
+      JSON.parse obj.file.download
 
       obj.validity_valid! if obj.validation_details.empty?
     rescue JSON::ParserError => e

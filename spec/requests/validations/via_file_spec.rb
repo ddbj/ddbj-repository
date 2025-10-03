@@ -18,7 +18,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
     }
 
     # We are supposed to use `comform_schema` but it does not success.
-    expect(response).to have_http_status(201)
+    expect(response).to have_http_status(202)
     expect(ValidateJob).to have_been_enqueued
   end
 
@@ -59,7 +59,7 @@ RSpec.describe 'validate via file', type: :request, authorized: true do
       }
     }
 
-    expect(response).to have_http_status(201)
+    expect(response).to have_http_status(202)
 
     validation = Validation.find(response.parsed_body['id'])
 

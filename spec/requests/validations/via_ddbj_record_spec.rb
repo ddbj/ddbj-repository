@@ -16,6 +16,6 @@ RSpec.describe 'validate via DDBJRecord', type: :request, authorized: true do
       }
     }
 
-    expect(response).to have_http_status(:created)
+    expect(response).to have_http_status(:accepted)
   end
 end

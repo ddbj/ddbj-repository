@@ -4,7 +4,7 @@ class Validations::ViaDDBJRecordsController < ApplicationController
 
     ValidateJob.perform_later @validation
 
-    render status: :created
+    render status: :accepted
   end
 
   private

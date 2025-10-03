@@ -2,8 +2,6 @@ class RenewAccessionJob < ApplicationJob
   def perform(renewal)
     renewal.update! progress: :running, started_at: Time.current
 
-    sleep 3
-
     ActiveRecord::Base.transaction do
       begin
         JSON.parse renewal.file.download
