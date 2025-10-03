@@ -22,8 +22,15 @@ Rails.application.routes.draw do
       end
     end
 
-    resources :submissions, only: %i[index show create]
-    resources :accessions,  only: %i[show update], param: :number
+    resources :submissions, only: %i[index show create] do
+      resources :accessions, only: %i[show update], param: :number, shallow: true do
+        resources :accession_renewals, only: %i[show create] do
+          scope module: 'accession_renewals' do
+            resource :file, only: %i[show], shallow: false
+          end
+        end
+      end
+    end
   end
 
   get 'web/*paths', to: 'webs#show'

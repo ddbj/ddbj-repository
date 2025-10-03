@@ -1,4 +1,4 @@
-class Database::GEA::Validator
+class Database::GEA::FileValidator
   def validate(validation)
     objs = validation.objs.without_base.index_by(&:_id)
 

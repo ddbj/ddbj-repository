@@ -999,6 +999,29 @@ export interface components {
             version: number;
             /** Format: date-time */
             last_updated_at: string;
+            renewals?: components["schemas"]["AccessionRenewal"][];
+        };
+        AccessionRenewal: {
+            id: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            started_at: string | null;
+            /** Format: date-time */
+            finished_at: string | null;
+            /** @enum {string} */
+            progress: "waiting" | "running" | "finished" | "canceled";
+            /** @enum {string|null} */
+            validity: "valid" | "invalid" | "error" | null;
+            file: {
+                filename: string;
+                /** Format: url */
+                url: string;
+            } | null;
+            validation_details: {
+                severity: string;
+                message: string;
+            }[];
         };
         ValidationResult: {
             /** @enum {string} */
