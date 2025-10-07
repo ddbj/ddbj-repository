@@ -5,6 +5,7 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 
+import NumberBadge from 'repository/components/number-badge';
 import ProgressLabel from 'repository/components/progress-label';
 import ValidityBadge from 'repository/components/validity-badge';
 
@@ -80,9 +81,23 @@ export default class extends Component<Signature> {
 
       <div>
         <dt>Validity</dt>
-        <dd><ValidityBadge @validity={{@model.renewal.validity}} /></dd>
+
+        <dd>
+          <ValidityBadge @validity={{@model.renewal.validity}} />
+          <NumberBadge @number={{@model.renewal.validation_details.length}} />
+        </dd>
       </div>
     </dl>
+
+    {{#if @model.renewal.file}}
+      <h3>File</h3>
+
+      <button
+        type="button"
+        class="btn btn-link p-0 mb-3"
+        {{on "click" (fn this.downloadFile @model.renewal.file.url)}}
+      >{{@model.renewal.file.filename}}</button>
+    {{/if}}
 
     {{#if @model.renewal.validation_details.length}}
       <h3>Validation Results</h3>
@@ -104,15 +119,6 @@ export default class extends Component<Signature> {
           {{/each}}
         </tbody>
       </table>
-    {{/if}}
-
-    {{#if @model.renewal.file}}
-      <h3>File</h3>
-      <button
-        type="button"
-        class="btn btn-link p-0"
-        {{on "click" (fn this.downloadFile @model.renewal.file.url)}}
-      >{{@model.renewal.file.filename}}</button>
     {{/if}}
   </template>
 }
