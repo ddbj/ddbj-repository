@@ -13,6 +13,7 @@ import AccessionSummary from 'repository/components/accession-summary';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 import type RequestService from 'repository/services/request';
+import type RouterService from '@ember/routing/router-service';
 import type { components } from 'schema/openapi';
 
 type Accession = components['schemas']['Accession'];
@@ -29,15 +30,24 @@ interface Signature {
 
 export default class extends Component<Signature> {
   @service declare request: RequestService;
+  @service declare router: RouterService;
 
   @action
   async downloadFile(url: string) {
     await this.request.downloadFile(url);
   }
 
+  @action
+  backToAccession() {
+    this.router.refresh();
+    this.router.transitionTo('accession', this.args.model.accession.number);
+  }
+
   <template>
     <div class="mb-3">
-      <LinkTo @route="accession" @model={{@model.accession.number}}>&laquo; Back to accession</LinkTo>
+      <LinkTo @route="accession" @model={{@model.accession.number}} {{on "click" this.backToAccession}}>
+        &laquo; Back to accession
+      </LinkTo>
     </div>
 
     <AccessionSummary @accession={{@model.accession}} />
