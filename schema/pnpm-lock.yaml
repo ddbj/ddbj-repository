@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       openapi-typescript:
-        specifier: ^7.9.1
-        version: 7.9.1(typescript@5.8.3)
+        specifier: ^7.10.0
+        version: 7.10.0(typescript@5.8.3)
 
 packages:
 
@@ -55,8 +55,8 @@ packages:
   colorette@1.4.0:
     resolution: {integrity: sha512-Y2oEozpomLn7Q3HFP7dpww7AtMJplbM9lGZP6RDfHqmbeRjiwRg4n6VM6j4KLmRke85uWEI7JqF17f3pqdRA0g==}
 
-  debug@4.4.1:
-    resolution: {integrity: sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==}
+  debug@4.4.3:
+    resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
     engines: {node: '>=6.0'}
     peerDependencies:
       supports-color: '*'
@@ -71,8 +71,8 @@ packages:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
 
-  index-to-position@1.1.0:
-    resolution: {integrity: sha512-XPdx9Dq4t9Qk1mTMbWONJqU7boCoumEH7fRET37HX5+khDUl3J2W6PdALxhILYlIYx2amlwYcRPp28p0tSiojg==}
+  index-to-position@1.2.0:
+    resolution: {integrity: sha512-Yg7+ztRkqslMAS2iFaU+Oa4KTSidr63OsFGlOrJoW981kIYO3CGCS3wA95P1mUi/IVSJkn0D479KTJpVpvFNuw==}
     engines: {node: '>=18'}
 
   js-levenshtein@1.1.6:
@@ -96,8 +96,8 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
-  openapi-typescript@7.9.1:
-    resolution: {integrity: sha512-9gJtoY04mk6iPMbToPjPxEAtfXZ0dTsMZtsgUI8YZta0btPPig9DJFP4jlerQD/7QOwYgb0tl+zLUpDf7vb7VA==}
+  openapi-typescript@7.10.0:
+    resolution: {integrity: sha512-vc+vAFU8plDiz7XYI7h/aBwW5NI+onJ2ydUd+Y51+h8O6vcMEp1+3MHIUB5cGclp08iHpCIotljhk51Nf+7+Yg==}
     hasBin: true
     peerDependencies:
       typescript: ^5.x
@@ -117,8 +117,8 @@ packages:
     resolution: {integrity: sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw==}
     engines: {node: '>=0.10.0'}
 
-  supports-color@10.1.0:
-    resolution: {integrity: sha512-GBuewsPrhJPftT+fqDa9oI/zc5HNsG9nREqwzoSFDOIqf0NggOZbHQj2TE1P1CDJK8ZogFnlZY9hWoUiur7I/A==}
+  supports-color@10.2.2:
+    resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
 
   type-fest@4.41.0:
@@ -159,12 +159,12 @@ snapshots:
 
   '@redocly/config@0.22.2': {}
 
-  '@redocly/openapi-core@1.34.5(supports-color@10.1.0)':
+  '@redocly/openapi-core@1.34.5(supports-color@10.2.2)':
     dependencies:
       '@redocly/ajv': 8.11.3
       '@redocly/config': 0.22.2
       colorette: 1.4.0
-      https-proxy-agent: 7.0.6(supports-color@10.1.0)
+      https-proxy-agent: 7.0.6(supports-color@10.2.2)
       js-levenshtein: 1.1.6
       js-yaml: 4.1.0
       minimatch: 5.1.6
@@ -189,22 +189,22 @@ snapshots:
 
   colorette@1.4.0: {}
 
-  debug@4.4.1(supports-color@10.1.0):
+  debug@4.4.3(supports-color@10.2.2):
     dependencies:
       ms: 2.1.3
     optionalDependencies:
-      supports-color: 10.1.0
+      supports-color: 10.2.2
 
   fast-deep-equal@3.1.3: {}
 
-  https-proxy-agent@7.0.6(supports-color@10.1.0):
+  https-proxy-agent@7.0.6(supports-color@10.2.2):
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.1(supports-color@10.1.0)
+      debug: 4.4.3(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
-  index-to-position@1.1.0: {}
+  index-to-position@1.2.0: {}
 
   js-levenshtein@1.1.6: {}
 
@@ -222,20 +222,20 @@ snapshots:
 
   ms@2.1.3: {}
 
-  openapi-typescript@7.9.1(typescript@5.8.3):
+  openapi-typescript@7.10.0(typescript@5.8.3):
     dependencies:
-      '@redocly/openapi-core': 1.34.5(supports-color@10.1.0)
+      '@redocly/openapi-core': 1.34.5(supports-color@10.2.2)
       ansi-colors: 4.1.3
       change-case: 5.4.4
       parse-json: 8.3.0
-      supports-color: 10.1.0
+      supports-color: 10.2.2
       typescript: 5.8.3
       yargs-parser: 21.1.1
 
   parse-json@8.3.0:
     dependencies:
       '@babel/code-frame': 7.27.1
-      index-to-position: 1.1.0
+      index-to-position: 1.2.0
       type-fest: 4.41.0
 
   picocolors@1.1.1: {}
@@ -244,7 +244,7 @@ snapshots:
 
   require-from-string@2.0.2: {}
 
-  supports-color@10.1.0: {}
+  supports-color@10.2.2: {}
 
   type-fest@4.41.0: {}
 
