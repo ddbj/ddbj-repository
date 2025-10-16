@@ -1,13 +1,13 @@
 import { LinkTo } from '@ember/routing';
 
 import { notEq } from 'ember-truth-helpers';
-
-import DetailsCount from 'repository/components/details-count';
+import NumberBadge from 'repository/components/number-badge';
 import Pagination from 'repository/components/pagination';
 import ProgressLabel from 'repository/components/progress-label';
 import Table from 'repository/components/table';
 import ValidityBadge from 'repository/components/validity-badge';
 import formatDatetime from 'repository/helpers/format-datetime';
+import detailsCount from 'repository/helpers/details-count';
 
 import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
@@ -81,7 +81,7 @@ export default <template>
 
           <td>
             <ValidityBadge @validity={{validation.validity}} />
-            <DetailsCount @results={{validation.results}} />
+            <NumberBadge @number={{detailsCount validation.results}} />
           </td>
 
           <td class="position-relative">

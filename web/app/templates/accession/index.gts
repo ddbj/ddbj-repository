@@ -2,6 +2,7 @@ import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
 
 import AccessionSummary from 'repository/components/accession-summary';
+import NumberBadge from 'repository/components/number-badge';
 import ProgressLabel from 'repository/components/progress-label';
 import ValidityBadge from 'repository/components/validity-badge';
 import formatDate from 'repository/helpers/format-datetime';
@@ -40,50 +41,56 @@ export default class extends Component<Signature> {
       Renew Accession
     </LinkTo>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Created</th>
-          <th>Started</th>
-          <th>Finished</th>
-          <th>Progress</th>
-          <th>Validity</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {{#each this.renewals as |renewal|}}
+    {{#if this.renewals}}
+      <table class="table">
+        <thead>
           <tr>
-            <td>
-              <LinkTo @route="accession_renewal" @model={{renewal.id}}>
-                #{{renewal.id}}
-              </LinkTo>
-            </td>
-
-            <td>{{formatDate renewal.created_at}}</td>
-
-            <td>
-              {{#if renewal.started_at}}
-                {{formatDate renewal.started_at}}
-              {{else}}
-                -
-              {{/if}}
-            </td>
-
-            <td>
-              {{#if renewal.finished_at}}
-                {{formatDate renewal.finished_at}}
-              {{else}}
-                -
-              {{/if}}
-            </td>
-
-            <td><ProgressLabel @progress={{renewal.progress}} /></td>
-            <td><ValidityBadge @validity={{renewal.validity}} /></td>
+            <th>ID</th>
+            <th>Created</th>
+            <th>Started</th>
+            <th>Finished</th>
+            <th>Progress</th>
+            <th>Validity</th>
           </tr>
-        {{/each}}
-      </tbody>
-    </table>
+        </thead>
+
+        <tbody>
+          {{#each this.renewals as |renewal|}}
+            <tr>
+              <td>
+                <LinkTo @route="accession_renewal" @model={{renewal.id}}>
+                  #{{renewal.id}}
+                </LinkTo>
+              </td>
+
+              <td>{{formatDate renewal.created_at}}</td>
+
+              <td>
+                {{#if renewal.started_at}}
+                  {{formatDate renewal.started_at}}
+                {{else}}
+                  -
+                {{/if}}
+              </td>
+
+              <td>
+                {{#if renewal.finished_at}}
+                  {{formatDate renewal.finished_at}}
+                {{else}}
+                  -
+                {{/if}}
+              </td>
+
+              <td><ProgressLabel @progress={{renewal.progress}} /></td>
+
+              <td>
+                <ValidityBadge @validity={{renewal.validity}} />
+                <NumberBadge @number={{renewal.validation_details.length}} />
+              </td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    {{/if}}
   </template>
 }
