@@ -212,7 +212,7 @@ GEM
       zeitwerk (~> 2.6)
     jwt (3.1.2)
       base64
-    kamal (2.7.0)
+    kamal (2.8.1)
       activesupport (>= 7.0)
       base64 (~> 0.2)
       bcrypt_pbkdf (~> 1.0)
@@ -236,7 +236,7 @@ GEM
       net-smtp
     marcel (1.1.0)
     mini_mime (1.1.5)
-    minitest (5.25.5)
+    minitest (5.26.0)
     msgpack (1.8.0)
     net-http (0.6.0)
       uri
@@ -280,7 +280,7 @@ GEM
       tzinfo
       validate_url
       webfinger (~> 2.0)
-    ostruct (0.6.2)
+    ostruct (0.6.3)
     pagy (9.4.0)
     parallel (1.27.0)
     parser (3.3.7.1)
@@ -464,7 +464,7 @@ GEM
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
-    uri (1.0.3)
+    uri (1.0.4)
     uri-idna (0.3.1)
     useragent (0.16.11)
     validate_url (1.0.15)
