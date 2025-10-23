@@ -10,50 +10,51 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_08_27_024216) do
+ActiveRecord::Schema[8.1].define(version: 2024_08_27_024216) do
   create_schema "mass"
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
-  create_table "ext_entity", primary_key: "ext_id", force: :cascade do |t|
+  create_table "mass.ext_entity", primary_key: "ext_id", force: :cascade do |t|
     t.text "acc_type", null: false
     t.text "ref_name", null: false
     t.integer "status", null: false
   end
 
-  create_table "ext_permit", primary_key: "per_id", force: :cascade do |t|
+  create_table "mass.ext_permit", primary_key: "per_id", force: :cascade do |t|
     t.bigint "ext_id", null: false
     t.text "submitter_id", null: false
   end
 
-  create_table "operation_history", primary_key: "his_id", force: :cascade do |t|
-    t.integer "type", null: false
-    t.text "summary", null: false
-    t.text "file_name"
-    t.binary "detail"
+  create_table "mass.operation_history", primary_key: "his_id", force: :cascade do |t|
     t.datetime "date", precision: nil, default: -> { "date_trunc('second'::text, now())" }, null: false
-    t.bigint "usr_id", null: false
+    t.binary "detail"
+    t.text "file_name"
     t.integer "serial"
     t.text "submitter_id"
-  end
-
-  create_table "status_history", force: :cascade do |t|
-    t.bigint "sub_id", null: false
-    t.integer "status", null: false
-    t.datetime "date", precision: nil, default: -> { "date_trunc('second'::text, now())" }, null: false
-  end
-
-  create_table "submission", primary_key: "sub_id", force: :cascade do |t|
+    t.text "summary", null: false
+    t.integer "type", null: false
     t.bigint "usr_id", null: false
-    t.text "submitter_id", null: false
-    t.integer "serial", null: false
+  end
+
+  create_table "mass.status_history", force: :cascade do |t|
+    t.datetime "date", precision: nil, default: -> { "date_trunc('second'::text, now())" }, null: false
+    t.integer "status", null: false
+    t.bigint "sub_id", null: false
+  end
+
+  create_table "mass.submission", primary_key: "sub_id", force: :cascade do |t|
     t.integer "charge"
     t.date "create_date"
-    t.date "submit_date"
-    t.date "hold_date"
     t.date "dist_date"
     t.date "finish_date"
+    t.date "hold_date"
     t.text "note"
+    t.integer "serial", null: false
+    t.date "submit_date"
+    t.text "submitter_id", null: false
+    t.bigint "usr_id", null: false
   end
+
 end
