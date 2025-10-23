@@ -10,117 +10,118 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_08_29_001416) do
+ActiveRecord::Schema[8.1].define(version: 2024_08_29_001416) do
   create_schema "mass"
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
-  create_table "attribute", primary_key: ["smp_id", "attribute_name"], force: :cascade do |t|
-    t.integer "seq_no", null: false
+  create_table "mass.attribute", primary_key: ["smp_id", "attribute_name"], force: :cascade do |t|
     t.text "attribute_name", null: false
     t.text "attribute_value"
+    t.integer "seq_no", null: false
     t.bigint "smp_id", null: false
   end
 
-  create_table "contact", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
-    t.text "submission_id", null: false
-    t.integer "seq_no", null: false
-    t.text "email"
-    t.text "first_name"
-    t.text "last_name"
+  create_table "mass.contact", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
     t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
-    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
-  end
-
-  create_table "contact_form", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
-    t.text "submission_id", null: false
-    t.integer "seq_no", null: false
     t.text "email"
     t.text "first_name"
     t.text "last_name"
-  end
-
-  create_table "link", primary_key: ["smp_id", "seq_no"], force: :cascade do |t|
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
     t.integer "seq_no", null: false
-    t.text "description"
-    t.text "url"
-    t.bigint "smp_id", null: false
-  end
-
-  create_table "link_form", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
     t.text "submission_id", null: false
+  end
+
+  create_table "mass.contact_form", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
+    t.text "email"
+    t.text "first_name"
+    t.text "last_name"
     t.integer "seq_no", null: false
+    t.text "submission_id", null: false
+  end
+
+  create_table "mass.link", primary_key: ["smp_id", "seq_no"], force: :cascade do |t|
     t.text "description"
+    t.integer "seq_no", null: false
+    t.bigint "smp_id", null: false
     t.text "url"
   end
 
-  create_table "operation_history", primary_key: "his_id", force: :cascade do |t|
-    t.integer "type"
-    t.text "summary"
-    t.text "file_name"
-    t.binary "detail"
+  create_table "mass.link_form", primary_key: ["submission_id", "seq_no"], force: :cascade do |t|
+    t.text "description"
+    t.integer "seq_no", null: false
+    t.text "submission_id", null: false
+    t.text "url"
+  end
+
+  create_table "mass.operation_history", primary_key: "his_id", force: :cascade do |t|
     t.datetime "date", precision: nil
-    t.bigint "usr_id"
+    t.binary "detail"
+    t.text "file_name"
     t.integer "serial"
-    t.text "submitter_id"
     t.text "submission_id"
-  end
-
-  create_table "sample", primary_key: "smp_id", force: :cascade do |t|
-    t.text "submission_id", null: false
-    t.text "sample_name", null: false
-    t.integer "release_type"
-    t.datetime "release_date", precision: nil
-    t.integer "core_package"
-    t.integer "pathogen"
-    t.integer "mixs"
-    t.integer "env_pkg"
-    t.integer "status_id"
-    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
-    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
-    t.datetime "dist_date", precision: nil
-    t.text "package_group"
-    t.text "package"
-    t.text "env_package"
-  end
-
-  create_table "submission", primary_key: "submission_id", id: :text, force: :cascade do |t|
     t.text "submitter_id"
-    t.text "organization"
-    t.text "organization_url"
-    t.text "comment"
-    t.integer "charge_id", default: 1
-    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
-    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.text "summary"
+    t.integer "type"
+    t.bigint "usr_id"
   end
 
-  create_table "submission_form", primary_key: "submission_id", id: :text, force: :cascade do |t|
-    t.text "submitter_id", null: false
-    t.integer "status_id", null: false
-    t.text "organization"
-    t.text "organization_url"
-    t.integer "release_type"
+  create_table "mass.sample", primary_key: "smp_id", force: :cascade do |t|
     t.integer "core_package"
-    t.integer "pathogen"
-    t.integer "mixs"
+    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "dist_date", precision: nil
+    t.text "env_package"
     t.integer "env_pkg"
-    t.text "attribute_file_name"
-    t.text "attribute_file"
+    t.integer "mixs"
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.text "package"
+    t.text "package_group"
+    t.integer "pathogen"
+    t.datetime "release_date", precision: nil
+    t.integer "release_type"
+    t.text "sample_name", null: false
+    t.integer "status_id"
+    t.text "submission_id", null: false
+  end
+
+  create_table "mass.submission", primary_key: "submission_id", id: :text, force: :cascade do |t|
+    t.integer "charge_id", default: 1
     t.text "comment"
     t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
     t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
-    t.text "package_group"
-    t.text "package"
-    t.text "env_package"
+    t.text "organization"
+    t.text "organization_url"
+    t.text "submitter_id"
   end
 
-  create_table "xml", primary_key: ["smp_id", "version"], force: :cascade do |t|
+  create_table "mass.submission_form", primary_key: "submission_id", id: :text, force: :cascade do |t|
+    t.text "attribute_file"
+    t.text "attribute_file_name"
+    t.text "comment"
+    t.integer "core_package"
+    t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
+    t.text "env_package"
+    t.integer "env_pkg"
+    t.integer "mixs"
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.text "organization"
+    t.text "organization_url"
+    t.text "package"
+    t.text "package_group"
+    t.integer "pathogen"
+    t.integer "release_type"
+    t.integer "status_id", null: false
+    t.text "submitter_id", null: false
+  end
+
+  create_table "mass.xml", primary_key: ["smp_id", "version"], force: :cascade do |t|
     t.text "accession_id"
-    t.integer "version", null: false
     t.text "content", null: false
     t.datetime "create_date", precision: nil, default: -> { "now()" }, null: false
     t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
     t.bigint "smp_id", null: false
+    t.integer "version", null: false
   end
+
 end

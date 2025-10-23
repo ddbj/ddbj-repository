@@ -10,56 +10,57 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_08_27_022556) do
+ActiveRecord::Schema[8.1].define(version: 2024_08_27_022556) do
   create_schema "mass"
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
-  create_table "action_history", primary_key: "action_id", id: :serial, force: :cascade do |t|
-    t.text "submission_id"
+  create_table "mass.action_history", primary_key: "action_id", id: :serial, force: :cascade do |t|
     t.text "action", null: false
     t.datetime "action_date", precision: nil
-    t.boolean "result", default: true, null: false
     t.text "action_level", null: false
+    t.boolean "result", default: true, null: false
+    t.text "submission_id"
     t.text "submitter_id"
   end
 
-  create_table "project", primary_key: "submission_id", id: :text, force: :cascade do |t|
-    t.text "project_id_prefix", default: "PRJDB"
-    t.serial "project_id_counter", null: false
+  create_table "mass.project", primary_key: "submission_id", id: :text, force: :cascade do |t|
+    t.text "comment"
     t.datetime "created_date", precision: nil, default: -> { "now()" }, null: false
-    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.datetime "dist_date", precision: nil
     t.datetime "issued_date", precision: nil
-    t.integer "status_id"
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.serial "project_id_counter", null: false
+    t.text "project_id_prefix", default: "PRJDB"
     t.text "project_type", null: false
     t.datetime "release_date", precision: nil
-    t.datetime "dist_date", precision: nil
-    t.text "comment"
+    t.integer "status_id"
   end
 
-  create_table "submission", primary_key: "submission_id", id: :text, force: :cascade do |t|
-    t.text "submitter_id"
-    t.integer "status_id", default: 100
-    t.datetime "created_date", precision: nil, default: -> { "now()" }, null: false
-    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+  create_table "mass.submission", primary_key: "submission_id", id: :text, force: :cascade do |t|
     t.integer "charge_id", default: 1, null: false
+    t.datetime "created_date", precision: nil, default: -> { "now()" }, null: false
     t.string "form_status_flags", limit: 6, default: "000000"
+    t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.integer "status_id", default: 100
+    t.text "submitter_id"
   end
 
-  create_table "submission_data", primary_key: ["submission_id", "data_name", "t_order"], force: :cascade do |t|
-    t.text "submission_id", null: false
+  create_table "mass.submission_data", primary_key: ["submission_id", "data_name", "t_order"], force: :cascade do |t|
     t.text "data_name", null: false
     t.text "data_value"
-    t.integer "t_order", default: -1, null: false
     t.text "form_name"
     t.datetime "modified_date", precision: nil, default: -> { "now()" }, null: false
+    t.text "submission_id", null: false
+    t.integer "t_order", default: -1, null: false
   end
 
-  create_table "xml", primary_key: ["submission_id", "version"], force: :cascade do |t|
-    t.text "submission_id", null: false
+  create_table "mass.xml", primary_key: ["submission_id", "version"], force: :cascade do |t|
     t.text "content", null: false
-    t.integer "version", null: false
     t.text "registered_date", default: -> { "now()" }, null: false
+    t.text "submission_id", null: false
+    t.integer "version", null: false
   end
+
 end
