@@ -40,50 +40,59 @@ export default class extends Component<Signature> {
       Renew Accession
     </LinkTo>
 
-    <table class="table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Created</th>
-          <th>Started</th>
-          <th>Finished</th>
-          <th>Progress</th>
-          <th>Validity</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {{#each this.renewals as |renewal|}}
+    {{#if this.renewals}}
+      <table class="table">
+        <thead>
           <tr>
-            <td>
-              <LinkTo @route="accession_renewal" @model={{renewal.id}}>
-                #{{renewal.id}}
-              </LinkTo>
-            </td>
-
-            <td>{{formatDate renewal.created_at}}</td>
-
-            <td>
-              {{#if renewal.started_at}}
-                {{formatDate renewal.started_at}}
-              {{else}}
-                -
-              {{/if}}
-            </td>
-
-            <td>
-              {{#if renewal.finished_at}}
-                {{formatDate renewal.finished_at}}
-              {{else}}
-                -
-              {{/if}}
-            </td>
-
-            <td><ProgressLabel @progress={{renewal.progress}} /></td>
-            <td><ValidityBadge @validity={{renewal.validity}} /></td>
+            <th>ID</th>
+            <th>Created</th>
+            <th>Started</th>
+            <th>Finished</th>
+            <th>Progress</th>
+            <th>Validity</th>
           </tr>
-        {{/each}}
-      </tbody>
-    </table>
+        </thead>
+
+        <tbody>
+          {{#each this.renewals as |renewal|}}
+            <tr>
+              <td>
+                <LinkTo @route="accession_renewal" @model={{renewal.id}}>
+                  #{{renewal.id}}
+                </LinkTo>
+              </td>
+
+              <td>{{formatDate renewal.created_at}}</td>
+
+              <td>
+                {{#if renewal.started_at}}
+                  {{formatDate renewal.started_at}}
+                {{else}}
+                  -
+                {{/if}}
+              </td>
+
+              <td>
+                {{#if renewal.finished_at}}
+                  {{formatDate renewal.finished_at}}
+                {{else}}
+                  -
+                {{/if}}
+              </td>
+
+              <td><ProgressLabel @progress={{renewal.progress}} /></td>
+
+              <td>
+                <ValidityBadge @validity={{renewal.validity}} />
+
+                {{#if renewal.validation_details.length}}
+                  <span class="badge bg-secondary">{{renewal.validation_details.length}}</span>
+                {{/if}}
+              </td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    {{/if}}
   </template>
 }

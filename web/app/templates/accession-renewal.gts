@@ -12,6 +12,7 @@ import AccessionSummary from 'repository/components/accession-summary';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 import type RequestService from 'repository/services/request';
+import type RouterService from '@ember/routing/router-service';
 import type { components } from 'schema/openapi';
 
 type Accession = components['schemas']['Accession'];
@@ -28,15 +29,24 @@ interface Signature {
 
 export default class extends Component<Signature> {
   @service declare request: RequestService;
+  @service declare router: RouterService;
 
   @action
   async downloadFile(url: string) {
     await this.request.downloadFile(url);
   }
 
+  @action
+  backToAccession() {
+    this.router.refresh();
+    this.router.transitionTo('accession', this.args.model.accession.number);
+  }
+
   <template>
     <div class="mb-3">
-      <LinkTo @route="accession" @model={{@model.accession.number}}>&laquo; Back to accession</LinkTo>
+      <LinkTo @route="accession" @model={{@model.accession.number}} {{on "click" this.backToAccession}}>
+        &laquo; Back to accession
+      </LinkTo>
     </div>
 
     <AccessionSummary @accession={{@model.accession}} />
@@ -80,9 +90,26 @@ export default class extends Component<Signature> {
 
       <div>
         <dt>Validity</dt>
-        <dd><ValidityBadge @validity={{@model.renewal.validity}} /></dd>
+
+        <dd>
+          <ValidityBadge @validity={{@model.renewal.validity}} />
+
+          {{#if @model.renewal.validation_details.length}}
+            <span class="badge bg-secondary">{{@model.renewal.validation_details.length}}</span>
+          {{/if}}
+        </dd>
       </div>
     </dl>
+
+    {{#if @model.renewal.file}}
+      <h3>File</h3>
+
+      <button
+        type="button"
+        class="btn btn-link p-0 mb-3"
+        {{on "click" (fn this.downloadFile @model.renewal.file.url)}}
+      >{{@model.renewal.file.filename}}</button>
+    {{/if}}
 
     {{#if @model.renewal.validation_details.length}}
       <h3>Validation Results</h3>
@@ -104,15 +131,6 @@ export default class extends Component<Signature> {
           {{/each}}
         </tbody>
       </table>
-    {{/if}}
-
-    {{#if @model.renewal.file}}
-      <h3>File</h3>
-      <button
-        type="button"
-        class="btn btn-link p-0"
-        {{on "click" (fn this.downloadFile @model.renewal.file.url)}}
-      >{{@model.renewal.file.filename}}</button>
     {{/if}}
   </template>
 }
