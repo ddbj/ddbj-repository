@@ -1,6 +1,5 @@
 import { LinkTo } from '@ember/routing';
 
-import NumberBadge from 'repository/components/number-badge';
 import ProgressLabel from 'repository/components/progress-label';
 import Results from 'repository/components/validation-detail/results';
 import SubmitForm from 'repository/components/validation-detail/submit-form';
@@ -80,7 +79,12 @@ export default <template>
 
       <dd>
         <ValidityBadge @validity={{@validation.validity}} />
-        <NumberBadge @number={{detailsCount @validation.results}} />
+
+        {{#let (detailsCount @validation.results) as |count|}}
+          {{#if count}}
+            <span class="badge bg-secondary">{{count}}</span>
+          {{/if}}
+        {{/let}}
       </dd>
     </div>
 

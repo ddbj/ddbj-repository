@@ -1,7 +1,6 @@
 import { LinkTo } from '@ember/routing';
 
 import { notEq } from 'ember-truth-helpers';
-import NumberBadge from 'repository/components/number-badge';
 import Pagination from 'repository/components/pagination';
 import ProgressLabel from 'repository/components/progress-label';
 import Table from 'repository/components/table';
@@ -81,7 +80,12 @@ export default <template>
 
           <td>
             <ValidityBadge @validity={{validation.validity}} />
-            <NumberBadge @number={{detailsCount validation.results}} />
+
+            {{#let (detailsCount validation.results) as |count|}}
+              {{#if count}}
+                <span class="badge bg-secondary">{{count}}</span>
+              {{/if}}
+            {{/let}}
           </td>
 
           <td class="position-relative">

@@ -5,7 +5,6 @@ import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 
-import NumberBadge from 'repository/components/number-badge';
 import ProgressLabel from 'repository/components/progress-label';
 import ValidityBadge from 'repository/components/validity-badge';
 
@@ -94,7 +93,10 @@ export default class extends Component<Signature> {
 
         <dd>
           <ValidityBadge @validity={{@model.renewal.validity}} />
-          <NumberBadge @number={{@model.renewal.validation_details.length}} />
+
+          {{#if @model.renewal.validation_details.length}}
+            <span class="badge bg-secondary">{{@model.renewal.validation_details.length}}</span>
+          {{/if}}
         </dd>
       </div>
     </dl>

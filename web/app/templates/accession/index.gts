@@ -2,7 +2,6 @@ import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
 
 import AccessionSummary from 'repository/components/accession-summary';
-import NumberBadge from 'repository/components/number-badge';
 import ProgressLabel from 'repository/components/progress-label';
 import ValidityBadge from 'repository/components/validity-badge';
 import formatDate from 'repository/helpers/format-datetime';
@@ -85,7 +84,10 @@ export default class extends Component<Signature> {
 
               <td>
                 <ValidityBadge @validity={{renewal.validity}} />
-                <NumberBadge @number={{renewal.validation_details.length}} />
+
+                {{#if renewal.validation_details.length}}
+                  <span class="badge bg-secondary">{{renewal.validation_details.length}}</span>
+                {{/if}}
               </td>
             </tr>
           {{/each}}
