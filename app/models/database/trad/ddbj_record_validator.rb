@@ -12,7 +12,7 @@ class Database::Trad::DDBJRecordValidator
       )
     end
 
-    record[:features].each do |feature|
+    Array(record[:features]).each do |feature|
       fkey  = feature[:type]
       seqid = feature[:sequence_id]
 
@@ -24,7 +24,7 @@ class Database::Trad::DDBJRecordValidator
         )
       end
 
-      feature[:qualifiers].each do |qkey, entries|
+      Array(feature[:qualifiers]).each do |qkey, entries|
         unless FeatureChecker.defined_qualifier?(qkey)
           obj.validation_details.create!(
             code:     'SB-02004',
@@ -45,7 +45,7 @@ class Database::Trad::DDBJRecordValidator
       end
     end
 
-    record.dig(:sequence, :entries).each do |entry|
+    Array(record.dig(:sequence, :entries)).each do |entry|
       id  = entry[:id]
       seq = entry[:sequence].to_s
 

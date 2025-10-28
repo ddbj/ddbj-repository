@@ -1,0 +1,39 @@
+{
+  "submission": {
+    "application_identification": {
+      "application_number_text": "foo"
+    }
+  },
+
+  "sequence": {
+    "entries": [
+      {
+        "id": "SEQ_1",
+        "sequence": ""
+      },
+      {
+        "id": "SEQ_1",
+        "sequence": "NNNNNNNNNN"
+      },
+      {
+        "id": "SEQ_1",
+        "sequence": "XXXXXXXXXX"
+      }
+    ]
+  },
+
+  "features": [
+    {
+      "sequence_id": "SEQ_1",
+      "type": "bar",
+
+      "qualifiers": {
+        "baz": [
+          {
+            "value": ""
+          }
+        ]
+      }
+    }
+  ]
+}
