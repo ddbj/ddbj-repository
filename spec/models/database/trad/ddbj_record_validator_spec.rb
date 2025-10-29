@@ -61,16 +61,28 @@ RSpec.describe Database::Trad::DDBJRecordValidator, type: :model do
         message:  'Sequence length is zero'
       ),
       have_attributes(
-        entry_id: 'SEQ_1',
+        entry_id: 'SEQ_2',
         code:     'SB-02007',
         severity: 'error',
         message:  'N-only sequence is not allowed'
       ),
       have_attributes(
-        entry_id: 'SEQ_1',
+        entry_id: 'SEQ_3',
         code:     'SB-02008',
         severity: 'error',
         message:  'X-only sequence is not allowed'
+      ),
+      have_attributes(
+        entry_id: 'SEQ_3',
+        code:     'SB-02004',
+        severity: 'warning',
+        message:  'Undefined qualifier key "mol_type" (source)'
+      ),
+      have_attributes(
+        entry_id: 'SEQ_4',
+        code:     'SB-02010',
+        severity: 'error',
+        message:  'Invalid characters found in nucleotide sequence'
       )
     )
   end

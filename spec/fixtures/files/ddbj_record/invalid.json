@@ -12,12 +12,24 @@
         "sequence": ""
       },
       {
-        "id": "SEQ_1",
+        "id": "SEQ_2",
         "sequence": "NNNNNNNNNN"
       },
       {
-        "id": "SEQ_1",
-        "sequence": "XXXXXXXXXX"
+        "id": "SEQ_3",
+        "sequence": "XXXXXXXXXX",
+
+        "source_qualifiers": {
+          "mol_type": [
+            {
+              "value": "protein"
+            }
+          ]
+        }
+      },
+      {
+        "id": "SEQ_4",
+        "sequence": "foo"
       }
     ]
   },

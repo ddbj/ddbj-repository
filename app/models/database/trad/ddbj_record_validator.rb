@@ -12,49 +12,16 @@ class Database::Trad::DDBJRecordValidator
       )
     end
 
-    Array(record[:features]).each do |feature|
-      fkey  = feature[:type]
-      seqid = feature[:sequence_id]
-
-      unless FeatureChecker.defined_feature?(fkey)
-        obj.validation_details.create!(
-          entry_id: seqid,
-          code:     'SB-02003',
-          severity: 'warning',
-          message:  %(Undefined feature key "#{fkey}")
-        )
-      end
-
-      Array(feature[:qualifiers]).each do |qkey, entries|
-        unless FeatureChecker.defined_qualifier?(qkey)
-          obj.validation_details.create!(
-            entry_id: seqid,
-            code:     'SB-02004',
-            severity: 'warning',
-            message:  %(Undefined qualifier key "#{qkey}" (feature=#{fkey}))
-          )
-        end
-
-        entries.pluck(:value).each do |value|
-          unless FeatureChecker.qualifier_value_presence_valid?(qkey, value)
-            obj.validation_details.create!(
-              entry_id: seqid,
-              code:     'SB-02005',
-              severity: 'error',
-              message:  %(Invalid presence of qualifier value for key "#{qkey}" (feature=#{fkey}))
-            )
-          end
-        end
-      end
-    end
-
     Array(record.dig(:sequence, :entries)).each do |entry|
-      id  = entry[:id]
+      entry_id = entry[:id]
+
+      validate_qualifiers entry[:source_qualifiers], obj:, entry_id:, feature: :source
+
       seq = entry[:sequence].to_s
 
       if seq.empty?
         obj.validation_details.create!(
-          entry_id: id,
+          entry_id:,
           code:     'SB-02006',
           severity: 'error',
           message:  'Sequence length is zero'
@@ -63,7 +30,7 @@ class Database::Trad::DDBJRecordValidator
 
       if seq.match?(/\AN+\z/i)
         obj.validation_details.create!(
-          entry_id: id,
+          entry_id:,
           code:     'SB-02007',
           severity: 'error',
           message:  'N-only sequence is not allowed'
@@ -72,12 +39,39 @@ class Database::Trad::DDBJRecordValidator
 
       if seq.match?(/\AX+\z/i)
         obj.validation_details.create!(
-          entry_id: id,
+          entry_id:,
           code:     'SB-02008',
           severity: 'error',
           message:  'X-only sequence is not allowed'
         )
       end
+
+      aa = Array(entry.dig(:source_qualifiers, :mol_type)).any? { it[:value] == 'protein' }
+
+      if !aa && seq.match?(/[^acgtmrwsykvhdbn]/i)
+        obj.validation_details.create!(
+          entry_id:,
+          code:     'SB-02010',
+          severity: 'error',
+          message:  'Invalid characters found in nucleotide sequence'
+        )
+      end
+    end
+
+    Array(record[:features]).each do |feature|
+      fkey     = feature[:type]
+      entry_id = feature[:sequence_id]
+
+      unless FeatureChecker.defined_feature?(fkey)
+        obj.validation_details.create!(
+          entry_id:,
+          code:     'SB-02003',
+          severity: 'warning',
+          message:  %(Undefined feature key "#{fkey}")
+        )
+      end
+
+      validate_qualifiers feature[:qualifiers], obj:, entry_id:, feature: fkey
     end
   rescue JSON::ParserError => e
     obj.validation_details.create!(
@@ -89,6 +83,34 @@ class Database::Trad::DDBJRecordValidator
       obj.validity_invalid!
     else
       obj.validity_valid!
+    end
+  end
+
+  private
+
+  def validate_qualifiers(quals, obj:, entry_id:, feature:)
+    Array(quals).each do |qkey, entries|
+      pos = feature == :source ? 'source' : "feature=#{feature}"
+
+      unless FeatureChecker.defined_qualifier?(qkey)
+        obj.validation_details.create!(
+          entry_id:,
+          code:     'SB-02004',
+          severity: 'warning',
+          message:  %(Undefined qualifier key "#{qkey}" (#{pos}))
+        )
+      end
+
+      entries.pluck(:value).each do |value|
+        unless FeatureChecker.qualifier_value_presence_valid?(qkey, value)
+          obj.validation_details.create!(
+            entry_id:,
+            code:     'SB-02005',
+            severity: 'error',
+            message:  %(Invalid presence of qualifier value for key "#{qkey}" (#{pos}))
+          )
+        end
+      end
     end
   end
 end
