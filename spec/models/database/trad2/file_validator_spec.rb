@@ -101,6 +101,7 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'The extension should be one of the following: .fasta, .seq.fa, .fa, .fna, .seq'
@@ -111,6 +112,7 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'The extension should be one of the following: .gff'
@@ -121,6 +123,7 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'The extension should be one of the following: .tsv'
@@ -150,11 +153,13 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
 
           details: [
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding annotation file.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding metadata file.'
@@ -167,11 +172,13 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
 
           details: [
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding sequence file.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding metadata file.'
@@ -184,11 +191,13 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
 
           details: [
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding sequence file.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding annotation file.'
@@ -217,6 +226,7 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Duplicate sequence files with the same name exist.'
@@ -227,6 +237,7 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Duplicate sequence files with the same name exist.'
@@ -261,16 +272,19 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
 
           details: [
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'Duplicate sequence files with the same name exist.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding annotation file.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding metadata file.'
@@ -283,16 +297,19 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
 
           details: [
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'Duplicate sequence files with the same name exist.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding annotation file.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding metadata file.'
@@ -322,6 +339,7 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'No entries found.'
@@ -362,6 +380,7 @@ RSpec.describe Database::Trad2::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Line 1: Kind(UnexpectedEof)'

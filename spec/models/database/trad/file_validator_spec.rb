@@ -83,6 +83,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'The extension should be one of the following: .fasta, .seq.fa, .fa, .fna, .seq'
@@ -93,6 +94,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'The extension should be one of the following: .ann, .annt.tsv, .ann.txt'
@@ -120,6 +122,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'There is no corresponding annotation file.'
@@ -130,6 +133,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'There is no corresponding sequence file.'
@@ -156,6 +160,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Duplicate sequence files with the same name exist.'
@@ -166,6 +171,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Duplicate sequence files with the same name exist.'
@@ -196,11 +202,13 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
 
           details: [
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'Duplicate sequence files with the same name exist.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding annotation file.'
@@ -213,11 +221,13 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
 
           details: [
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'Duplicate sequence files with the same name exist.'
             },
             {
+              entry_id: nil,
               code:     nil,
               severity: 'error',
               message:  'There is no corresponding annotation file.'
@@ -246,6 +256,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'No entries found.'
@@ -281,6 +292,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Contact person information (contact, email, institute) is missing.'
@@ -314,6 +326,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Contact person information (contact, email, institute) is missing.'
@@ -347,6 +360,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Contact person information (contact, email, institute) is duplicated.'
@@ -381,6 +395,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Contact person information (contact, email, institute) is duplicated.'
@@ -415,6 +430,7 @@ RSpec.describe Database::Trad::FileValidator, type: :model do
           validity:  'invalid',
 
           details: [
+            entry_id: nil,
             code:     nil,
             severity: 'error',
             message:  'Contact person information (contact, email, institute) is duplicated.'

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_23_130131) do
+ActiveRecord::Schema[8.1].define(version: 2025_10_29_071815) do
   create_table "accession_renewal_validation_details", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "message", null: false
@@ -127,6 +127,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_23_130131) do
   create_table "validation_details", force: :cascade do |t|
     t.string "code"
     t.datetime "created_at", null: false
+    t.string "entry_id"
     t.string "message"
     t.bigint "obj_id", null: false
     t.string "severity"

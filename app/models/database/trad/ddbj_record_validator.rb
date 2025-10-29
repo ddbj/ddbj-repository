@@ -18,27 +18,30 @@ class Database::Trad::DDBJRecordValidator
 
       unless FeatureChecker.defined_feature?(fkey)
         obj.validation_details.create!(
+          entry_id: seqid,
           code:     'SB-02003',
           severity: 'warning',
-          message:  %(Undefined feature key "#{fkey}" (sequence_id=#{seqid}))
+          message:  %(Undefined feature key "#{fkey}")
         )
       end
 
       Array(feature[:qualifiers]).each do |qkey, entries|
         unless FeatureChecker.defined_qualifier?(qkey)
           obj.validation_details.create!(
+            entry_id: seqid,
             code:     'SB-02004',
             severity: 'warning',
-            message:  %(Undefined qualifier key "#{qkey}" (sequence_id=#{seqid}, feature=#{fkey}))
+            message:  %(Undefined qualifier key "#{qkey}" (feature=#{fkey}))
           )
         end
 
         entries.pluck(:value).each do |value|
           unless FeatureChecker.qualifier_value_presence_valid?(qkey, value)
             obj.validation_details.create!(
+              entry_id: seqid,
               code:     'SB-02005',
               severity: 'error',
-              message:  %(Invalid presence of qualifier value for key "#{qkey}" (sequence_id=#{seqid}, feature=#{fkey}))
+              message:  %(Invalid presence of qualifier value for key "#{qkey}" (feature=#{fkey}))
             )
           end
         end
@@ -51,25 +54,28 @@ class Database::Trad::DDBJRecordValidator
 
       if seq.empty?
         obj.validation_details.create!(
+          entry_id: id,
           code:     'SB-02006',
           severity: 'error',
-          message:  "Sequence length is zero (id=#{id})"
+          message:  'Sequence length is zero'
         )
       end
 
       if seq.match?(/\AN+\z/i)
         obj.validation_details.create!(
+          entry_id: id,
           code:     'SB-02007',
           severity: 'error',
-          message:  "N-only sequence is not allowed (id=#{id})"
+          message:  'N-only sequence is not allowed'
         )
       end
 
       if seq.match?(/\AX+\z/i)
         obj.validation_details.create!(
+          entry_id: id,
           code:     'SB-02008',
           severity: 'error',
-          message:  "X-only sequence is not allowed (id=#{id})"
+          message:  'X-only sequence is not allowed'
         )
       end
     end

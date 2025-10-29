@@ -29,10 +29,7 @@ class Obj < ApplicationRecord
     {
       object_id: _id,
       validity:  validity,
-
-      details: validation_details.map {
-        _1.slice(:code, :severity, :message).symbolize_keys
-      },
+      details:   validation_details.map { it.slice(:entry_id, :code, :severity, :message).symbolize_keys },
 
       file: base? ? nil : {
         path:,

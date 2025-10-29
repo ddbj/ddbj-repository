@@ -56,6 +56,7 @@ RSpec.describe Database::BioSample::FileValidator, type: :model do
         validity:  'valid',
 
         details: [
+          entry_id: nil,
           code:     '0001',
           severity: 'error',
           message:  'something went wrong'
@@ -106,6 +107,7 @@ RSpec.describe Database::BioSample::FileValidator, type: :model do
         validity:  'error',
 
         details: [
+          entry_id: nil,
           code:     nil,
           severity: 'error',
           message:  'something went wrong'
@@ -133,6 +135,7 @@ RSpec.describe Database::BioSample::FileValidator, type: :model do
         validity:  'error',
 
         details: [
+          entry_id: nil,
           code:     nil,
           severity: 'error',
           message:  '500 Internal Server Error: something went wrong'

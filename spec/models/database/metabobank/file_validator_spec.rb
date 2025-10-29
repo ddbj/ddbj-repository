@@ -22,6 +22,7 @@ RSpec.describe Database::MetaboBank::FileValidator, type: :model do
         validity:  'valid',
 
         details: [
+          entry_id: nil,
           code:     'MB_IR0037',
           severity: 'error_ignore',
           message:  instance_of(String)

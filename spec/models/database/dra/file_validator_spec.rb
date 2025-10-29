@@ -83,6 +83,7 @@ RSpec.describe Database::DRA::FileValidator, type: :model do
         validity:  'invalid',
 
         details: [
+          entry_id: nil,
           code:     nil,
           severity: 'error',
           message:  '18:1: FATAL: Premature end of data in tag SUBMISSION line 2'

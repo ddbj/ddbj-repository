@@ -59,6 +59,7 @@ RSpec.describe ValidateJob, type: :job do
         validity:  'error',
 
         details: [
+          entry_id: nil,
           code:     nil,
           severity: 'error',
           message:  'something went wrong'
