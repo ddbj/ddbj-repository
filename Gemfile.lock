@@ -7,7 +7,7 @@ GIT
 
 GIT
   remote: https://github.com/ddbj/submission-excel2xml.git
-  revision: 14650046496474bdb625233492b19e370546e031
+  revision: 11a3eebb5304f9798288f9979c3f0a244fb65b96
   specs:
     submission-excel2xml (0.1.0)
       builder (~> 3)
