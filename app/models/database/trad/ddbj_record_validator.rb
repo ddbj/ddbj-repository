@@ -7,6 +7,7 @@ class Database::Trad::DDBJRecordValidator
 
     unless app_number&.match?(%r(\A\d{4}[-/]\d{6}\z))
       details << {
+        entry_id: nil,
         code:     'SB-02001',
         severity: 'error',
         message:  'ApplicationNumberText must be in the format of yyyy-nnnnnn'
@@ -76,6 +77,8 @@ class Database::Trad::DDBJRecordValidator
     end
   rescue JSON::ParserError => e
     details << {
+      entry_id: nil,
+      code:     nil,
       severity: 'error',
       message:  e.message
     }
