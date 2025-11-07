@@ -9,7 +9,7 @@ class Database::Trad::DDBJRecordValidator
       details << {
         code:     'SB-02001',
         severity: 'error',
-        message:  'ApplicationNumberText must be in the format of yyyy-nnnnnn',
+        message:  'ApplicationNumberText must be in the format of yyyy-nnnnnn'
       }
     end
 
@@ -52,7 +52,7 @@ class Database::Trad::DDBJRecordValidator
       if !aa && seq.match?(/[^acgtmrwsykvhdbn]/i)
         details << {
           entry_id:,
-          code:     'SB-02010',
+          code:     'SB-02009',
           severity: 'error',
           message:  'Invalid characters found in nucleotide sequence'
         }
