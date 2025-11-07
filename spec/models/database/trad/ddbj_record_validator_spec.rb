@@ -80,7 +80,7 @@ RSpec.describe Database::Trad::DDBJRecordValidator, type: :model do
       ),
       have_attributes(
         entry_id: 'SEQ_4',
-        code:     'SB-02010',
+        code:     'SB-02009',
         severity: 'error',
         message:  'Invalid characters found in nucleotide sequence'
       )
