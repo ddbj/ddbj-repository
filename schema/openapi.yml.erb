@@ -1057,9 +1057,14 @@ components:
           items:
             type: object
             additionalProperties: false
-            required: [code, severity, message]
+            required: [entry_id, code, severity, message]
 
             properties:
+              entry_id:
+                type:
+                  - string
+                  - 'null'
+
               code:
                 type:
                   - string

@@ -65,6 +65,7 @@ export default class ValidationResults extends Component<Signature> {
                 <table class="table m-0">
                   <thead>
                     <tr>
+                      <th>Entry ID</th>
                       <th>Code</th>
                       <th>Severity</th>
                       <th>Message</th>
@@ -75,6 +76,10 @@ export default class ValidationResults extends Component<Signature> {
                     {{#each result.details as |detail i|}}
                       <tr>
                         {{#let (eq i (sub result.details.length 1)) as |isLast|}}
+                          <td class={{if isLast "border-bottom-0"}}>
+                            {{if detail.entry_id detail.entry_id "-"}}
+                          </td>
+
                           <td class={{if isLast "border-bottom-0"}}>
                             <ErrorCode @code={{detail.code}} />
                           </td>
