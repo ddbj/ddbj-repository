@@ -2,9 +2,9 @@ import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
 
 import AccessionSummary from 'repository/components/accession-summary';
-import ProgressLabel from 'repository/components/progress-label';
-import ValidityBadge from 'repository/components/validity-badge';
-import formatDate from 'repository/helpers/format-datetime';
+// import ProgressLabel from 'repository/components/progress-label';
+// import ValidityBadge from 'repository/components/validity-badge';
+// import formatDate from 'repository/helpers/format-datetime';
 
 import type { components } from 'schema/openapi';
 
@@ -34,6 +34,7 @@ export default class extends Component<Signature> {
 
     <AccessionSummary @accession={{@model.accession}} />
 
+    {{!--
     <h2>Renewals</h2>
 
     <LinkTo @route="accession_renewals.new" class="btn btn-primary mb-3">
@@ -94,5 +95,6 @@ export default class extends Component<Signature> {
         </tbody>
       </table>
     {{/if}}
+    --}}
   </template>
 }
