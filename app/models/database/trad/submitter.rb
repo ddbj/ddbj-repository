@@ -8,12 +8,15 @@ class Database::Trad::Submitter
     record  = JSON.parse(obj.file.download, symbolize_names: true)
     entries = record.dig(:sequence, :entries)
 
-    ActiveRecord::Base.transaction do
-      nums = Sequence.allocate!(:jpo_na, entries.size)
+    aa_count, na_count = entries.partition { aa?(it) }.map(&:size)
 
-      entry_id_to_attrs = submission.accessions.insert_all(entries.zip(nums).map {|entry, number|
+    ActiveRecord::Base.transaction do
+      na_nums = Sequence.allocate!(:jpo_na, na_count)
+      aa_nums = Sequence.allocate!(:jpo_aa, aa_count)
+
+      entry_id_to_attrs = submission.accessions.insert_all(entries.map {|entry|
         {
-          number:,
+          number:   (aa?(entry) ? aa_nums : na_nums).shift,
           entry_id: entry[:id]
         }
       }, **{
@@ -48,5 +51,9 @@ class Database::Trad::Submitter
         }
       )
     end
+  end
+
+  def aa?(entry)
+    Array(entry.dig(:source_qualifiers, :mol_type)).any? { it[:value] == 'protein' }
   end
 end
