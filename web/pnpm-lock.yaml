@@ -42,8 +42,8 @@ importers:
         specifier: ^4.2.7
         version: 4.2.7(@glint/template@1.7.2)
       '@embroider/macros':
-        specifier: ^1.19.2
-        version: 1.19.2(@glint/template@1.7.2)
+        specifier: ^1.19.4
+        version: 1.19.4(@glint/template@1.7.2)
       '@embroider/vite':
         specifier: ^1.3.6
         version: 1.3.6(@embroider/core@4.2.7(@glint/template@1.7.2))(@glint/template@1.7.2)(rollup@4.53.2)(vite@7.2.2(@types/node@24.10.1)(terser@5.44.1))
@@ -8195,7 +8195,7 @@ snapshots:
 
   '@types/fs-extra@5.1.0':
     dependencies:
-      '@types/node': 24.10.0
+      '@types/node': 24.10.1
 
   '@types/fs-extra@8.1.5':
     dependencies:
@@ -8203,7 +8203,7 @@ snapshots:
 
   '@types/glob@9.0.0':
     dependencies:
-      glob: 8.1.0
+      glob: 9.3.5
 
   '@types/http-errors@2.0.5': {}
 
@@ -8368,7 +8368,7 @@ snapshots:
   '@warp-drive/ember@5.8.0(@babel/core@7.28.5)(@ember/test-waiters@4.1.1(@glint/template@1.7.2))(@glint/template@1.7.2)':
     dependencies:
       '@ember/test-waiters': 4.1.1(@glint/template@1.7.2)
-      '@embroider/macros': 1.19.2(@glint/template@1.7.2)
+      '@embroider/macros': 1.19.4(@glint/template@1.7.2)
       '@warp-drive/core': 5.8.0(@babel/core@7.28.5)(@glint/template@1.7.2)
     transitivePeerDependencies:
       - '@babel/core'
@@ -9652,7 +9652,7 @@ snapshots:
       '@babel/plugin-proposal-private-methods': 7.18.6(@babel/core@7.28.5)
       '@babel/plugin-transform-class-static-block': 7.28.3(@babel/core@7.28.5)
       '@babel/preset-env': 7.28.5(@babel/core@7.28.5)
-      '@embroider/macros': 1.19.2(@glint/template@1.7.2)
+      '@embroider/macros': 1.19.4(@glint/template@1.7.2)
       '@embroider/shared-internals': 2.9.1
       babel-loader: 8.4.1(@babel/core@7.28.5)(webpack@5.102.1)
       babel-plugin-ember-modules-api-polyfill: 3.5.0
@@ -10104,7 +10104,7 @@ snapshots:
     dependencies:
       '@ember/test-helpers': 5.4.1(@babel/core@7.28.5)(@glint/template@1.7.2)
       '@embroider/addon-shim': 1.10.0
-      '@embroider/macros': 1.19.2(@glint/template@1.7.2)
+      '@embroider/macros': 1.19.4(@glint/template@1.7.2)
       qunit: 2.24.2
       qunit-theme-ember: 1.0.0
     transitivePeerDependencies:
