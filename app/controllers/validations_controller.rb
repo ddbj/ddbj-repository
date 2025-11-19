@@ -1,16 +1,12 @@
 class ValidationsController < ApplicationController
-  include Pagy::Backend
+  include Pagy::Method
 
   def index
     validations = search_validations
 
     pagy, @validations = pagy(validations, page: params[:page])
 
-    pagy_headers_merge pagy
-  rescue Pagy::OverflowError => e
-    render json: {
-      error: e.message
-    }, status: :bad_request
+    response.headers.merge! pagy.headers_hash
   end
 
   def show
