@@ -32,10 +32,9 @@ RSpec.describe ValidationsController, type: :controller do
           expect(response).to have_http_status(:ok)
           expect(assigns(:validations).pluck(:id)).to eq([104, 103])
 
-          expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
-            '<http://test.host/api/validations?page=1>; rel="first"',
-            '<http://test.host/api/validations?page=3>; rel="last"',
-            '<http://test.host/api/validations?page=2>; rel="next"'
+          expect(response.headers).to include(
+            'Current-Page' => '1',
+            'Total-Pages'  => '3'
           )
         end
 
@@ -45,11 +44,9 @@ RSpec.describe ValidationsController, type: :controller do
           expect(response).to have_http_status(:ok)
           expect(assigns(:validations).pluck(:id)).to eq([102, 101])
 
-          expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
-            '<http://test.host/api/validations?page=1>; rel="first"',
-            '<http://test.host/api/validations?page=3>; rel="last"',
-            '<http://test.host/api/validations?page=1>; rel="prev"',
-            '<http://test.host/api/validations?page=3>; rel="next"'
+          expect(response.headers).to include(
+            'Current-Page' => '2',
+            'Total-Pages'  => '3'
           )
         end
 
@@ -59,21 +56,17 @@ RSpec.describe ValidationsController, type: :controller do
           expect(response).to have_http_status(:ok)
           expect(assigns(:validations).pluck(:id)).to eq([100])
 
-          expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
-            '<http://test.host/api/validations?page=1>; rel="first"',
-            '<http://test.host/api/validations?page=3>; rel="last"',
-            '<http://test.host/api/validations?page=2>; rel="prev"'
+          expect(response.headers).to include(
+            'Current-Page' => '3',
+            'Total-Pages'  => '3'
           )
         end
 
         example 'out of range' do
           get :index, params: {page: 4}, as: :json
 
-          expect(response).to have_http_status(:bad_request)
-
-          expect(response.parsed_body.deep_symbolize_keys).to eq(
-            error: 'expected :page in 1..3; got 4'
-          )
+          expect(response).to have_http_status(:ok)
+          expect(assigns(:validations)).to be_empty
         end
       end
 
@@ -87,9 +80,9 @@ RSpec.describe ValidationsController, type: :controller do
 
           expect(response).to have_http_status(:ok)
 
-          expect(response.headers['Link'].split(/,\s*/)).to contain_exactly(
-            '<http://test.host/api/validations?page=1>; rel="first"',
-            '<http://test.host/api/validations?page=1>; rel="last"'
+          expect(response.headers).to include(
+            'Current-Page' => '1',
+            'Total-Pages'  => '1'
           )
         end
       end

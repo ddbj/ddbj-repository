@@ -1,12 +1,12 @@
 class SubmissionsController < ApplicationController
-  include Pagy::Backend
+  include Pagy::Method
 
   def index
     submissions = search_submissions.order(id: :desc)
 
     pagy, @submissions = pagy(submissions, page: params[:page])
 
-    pagy_headers_merge pagy
+    response.headers.merge! pagy.headers_hash
   rescue Pagy::OverflowError => e
     render json: {
       error: e.message
