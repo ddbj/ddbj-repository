@@ -1,6 +1,6 @@
 class SubmitJob < ApplicationJob
   def perform(submission)
-    submission.update! progress: :running, started_at: Time.current
+    submission.update! progress: :running
 
     submitter = Database::MAPPING.fetch(submission.validation.db)::Submitter.new
 
