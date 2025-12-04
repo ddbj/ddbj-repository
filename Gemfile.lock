@@ -284,7 +284,7 @@ GEM
       validate_url
       webfinger (~> 2.0)
     ostruct (0.6.3)
-    pagy (43.0.1)
+    pagy (43.1.0)
       json
       yaml
     parallel (1.27.0)
