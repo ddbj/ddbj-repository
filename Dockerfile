@@ -78,7 +78,7 @@ COPY web ./
 COPY schema /schema
 
 RUN pnpm install --frozen-lockfile
-RUN pnpm build
+RUN pnpm build --base /web/
 
 
 
