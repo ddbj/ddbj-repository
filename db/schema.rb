@@ -10,27 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_29_071815) do
-  create_table "accession_renewal_validation_details", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "message", null: false
-    t.integer "renewal_id", null: false
-    t.string "severity", null: false
-    t.datetime "updated_at", null: false
-    t.index ["renewal_id"], name: "index_accession_renewal_validation_details_on_renewal_id"
-  end
-
-  create_table "accession_renewals", force: :cascade do |t|
-    t.integer "accession_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "finished_at"
-    t.string "progress", default: "waiting", null: false
-    t.datetime "started_at"
-    t.datetime "updated_at", null: false
-    t.string "validity"
-    t.index ["accession_id"], name: "index_accession_renewals_on_accession_id"
-  end
-
+ActiveRecord::Schema[8.1].define(version: 2025_11_19_073632) do
   create_table "accessions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "entry_id", null: false
@@ -72,23 +52,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_071815) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "bioproject_submission_params", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.boolean "umbrella", null: false
-    t.datetime "updated_at", null: false
-  end
-
-  create_table "objs", force: :cascade do |t|
-    t.string "_id", null: false
-    t.datetime "created_at", null: false
-    t.string "destination"
-    t.datetime "updated_at", null: false
-    t.bigint "validation_id", null: false
-    t.string "validity"
-    t.index ["validation_id"], name: "index_objs_on_validation_id"
-    t.index ["validity"], name: "index_objs_on_validity"
-  end
-
   create_table "sequences", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "digits", null: false
@@ -99,19 +62,29 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_071815) do
     t.index ["scope"], name: "index_sequences_on_scope", unique: true
   end
 
-  create_table "submissions", force: :cascade do |t|
+  create_table "submission_requests", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "error_message"
-    t.datetime "finished_at"
-    t.string "param_id"
-    t.string "param_type"
-    t.string "progress", default: "waiting", null: false
-    t.string "result"
-    t.datetime "started_at"
+    t.integer "status", default: 0, null: false
+    t.integer "submission_id"
     t.datetime "updated_at", null: false
-    t.bigint "validation_id", null: false
-    t.string "visibility", null: false
-    t.index ["validation_id"], name: "index_submissions_on_validation_id", unique: true
+    t.integer "user_id", null: false
+    t.index ["submission_id"], name: "index_submission_requests_on_submission_id"
+    t.index ["user_id"], name: "index_submission_requests_on_user_id"
+  end
+
+  create_table "submission_updates", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "error_message"
+    t.integer "status", default: 0, null: false
+    t.integer "submission_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["submission_id"], name: "index_submission_updates_on_submission_id"
+  end
+
+  create_table "submissions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "users", force: :cascade do |t|
@@ -128,36 +101,32 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_071815) do
     t.string "code"
     t.datetime "created_at", null: false
     t.string "entry_id"
+    t.string "filename"
     t.string "message"
-    t.bigint "obj_id", null: false
     t.string "severity"
     t.datetime "updated_at", null: false
-    t.index ["obj_id"], name: "index_validation_details_on_obj_id"
+    t.integer "validation_id", null: false
+    t.index ["validation_id"], name: "index_validation_details_on_validation_id"
   end
 
   create_table "validations", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "db", null: false
     t.datetime "finished_at"
-    t.string "progress", default: "waiting", null: false
+    t.string "progress", default: "running", null: false
     t.string "raw_result"
-    t.datetime "started_at"
+    t.integer "subject_id", null: false
+    t.string "subject_type", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.string "via", null: false
     t.index ["created_at"], name: "index_validations_on_created_at"
-    t.index ["db"], name: "index_validations_on_db"
     t.index ["progress"], name: "index_validations_on_progress"
-    t.index ["user_id"], name: "index_validations_on_user_id"
+    t.index ["subject_type", "subject_id"], name: "index_validations_on_subject"
   end
 
-  add_foreign_key "accession_renewal_validation_details", "accession_renewals", column: "renewal_id"
-  add_foreign_key "accession_renewals", "accessions"
   add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
-  add_foreign_key "objs", "validations"
-  add_foreign_key "submissions", "validations"
-  add_foreign_key "validation_details", "objs"
-  add_foreign_key "validations", "users"
+  add_foreign_key "submission_requests", "submissions"
+  add_foreign_key "submission_requests", "users"
+  add_foreign_key "submission_updates", "submissions"
+  add_foreign_key "validation_details", "validations"
 end
