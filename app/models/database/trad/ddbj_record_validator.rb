@@ -83,12 +83,6 @@ class Database::Trad::DDBJRecordValidator
       message:  e.message
     }
   ensure
-    if details.any? { it[:severity] == 'error' }
-      obj.validity_invalid!
-    else
-      obj.validity_valid!
-    end
-
     obj.validation_details.insert_all! details
   end
 

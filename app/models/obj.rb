@@ -1,26 +1,41 @@
 using PathnameContain
 
 class Obj < ApplicationRecord
-  belongs_to :validation
+  belongs_to :owner, polymorphic: true
 
   has_many :validation_details, -> { order(:id) }, dependent: :destroy
 
   has_one_attached :file
 
+  enum :_id, DB.flat_map { it[:objects].values.flatten }.pluck(:id).uniq.concat(['_base']).index_by(&:to_sym)
+
   scope :without_base, -> { where.not(_id: '_base') }
 
-  enum :_id, DB.flat_map { it[:objects].values.flatten }.pluck(:id).uniq.concat(['_base']).index_by(&:to_sym)
-  enum :validity, %w[valid invalid error].index_by(&:to_sym), prefix: true
+  scope :with_validity, -> {
+    left_joins(validation_details: :validation).group(:id).select('objs.*', <<~SQL)
+      CASE
+        WHEN validations.progress != 'finished'                                    THEN NULL
+        WHEN COUNT(CASE WHEN validation_details.severity = 'error' THEN 1 END) = 0 THEN 'valid'
+        ELSE 'invalid'
+      END AS validity
+    SQL
+  }
 
-  validates :file, attached: true, unless: :base?
+  validates :file, attached: true, unless: :_base?
 
   validate :destination_must_not_be_malformed
   validate :path_must_be_unique_in_request
 
-  def base? = _id == '_base'
+  def self.base
+    find { it._base? }
+  end
+
+  def validity
+    validation_details.exists?(severity: 'error') ? 'invalid' : 'valid'
+  end
 
   def path
-    return nil if base?
+    return nil if _base?
 
     [destination, file.filename.sanitized].compact_blank.join('/')
   end
@@ -31,7 +46,7 @@ class Obj < ApplicationRecord
       validity:  validity,
       details:   validation_details.map { it.slice(:entry_id, :code, :severity, :message).symbolize_keys },
 
-      file: base? ? nil : {
+      file: _base? ? nil : {
         path:,
         url:  Rails.application.routes.url_helpers.validation_file_url(validation, path)
       }
@@ -41,7 +56,7 @@ class Obj < ApplicationRecord
   private
 
   def destination_must_not_be_malformed
-    return if base?
+    return if _base?
     return unless destination
 
     tmp = Pathname.new('/tmp').join(SecureRandom.uuid)
@@ -50,9 +65,9 @@ class Obj < ApplicationRecord
   end
 
   def path_must_be_unique_in_request
-    return if base?
+    return if _base?
 
-    if validation.objs.to_a.without(self).any? { path == it.path }
+    if owner.objs.to_a.without(self).any? { path == it.path }
       errors.add :path, "is duplicated: #{path}"
     end
   end

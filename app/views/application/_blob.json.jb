@@ -1,0 +1,4 @@
+{
+  filename: blob.filename,
+  url:      rails_blob_url(blob)
+}

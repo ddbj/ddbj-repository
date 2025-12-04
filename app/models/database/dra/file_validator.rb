@@ -36,10 +36,6 @@ class Database::DRA::FileValidator
                 )
               end
             end
-          else
-            objs.each do |obj|
-              obj.validity_valid!
-            end
           end
         end
       end
