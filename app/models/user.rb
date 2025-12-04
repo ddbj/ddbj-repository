@@ -3,9 +3,10 @@ class User < ApplicationRecord
     SecureRandom.base58(32)
   end
 
-  has_many :validations, dependent: :destroy
+  has_many :submission_requests
 
-  has_many :submissions,        through: :validations
+  has_many :submissions,        through: :submission_requests
+  has_many :submission_updates, through: :submissions, source: :updates
   has_many :accessions,         through: :submissions
   has_many :accession_renewals, through: :accessions, source: :renewals
 

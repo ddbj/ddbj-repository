@@ -1,24 +1,19 @@
-# locals: (validation:, submission: false)
-
 {
-  id:  validation.id,
-  url: validation_url(validation),
+  **validation.slice(
+    :id,
+    :progress,
+    :created_at,
+    :finished_at,
+    :validity
+  ),
 
-  user: {
-    uid: validation.user.uid
-  },
-
-  db:          validation.db,
-  created_at:  validation.created_at,
-  started_at:  validation.started_at,
-  finished_at: validation.finished_at,
-  progress:    validation.progress,
-  validity:    validation.validity,
-  objects:     render('validations/objs', validation:),
-  results:     validation.results,
-  raw_result:  validation.raw_result,
-
-  **(submission ? {
-    submission: validation.submission.then { it ? render(it) : nil }
-  } : nil)
+  details: validation.details.map {|detail|
+    detail.slice(
+      :filename,
+      :entry_id,
+      :code,
+      :severity,
+      :message
+    )
+  }
 }

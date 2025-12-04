@@ -22,6 +22,8 @@ module.exports = function (environment) {
     apiURL: process.env.API_URL || 'http://repository.localhost:3000/api',
   };
 
+  ENV.directUploadURL = new URL('/rails/active_storage/direct_uploads', ENV.apiURL).toString();
+
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
     // ENV.APP.LOG_ACTIVE_GENERATION = true;
