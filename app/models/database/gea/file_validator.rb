@@ -25,16 +25,9 @@ class Database::GEA::FileValidator
         validation.objs.without_base.group_by(&:_id).each do |obj_id, objs|
           if errs = errors[obj_id]
             objs.each do |obj|
-              # since this validator is a provisional implementation, validity should always be 'valid'
-              obj.validity_valid!
-
               errs.each do |err|
                 obj.validation_details.create! err.slice(:code, :severity, :message)
               end
-            end
-          else
-            objs.each do |obj|
-              obj.validity_valid!
             end
           end
         end

@@ -16,14 +16,6 @@ class Database::Trad::FileValidator
     validate_nwise objs, ASSOC
     validate_seq   objs
     validate_ann   objs
-
-    objs.each do |obj|
-      if obj.validation_details.empty?
-        obj.validity_valid!
-      else
-        obj.validity_invalid!
-      end
-    end
   end
 
   private

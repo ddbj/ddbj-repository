@@ -1,1 +1,1 @@
-render(@submission, validation: true)
+render(@submission)

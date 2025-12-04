@@ -68,6 +68,9 @@ importers:
       '@glint/template':
         specifier: ^1.7.2
         version: 1.7.2
+      '@rails/activestorage':
+        specifier: ^8.1.100
+        version: 8.1.100
       '@rollup/plugin-babel':
         specifier: ^6.1.0
         version: 6.1.0(@babel/core@7.28.5)(rollup@4.53.2)
@@ -1372,6 +1375,9 @@ packages:
 
   '@popperjs/core@2.11.8':
     resolution: {integrity: sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==}
+
+  '@rails/activestorage@8.1.100':
+    resolution: {integrity: sha512-rlZg23KYT7JFYXl1tj1WD9nm/yvtUvZT6pzNMVX+HaOjPyGq8xpEv1ADrrhawkbMktKxRj3xDVZ3d/qy0akHvw==}
 
   '@rollup/plugin-babel@6.1.0':
     resolution: {integrity: sha512-dFZNuFD2YRcoomP4oYf+DvQNSUA9ih+A3vUqopQx5EdtPGo3WBnQcI/S8pwpz91UsGfL0HsMSOlaMld8HrbubA==}
@@ -5592,6 +5598,9 @@ packages:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
     deprecated: Please use @jridgewell/sourcemap-codec instead
 
+  spark-md5@3.0.2:
+    resolution: {integrity: sha512-wcFzz9cDfbuqe0FZzfi2or1sgyIrsDwmPwfZC4hiNidPdPINjeUwNfv5kldczoEAcjl9Y1L3SM7Uz2PUEQzxQw==}
+
   spawn-args@0.2.0:
     resolution: {integrity: sha512-73BoniQDcRWgnLAf/suKH6V5H54gd1KLzwYN9FB6J/evqTV33htH9xwV/4BHek+++jzxpVlZQKKZkqstPQPmQg==}
 
@@ -7845,6 +7854,10 @@ snapshots:
 
   '@popperjs/core@2.11.8': {}
 
+  '@rails/activestorage@8.1.100':
+    dependencies:
+      spark-md5: 3.0.2
+
   '@rollup/plugin-babel@6.1.0(@babel/core@7.28.5)(rollup@4.53.2)':
     dependencies:
       '@babel/core': 7.28.5
@@ -7976,7 +7989,7 @@ snapshots:
       '@types/ember__object': 4.0.12(@babel/core@7.28.5)
       '@types/ember__polyfills': 4.0.6
       '@types/ember__routing': 4.0.22(@babel/core@7.28.5)
-      '@types/ember__runloop': 4.0.10
+      '@types/ember__runloop': 4.0.10(@babel/core@7.28.5)
       '@types/ember__service': 4.0.9(@babel/core@7.28.5)
       '@types/ember__string': 3.0.15
       '@types/ember__template': 4.0.7
@@ -8112,11 +8125,6 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
-    optional: true
-
-  '@types/ember__runloop@4.0.10':
-    dependencies:
-      '@types/ember': 4.0.11
     optional: true
 
   '@types/ember__runloop@4.0.10(@babel/core@7.28.5)':
@@ -13103,6 +13111,8 @@ snapshots:
   source-map@0.6.1: {}
 
   sourcemap-codec@1.4.8: {}
+
+  spark-md5@3.0.2: {}
 
   spawn-args@0.2.0: {}
 

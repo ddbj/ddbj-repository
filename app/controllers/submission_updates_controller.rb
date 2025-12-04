@@ -1,0 +1,23 @@
+class SubmissionUpdatesController < ApplicationController
+  def show
+    @update = current_user.submission_updates.find(params[:id])
+  end
+
+  def create
+    submission = current_user.submissions.find(params[:submission_id])
+
+    @update = submission.updates.create!(update_params)
+
+    ApplySubmissionUpdateJob.perform_later @update
+
+    render :show, status: :accepted
+  end
+
+  private
+
+  def update_params
+    params.expect(submission_update: [
+      :ddbj_record
+    ])
+  end
+end

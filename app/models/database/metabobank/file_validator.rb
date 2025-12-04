@@ -43,10 +43,6 @@ class Database::MetaboBank::FileValidator
                 obj.validation_details.create! err.slice(:code, :severity, :message)
               end
             end
-          else
-            objs.each do |obj|
-              obj.validity_valid!
-            end
           end
         end
       end
