@@ -12,7 +12,8 @@ module ValidationSubject
       ready_to_apply:     3,
       applying:           4,
       applied:            5,
-      application_failed: 6
+      application_failed: 6,
+      no_change:          7
     }
 
     scope :with_validity, -> {
