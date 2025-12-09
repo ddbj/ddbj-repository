@@ -1,13 +1,17 @@
 class ApplySubmissionUpdateJob < ApplicationJob
+  class NoChange < StandardError; end
+
   def perform(update)
     DDBJRecordValidator.validate update
 
     return unless update.ready_to_apply?
 
-    begin
-      update.applying!
+    update.applying!
 
+    begin
       apply update
+    rescue NoChange
+      update.no_change!
     rescue => e
       Rails.error.report e
 
@@ -23,14 +27,24 @@ class ApplySubmissionUpdateJob < ApplicationJob
   private
 
   def apply(update)
-    record  = JSON.parse(update.ddbj_record.download, symbolize_names: true)
-    entries = record.dig(:sequence, :entries)
+    old_record  = JSON.parse(update.submission.ddbj_record.download, symbolize_names: true)
+    new_record  = JSON.parse(update.ddbj_record.download, symbolize_names: true)
+    old_entries = old_record.dig(:sequence, :entries).index_by { it[:accession] }
+    new_entries = new_record.dig(:sequence, :entries)
+
+    changes = new_entries.select {|new_entry|
+      old_entry = old_entries.fetch(new_entry[:accession])
+
+      new_entry != old_entry
+    }
+
+    raise NoChange if changes.empty?
 
     ActiveRecord::Base.transaction do
       number_to_accession = update.submission.accessions.index_by(&:number)
       now                 = Time.current
 
-      accession_to_attrs = update.submission.accessions.upsert_all(entries.map {|entry|
+      accession_to_attrs = update.submission.accessions.upsert_all(changes.map {|entry|
         acc = number_to_accession.fetch(entry[:accession])
 
         {
