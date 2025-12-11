@@ -61,7 +61,7 @@
     "date-fns": "^4.1.0",
     "decorator-transforms": "^2.3.0",
     "ember-auto-import": "^2.11.2",
-    "ember-cli": "~6.8.0",
+    "ember-cli": "~6.9.0",
     "ember-cli-babel": "^8.2.0",
     "ember-cli-deprecation-workflow": "^3.4.0",
     "ember-cli-htmlbars": "^6.3.0",
