@@ -6,6 +6,12 @@ import formatDatetime from 'repository/helpers/format-datetime';
   <h1>Submission-{{@model.id}}</h1>
 
   <dl class="horizontal">
+    <dt>Created</dt>
+    <dd>{{formatDatetime @model.created_at}}</dd>
+
+    <dt>Updated</dt>
+    <dd>{{formatDatetime @model.updated_at}}</dd>
+
     <dt>File</dt>
 
     <dd>
@@ -46,7 +52,7 @@ import formatDatetime from 'repository/helpers/format-datetime';
   <h2 class="mt-3">Updates</h2>
 
   <div class="my-3">
-    <LinkTo @route="updates.new" class="btn btn-primary">Update Submission</LinkTo>
+    <LinkTo @route="submission.updates.new" class="btn btn-primary">Update Submission</LinkTo>
   </div>
 
   <table class="table">

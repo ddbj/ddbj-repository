@@ -3,7 +3,8 @@
 {
   **submission.slice(
     :id,
-    :created_at
+    :created_at,
+    :updated_at
   ),
 
   ddbj_record: submission.ddbj_record.then {|record|
