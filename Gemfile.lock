@@ -459,7 +459,7 @@ GEM
       attr_required (>= 0.0.5)
       faraday (~> 2.0)
       faraday-follow_redirects
-    test-prof (1.4.4)
+    test-prof (1.5.0)
     thor (1.4.0)
     thruster (0.1.16-arm64-darwin)
     thruster (0.1.16-x86_64-linux)
