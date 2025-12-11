@@ -1,5 +1,7 @@
 class ApplySubmissionRequestJob < ApplicationJob
   def perform(request)
+    return unless request.ready_to_apply?
+
     ActiveRecord::Base.transaction do
       request.applying!
       request.create_submission!
@@ -16,7 +18,7 @@ class ApplySubmissionRequestJob < ApplicationJob
       )
     else
       request.applied!
-      request.validation.write_submission_files to: submission.dir
+      request.validation.write_submission_files to: request.submission.dir
     end
   end
 

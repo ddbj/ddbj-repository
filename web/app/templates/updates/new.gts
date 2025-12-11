@@ -52,9 +52,9 @@ export default class extends Component {
         })
       });
 
-      const { submission } = await res.json();
+      const { id } = await res.json();
 
-      this.router.transitionTo('submission', submission.id);
+      this.router.transitionTo('update', id);
     });
   }
 
@@ -69,7 +69,7 @@ export default class extends Component {
         {{/let}}
       </div>
 
-      <button type="submit" class="btn btn-primary">Apply Update</button>
+      <button type="submit" class="btn btn-primary">Validate</button>
     </form>
   </template>
 }
