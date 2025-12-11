@@ -17,7 +17,7 @@ class SubmissionRequestsController < ApplicationController
   def create
     @request = current_user.submission_requests.create!(request_params)
 
-    ValidateSubmissionRequestJob.perform_later @request
+    ValidateDDBJRecordJob.perform_later @request
 
     render :show, status: :accepted
   end

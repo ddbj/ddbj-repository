@@ -16,7 +16,7 @@ export default class extends Component {
   @service declare router: RouterService;
 
   @action
-  async submit() {
+  async apply() {
     const { model } = this.args;
 
     await this.request.fetchWithModal(`/submission_requests/${model.id}/submission`, {
@@ -58,7 +58,14 @@ export default class extends Component {
       <dd>{{formatDatetime @model.validation.created_at}}</dd>
 
       <dt>Finished</dt>
-      <dd>{{formatDatetime @model.validation.finished_at}}</dd>
+
+      <dd>
+        {{#if @model.validation.finished_at}}
+          {{formatDatetime @model.validation.finished_at}}
+        {{else}}
+          -
+        {{/if}}
+      </dd>
 
       <dt>Validity</dt>
       <dd>{{@model.validation.validity}}</dd>
@@ -94,7 +101,7 @@ export default class extends Component {
 
     {{#if (eq @model.status "ready_to_apply")}}
       <div class="my-3">
-        <button type="button" class="btn btn-primary" {{on "click" this.submit}}>
+        <button type="button" class="btn btn-primary" {{on "click" this.apply}}>
           Apply
         </button>
       </div>
