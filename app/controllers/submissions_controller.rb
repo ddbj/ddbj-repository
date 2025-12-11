@@ -1,4 +1,8 @@
 class SubmissionsController < ApplicationController
+  def index
+    @submissions = current_user.submissions
+  end
+
   def show
     @submission = current_user.submissions.includes(
       :updates

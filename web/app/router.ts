@@ -21,14 +21,10 @@ Router.map(function () {
 
   this.route('submissions', function () {
     this.route('submission', { path: ':submission_id', resetNamespace: true }, function () {
-      this.route('updates', { resetNamespace: true }, function () {
+      this.route('updates', function () {
         this.route('new');
       });
     });
-  });
-
-  this.route('updates', function () {
-    this.route('update', { path: ':update_id', resetNamespace: true });
   });
 
   this.route('admin', function () {
