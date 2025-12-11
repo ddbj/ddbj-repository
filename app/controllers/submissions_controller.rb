@@ -20,4 +20,18 @@ class SubmissionsController < ApplicationController
 
     head :accepted
   end
+
+  def update
+    update = current_user.submission_updates.valid_only.joins(
+      :validation
+    ).where(
+      validations: {
+        finished_at: 1.day.ago..
+      }
+    ).find(params[:submission_update_id])
+
+    ApplySubmissionUpdateJob.perform_later update
+
+    head :accepted
+  end
 end
