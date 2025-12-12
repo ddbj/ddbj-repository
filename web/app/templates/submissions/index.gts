@@ -3,10 +3,10 @@ import { LinkTo } from '@ember/routing';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 export default <template>
-  <h1>Submissions</h1>
+  <h1 class="display-6 mb-4">Submissions</h1>
 
-  <table class="table">
-    <thead>
+  <table class="table border">
+    <thead class="table-light">
       <tr>
         <th>ID</th>
         <th>Created</th>

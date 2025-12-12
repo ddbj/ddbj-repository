@@ -27,7 +27,7 @@ export default class extends Component {
   }
 
   <template>
-    <h1>Request-{{@model.id}}</h1>
+    <h1 class="display-6 mb-4">Request-{{@model.id}}</h1>
 
     <dl class="horizontal">
       <dt>Created</dt>

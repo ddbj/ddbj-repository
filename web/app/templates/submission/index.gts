@@ -3,7 +3,7 @@ import { LinkTo } from '@ember/routing';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 <template>
-  <h1>Submission-{{@model.id}}</h1>
+  <h1 class="display-6 mb-4">Submission-{{@model.id}}</h1>
 
   <dl class="horizontal">
     <dt>Created</dt>
@@ -26,8 +26,8 @@ import formatDatetime from 'repository/helpers/format-datetime';
   <details>
     <summary>Accessions</summary>
 
-    <table class="table">
-      <thead>
+    <table class="table border mt-3">
+      <thead class="table-light">
         <tr>
           <th>Accession</th>
           <th>Entry ID</th>
@@ -55,8 +55,8 @@ import formatDatetime from 'repository/helpers/format-datetime';
     <LinkTo @route="submission.updates.new" class="btn btn-primary">Update Submission</LinkTo>
   </div>
 
-  <table class="table">
-    <thead>
+  <table class="table border">
+    <thead class="table-light">
       <tr>
         <th>ID</th>
         <th>Created</th>
