@@ -9,7 +9,7 @@ export default class extends Route {
   @service declare request: RequestService;
 
   async model() {
-    const res = await this.request.fetch(`${ENV.apiURL}/submissions`);
+    const res = await this.request.fetch(`${ENV.apiURL}/submission_requests`);
 
     return await res.json();
   }
