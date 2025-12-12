@@ -59,7 +59,7 @@ export default class extends Component {
   }
 
   <template>
-    <h1>Update Submission</h1>
+    <h1 class="display-6 mb-4">Update Submission</h1>
 
     <form {{on "submit" this.submit}}>
       <div class="mb-3">

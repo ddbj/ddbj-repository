@@ -27,7 +27,7 @@ export default class extends Component {
   }
 
   <template>
-    <h1>Update-{{@model.id}}</h1>
+    <h1 class="display-6 mb-4">Update-{{@model.id}}</h1>
 
     <dl class="horizontal">
       <dt>Submission</dt>
