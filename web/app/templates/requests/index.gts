@@ -3,12 +3,14 @@ import { LinkTo } from '@ember/routing';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 export default <template>
-  <h1>Requests</h1>
+  <h1 class="display-6 mb-4">Requests</h1>
 
-  <LinkTo @route="requests.new" class="btn btn-primary">New Submission Request</LinkTo>
+  <div class="mb-3">
+    <LinkTo @route="requests.new" class="btn btn-primary">New Submission Request</LinkTo>
+  </div>
 
-  <table class="table">
-    <thead>
+  <table class="table border">
+    <thead class="table-light">
       <tr>
         <th>ID</th>
         <th>Created</th>
