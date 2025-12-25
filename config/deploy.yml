@@ -15,6 +15,7 @@ registry:
 
 env:
   clear:
+    JOB_CONCURRENCY:     4
     SOLID_QUEUE_IN_PUMA: true
     TZ:                  Asia/Tokyo
     WEB_CONCURRENCY:     auto
