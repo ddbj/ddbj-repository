@@ -6,6 +6,7 @@ gem 'active_storage_validations'
 gem 'aws-sdk-s3'
 gem 'bootsnap', require: false
 gem 'fetch-api'
+gem 'image_processing'
 gem 'jb'
 gem 'json'
 gem 'jwt'
