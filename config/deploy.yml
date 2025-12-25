@@ -17,6 +17,7 @@ env:
   clear:
     SOLID_QUEUE_IN_PUMA: true
     TZ:                  Asia/Tokyo
+    WEB_CONCURRENCY:     auto
 
   secret:
     - RAILS_MASTER_KEY
