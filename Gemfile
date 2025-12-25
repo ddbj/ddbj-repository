@@ -22,7 +22,6 @@ gem 'rambulance'
 gem 'retriable'
 gem 'sentry-rails'
 gem 'solid_queue'
-gem 'sqlite3'
 gem 'submission-excel2xml', github: 'ddbj/submission-excel2xml'
 gem 'thruster'
 

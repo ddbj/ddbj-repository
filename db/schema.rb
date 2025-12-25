@@ -10,18 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_10_29_071815) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_25_065705) do
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
+
   create_table "accession_renewal_validation_details", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "message", null: false
-    t.integer "renewal_id", null: false
+    t.bigint "renewal_id", null: false
     t.string "severity", null: false
     t.datetime "updated_at", null: false
     t.index ["renewal_id"], name: "index_accession_renewal_validation_details_on_renewal_id"
   end
 
   create_table "accession_renewals", force: :cascade do |t|
-    t.integer "accession_id", null: false
+    t.bigint "accession_id", null: false
     t.datetime "created_at", null: false
     t.datetime "finished_at"
     t.string "progress", default: "waiting", null: false
@@ -36,7 +39,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_071815) do
     t.string "entry_id", null: false
     t.datetime "last_updated_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.string "number", null: false
-    t.integer "submission_id", null: false
+    t.bigint "submission_id", null: false
     t.datetime "updated_at", null: false
     t.integer "version", default: 1, null: false
     t.index ["number", "entry_id", "version"], name: "index_accessions_on_number_and_entry_id_and_version", unique: true
@@ -91,7 +94,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_10_29_071815) do
 
   create_table "sequences", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.integer "digits", null: false
     t.bigint "next", default: 1, null: false
     t.string "prefix", null: false
     t.string "scope", null: false

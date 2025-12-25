@@ -18,6 +18,12 @@ builder:
     API_URL: https://repository-staging.ddbj.nig.ac.jp/api
 
 accessories:
+  postgres:
+    host: repository-staging
+
+    volumes:
+      - ./volumes/repository-staging/postgres:/var/lib/postgresql
+
   minio:
     host: repository-staging
 

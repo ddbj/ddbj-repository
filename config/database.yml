@@ -1,15 +1,10 @@
 default: &default
-  adapter: sqlite3
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  timeout: 5000
-
-postgres_default: &postgres_default
   adapter: postgresql
   encoding: unicode
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  max_connections: <%= ENV.fetch('RAILS_MAX_THREADS') { 5 } %>
 
 xsmdb_default: &xsmdb_default
-  <<: *postgres_default
+  <<: *default
   schema_search_path: mass,public
   default_timezone: local
 
@@ -30,7 +25,7 @@ submitterdb_default: &submitterdb_default
   migrations_paths: db/submitterdb_migrate
 
 drasearch_default: &drasearch_default
-  <<: *postgres_default
+  <<: *default
   schema_search_path: sra,public
   default_timezone: local
   migrations_paths: db/drasearch_migrate
@@ -38,24 +33,19 @@ drasearch_default: &drasearch_default
 development:
   primary:
     <<: *default
-    database: storage/development.sqlite3
-
+    database: repository_development
   bioproject:
     <<: *bioproject_default
     database: bioproject_development
-
   biosample:
     <<: *biosample_default
     database: biosample_development
-
   drmdb:
     <<: *drmdb_default
     database: drmdb_development
-
   submitterdb:
     <<: *submitterdb_default
     database: submitterdb_development
-
   drasearch:
     <<: *drasearch_default
     database: drasearch_development
@@ -63,24 +53,19 @@ development:
 test:
   primary:
     <<: *default
-    database: storage/test.sqlite3
-
+    database: repository_test
   bioproject:
     <<: *bioproject_default
     database: bioproject_test
-
   biosample:
     <<: *biosample_default
     database: biosample_test
-
   drmdb:
     <<: *drmdb_default
     database: drmdb_test
-
   submitterdb:
     <<: *submitterdb_default
     database: submitterdb_test
-
   drasearch:
     <<: *drasearch_default
     database: drasearch_test
@@ -88,37 +73,39 @@ test:
 production: &production
   primary:
     <<: *default
-    database: storage/production.sqlite3
-
+    url: <%= Rails.application.credentials.dig(:database_url, :primary) %>
+  cache:
+    <<: *default
+    url: <%= Rails.application.credentials.dig(:database_url, :cache) %>
+    migrations_paths: db/cache_migrate
   queue:
     <<: *default
-    database: storage/production_queue.sqlite3
+    url: <%= Rails.application.credentials.dig(:database_url, :queue) %>
     migrations_paths: db/queue_migrate
-
+  cable:
+    <<: *default
+    url: <%= Rails.application.credentials.dig(:database_url, :cable) %>
+    migrations_paths: db/cable_migrate
   bioproject:
     <<: *bioproject_default
     url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
     database: bioproject
     database_tasks: false
-
   biosample:
     <<: *biosample_default
     url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
     database: biosample
     database_tasks: false
-
   drmdb:
     <<: *drmdb_default
     url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
     database: drmdb
     database_tasks: false
-
   submitterdb:
     <<: *submitterdb_default
     url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
     database: submitterdb
     database_tasks: false
-
   drasearch:
     <<: *drasearch_default
     url: <%= Rails.application.credentials.dig(:database_url, :drasearch) %>

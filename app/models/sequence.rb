@@ -8,54 +8,60 @@ class Sequence < ApplicationRecord
       insert_all config.map {|scope, list|
         {
           scope:,
-          prefix: list.first[:prefix],
-          digits: list.first[:digits]
+          prefix: list.first[:prefix]
         }
       }, unique_by: :scope
-    rescue ArgumentError => e
-      if e.message == 'No unique index found for scope'
-        # This can happen if the migration creating the unique IndexError
-        # has not yet been run. We can safely ignore this error.
-      else
-        raise
-      end
     end
 
     def allocate!(scope, count)
+      ensure_records!
+
       list = config.fetch(scope)
 
       transaction do
         seq = lock.find_by!(scope:)
+        out = []
 
-        unless i = list.index { it[:prefix] == seq.prefix }
-          raise "Prefix #{seq.prefix} not found in scope #{scope}"
+        while count > 0
+          unless i = list.index { it[:prefix] == seq.prefix }
+            raise "Prefix #{seq.prefix} not found in scope #{scope}"
+          end
+
+          digits  = list[i][:digits]
+          max_val = (10 ** digits) - 1
+          start   = seq.next
+          avail   = max_val - start + 1
+
+          if avail <= 0
+            raise Exhausted if i + 1 >= list.size
+
+            seq.update!(
+              prefix: list[i + 1][:prefix],
+              next:   1
+            )
+
+            next
+          end
+
+          take = [count, avail].min
+          stop = start + take - 1
+
+          out.concat format_range(seq.prefix, start, stop, digits)
+          count -= take
+
+          if stop == max_val
+            raise Exhausted if i + 1 >= list.size
+
+            seq.update!(
+              prefix: list[i + 1][:prefix],
+              next:   1
+            )
+          else
+            seq.update! next: stop + 1
+          end
         end
 
-        digits  = list[i][:digits]
-        max_val = (10 ** digits) - 1
-        start   = seq.next
-        stop    = start + count - 1
-
-        if stop > max_val
-          raise Exhausted if i + 1 >= list.size
-
-          head       = format_range(seq.prefix, start, max_val, digits)
-          next_entry = list[i + 1]
-
-          seq.update!(
-            prefix: next_entry[:prefix],
-            next:   1,
-            digits: next_entry[:digits]
-          )
-
-          tail = allocate!(scope, count - head.size)
-
-          head + tail
-        else
-          seq.update! next: stop + 1
-
-          format_range(seq.prefix, start, stop, digits)
-        end
+        out
       end
     end
 

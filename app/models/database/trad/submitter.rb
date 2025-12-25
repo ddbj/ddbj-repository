@@ -33,7 +33,7 @@ class Database::Trad::Submitter
           accession:,
           locus:        accession,
           version:,
-          last_updated: Time.zone.parse(last_updated_at).iso8601
+          last_updated: last_updated_at.iso8601
         )
       end
 
