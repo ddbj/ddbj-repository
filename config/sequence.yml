@@ -1,6 +1,6 @@
 shared:
   jpo_na:
-    <% ('QP'..'QQ').each do |prefix| %>
+    <% ('QP'..'QU').without('QR').each do |prefix| %>
     - prefix: '<%= prefix %>'
       digits: 6
     <% end %>
