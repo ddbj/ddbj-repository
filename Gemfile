@@ -11,7 +11,7 @@ gem 'jb'
 gem 'json'
 gem 'jwt'
 gem 'kamal', require: false
-gem 'metabobank_tools', github: 'ddbj/metabobank_tools'
+gem 'metabobank_tools', github: 'ddbj/metabobank_tools', ref: 'f92142e5ea996f36d55dc7c7d39fb7a39fdc5410'
 gem 'noodles_gff', path: 'noodles_gff-rb'
 gem 'omniauth_openid_connect'
 gem 'pagy'
