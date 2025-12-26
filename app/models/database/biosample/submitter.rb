@@ -40,7 +40,7 @@ class Database::BioSample::Submitter
       attributes_assoc = attributes_assoc(doc)
       package_id       = package_id(doc)
 
-      package_attributes(package_id) => { package_group:, env_package: }
+      package_attributes(package_id) => {package_group:, env_package:}
 
       bs_submission_form = BioSample::SubmissionForm.create!(
         submission_id:,
