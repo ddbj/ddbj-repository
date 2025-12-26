@@ -32,55 +32,55 @@ RSpec.describe Database::Trad::DDBJRecordValidator, type: :model do
     expect(obj.validation_details).to contain_exactly(
       have_attributes(
         entry_id: nil,
-        code:     'SB-02001',
+        code:     'TRD_R0001',
         severity: 'error',
         message:  'ApplicationNumberText must be in the format of yyyy-nnnnnn'
       ),
       have_attributes(
         entry_id: 'SEQ_1',
-        code:     'SB-02003',
+        code:     'TRD_R0006',
         severity: 'warning',
         message:  'Undefined feature key "bar"'
       ),
       have_attributes(
         entry_id: 'SEQ_1',
-        code:     'SB-02004',
+        code:     'TRD_R0007',
         severity: 'warning',
         message:  'Undefined qualifier key "baz" (feature=bar)'
       ),
       have_attributes(
         entry_id: 'SEQ_1',
-        code:     'SB-02005',
+        code:     'TRD_R0008',
         severity: 'error',
         message:  'Invalid presence of qualifier value for key "baz" (feature=bar)'
       ),
       have_attributes(
         entry_id: 'SEQ_1',
-        code:     'SB-02006',
+        code:     'TRD_R0002',
         severity: 'error',
         message:  'Sequence length is zero'
       ),
       have_attributes(
         entry_id: 'SEQ_2',
-        code:     'SB-02007',
+        code:     'TRD_R0003',
         severity: 'error',
         message:  'N-only sequence is not allowed'
       ),
       have_attributes(
         entry_id: 'SEQ_3',
-        code:     'SB-02008',
+        code:     'TRD_R0004',
         severity: 'error',
         message:  'X-only sequence is not allowed'
       ),
       have_attributes(
         entry_id: 'SEQ_3',
-        code:     'SB-02004',
+        code:     'TRD_R0007',
         severity: 'warning',
         message:  'Undefined qualifier key "mol_type" (source)'
       ),
       have_attributes(
         entry_id: 'SEQ_4',
-        code:     'SB-02009',
+        code:     'TRD_R0005',
         severity: 'error',
         message:  'Invalid characters found in nucleotide sequence'
       )

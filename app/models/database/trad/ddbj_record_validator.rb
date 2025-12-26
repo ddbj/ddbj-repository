@@ -8,7 +8,7 @@ class Database::Trad::DDBJRecordValidator
     unless app_number&.match?(%r(\A\d{4}[-/]\d{6}\z))
       details << {
         entry_id: nil,
-        code:     'SB-02001',
+        code:     'TRD_R0001',
         severity: 'error',
         message:  'ApplicationNumberText must be in the format of yyyy-nnnnnn'
       }
@@ -24,7 +24,7 @@ class Database::Trad::DDBJRecordValidator
       if seq.empty?
         details << {
           entry_id:,
-          code:     'SB-02006',
+          code:     'TRD_R0002',
           severity: 'error',
           message:  'Sequence length is zero'
         }
@@ -33,7 +33,7 @@ class Database::Trad::DDBJRecordValidator
       if seq.match?(/\AN+\z/i)
         details << {
           entry_id:,
-          code:     'SB-02007',
+          code:     'TRD_R0003',
           severity: 'error',
           message:  'N-only sequence is not allowed'
         }
@@ -42,7 +42,7 @@ class Database::Trad::DDBJRecordValidator
       if seq.match?(/\AX+\z/i)
         details << {
           entry_id:,
-          code:     'SB-02008',
+          code:     'TRD_R0004',
           severity: 'error',
           message:  'X-only sequence is not allowed'
         }
@@ -53,7 +53,7 @@ class Database::Trad::DDBJRecordValidator
       if !aa && seq.match?(/[^acgtmrwsykvhdbn]/i)
         details << {
           entry_id:,
-          code:     'SB-02009',
+          code:     'TRD_R0005',
           severity: 'error',
           message:  'Invalid characters found in nucleotide sequence'
         }
@@ -67,7 +67,7 @@ class Database::Trad::DDBJRecordValidator
       unless FeatureChecker.defined_feature?(fkey)
         details << {
           entry_id:,
-          code:     'SB-02003',
+          code:     'TRD_R0006',
           severity: 'warning',
           message:  %(Undefined feature key "#{fkey}")
         }
@@ -103,7 +103,7 @@ class Database::Trad::DDBJRecordValidator
       unless FeatureChecker.defined_qualifier?(qkey)
         details << {
           entry_id:,
-          code:     'SB-02004',
+          code:     'TRD_R0007',
           severity: 'warning',
           message:  %(Undefined qualifier key "#{qkey}" (#{pos}))
         }
@@ -113,7 +113,7 @@ class Database::Trad::DDBJRecordValidator
         unless FeatureChecker.qualifier_value_presence_valid?(qkey, value)
           details << {
             entry_id:,
-            code:     'SB-02005',
+            code:     'TRD_R0008',
             severity: 'error',
             message:  %(Invalid presence of qualifier value for key "#{qkey}" (#{pos}))
           }
