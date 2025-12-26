@@ -8,7 +8,7 @@
 # For a containerized dev environment, see Dev Containers: https://guides.rubyonrails.org/getting_started_with_devcontainer.html
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
-ARG RUBY_VERSION=3.4.8
+ARG RUBY_VERSION=4.0.1
 FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
 
 # Rails app lives here
@@ -26,27 +26,8 @@ ENV RAILS_ENV="production" \
     BUNDLE_WITHOUT="development:test" \
     TZ="Asia/Tokyo"
 
-FROM docker.io/library/ruby:$RUBY_VERSION-slim AS noodles_gff
-
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential clang curl && \
-    rm -rf /var/lib/apt/lists /var/cache/apt/archives
-
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-
-WORKDIR /noodles_gff-rb
-
-COPY noodles_gff-rb/ .
-
-RUN bundle install
-RUN bundle exec rake compile
-
 # Throw-away build stage to reduce size of final image
 FROM base AS build
-
-COPY --from=noodles_gff /noodles_gff-rb ./noodles_gff-rb
 
 # Install packages needed to build gems
 RUN apt-get update -qq && \
@@ -92,7 +73,6 @@ ARG APP_GID
 # Copy built artifacts: gems, application
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
-COPY --from=noodles_gff /noodles_gff-rb /rails/noodles_gff-rb
 COPY --from=web /web/dist /rails/public/web
 
 COPY schema /schema
