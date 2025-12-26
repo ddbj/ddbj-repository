@@ -2,9 +2,10 @@ require 'rambulance/exceptions_app'
 
 Rambulance.setup do |config|
   config.rescue_responses = {
+    'Sequence::Exhausted'                                   => :conflict,
+    'Validation::UnprocessableContent'                      => :unprocessable_content,
     'Validations::FilesController::NotFound'                => :not_found,
-    'Validations::ViaFilesController::UnprocessableContent' => :unprocessable_content,
-    'Validation::UnprocessableContent'                      => :unprocessable_content
+    'Validations::ViaFilesController::UnprocessableContent' => :unprocessable_content
   }
 end
 
