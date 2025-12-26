@@ -31,6 +31,8 @@ Rails.application.routes.draw do
         end
       end
     end
+
+    resources :stats, only: %i[index]
   end
 
   get 'web/*paths', to: 'webs#show'
