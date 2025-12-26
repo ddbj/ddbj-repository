@@ -5,6 +5,7 @@ gem 'rails', '~> 8.1.1'
 gem 'active_storage_validations'
 gem 'aws-sdk-s3'
 gem 'bootsnap', require: false
+gem 'faraday-follow_redirects', require: false, github: 'tisba/faraday-follow-redirects' # https://github.com/tisba/faraday-follow-redirects/issues/61
 gem 'fetch-api'
 gem 'image_processing'
 gem 'jb'

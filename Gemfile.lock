@@ -19,6 +19,13 @@ GIT
       rubyzip (~> 2)
       thor (~> 1)
 
+GIT
+  remote: https://github.com/tisba/faraday-follow-redirects.git
+  revision: 92ef4495bb6ca817f6d1f368f67ca9f0513671ae
+  specs:
+    faraday-follow_redirects (0.5.0)
+      faraday (>= 1, < 3)
+
 PATH
   remote: noodles_gff-rb
   specs:
@@ -170,8 +177,6 @@ GEM
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
-    faraday-follow_redirects (0.3.0)
-      faraday (>= 1, < 3)
     faraday-net_http (3.4.0)
       net-http (>= 0.5.0)
     fetch-api (0.6.0)
@@ -181,6 +186,7 @@ GEM
       rack
       singleton
       uri
+    ffi (1.17.2)
     ffi (1.17.2-arm64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     fugit (1.12.1)
@@ -246,6 +252,7 @@ GEM
     mini_magick (5.3.1)
       logger
     mini_mime (1.1.5)
+    mini_portile2 (2.8.9)
     minitest (5.27.0)
     msgpack (1.8.0)
     net-http (0.6.0)
@@ -265,6 +272,9 @@ GEM
       net-protocol
     net-ssh (7.3.0)
     nio4r (2.7.4)
+    nokogiri (1.18.10)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
     nokogiri (1.18.10-arm64-darwin)
       racc (~> 1.4)
     nokogiri (1.18.10-x86_64-linux-gnu)
@@ -298,6 +308,7 @@ GEM
     parser (3.3.7.1)
       ast (~> 2.4.1)
       racc
+    pg (1.6.2)
     pg (1.6.2-arm64-darwin)
     pg (1.6.2-x86_64-linux)
     pp (0.6.3)
@@ -477,7 +488,7 @@ GEM
       concurrent-ruby (~> 1.0)
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
-    unicode-emoji (4.0.4)
+    unicode-emoji (4.2.0)
     uri (1.1.1)
     uri-idna (0.3.1)
     useragent (0.16.11)
@@ -510,6 +521,7 @@ DEPENDENCIES
   brakeman
   debug
   factory_bot_rails
+  faraday-follow_redirects!
   fetch-api
   image_processing
   jb
