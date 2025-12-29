@@ -136,7 +136,7 @@ class TestBioProject < Thor
           banner
         else
           messages = errors.map {
-            _1 => { code:, message: }
+            _1 => {code:, message:}
             "[#{code}] #{message}"
           }
 
