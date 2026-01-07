@@ -9,6 +9,7 @@ class SubmissionUpdatesController < ApplicationController
     @update = submission.updates.create!(update_params)
 
     ValidateDDBJRecordJob.perform_later @update
+    CalculateDDBJRecordDiffJob.perform_later @update
 
     render :show, status: :accepted
   end

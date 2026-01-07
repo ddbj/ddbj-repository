@@ -5,6 +5,7 @@ gem 'rails', '~> 8.1.2'
 gem 'active_storage_validations'
 gem 'aws-sdk-s3'
 gem 'bootsnap', require: false
+gem 'diff-lcs'
 gem 'fetch-api'
 gem 'image_processing'
 gem 'jb'

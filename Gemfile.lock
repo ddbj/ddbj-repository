@@ -511,6 +511,7 @@ DEPENDENCIES
   bootsnap
   brakeman
   debug
+  diff-lcs
   factory_bot_rails
   fetch-api
   image_processing

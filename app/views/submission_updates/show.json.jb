@@ -2,6 +2,7 @@
   **@update.slice(
     :id,
     :status,
+    :diff,
     :error_message,
     :created_at
   ),

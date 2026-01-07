@@ -34,7 +34,7 @@ module DDBJRecordValidator
   def _validate(subject)
     details    = []
     filename   = subject.validation.subject.ddbj_record.filename.to_s
-    record     = JSON.parse(subject.validation.subject.ddbj_record.download, symbolize_names: true)
+    record     = JSON.parse(subject.ddbj_record.download, symbolize_names: true)
     app_number = record.dig(:submission, :application_identification, :application_number_text)
 
     unless app_number&.match?(%r(\A\d{4}[-/]\d{6}\z))
