@@ -60,7 +60,7 @@ class ApplySubmissionRequestJob < ApplicationJob
       filename = request.ddbj_record.filename
 
       request.submission.update! ddbj_record: {
-        io:           StringIO.new(JSON.pretty_generate(record)),
+        io:           StringIO.new(JSON.pretty_generate(record) + "\n"),
         filename:     "#{filename.base}-submitted.#{filename.extension}",
         content_type: request.ddbj_record.content_type
       }

@@ -80,6 +80,11 @@ export default class extends Component {
       <dd>{{@model.validation.validity}}</dd>
     </dl>
 
+    {{#if @model.diff }}
+      <h2>Diff</h2>
+      <pre>{{@model.diff}}</pre>
+    {{/if}}
+
     <details class="my-3">
       <summary>Details</summary>
 
