@@ -6,6 +6,7 @@
     :created_at
   ),
 
+  processing:  submission_request.processing?,
   ddbj_record: render('blob', blob: submission_request.ddbj_record),
   validation:  submission_request.validation_with_validity&.then { render(it) },
   submission:  submission_request.submission&.then { render(it) }
