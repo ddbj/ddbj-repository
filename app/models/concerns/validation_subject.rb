@@ -37,5 +37,9 @@ module ValidationSubject
         ) = 0
       SQL
     }
+
+    def processing?
+      status.in?(%w[waiting validating applying])
+    end
   end
 end
