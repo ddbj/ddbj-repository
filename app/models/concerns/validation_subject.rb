@@ -23,7 +23,7 @@ module ValidationSubject
         "#{quoted_table_name}.id"
       ).select("#{quoted_table_name}.*", <<~SQL)
         CASE
-          WHEN validations.progress != 'finished'                                    THEN NULL
+          WHEN MAX(validations.progress) != 'finished'                               THEN NULL
           WHEN COUNT(CASE WHEN validation_details.severity = 'error' THEN 1 END) = 0 THEN 'valid'
           ELSE 'invalid'
         END AS validity
@@ -31,7 +31,11 @@ module ValidationSubject
     }
 
     scope :valid_only, -> {
-      with_validity.having("validity = 'valid'")
+      with_validity.having(<<~SQL)
+        MAX(validations.progress) = 'finished' AND COUNT(
+          CASE WHEN validation_details.severity = 'error' THEN 1 END
+        ) = 0
+      SQL
     }
   end
 end
