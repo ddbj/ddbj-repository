@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe '/api/submissions', type: :request do
+RSpec.describe '/api/submission_requests/:submission_request_id/submission', type: :request do
   let(:user)            { create(:user) }
   let(:default_headers) { {'Authorization' => "Bearer #{user.api_key}"} }
 
@@ -10,13 +10,9 @@ RSpec.describe '/api/submissions', type: :request do
     create :validation, :valid, subject: request
 
     perform_enqueued_jobs do
-      post submission_request_submission_path(request), params: {
-        submission: {
-          visibility: 'public'
-        }
-      }
+      post submission_request_submission_path(request)
     end
 
-    expect(response).to have_http_status(:created)
+    expect(response).to have_http_status(:accepted)
   end
 end

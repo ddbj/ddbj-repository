@@ -7,8 +7,6 @@ class User < ApplicationRecord
 
   has_many :submissions,        through: :submission_requests
   has_many :submission_updates, through: :submissions, source: :updates
-  has_many :accessions,         through: :submissions
-  has_many :accession_renewals, through: :accessions, source: :renewals
 
   before_create do |user|
     user.api_key ||= self.class.generate_api_key

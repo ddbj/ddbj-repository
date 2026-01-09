@@ -28,10 +28,6 @@ Router.map(function () {
   });
 
   this.route('admin', function () {
-    this.route('validations', function () {
-      this.route('validation', { path: ':validation_id' });
-    });
-
     this.route('proxy-login');
   });
 });

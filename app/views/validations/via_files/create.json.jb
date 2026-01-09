@@ -1,1 +1,0 @@
-render('validations/validation', validation: @validation)

@@ -5,4 +5,6 @@ class SubmissionRequest < ApplicationRecord
   belongs_to :submission, optional: true, inverse_of: :request
 
   has_one_attached :ddbj_record
+
+  validates :ddbj_record, attached: true, content_type: 'application/json'
 end
