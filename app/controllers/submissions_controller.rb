@@ -1,6 +1,6 @@
 class SubmissionsController < ApplicationController
   def index
-    @submissions = current_user.submissions
+    @submissions = current_user.submissions.order(id: :desc)
   end
 
   def show
