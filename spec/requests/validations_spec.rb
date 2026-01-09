@@ -11,7 +11,7 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
     before do
       travel_to '2024-01-02'
 
-      create :validation, :valid, id: 100, db: 'GEA', created_at: '2024-01-02 03:04:56', started_at: '2024-01-02 03:04:57', finished_at: '2024-01-02 03:04:58' do |validation|
+      create :validation, :valid, id: 100, db: 'GEA', created_at: '2024-01-02 03:04:56', finished_at: '2024-01-02 03:04:58' do |validation|
         create :submission, validation:, id: 200
 
         create :obj, validation:, _id: 'IDF', file: uploaded_file(name: 'myidf.txt'), validity: 'valid'
@@ -36,7 +36,6 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
 
           db:          'MetaboBank',
           created_at:  '2024-01-02T03:04:58.000+09:00',
-          started_at:  nil,
           finished_at: nil,
           progress:    'waiting',
           validity:    nil,
@@ -64,7 +63,6 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
 
           db:          'GEA',
           created_at:  '2024-01-02T03:04:56.000+09:00',
-          started_at:  '2024-01-02T03:04:57.000+09:00',
           finished_at: '2024-01-02T03:04:58.000+09:00',
           progress:    'finished',
           validity:    'valid',
@@ -104,7 +102,6 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
             url:           'http://www.example.com/api/submissions/200',
             db:            'GEA',
             created_at:    '2024-01-02T00:00:00.000+09:00',
-            started_at:    nil,
             finished_at:   nil,
             progress:      'waiting',
             result:        nil,
@@ -121,7 +118,7 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
     before do
       travel_to '2024-01-02'
 
-      create :validation, :valid, id: 100, db: 'BioSample', created_at: '2024-01-02 03:04:56', started_at: '2024-01-02 03:04:57', finished_at: '2024-01-02 03:04:58' do |validation|
+      create :validation, :valid, id: 100, db: 'BioSample', created_at: '2024-01-02 03:04:56', finished_at: '2024-01-02 03:04:58' do |validation|
         create :submission, validation:, id: 200
       end
     end
@@ -141,7 +138,6 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
 
         db:          'BioSample',
         created_at:  '2024-01-02T03:04:56.000+09:00',
-        started_at:  '2024-01-02T03:04:57.000+09:00',
         finished_at: '2024-01-02T03:04:58.000+09:00',
         progress:    'finished',
         validity:    'valid',
@@ -163,7 +159,6 @@ RSpec.describe 'vaidations', type: :request, authorized: true do
           url:           'http://www.example.com/api/submissions/200',
           db:            'BioSample',
           created_at:    '2024-01-02T00:00:00.000+09:00',
-          started_at:    nil,
           finished_at:   nil,
           progress:      'waiting',
           result:        nil,

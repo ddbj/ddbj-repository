@@ -37,7 +37,7 @@ export default class extends Component {
           {{#if this.currentUser.isLoggedIn}}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               <li class="nav-item">
-                <LinkTo @route="validations" class="nav-link">Validations</LinkTo>
+                <LinkTo @route="requests" class="nav-link">Requests</LinkTo>
               </li>
 
               <li class="nav-item">
