@@ -53,7 +53,7 @@
     "@types/bootstrap": "^5.2.10",
     "@types/qunit": "^2.19.13",
     "@types/rsvp": "^4.0.9",
-    "@warp-drive/ember": "~5.8.0",
+    "@warp-drive/ember": "~5.8.1",
     "babel-plugin-ember-template-compilation": "^2.4.1",
     "babel-plugin-module-resolver": "^5.0.2",
     "bootstrap": "^5.3.8",
