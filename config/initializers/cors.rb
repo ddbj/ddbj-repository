@@ -7,5 +7,10 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
      expose:  %w[Link Current-Page Page-Items Total-Pages Total-Count],
      methods: %i[get post put patch delete options head]
    }
+
+   resource '/rails/active_storage/direct_uploads', **{
+     headers: :any,
+     methods: %i[post]
+   }
  end
 end

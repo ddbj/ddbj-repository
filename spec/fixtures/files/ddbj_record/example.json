@@ -1,11 +1,19 @@
 {
+  "submission": {
+    "application_identification": {
+      "application_number_text": "2026-123456"
+    }
+  },
+
   "sequence": {
     "entries": [
       {
-        "id": "ENTRY_1"
+        "id": "ENTRY_1",
+        "sequence": "atgcgtagctagctagctagc"
       },
       {
-        "id": "ENTRY_2"
+        "id": "ENTRY_2",
+        "sequence": "ttagcgtagctagctagctaa"
       }
     ]
   }

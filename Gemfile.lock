@@ -1,29 +1,3 @@
-GIT
-  remote: https://github.com/ddbj/metabobank_tools.git
-  revision: f92142e5ea996f36d55dc7c7d39fb7a39fdc5410
-  specs:
-    metabobank_tools (0.1.0)
-      csv
-
-GIT
-  remote: https://github.com/ddbj/submission-excel2xml.git
-  revision: 11a3eebb5304f9798288f9979c3f0a244fb65b96
-  specs:
-    submission-excel2xml (0.1.0)
-      builder (~> 3)
-      date (~> 3)
-      nokogiri (~> 1)
-      open3 (~> 0)
-      rexml (~> 3)
-      roo (~> 2)
-      rubyzip (~> 2)
-      thor (~> 1)
-
-PATH
-  remote: noodles_gff-rb
-  specs:
-    noodles_gff (0.1.0)
-
 GEM
   remote: https://rubygems.org/
   specs:
@@ -146,7 +120,6 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    csv (3.3.2)
     date (3.5.1)
     debug (1.11.1)
       irb (~> 1.10)
@@ -174,13 +147,6 @@ GEM
       faraday (>= 1, < 3)
     faraday-net_http (3.4.0)
       net-http (>= 0.5.0)
-    fetch-api (0.6.0)
-      json
-      mini_mime
-      net-http
-      rack
-      singleton
-      uri
     ffi (1.17.2-arm64-darwin)
     ffi (1.17.2-x86_64-linux-gnu)
     fugit (1.12.1)
@@ -277,7 +243,6 @@ GEM
     omniauth_openid_connect (0.8.0)
       omniauth (>= 1.9, < 3)
       openid_connect (~> 2.2)
-    open3 (0.2.1)
     openid_connect (2.3.1)
       activemodel
       attr_required (>= 1.0.0)
@@ -349,10 +314,6 @@ GEM
       activesupport (= 8.1.2)
       bundler (>= 1.15.0)
       railties (= 8.1.2)
-    rails-controller-testing (1.0.5)
-      actionpack (>= 5.0.1.rc1)
-      actionview (>= 5.0.1.rc1)
-      activesupport (>= 5.0.1.rc1)
     rails-dom-testing (2.3.0)
       activesupport (>= 5.0.0)
       minitest
@@ -382,11 +343,7 @@ GEM
     regexp_parser (2.11.3)
     reline (0.6.3)
       io-console (~> 0.5)
-    retriable (3.1.2)
     rexml (3.4.4)
-    roo (2.10.1)
-      nokogiri (~> 1)
-      rubyzip (>= 1.3.0, < 3.0.0)
     rspec-core (3.13.5)
       rspec-support (~> 3.13.0)
     rspec-default_http_header (0.0.6)
@@ -437,7 +394,6 @@ GEM
     ruby-vips (2.3.0)
       ffi (~> 1.12)
       logger
-    rubyzip (2.4.1)
     securerandom (0.4.1)
     sentry-rails (6.2.0)
       railties (>= 5.2.0)
@@ -445,7 +401,6 @@ GEM
     sentry-ruby (6.2.0)
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
-    singleton (0.3.0)
     skooma (0.3.7)
       json_skooma (~> 0.2.5)
       zeitwerk (~> 2.6)
@@ -469,7 +424,6 @@ GEM
       attr_required (>= 0.0.5)
       faraday (~> 2.0)
       faraday-follow_redirects
-    test-prof (1.5.0)
     thor (1.5.0)
     thruster (0.1.17-arm64-darwin)
     thruster (0.1.17-x86_64-linux)
@@ -511,33 +465,26 @@ DEPENDENCIES
   bootsnap
   brakeman
   debug
+  diff-lcs
   factory_bot_rails
-  fetch-api
   image_processing
   jb
   json
   jwt
   kamal
-  metabobank_tools!
-  noodles_gff!
   omniauth_openid_connect
   pagy
-  parallel
   pg
   puma
   rack-cors
   rails (~> 8.1.2)
-  rails-controller-testing
   rambulance
-  retriable
   rspec-default_http_header
   rspec-rails
   rubocop-rails-omakase
   sentry-rails
   skooma
   solid_queue
-  submission-excel2xml!
-  test-prof
   thruster
   webmock
 

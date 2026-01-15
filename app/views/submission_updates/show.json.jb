@@ -1,0 +1,14 @@
+{
+  **@update.slice(
+    :id,
+    :status,
+    :diff,
+    :error_message,
+    :created_at
+  ),
+
+  processing:  @update.processing?,
+  ddbj_record: render('blob', blob: @update.ddbj_record),
+  validation:  @update.validation_with_validity&.then { render(it) },
+  submission:  render(@update.submission)
+}

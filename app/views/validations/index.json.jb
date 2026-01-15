@@ -1,1 +1,0 @@
-render(partial: 'validation', collection: @validations, locals: {submission: true})

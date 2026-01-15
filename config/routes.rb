@@ -11,25 +11,16 @@ Rails.application.routes.draw do
 
     resource :me, only: %i[show]
 
-    resources :validations, only: %i[index show destroy] do
-      scope module: 'validations' do
-        collection do
-          resource :via_file,        only: %i[create]
-          resource :via_ddbj_record, only: %i[create]
-        end
-
-        get 'files/*path' => 'files#show', format: false, as: 'file'
-      end
+    resources :submission_requests, only: %i[index show create] do
+      resource :submission, only: :create
     end
 
-    resources :submissions, only: %i[index show create] do
-      resources :accessions, only: %i[show update], param: :number, shallow: true do
-        resources :accession_renewals, only: %i[show create] do
-          scope module: 'accession_renewals' do
-            resource :file, only: %i[show], shallow: false
-          end
-        end
-      end
+    resources :submission_updates, only: %i[show] do
+      resource :submission, only: :update
+    end
+
+    resources :submissions, only: %i[index show] do
+      resources :updates, only: %i[create], controller: 'submission_updates'
     end
 
     resources :stats, only: %i[index]
