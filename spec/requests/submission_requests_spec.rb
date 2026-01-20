@@ -7,7 +7,7 @@ RSpec.describe '/api/submission_requests', type: :request do
   example 'index' do
     get submission_requests_path
 
-    expect(response).to have_http_status(:ok)
+    expect(response).to conform_schema(200)
   end
 
   example 'show' do
@@ -15,19 +15,25 @@ RSpec.describe '/api/submission_requests', type: :request do
 
     get submission_request_path(request)
 
-    expect(response).to have_http_status(:ok)
+    expect(response).to conform_schema(200)
   end
 
   example 'create' do
+    blob = ActiveStorage::Blob.create_and_upload!(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+
     perform_enqueued_jobs do
       post submission_requests_path, params: {
         submission_request: {
-          ddbj_record: fixture_file_upload('ddbj_record/example.json', 'application/json')
+          ddbj_record: blob.signed_id
         }
-      }
+      }, as: :json
     end
 
-    expect(response).to have_http_status(:accepted)
+    expect(response).to conform_schema(202)
 
     expect(response.parsed_body).to include(
       validation: include(

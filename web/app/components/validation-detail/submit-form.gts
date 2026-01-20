@@ -32,7 +32,7 @@ export default class ValidationSubmitForm extends Component<Signature> {
   @tracked elapsedFromValidationFinished = 0;
 
   calculateElapsed = modifier(() => {
-    const finishedAt = new Date(this.args.validation.finished_at!);
+    const finishedAt = new Date(this.args.validation.finished_at);
 
     const timer = setInterval(() => {
       this.elapsedFromValidationFinished = new Date().getTime() - finishedAt.getTime();

@@ -69,14 +69,588 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /submission_requests:
+    get:
+      description: Get a list of submission requests.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the list of submission requests.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/SubmissionRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      description: Create a submission request.
+
+      tags:
+        - Submission Requests
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [submission_request]
+
+              properties:
+                submission_request:
+                  type: object
+                  additionalProperties: false
+                  required: [ddbj_record]
+
+                  properties:
+                    ddbj_record:
+                      type: string
+                      format: binary
+
+      responses:
+        '202':
+          description: Accepted the submission request creation.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+  /submission_requests/{id}:
+    get:
+      description: Get a submission request.
+
+      tags:
+        - Submission Requests
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: Returns the requested submission request.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submission_requests/{id}/submission:
+    post:
+      description: Apply a submission request.
+
+      tags:
+        - Submission Requests
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: number
+
+      responses:
+        '202':
+          description: Returns the updated submission request.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+  /submission_updates/{id}:
+    get:
+      description: Get a submission update.
+
+      tags:
+        - Submission Updates
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: Returns the requested submission update.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionUpdate'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submission_updates/{id}/submission:
+    patch:
+      description: Apply a submission update.
+
+      tags:
+        - Submission Updates
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: number
+
+      responses:
+        '202':
+          description: Accepted the submission update application.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+  /submissions:
+    get:
+      description: Get a list of submissions.
+
+      tags:
+        - Submissions
+
+      responses:
+        '200':
+          description: Returns the list of submissions.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/Submission'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /submissions/{id}:
+    get:
+      description: Get a submission.
+
+      tags:
+        - Submissions
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: Returns the requested submission.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submission'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submissions/{id}/updates:
+    post:
+      description: Create a submission update.
+
+      tags:
+        - Submissions
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: number
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [submission_update]
+
+              properties:
+                submission_update:
+                  type: object
+                  additionalProperties: false
+                  required: [ddbj_record]
+
+                  properties:
+                    ddbj_record:
+                      type: string
+                      format: binary
+
+      responses:
+        '202':
+          description: Accepted the submission update creation.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionUpdate'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
 components:
   schemas:
-    Error:
+    SubmissionRequest:
       type: object
       additionalProperties: false
 
       required:
-        - message
+        - id
+        - status
+        - error_message
+        - created_at
+        - processing
+        - ddbj_record
+        - validation
+        - submission
+
+      properties:
+        id:
+          type: number
+
+        status:
+          $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        created_at:
+          type: string
+          format: date-time
+
+        processing:
+          type: boolean
+
+        ddbj_record:
+          $ref: '#/components/schemas/DDBJRecord'
+
+        validation:
+          anyOf:
+            - $ref: '#/components/schemas/Validation'
+            - type: 'null'
+
+        submission:
+          anyOf:
+            - $ref: '#/components/schemas/Submission'
+            - type: 'null'
+
+    SubmissionUpdate:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - status
+        - diff
+        - error_message
+        - created_at
+        - processing
+        - ddbj_record
+        - validation
+        - submission
+
+      properties:
+        id:
+          type: number
+
+        status:
+          $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        diff:
+          type:
+            - string
+            - 'null'
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        created_at:
+          type: string
+          format: date-time
+
+        processing:
+          type: boolean
+
+        ddbj_record:
+          $ref: '#/components/schemas/DDBJRecord'
+
+        validation:
+          anyOf:
+            - $ref: '#/components/schemas/Validation'
+            - type: 'null'
+
+        submission:
+          $ref: '#/components/schemas/Submission'
+
+    Validation:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - progress
+        - created_at
+        - finished_at
+        - validity
+        - details
+
+      properties:
+        id:
+          type: number
+
+        progress:
+          type: string
+
+          enum:
+            - running
+            - finished
+            - canceled
+
+        created_at:
+          type: string
+          format: date-time
+
+        finished_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
+
+        validity:
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - valid
+            - invalid
+
+        details:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - filename
+              - entry_id
+              - code
+              - severity
+              - message
+
+            properties:
+              filename:
+                type: string
+
+              entry_id:
+                type: string
+
+              code:
+                type: string
+
+              severity:
+                type: string
+
+                enum:
+                  - warning
+                  - error
+
+              message:
+                type: string
+
+    Submission:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - created_at
+        - updated_at
+        - ddbj_record
+        - accessions
+        - updates
+
+      properties:
+        id:
+          type: number
+
+        created_at:
+          type: string
+          format: date-time
+
+        updated_at:
+          type: string
+          format: date-time
+
+        ddbj_record:
+          $ref: '#/components/schemas/DDBJRecord'
+
+        accessions:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/Accession'
+
+        updates:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+
+            required:
+              - id
+              - status
+              - created_at
+              - ddbj_record
+              - validation
+
+            properties:
+              id:
+                type: number
+
+              status:
+                $ref: '#/components/schemas/SubmissionOperationStatus'
+
+              created_at:
+                type: string
+                format: date-time
+
+              ddbj_record:
+                $ref: '#/components/schemas/DDBJRecord'
+
+              validation:
+                anyOf:
+                  - $ref: '#/components/schemas/Validation'
+                  - type: 'null'
+
+    Accession:
+      type: object
+      additionalProperties: false
+
+      required:
+        - number
+        - entry_id
+        - version
+        - last_updated_at
+
+      properties:
+        number:
+          type: string
+
+        entry_id:
+          type: string
+
+        version:
+          type: number
+
+        last_updated_at:
+          type: string
+          format: date-time
+
+    DDBJRecord:
+      type: object
+      additionalProperties: false
+      required: [filename, url]
+
+      properties:
+        filename:
+          type: string
+
+        url:
+          type: string
+          format: uri
+
+    SubmissionOperationStatus:
+      type: string
+
+      enum:
+        - waiting
+        - validating
+        - validation_failed
+        - ready_to_apply
+        - applying
+        - applied
+        - application_failed
+        - no_change
+
+    Error:
+      type: object
+      additionalProperties: false
+      required: [message]
 
       properties:
         message:
