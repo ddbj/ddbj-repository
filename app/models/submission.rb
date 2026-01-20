@@ -6,7 +6,7 @@ class Submission < ApplicationRecord
 
   has_one_attached :ddbj_record
 
-  validates :ddbj_record, attached: true, content_type: 'application/json'
+  validates :ddbj_record, attached: true, content_type: 'application/json', on: :update
 
   after_destroy do |submission|
     submission.dir.rmtree
