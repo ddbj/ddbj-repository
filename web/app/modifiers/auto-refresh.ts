@@ -4,13 +4,24 @@ import { service } from '@ember/service';
 
 import type RouterService from '@ember/routing/router-service';
 
-export default class AutoRefreshModifier extends Modifier {
+interface Signature {
+  Args: {
+    Positional: [];
+
+    Named: {
+      while: boolean;
+      interval: number;
+    };
+  };
+}
+
+export default class AutoRefreshModifier extends Modifier<Signature> {
   @service declare router: RouterService;
 
   timer: number | null = null;
   interval: number | null = null;
 
-  modify(_el: Element, _positional: [], {while: _while, interval}: {while: boolean; interval: number}) {
+  modify(_el: Element, _positional: [], { while: _while, interval }: { while: boolean; interval: number }) {
     registerDestructor(this, stopRefreshing);
 
     if (!_while) {
@@ -18,7 +29,9 @@ export default class AutoRefreshModifier extends Modifier {
       return;
     }
 
-    if (this.timer && this.interval === interval) { return; }
+    if (this.timer && this.interval === interval) {
+      return;
+    }
 
     stopRefreshing(this);
 
@@ -33,7 +46,9 @@ export default class AutoRefreshModifier extends Modifier {
 function stopRefreshing(instance: AutoRefreshModifier) {
   const { timer } = instance;
 
-  if (!timer) { return; }
+  if (!timer) {
+    return;
+  }
 
   clearInterval(timer);
   instance.timer = null;

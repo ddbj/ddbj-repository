@@ -10,6 +10,7 @@ import ENV from 'repository/config/environment';
 
 import type RequestService from 'repository/services/request';
 import type RouterService from '@ember/routing/router-service';
+import type { Blob } from '@rails/activestorage';
 
 export default class extends Component {
   @service declare request: RequestService;
@@ -26,33 +27,36 @@ export default class extends Component {
   submit(e: Event) {
     e.preventDefault();
 
-    if (!this.file) { return; }
+    if (!this.file) {
+      return;
+    }
 
     const upload = new DirectUpload(this.file, ENV.directUploadURL);
 
-    upload.create(async (err: Error | null, blob: { signed_id: string }) => {
+    upload.create((err: Error | null, blob?: Blob) => {
       if (err) {
         alert(`Upload failed: ${err.message}`);
         return;
       }
 
-      const res = await this.request.fetchWithModal('/submission_requests', {
-        method: 'POST',
+      void this.request
+        .fetchWithModal('/submission_requests', {
+          method: 'POST',
 
-        headers: {
-          'Content-Type': 'application/json'
-        },
+          headers: {
+            'Content-Type': 'application/json',
+          },
 
-        body: JSON.stringify({
-          submission_request: {
-            ddbj_record: blob.signed_id
-          }
+          body: JSON.stringify({
+            submission_request: {
+              ddbj_record: blob!.signed_id,
+            },
+          }),
         })
-      });
-
-      const { id } = await res.json();
-
-      this.router.transitionTo('request', id);
+        .then((res) => res.json())
+        .then(({ id }: { id: number }) => {
+          this.router.transitionTo('request', id);
+        });
     });
   }
 
@@ -60,8 +64,6 @@ export default class extends Component {
     <h1 class="display-6 mb-4">New Request</h1>
 
     <form {{on "submit" this.submit}}>
-      <input type="hidden" name="db" value="Trad" />
-
       <div class="mb-3">
         {{#let (uniqueId) as |id|}}
           <label for={{id}} class="form-label">DDBJ Record</label>

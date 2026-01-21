@@ -12,8 +12,15 @@ import autoRefresh from 'repository/modifiers/auto-refresh';
 
 import type RequestService from 'repository/services/request';
 import type RouterService from '@ember/routing/router-service';
+import type { components } from 'schema/openapi';
 
-export default class extends Component {
+interface Signature {
+  Args: {
+    model: components['schemas']['SubmissionUpdate'];
+  };
+}
+
+export default class extends Component<Signature> {
   @service declare request: RequestService;
   @service declare router: RouterService;
 
@@ -47,7 +54,11 @@ export default class extends Component {
             <dt>File</dt>
 
             <dd>
-              <a href={{@model.ddbj_record.url}} target="_blank" rel="noopener noreferrer">{{@model.ddbj_record.filename}}</a>
+              <a
+                href={{@model.ddbj_record.url}}
+                target="_blank"
+                rel="noopener noreferrer"
+              >{{@model.ddbj_record.filename}}</a>
             </dd>
 
             <dt>Status</dt>
@@ -68,7 +79,11 @@ export default class extends Component {
             <dt>Started</dt>
 
             <dd>
-              {{formatDatetime @model.validation.created_at}}
+              {{#if @model.validation.created_at}}
+                {{formatDatetime @model.validation.created_at}}
+              {{else}}
+                -
+              {{/if}}
             </dd>
 
             <dt>Finished</dt>

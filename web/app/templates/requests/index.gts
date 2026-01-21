@@ -1,6 +1,13 @@
 import { LinkTo } from '@ember/routing';
 
+import { gt } from 'ember-truth-helpers';
+
 import formatDatetime from 'repository/helpers/format-datetime';
+import Pagination from 'repository/components/pagination';
+
+import type Controller from 'repository/controllers/requests/index';
+import type { TOC } from '@ember/component/template-only';
+import type { components } from 'schema/openapi';
 
 export default <template>
   <h1 class="display-6 mb-4">Requests</h1>
@@ -19,7 +26,7 @@ export default <template>
     </thead>
 
     <tbody>
-      {{#each @model as |request|}}
+      {{#each @model.requests as |request|}}
         <tr>
           <td>
             <LinkTo @route="request" @model={{request.id}}>
@@ -33,4 +40,17 @@ export default <template>
       {{/each}}
     </tbody>
   </table>
-</template>;
+
+  {{#if (gt @model.totalPages 1)}}
+    <Pagination @route="requests.index" @current={{@controller.page}} @total={{@model.totalPages}} />
+  {{/if}}
+</template> satisfies TOC<{
+  Args: {
+    model: {
+      requests: components['schemas']['SubmissionRequest'][];
+      totalPages: number;
+    };
+
+    controller: Controller;
+  };
+}>;

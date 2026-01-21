@@ -15,7 +15,7 @@ Router.map(function () {
     this.route('request', { path: ':request_id', resetNamespace: true });
   });
 
-  this.route('updates', function() {
+  this.route('updates', function () {
     this.route('update', { path: ':update_id', resetNamespace: true });
   });
 

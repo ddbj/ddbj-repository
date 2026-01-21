@@ -2,6 +2,9 @@ import { LinkTo } from '@ember/routing';
 
 import formatDatetime from 'repository/helpers/format-datetime';
 
+import type { TOC } from '@ember/component/template-only';
+import type { components } from 'schema/openapi';
+
 export default <template>
   <h1 class="display-6 mb-4">Submissions</h1>
 
@@ -29,4 +32,8 @@ export default <template>
       {{/each}}
     </tbody>
   </table>
-</template>
+</template> satisfies TOC<{
+  Args: {
+    model: components['schemas']['Submission'][];
+  };
+}>;

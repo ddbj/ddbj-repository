@@ -6,10 +6,16 @@ import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui-slim.js';
 import 'highlight.js/styles/github.css';
 import 'diff2html/bundles/css/diff2html.min.css';
 
-export default class extends Component {
+interface Signature {
+  Args: {
+    diff: string;
+  };
+}
+
+export default class extends Component<Signature> {
   drawDiff = modifier((element: HTMLElement) => {
     new Diff2HtmlUI(element, this.args.diff, {
-      drawFileList: false
+      drawFileList: false,
     }).draw();
   });
 

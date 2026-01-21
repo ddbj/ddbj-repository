@@ -1,11 +1,8 @@
 import type { TOC } from '@ember/component/template-only';
-import type { components } from 'schema/openapi';
-
-type Validity = components['schemas']['Validation']['validity'];
 
 interface Signature {
   Args: {
-    validity: Validity;
+    validity?: 'valid' | 'invalid' | 'error';
   };
 }
 
@@ -17,7 +14,7 @@ export default <template>
   {{/if}}
 </template> satisfies TOC<Signature>;
 
-function colorClass(validity: Exclude<Validity, null>) {
+function colorClass(validity: Exclude<Signature['Args']['validity'], undefined>): string {
   switch (validity) {
     case 'valid':
       return 'text-bg-success';

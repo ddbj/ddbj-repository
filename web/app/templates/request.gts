@@ -9,10 +9,17 @@ import { eq } from 'ember-truth-helpers';
 import formatDatetime from 'repository/helpers/format-datetime';
 import autoRefresh from 'repository/modifiers/auto-refresh';
 
-import type RequestService from 'ddbj-validate/services/request';
+import type RequestService from 'repository/services/request';
 import type RouterService from '@ember/routing/router-service';
+import type { components } from 'schema/openapi';
 
-export default class extends Component {
+interface Signature {
+  Args: {
+    model: components['schemas']['SubmissionRequest'];
+  };
+}
+
+export default class extends Component<Signature> {
   @service declare request: RequestService;
   @service declare router: RouterService;
 
@@ -38,7 +45,11 @@ export default class extends Component {
         <dt>File</dt>
 
         <dd>
-          <a href={{@model.ddbj_record.url}} target="_blank" rel="noopener noreferrer">{{@model.ddbj_record.filename}}</a>
+          <a
+            href={{@model.ddbj_record.url}}
+            target="_blank"
+            rel="noopener noreferrer"
+          >{{@model.ddbj_record.filename}}</a>
         </dd>
 
         <dt>Status</dt>
@@ -59,8 +70,8 @@ export default class extends Component {
         <dt>Started</dt>
 
         <dd>
-          {{#if @model.validation.started_at}}
-            {{formatDatetime @model.validation.started_at}}
+          {{#if @model.validation.created_at}}
+            {{formatDatetime @model.validation.created_at}}
           {{else}}
             -
           {{/if}}
