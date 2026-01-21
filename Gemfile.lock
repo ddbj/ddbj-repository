@@ -337,7 +337,7 @@ GEM
       actionpack
       activesupport
       railties
-    rdoc (7.0.3)
+    rdoc (7.1.0)
       erb
       psych (>= 4.0.0)
       tsort
@@ -397,10 +397,10 @@ GEM
       ffi (~> 1.12)
       logger
     securerandom (0.4.1)
-    sentry-rails (6.2.0)
+    sentry-rails (6.3.0)
       railties (>= 5.2.0)
-      sentry-ruby (~> 6.2.0)
-    sentry-ruby (6.2.0)
+      sentry-ruby (~> 6.3.0)
+    sentry-ruby (6.3.0)
       bigdecimal
       concurrent-ruby (~> 1.0, >= 1.0.2)
     skooma (0.3.7)
