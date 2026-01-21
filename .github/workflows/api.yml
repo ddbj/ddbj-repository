@@ -39,14 +39,6 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
-          working-directory: noodles_gff-rb
-
-      - run: bundle exec rake compile
-        working-directory: noodles_gff-rb
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          bundler-cache: true
 
       - run: bin/rails db:test:prepare
       - run: bundle exec rspec
