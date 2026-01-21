@@ -1,65 +1,41 @@
 class SubmissionsController < ApplicationController
-  include Pagy::Method
-
   def index
-    submissions = search_submissions.order(id: :desc)
-
-    pagy, @submissions = pagy(submissions, page: params[:page])
-
-    response.headers.merge! pagy.headers_hash
-  rescue Pagy::OverflowError => e
-    render json: {
-      error: e.message
-    }, status: :bad_request
+    @submissions = current_user.submissions.order(id: :desc)
   end
 
   def show
-    @submission = user_submissions.includes(accessions: :renewals).find(params.expect(:id))
+    @submission = current_user.submissions.includes(
+      :updates
+    ).order(
+      'submission_updates.id DESC'
+    ).find(params.expect(:id))
   end
 
   def create
-    validation  = current_user.validations.find(params.require(:validation_id))
-    param       = Database::MAPPING.fetch(validation.db).build_param(params)
-    @submission = Submission.create!(**submission_params, param:)
+    request = current_user.submission_requests.valid_only.joins(
+      :validation
+    ).where(
+      validations: {
+        finished_at: 1.day.ago..
+      }
+    ).find(params[:submission_request_id])
 
-    SubmitJob.perform_later @submission
+    ApplySubmissionRequestJob.perform_later request
 
-    render :show, status: :created
+    head :accepted
   end
 
-  private
+  def update
+    update = current_user.submission_updates.valid_only.joins(
+      :validation
+    ).where(
+      validations: {
+        finished_at: 1.day.ago..
+      }
+    ).find(params[:submission_update_id])
 
-  def submission_params
-    params.permit(:validation_id, :visibility)
-  end
+    ApplySubmissionUpdateJob.perform_later update
 
-  def user_submissions
-    current_user.submissions.includes(
-      validation: [
-        :user,
-
-        objs: [
-          :file_blob,
-          :validation_details
-        ]
-      ]
-    )
-  end
-
-  def search_submissions
-    db, created_at_after, created_at_before, result = params.values_at(
-      :db,
-      :created_at_after,
-      :created_at_before,
-      :result
-    ).map(&:presence)
-
-    submissions = user_submissions
-
-    submissions = submissions.where(validations: {db: db.split(',')})                if db
-    submissions = submissions.where(created_at: created_at_after..created_at_before) if created_at_after || created_at_before
-    submissions = submissions.where(result: result.split(','))                       if result
-
-    submissions
+    head :accepted
   end
 end

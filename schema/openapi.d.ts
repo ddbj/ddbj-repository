@@ -84,76 +84,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/validations": {
+    "/submission_requests": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description Get your validations. */
+        /** @description Get a list of submission requests. */
         get: {
             parameters: {
-                query?: {
-                    /** @description The page number to return. The default is 1.
-                     *      */
-                    page?: number;
-                    /** @description If true, return all validations. If false, return only your validations.
-                     *     (Administrator only)
-                     *      */
-                    everyone?: boolean;
-                    /** @description Return validations of the specified users.
-                     *     (Administrator only)
-                     *      */
-                    uid?: string[];
-                    /** @description Return validations of the specified databases.
-                     *      */
-                    db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2")[];
-                    created_at_after?: string;
-                    created_at_before?: string;
-                    progress?: ("waiting" | "running" | "finished" | "canceled")[];
-                    validity?: ("valid" | "invalid" | "error" | "null")[];
-                    submitted?: boolean;
-                };
+                query?: never;
                 header?: never;
                 path?: never;
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Return your validations. */
+                /** @description Returns the list of submission requests. */
                 200: {
                     headers: {
-                        /** @description GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details. */
-                        Link?: string;
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ValidationWithSubmission"][];
+                        "application/json": components["schemas"]["SubmissionRequest"][];
                     };
                 };
-                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
             };
         };
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/validations/via_file": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Validate submission files. */
+        /** @description Create a submission request. */
         post: {
             parameters: {
                 query?: never;
@@ -161,157 +122,99 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: components["requestBodies"]["ViaFile"];
-            responses: {
-                /** @description The validation process initiated successfully. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Validation"];
-                    };
-                };
-                400: components["responses"]["BadRequest"];
-                401: components["responses"]["Unauthorized"];
-                422: components["responses"]["UnprocessableContent"];
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/validations/via_ddbj_record": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Validate DDBJRecord. */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: components["requestBodies"]["ViaDDBJRecord"];
-            responses: {
-                /** @description The validation process initiated successfully. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Validation"];
-                    };
-                };
-                400: components["responses"]["BadRequest"];
-                401: components["responses"]["Unauthorized"];
-                422: components["responses"]["UnprocessableContent"];
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/validations/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get the validation. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Return the validation. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ValidationWithSubmission"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-            };
-        };
-        put?: never;
-        post?: never;
-        /** @description Cancel the validation. */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Validation canceled successfully. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            message: string;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        submission_request: {
+                            /** Format: binary */
+                            ddbj_record: string;
                         };
                     };
                 };
-                400: components["responses"]["BadRequest"];
+            };
+            responses: {
+                /** @description Accepted the submission request creation. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionRequest"];
+                    };
+                };
                 401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
                 422: components["responses"]["UnprocessableContent"];
             };
         };
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/validations/{id}/files/{path}": {
+    "/submission_requests/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description Get the submission file content. */
+        /** @description Get a submission request. */
         get: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
                     id: number;
-                    path: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Redirect to the file. */
-                302: {
+                /** @description Returns the requested submission request. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionRequest"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submission_requests/{id}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Apply a submission request. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the updated submission request. */
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -319,6 +222,45 @@ export interface paths {
                 };
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submission_updates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get a submission update. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the requested submission update. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionUpdate"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
             };
         };
         put?: never;
@@ -327,6 +269,45 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/submission_updates/{id}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Apply a submission update. */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted the submission update application. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
         trace?: never;
     };
     "/submissions": {
@@ -336,69 +317,30 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get your submissions. */
+        /** @description Get a list of submissions. */
         get: {
-            parameters: {
-                query?: {
-                    page?: number;
-                    /** @description Return submissions of the specified databases.
-                     *      */
-                    db?: ("BioProject" | "BioSample" | "Trad" | "DRA" | "GEA" | "MetaboBank" | "JVar" | "Trad2")[];
-                    created_at_after?: string;
-                    created_at_before?: string;
-                    result?: ("success" | "failure" | "error" | "null")[];
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Return your submissions. */
-                200: {
-                    headers: {
-                        /** @description The GitHub-style pagination URLs. See [Using pagination in the REST API - GitHub Docs](https://docs.github.com/en/rest/using-the-rest-api/using-pagination-in-the-rest-api?apiVersion=2022-11-28) for details. */
-                        Link?: string;
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SubmissionWithValidation"][];
-                    };
-                };
-                400: components["responses"]["BadRequest"];
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-            };
-        };
-        put?: never;
-        /** @description Submit the validation. */
-        post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json": components["schemas"]["SubmissionRequestBioProject"] | components["schemas"]["SubmissionRequestBioSample"] | components["schemas"]["SubmissionRequestTrad"] | components["schemas"]["SubmissionRequestDRA"] | components["schemas"]["SubmissionRequestGEA"] | components["schemas"]["SubmissionRequestMetaboBank"] | components["schemas"]["SubmissionRequestJVar"] | components["schemas"]["SubmissionRequestTrad2"];
-                };
-            };
+            requestBody?: never;
             responses: {
-                /** @description Submitted successfully. */
-                201: {
+                /** @description Returns the list of submissions. */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SubmissionWithValidation"];
+                        "application/json": components["schemas"]["Submission"][];
                     };
                 };
-                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
-                422: components["responses"]["UnprocessableContent"];
             };
         };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -412,25 +354,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get the submission. */
+        /** @description Get a submission. */
         get: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    id: string;
+                    id: number;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Return the submission. */
+                /** @description Returns the requested submission. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SubmissionWithValidation"];
+                        "application/json": components["schemas"]["Submission"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -445,783 +387,135 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/accessions/{number}": {
+    "/submissions/{id}/updates": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description Get the accession. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    number: string;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Return the accession. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Accession"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-            };
-        };
+        get?: never;
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description Update the accession. */
-        patch: {
+        /** @description Create a submission update. */
+        post: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    number: string;
+                    id: number;
                 };
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "multipart/form-data": {
-                        DDBJRecord: components["schemas"]["File"];
+                    "application/json": {
+                        submission_update: {
+                            /** Format: binary */
+                            ddbj_record: string;
+                        };
                     };
                 };
             };
             responses: {
-                /** @description Updated successfully. */
-                200: {
+                /** @description Accepted the submission update creation. */
+                202: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Accession"];
+                        "application/json": components["schemas"]["SubmissionUpdate"];
                     };
                 };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
                 422: components["responses"]["UnprocessableContent"];
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        ValidationWithSubmission: (components["schemas"]["BioProjectValidation"] | components["schemas"]["BioSampleValidation"] | components["schemas"]["TradValidation"] | components["schemas"]["DRAValidation"] | components["schemas"]["GEAValidation"] | components["schemas"]["MetaboBankValidation"] | components["schemas"]["JVarValidation"] | components["schemas"]["Trad2Validation"]) & {
+        SubmissionRequest: {
+            id: number;
+            status: components["schemas"]["SubmissionOperationStatus"];
+            error_message: string | null;
+            /** Format: date-time */
+            created_at: string;
+            processing: boolean;
+            ddbj_record: components["schemas"]["DDBJRecord"];
+            validation: components["schemas"]["Validation"] | null;
             submission: components["schemas"]["Submission"] | null;
         };
-        Validation: components["schemas"]["BioProjectValidation"] | components["schemas"]["BioSampleValidation"] | components["schemas"]["TradValidation"] | components["schemas"]["DRAValidation"] | components["schemas"]["GEAValidation"] | components["schemas"]["MetaboBankValidation"] | components["schemas"]["JVarValidation"] | components["schemas"]["Trad2Validation"];
-        BioProjectValidation: {
+        SubmissionUpdate: {
             id: number;
-            /** Format: uri */
-            url: string;
-            user: {
-                uid: string;
-            };
-            /** @constant */
-            db: "BioProject";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            objects: components["schemas"]["Objects"];
-            results: components["schemas"]["ValidationResult"][];
-            raw_result?: Record<string, never> | null;
-        };
-        BioSampleValidation: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            user: {
-                uid: string;
-            };
-            /** @constant */
-            db: "BioSample";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            objects: components["schemas"]["Objects"];
-            results: components["schemas"]["ValidationResult"][];
-            raw_result?: Record<string, never> | null;
-        };
-        TradValidation: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            user: {
-                uid: string;
-            };
-            /** @constant */
-            db: "Trad";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            objects: components["schemas"]["Objects"];
-            results: components["schemas"]["ValidationResult"][];
-            raw_result?: Record<string, never> | null;
-        };
-        DRAValidation: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            user: {
-                uid: string;
-            };
-            /** @constant */
-            db: "DRA";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            objects: components["schemas"]["Objects"];
-            results: components["schemas"]["ValidationResult"][];
-            raw_result?: Record<string, never> | null;
-        };
-        GEAValidation: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            user: {
-                uid: string;
-            };
-            /** @constant */
-            db: "GEA";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            objects: components["schemas"]["Objects"];
-            results: components["schemas"]["ValidationResult"][];
-            raw_result?: Record<string, never> | null;
-        };
-        MetaboBankValidation: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            user: {
-                uid: string;
-            };
-            /** @constant */
-            db: "MetaboBank";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            objects: components["schemas"]["Objects"];
-            results: components["schemas"]["ValidationResult"][];
-            raw_result?: Record<string, never> | null;
-        };
-        JVarValidation: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            user: {
-                uid: string;
-            };
-            /** @constant */
-            db: "JVar";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            objects: components["schemas"]["Objects"];
-            results: components["schemas"]["ValidationResult"][];
-            raw_result?: Record<string, never> | null;
-        };
-        Trad2Validation: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            user: {
-                uid: string;
-            };
-            /** @constant */
-            db: "Trad2";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            objects: components["schemas"]["Objects"];
-            results: components["schemas"]["ValidationResult"][];
-            raw_result?: Record<string, never> | null;
-        };
-        SubmissionRequestBioProject: {
-            /** @constant */
-            db: "BioProject";
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            umbrella: boolean;
-        };
-        SubmissionRequestBioSample: {
-            /** @constant */
-            db: "BioSample";
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-        };
-        SubmissionRequestTrad: {
-            /** @constant */
-            db: "Trad";
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-        };
-        SubmissionRequestDRA: {
-            /** @constant */
-            db: "DRA";
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-        };
-        SubmissionRequestGEA: {
-            /** @constant */
-            db: "GEA";
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-        };
-        SubmissionRequestMetaboBank: {
-            /** @constant */
-            db: "MetaboBank";
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-        };
-        SubmissionRequestJVar: {
-            /** @constant */
-            db: "JVar";
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-        };
-        SubmissionRequestTrad2: {
-            /** @constant */
-            db: "Trad2";
-            validation_id: number;
-            /** @enum {string} */
-            visibility: "public" | "private";
-        };
-        SubmissionWithValidation: components["schemas"]["Submission"] & {
-            validation: components["schemas"]["Validation"];
-        };
-        Submission: components["schemas"]["BioProjectSubmission"] | components["schemas"]["BioSampleSubmission"] | components["schemas"]["TradSubmission"] | components["schemas"]["DRASubmission"] | components["schemas"]["GEASubmission"] | components["schemas"]["MetaboBankSubmission"] | components["schemas"]["JVarSubmission"] | components["schemas"]["Trad2Submission"];
-        BioProjectSubmission: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            /** @constant */
-            db: "BioProject";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            result: "success" | "failure" | null;
+            status: components["schemas"]["SubmissionOperationStatus"];
+            diff: string | null;
             error_message: string | null;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            accessions: {
-                number: string;
-                entry_id: string;
-                version: number;
-                /** Format: date-time */
-                last_updated_at: string;
-            }[];
-            umbrella: boolean;
+            /** Format: date-time */
+            created_at: string;
+            processing: boolean;
+            ddbj_record: components["schemas"]["DDBJRecord"];
+            validation: components["schemas"]["Validation"] | null;
+            submission: components["schemas"]["Submission"];
         };
-        BioSampleSubmission: {
+        Validation: {
             id: number;
-            /** Format: uri */
-            url: string;
-            /** @constant */
-            db: "BioSample";
+            /** @enum {string} */
+            progress: "running" | "finished" | "canceled";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
             finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
             /** @enum {string|null} */
-            result: "success" | "failure" | null;
-            error_message: string | null;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            accessions: {
-                number: string;
+            validity: "valid" | "invalid" | null;
+            details: {
+                filename: string;
                 entry_id: string;
-                version: number;
-                /** Format: date-time */
-                last_updated_at: string;
+                code: string;
+                /** @enum {string} */
+                severity: "warning" | "error";
+                message: string;
             }[];
         };
-        TradSubmission: {
+        Submission: {
             id: number;
-            /** Format: uri */
-            url: string;
-            /** @constant */
-            db: "Trad";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            result: "success" | "failure" | null;
-            error_message: string | null;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            accessions: {
-                number: string;
-                entry_id: string;
-                version: number;
+            updated_at: string;
+            ddbj_record: components["schemas"]["DDBJRecord"];
+            accessions: components["schemas"]["Accession"][];
+            updates: {
+                id: number;
+                status: components["schemas"]["SubmissionOperationStatus"];
                 /** Format: date-time */
-                last_updated_at: string;
+                created_at: string;
+                ddbj_record: components["schemas"]["DDBJRecord"];
+                validation: components["schemas"]["Validation"] | null;
             }[];
         };
-        DRASubmission: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            /** @constant */
-            db: "DRA";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            result: "success" | "failure" | null;
-            error_message: string | null;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            accessions: {
-                number: string;
-                entry_id: string;
-                version: number;
-                /** Format: date-time */
-                last_updated_at: string;
-            }[];
-        };
-        GEASubmission: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            /** @constant */
-            db: "GEA";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            result: "success" | "failure" | null;
-            error_message: string | null;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            accessions: {
-                number: string;
-                entry_id: string;
-                version: number;
-                /** Format: date-time */
-                last_updated_at: string;
-            }[];
-        };
-        MetaboBankSubmission: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            /** @constant */
-            db: "MetaboBank";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            result: "success" | "failure" | null;
-            error_message: string | null;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            accessions: {
-                number: string;
-                entry_id: string;
-                version: number;
-                /** Format: date-time */
-                last_updated_at: string;
-            }[];
-        };
-        JVarSubmission: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            /** @constant */
-            db: "JVar";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            result: "success" | "failure" | null;
-            error_message: string | null;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            accessions: {
-                number: string;
-                entry_id: string;
-                version: number;
-                /** Format: date-time */
-                last_updated_at: string;
-            }[];
-        };
-        Trad2Submission: {
-            id: number;
-            /** Format: uri */
-            url: string;
-            /** @constant */
-            db: "Trad2";
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            result: "success" | "failure" | null;
-            error_message: string | null;
-            /** @enum {string} */
-            visibility: "public" | "private";
-            accessions: {
-                number: string;
-                entry_id: string;
-                version: number;
-                /** Format: date-time */
-                last_updated_at: string;
-            }[];
-        };
-        Objects: {
-            /** @enum {string} */
-            id: "BioProject" | "BioSample" | "Sequence" | "Annotation" | "DDBJRecord" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
-            files: {
-                path: string;
-                /** Format: uri */
-                url: string;
-            }[];
-        }[];
         Accession: {
             number: string;
             entry_id: string;
             version: number;
             /** Format: date-time */
             last_updated_at: string;
-            renewals?: components["schemas"]["AccessionRenewal"][];
         };
-        AccessionRenewal: {
-            id: number;
-            /** Format: date-time */
-            created_at: string;
-            /** Format: date-time */
-            started_at: string | null;
-            /** Format: date-time */
-            finished_at: string | null;
-            /** @enum {string} */
-            progress: "waiting" | "running" | "finished" | "canceled";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            file: {
-                filename: string;
-                /** Format: url */
-                url: string;
-            } | null;
-            validation_details: {
-                severity: string;
-                message: string;
-            }[];
+        DDBJRecord: {
+            filename: string;
+            /** Format: uri */
+            url: string;
         };
-        ValidationResult: {
-            /** @enum {string} */
-            object_id: "_base" | "BioProject" | "BioSample" | "Sequence" | "Annotation" | "DDBJRecord" | "Submission" | "Experiment" | "Run" | "RunFile" | "Analysis" | "AnalysisFile" | "IDF" | "SDRF" | "ADF" | "RawDataFile" | "ProcessedDataFile" | "MAF" | "Excel" | "VariantCallFile" | "Metadata";
-            /** @enum {string|null} */
-            validity: "valid" | "invalid" | "error" | null;
-            details: {
-                entry_id: string | null;
-                code: string | null;
-                severity: string | null;
-                message: string | null;
-            }[];
-            file: {
-                path: string;
-                /** Format: uri */
-                url: string;
-            } | null;
-        };
-        /** Format: binary */
-        File: string;
-        /** @description Path of the file on the NIG supercomputer, relative to the home directory of the authorised user.
-         *
-         *     Note: If both file and path are specified, the file takes precedence.
-         *      */
-        Path: string;
-        /** @description Destination of the file to be submitted. */
-        Destination: string;
+        /** @enum {string} */
+        SubmissionOperationStatus: "waiting" | "validating" | "validation_failed" | "ready_to_apply" | "applying" | "applied" | "application_failed" | "no_change";
         Error: {
-            error: string;
-        };
-        BioProjectViaFile: {
-            /** @constant */
-            db: "BioProject";
-            BioProject: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-        };
-        BioSampleViaFile: {
-            /** @constant */
-            db: "BioSample";
-            BioSample: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-        };
-        TradViaFile: {
-            /** @constant */
-            db: "Trad";
-            Sequence: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            Annotation: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-        };
-        DRAViaFile: {
-            /** @constant */
-            db: "DRA";
-            Submission: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            Experiment: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            Run: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            RunFile: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            Analysis?: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            AnalysisFile?: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-        };
-        GEAViaFile: {
-            /** @constant */
-            db: "GEA";
-            IDF: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            SDRF: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            ADF?: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            RawDataFile?: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            ProcessedDataFile?: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-        };
-        MetaboBankViaFile: {
-            /** @constant */
-            db: "MetaboBank";
-            IDF: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            SDRF: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            MAF?: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            RawDataFile?: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            ProcessedDataFile?: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            BioSample?: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-        };
-        JVarViaFile: {
-            /** @constant */
-            db: "JVar";
-            Excel: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
-            VariantCallFile?: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-        };
-        Trad2ViaFile: {
-            /** @constant */
-            db: "Trad2";
-            Sequence: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            Annotation: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-            Metadata: ({
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown))[];
-        };
-        TradViaDDBJRecord: {
-            /** @constant */
-            db: "Trad";
-            DDBJRecord: {
-                file?: components["schemas"]["File"];
-                path?: components["schemas"]["Path"];
-                destination?: components["schemas"]["Destination"];
-            } & (unknown | unknown);
+            message: string;
         };
     };
     responses: {
@@ -1272,18 +566,7 @@ export interface components {
         };
     };
     parameters: never;
-    requestBodies: {
-        ViaFile: {
-            content: {
-                "multipart/form-data": components["schemas"]["BioProjectViaFile"] | components["schemas"]["BioSampleViaFile"] | components["schemas"]["TradViaFile"] | components["schemas"]["DRAViaFile"] | components["schemas"]["GEAViaFile"] | components["schemas"]["MetaboBankViaFile"] | components["schemas"]["JVarViaFile"] | components["schemas"]["Trad2ViaFile"];
-            };
-        };
-        ViaDDBJRecord: {
-            content: {
-                "multipart/form-data": components["schemas"]["TradViaDDBJRecord"];
-            };
-        };
-    };
+    requestBodies: never;
     headers: never;
     pathItems: never;
 }

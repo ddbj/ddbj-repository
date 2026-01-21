@@ -103,8 +103,6 @@ RUN groupadd --system --gid ${APP_GID:?} rails && \
     chown -R rails:rails db log storage tmp
 USER ${APP_UID:?}:${APP_GID:?}
 
-RUN bundle exec submission-excel2xml download_xsd
-
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]
 

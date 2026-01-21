@@ -22,4 +22,5 @@ export default config as {
   rootURL: string;
   APP: Record<string, unknown>;
   apiURL: string;
+  directUploadURL: string;
 } & Record<string, unknown>;

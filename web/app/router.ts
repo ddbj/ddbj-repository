@@ -10,27 +10,24 @@ Router.map(function () {
   this.route('login');
   this.route('account');
 
-  this.route('validations', function () {
+  this.route('requests', function () {
     this.route('new');
-    this.route('validation', { path: ':validation_id', resetNamespace: true });
+    this.route('request', { path: ':request_id', resetNamespace: true });
+  });
+
+  this.route('updates', function () {
+    this.route('update', { path: ':update_id', resetNamespace: true });
   });
 
   this.route('submissions', function () {
     this.route('submission', { path: ':submission_id', resetNamespace: true }, function () {
-      this.route('accession', { path: '/accessions/:number', resetNamespace: true }, function () {
-        this.route('accession_renewals', { resetNamespace: true }, function () {
-          this.route('new');
-          this.route('accession_renewal', { path: ':accession_renewal_id', resetNamespace: true });
-        });
+      this.route('updates', function () {
+        this.route('new');
       });
     });
   });
 
   this.route('admin', function () {
-    this.route('validations', function () {
-      this.route('validation', { path: ':validation_id' });
-    });
-
     this.route('proxy-login');
   });
 });

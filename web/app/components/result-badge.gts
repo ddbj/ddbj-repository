@@ -1,11 +1,8 @@
 import type { TOC } from '@ember/component/template-only';
-import type { components } from 'schema/openapi';
-
-type Result = components['schemas']['Submission']['result'];
 
 interface Signature {
   Args: {
-    result: Result;
+    result?: 'success' | 'failure';
   };
 }
 
@@ -17,7 +14,7 @@ export default <template>
   {{/if}}
 </template> satisfies TOC<Signature>;
 
-function colorClass(result: Exclude<Result, null>) {
+function colorClass(result: Exclude<Signature['Args']['result'], undefined>): string {
   switch (result) {
     case 'success':
       return 'text-bg-success';

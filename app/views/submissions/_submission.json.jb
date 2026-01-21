@@ -1,21 +1,38 @@
-# locals: (submission:, validation: false)
+# locals: (submission:)
 
 {
   **submission.slice(
     :id,
     :created_at,
-    :started_at,
-    :finished_at,
-    :progress,
-    :result,
-    :error_message,
-    :visibility
+    :updated_at
   ),
 
-  db:         submission.validation.db,
-  url:        submission_url(submission),
-  accessions: render(partial: 'accessions/accession', collection: submission.accessions),
+  ddbj_record: submission.ddbj_record.then {|record|
+    record.attached? ? {
+      filename: record.filename,
+      url:      rails_blob_url(record)
+    } : nil
+  },
 
-  **submission.param&.as_json,
-  **(validation ? {validation: render(submission.validation)} : nil)
+  accessions: submission.accessions.map {|accession|
+    accession.slice(
+      :number,
+      :entry_id,
+      :version,
+      :last_updated_at
+    )
+  },
+
+  updates: submission.updates.map {|update|
+    {
+      **update.slice(
+        :id,
+        :status,
+        :created_at
+      ),
+
+      ddbj_record: render('blob', blob: update.ddbj_record),
+      validation:  update.validation_with_validity&.then { render(it) }
+    }
+  }
 }

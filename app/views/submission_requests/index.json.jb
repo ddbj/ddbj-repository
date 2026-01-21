@@ -1,0 +1,1 @@
+render(partial: 'submission_request', collection: @requests)

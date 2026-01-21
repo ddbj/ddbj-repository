@@ -1,11 +1,8 @@
 import type { TOC } from '@ember/component/template-only';
-import type { components } from 'schema/openapi';
-
-type Code = components['schemas']['ValidationResult']['details'][0]['code'];
 
 interface Signature {
   Args: {
-    code: Code;
+    code?: string;
   };
 }
 
@@ -23,10 +20,10 @@ export default <template>
   {{/if}}
 </template> satisfies TOC<Signature>;
 
-function url(code: Exclude<Code, null>) {
+function url(code: string): string | null {
   if (/^BS_R\d{4}$/.test(code)) {
     return `https://www.ddbj.nig.ac.jp/biosample/validation-e.html#${code}`;
   } else {
-    return undefined;
+    return null;
   }
 }

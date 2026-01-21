@@ -1,18 +1,12 @@
 class Submission < ApplicationRecord
-  belongs_to :validation
+  has_one :request, dependent: :destroy, class_name: 'SubmissionRequest'
 
+  has_many :updates,    dependent: :destroy, class_name: 'SubmissionUpdate'
   has_many :accessions, dependent: :destroy
 
-  delegated_type :param, types: %w[BioProjectSubmissionParam], optional: true, dependent: :destroy
+  has_one_attached :ddbj_record
 
-  validates :validation_id, uniqueness: {message: 'is already submitted'}
-
-  validate :validation_must_be_valid
-  validate :validation_finished_at_must_be_in_24_hours
-
-  enum :progress,   %w[waiting running finished canceled].index_by(&:to_sym)
-  enum :result,     %w[success failure].index_by(&:to_sym)
-  enum :visibility, %w[public private].index_by(&:to_sym), prefix: true
+  validates :ddbj_record, attached: true, content_type: 'application/json', on: :update
 
   after_destroy do |submission|
     submission.dir.rmtree
@@ -21,20 +15,6 @@ class Submission < ApplicationRecord
   def dir
     base = Rails.application.config_for(:app).repository_dir!
 
-    Pathname.new(base).join(validation.user.uid, 'submissions', id.to_s)
-  end
-
-  private
-
-  def validation_must_be_valid
-    unless validation.validity == 'valid'
-      errors.add :validation, 'must be valid'
-    end
-  end
-
-  def validation_finished_at_must_be_in_24_hours
-    if validation.validity == 'valid' && validation.finished_at <= 1.day.ago
-      errors.add :validation, 'finished_at must be in 24 hours'
-    end
+    Pathname.new(base).join(request.user.uid, 'submissions', id.to_s)
   end
 end

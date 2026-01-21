@@ -7,6 +7,6 @@ export default class AdminIndexRoute extends Route {
   @service declare router: RouterService;
 
   beforeModel() {
-    this.router.transitionTo('admin.validations');
+    this.router.transitionTo('admin.proxy-login');
   }
 }

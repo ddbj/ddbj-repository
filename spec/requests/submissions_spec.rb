@@ -1,165 +1,32 @@
 require 'rails_helper'
 
-RSpec.describe '/api/submissions', type: :request, authorized: true do
-  let_it_be(:user) { create_default(:user, uid: 'alice') }
-
-  before do
-    default_headers[:Authorization] = "Bearer #{user.token}"
-  end
+RSpec.describe '/api/submissions', type: :request do
+  let(:user)            { create(:user) }
+  let(:default_headers) { {'Authorization' => "Bearer #{user.api_key}"} }
 
   example 'index' do
-    create :submission
+    submission1 = create(:submission, user:)
+    submission2 = create(:submission, user:)
 
-    get '/api/submissions'
-
-    expect(response).to conform_schema(200)
-  end
-
-  example 'show' do
-    travel_to '2024-01-02'
-
-    create :validation, :valid, id: 100, db: 'JVar', created_at: '2024-01-02 03:04:56', started_at: '2024-01-02 03:04:57', finished_at: '2024-01-02 03:04:58' do |validation|
-      create :submission, validation:, id: 200, created_at: '2024-01-02 03:04:58'
-
-      create :obj, validation:, _id: 'Excel', file: uploaded_file(name: 'myexcel.xlsx'), destination: 'dest', validity: 'valid'
-    end
-
-    get '/api/submissions/200'
+    get submissions_path
 
     expect(response).to conform_schema(200)
 
-    expect(response.parsed_body.deep_symbolize_keys).to eq(
-      id:            200,
-      url:           'http://www.example.com/api/submissions/200',
-      db:            'JVar',
-      created_at:    '2024-01-02T03:04:58.000+09:00',
-      started_at:    nil,
-      finished_at:   nil,
-      progress:      'waiting',
-      result:        nil,
-      error_message: nil,
-      accessions:    [],
-
-      validation:    {
-        id:          100,
-        url:         'http://www.example.com/api/validations/100',
-
-        user:        {
-          uid:       'alice'
-        },
-
-        db:          'JVar',
-        created_at:  '2024-01-02T03:04:56.000+09:00',
-        started_at:  '2024-01-02T03:04:57.000+09:00',
-        finished_at: '2024-01-02T03:04:58.000+09:00',
-        progress:    'finished',
-        validity:    'valid',
-
-        objects: [
-          id: 'Excel',
-
-          files: [
-            path: 'dest/myexcel.xlsx',
-            url:  'http://www.example.com/api/validations/100/files/dest/myexcel.xlsx'
-          ]
-        ],
-
-        results: [
-          {
-            object_id: '_base',
-            validity:  'valid',
-            details:   [],
-            file:      nil
-          },
-          {
-            object_id: 'Excel',
-            validity:  'valid',
-            details:   [],
-
-            file: {
-              path: 'dest/myexcel.xlsx',
-              url:  'http://www.example.com/api/validations/100/files/dest/myexcel.xlsx'
-            }
-          }
-        ],
-
-        raw_result: nil
-      },
-
-      visibility: 'public'
+    expect(response.parsed_body).to contain_exactly(
+      include(id: submission1.id),
+      include(id: submission2.id)
     )
   end
 
-  describe 'create' do
-    example 'ok' do
-      create :validation, :valid, id: 42, db: 'JVar'
+  example 'show' do
+    submission = create(:submission, user:)
 
-      post '/api/submissions', params: {
-        db:            'JVar',
-        validation_id: 42,
-        visibility:    'public'
-      }, as: :json
+    get submission_path(submission)
 
-      expect(response).to conform_schema(201)
-      expect(response.parsed_body.deep_symbolize_keys.dig(:validation, :id)).to eq(42)
-    end
+    expect(response).to conform_schema(200)
 
-    example 'validity is not valid' do
-      create :validation, id: 42, db: 'JVar'
-
-      with_exceptions_app do
-        post '/api/submissions', params: {
-          db:            'JVar',
-          validation_id: 42,
-          visibility:    'public'
-        }, as: :json
-      end
-
-      expect(response).to have_http_status(422)
-
-      expect(response.parsed_body.deep_symbolize_keys).to eq(
-        error: 'Validation failed: Validation must be valid'
-      )
-    end
-
-    example 'expired' do
-      travel_to '2024-01-03 03:04:56'
-
-      create :validation, :valid, id: 42, db: 'JVar', finished_at: '2024-01-02 03:04:56'
-
-      with_exceptions_app do
-        post '/api/submissions', params: {
-          db:            'JVar',
-          validation_id: 42,
-          visibility:    'public'
-        }, as: :json
-      end
-
-      expect(response).to have_http_status(422)
-
-      expect(response.parsed_body.deep_symbolize_keys).to eq(
-        error: 'Validation failed: Validation finished_at must be in 24 hours'
-      )
-    end
-
-    example 'duplicated' do
-      create :validation, :valid, id: 42, db: 'JVar' do |validation|
-        create :submission, validation:
-      end
-
-      with_exceptions_app do
-        post '/api/submissions', params: {
-          db:            'JVar',
-          validation_id: 42,
-          visibility:    'public'
-        }, as: :json
-      end
-
-      expect(response).to have_http_status(422)
-
-      expect(response.parsed_body.deep_symbolize_keys).to eq(
-        error: 'Validation failed: Validation is already submitted'
-      )
-    end
+    expect(response.parsed_body).to include(
+      id: submission.id
+    )
   end
 end
