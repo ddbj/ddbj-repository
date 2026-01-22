@@ -1,7 +1,11 @@
 import { LinkTo } from '@ember/routing';
 
-import formatDatetime from 'repository/helpers/format-datetime';
+import { gt } from 'ember-truth-helpers';
 
+import formatDatetime from 'repository/helpers/format-datetime';
+import Pagination from 'repository/components/pagination';
+
+import type Controller from 'repository/controllers/submissions/index';
 import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
@@ -18,7 +22,7 @@ export default <template>
     </thead>
 
     <tbody>
-      {{#each @model as |submission|}}
+      {{#each @model.submissions as |submission|}}
         <tr>
           <td>
             <LinkTo @route="submission" @model={{submission.id}}>
@@ -32,8 +36,17 @@ export default <template>
       {{/each}}
     </tbody>
   </table>
+
+  {{#if (gt @model.totalPages 1)}}
+    <Pagination @route="submissions.index" @current={{@controller.page}} @total={{@model.totalPages}} />
+  {{/if}}
 </template> satisfies TOC<{
   Args: {
-    model: components['schemas']['Submission'][];
+    model: {
+      submissions: components['schemas']['Submission'][];
+      totalPages: number;
+    };
+
+    controller: Controller;
   };
 }>;

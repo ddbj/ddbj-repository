@@ -9,9 +9,25 @@ import type { paths } from 'schema/openapi';
 export default class extends Route {
   @service declare request: RequestService;
 
-  async model() {
-    const res = await this.request.fetch(`${ENV.apiURL}/submissions`);
+  queryParams = {
+    page: {
+      refreshModel: true,
+    },
+  };
 
-    return (await res.json()) as paths['/submissions']['get']['responses']['200']['content']['application/json'];
+  async model({ page }: { page?: number }) {
+    const url = new URL('/api/submissions', ENV.apiURL);
+
+    if (page) {
+      url.searchParams.set('page', page.toString());
+    }
+
+    const res = await this.request.fetch(url.toString());
+
+    return {
+      submissions:
+        (await res.json()) as paths['/submissions']['get']['responses']['200']['content']['application/json'],
+      totalPages: Number(res.headers.get('Total-Pages')) || 1,
+    };
   }
 }
