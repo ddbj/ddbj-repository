@@ -6,8 +6,10 @@ import { service } from '@ember/service';
 
 import { eq } from 'ember-truth-helpers';
 
-import formatDatetime from 'repository/helpers/format-datetime';
+import StatusBadge from 'repository/components/status-badge';
+import ValidityBadge from 'repository/components/validity-badge';
 import autoRefresh from 'repository/modifiers/auto-refresh';
+import formatDatetime from 'repository/helpers/format-datetime';
 
 import type RequestService from 'repository/services/request';
 import type RouterService from '@ember/routing/router-service';
@@ -53,7 +55,7 @@ export default class extends Component<Signature> {
         </dd>
 
         <dt>Status</dt>
-        <dd>{{@model.status}}</dd>
+        <dd><StatusBadge @status={{@model.status}} /></dd>
 
         {{#if @model.error_message}}
           <dt>Error</dt>
@@ -65,7 +67,7 @@ export default class extends Component<Signature> {
 
       <dl class="horizontal">
         <dt>Progress</dt>
-        <dd>{{@model.validation.progress}}</dd>
+        <dd class="text-capitalize">{{@model.validation.progress}}</dd>
 
         <dt>Started</dt>
 
@@ -88,7 +90,11 @@ export default class extends Component<Signature> {
         </dd>
 
         <dt>Validity</dt>
-        <dd>{{@model.validation.validity}}</dd>
+        <dd>
+          {{#if @model.validation.validity}}
+            <ValidityBadge @validity={{@model.validation.validity}} />
+          {{/if}}
+        </dd>
       </dl>
 
       <details class="my-3">

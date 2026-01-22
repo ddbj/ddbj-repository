@@ -1,7 +1,8 @@
 import { LinkTo } from '@ember/routing';
 
-import formatDatetime from 'repository/helpers/format-datetime';
 import Pagination from 'repository/components/pagination';
+import StatusBadge from 'repository/components/status-badge';
+import formatDatetime from 'repository/helpers/format-datetime';
 
 import type Controller from 'repository/controllers/requests/index';
 import type { TOC } from '@ember/component/template-only';
@@ -33,7 +34,7 @@ export default <template>
           </td>
 
           <td>{{formatDatetime request.created_at}}</td>
-          <td>{{request.status}}</td>
+          <td><StatusBadge @status={{request.status}} /></td>
         </tr>
       {{/each}}
     </tbody>
