@@ -61,6 +61,7 @@ accessories:
 
     proxy:
       app_port: 9000
+      response_timeout: 86400 # 24 hours
 
       healthcheck:
         path: /minio/health/live
