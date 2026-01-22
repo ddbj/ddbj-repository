@@ -1,7 +1,5 @@
 import { LinkTo } from '@ember/routing';
 
-import { gt } from 'ember-truth-helpers';
-
 import formatDatetime from 'repository/helpers/format-datetime';
 import Pagination from 'repository/components/pagination';
 
@@ -37,9 +35,7 @@ export default <template>
     </tbody>
   </table>
 
-  {{#if (gt @model.totalPages 1)}}
-    <Pagination @route="submissions.index" @current={{@controller.page}} @total={{@model.totalPages}} />
-  {{/if}}
+  <Pagination @route="submissions.index" @current={{@controller.page}} @total={{@model.totalPages}} />
 </template> satisfies TOC<{
   Args: {
     model: {
