@@ -183,8 +183,8 @@ importers:
         specifier: ^8.2.5
         version: 8.2.5(eslint@9.39.2)
       globals:
-        specifier: ^17.0.0
-        version: 17.0.0
+        specifier: ^17.1.0
+        version: 17.1.0
       highlight.js:
         specifier: ^11.11.1
         version: 11.11.1
@@ -3904,8 +3904,8 @@ packages:
     resolution: {integrity: sha512-7ACyT3wmyp3I61S4fG682L0VA2RGD9otkqGJIwNUMF1SWUombIIk+af1unuDYgMm082aHYwD+mzJvv9Iu8dsgg==}
     engines: {node: '>=18'}
 
-  globals@17.0.0:
-    resolution: {integrity: sha512-gv5BeD2EssA793rlFWVPMMCqefTlpusw6/2TbAVMy0FzcG8wKJn4O+NqJ4+XWmmwrayJgw5TzrmWjFgmz1XPqw==}
+  globals@17.1.0:
+    resolution: {integrity: sha512-8HoIcWI5fCvG5NADj4bDav+er9B9JMj2vyL2pI8D0eismKyUvPLTSs+Ln3wqhwcp306i73iyVnEKx3F6T47TGw==}
     engines: {node: '>=18'}
 
   globalthis@1.0.4:
@@ -8252,12 +8252,12 @@ snapshots:
       '@types/ember__object': 4.0.12(@babel/core@7.28.6)
       '@types/ember__polyfills': 4.0.6
       '@types/ember__routing': 4.0.22(@babel/core@7.28.6)
-      '@types/ember__runloop': 4.0.10
+      '@types/ember__runloop': 4.0.10(@babel/core@7.28.6)
       '@types/ember__service': 4.0.9(@babel/core@7.28.6)
       '@types/ember__string': 3.0.15
       '@types/ember__template': 4.0.7
       '@types/ember__test': 4.0.6(@babel/core@7.28.6)
-      '@types/ember__utils': 4.0.7(@babel/core@7.28.6)
+      '@types/ember__utils': 4.0.7
       '@types/rsvp': 4.0.9
     optional: true
 
@@ -8390,11 +8390,6 @@ snapshots:
       - supports-color
     optional: true
 
-  '@types/ember__runloop@4.0.10':
-    dependencies:
-      '@types/ember': 4.0.11
-    optional: true
-
   '@types/ember__runloop@4.0.10(@babel/core@7.28.6)':
     dependencies:
       '@types/ember': 4.0.11(@babel/core@7.28.6)
@@ -8423,6 +8418,11 @@ snapshots:
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
+    optional: true
+
+  '@types/ember__utils@4.0.7':
+    dependencies:
+      '@types/ember': 4.0.11
     optional: true
 
   '@types/ember__utils@4.0.7(@babel/core@7.28.6)':
@@ -11481,7 +11481,7 @@ snapshots:
 
   globals@15.15.0: {}
 
-  globals@17.0.0: {}
+  globals@17.1.0: {}
 
   globalthis@1.0.4:
     dependencies:
