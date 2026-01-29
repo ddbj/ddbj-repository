@@ -13,7 +13,7 @@ class ApplySubmissionRequestJob < ApplicationJob
       Rails.error.report e
 
       request.update!(
-        status:        :submission_failed,
+        status:        :application_failed,
         error_message: e.message
       )
     else
