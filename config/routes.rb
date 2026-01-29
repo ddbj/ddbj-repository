@@ -26,6 +26,10 @@ Rails.application.routes.draw do
     resources :stats, only: %i[index]
   end
 
+  namespace :admin do
+    mount MissionControl::Jobs::Engine, at: '/jobs'
+  end
+
   get 'web/*paths', to: 'webs#show'
 
   get 'up' => 'rails/health#show', as: :rails_health_check

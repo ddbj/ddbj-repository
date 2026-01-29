@@ -11,9 +11,11 @@ gem 'jb'
 gem 'json'
 gem 'jwt'
 gem 'kamal', require: false
+gem 'mission_control-jobs'
 gem 'omniauth_openid_connect'
 gem 'pagy'
 gem 'pg'
+gem 'propshaft' # mission_control-jobs
 gem 'puma'
 gem 'rack-cors'
 gem 'rambulance'
