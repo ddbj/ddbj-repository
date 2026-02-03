@@ -32,6 +32,10 @@ class SubmissionsController < ApplicationController
       }
     ).find(params[:submission_request_id])
 
+    raise ActiveRecord::RecordInvalid unless request.ready_to_apply?
+
+    request.waiting_application!
+
     ApplySubmissionRequestJob.perform_later request
 
     head :accepted
@@ -45,6 +49,10 @@ class SubmissionsController < ApplicationController
         finished_at: 1.day.ago..
       }
     ).find(params[:submission_update_id])
+
+    raise ActiveRecord::RecordInvalid unless update.ready_to_apply?
+
+    update.waiting_application!
 
     ApplySubmissionUpdateJob.perform_later update
 

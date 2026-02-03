@@ -5,8 +5,9 @@ class SubmissionUpdatesController < ApplicationController
 
   def create
     submission = current_user.submissions.find(params[:submission_id])
+    @update    = submission.updates.create!(update_params)
 
-    @update = submission.updates.create!(update_params)
+    raise ActiveRecord::RecordInvalid unless @update.waiting_validation?
 
     ValidateDDBJRecordJob.perform_later @update
     CalculateDDBJRecordDiffJob.perform_later @update

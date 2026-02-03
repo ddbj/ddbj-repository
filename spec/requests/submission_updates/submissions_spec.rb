@@ -5,7 +5,7 @@ RSpec.describe '/api/submission_updates/:submission_update_id/submission', type:
   let(:default_headers) { {'Authorization' => "Bearer #{user.api_key}"} }
 
   example 'create' do
-    update = create(:submission_update, user:)
+    update = create(:submission_update, :ready_to_apply, user:)
 
     create :validation, :valid, subject: update
 

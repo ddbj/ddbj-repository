@@ -1,25 +1,18 @@
 class ApplySubmissionRequestJob < ApplicationJob
   def perform(request)
-    return unless request.ready_to_apply?
+    request.applying!
+    request.create_submission!
 
-    ActiveRecord::Base.transaction do
-      request.applying!
-      request.create_submission!
-    end
+    apply request
+  rescue => e
+    Rails.error.report e
 
-    begin
-      apply request
-    rescue => e
-      Rails.error.report e
-
-      request.update!(
-        status:        :application_failed,
-        error_message: e.message
-      )
-    else
-      request.applied!
-      request.validation.write_submission_files to: request.submission.dir
-    end
+    request.update!(
+      status:        :application_failed,
+      error_message: e.message
+    )
+  else
+    request.applied!
   end
 
   private
