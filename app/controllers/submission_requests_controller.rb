@@ -28,6 +28,8 @@ class SubmissionRequestsController < ApplicationController
   def create
     @request = current_user.submission_requests.create!(request_params)
 
+    raise ActiveRecord::RecordInvalid unless @request.waiting_validation?
+
     ValidateDDBJRecordJob.perform_later @request
 
     render :show, status: :accepted

@@ -13,7 +13,7 @@ export default <template>
 
 function colorClass(validity: Signature['Args']['status']): string {
   switch (validity) {
-    case 'waiting':
+    case 'waiting_validation':
       return 'text-bg-secondary';
     case 'validating':
       return 'text-bg-warning';
@@ -21,6 +21,8 @@ function colorClass(validity: Signature['Args']['status']): string {
       return 'text-bg-danger';
     case 'ready_to_apply':
       return 'text-bg-success';
+    case 'waiting_application':
+      return 'text-bg-secondary';
     case 'applying':
       return 'text-bg-warning';
     case 'applied':

@@ -513,7 +513,7 @@ export interface components {
             url: string;
         };
         /** @enum {string} */
-        SubmissionOperationStatus: "waiting" | "validating" | "validation_failed" | "ready_to_apply" | "applying" | "applied" | "application_failed" | "no_change";
+        SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
         Error: {
             message: string;
         };

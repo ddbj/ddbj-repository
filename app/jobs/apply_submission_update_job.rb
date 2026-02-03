@@ -2,8 +2,6 @@ class ApplySubmissionUpdateJob < ApplicationJob
   class NoChange < StandardError; end
 
   def perform(update)
-    return unless update.ready_to_apply?
-
     update.applying!
 
     begin
@@ -19,7 +17,6 @@ class ApplySubmissionUpdateJob < ApplicationJob
       )
     else
       update.applied!
-      update.validation.write_submission_files to: update.submission.dir
     end
   end
 

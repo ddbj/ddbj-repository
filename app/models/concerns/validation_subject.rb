@@ -6,14 +6,15 @@ module ValidationSubject
     has_one :validation_with_validity, -> { with_validity }, class_name: 'Validation', as: :subject
 
     enum :status, {
-      waiting:            0,
-      validating:         1,
-      validation_failed:  2,
-      ready_to_apply:     3,
-      applying:           4,
-      applied:            5,
-      application_failed: 6,
-      no_change:          7
+      waiting_validation:  0,
+      validating:          1,
+      validation_failed:   2,
+      ready_to_apply:      3,
+      waiting_application: 4,
+      applying:            5,
+      applied:             6,
+      application_failed:  7,
+      no_change:           8
     }
 
     scope :with_validity, -> {
@@ -39,7 +40,12 @@ module ValidationSubject
     }
 
     def processing?
-      status.in?(%w[waiting validating applying])
+      status.in?(%w[
+        waiting_validation
+        validating
+        waiting_application
+        applying
+      ])
     end
   end
 end

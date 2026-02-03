@@ -638,10 +638,11 @@ components:
       type: string
 
       enum:
-        - waiting
+        - waiting_validation
         - validating
         - validation_failed
         - ready_to_apply
+        - waiting_application
         - applying
         - applied
         - application_failed
