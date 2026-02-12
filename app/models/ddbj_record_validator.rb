@@ -16,6 +16,7 @@ module DDBJRecordValidator
         subject.validation_failed!
 
         subject.validation.details.create!(
+          code:     'TRD_R9999',
           severity: :error,
           message:  e.message
         )
