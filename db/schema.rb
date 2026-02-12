@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_07_071245) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_12_073641) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -101,12 +101,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_07_071245) do
   end
 
   create_table "validation_details", force: :cascade do |t|
-    t.string "code"
+    t.string "code", null: false
     t.datetime "created_at", null: false
     t.string "entry_id"
     t.string "filename"
-    t.string "message"
-    t.string "severity"
+    t.string "message", null: false
+    t.string "severity", null: false
     t.datetime "updated_at", null: false
     t.bigint "validation_id", null: false
     t.index ["validation_id"], name: "index_validation_details_on_validation_id"

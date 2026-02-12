@@ -513,10 +513,14 @@ components:
 
             properties:
               filename:
-                type: string
+                type:
+                  - string
+                  - 'null'
 
               entry_id:
-                type: string
+                type:
+                  - string
+                  - 'null'
 
               code:
                 type: string
