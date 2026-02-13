@@ -23,25 +23,23 @@ class ApplySubmissionUpdateJob < ApplicationJob
   private
 
   def apply(update)
-    old_record  = JSON.parse(update.submission.ddbj_record.download, symbolize_names: true)
-    new_record  = JSON.parse(update.ddbj_record.download, symbolize_names: true)
-    old_entries = old_record.dig(:sequence, :entries).index_by { it[:accession] }
-    new_entries = new_record.dig(:sequence, :entries)
+    old_json = update.submission.ddbj_record.download
+    new_json = update.ddbj_record.download
 
-    changes = new_entries.select {|new_entry|
-      old_entry = old_entries.fetch(new_entry[:accession])
+    raise NoChange if old_json == new_json
 
-      new_entry != old_entry
-    }
+    old_record = JSON.parse(old_json, symbolize_names: true)
+    new_record = JSON.parse(new_json, symbolize_names: true)
 
-    raise NoChange if changes.empty?
+    old_entries_by_accession = old_record.dig(:sequence, :entries).index_by { it[:accession] }
+    new_entries              = new_record.dig(:sequence, :entries)
+    changed_entries          = new_entries.reject { it == old_entries_by_accession[it[:accession]] }
+    accessions_by_number     = update.submission.accessions.index_by(&:number)
+    now                      = Time.current
 
     ActiveRecord::Base.transaction do
-      number_to_accession = update.submission.accessions.index_by(&:number)
-      now                 = Time.current
-
-      accession_to_attrs = update.submission.accessions.upsert_all(changes.map {|entry|
-        acc = number_to_accession.fetch(entry[:accession])
+      updated_accessions_by_number = update.submission.accessions.upsert_all(changed_entries.map {|entry|
+        acc = accessions_by_number.fetch(entry[:accession])
 
         {
           **acc.attributes,
@@ -56,19 +54,19 @@ class ApplySubmissionUpdateJob < ApplicationJob
         it['number']
       }.transform_values(&:deep_symbolize_keys)
 
-      entries.each do |entry|
-        next unless attrs = accession_to_attrs[entry[:accession]]
+      new_entries.each do |entry|
+        next unless attrs = updated_accessions_by_number[entry[:accession]]
 
         attrs => {version:, last_updated_at:}
 
         entry.update(
           version:,
-          last_updated: Time.zone.parse(last_updated_at).iso8601
+          last_updated: last_updated_at.iso8601
         )
       end
 
       update.submission.update! ddbj_record: {
-        io:           StringIO.new(JSON.pretty_generate(record)),
+        io:           StringIO.new(JSON.pretty_generate(new_record)),
         filename:     update.ddbj_record.filename,
         content_type: update.ddbj_record.content_type
       }
