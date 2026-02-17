@@ -69,7 +69,9 @@ module DDBJRecordValidator
         }
       end
 
-      if seq.match?(/\AN+\z/i)
+      aa = Array(entry.dig(:source_qualifiers, :mol_type)).any? { it[:value] == 'protein' }
+
+      if !aa && seq.match?(/\AN+\z/i)
         details << {
           filename:,
           entry_id:,
@@ -79,7 +81,7 @@ module DDBJRecordValidator
         }
       end
 
-      if seq.match?(/\AX+\z/i)
+      if aa && seq.match?(/\AX+\z/i)
         details << {
           filename:,
           entry_id:,
@@ -88,8 +90,6 @@ module DDBJRecordValidator
           message:  'X-only sequence is not allowed'
         }
       end
-
-      aa = Array(entry.dig(:source_qualifiers, :mol_type)).any? { it[:value] == 'protein' }
 
       if !aa && seq.match?(/[^acgtmrwsykvhdbn]/i)
         details << {
