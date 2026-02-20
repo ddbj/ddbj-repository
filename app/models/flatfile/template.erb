@@ -1,0 +1,67 @@
+<%- entries.each do |entry| -%>
+<%- if entry.na? -%>
+LOCUS       <%= entry[:locus].to_s.ljust(16) %> <%= entry[:length].to_s.rjust(11) %> bp    <%= mol_type_label(entry.mol_type).ljust(6) %>  <%= entry[:topology].ljust(8) %> <%= record.dig(:submission, :division) %> <%= format_date(entry[:last_updated]) %>
+<%- else -%>
+LOCUS       <%= entry[:locus].to_s.ljust(16) %> <%= entry[:length].to_s.rjust(11) %> aa    <%= 'PRT'.ljust(7) %>          <%= record.dig(:submission, :division) %> <%= format_date(entry[:last_updated]) %>
+<%- end -%>
+DEFINITION  <%= entry[:definition] %>
+ACCESSION   <%= entry[:accession] %>
+<%- if entry.na? -%>
+VERSION     <%= entry[:accession] %>.<%= entry[:version] %>
+<%- end -%>
+KEYWORDS    <%= format_seqid(entry.seqid) %>
+SOURCE      <%= entry.source %>
+  ORGANISM  <%= entry.scientific_name || 'unidentified' %>
+            <%= entry.ancestor_names.join('; ').presence || 'unclassified sequences' %>.
+<%- if entry.na? -%>
+REFERENCE   1  (bases <%= entry.location_span.join(' to ') %>)
+<%- else -%>
+REFERENCE   1  (residues <%= entry.location_span.join(' to ') %>)
+<%- end -%>
+  AUTHORS   
+  TITLE     <%= entry.invention_title %>
+  JOURNAL   Patent: <%= format_seqid(entry.seqid, format: :journal) %> <%= format_date(record.dig(:submission, :publication_date)) %>;
+            <%- if name = record.dig(:submission, :applicant_name) -%>
+            <%=   name %>
+            <%- end -%>
+COMMENT     OS   <%= entry.organism %>
+            PN   <%= format_seqid(entry.seqid) %>
+            PD   <%= format_date(record.dig(:submission, :publication_date)) %>
+            <%- ident = record.dig(:submission, :application_identification) -%>
+            PF   <%= format_date(ident[:filing_date]) %> <%= ident.values_at(:ip_office_code, :application_number_text).join(' ') %>
+            <%- record.dig(:submission, :earliest_priority_application_identifications).each do |ident| -%>
+            PR   <%= ident[:filing_date]&.then { format_date(it) } || 'NOT_PROVIDED' %> <%= ident.values_at(:ip_office_code, :application_number_text).join(' ') %>
+            <%- end -%>
+            <%- if name = record.dig(:submission, :applicant_name) -%>
+            PA   <%= name %>
+            <%- end -%>
+            <%- if title = record.dig(:submission, :invention_title) -%>
+            PT   <%= title %>
+            <%- end -%>
+            <%- if name = record.dig(:submission, :inventor_name) -%>
+            PI   <%= name %>
+            <%- end -%>
+            PS   <%= entry.seqid.sequence_number %>
+            FH   Key             Location/Qualifiers
+            <%- entry.features.each do |feature| -%>
+            <%-   if quals = (feature.source? ? feature.invalid_qualifiers : feature.qualifiers).presence -%>
+            FT   <%= feature.type.ljust(15) %> <%= feature.location %>
+            <%-     quals.each do |qual| -%>
+            FT                   <%= format_qualifier(qual) %>
+            <%-     end -%>
+            <%-   end -%>
+            <%- end -%>
+FEATURES             Location/Qualifiers
+     <%= 'source'.ljust(15) %> <%= entry.source_feature.location %>
+     <%- entry.source_feature.valid_qualifiers.each do |qual| -%>
+                     <%= format_qualifier(qual) %>
+     <%- end -%>
+<%- if entry.na? -%>
+BASE COUNT  <%= base_count(entry.sequence) %>
+<%- end -%>
+ORIGIN
+<%- entry.sequence.scan(/.{1,60}/).each_with_index do |line, i| -%>
+<%= (i * 60 + 1).to_s.rjust(9) %> <%= line.scan(/.{1,10}/).join(' ') %>
+<%- end -%>
+//
+<%- end -%>

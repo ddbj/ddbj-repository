@@ -12,6 +12,12 @@ FactoryBot.define do
         filename:     'example.json',
         content_type: 'application/json'
       )
+
+      submission.flatfile.attach(
+        io:           Rails.root.join('spec/fixtures/files/flatfile/example.flat').open,
+        filename:     'example.flat',
+        content_type: 'text/plain'
+      )
     end
   end
 end

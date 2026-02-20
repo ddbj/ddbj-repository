@@ -109,6 +109,7 @@ GEM
     bcrypt_pbkdf (1.1.2)
     bigdecimal (4.0.1)
     bindata (2.5.1)
+    bio (2.0.6)
     bootsnap (1.23.0)
       msgpack (~> 1.2)
     brakeman (8.0.4)
@@ -492,10 +493,12 @@ PLATFORMS
 DEPENDENCIES
   active_storage_validations
   aws-sdk-s3
+  bio
   bootsnap
   brakeman
   debug
   diff-lcs
+  erubi
   factory_bot_rails
   image_processing
   jb

@@ -14,6 +14,13 @@
     } : nil
   },
 
+  flatfile: submission.flatfile.then {|file|
+    file.attached? ? {
+      filename: file.filename,
+      url:      rails_blob_url(file)
+    } : nil
+  },
+
   accessions: submission.accessions.map {|accession|
     accession.slice(
       :number,

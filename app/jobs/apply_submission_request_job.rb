@@ -23,7 +23,7 @@ class ApplySubmissionRequestJob < ApplicationJob
 
     aa_count, na_count = entries.partition { aa?(it) }.map(&:size)
 
-    ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction do |tx|
       na_nums = Sequence.allocate!(:jpo_na, na_count)
       aa_nums = Sequence.allocate!(:jpo_aa, aa_count)
 
@@ -54,9 +54,21 @@ class ApplySubmissionRequestJob < ApplicationJob
 
       request.submission.update! ddbj_record: {
         io:           StringIO.new(JSON.pretty_generate(record) + "\n"),
-        filename:     "#{filename.base}-submitted.#{filename.extension}",
+        filename:,
         content_type: request.ddbj_record.content_type
       }
+
+      flatfile = Flatfile::Root.new(record, record.dig(:sequence, :entries)).render
+
+      request.submission.update! flatfile: {
+        io:           flatfile,
+        filename:     "#{filename.base}.flat",
+        content_type: 'text/plain'
+      }
+
+      tx.after_commit do
+        flatfile.close!
+      end
     end
   end
 

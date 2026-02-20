@@ -454,7 +454,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             processing: boolean;
-            ddbj_record: components["schemas"]["DDBJRecord"];
+            ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;
             submission: components["schemas"]["Submission"] | null;
         };
@@ -466,7 +466,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             processing: boolean;
-            ddbj_record: components["schemas"]["DDBJRecord"];
+            ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;
             submission: components["schemas"]["Submission"];
         };
@@ -502,14 +502,15 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
-            ddbj_record: components["schemas"]["DDBJRecord"];
+            ddbj_record: components["schemas"]["Attachment"];
+            flatfile: components["schemas"]["Attachment"];
             accessions: components["schemas"]["Accession"][];
             updates: {
                 id: number;
                 status: components["schemas"]["SubmissionOperationStatus"];
                 /** Format: date-time */
                 created_at: string;
-                ddbj_record: components["schemas"]["DDBJRecord"];
+                ddbj_record: components["schemas"]["Attachment"];
                 validation: components["schemas"]["Validation"] | null;
             }[];
         };
@@ -520,7 +521,7 @@ export interface components {
             /** Format: date-time */
             last_updated_at: string;
         };
-        DDBJRecord: {
+        Attachment: {
             filename: string;
             /** Format: uri */
             url: string;

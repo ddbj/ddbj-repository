@@ -15,14 +15,20 @@ import type { components } from 'schema/openapi';
     <dt>Updated</dt>
     <dd>{{formatDatetime @model.updated_at}}</dd>
 
-    <dt>File</dt>
+    <dt>DDBJ Record</dt>
 
     <dd>
-      {{#if @model.ddbj_record}}
-        <a href={{@model.ddbj_record.url}} target="_blank" rel="noopener noreferrer">
-          {{@model.ddbj_record.filename}}
-        </a>
-      {{/if}}
+      <a href={{@model.ddbj_record.url}} target="_blank" rel="noopener noreferrer">
+        {{@model.ddbj_record.filename}}
+      </a>
+    </dd>
+
+    <dt>Flatfile</dt>
+
+    <dd>
+      <a href={{@model.flatfile.url}} target="_blank" rel="noopener noreferrer">
+        {{@model.flatfile.filename}}
+      </a>
     </dd>
   </dl>
 
