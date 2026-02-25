@@ -48,6 +48,26 @@ module DDBJRecordValidator
       }
     end
 
+    [
+      ['applicant_names',      pluck_en_texts(record.dig(:st26, :applicant_names))],
+      ['applicant_name_latin', record.dig(:st26, :applicant_name_latin)],
+      ['inventor_names',       pluck_en_texts(record.dig(:st26, :inventor_names))],
+      ['inventor_name_latin',  record.dig(:st26, :inventor_name_latin)],
+      ['invention_titles',     pluck_en_texts(record.dig(:st26, :invention_titles))]
+    ].each do |key, texts|
+      Array(texts).each do |text|
+        next if text.nil? || text.ascii_only?
+
+        details << {
+          filename:,
+          entry_id: nil,
+          code:     'TRD_R0009',
+          severity: 'error',
+          message:  "#{key} contains non-ASCII characters: #{text}"
+        }
+      end
+    end
+
     Array(record.dig(:sequence, :entries)).each do |entry|
       entry_id = entry[:id]
 
@@ -132,6 +152,10 @@ module DDBJRecordValidator
     }
   ensure
     subject.validation.details.insert_all! details
+  end
+
+  def pluck_en_texts(array)
+    Array(array).select { it[:language_code] == 'en' }.pluck(:text)
   end
 
   def validate_qualifiers(quals, filename:, entry_id:, feature:)
