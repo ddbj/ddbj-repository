@@ -54,7 +54,7 @@ FROM docker.io/library/node:24.12.0 AS web
 ARG API_URL
 ENV API_URL=${API_URL:?}
 
-RUN corepack enable pnpm
+RUN npm install --global pnpm
 
 WORKDIR /web
 
