@@ -274,7 +274,7 @@ GEM
       validate_url
       webfinger (~> 2.0)
     ostruct (0.6.3)
-    pagy (43.3.0)
+    pagy (43.3.1)
       json
       uri
       yaml
