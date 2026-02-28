@@ -39,7 +39,7 @@ export default <template>
 </template> satisfies TOC<{
   Args: {
     model: {
-      submissions: components['schemas']['Submission'][];
+      submissions: components['schemas']['SubmissionSummary'][];
       totalPages: number;
     };
 

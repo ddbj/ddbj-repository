@@ -86,7 +86,7 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/SubmissionRequest'
+                  $ref: '#/components/schemas/SubmissionRequestSummary'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -266,7 +266,7 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/Submission'
+                  $ref: '#/components/schemas/SubmissionSummary'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -357,6 +357,26 @@ paths:
 
 components:
   schemas:
+    SubmissionRequestSummary:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - status
+        - created_at
+
+      properties:
+        id:
+          type: number
+
+        status:
+          $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        created_at:
+          type: string
+          format: date-time
+
     SubmissionRequest:
       type: object
       additionalProperties: false
@@ -534,6 +554,27 @@ components:
 
               message:
                 type: string
+
+    SubmissionSummary:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - created_at
+        - updated_at
+
+      properties:
+        id:
+          type: number
+
+        created_at:
+          type: string
+          format: date-time
+
+        updated_at:
+          type: string
+          format: date-time
 
     Submission:
       type: object

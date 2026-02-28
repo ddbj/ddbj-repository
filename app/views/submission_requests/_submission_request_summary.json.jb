@@ -1,0 +1,3 @@
+# locals: (submission_request:)
+
+submission_request.slice(:id, :status, :created_at)

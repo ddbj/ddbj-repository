@@ -1,22 +1,6 @@
 class SubmissionRequestsController < ApplicationController
   def index
-    requests = current_user.submission_requests.includes(
-      validation_with_validity: :details,
-
-      submission: [
-        :accessions,
-
-        updates: {
-          validation_with_validity: :details
-        }
-      ],
-    ).with_attached_ddbj_record.merge(
-      Submission.with_attached_ddbj_record
-    ).merge(
-      SubmissionUpdate.with_attached_ddbj_record
-    )
-
-    pagy, @requests = pagy(requests.order(id: :desc))
+    pagy, @requests = pagy(current_user.submission_requests.order(id: :desc))
 
     response.headers.merge! pagy.headers_hash
   end

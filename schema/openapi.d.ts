@@ -107,7 +107,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SubmissionRequest"][];
+                        "application/json": components["schemas"]["SubmissionRequestSummary"][];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -333,7 +333,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Submission"][];
+                        "application/json": components["schemas"]["SubmissionSummary"][];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
@@ -441,6 +441,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SubmissionRequestSummary: {
+            id: number;
+            status: components["schemas"]["SubmissionOperationStatus"];
+            /** Format: date-time */
+            created_at: string;
+        };
         SubmissionRequest: {
             id: number;
             status: components["schemas"]["SubmissionOperationStatus"];
@@ -482,6 +488,13 @@ export interface components {
                 severity: "warning" | "error";
                 message: string;
             }[];
+        };
+        SubmissionSummary: {
+            id: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
         };
         Submission: {
             id: number;
