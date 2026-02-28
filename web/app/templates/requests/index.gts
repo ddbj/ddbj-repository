@@ -44,7 +44,7 @@ export default <template>
 </template> satisfies TOC<{
   Args: {
     model: {
-      requests: components['schemas']['SubmissionRequest'][];
+      requests: components['schemas']['SubmissionRequestSummary'][];
       totalPages: number;
     };
 
