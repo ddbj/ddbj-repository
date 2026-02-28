@@ -34,7 +34,7 @@ export default class extends Component<Signature> {
       method: 'POST',
     });
 
-    this.router.refresh();
+    await this.router.refresh();
   }
 
   <template>
