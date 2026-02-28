@@ -13,6 +13,6 @@ RSpec.describe '/api/submission_updates/:submission_update_id/submission', type:
       patch submission_update_submission_path(update)
     end
 
-    expect(response).to conform_schema(202)
+    expect(response).to conform_schema(204)
   end
 end

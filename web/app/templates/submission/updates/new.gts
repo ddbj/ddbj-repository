@@ -8,10 +8,13 @@ import { DirectUpload } from '@rails/activestorage';
 
 import ENV from 'repository/config/environment';
 
-import type RequestService from 'repository/services/request';
+import type RequestManager from '@ember-data/request';
 import type RouterService from '@ember/routing/router-service';
 import type { Blob } from '@rails/activestorage';
-import type { components } from 'schema/openapi';
+import type { components, paths } from 'schema/openapi';
+
+type CreateUpdateResponse =
+  paths['/submissions/{id}/updates']['post']['responses']['202']['content']['application/json'];
 
 interface Signature {
   Args: {
@@ -20,7 +23,7 @@ interface Signature {
 }
 
 export default class extends Component<Signature> {
-  @service declare request: RequestService;
+  @service declare requestManager: RequestManager;
   @service declare router: RouterService;
 
   file?: File;
@@ -31,42 +34,24 @@ export default class extends Component<Signature> {
   }
 
   @action
-  submit(e: Event) {
+  async submit(e: Event) {
     e.preventDefault();
 
-    if (!this.file) {
-      return;
-    }
+    if (!this.file) return;
 
     const upload = new DirectUpload(this.file, ENV.directUploadURL);
 
-    upload.create((err: Error | null, blob?: Blob) => {
-      if (err) {
-        alert(`Upload failed: ${err.message}`);
-        return;
-      }
-
-      const { model } = this.args;
-
-      void this.request
-        .fetchWithModal(`/submissions/${model.id}/updates`, {
-          method: 'POST',
-
-          headers: {
-            'Content-Type': 'application/json',
-          },
-
-          body: JSON.stringify({
-            submission_update: {
-              ddbj_record: blob!.signed_id,
-            },
-          }),
-        })
-        .then((res) => res.json())
-        .then(({ id }: { id: number }) => {
-          this.router.transitionTo('update', id);
-        });
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      upload.create((err, blob) => (err ? reject(err) : resolve(blob!)));
     });
+
+    const { content } = await this.requestManager.request<CreateUpdateResponse>({
+      url: `/submissions/${this.args.model.id}/updates`,
+      method: 'POST',
+      data: { submission_update: { ddbj_record: blob.signed_id } },
+    });
+
+    this.router.transitionTo('update', content.id);
   }
 
   <template>

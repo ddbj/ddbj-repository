@@ -11,7 +11,7 @@ import ValidityBadge from 'repository/components/validity-badge';
 import autoRefresh from 'repository/modifiers/auto-refresh';
 import formatDatetime from 'repository/helpers/format-datetime';
 
-import type RequestService from 'repository/services/request';
+import type RequestManager from '@ember-data/request';
 import type RouterService from '@ember/routing/router-service';
 import type { components } from 'schema/openapi';
 
@@ -22,14 +22,15 @@ interface Signature {
 }
 
 export default class extends Component<Signature> {
-  @service declare request: RequestService;
+  @service declare requestManager: RequestManager;
   @service declare router: RouterService;
 
   @action
   async apply() {
     const { model } = this.args;
 
-    await this.request.fetchWithModal(`/submission_requests/${model.id}/submission`, {
+    await this.requestManager.request({
+      url: `/submission_requests/${model.id}/submission`,
       method: 'POST',
     });
 

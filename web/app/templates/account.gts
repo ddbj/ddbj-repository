@@ -6,13 +6,16 @@ import { uniqueId } from '@ember/helper';
 
 import { pageTitle } from 'ember-page-title';
 
+import type RequestManager from '@ember-data/request';
 import type CurrentUserService from 'repository/services/current-user';
-import type RequestService from 'repository/services/request';
 import type ToastService from 'repository/services/toast';
+import type { paths } from 'schema/openapi';
+
+type RegenerateApiKey = paths['/api_key/regenerate']['post']['responses']['200']['content']['application/json'];
 
 export default class Account extends Component {
   @service declare currentUser: CurrentUserService;
-  @service declare request: RequestService;
+  @service declare requestManager: RequestManager;
   @service declare toast: ToastService;
 
   @action
@@ -24,13 +27,12 @@ export default class Account extends Component {
 
   @action
   async regenerateApiKey() {
-    const res = await this.request.fetchWithModal('/api_key/regenerate', {
+    const { content } = await this.requestManager.request<RegenerateApiKey>({
+      url: '/api_key/regenerate',
       method: 'POST',
     });
 
-    const { api_key } = (await res.json()) as { api_key: string };
-
-    this.currentUser.user!.apiKey = api_key;
+    this.currentUser.user!.apiKey = content.api_key;
   }
 
   <template>

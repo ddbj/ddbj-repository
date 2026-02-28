@@ -179,8 +179,8 @@ paths:
             type: number
 
       responses:
-        '202':
-          description: Returns the updated submission request.
+        '204':
+          description: Accepted the submission request application.
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -237,7 +237,7 @@ paths:
             type: number
 
       responses:
-        '202':
+        '204':
           description: Accepted the submission update application.
 
         '401':

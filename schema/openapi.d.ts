@@ -213,8 +213,8 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Returns the updated submission request. */
-                202: {
+                /** @description Accepted the submission request application. */
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -297,7 +297,7 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Accepted the submission update application. */
-                202: {
+                204: {
                     headers: {
                         [name: string]: unknown;
                     };

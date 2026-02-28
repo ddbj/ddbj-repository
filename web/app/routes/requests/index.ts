@@ -1,13 +1,13 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import ENV from 'repository/config/environment';
-
-import type RequestService from 'repository/services/request';
+import type RequestManager from '@ember-data/request';
 import type { paths } from 'schema/openapi';
 
+type SubmissionRequestSummary = paths['/submission_requests']['get']['responses']['200']['content']['application/json'];
+
 export default class extends Route {
-  @service declare request: RequestService;
+  @service declare requestManager: RequestManager;
 
   queryParams = {
     page: {
@@ -16,18 +16,14 @@ export default class extends Route {
   };
 
   async model({ page }: { page?: number }) {
-    const url = new URL('/api/submission_requests', ENV.apiURL);
-
-    if (page) {
-      url.searchParams.set('page', page.toString());
-    }
-
-    const res = await this.request.fetch(url.toString());
+    const { content, response } = await this.requestManager.request<SubmissionRequestSummary>({
+      url: '/submission_requests',
+      options: { params: { page } },
+    });
 
     return {
-      requests:
-        (await res.json()) as paths['/submission_requests']['get']['responses']['200']['content']['application/json'],
-      totalPages: Number(res.headers.get('Total-Pages')) || 1,
+      requests: content,
+      totalPages: Number(response?.headers?.get('Total-Pages')) || 1,
     };
   }
 }
