@@ -28,7 +28,7 @@ class SubmissionsController < ApplicationController
 
     ApplySubmissionRequestJob.perform_later request
 
-    head :accepted
+    head :no_content
   end
 
   def update
@@ -46,6 +46,6 @@ class SubmissionsController < ApplicationController
 
     ApplySubmissionUpdateJob.perform_later update
 
-    head :accepted
+    head :no_content
   end
 end

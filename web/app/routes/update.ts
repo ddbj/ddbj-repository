@@ -1,15 +1,19 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import type RequestService from 'repository/services/request';
+import type RequestManager from '@ember-data/request';
 import type { paths } from 'schema/openapi';
 
+type SubmissionUpdate = paths['/submission_updates/{id}']['get']['responses']['200']['content']['application/json'];
+
 export default class extends Route {
-  @service declare request: RequestService;
+  @service declare requestManager: RequestManager;
 
   async model({ update_id }: { update_id: string }) {
-    const res = await this.request.fetchWithModal(`/submission_updates/${update_id}`);
+    const { content } = await this.requestManager.request<SubmissionUpdate>({
+      url: `/submission_updates/${update_id}`,
+    });
 
-    return (await res.json()) as paths['/submission_updates/{id}']['get']['responses']['200']['content']['application/json'];
+    return content;
   }
 }

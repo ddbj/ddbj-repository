@@ -13,6 +13,6 @@ RSpec.describe '/api/submission_requests/:submission_request_id/submission', typ
       post submission_request_submission_path(request)
     end
 
-    expect(response).to conform_schema(202)
+    expect(response).to conform_schema(204)
   end
 end

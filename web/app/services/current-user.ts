@@ -3,14 +3,17 @@ import { tracked } from '@glimmer/tracking';
 
 import User from 'repository/models/user';
 
-import type RequestService from 'repository/services/request';
+import type RequestManager from '@ember-data/request';
 import type RouterService from '@ember/routing/router-service';
 import type Transition from '@ember/routing/transition';
+import type { paths } from 'schema/openapi';
+
+type Me = paths['/me']['get']['responses']['200']['content']['application/json'];
 
 export class LoginError extends Error {}
 
 export default class CurrentUserService extends Service {
-  @service declare request: RequestService;
+  @service declare requestManager: RequestManager;
   @service declare router: RouterService;
 
   @tracked token?: string;
@@ -88,24 +91,18 @@ export default class CurrentUserService extends Service {
       return;
     }
 
-    let res: Response;
-
     try {
-      res = await this.request.fetchWithModal('/me');
+      const { content } = await this.requestManager.request<Me>({
+        url: '/me',
+      });
+
+      this.user = new User(content.uid, content.api_key, content.admin);
     } catch {
       this.clear();
       localStorage.removeItem('token');
 
       throw new LoginError();
     }
-
-    const { uid, api_key, admin } = (await res.json()) as {
-      uid: string;
-      api_key: string;
-      admin: boolean;
-    };
-
-    this.user = new User(uid, api_key, admin);
   }
 
   clear() {

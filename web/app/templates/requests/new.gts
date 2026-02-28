@@ -8,12 +8,15 @@ import { DirectUpload } from '@rails/activestorage';
 
 import ENV from 'repository/config/environment';
 
-import type RequestService from 'repository/services/request';
+import type RequestManager from '@ember-data/request';
 import type RouterService from '@ember/routing/router-service';
 import type { Blob } from '@rails/activestorage';
+import type { paths } from 'schema/openapi';
+
+type CreateRequestResponse = paths['/submission_requests']['post']['responses']['202']['content']['application/json'];
 
 export default class extends Component {
-  @service declare request: RequestService;
+  @service declare requestManager: RequestManager;
   @service declare router: RouterService;
 
   file?: File;
@@ -24,40 +27,24 @@ export default class extends Component {
   }
 
   @action
-  submit(e: Event) {
+  async submit(e: Event) {
     e.preventDefault();
 
-    if (!this.file) {
-      return;
-    }
+    if (!this.file) return;
 
     const upload = new DirectUpload(this.file, ENV.directUploadURL);
 
-    upload.create((err: Error | null, blob?: Blob) => {
-      if (err) {
-        alert(`Upload failed: ${err.message}`);
-        return;
-      }
-
-      void this.request
-        .fetchWithModal('/submission_requests', {
-          method: 'POST',
-
-          headers: {
-            'Content-Type': 'application/json',
-          },
-
-          body: JSON.stringify({
-            submission_request: {
-              ddbj_record: blob!.signed_id,
-            },
-          }),
-        })
-        .then((res) => res.json())
-        .then(({ id }: { id: number }) => {
-          this.router.transitionTo('request', id);
-        });
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      upload.create((err, blob) => (err ? reject(err) : resolve(blob!)));
     });
+
+    const { content } = await this.requestManager.request<CreateRequestResponse>({
+      url: '/submission_requests',
+      method: 'POST',
+      data: { submission_request: { ddbj_record: blob.signed_id } },
+    });
+
+    this.router.transitionTo('request', content.id);
   }
 
   <template>
