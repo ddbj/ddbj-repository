@@ -123,6 +123,7 @@ module('Acceptance | submission request', function (hooks) {
     );
 
     await click('button.btn-primary');
+    await waitUntil(() => document.querySelector('.badge')?.textContent?.trim() === 'applied');
 
     assert.dom('.badge').hasText('applied');
   });

@@ -35,7 +35,7 @@ export default class extends Component<Signature> {
       method: 'PATCH',
     });
 
-    this.router.refresh();
+    await this.router.refresh();
   }
 
   <template>
