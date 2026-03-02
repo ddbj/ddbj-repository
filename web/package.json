@@ -86,7 +86,7 @@
     "eslint-plugin-ember": "^12.7.5",
     "eslint-plugin-n": "^17.24.0",
     "eslint-plugin-qunit": "^8.2.6",
-    "globals": "^17.3.0",
+    "globals": "^17.4.0",
     "highlight.js": "^11.11.1",
     "msw": "^2.12.10",
     "openapi-msw": "^2.0.0",
