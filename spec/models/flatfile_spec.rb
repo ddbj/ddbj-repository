@@ -1,6 +1,6 @@
 require 'rails_helper'
 
-RSpec.describe Flatfile::Root do
+RSpec.describe Flatfile do
   def build_record
     record = file_fixture('ddbj_record/example.json').open { DDBJRecord.parse(it) }
 
@@ -28,7 +28,7 @@ RSpec.describe Flatfile::Root do
 
   example 'renders flatfile from Data objects' do
     record = build_record
-    output = described_class.new(record, record.sequences.entries).render.read
+    output = Flatfile.render(record).read
 
     expect(output).to eq(<<~FLAT)
       LOCUS       AB000001                  21 bp    DNA     linear   PAT 01-JUN-2026

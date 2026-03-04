@@ -60,7 +60,7 @@ class ApplySubmissionRequestJob < ApplicationJob
         content_type: request.ddbj_record.content_type
       }
 
-      flatfile = Flatfile::Root.new(record, entries).render
+      flatfile = Flatfile.render(record)
 
       submission.update! flatfile: {
         io:           flatfile,
