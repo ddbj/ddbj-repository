@@ -11,6 +11,7 @@ gem 'erubi'
 gem 'image_processing'
 gem 'jb'
 gem 'json'
+gem 'oj'
 gem 'jwt'
 gem 'kamal', require: false
 gem 'mission_control-jobs'
