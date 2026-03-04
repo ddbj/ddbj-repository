@@ -27,10 +27,9 @@ REFERENCE   1  (residues <%= entry.location_span.join(' to ') %>)
 COMMENT     OS   <%= entry.organism %>
             PN   <%= format_seqid(entry.seqid) %>
             PD   <%= format_date(record.dig(:submission, :publication_date)) %>
-            <%- ident = record.dig(:submission, :application_identification) -%>
-            PF   <%= format_date(ident[:filing_date]) %> <%= ident.values_at(:ip_office_code, :application_number_text).join(' ') %>
+            PF   <%= format_identification(record.dig(:submission, :application_identification), pad_number: true) %>
             <%- record.dig(:submission, :earliest_priority_application_identifications).each do |ident| -%>
-            PR   <%= ident[:filing_date]&.then { format_date(it) } || 'NOT_PROVIDED' %> <%= ident.values_at(:ip_office_code, :application_number_text).join(' ') %>
+            PR   <%= format_identification(ident, pad_number: false) %>
             <%- end -%>
             <%- if name = record.dig(:submission, :applicant_name) -%>
             PA   <%= name %>

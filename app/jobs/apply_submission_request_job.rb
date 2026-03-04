@@ -1,7 +1,6 @@
 class ApplySubmissionRequestJob < ApplicationJob
   def perform(request)
     request.applying!
-    request.create_submission!
 
     apply request
   rescue => e
@@ -19,15 +18,16 @@ class ApplySubmissionRequestJob < ApplicationJob
 
   def apply(request)
     record  = JSON.parse(request.ddbj_record.download, symbolize_names: true)
-    entries = record.dig(:sequence, :entries)
+    entries = record.dig(:sequences, :entries)
 
     aa_count, na_count = entries.partition { aa?(it) }.map(&:size)
 
     ActiveRecord::Base.transaction do |tx|
-      na_nums = Sequence.allocate!(:jpo_na, na_count)
-      aa_nums = Sequence.allocate!(:jpo_aa, aa_count)
+      na_nums    = Sequence.allocate!(:jpo_na, na_count)
+      aa_nums    = Sequence.allocate!(:jpo_aa, aa_count)
+      submission = request.create_submission!
 
-      entry_id_to_attrs = request.submission.accessions.insert_all(entries.map {|entry|
+      entry_id_to_attrs = submission.accessions.insert_all(entries.map {|entry|
         {
           number:   (aa?(entry) ? aa_nums : na_nums).shift,
           entry_id: entry[:id]
@@ -52,15 +52,15 @@ class ApplySubmissionRequestJob < ApplicationJob
 
       filename = request.ddbj_record.filename
 
-      request.submission.update! ddbj_record: {
+      submission.update! ddbj_record: {
         io:           StringIO.new(JSON.pretty_generate(record) + "\n"),
         filename:,
         content_type: request.ddbj_record.content_type
       }
 
-      flatfile = Flatfile::Root.new(record, record.dig(:sequence, :entries)).render
+      flatfile = Flatfile::Root.new(record, record.dig(:sequences, :entries)).render
 
-      request.submission.update! flatfile: {
+      submission.update! flatfile: {
         io:           flatfile,
         filename:     "#{filename.base}.flat",
         content_type: 'text/plain'

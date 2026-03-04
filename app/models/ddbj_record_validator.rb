@@ -38,7 +38,7 @@ module DDBJRecordValidator
     record     = JSON.parse(subject.ddbj_record.download, symbolize_names: true)
     app_number = record.dig(:submission, :application_identification, :application_number_text)
 
-    unless app_number&.match?(%r(\A\d{4}[-/]\d{6}\z))
+    unless app_number&.match?(%r(\A\d{4}[-/]\d{1,6}\z))
       details << {
         filename:,
         entry_id: nil,
@@ -68,7 +68,7 @@ module DDBJRecordValidator
       end
     end
 
-    Array(record.dig(:sequence, :entries)).each do |entry|
+    record.dig(:sequences, :entries).each do |entry|
       entry_id = entry[:id]
 
       details.concat validate_qualifiers(entry[:source_qualifiers], **{

@@ -33,6 +33,19 @@ module Flatfile::Helper
     "#{country_code} #{document_number}-#{kind_code}#{separator}#{sequence_number}"
   end
 
+  def format_identification(ident, pad_number:)
+    ident => {filing_date:, ip_office_code:, application_number_text:}
+    filing_date = format_date(filing_date) || 'NOT_PROVIDED'
+
+    if pad_number
+      year, number = application_number_text.split('-', 2)
+
+      "#{filing_date} #{ip_office_code} #{year}-#{number.rjust(6, '0')}"
+    else
+      "#{filing_date} #{ip_office_code} #{application_number_text}"
+    end
+  end
+
   def format_qualifier(qual)
     qual => {key:, value:}
 

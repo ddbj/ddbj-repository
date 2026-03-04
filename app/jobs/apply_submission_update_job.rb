@@ -31,8 +31,8 @@ class ApplySubmissionUpdateJob < ApplicationJob
     old_record = JSON.parse(old_json, symbolize_names: true)
     new_record = JSON.parse(new_json, symbolize_names: true)
 
-    old_entries_by_accession = old_record.dig(:sequence, :entries).index_by { it[:accession] }
-    new_entries              = new_record.dig(:sequence, :entries)
+    old_entries_by_accession = old_record.dig(:sequences, :entries).index_by { it[:accession] }
+    new_entries              = new_record.dig(:sequences, :entries)
     changed_entries          = new_entries.reject { it == old_entries_by_accession[it[:accession]] }
     accessions_by_number     = update.submission.accessions.index_by(&:number)
     now                      = Time.current
