@@ -2,18 +2,18 @@ module DDBJRecord
   Qualifier = Data.define(
     :id,
     :value
-  ) { include DataExtensions }
+  )
 
   LocalizedText = Data.define(
     :language_code,
     :text
-  ) { include DataExtensions }
+  )
 
   ApplicationIdentification = Data.define(
     :filing_date,
     :ip_office_code,
     :application_number_text
-  ) { include DataExtensions }
+  )
 
   Submission = Data.define(
     :application_identification,
@@ -23,7 +23,7 @@ module DDBJRecord
     :applicant_name,
     :invention_title,
     :inventor_name
-  ) { include DataExtensions }
+  )
 
   St26 = Data.define(
     :applicant_names,
@@ -31,7 +31,7 @@ module DDBJRecord
     :inventor_names,
     :inventor_name_latin,
     :invention_titles
-  ) { include DataExtensions }
+  )
 
   Entry = Data.define(
     :id,
@@ -46,7 +46,7 @@ module DDBJRecord
     :locus,
     :version,
     :last_updated
-  ) { include DataExtensions }
+  )
 
   Feature = Data.define(
     :id,
@@ -55,11 +55,11 @@ module DDBJRecord
     :sequence_id,
     :qualifiers,
     :locus_tag_id
-  ) { include DataExtensions }
+  )
 
   Sequences = Data.define(
     :entries
-  ) { include DataExtensions }
+  )
 
   Root = Data.define(
     :schema_version,
@@ -67,9 +67,21 @@ module DDBJRecord
     :st26,
     :sequences,
     :features
-  ) { include DataExtensions }
+  )
 
   def self.parse(io)
     Handler.new.tap { Oj.saj_parse(it, io) }.result
+  end
+
+  def self.generate(record)
+    file = Tempfile.open(['ddbj_record', '.json'])
+    file.binmode
+
+    Writer.new(file).write record
+
+    file.write "\n"
+    file.rewind
+
+    file
   end
 end

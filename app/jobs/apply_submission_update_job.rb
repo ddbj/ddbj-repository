@@ -34,7 +34,7 @@ class ApplySubmissionUpdateJob < ApplicationJob
     accessions_by_number     = update.submission.accessions.index_by(&:number)
     now                      = Time.current
 
-    ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction do |tx|
       updated_accessions_by_number = update.submission.accessions.upsert_all(changed_entries.map {|entry|
         acc = accessions_by_number.fetch(entry.accession)
 
@@ -66,13 +66,18 @@ class ApplySubmissionUpdateJob < ApplicationJob
         end
       }
 
-      new_record = new_record.with(sequences: new_record.sequences.with(entries: new_entries))
+      new_record  = new_record.with(sequences: new_record.sequences.with(entries: new_entries))
+      ddbj_record = DDBJRecord.generate(new_record)
 
       update.submission.update! ddbj_record: {
-        io:           StringIO.new(JSON.pretty_generate(new_record.as_json)),
+        io:           ddbj_record,
         filename:     update.ddbj_record.filename,
         content_type: update.ddbj_record.content_type
       }
+
+      tx.after_commit do
+        ddbj_record.close!
+      end
     end
   end
 end

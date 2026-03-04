@@ -50,17 +50,16 @@ class ApplySubmissionRequestJob < ApplicationJob
         )
       }
 
-      record = record.with(sequences: record.sequences.with(entries:))
-
-      filename = request.ddbj_record.filename
+      record      = record.with(sequences: record.sequences.with(entries:))
+      ddbj_record = DDBJRecord.generate(record)
+      flatfile    = Flatfile.render(record)
+      filename    = request.ddbj_record.filename
 
       submission.update! ddbj_record: {
-        io:           StringIO.new(JSON.pretty_generate(record.as_json) + "\n"),
+        io:           ddbj_record,
         filename:,
         content_type: request.ddbj_record.content_type
       }
-
-      flatfile = Flatfile.render(record)
 
       submission.update! flatfile: {
         io:           flatfile,
@@ -69,6 +68,7 @@ class ApplySubmissionRequestJob < ApplicationJob
       }
 
       tx.after_commit do
+        ddbj_record.close!
         flatfile.close!
       end
     end

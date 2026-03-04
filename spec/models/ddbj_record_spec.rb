@@ -9,10 +9,13 @@ RSpec.describe DDBJRecord do
     context 'example.json' do
       subject(:record) { parse('example.json') }
 
-      example 'round-trip: parse → as_json matches original JSON' do
-        original = JSON.parse(file_fixture('ddbj_record/example.json').read)
+      example 'round-trip: parse → generate → parse reproduces the same data' do
+        file       = DDBJRecord.generate(record)
+        reparsed   = DDBJRecord.parse(file)
 
-        expect(record.as_json).to eq(original)
+        expect(reparsed).to eq(record)
+      ensure
+        file&.close!
       end
 
       example 'builds correct Data types' do
@@ -44,28 +47,4 @@ RSpec.describe DDBJRecord do
     end
   end
 
-  describe 'Data#with + as_json (apply job flow)' do
-    subject(:record) { parse('example.json') }
-
-    example 'updated entries are reflected in as_json' do
-      entries = record.sequences.entries.map {|entry|
-        entry.with(
-          accession:    'AB000001',
-          locus:        'AB000001',
-          version:      1,
-          last_updated: '2026-01-15T00:00:00+09:00'
-        )
-      }
-
-      new_record = record.with(sequences: record.sequences.with(entries:))
-      json       = new_record.as_json
-
-      json['sequences']['entries'].each do |entry|
-        expect(entry['accession']).to eq('AB000001')
-        expect(entry['locus']).to eq('AB000001')
-        expect(entry['version']).to eq(1)
-        expect(entry['last_updated']).to eq('2026-01-15T00:00:00+09:00')
-      end
-    end
-  end
 end
