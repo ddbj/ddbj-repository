@@ -27,9 +27,9 @@ REFERENCE   1  (residues <%= entry.location_span.join(' to ') %>)
 COMMENT     OS   <%= entry.organism %>
             PN   <%= format_seqid(entry.seqid) %>
             PD   <%= format_date(record.submission.publication_date) %>
-            PF   <%= format_identification(record.submission.application_identification, pad_number: true) %>
+            PF   <%= format_identification(record.submission.application_identification) %>
             <%- record.submission.earliest_priority_application_identifications.each do |ident| -%>
-            PR   <%= format_identification(ident, pad_number: false) %>
+            PR   <%= format_identification(ident) %>
             <%- end -%>
             <%- if name = record.submission.applicant_name -%>
             PA   <%= name %>
