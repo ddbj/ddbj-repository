@@ -2,9 +2,9 @@
 
 module Flatfile
   Qualifier = Data.define(:key, :value) {
-    KEYS = Rails.root.join('data/qual.list').readlines(chomp: true).map(&:to_sym).to_set
+    KEYS = Rails.root.join('data/qual.list').readlines(chomp: true).to_set.freeze
 
-    BOOLEAN_KEYS = %i[
+    BOOLEAN_KEYS = %w[
       circular_RNA
       environmental_sample
       focus
@@ -16,13 +16,13 @@ module Flatfile
       ribosomal_slippage
       trans_splicing
       transgenic
-    ].to_set
+    ].to_set.freeze
 
     NEED_QUOTE_KEYS = Rails.root.join('data/kq_note.lst').readlines.filter_map {|line|
       key, format = line.split("\t").values_at(0, 3)
 
-      format == %(ff:"{0}") ? key.to_sym : false
-    }.to_set
+      format == %(ff:"{0}") ? key : false
+    }.to_set.freeze
 
     def valid?
       return false unless KEYS.include?(key)

@@ -87,6 +87,8 @@ module DDBJRecord
     end
 
     def add_value(value, key)
+      value.freeze if value.is_a?(String)
+
       push_value value, key
     end
 
@@ -144,7 +146,11 @@ module DDBJRecord
       Submission.new(
         application_identification:                    h['application_identification'],
         division:                                      h['division'],
-        earliest_priority_application_identifications: h['earliest_priority_application_identifications']
+        earliest_priority_application_identifications: h['earliest_priority_application_identifications'],
+        publication_date:                              h['publication_date'],
+        applicant_name:                                h['applicant_name'],
+        invention_title:                               h['invention_title'],
+        inventor_name:                                 h['inventor_name']
       )
     end
 
@@ -173,7 +179,11 @@ module DDBJRecord
         topology:          h['topology'],
         definition:        h['definition'],
         tax_id:            h['tax_id'],
-        source_qualifiers: h['source_qualifiers'] || {}
+        source_qualifiers: h['source_qualifiers'] || {},
+        accession:         h['accession'],
+        locus:             h['locus'],
+        version:           h['version'],
+        last_updated:      h['last_updated']
       )
     end
 

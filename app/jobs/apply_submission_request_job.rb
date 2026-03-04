@@ -17,8 +17,8 @@ class ApplySubmissionRequestJob < ApplicationJob
   private
 
   def apply(request)
-    record  = JSON.parse(request.ddbj_record.download, symbolize_names: true)
-    entries = record.dig(:sequences, :entries)
+    record  = request.ddbj_record.open { DDBJRecord.parse(it) }
+    entries = record.sequences.entries
 
     aa_count, na_count = entries.partition { aa?(it) }.map(&:size)
 
@@ -30,7 +30,7 @@ class ApplySubmissionRequestJob < ApplicationJob
       entry_id_to_attrs = submission.accessions.insert_all(entries.map {|entry|
         {
           number:   (aa?(entry) ? aa_nums : na_nums).shift,
-          entry_id: entry[:id]
+          entry_id: entry.id
         }
       }, **{
         unique_by: :number,
@@ -39,26 +39,28 @@ class ApplySubmissionRequestJob < ApplicationJob
         it['entry_id']
       }.transform_values(&:deep_symbolize_keys)
 
-      entries.each do |entry|
-        entry_id_to_attrs.fetch(entry[:id]) => {number: accession, version:, last_updated_at:}
+      entries = entries.map {|entry|
+        entry_id_to_attrs.fetch(entry.id) => {number: accession, version:, last_updated_at:}
 
-        entry.update(
+        entry.with(
           accession:,
           locus:        accession,
           version:,
           last_updated: last_updated_at.iso8601
         )
-      end
+      }
+
+      record = record.with(sequences: record.sequences.with(entries:))
 
       filename = request.ddbj_record.filename
 
       submission.update! ddbj_record: {
-        io:           StringIO.new(JSON.pretty_generate(record) + "\n"),
+        io:           StringIO.new(JSON.pretty_generate(record.as_json) + "\n"),
         filename:,
         content_type: request.ddbj_record.content_type
       }
 
-      flatfile = Flatfile::Root.new(record, record.dig(:sequences, :entries)).render
+      flatfile = Flatfile::Root.new(record, entries).render
 
       submission.update! flatfile: {
         io:           flatfile,
@@ -73,6 +75,6 @@ class ApplySubmissionRequestJob < ApplicationJob
   end
 
   def aa?(entry)
-    Array(entry.dig(:source_qualifiers, :mol_type)).any? { it[:value] == 'protein' }
+    Array(entry.source_qualifiers['mol_type']).any? { it.value == 'protein' }
   end
 end

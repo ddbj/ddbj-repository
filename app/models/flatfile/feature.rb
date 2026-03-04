@@ -69,16 +69,16 @@ module Flatfile
       @location = location
 
       @qualifiers = qualifiers.flat_map {|k, vs|
-        if type == 'source' && k == :mol_type && entry.aa?
+        if type == 'source' && k == 'mol_type' && entry.aa?
           []
-        elsif k == :organism
-          [Qualifier.new(:organism, entry.scientific_name || 'unidentified')]
+        elsif k == 'organism'
+          [Qualifier.new('organism', entry.scientific_name || 'unidentified')]
         else
-          vs.map { Qualifier.new(k, it[:value]) }
+          vs.map { Qualifier.new(k, it.value) }
         end
       }
 
-      @qualifiers << Qualifier.new(:db_xref, "taxon:#{entry[:tax_id]}") if type == 'source'
+      @qualifiers << Qualifier.new('db_xref', "taxon:#{entry.tax_id}") if type == 'source'
     end
 
     attr_reader :entry, :type, :location, :qualifiers

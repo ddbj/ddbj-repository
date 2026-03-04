@@ -1,13 +1,13 @@
 <%- entries.each do |entry| -%>
 <%- if entry.na? -%>
-LOCUS       <%= entry[:locus].to_s.ljust(16) %> <%= entry[:length].to_s.rjust(11) %> bp    <%= mol_type_label(entry.mol_type).ljust(6) %>  <%= entry[:topology].ljust(8) %> <%= record.dig(:submission, :division) %> <%= format_date(entry[:last_updated]) %>
+LOCUS       <%= entry.locus.to_s.ljust(16) %> <%= entry.length.to_s.rjust(11) %> bp    <%= mol_type_label(entry.mol_type).ljust(6) %>  <%= entry.topology.ljust(8) %> <%= record.submission.division %> <%= format_date(entry.last_updated) %>
 <%- else -%>
-LOCUS       <%= entry[:locus].to_s.ljust(16) %> <%= entry[:length].to_s.rjust(11) %> aa    <%= 'PRT'.ljust(7) %>          <%= record.dig(:submission, :division) %> <%= format_date(entry[:last_updated]) %>
+LOCUS       <%= entry.locus.to_s.ljust(16) %> <%= entry.length.to_s.rjust(11) %> aa    <%= 'PRT'.ljust(7) %>          <%= record.submission.division %> <%= format_date(entry.last_updated) %>
 <%- end -%>
-DEFINITION  <%= entry[:definition] %>
-ACCESSION   <%= entry[:accession] %>
+DEFINITION  <%= entry.definition %>
+ACCESSION   <%= entry.accession %>
 <%- if entry.na? -%>
-VERSION     <%= entry[:accession] %>.<%= entry[:version] %>
+VERSION     <%= entry.accession %>.<%= entry.version %>
 <%- end -%>
 KEYWORDS    <%= format_seqid(entry.seqid) %>
 SOURCE      <%= entry.source %>
@@ -18,26 +18,26 @@ REFERENCE   1  (bases <%= entry.location_span.join(' to ') %>)
 <%- else -%>
 REFERENCE   1  (residues <%= entry.location_span.join(' to ') %>)
 <%- end -%>
-  AUTHORS   
+  AUTHORS
   TITLE     <%= entry.invention_title %>
-  JOURNAL   Patent: <%= format_seqid(entry.seqid, format: :journal) %> <%= format_date(record.dig(:submission, :publication_date)) %>;
-            <%- if name = record.dig(:submission, :applicant_name) -%>
+  JOURNAL   Patent: <%= format_seqid(entry.seqid, format: :journal) %> <%= format_date(record.submission.publication_date) %>;
+            <%- if name = record.submission.applicant_name -%>
             <%=   name %>
             <%- end -%>
 COMMENT     OS   <%= entry.organism %>
             PN   <%= format_seqid(entry.seqid) %>
-            PD   <%= format_date(record.dig(:submission, :publication_date)) %>
-            PF   <%= format_identification(record.dig(:submission, :application_identification), pad_number: true) %>
-            <%- record.dig(:submission, :earliest_priority_application_identifications).each do |ident| -%>
+            PD   <%= format_date(record.submission.publication_date) %>
+            PF   <%= format_identification(record.submission.application_identification, pad_number: true) %>
+            <%- record.submission.earliest_priority_application_identifications.each do |ident| -%>
             PR   <%= format_identification(ident, pad_number: false) %>
             <%- end -%>
-            <%- if name = record.dig(:submission, :applicant_name) -%>
+            <%- if name = record.submission.applicant_name -%>
             PA   <%= name %>
             <%- end -%>
-            <%- if title = record.dig(:submission, :invention_title) -%>
+            <%- if title = record.submission.invention_title -%>
             PT   <%= title %>
             <%- end -%>
-            <%- if name = record.dig(:submission, :inventor_name) -%>
+            <%- if name = record.submission.inventor_name -%>
             PI   <%= name %>
             <%- end -%>
             PS   <%= entry.seqid.sequence_number %>

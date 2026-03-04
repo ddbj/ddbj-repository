@@ -1,25 +1,56 @@
 module DDBJRecord
+  module DataExtensions
+    def as_json(*)
+      members.each_with_object({}) {|key, hash|
+        value = public_send(key)
+
+        next if value.nil?
+
+        hash[key.name] = serialize(value)
+      }
+    end
+
+    private
+
+    def serialize(value)
+      case value
+      when DataExtensions
+        value.as_json
+      when Hash
+        value.to_h {|k, v| [k.to_s, serialize(v)] }
+      when Array
+        value.map { serialize(it) }
+      else
+        value
+      end
+    end
+  end
+
   Qualifier = Data.define(
     :id,
     :value
-  )
+  ) { include DataExtensions }
 
   LocalizedText = Data.define(
     :language_code,
     :text
-  )
+  ) { include DataExtensions }
 
   ApplicationIdentification = Data.define(
     :filing_date,
     :ip_office_code,
     :application_number_text
-  )
+  ) { include DataExtensions }
 
   Submission = Data.define(
     :application_identification,
     :division,
-    :earliest_priority_application_identifications
-  )
+    :earliest_priority_application_identifications,
+    :publication_date,
+    :applicant_name,
+    :invention_title,
+    :inventor_name
+  ) { include DataExtensions }
 
   St26 = Data.define(
     :applicant_names,
@@ -27,7 +58,7 @@ module DDBJRecord
     :inventor_names,
     :inventor_name_latin,
     :invention_titles
-  )
+  ) { include DataExtensions }
 
   Entry = Data.define(
     :id,
@@ -37,8 +68,12 @@ module DDBJRecord
     :topology,
     :definition,
     :tax_id,
-    :source_qualifiers
-  )
+    :source_qualifiers,
+    :accession,
+    :locus,
+    :version,
+    :last_updated
+  ) { include DataExtensions }
 
   Feature = Data.define(
     :id,
@@ -47,11 +82,11 @@ module DDBJRecord
     :sequence_id,
     :qualifiers,
     :locus_tag_id
-  )
+  ) { include DataExtensions }
 
   Sequences = Data.define(
     :entries
-  )
+  ) { include DataExtensions }
 
   Root = Data.define(
     :schema_version,
@@ -59,5 +94,5 @@ module DDBJRecord
     :st26,
     :sequences,
     :features
-  )
+  ) { include DataExtensions }
 end
