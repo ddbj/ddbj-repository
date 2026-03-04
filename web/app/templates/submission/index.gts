@@ -23,12 +23,28 @@ import type { components } from 'schema/openapi';
       </a>
     </dd>
 
-    <dt>Flatfile</dt>
+    <dt>Flatfile (NA)</dt>
 
     <dd>
-      <a href={{@model.flatfile.url}} target="_blank" rel="noopener noreferrer">
-        {{@model.flatfile.filename}}
-      </a>
+      {{#if @model.flatfile_na}}
+        <a href={{@model.flatfile_na.url}} target="_blank" rel="noopener noreferrer">
+          {{@model.flatfile_na.filename}}
+        </a>
+      {{else}}
+        -
+      {{/if}}
+    </dd>
+
+    <dt>Flatfile (AA)</dt>
+
+    <dd>
+      {{#if @model.flatfile_aa}}
+        <a href={{@model.flatfile_aa.url}} target="_blank" rel="noopener noreferrer">
+          {{@model.flatfile_aa.filename}}
+        </a>
+      {{else}}
+        -
+      {{/if}}
     </dd>
   </dl>
 

@@ -20,11 +20,11 @@ class ApplySubmissionRequestJob < ApplicationJob
     record  = request.ddbj_record.open { DDBJRecord.parse(it) }
     entries = record.sequences.entries
 
-    aa_count, na_count = entries.partition { aa?(it) }.map(&:size)
+    aa_entries, na_entries = entries.partition { aa?(it) }
 
     ActiveRecord::Base.transaction do |tx|
-      na_nums    = Sequence.allocate!(:jpo_na, na_count)
-      aa_nums    = Sequence.allocate!(:jpo_aa, aa_count)
+      na_nums    = Sequence.allocate!(:jpo_na, na_entries.size)
+      aa_nums    = Sequence.allocate!(:jpo_aa, aa_entries.size)
       submission = request.create_submission!
 
       entry_id_to_attrs = submission.accessions.insert_all(entries.map {|entry|
@@ -52,7 +52,6 @@ class ApplySubmissionRequestJob < ApplicationJob
 
       record      = record.with(sequences: record.sequences.with(entries:))
       ddbj_record = DDBJRecord.generate(record)
-      flatfile    = Flatfile.render(record)
       filename    = request.ddbj_record.filename
 
       submission.update! ddbj_record: {
@@ -61,15 +60,32 @@ class ApplySubmissionRequestJob < ApplicationJob
         content_type: request.ddbj_record.content_type
       }
 
-      submission.update! flatfile: {
-        io:           flatfile,
-        filename:     "#{filename.base}.flat",
-        content_type: 'text/plain'
-      }
+      aa_entries, na_entries = entries.partition { aa?(it) }
+
+      unless na_entries.empty?
+        flatfile_na = Flatfile.render(record, na_entries)
+
+        submission.update! flatfile_na: {
+          io:           flatfile_na,
+          filename:     "#{filename.base}_na.flat",
+          content_type: 'text/plain'
+        }
+      end
+
+      unless aa_entries.empty?
+        flatfile_aa = Flatfile.render(record, aa_entries)
+
+        submission.update! flatfile_aa: {
+          io:           flatfile_aa,
+          filename:     "#{filename.base}_aa.flat",
+          content_type: 'text/plain'
+        }
+      end
 
       tx.after_commit do
         ddbj_record.close!
-        flatfile.close!
+        flatfile_na&.close!
+        flatfile_aa&.close!
       end
     end
   end

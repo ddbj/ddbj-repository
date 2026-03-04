@@ -7,19 +7,9 @@
     :updated_at
   ),
 
-  ddbj_record: submission.ddbj_record.then {|record|
-    record.attached? ? {
-      filename: record.filename,
-      url:      rails_blob_url(record)
-    } : nil
-  },
-
-  flatfile: submission.flatfile.then {|file|
-    file.attached? ? {
-      filename: file.filename,
-      url:      rails_blob_url(file)
-    } : nil
-  },
+  ddbj_record: render('attachment', attachment: submission.ddbj_record),
+  flatfile_na: render('attachment', attachment: submission.flatfile_na),
+  flatfile_aa: render('attachment', attachment: submission.flatfile_aa),
 
   accessions: submission.accessions.map {|accession|
     accession.slice(
@@ -38,7 +28,7 @@
         :created_at
       ),
 
-      ddbj_record: render('blob', blob: update.ddbj_record),
+      ddbj_record: render('attachment', attachment: update.ddbj_record),
       validation:  update.validation_with_validity&.then { render(it) }
     }
   }

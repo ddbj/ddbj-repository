@@ -28,7 +28,7 @@ RSpec.describe Flatfile do
 
   example 'renders flatfile from Data objects' do
     record = build_record
-    output = Flatfile.render(record).read
+    output = Flatfile.render(record, record.sequences.entries).read
 
     expect(output).to eq(<<~FLAT)
       LOCUS       AB000001                  21 bp    DNA     linear   PAT 01-JUN-2026

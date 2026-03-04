@@ -503,7 +503,8 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
             ddbj_record: components["schemas"]["Attachment"];
-            flatfile: components["schemas"]["Attachment"];
+            flatfile_na: components["schemas"]["Attachment"] | null;
+            flatfile_aa: components["schemas"]["Attachment"] | null;
             accessions: components["schemas"]["Accession"][];
             updates: {
                 id: number;

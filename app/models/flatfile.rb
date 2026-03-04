@@ -1,5 +1,5 @@
 module Flatfile
-  def self.render(record)
-    Root.new(record, record.sequences.entries).render
+  def self.render(record, entries)
+    Root.new(record, entries).render
   end
 end

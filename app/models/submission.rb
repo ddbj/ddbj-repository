@@ -5,7 +5,8 @@ class Submission < ApplicationRecord
   has_many :accessions, dependent: :destroy
 
   has_one_attached :ddbj_record
-  has_one_attached :flatfile
+  has_one_attached :flatfile_na
+  has_one_attached :flatfile_aa
 
   validates :ddbj_record, attached: true, content_type: 'application/json', on: :update
 

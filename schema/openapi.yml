@@ -585,7 +585,8 @@ components:
         - created_at
         - updated_at
         - ddbj_record
-        - flatfile
+        - flatfile_na
+        - flatfile_aa
         - accessions
         - updates
 
@@ -604,8 +605,15 @@ components:
         ddbj_record:
           $ref: '#/components/schemas/Attachment'
 
-        flatfile:
-          $ref: '#/components/schemas/Attachment'
+        flatfile_na:
+          anyOf:
+            - $ref: '#/components/schemas/Attachment'
+            - type: 'null'
+
+        flatfile_aa:
+          anyOf:
+            - $ref: '#/components/schemas/Attachment'
+            - type: 'null'
 
         accessions:
           type: array
