@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative 'data'
-
 module DDBJRecord
   class Handler < Oj::Saj
     attr_reader :result
