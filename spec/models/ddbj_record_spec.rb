@@ -46,5 +46,4 @@ RSpec.describe DDBJRecord do
       end
     end
   end
-
 end
