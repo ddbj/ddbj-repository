@@ -23,6 +23,11 @@ const submission: Submission = {
     url: 'http://example.com/original.json',
   },
 
+  flatfile: {
+    filename: 'original.flat',
+    url: 'http://example.com/original.flat',
+  },
+
   accessions: [
     {
       number: 'ACC001',

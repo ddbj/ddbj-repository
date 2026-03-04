@@ -115,6 +115,7 @@ module('Acceptance | submission request', function (hooks) {
             created_at: now,
             updated_at: now,
             ddbj_record: { filename: 'test.json', url: 'http://example.com/test.json' },
+            flatfile: { filename: 'test.flat', url: 'http://example.com/test.flat' },
             accessions: [],
             updates: [],
           },
