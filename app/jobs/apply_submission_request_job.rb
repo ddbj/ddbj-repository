@@ -57,10 +57,12 @@ class ApplySubmissionRequestJob < ApplicationJob
     ddbj_record = DDBJRecord.generate(record)
     filename    = request.ddbj_record.filename
 
-    submission.update! ddbj_record: {
-      io:           ddbj_record,
-      filename:,
-      content_type: request.ddbj_record.content_type
+    updates = {
+      ddbj_record: {
+        io:           ddbj_record,
+        filename:,
+        content_type: request.ddbj_record.content_type
+      }
     }
 
     aa_entries, na_entries = entries.partition { aa?(it) }
@@ -68,7 +70,7 @@ class ApplySubmissionRequestJob < ApplicationJob
     unless na_entries.empty?
       flatfile_na = Flatfile.render(record, na_entries)
 
-      submission.update! flatfile_na: {
+      updates[:flatfile_na] = {
         io:           flatfile_na,
         filename:     "#{filename.base}-na.flat",
         content_type: 'text/plain'
@@ -78,12 +80,14 @@ class ApplySubmissionRequestJob < ApplicationJob
     unless aa_entries.empty?
       flatfile_aa = Flatfile.render(record, aa_entries)
 
-      submission.update! flatfile_aa: {
+      updates[:flatfile_aa] = {
         io:           flatfile_aa,
         filename:     "#{filename.base}-aa.flat",
         content_type: 'text/plain'
       }
     end
+
+    submission.update! updates
   ensure
     ddbj_record&.close!
     flatfile_na&.close!
