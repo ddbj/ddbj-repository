@@ -22,7 +22,7 @@ class ApplySubmissionRequestJob < ApplicationJob
 
     aa_entries, na_entries = entries.partition { aa?(it) }
 
-    ActiveRecord::Base.transaction do |tx|
+    submission = ActiveRecord::Base.transaction {
       na_nums    = Sequence.allocate!(:jpo_na, na_entries.size)
       aa_nums    = Sequence.allocate!(:jpo_aa, aa_entries.size)
       submission = request.create_submission!
@@ -50,44 +50,44 @@ class ApplySubmissionRequestJob < ApplicationJob
         )
       }
 
-      record      = record.with(sequences: record.sequences.with(entries:))
-      ddbj_record = DDBJRecord.generate(record)
-      filename    = request.ddbj_record.filename
+      submission
+    }
 
-      submission.update! ddbj_record: {
-        io:           ddbj_record,
-        filename:,
-        content_type: request.ddbj_record.content_type
+    record      = record.with(sequences: record.sequences.with(entries:))
+    ddbj_record = DDBJRecord.generate(record)
+    filename    = request.ddbj_record.filename
+
+    submission.update! ddbj_record: {
+      io:           ddbj_record,
+      filename:,
+      content_type: request.ddbj_record.content_type
+    }
+
+    aa_entries, na_entries = entries.partition { aa?(it) }
+
+    unless na_entries.empty?
+      flatfile_na = Flatfile.render(record, na_entries)
+
+      submission.update! flatfile_na: {
+        io:           flatfile_na,
+        filename:     "#{filename.base}-na.flat",
+        content_type: 'text/plain'
       }
-
-      aa_entries, na_entries = entries.partition { aa?(it) }
-
-      unless na_entries.empty?
-        flatfile_na = Flatfile.render(record, na_entries)
-
-        submission.update! flatfile_na: {
-          io:           flatfile_na,
-          filename:     "#{filename.base}-na.flat",
-          content_type: 'text/plain'
-        }
-      end
-
-      unless aa_entries.empty?
-        flatfile_aa = Flatfile.render(record, aa_entries)
-
-        submission.update! flatfile_aa: {
-          io:           flatfile_aa,
-          filename:     "#{filename.base}-aa.flat",
-          content_type: 'text/plain'
-        }
-      end
-
-      tx.after_commit do
-        ddbj_record.close!
-        flatfile_na&.close!
-        flatfile_aa&.close!
-      end
     end
+
+    unless aa_entries.empty?
+      flatfile_aa = Flatfile.render(record, aa_entries)
+
+      submission.update! flatfile_aa: {
+        io:           flatfile_aa,
+        filename:     "#{filename.base}-aa.flat",
+        content_type: 'text/plain'
+      }
+    end
+  ensure
+    ddbj_record&.close!
+    flatfile_na&.close!
+    flatfile_aa&.close!
   end
 
   def aa?(entry)

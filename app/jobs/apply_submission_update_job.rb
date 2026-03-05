@@ -34,8 +34,8 @@ class ApplySubmissionUpdateJob < ApplicationJob
     accessions_by_number     = update.submission.accessions.index_by(&:number)
     now                      = Time.current
 
-    ActiveRecord::Base.transaction do |tx|
-      updated_accessions_by_number = update.submission.accessions.upsert_all(changed_entries.map {|entry|
+    updated_accessions_by_number = ActiveRecord::Base.transaction {
+      update.submission.accessions.upsert_all(changed_entries.map {|entry|
         acc = accessions_by_number.fetch(entry.accession)
 
         {
@@ -50,34 +50,32 @@ class ApplySubmissionUpdateJob < ApplicationJob
       }).index_by {
         it['number']
       }.transform_values(&:deep_symbolize_keys)
+    }
 
-      new_entries = new_entries.map {|entry|
-        attrs = updated_accessions_by_number[entry.accession]
+    new_entries = new_entries.map {|entry|
+      attrs = updated_accessions_by_number[entry.accession]
 
-        if attrs
-          attrs => {version:, last_updated_at:}
+      if attrs
+        attrs => {version:, last_updated_at:}
 
-          entry.with(
-            version:,
-            last_updated: last_updated_at.iso8601
-          )
-        else
-          entry
-        end
-      }
-
-      new_record  = new_record.with(sequences: new_record.sequences.with(entries: new_entries))
-      ddbj_record = DDBJRecord.generate(new_record)
-
-      update.submission.update! ddbj_record: {
-        io:           ddbj_record,
-        filename:     update.ddbj_record.filename,
-        content_type: update.ddbj_record.content_type
-      }
-
-      tx.after_commit do
-        ddbj_record.close!
+        entry.with(
+          version:,
+          last_updated: last_updated_at.iso8601
+        )
+      else
+        entry
       end
-    end
+    }
+
+    new_record  = new_record.with(sequences: new_record.sequences.with(entries: new_entries))
+    ddbj_record = DDBJRecord.generate(new_record)
+
+    update.submission.update! ddbj_record: {
+      io:           ddbj_record,
+      filename:     update.ddbj_record.filename,
+      content_type: update.ddbj_record.content_type
+    }
+  ensure
+    ddbj_record&.close!
   end
 end
