@@ -67,7 +67,7 @@ class ApplySubmissionRequestJob < ApplicationJob
 
         submission.update! flatfile_na: {
           io:           flatfile_na,
-          filename:     "#{filename.base}_na.flat",
+          filename:     "#{filename.base}-na.flat",
           content_type: 'text/plain'
         }
       end
@@ -77,7 +77,7 @@ class ApplySubmissionRequestJob < ApplicationJob
 
         submission.update! flatfile_aa: {
           io:           flatfile_aa,
-          filename:     "#{filename.base}_aa.flat",
+          filename:     "#{filename.base}-aa.flat",
           content_type: 'text/plain'
         }
       end

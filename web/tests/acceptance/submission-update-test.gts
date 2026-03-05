@@ -24,8 +24,8 @@ const submission: Submission = {
   },
 
   flatfile_na: {
-    filename: 'original_na.flat',
-    url: 'http://example.com/original_na.flat',
+    filename: 'original-na.flat',
+    url: 'http://example.com/original-na.flat',
   },
 
   flatfile_aa: null,
