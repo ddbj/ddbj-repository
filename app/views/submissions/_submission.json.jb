@@ -11,15 +11,6 @@
   flatfile_na: render('attachment', attachment: submission.flatfile_na),
   flatfile_aa: render('attachment', attachment: submission.flatfile_aa),
 
-  accessions: submission.accessions.map {|accession|
-    accession.slice(
-      :number,
-      :entry_id,
-      :version,
-      :last_updated_at
-    )
-  },
-
   updates: submission.updates.map {|update|
     {
       **update.slice(

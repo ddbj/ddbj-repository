@@ -427,6 +427,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submissions/{id}/accessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get a paginated list of accessions for a submission. */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the list of accessions. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Accession"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submissions/{id}/updates": {
         parameters: {
             query?: never;
@@ -551,7 +594,6 @@ export interface components {
             ddbj_record: components["schemas"]["Attachment"];
             flatfile_na: components["schemas"]["Attachment"] | null;
             flatfile_aa: components["schemas"]["Attachment"] | null;
-            accessions: components["schemas"]["Accession"][];
             updates: {
                 id: number;
                 status: components["schemas"]["SubmissionOperationStatus"];

@@ -30,15 +30,6 @@ const submission: Submission = {
 
   flatfile_aa: null,
 
-  accessions: [
-    {
-      number: 'ACC001',
-      entry_id: 'entry-1',
-      version: 1,
-      last_updated_at: now,
-    },
-  ],
-
   updates: [],
 };
 

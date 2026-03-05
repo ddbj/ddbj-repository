@@ -21,6 +21,8 @@ Router.map(function () {
 
   this.route('submissions', function () {
     this.route('submission', { path: ':submission_id', resetNamespace: true }, function () {
+      this.route('accessions');
+
       this.route('updates', function () {
         this.route('new');
       });

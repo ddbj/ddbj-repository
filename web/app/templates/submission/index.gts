@@ -48,31 +48,9 @@ import type { components } from 'schema/openapi';
     </dd>
   </dl>
 
-  <details>
-    <summary>Accessions</summary>
-
-    <table class="table border mt-3">
-      <thead class="table-light">
-        <tr>
-          <th>Accession</th>
-          <th>Entry ID</th>
-          <th>Version</th>
-          <th>Last Updated</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {{#each @model.accessions as |accession|}}
-          <tr>
-            <td>{{accession.number}}</td>
-            <td>{{accession.entry_id}}</td>
-            <td>{{accession.version}}</td>
-            <td>{{formatDatetime accession.last_updated_at}}</td>
-          </tr>
-        {{/each}}
-      </tbody>
-    </table>
-  </details>
+  <div class="my-3">
+    <LinkTo @route="submission.accessions">Accessions</LinkTo>
+  </div>
 
   <h2 class="mt-3">Updates</h2>
 

@@ -21,7 +21,8 @@ Rails.application.routes.draw do
     end
 
     resources :submissions, only: %i[index show] do
-      resources :updates, only: %i[create], controller: 'submission_updates'
+      resources :accessions, only: %i[index]
+      resources :updates,    only: %i[create], controller: 'submission_updates'
     end
 
     resources :stats, only: %i[index]

@@ -331,6 +331,50 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /submissions/{id}/accessions:
+    get:
+      description: Get a paginated list of accessions for a submission.
+
+      tags:
+        - Submissions
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: number
+
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: Returns the list of accessions.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/Accession'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /submissions/{id}/updates:
     post:
       description: Create a submission update.
@@ -642,7 +686,6 @@ components:
         - ddbj_record
         - flatfile_na
         - flatfile_aa
-        - accessions
         - updates
 
       properties:
@@ -669,12 +712,6 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Attachment'
             - type: 'null'
-
-        accessions:
-          type: array
-
-          items:
-            $ref: '#/components/schemas/Accession'
 
         updates:
           type: array
