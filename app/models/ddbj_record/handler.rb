@@ -85,7 +85,7 @@ module DDBJRecord
     end
 
     def add_value(value, key)
-      value.freeze if value.is_a?(String)
+      value = -value if value.is_a?(String)
 
       push_value value, key
     end
