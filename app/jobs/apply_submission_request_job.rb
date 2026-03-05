@@ -1,7 +1,6 @@
 class ApplySubmissionRequestJob < ApplicationJob
   def perform(request)
     request.applying!
-    request.create_submission!
 
     apply request
   rescue => e
@@ -18,19 +17,20 @@ class ApplySubmissionRequestJob < ApplicationJob
   private
 
   def apply(request)
-    record  = JSON.parse(request.ddbj_record.download, symbolize_names: true)
-    entries = record.dig(:sequence, :entries)
+    record  = request.ddbj_record.open { DDBJRecord.parse(it) }
+    entries = record.sequences.entries
 
-    aa_count, na_count = entries.partition { aa?(it) }.map(&:size)
+    aa_entries, na_entries = entries.partition { aa?(it) }
 
-    ActiveRecord::Base.transaction do
-      na_nums = Sequence.allocate!(:jpo_na, na_count)
-      aa_nums = Sequence.allocate!(:jpo_aa, aa_count)
+    ActiveRecord::Base.transaction do |tx|
+      na_nums    = Sequence.allocate!(:jpo_na, na_entries.size)
+      aa_nums    = Sequence.allocate!(:jpo_aa, aa_entries.size)
+      submission = request.create_submission!
 
-      entry_id_to_attrs = request.submission.accessions.insert_all(entries.map {|entry|
+      entry_id_to_attrs = submission.accessions.insert_all(entries.map {|entry|
         {
           number:   (aa?(entry) ? aa_nums : na_nums).shift,
-          entry_id: entry[:id]
+          entry_id: entry.id
         }
       }, **{
         unique_by: :number,
@@ -39,28 +39,58 @@ class ApplySubmissionRequestJob < ApplicationJob
         it['entry_id']
       }.transform_values(&:deep_symbolize_keys)
 
-      entries.each do |entry|
-        entry_id_to_attrs.fetch(entry[:id]) => {number: accession, version:, last_updated_at:}
+      entries = entries.map {|entry|
+        entry_id_to_attrs.fetch(entry.id) => {number: accession, version:, last_updated_at:}
 
-        entry.update(
+        entry.with(
           accession:,
           locus:        accession,
           version:,
           last_updated: last_updated_at.iso8601
         )
-      end
+      }
 
-      filename = request.ddbj_record.filename
+      record      = record.with(sequences: record.sequences.with(entries:))
+      ddbj_record = DDBJRecord.generate(record)
+      filename    = request.ddbj_record.filename
 
-      request.submission.update! ddbj_record: {
-        io:           StringIO.new(JSON.pretty_generate(record) + "\n"),
-        filename:     "#{filename.base}-submitted.#{filename.extension}",
+      submission.update! ddbj_record: {
+        io:           ddbj_record,
+        filename:,
         content_type: request.ddbj_record.content_type
       }
+
+      aa_entries, na_entries = entries.partition { aa?(it) }
+
+      unless na_entries.empty?
+        flatfile_na = Flatfile.render(record, na_entries)
+
+        submission.update! flatfile_na: {
+          io:           flatfile_na,
+          filename:     "#{filename.base}-na.flat",
+          content_type: 'text/plain'
+        }
+      end
+
+      unless aa_entries.empty?
+        flatfile_aa = Flatfile.render(record, aa_entries)
+
+        submission.update! flatfile_aa: {
+          io:           flatfile_aa,
+          filename:     "#{filename.base}-aa.flat",
+          content_type: 'text/plain'
+        }
+      end
+
+      tx.after_commit do
+        ddbj_record.close!
+        flatfile_na&.close!
+        flatfile_aa&.close!
+      end
     end
   end
 
   def aa?(entry)
-    Array(entry.dig(:source_qualifiers, :mol_type)).any? { it[:value] == 'protein' }
+    Array(entry.source_qualifiers['mol_type']).any? { it.value == 'protein' }
   end
 end

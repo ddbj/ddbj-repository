@@ -18,8 +18,31 @@
         79
       ],
       "note": ""
+    },
+    {
+      "warning_type": "Dangerous Eval",
+      "warning_code": 13,
+      "fingerprint": "baf2a91f1856027352e5b0eb7a51f8054de9f00051839246d43a8ecb7e8d1d28",
+      "check_name": "Evaluation",
+      "message": "Dynamic code evaluation",
+      "file": "app/models/flatfile/root.rb",
+      "line": 40,
+      "link": "https://brakemanscanner.org/docs/warning_types/dangerous_eval/",
+      "code": "eval(Erubi::Engine.new(Rails.root.join(\"app/models/flatfile/template.erb\").read, :bufval => \"__buf__\").src, binding)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "Flatfile::Root",
+        "method": "render"
+      },
+      "user_input": null,
+      "confidence": "Weak",
+      "cwe_id": [
+        913,
+        95
+      ],
+      "note": ""
     }
   ],
-  "updated": "2024-08-13 00:41:09 +0900",
-  "brakeman_version": "6.1.2"
+  "brakeman_version": "8.0.2"
 }

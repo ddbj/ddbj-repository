@@ -8,7 +8,7 @@
   ),
 
   processing:  @update.processing?,
-  ddbj_record: render('blob', blob: @update.ddbj_record),
+  ddbj_record: render('attachment', attachment: @update.ddbj_record),
   validation:  @update.validation_with_validity&.then { render(it) },
   submission:  render(@update.submission)
 }

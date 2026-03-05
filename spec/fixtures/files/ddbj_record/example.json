@@ -1,20 +1,47 @@
 {
   "submission": {
     "application_identification": {
-      "application_number_text": "2026-123456"
-    }
+      "application_number_text": "2026-123456",
+      "filing_date": "2026-01-15",
+      "ip_office_code": "JP"
+    },
+
+    "division": "PAT",
+    "earliest_priority_application_identifications": []
   },
 
-  "sequence": {
+  "sequences": {
     "entries": [
       {
-        "id": "ENTRY_1",
-        "sequence": "atgcgtagctagctagctagc"
+        "id": "SEQ|JP|2026123456|A|1",
+        "sequence": "atgcgtagctagctagctagc",
+        "length": 21,
+        "location": "1..21",
+        "topology": "linear",
+        "definition": "test sequence 1",
+        "tax_id": 9606,
+
+        "source_qualifiers": {
+          "organism": [{"value": "Homo sapiens"}],
+          "mol_type": [{"value": "genomic DNA"}]
+        }
       },
       {
-        "id": "ENTRY_2",
-        "sequence": "ttagcgtagctagctagctaa"
+        "id": "SEQ|JP|2026123456|A|2",
+        "sequence": "ttagcgtagctagctagctaa",
+        "length": 21,
+        "location": "1..21",
+        "topology": "linear",
+        "definition": "test sequence 2",
+        "tax_id": 9606,
+
+        "source_qualifiers": {
+          "organism": [{"value": "Homo sapiens"}],
+          "mol_type": [{"value": "genomic DNA"}]
+        }
       }
     ]
-  }
+  },
+
+  "features": []
 }

@@ -34,6 +34,10 @@ development:
   primary:
     <<: *default
     database: repository_development
+  taxdump:
+    <<: *default
+    database: taxdump_development
+    migrations_paths: db/taxdump_migrate
   bioproject:
     <<: *bioproject_default
     database: bioproject_development
@@ -54,6 +58,10 @@ test:
   primary:
     <<: *default
     database: repository_test
+  taxdump:
+    <<: *default
+    database: taxdump_test
+    migrations_paths: db/taxdump_migrate
   bioproject:
     <<: *bioproject_default
     database: bioproject_test
@@ -86,6 +94,10 @@ production: &production
     <<: *default
     url: <%= Rails.application.credentials.dig(:database_url, :cable) %>
     migrations_paths: db/cable_migrate
+  taxdump:
+    <<: *default
+    url: <%= Rails.application.credentials.dig(:database_url, :taxdump) %>
+    migrations_paths: db/taxdump_migrate
   bioproject:
     <<: *bioproject_default
     url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>

@@ -1,0 +1,9 @@
+homo_sapiens:
+  tax_id: 9606
+  parent_tax_id: 9605
+  hidden_flag: false
+
+homo:
+  tax_id: 9605
+  parent_tax_id: 1
+  hidden_flag: false

@@ -23,27 +23,24 @@ class ApplySubmissionUpdateJob < ApplicationJob
   private
 
   def apply(update)
-    old_json = update.submission.ddbj_record.download
-    new_json = update.ddbj_record.download
+    raise NoChange if update.submission.ddbj_record.checksum == update.ddbj_record.checksum
 
-    raise NoChange if old_json == new_json
+    old_record = update.submission.ddbj_record.open { DDBJRecord.parse(it) }
+    new_record = update.ddbj_record.open { DDBJRecord.parse(it) }
 
-    old_record = JSON.parse(old_json, symbolize_names: true)
-    new_record = JSON.parse(new_json, symbolize_names: true)
-
-    old_entries_by_accession = old_record.dig(:sequence, :entries).index_by { it[:accession] }
-    new_entries              = new_record.dig(:sequence, :entries)
-    changed_entries          = new_entries.reject { it == old_entries_by_accession[it[:accession]] }
+    old_entries_by_accession = old_record.sequences.entries.index_by(&:accession)
+    new_entries              = new_record.sequences.entries
+    changed_entries          = new_entries.reject { it == old_entries_by_accession[it.accession] }
     accessions_by_number     = update.submission.accessions.index_by(&:number)
     now                      = Time.current
 
-    ActiveRecord::Base.transaction do
+    ActiveRecord::Base.transaction do |tx|
       updated_accessions_by_number = update.submission.accessions.upsert_all(changed_entries.map {|entry|
-        acc = accessions_by_number.fetch(entry[:accession])
+        acc = accessions_by_number.fetch(entry.accession)
 
         {
           **acc.attributes,
-          entry_id:        entry[:id],
+          entry_id:        entry.id,
           version:         acc.version.succ,
           last_updated_at: now
         }
@@ -54,22 +51,33 @@ class ApplySubmissionUpdateJob < ApplicationJob
         it['number']
       }.transform_values(&:deep_symbolize_keys)
 
-      new_entries.each do |entry|
-        next unless attrs = updated_accessions_by_number[entry[:accession]]
+      new_entries = new_entries.map {|entry|
+        attrs = updated_accessions_by_number[entry.accession]
 
-        attrs => {version:, last_updated_at:}
+        if attrs
+          attrs => {version:, last_updated_at:}
 
-        entry.update(
-          version:,
-          last_updated: last_updated_at.iso8601
-        )
-      end
+          entry.with(
+            version:,
+            last_updated: last_updated_at.iso8601
+          )
+        else
+          entry
+        end
+      }
+
+      new_record  = new_record.with(sequences: new_record.sequences.with(entries: new_entries))
+      ddbj_record = DDBJRecord.generate(new_record)
 
       update.submission.update! ddbj_record: {
-        io:           StringIO.new(JSON.pretty_generate(new_record)),
+        io:           ddbj_record,
         filename:     update.ddbj_record.filename,
         content_type: update.ddbj_record.content_type
       }
+
+      tx.after_commit do
+        ddbj_record.close!
+      end
     end
   end
 end

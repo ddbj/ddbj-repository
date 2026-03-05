@@ -1,0 +1,54 @@
+LOCUS       AB000000              450 bp    mRNA    linear   HUM 01-JUN-2009
+DEFINITION  Homo sapiens GAPD mRNA for glyceraldehyde-3-phosphate
+            dehydrogenase, partial cds.
+ACCESSION   AB000000
+VERSION     AB000000.1
+KEYWORDS    .
+SOURCE      Homo sapiens (human)
+  ORGANISM  Homo sapiens
+            Eukaryota; Metazoa; Chordata; Craniata; Vertebrata; Euteleostomi;
+            Mammalia; Eutheria; Euarchontoglires; Primates; Haplorrhini;
+            Catarrhini; Hominidae; Homo.
+REFERENCE   1  (bases 1 to 450)
+  AUTHORS   Mishima,H. and Shizuoka,T.
+  TITLE     Direct Submission
+  JOURNAL   Submitted (30-NOV-2008)
+            Contact:Hanako Mishima
+            National Institute of Genetics, DNA Data Bank of Japan; Yata 1111,
+            Mishima, Shizuoka 411-8540, Japan
+REFERENCE   2
+  AUTHORS   Mishima,H., Shizuoka,T. and Fuji,I.
+  TITLE     Glyceraldehyde-3-phosphate dehydrogenase expressed in human liver
+  JOURNAL   Unpublished (2009)
+COMMENT     Human cDNA sequencing project.
+FEATURES             Location/Qualifiers
+     source          1..450
+                     /chromosome="12"
+                     /clone="GT200015"
+                     /collection_date="2007"
+                     /db_xref="taxon:9606"
+                     /geo_loc_name="Japan"
+                     /map="12p13"
+                     /mol_type="mRNA"
+                     /organism="Homo sapiens"
+                     /tissue_type="liver"
+     CDS             86..>450
+                     /codon_start=1
+                     /gene="GAPD"
+                     /product="glyceraldehyde-3-phosphate dehydrogenase"
+                     /protein_id="BAA12345.1"
+                     /transl_table=1
+                     /translation="MAKIKIGINGFGRIGRLVARVALQSDDVELVAVNDPFITTDYMT
+                     YMFKYDTVHGQWKHHEVKVKDSKTLLFGEKEVTVFGCRNPKEIPWGETSAEFVVEYTG
+                     VFTDKDKAVAQLKGGAKKV"
+BASE COUNT          102 a          119 c          131 g           98 t
+ORIGIN
+        1 cccacgcgtc cggtcgcatc gcacttgtag ctctcgaccc ccgcatctca tccctcctct
+       61 cgcttagttc agatcgaaat cgcaaatggc gaagattaag atcgggatca atgggttcgg
+      121 gaggatcggg aggctcgtgg ccagggtggc cctgcagagc gacgacgtcg agctcgtcgc
+      181 cgtcaacgac cccttcatca ccaccgacta catgacatac atgttcaagt atgacactgt
+      241 gcacggccag tggaagcatc atgaggttaa ggtgaaggac tccaagaccc ttctcttcgg
+      301 tgagaaggag gtcaccgtgt tcggctgcag gaaccctaag gagatcccat ggggtgagac
+      361 tagcgctgag tttgttgtgg agtacactgg tgttttcact gacaaggaca aggccgttgc
+      421 tcaacttaag ggtggtgcta agaaggtctg
+//

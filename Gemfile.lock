@@ -109,6 +109,7 @@ GEM
     bcrypt_pbkdf (1.1.2)
     bigdecimal (4.0.1)
     bindata (2.5.1)
+    bio (2.0.6)
     bootsnap (1.23.0)
       msgpack (~> 1.2)
     brakeman (8.0.4)
@@ -253,6 +254,9 @@ GEM
       racc (~> 1.4)
     nokogiri (1.19.1-x86_64-linux-gnu)
       racc (~> 1.4)
+    oj (3.16.15)
+      bigdecimal (>= 3.0)
+      ostruct (>= 0.2)
     omniauth (2.1.4)
       hashie (>= 3.4.6)
       logger
@@ -492,10 +496,12 @@ PLATFORMS
 DEPENDENCIES
   active_storage_validations
   aws-sdk-s3
+  bio
   bootsnap
   brakeman
   debug
   diff-lcs
+  erubi
   factory_bot_rails
   image_processing
   jb
@@ -503,6 +509,7 @@ DEPENDENCIES
   jwt
   kamal
   mission_control-jobs
+  oj
   omniauth_openid_connect
   pagy
   pg

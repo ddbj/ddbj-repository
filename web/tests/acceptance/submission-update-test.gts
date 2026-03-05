@@ -23,6 +23,13 @@ const submission: Submission = {
     url: 'http://example.com/original.json',
   },
 
+  flatfile_na: {
+    filename: 'original-na.flat',
+    url: 'http://example.com/original-na.flat',
+  },
+
+  flatfile_aa: null,
+
   accessions: [
     {
       number: 'ACC001',

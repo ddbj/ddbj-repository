@@ -4,11 +4,14 @@ gem 'rails', '~> 8.1.2'
 
 gem 'active_storage_validations'
 gem 'aws-sdk-s3'
+gem 'bio'
 gem 'bootsnap', require: false
 gem 'diff-lcs'
+gem 'erubi'
 gem 'image_processing'
 gem 'jb'
 gem 'json'
+gem 'oj'
 gem 'jwt'
 gem 'kamal', require: false
 gem 'mission_control-jobs'

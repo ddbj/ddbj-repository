@@ -35,10 +35,10 @@ module DDBJRecordValidator
   def _validate(subject)
     details    = []
     filename   = subject.validation.subject.ddbj_record.filename.to_s
-    record     = JSON.parse(subject.ddbj_record.download, symbolize_names: true)
-    app_number = record.dig(:submission, :application_identification, :application_number_text)
+    record     = subject.ddbj_record.open { DDBJRecord.parse(it) }
+    app_number = record.submission&.application_identification&.application_number_text
 
-    unless app_number&.match?(%r(\A\d{4}[-/]\d{6}\z))
+    unless app_number&.match?(%r(\A\d{4}[-/]\d{1,6}\z))
       details << {
         filename:,
         entry_id: nil,
@@ -49,11 +49,11 @@ module DDBJRecordValidator
     end
 
     [
-      ['applicant_names',      pluck_en_texts(record.dig(:st26, :applicant_names))],
-      ['applicant_name_latin', record.dig(:st26, :applicant_name_latin)],
-      ['inventor_names',       pluck_en_texts(record.dig(:st26, :inventor_names))],
-      ['inventor_name_latin',  record.dig(:st26, :inventor_name_latin)],
-      ['invention_titles',     pluck_en_texts(record.dig(:st26, :invention_titles))]
+      ['applicant_names',      pluck_en_texts(record.st26&.applicant_names)],
+      ['applicant_name_latin', record.st26&.applicant_name_latin],
+      ['inventor_names',       pluck_en_texts(record.st26&.inventor_names)],
+      ['inventor_name_latin',  record.st26&.inventor_name_latin],
+      ['invention_titles',     pluck_en_texts(record.st26&.invention_titles)]
     ].each do |key, texts|
       Array(texts).each do |text|
         next if text.nil? || text.ascii_only?
@@ -68,16 +68,16 @@ module DDBJRecordValidator
       end
     end
 
-    Array(record.dig(:sequence, :entries)).each do |entry|
-      entry_id = entry[:id]
+    record.sequences.entries.each do |entry|
+      entry_id = entry.id
 
-      details.concat validate_qualifiers(entry[:source_qualifiers], **{
+      details.concat validate_qualifiers(entry.source_qualifiers, **{
         filename:,
         entry_id:,
-        feature:  :source
+        feature: :source
       })
 
-      seq = entry[:sequence].to_s
+      seq = entry.sequence.to_s
 
       if seq.empty?
         details << {
@@ -89,7 +89,7 @@ module DDBJRecordValidator
         }
       end
 
-      aa = Array(entry.dig(:source_qualifiers, :mol_type)).any? { it[:value] == 'protein' }
+      aa = Array(entry.source_qualifiers['mol_type']).any? { it.value == 'protein' }
 
       if !aa && seq.match?(/\AN+\z/i)
         details << {
@@ -122,9 +122,9 @@ module DDBJRecordValidator
       end
     end
 
-    Array(record[:features]).each do |feature|
-      fkey     = feature[:type]
-      entry_id = feature[:sequence_id]
+    record.features.each do |feature|
+      fkey     = feature.type
+      entry_id = feature.sequence_id
 
       unless FeatureChecker.defined_feature?(fkey)
         details << {
@@ -136,13 +136,13 @@ module DDBJRecordValidator
         }
       end
 
-      details.concat validate_qualifiers(feature[:qualifiers], **{
+      details.concat validate_qualifiers(feature.qualifiers, **{
         filename:,
         entry_id:,
-        feature:  fkey
+        feature: fkey
       })
     end
-  rescue JSON::ParserError => e
+  rescue Oj::ParseError => e
     details << {
       filename:,
       entry_id: nil,
@@ -155,13 +155,13 @@ module DDBJRecordValidator
   end
 
   def pluck_en_texts(array)
-    Array(array).select { it[:language_code] == 'en' }.pluck(:text)
+    Array(array).select { it.language_code == 'en' }.map(&:text)
   end
 
   def validate_qualifiers(quals, filename:, entry_id:, feature:)
     details = []
 
-    Array(quals).each do |qkey, entries|
+    quals.each do |qkey, entries|
       pos = feature == :source ? 'source' : "feature=#{feature}"
 
       unless FeatureChecker.defined_qualifier?(qkey)
@@ -174,7 +174,7 @@ module DDBJRecordValidator
         }
       end
 
-      entries.pluck(:value).each do |value|
+      entries.map(&:value).each do |value|
         unless FeatureChecker.qualifier_value_presence_valid?(qkey, value)
           details << {
             filename:,

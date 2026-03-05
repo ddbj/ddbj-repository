@@ -1,0 +1,14 @@
+homo_sapiens_scientific:
+  tax_id: 9606
+  name_class: scientific name
+  name_txt: Homo sapiens
+
+homo_sapiens_common:
+  tax_id: 9606
+  name_class: common name
+  name_txt: human
+
+homo_scientific:
+  tax_id: 9605
+  name_class: scientific name
+  name_txt: Homo
