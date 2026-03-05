@@ -192,6 +192,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submission_requests/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get the status of a submission request. Lightweight endpoint for polling. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the status of the submission request. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionRequestStatus"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submission_requests/{id}/submission": {
         parameters: {
             query?: never;
@@ -446,6 +486,12 @@ export interface components {
             status: components["schemas"]["SubmissionOperationStatus"];
             /** Format: date-time */
             created_at: string;
+        };
+        SubmissionRequestStatus: {
+            id: number;
+            status: components["schemas"]["SubmissionOperationStatus"];
+            error_message: string | null;
+            processing: boolean;
         };
         SubmissionRequest: {
             id: number;

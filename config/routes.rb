@@ -12,6 +12,7 @@ Rails.application.routes.draw do
     resource :me, only: %i[show]
 
     resources :submission_requests, only: %i[index show create] do
+      resource :status,     only: :show
       resource :submission, only: :create
     end
 

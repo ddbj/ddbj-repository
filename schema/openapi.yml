@@ -163,6 +163,36 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /submission_requests/{id}/status:
+    get:
+      description: Get the status of a submission request. Lightweight endpoint for polling.
+
+      tags:
+        - Submission Requests
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: Returns the status of the submission request.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionRequestStatus'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /submission_requests/{id}/submission:
     post:
       description: Apply a submission request.
@@ -376,6 +406,31 @@ components:
         created_at:
           type: string
           format: date-time
+
+    SubmissionRequestStatus:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - status
+        - error_message
+        - processing
+
+      properties:
+        id:
+          type: number
+
+        status:
+          $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        processing:
+          type: boolean
 
     SubmissionRequest:
       type: object

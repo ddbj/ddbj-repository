@@ -1,0 +1,9 @@
+{
+  **@request.slice(
+    :id,
+    :status,
+    :error_message
+  ),
+
+  processing: @request.processing?
+}
