@@ -39,11 +39,11 @@ module DDBJRecord
     }.freeze
 
     ARRAY_ELEMENT = {
-      features:                                        :feature,
-      entries:                                         :entry,
-      localized_texts:                                 :localized_text,
-      qualifier_list:                                  :qualifier,
-      earliest_priority_application_identifications:   :application_identification
+      features:                                      :feature,
+      entries:                                       :entry,
+      localized_texts:                               :localized_text,
+      qualifier_list:                                :qualifier,
+      earliest_priority_application_identifications: :application_identification
     }.freeze
 
     BUILDERS = {
