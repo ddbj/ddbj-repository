@@ -30,32 +30,28 @@ class ApplySubmissionRequestJob < ApplicationJob
       ]
     }
 
-    entry_id_to_attrs = {}
+    now              = Time.current
+    ts               = now.utc.iso8601(6)
+    entry_accessions = {}
+    conn             = ActiveRecord::Base.connection.raw_connection
 
-    entries.each_slice 10_000 do |batch|
-      sleep 0.1
+    conn.copy_data('COPY accessions (number, entry_id, submission_id, version, last_updated_at, created_at, updated_at) FROM STDIN') do
+      entries.each do |entry|
+        number = (aa?(entry) ? aa_nums : na_nums).shift
+        entry_accessions[entry.id] = number
 
-      submission.accessions.insert_all(batch.map {|entry|
-        {
-          number:   (aa?(entry) ? aa_nums : na_nums).shift,
-          entry_id: entry.id
-        }
-      }, **{
-        unique_by: :number,
-        returning: %i[entry_id number version last_updated_at]
-      }).each do |row|
-        entry_id_to_attrs[row['entry_id']] = row.deep_symbolize_keys
+        conn.put_copy_data "#{number}\t#{entry.id}\t#{submission.id}\t1\t#{ts}\t#{ts}\t#{ts}\n"
       end
     end
 
     entries = entries.map {|entry|
-      entry_id_to_attrs.fetch(entry.id) => {number: accession, version:, last_updated_at:}
+      accession = entry_accessions.fetch(entry.id)
 
       entry.with(
         accession:,
         locus:        accession,
-        version:,
-        last_updated: last_updated_at.iso8601
+        version:      1,
+        last_updated: now.iso8601
       )
     }
 
