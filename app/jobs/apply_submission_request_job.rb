@@ -33,6 +33,8 @@ class ApplySubmissionRequestJob < ApplicationJob
     entry_id_to_attrs = {}
 
     entries.each_slice 10_000 do |batch|
+      sleep 0.1
+
       submission.accessions.insert_all(batch.map {|entry|
         {
           number:   (aa?(entry) ? aa_nums : na_nums).shift,
