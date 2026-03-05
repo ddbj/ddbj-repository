@@ -2,6 +2,9 @@ service: repository
 image: w3const/repository
 require_destination: true
 
+proxy:
+  response_timeout: 600
+
 servers:
   web:
     options:
@@ -61,7 +64,7 @@ accessories:
 
     proxy:
       app_port: 9000
-      response_timeout: 86400 # 24 hours
+      response_timeout: 600
 
       healthcheck:
         path: /minio/health/live

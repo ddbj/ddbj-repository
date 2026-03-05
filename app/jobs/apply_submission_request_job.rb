@@ -22,12 +22,18 @@ class ApplySubmissionRequestJob < ApplicationJob
 
     aa_entries, na_entries = entries.partition { aa?(it) }
 
-    submission = ActiveRecord::Base.transaction {
-      na_nums    = Sequence.allocate!(:jpo_na, na_entries.size)
-      aa_nums    = Sequence.allocate!(:jpo_aa, aa_entries.size)
-      submission = request.create_submission!
+    na_nums, aa_nums, submission = ActiveRecord::Base.transaction {
+      [
+        Sequence.allocate!(:jpo_na, na_entries.size),
+        Sequence.allocate!(:jpo_aa, aa_entries.size),
+        request.create_submission!
+      ]
+    }
 
-      entry_id_to_attrs = submission.accessions.insert_all(entries.map {|entry|
+    entry_id_to_attrs = {}
+
+    entries.each_slice 10_000 do |batch|
+      submission.accessions.insert_all(batch.map {|entry|
         {
           number:   (aa?(entry) ? aa_nums : na_nums).shift,
           entry_id: entry.id
@@ -35,22 +41,20 @@ class ApplySubmissionRequestJob < ApplicationJob
       }, **{
         unique_by: :number,
         returning: %i[entry_id number version last_updated_at]
-      }).index_by {
-        it['entry_id']
-      }.transform_values(&:deep_symbolize_keys)
+      }).each do |row|
+        entry_id_to_attrs[row['entry_id']] = row.deep_symbolize_keys
+      end
+    end
 
-      entries = entries.map {|entry|
-        entry_id_to_attrs.fetch(entry.id) => {number: accession, version:, last_updated_at:}
+    entries = entries.map {|entry|
+      entry_id_to_attrs.fetch(entry.id) => {number: accession, version:, last_updated_at:}
 
-        entry.with(
-          accession:,
-          locus:        accession,
-          version:,
-          last_updated: last_updated_at.iso8601
-        )
-      }
-
-      submission
+      entry.with(
+        accession:,
+        locus:        accession,
+        version:,
+        last_updated: last_updated_at.iso8601
+      )
     }
 
     record      = record.with(sequences: record.sequences.with(entries:))
