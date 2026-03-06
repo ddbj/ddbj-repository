@@ -57,7 +57,7 @@ module Flatfile
     def aa? = mol_type == 'protein'
 
     def mol_type
-      @mol_type ||= primary_source_feature&.source&.mol_type
+      @mol_type ||= raw_primary_source_feature&.source&.mol_type
     end
 
     def seqid
@@ -73,7 +73,7 @@ module Flatfile
     end
 
     def location_span
-      Bio::Locations.new(primary_source_feature.location).span.uniq
+      Bio::Locations.new(raw_primary_source_feature.location).span.uniq
     end
 
     def invention_title
@@ -85,11 +85,13 @@ module Flatfile
     end
 
     def organism
-      primary_source_feature&.source&.organism || 'unidentified'
+      raw_primary_source_feature&.source&.organism || 'unidentified'
     end
 
-    def source_feature
-      @source_feature ||= features.find(&:source?)
+    def primary_source_feature
+      @primary_source_feature ||= features.find {|f|
+        f.source? && f.location == raw_primary_source_feature&.location
+      } || features.find(&:source?)
     end
 
     def base_count
@@ -104,8 +106,8 @@ module Flatfile
 
     private
 
-    def primary_source_feature
-      @primary_source_feature ||= entry.source_features.find { it.source&.mol_type } || entry.source_features.first
+    def raw_primary_source_feature
+      @raw_primary_source_feature ||= entry.source_features.find { it.source&.mol_type } || entry.source_features.first
     end
   end
 end
