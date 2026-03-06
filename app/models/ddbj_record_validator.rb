@@ -79,6 +79,16 @@ module DDBJRecordValidator
         })
       end
 
+      unless entry.source_features.any? { it.source&.mol_type }
+        details << {
+          filename:,
+          entry_id:,
+          code:     'TRD_R0010',
+          severity: 'error',
+          message:  'No source feature with mol_type found'
+        }
+      end
+
       seq = entry.sequence.to_s
 
       if seq.empty?
