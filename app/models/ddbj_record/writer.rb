@@ -35,7 +35,11 @@ module DDBJRecord
 
         next if value.nil?
 
-        write_value value, member.name
+        if data.is_a?(Provenance) && member == :extras
+          value.each {|k, v| write_value(v, k.to_s) }
+        else
+          write_value value, member.name
+        end
       end
 
       @writer.pop

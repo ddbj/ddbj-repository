@@ -1,44 +1,79 @@
 {
+  "schema_version": "v2",
+
+  "provenance": {
+    "source_format": "ST26"
+  },
+
   "submission": {
+    "submitters": [],
+    "db_xrefs": [],
+    "references": [],
+    "comments": [],
+    "division": "PAT",
     "application_identification": {
       "application_number_text": "2026-123456",
       "filing_date": "2026-01-15",
       "ip_office_code": "JP"
     },
-
-    "division": "PAT",
     "earliest_priority_application_identifications": []
   },
 
+  "experiments": [],
+
   "sequences": {
+    "common_source": {
+      "organism": "",
+      "mol_type": "",
+      "qualifiers": {}
+    },
+
     "entries": [
       {
         "id": "SEQ|JP|2026123456|A|1",
+        "name": null,
+        "type": "other",
+        "topology": "linear",
         "sequence": "atgcgtagctagctagctagc",
         "length": 21,
-        "location": "1..21",
-        "topology": "linear",
         "definition": "test sequence 1",
         "tax_id": 9606,
 
-        "source_qualifiers": {
-          "organism": [{"value": "Homo sapiens"}],
-          "mol_type": [{"value": "genomic DNA"}]
-        }
+        "source_features": [
+          {
+            "id": "source_1",
+            "location": "1..21",
+
+            "source": {
+              "organism": "Homo sapiens",
+              "mol_type": "genomic DNA",
+              "qualifiers": {}
+            }
+          }
+        ]
       },
       {
         "id": "SEQ|JP|2026123456|A|2",
+        "name": null,
+        "type": "other",
+        "topology": "linear",
         "sequence": "ttagcgtagctagctagctaa",
         "length": 21,
-        "location": "1..21",
-        "topology": "linear",
         "definition": "test sequence 2",
         "tax_id": 9606,
 
-        "source_qualifiers": {
-          "organism": [{"value": "Homo sapiens"}],
-          "mol_type": [{"value": "genomic DNA"}]
-        }
+        "source_features": [
+          {
+            "id": "source_2",
+            "location": "1..21",
+
+            "source": {
+              "organism": "Homo sapiens",
+              "mol_type": "genomic DNA",
+              "qualifiers": {}
+            }
+          }
+        ]
       }
     ]
   },

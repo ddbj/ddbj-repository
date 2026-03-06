@@ -74,7 +74,11 @@ module Flatfile
         elsif k == 'organism'
           [Qualifier.new('organism', entry.scientific_name || 'unidentified')]
         else
-          vs.map { Qualifier.new(k, it.value) }
+          vs.map {
+            value = BOOLEAN_KEYS.include?(k) ? nil : it.value
+
+            Qualifier.new(k, value)
+          }
         end
       }
 

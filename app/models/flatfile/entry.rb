@@ -17,12 +17,25 @@ module Flatfile
       @ancestor_names  = ancestor_names
 
       @features = [
-        Feature.new(
-          entry:      self,
-          type:       'source',
-          location:   entry.location,
-          qualifiers: entry.source_qualifiers
-        ),
+        *entry.source_features.map {|sf|
+          quals = (sf.source&.qualifiers || {}).dup
+
+          if sf.source&.organism
+            quals['organism'] ||= [DDBJRecord::Qualifier.new(id: nil, value: sf.source.organism)]
+          end
+
+          if sf.source&.mol_type
+            quals['mol_type'] ||= [DDBJRecord::Qualifier.new(id: nil, value: sf.source.mol_type)]
+          end
+
+          Feature.new(
+            entry:      self,
+            type:       'source',
+            location:   sf.location,
+            qualifiers: quals
+          )
+        },
+
         *features.map {|feature|
           Feature.new(
             entry:      self,
@@ -44,7 +57,7 @@ module Flatfile
     def aa? = mol_type == 'protein'
 
     def mol_type
-      @mol_type ||= qualifier_value(entry.source_qualifiers, 'mol_type')
+      @mol_type ||= primary_source_feature&.source&.mol_type
     end
 
     def seqid
@@ -60,7 +73,7 @@ module Flatfile
     end
 
     def location_span
-      Bio::Locations.new(entry.location).span.uniq
+      Bio::Locations.new(primary_source_feature.location).span.uniq
     end
 
     def invention_title
@@ -72,7 +85,7 @@ module Flatfile
     end
 
     def organism
-      entry.source_qualifiers['organism'].first.value
+      primary_source_feature&.source&.organism || 'unidentified'
     end
 
     def source_feature
@@ -91,10 +104,8 @@ module Flatfile
 
     private
 
-    def qualifier_value(quals, key)
-      return nil unless vals = quals[key]
-
-      vals.first&.value
+    def primary_source_feature
+      @primary_source_feature ||= entry.source_features.find { it.source&.mol_type } || entry.source_features.first
     end
   end
 end

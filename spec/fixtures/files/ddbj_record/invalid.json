@@ -19,13 +19,18 @@
         "id": "SEQ_3",
         "sequence": "XXXXXXXXXX",
 
-        "source_qualifiers": {
-          "mol_type": [
-            {
-              "value": "protein"
+        "source_features": [
+          {
+            "id": "source_3",
+            "location": "1..10",
+
+            "source": {
+              "organism": "synthetic construct",
+              "mol_type": "protein",
+              "qualifiers": {}
             }
-          ]
-        }
+          }
+        ]
       },
       {
         "id": "SEQ_4",

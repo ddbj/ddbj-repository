@@ -20,15 +20,19 @@ RSpec.describe DDBJRecord do
 
       example 'builds correct Data types' do
         expect(record).to be_a(DDBJRecord::Root)
+        expect(record.provenance).to be_a(DDBJRecord::Provenance)
         expect(record.submission).to be_a(DDBJRecord::Submission)
         expect(record.submission.application_identification).to be_a(DDBJRecord::ApplicationIdentification)
         expect(record.sequences).to be_a(DDBJRecord::Sequences)
+        expect(record.sequences.common_source).to be_a(DDBJRecord::Source)
 
         entry = record.sequences.entries.first
         expect(entry).to be_a(DDBJRecord::Entry)
 
-        qualifier = entry.source_qualifiers['organism'].first
-        expect(qualifier).to be_a(DDBJRecord::Qualifier)
+        source_feature = entry.source_features.first
+        expect(source_feature).to be_a(DDBJRecord::SourceFeature)
+        expect(source_feature.source).to be_a(DDBJRecord::Source)
+        expect(source_feature.source.organism).to eq('Homo sapiens')
       end
     end
 

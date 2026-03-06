@@ -97,6 +97,6 @@ class ApplySubmissionRequestJob < ApplicationJob
   end
 
   def aa?(entry)
-    Array(entry.source_qualifiers['mol_type']).any? { it.value == 'protein' }
+    entry.source_features.any? { it.source&.mol_type == 'protein' }
   end
 end

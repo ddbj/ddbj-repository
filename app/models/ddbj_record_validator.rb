@@ -71,11 +71,13 @@ module DDBJRecordValidator
     record.sequences.entries.each do |entry|
       entry_id = entry.id
 
-      details.concat validate_qualifiers(entry.source_qualifiers, **{
-        filename:,
-        entry_id:,
-        feature: :source
-      })
+      entry.source_features.each do |sf|
+        details.concat validate_qualifiers(sf.source&.qualifiers || {}, **{
+          filename:,
+          entry_id:,
+          feature: :source
+        })
+      end
 
       seq = entry.sequence.to_s
 
@@ -89,7 +91,7 @@ module DDBJRecordValidator
         }
       end
 
-      aa = Array(entry.source_qualifiers['mol_type']).any? { it.value == 'protein' }
+      aa = entry.source_features.any? { it.source&.mol_type == 'protein' }
 
       if !aa && seq.match?(/\AN+\z/i)
         details << {
