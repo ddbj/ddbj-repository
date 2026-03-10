@@ -35,7 +35,7 @@ RSpec.describe Flatfile do
       DEFINITION  test sequence 1
       ACCESSION   AB000001
       VERSION     AB000001.1
-      KEYWORDS    JP 2026123456-A/1
+      KEYWORDS    JP 2026123456-A/1.
       SOURCE      Homo sapiens (human)
         ORGANISM  Homo sapiens
                   Homo.
@@ -55,9 +55,9 @@ RSpec.describe Flatfile do
                   FH   Key             Location/Qualifiers
       FEATURES             Location/Qualifiers
            source          1..21
-                           /organism=Homo sapiens
-                           /mol_type=genomic DNA
-                           /db_xref=taxon:9606
+                           /organism="Homo sapiens"
+                           /mol_type="genomic DNA"
+                           /db_xref="taxon:9606"
       BASE COUNT            5 a            5 c            6 g            5 t
       ORIGIN
               1 atgcgtagct agctagctag c
@@ -66,7 +66,7 @@ RSpec.describe Flatfile do
       DEFINITION  test sequence 2
       ACCESSION   AB000002
       VERSION     AB000002.1
-      KEYWORDS    JP 2026123456-A/2
+      KEYWORDS    JP 2026123456-A/2.
       SOURCE      Homo sapiens (human)
         ORGANISM  Homo sapiens
                   Homo.
@@ -86,9 +86,9 @@ RSpec.describe Flatfile do
                   FH   Key             Location/Qualifiers
       FEATURES             Location/Qualifiers
            source          1..21
-                           /organism=Homo sapiens
-                           /mol_type=genomic DNA
-                           /db_xref=taxon:9606
+                           /organism="Homo sapiens"
+                           /mol_type="genomic DNA"
+                           /db_xref="taxon:9606"
       BASE COUNT            6 a            4 c            5 g            6 t
       ORIGIN
               1 ttagcgtagc tagctagcta a
