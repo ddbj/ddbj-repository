@@ -21,7 +21,7 @@ module Flatfile
     NEED_QUOTE_KEYS = Rails.root.join('data/kq_note.lst').readlines.filter_map {|line|
       key, format = line.split("\t").values_at(0, 3)
 
-      format == %(ff:"{0}") ? key : false
+      format == %(ff:"{0}";) ? key : false
     }.to_set.freeze
 
     def valid?
