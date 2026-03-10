@@ -88,7 +88,6 @@ export default class extends Component<Signature> {
           <table class="table">
             <thead>
               <tr>
-                <th>Filename</th>
                 <th>Entry ID</th>
                 <th>Code</th>
                 <th>Severity</th>
@@ -99,7 +98,6 @@ export default class extends Component<Signature> {
             <tbody>
               {{#each @model.validation.details as |detail|}}
                 <tr>
-                  <td>{{detail.filename}}</td>
                   <td>{{detail.entry_id}}</td>
                   <td>{{detail.code}}</td>
                   <td>{{detail.severity}}</td>

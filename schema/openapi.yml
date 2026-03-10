@@ -624,18 +624,12 @@ components:
             additionalProperties: false
 
             required:
-              - filename
               - entry_id
               - code
               - severity
               - message
 
             properties:
-              filename:
-                type:
-                  - string
-                  - 'null'
-
               entry_id:
                 type:
                   - string

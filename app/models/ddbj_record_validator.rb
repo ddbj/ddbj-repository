@@ -34,13 +34,11 @@ module DDBJRecordValidator
 
   def _validate(subject)
     details    = []
-    filename   = subject.validation.subject.ddbj_record.filename.to_s
     record     = subject.ddbj_record.open { DDBJRecord.parse(it) }
     app_number = record.submission&.application_identification&.application_number_text
 
     unless app_number&.match?(%r(\A\d{4}[-/]\d{1,6}\z))
       details << {
-        filename:,
         entry_id: nil,
         code:     'TRD_R0001',
         severity: 'error',
@@ -59,7 +57,6 @@ module DDBJRecordValidator
         next if text.nil? || text.ascii_only?
 
         details << {
-          filename:,
           entry_id: nil,
           code:     'TRD_R0009',
           severity: 'error',
@@ -73,7 +70,6 @@ module DDBJRecordValidator
 
       entry.source_features.each do |sf|
         details.concat validate_qualifiers(sf.source&.qualifiers || {}, **{
-          filename:,
           entry_id:,
           feature: :source
         })
@@ -81,7 +77,6 @@ module DDBJRecordValidator
 
       unless entry.source_features.any? { it.source&.mol_type }
         details << {
-          filename:,
           entry_id:,
           code:     'TRD_R0010',
           severity: 'error',
@@ -93,7 +88,6 @@ module DDBJRecordValidator
 
       if seq.empty?
         details << {
-          filename:,
           entry_id:,
           code:     'TRD_R0002',
           severity: 'error',
@@ -105,7 +99,6 @@ module DDBJRecordValidator
 
       if !aa && seq.match?(/\AN+\z/i)
         details << {
-          filename:,
           entry_id:,
           code:     'TRD_R0003',
           severity: 'error',
@@ -115,7 +108,6 @@ module DDBJRecordValidator
 
       if aa && seq.match?(/\AX+\z/i)
         details << {
-          filename:,
           entry_id:,
           code:     'TRD_R0004',
           severity: 'error',
@@ -125,7 +117,6 @@ module DDBJRecordValidator
 
       if !aa && seq.match?(/[^acgtmrwsykvhdbn]/i)
         details << {
-          filename:,
           entry_id:,
           code:     'TRD_R0005',
           severity: 'error',
@@ -140,7 +131,6 @@ module DDBJRecordValidator
 
       unless FeatureChecker.defined_feature?(fkey)
         details << {
-          filename:,
           entry_id:,
           code:     'TRD_R0006',
           severity: 'warning',
@@ -148,15 +138,10 @@ module DDBJRecordValidator
         }
       end
 
-      details.concat validate_qualifiers(feature.qualifiers, **{
-        filename:,
-        entry_id:,
-        feature: fkey
-      })
+      details.concat validate_qualifiers(feature.qualifiers, entry_id:, feature: fkey)
     end
   rescue Oj::ParseError => e
     details << {
-      filename:,
       entry_id: nil,
       code:     nil,
       severity: 'error',
@@ -170,7 +155,7 @@ module DDBJRecordValidator
     Array(array).select { it.language_code == 'en' }.map(&:text)
   end
 
-  def validate_qualifiers(quals, filename:, entry_id:, feature:)
+  def validate_qualifiers(quals, entry_id:, feature:)
     details = []
 
     quals.each do |qkey, entries|
@@ -178,7 +163,6 @@ module DDBJRecordValidator
 
       unless FeatureChecker.defined_qualifier?(qkey)
         details << {
-          filename:,
           entry_id:,
           code:     'TRD_R0007',
           severity: 'warning',
@@ -189,7 +173,6 @@ module DDBJRecordValidator
       entries.map(&:value).each do |value|
         unless FeatureChecker.qualifier_value_presence_valid?(qkey, value)
           details << {
-            filename:,
             entry_id:,
             code:     'TRD_R0008',
             severity: 'error',

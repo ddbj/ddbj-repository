@@ -9,7 +9,6 @@
 
   details: validation.details.map {|detail|
     detail.slice(
-      :filename,
       :entry_id,
       :code,
       :severity,

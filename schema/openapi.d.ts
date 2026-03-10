@@ -570,7 +570,6 @@ export interface components {
             /** @enum {string|null} */
             validity: "valid" | "invalid" | null;
             details: {
-                filename: string | null;
                 entry_id: string | null;
                 code: string;
                 /** @enum {string} */
