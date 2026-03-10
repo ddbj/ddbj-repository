@@ -9,7 +9,7 @@ ACCESSION   <%= entry.accession %>
 <%- if entry.na? -%>
 VERSION     <%= entry.accession %>.<%= entry.version %>
 <%- end -%>
-KEYWORDS    <%= format_seqid(entry.seqid) %>
+KEYWORDS    <%= format_seqid(entry.seqid) %>.
 SOURCE      <%= entry.source %>
   ORGANISM  <%= entry.scientific_name || 'unidentified' %>
             <%= entry.ancestor_names.join('; ').presence || 'unclassified sequences' %>.
