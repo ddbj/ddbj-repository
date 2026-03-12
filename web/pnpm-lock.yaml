@@ -57,8 +57,8 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2
       '@glint/ember-tsc':
-        specifier: ^1.1.1
-        version: 1.1.1(typescript@5.9.3)
+        specifier: ^1.2.2
+        version: 1.2.2(typescript@5.9.3)
       '@glint/template':
         specifier: ^1.7.4
         version: 1.7.4
@@ -1213,14 +1213,17 @@ packages:
   '@glimmer/wire-format@0.94.8':
     resolution: {integrity: sha512-A+Cp5m6vZMAEu0Kg/YwU2dJZXyYxVJs2zI57d3CP6NctmX7FsT8WjViiRUmt5abVmMmRH5b8BUovqY6GSMAdrw==}
 
-  '@glint/ember-tsc@1.1.1':
-    resolution: {integrity: sha512-SEIyDPOv9nKpoXaRWp6rXrAnZu75GXW3MVg9nmxX0bwc0s2Aydpd/T0YjZux1ZJ0v8YevmFkBjlxk3UiSU3a6g==}
+  '@glint/ember-tsc@1.2.2':
+    resolution: {integrity: sha512-91J5tzc7Nc/WNUhZ/ILC1QBEFVNvV8euJHdi/JtRqbcD/NX4PyRb7zrUqMkVs3T4C7ryZOwJHS97xacOsUFjoA==}
     hasBin: true
     peerDependencies:
       typescript: '>=5.6.0'
 
   '@glint/template@1.7.4':
     resolution: {integrity: sha512-39gTESXJmiIzJhcweJQ+44eIX+n+alJpD6HKpX8nPXCggVu2Yq6KP9pA5gwUvWE1/NYZhITiOqdA7UuyVtWMww==}
+
+  '@glint/template@1.7.6':
+    resolution: {integrity: sha512-xIlkcf1Me+FRloMi/x5nSrNEf3I2ggbs21wU3XfX7CtkErY/rttA4tYscuUlUw4WDfop00tiqgpgUmYSLVVPNQ==}
 
   '@handlebars/parser@2.2.2':
     resolution: {integrity: sha512-n/SZW+12rwikx/f8YcSv9JCi5p9vn1Bnts9ZtVvfErG4h0gbjHI1H1ZMhVUnaOC7yzFc6PtsCKIK8XeTnL90Gw==}
@@ -5779,8 +5782,8 @@ packages:
     resolution: {integrity: sha512-yYrrsWnrXMcdsnu/7YMYAofM1ktpL5By7vZhf15CrXijWWrEYZks5AXBudalfSWJLlnen/QUJUB5aoB0kqZUGA==}
     engines: {node: '>=6.0.0'}
 
-  terser-webpack-plugin@5.3.17:
-    resolution: {integrity: sha512-YR7PtUp6GMU91BgSJmlaX/rS2lGDbAF7D+Wtq7hRO+MiljNmodYvqslzCFiYVAgW+Qoaaia/QUIP4lGXufjdZw==}
+  terser-webpack-plugin@5.4.0:
+    resolution: {integrity: sha512-Bn5vxm48flOIfkdl5CaD2+1CiUVbonWQ3KQPyP7/EuIl9Gbzq/gQFOzaMFUEgVjB1396tcK0SG8XcNJ/2kDH8g==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
       '@swc/core': '*'
@@ -7698,10 +7701,10 @@ snapshots:
     dependencies:
       '@glimmer/interfaces': 0.94.6
 
-  '@glint/ember-tsc@1.1.1(typescript@5.9.3)':
+  '@glint/ember-tsc@1.2.2(typescript@5.9.3)':
     dependencies:
       '@glimmer/syntax': 0.95.0
-      '@glint/template': 1.7.4
+      '@glint/template': 1.7.6
       '@volar/kit': 2.4.28(typescript@5.9.3)
       '@volar/language-core': 2.4.28
       '@volar/language-server': 2.4.28
@@ -7721,6 +7724,8 @@ snapshots:
       - supports-color
 
   '@glint/template@1.7.4': {}
+
+  '@glint/template@1.7.6': {}
 
   '@handlebars/parser@2.2.2': {}
 
@@ -13121,7 +13126,7 @@ snapshots:
       mkdirp: 0.5.6
       rimraf: 2.6.3
 
-  terser-webpack-plugin@5.3.17(webpack@5.102.1):
+  terser-webpack-plugin@5.4.0(webpack@5.102.1):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
@@ -13624,7 +13629,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.0
-      terser-webpack-plugin: 5.3.17(webpack@5.102.1)
+      terser-webpack-plugin: 5.4.0(webpack@5.102.1)
       watchpack: 2.5.1
       webpack-sources: 3.3.4
     transitivePeerDependencies:
