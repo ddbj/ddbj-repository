@@ -57,7 +57,7 @@
     "@warp-drive/core": "5.8.1",
     "@warp-drive/ember": "~5.8.1",
     "babel-plugin-ember-template-compilation": "^4.0.0",
-    "babel-plugin-module-resolver": "^5.0.2",
+    "babel-plugin-module-resolver": "^5.0.3",
     "bootstrap": "^5.3.8",
     "concurrently": "^9.2.1",
     "date-fns": "^4.1.0",
