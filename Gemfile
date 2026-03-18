@@ -13,7 +13,7 @@ gem 'jb'
 gem 'json'
 gem 'oj'
 gem 'jwt'
-gem 'kamal', require: false
+gem 'kamal', github: 'lucasmeijer/kamal', ref: '572ad8f3', require: false # healthcheck port support (basecamp/kamal#1750)
 gem 'mission_control-jobs'
 gem 'omniauth_openid_connect'
 gem 'pagy'
