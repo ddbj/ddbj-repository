@@ -174,12 +174,7 @@ bin/dev
 
 ### Deployment
 
-Build and push the Garage image before deploying:
-
-```sh
-docker build -t w3const/repository-garage docker/garage/
-docker push w3const/repository-garage
-```
+The Garage image is automatically built and pushed by the pre-deploy hook.
 
 ```sh
 bin/kamal deploy -d staging
