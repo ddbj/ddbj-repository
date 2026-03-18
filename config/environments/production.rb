@@ -85,6 +85,6 @@ Rails.application.configure do
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 
   config.active_job.queue_adapter = :solid_queue
-  config.active_storage.service   = :minio
+  config.active_storage.service   = :garage
   config.solid_queue.connects_to  = {database: {writing: :queue}}
 end

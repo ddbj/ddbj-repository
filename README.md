@@ -21,7 +21,7 @@ Container_Boundary(repository, "DDBJ Repository") {
         Container(app, "Application Server", "Puma (Rails)")
         ContainerQueue(worker, "Background Job Worker", "Solid Queue")
         Container_Ext(mb_tools, "ddbj/metabobank_tools")
-        ContainerDb_Ext(object_storage, "Object Storage", "MinIO")
+        ContainerDb_Ext(object_storage, "Object Storage", "Garage")
         ContainerDb_Ext(db, "Database", "PostgreSQL")
         Container_Ext(excel2xml, "ddbj/submission-excel2xml")
         Container(noodles-gff, "noodles_gff-rb")
@@ -146,7 +146,7 @@ erDiagram
 - **Backend:** Ruby on Rails, Puma, Solid Queue
 - **Frontend:** Ember.js (Octane), TypeScript, Vite
 - **Database:** PostgreSQL
-- **Object Storage:** MinIO (S3-compatible)
+- **Object Storage:** Garage (S3-compatible)
 - **Deployment:** Kamal
 - **API Schema:** OpenAPI
 
@@ -157,7 +157,7 @@ erDiagram
 - Ruby (see `.ruby-version`)
 - Node.js + pnpm
 - PostgreSQL
-- MinIO
+- Garage
 
 ### Setup
 
@@ -168,10 +168,18 @@ bin/setup
 ### Running
 
 ```sh
+docker build -t repository-garage docker/garage/
 bin/dev
 ```
 
 ### Deployment
+
+Build and push the Garage image before deploying:
+
+```sh
+docker build -t w3const/repository-garage docker/garage/
+docker push w3const/repository-garage
+```
 
 ```sh
 bin/kamal deploy -d staging

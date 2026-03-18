@@ -20,14 +20,14 @@ accessories:
     volumes:
       - ./volumes/repository-production/postgres:/var/lib/postgresql
 
-  minio:
+  garage:
     host: repository-production
 
     proxy:
       host: repository-storage.ddbj.nig.ac.jp
 
     volumes:
-      - ./volumes/repository-production/minio:/data
+      - ./volumes/repository-production/garage:/var/lib/garage
 
   virtuoso:
     host: repository-production

@@ -24,14 +24,14 @@ accessories:
     volumes:
       - ./volumes/repository-staging/postgres:/var/lib/postgresql
 
-  minio:
+  garage:
     host: repository-staging
 
     proxy:
       host: repository-storage-staging.ddbj.nig.ac.jp
 
     volumes:
-      - ./volumes/repository-staging/minio:/data
+      - ./volumes/repository-staging/garage:/var/lib/garage
 
   virtuoso:
     host: repository-staging
