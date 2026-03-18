@@ -5,6 +5,9 @@ require_destination: true
 proxy:
   response_timeout: 600
 
+  run:
+    version: v0.9.2
+
 servers:
   web:
     options:
