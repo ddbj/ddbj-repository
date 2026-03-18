@@ -44,7 +44,7 @@
     "@eslint/js": "^9.39.4",
     "@glimmer/component": "^2.0.0",
     "@glimmer/tracking": "^1.1.2",
-    "@glint/ember-tsc": "^1.2.2",
+    "@glint/ember-tsc": "^1.4.0",
     "@glint/template": "^1.7.7",
     "@rails/activestorage": "^8.1.200",
     "@rollup/plugin-babel": "^7.0.0",
