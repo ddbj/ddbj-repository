@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 
-# Usage: bin/rails runner script/reset_data.rb
-#
-# users 以外のすべてのテーブルを TRUNCATE し、MinIO (ActiveStorage) のファイルをすべて削除する。
+require_relative '../config/environment'
 
 abort 'Do not run in production!' if Rails.env.production?
 
