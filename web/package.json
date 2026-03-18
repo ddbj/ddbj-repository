@@ -88,7 +88,7 @@
     "eslint-plugin-qunit": "^8.2.6",
     "globals": "^17.4.0",
     "highlight.js": "^11.11.1",
-    "msw": "^2.12.10",
+    "msw": "^2.12.13",
     "openapi-msw": "^2.0.0",
     "prettier": "^3.8.1",
     "prettier-plugin-ember-template-tag": "^2.1.3",
