@@ -60,7 +60,6 @@ accessories:
 
   garage:
     image: w3const/repository-garage
-    cmd: /entrypoint.sh
 
     proxy:
       app_port: 3900
