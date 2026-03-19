@@ -35,7 +35,7 @@ if service && service['service'] == 'S3'
     deleted += objects.size
   end
 
-  puts "Deleted #{deleted} object(s) from MinIO bucket '#{bucket}'"
+  puts "Deleted #{deleted} object(s) from bucket '#{bucket}'"
 else
-  puts 'ActiveStorage is not configured with S3/MinIO; skipping file deletion.'
+  puts 'ActiveStorage is not configured with S3; skipping file deletion.'
 end

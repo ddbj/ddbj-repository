@@ -21,7 +21,7 @@ Container_Boundary(repository, "DDBJ Repository") {
         Container(app, "Application Server", "Puma (Rails)")
         ContainerQueue(worker, "Background Job Worker", "Solid Queue")
         Container_Ext(mb_tools, "ddbj/metabobank_tools")
-        ContainerDb_Ext(object_storage, "Object Storage", "MinIO")
+        ContainerDb_Ext(object_storage, "Object Storage", "SeaweedFS")
         ContainerDb_Ext(db, "Database", "PostgreSQL")
         Container_Ext(excel2xml, "ddbj/submission-excel2xml")
         Container(noodles-gff, "noodles_gff-rb")
@@ -146,7 +146,7 @@ erDiagram
 - **Backend:** Ruby on Rails, Puma, Solid Queue
 - **Frontend:** Ember.js (Octane), TypeScript, Vite
 - **Database:** PostgreSQL
-- **Object Storage:** MinIO (S3-compatible)
+- **Object Storage:** SeaweedFS (S3-compatible)
 - **Deployment:** Kamal
 - **API Schema:** OpenAPI
 
@@ -157,7 +157,7 @@ erDiagram
 - Ruby (see `.ruby-version`)
 - Node.js + pnpm
 - PostgreSQL
-- MinIO
+- SeaweedFS
 
 ### Setup
 

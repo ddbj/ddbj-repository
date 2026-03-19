@@ -20,14 +20,14 @@ accessories:
     volumes:
       - ./volumes/repository-production/postgres:/var/lib/postgresql
 
-  minio:
+  seaweedfs:
     host: repository-production
 
     proxy:
       host: repository-storage.ddbj.nig.ac.jp
 
     volumes:
-      - ./volumes/repository-production/minio:/data
+      - ./volumes/repository-production/seaweedfs:/data
 
   virtuoso:
     host: repository-production
