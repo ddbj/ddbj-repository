@@ -17,83 +17,116 @@ class ApplySubmissionRequestJob < ApplicationJob
   private
 
   def apply(request)
-    record  = request.ddbj_record.open { DDBJRecord.parse(it) }
-    entries = record.sequences.entries
+    request.ddbj_record.open do |file|
+      parser             = DDBJRecord::StreamingParser.new(file.path)
+      metadata           = parser.metadata
+      features_by_seq_id = parser.features_by_sequence_id
+      all_features       = features_by_seq_id.values.flatten
 
-    aa_entries, na_entries = entries.partition { aa?(it) }
+      # Pass 1: Collect entry IDs and types (sequences are discarded by GC)
+      entry_metas = parser.each_entry.map {|entry|
+        {id: entry.id, is_aa: aa?(entry)}
+      }
 
-    na_nums, aa_nums, submission = ActiveRecord::Base.transaction {
-      [
-        Sequence.allocate!(:jpo_na, na_entries.size),
-        Sequence.allocate!(:jpo_aa, aa_entries.size),
-        request.create_submission!
-      ]
-    }
+      na_count = entry_metas.count { !it[:is_aa] }
+      aa_count = entry_metas.count { it[:is_aa] }
 
-    now              = Time.current
-    ts               = now.utc.iso8601(6)
-    entry_accessions = {}
-    conn             = ActiveRecord::Base.connection.raw_connection
+      na_nums, aa_nums, submission = ActiveRecord::Base.transaction {
+        [
+          Sequence.allocate!(:jpo_na, na_count),
+          Sequence.allocate!(:jpo_aa, aa_count),
+          request.create_submission!
+        ]
+      }
 
-    conn.copy_data('COPY accessions (number, entry_id, submission_id, version, last_updated_at, created_at, updated_at) FROM STDIN') do
-      entries.each do |entry|
-        number = (aa?(entry) ? aa_nums : na_nums).shift
-        entry_accessions[entry.id] = number
+      now              = Time.current
+      ts               = now.utc.iso8601(6)
+      entry_accessions = {}
+      conn             = ActiveRecord::Base.connection.raw_connection
 
-        conn.put_copy_data "#{number}\t#{entry.id}\t#{submission.id}\t1\t#{ts}\t#{ts}\t#{ts}\n"
+      conn.copy_data('COPY accessions (number, entry_id, submission_id, version, last_updated_at, created_at, updated_at) FROM STDIN') do
+        entry_metas.each do |meta|
+          number = (meta[:is_aa] ? aa_nums : na_nums).shift
+
+          entry_accessions[meta[:id]] = number
+
+          conn.put_copy_data "#{number}\t#{meta[:id]}\t#{submission.id}\t1\t#{ts}\t#{ts}\t#{ts}\n"
+        end
       end
-    end
 
-    entries = entries.map {|entry|
-      accession = entry_accessions.fetch(entry.id)
+      # Pass 2: Stream entries → JSON + flatfiles
+      ddbj_record = Tempfile.open(['ddbj_record', '.json'])
+      ddbj_record.binmode
 
-      entry.with(
-        accession:,
-        locus:        accession,
-        version:      1,
-        last_updated: now.iso8601
-      )
-    }
+      flatfile_na = Tempfile.open(['flatfile-na', '.flat'])
+      flatfile_na.binmode
 
-    record      = record.with(sequences: record.sequences.with(entries:))
-    ddbj_record = DDBJRecord.generate(record)
-    filename    = request.ddbj_record.filename
+      flatfile_aa = Tempfile.open(['flatfile-aa', '.flat'])
+      flatfile_aa.binmode
 
-    updates = {
-      ddbj_record: {
-        io:           ddbj_record,
-        filename:,
-        content_type: request.ddbj_record.content_type
+      na_renderer = Flatfile::StreamingRenderer.new(metadata, features_by_seq_id, flatfile_na)
+      aa_renderer = Flatfile::StreamingRenderer.new(metadata, features_by_seq_id, flatfile_aa)
+
+      DDBJRecord::StreamingWriter.new(ddbj_record).write(metadata, features: all_features) do |w|
+        parser.each_entry do |entry|
+          accession = entry_accessions.fetch(entry.id)
+
+          entry = entry.with(
+            accession:,
+            locus:        accession,
+            version:      1,
+            last_updated: now.iso8601
+          )
+
+          w << entry
+
+          if aa?(entry)
+            aa_renderer.render_entry(entry)
+          else
+            na_renderer.render_entry(entry)
+          end
+        end
+      end
+
+      ddbj_record.write "\n"
+      ddbj_record.rewind
+
+      filename = request.ddbj_record.filename
+
+      updates = {
+        ddbj_record: {
+          io:           ddbj_record,
+          filename:,
+          content_type: request.ddbj_record.content_type
+        }
       }
-    }
 
-    aa_entries, na_entries = entries.partition { aa?(it) }
+      if flatfile_na.size > 0
+        flatfile_na.rewind
 
-    unless na_entries.empty?
-      flatfile_na = Flatfile.render(record, na_entries)
+        updates[:flatfile_na] = {
+          io:           flatfile_na,
+          filename:     "#{filename.base}-na.flat",
+          content_type: 'text/plain'
+        }
+      end
 
-      updates[:flatfile_na] = {
-        io:           flatfile_na,
-        filename:     "#{filename.base}-na.flat",
-        content_type: 'text/plain'
-      }
+      if flatfile_aa.size > 0
+        flatfile_aa.rewind
+
+        updates[:flatfile_aa] = {
+          io:           flatfile_aa,
+          filename:     "#{filename.base}-aa.flat",
+          content_type: 'text/plain'
+        }
+      end
+
+      submission.update! updates
+    ensure
+      ddbj_record&.close!
+      flatfile_na&.close!
+      flatfile_aa&.close!
     end
-
-    unless aa_entries.empty?
-      flatfile_aa = Flatfile.render(record, aa_entries)
-
-      updates[:flatfile_aa] = {
-        io:           flatfile_aa,
-        filename:     "#{filename.base}-aa.flat",
-        content_type: 'text/plain'
-      }
-    end
-
-    submission.update! updates
-  ensure
-    ddbj_record&.close!
-    flatfile_na&.close!
-    flatfile_aa&.close!
   end
 
   def aa?(entry)

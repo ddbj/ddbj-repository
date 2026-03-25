@@ -59,8 +59,8 @@ FEATURES             Location/Qualifiers
 BASE COUNT  <%= base_count(entry.sequence) %>
 <%- end -%>
 ORIGIN
-<%- entry.sequence.scan(/.{1,60}/).each_with_index do |line, i| -%>
-<%= (i * 60 + 1).to_s.rjust(9) %> <%= line.scan(/.{1,10}/).join(' ') %>
-<%- end -%>
+<%- i = 0; while i < entry.sequence.size -%>
+<%= (i + 1).to_s.rjust(9) %> <%= entry.sequence[i, 60].scan(/.{1,10}/).join(' ') %>
+<%- i += 60; end -%>
 //
 <%- end -%>

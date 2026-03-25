@@ -1,0 +1,142 @@
+{
+  "schema_version": "v2.3",
+
+  "provenance": {
+    "source_format": "ddbj_record"
+  },
+
+  "submission": {
+    "submitters": [
+      {
+        "name": "Test User",
+        "abbreviation": "User,T.",
+        "email": "test@example.com",
+        "organization": [
+          {
+            "name": "Test Institute",
+            "type": "institution",
+            "department": "Test Dept",
+            "address": {
+              "country": "Japan",
+              "city": "Tokyo"
+            }
+          }
+        ]
+      }
+    ],
+    "db_xrefs": [
+      {"db": "bioproject", "id": "PRJDB99999"},
+      {"db": "biosample", "id": "SAMD00999999"}
+    ],
+    "references": [
+      {
+        "title": "Test genome assembly",
+        "authors": [
+          {"abbreviation": "User,T."}
+        ],
+        "status": "unpublished",
+        "year": "2026"
+      }
+    ],
+    "comments": [],
+    "trad_submission_category": "GNM",
+    "division": "PLN",
+    "hold_date": "2027-01-01"
+  },
+
+  "experiments": [
+    {
+      "id": "st_comment_experiment",
+      "platform": {
+        "platform_type": "Illumina HiSeq"
+      },
+      "experiment_attributes": {
+        "tagset_id": "Genome-Assembly-Data",
+        "assembly_method": "SPAdes v 3.15",
+        "genome_coverage": "50X"
+      }
+    }
+  ],
+
+  "sequences": {
+    "common_source": {
+      "organism": "Testus plantus",
+      "mol_type": "genomic DNA",
+      "qualifiers": {
+        "cultivar": [{"value": "TestVar1"}],
+        "collection_date": [{"value": "2025-01-01"}]
+      }
+    },
+
+    "entries": [
+      {
+        "id": "TST1ch01",
+        "name": "TST1ch01",
+        "type": "other",
+        "topology": "linear",
+        "sequence": "atgcatgcatgcatgcatgcatgcatgcatgcatgcatgcatgcatgcatgc",
+        "tax_id": 12345,
+        "source_features": [
+          {
+            "id": "feature_1",
+            "location": "1..E",
+            "definition": ["@@[organism]@@ @@[cultivar]@@ DNA, chromosome @@[chromosome]@@"]
+          }
+        ]
+      },
+      {
+        "id": "TST1ch02",
+        "name": "TST1ch02",
+        "type": "other",
+        "topology": "linear",
+        "sequence": "gctagctagctagctagctagctagctagctagcta",
+        "tax_id": 12345,
+        "source_features": [
+          {
+            "id": "feature_2",
+            "location": "1..E",
+            "definition": ["@@[organism]@@ @@[cultivar]@@ DNA, chromosome @@[chromosome]@@"]
+          }
+        ]
+      },
+      {
+        "id": "TST1u001",
+        "name": "TST1u001",
+        "type": "other",
+        "topology": "linear",
+        "sequence": "aaaaccccggggtttt",
+        "tax_id": 12345,
+        "source_features": [
+          {
+            "id": "feature_3",
+            "location": "1..E",
+            "definition": ["@@[organism]@@ @@[cultivar]@@ DNA, @@[note]@@"]
+          }
+        ]
+      }
+    ]
+  },
+
+  "features": [
+    {
+      "id": "feature_10",
+      "type": "assembly_gap",
+      "location": "20..30",
+      "sequence_id": "TST1ch01",
+      "qualifiers": {
+        "estimated_length": [{"value": "known"}],
+        "gap_type": [{"value": "within scaffold"}]
+      }
+    },
+    {
+      "id": "feature_11",
+      "type": "assembly_gap",
+      "location": "10..15",
+      "sequence_id": "TST1ch02",
+      "qualifiers": {
+        "estimated_length": [{"value": "known"}],
+        "gap_type": [{"value": "within scaffold"}]
+      }
+    }
+  ]
+}

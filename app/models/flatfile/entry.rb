@@ -95,9 +95,10 @@ module Flatfile
     end
 
     def base_count
-      h = entry.sequence.chars.tally
+      h = Hash.new(0)
+      entry.sequence.each_char {|c| h[c] += 1 }
 
-      %w[a c g t].to_h { [it, h[it] || 0] }
+      %w[a c g t].to_h { [it, h[it]] }
     end
 
     def sequence

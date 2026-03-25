@@ -51,8 +51,8 @@ module Flatfile::Helper
   end
 
   def base_count(seq)
-    h         = seq.chars.tally
-    h.default = 0
+    h = Hash.new(0)
+    seq.each_char {|c| h[c] += 1 }
 
     %w[a c g t].map {|k|
       "#{h[k].to_s.rjust(11)} #{k}"
