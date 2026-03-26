@@ -3,47 +3,34 @@
 module DDBJRecord
   # Streaming parser for large DDBJ Record JSON files.
   #
-  # Uses Oj.sc_parse (ScHandler) for true streaming entry enumeration
-  # that works with both pretty-printed and minified JSON. Memory usage
-  # is proportional to the largest single entry, not the total file size.
+  # Uses Oj.sc_parse (ScHandler) for true streaming. Entries are yielded
+  # one at a time; memory usage is proportional to the largest single
+  # entry, not the total file size.
   #
-  # Phase 1: Extract metadata from file header + features from file tail
-  # Phase 2: Stream entries one at a time via Oj.sc_parse
+  # Metadata and features are collected in a lightweight first pass
+  # (entries discarded), then entries are streamed in subsequent passes.
   class StreamingParser
     include Builders
-
-    HEADER_READ_SIZE  = 500_000
-    DEFAULT_TAIL_SIZE = 50_000_000
 
     def initialize(path)
       @path = path.to_s
     end
 
     # Returns a DDBJRecord::Root with sequences.entries=[] and features=[].
-    # Useful for accessing submission, experiments, common_source, etc.
     def metadata
-      @metadata ||= begin
-        header = File.read(@path, HEADER_READ_SIZE)
-        idx    = header.index('"entries"')
+      ensure_root_parsed
 
-        raise "entries key not found in first #{HEADER_READ_SIZE} bytes of #{@path}" unless idx
-
-        mini = header[0...idx] + '"entries": []}, "features": []}'
-
-        DDBJRecord.parse(StringIO.new(mini))
-      end
+      @metadata
     end
 
     # Returns Hash[String => Array[DDBJRecord::Feature]]
     def features_by_sequence_id
-      @features_by_sequence_id ||= extract_features.group_by(&:sequence_id)
+      ensure_root_parsed
+
+      @features_by_sequence_id
     end
 
     # Yields DDBJRecord::Entry objects one at a time.
-    #
-    # Uses Oj.sc_parse with a custom ScHandler that intercepts the
-    # entries array and yields each entry hash individually, rather
-    # than accumulating all entries in memory.
     def each_entry(&block)
       return enum_for(:each_entry) unless block
 
@@ -54,28 +41,123 @@ module DDBJRecord
 
     private
 
-    def extract_features
-      tail_size = [File.size(@path), DEFAULT_TAIL_SIZE].min
+    # First pass: parse the entire file with sc_parse, discarding entry
+    # data. This collects metadata (submission, experiments, etc.) and
+    # features with minimal memory since entry sequences are not retained.
+    def ensure_root_parsed
+      return if @root_parsed
 
-      File.open(@path) do |f|
-        f.seek(-tail_size, IO::SEEK_END)
+      handler = EntryStreamHandler.new {} # discard entries
 
-        tail  = f.read
-        match = tail.match(/"features"\s*:\s*/)
+      File.open(@path) {|f| Oj.sc_parse(handler, f) }
 
-        raise "features key not found in last #{tail_size} bytes of #{@path}" unless match
+      root = handler.result
 
-        json = tail[match.end(0)..].sub(/\]\s*\}\s*\z/, ']')
+      @metadata = build_metadata(root)
 
-        Oj.load(json).map {|h| build_feature_from_hash(h) }
-      end
+      @features_by_sequence_id = (root['features'] || [])
+        .map {|h| build_feature_from_hash(h) }
+        .group_by(&:sequence_id)
+
+      @root_parsed = true
+    end
+
+    # Convert raw root hash to DDBJRecord::Root with proper Data objects.
+    # Entries and features are set to empty (they are handled separately).
+    def build_metadata(root)
+      build_root(
+        'schema_version' => root['schema_version'],
+        'provenance'     => root['provenance'] && build_provenance_deep(root['provenance']),
+        'submission'     => root['submission'] && build_submission_deep(root['submission']),
+        'experiments'    => (root['experiments'] || []).map {|e| build_experiment_deep(e) },
+        'st26'           => root['st26'] && build_st26_deep(root['st26']),
+        'sequences'      => build_sequences(
+          'common_source' => root.dig('sequences', 'common_source') && build_source_deep(root.dig('sequences', 'common_source')),
+          'entries'       => []
+        ),
+        'features'       => []
+      )
+    end
+
+    def build_provenance_deep(h)
+      build_provenance(h)
+    end
+
+    def build_submission_deep(h)
+      h = h.dup
+
+      h['submitters'] = (h['submitters'] || []).map {|p|
+        p = p.dup
+        p['organization'] = (p['organization'] || []).map {|o|
+          o = o.dup
+          o['address'] = build_address(o['address']) if o['address']
+          build_organization(o)
+        }
+        build_person(p)
+      }
+
+      h['db_xrefs']   = (h['db_xrefs'] || []).map {|x| build_xref(x) }
+      h['references'] = (h['references'] || []).map {|r|
+        r = r.dup
+        r['authors']     = (r['authors'] || []).map {|p|
+          p = p.dup
+          p['organization'] = (p['organization'] || []).map {|o|
+            o = o.dup
+            o['address'] = build_address(o['address']) if o['address']
+            build_organization(o)
+          } if p['organization']
+          build_person(p)
+        }
+        r['consortiums'] = r['consortiums']&.map {|o|
+          o = o.dup
+          o['address'] = build_address(o['address']) if o['address']
+          build_organization(o)
+        }
+        build_reference(r)
+      }
+
+      h['application_identification'] = build_application_identification(h['application_identification']) if h['application_identification']
+
+      h['earliest_priority_application_identifications'] = (h['earliest_priority_application_identifications'] || []).map {|a|
+        build_application_identification(a)
+      }
+
+      build_submission(h)
+    end
+
+    def build_experiment_deep(h)
+      h = h.dup
+      h['design']   = h['design'] && build_design_deep(h['design'])
+      h['platform'] = h['platform'] && build_platform(h['platform'])
+      build_experiment(h)
+    end
+
+    def build_design_deep(h)
+      h = h.dup
+      h['library_layout'] = h['library_layout'] && build_library_layout(h['library_layout'])
+      h['targeted_loci']  = (h['targeted_loci'] || []).map {|t| build_targeted_locus(t) } if h['targeted_loci']
+      build_design(h)
+    end
+
+    def build_st26_deep(h)
+      h = h.dup
+      h['applicant_names']  = (h['applicant_names'] || []).map {|t| build_localized_text(t) }
+      h['inventor_names']   = (h['inventor_names'] || []).map {|t| build_localized_text(t) }
+      h['invention_titles'] = (h['invention_titles'] || []).map {|t| build_localized_text(t) }
+      build_st26(h)
+    end
+
+    def build_source_deep(h)
+      h = h.dup
+      h['qualifiers'] = build_qualifiers(h['qualifiers'])
+      build_source(h)
     end
 
     def build_entry_from_hash(h)
       h['source_features'] = (h['source_features'] || []).map {|sf|
         if sf['source']
-          sf['source']['qualifiers'] = build_qualifiers(sf['source']['qualifiers'])
-          sf['source'] = build_source(sf['source'])
+          sf = sf.dup
+          sf['source'] = build_source_deep(sf['source'])
         end
 
         build_source_feature(sf)
@@ -85,8 +167,8 @@ module DDBJRecord
     end
 
     def build_feature_from_hash(h)
+      h = h.dup
       h['qualifiers'] = build_qualifiers(h['qualifiers'])
-
       build_feature(h)
     end
 
@@ -96,23 +178,33 @@ module DDBJRecord
       }
     end
 
-    # Oj::ScHandler that streams entries from the "sequences.entries"
-    # array via a callback, without accumulating them in memory.
-    # All other JSON content is built normally as nested Hash/Array.
+    # Oj::ScHandler that streams entries via callback without
+    # accumulating them. All other content is built as Hash/Array.
+    # After parsing, #result returns the root hash (entries excluded).
     class EntryStreamHandler < Oj::ScHandler
       ENTRIES = Object.new.freeze
 
+      attr_reader :result
+
       def initialize(&on_entry)
-        @on_entry    = on_entry
+        @on_entry = on_entry
         @pending_key = nil
+        @depth       = 0
+        @result      = nil
       end
 
       def hash_start
         @pending_key = nil
-        {}
+        @depth += 1
+
+        h = {}
+        @result = h if @depth == 1
+        h
       end
 
-      def hash_end = nil
+      def hash_end
+        @depth -= 1
+      end
 
       def hash_key(key)
         @pending_key = key
