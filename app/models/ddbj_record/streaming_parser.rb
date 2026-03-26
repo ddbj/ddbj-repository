@@ -40,12 +40,34 @@ module DDBJRecord
     end
 
     # Yields DDBJRecord::Entry objects one at a time.
+    #
+    # For pretty-printed JSON (multi-line), uses indentation-based boundary
+    # detection to stream entries without loading everything into memory.
+    # This handles multi-GB files with 750MB+ sequence strings that crash
+    # Oj::Saj.
+    #
+    # For minified JSON (single-line), falls back to DDBJRecord.parse which
+    # uses Oj::Saj. This is safe because minified files are small (ST.26
+    # patent data); large genome files are always pretty-printed by
+    # DDBJRecord::Writer.
     def each_entry(&block)
       return enum_for(:each_entry) unless block
 
+      yielded = each_entry_by_indent(&block)
+
+      return if yielded
+
+      record = File.open(@path) { DDBJRecord.parse(it) }
+      record.sequences.entries.each(&block)
+    end
+
+    private
+
+    def each_entry_by_indent
       inside_entries = false
       entry_indent   = nil
       entry_buf      = nil
+      yielded        = false
 
       File.foreach(@path) do |line|
         unless inside_entries
@@ -75,12 +97,15 @@ module DDBJRecord
 
             yield build_entry_from_hash(Oj.load(entry_buf))
 
+            yielded   = true
             entry_buf = nil
           end
         elsif stripped.start_with?(']')
           break
         end
       end
+
+      yielded
     end
 
     private

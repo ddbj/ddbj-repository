@@ -145,4 +145,42 @@ RSpec.describe DDBJRecord::StreamingParser do
       end
     end
   end
+
+  describe 'with minified JSON' do
+    it 'falls back to DDBJRecord.parse and yields entries correctly' do
+      original = File.open(file_fixture('ddbj_record/example.json')) { DDBJRecord.parse(it) }
+
+      file = Tempfile.open(['minified', '.json'])
+
+      begin
+        file.write JSON.generate(Oj.load(file_fixture('ddbj_record/example.json').read))
+        file.rewind
+
+        parser  = DDBJRecord::StreamingParser.new(file.path)
+        entries = parser.each_entry.to_a
+
+        expect(entries.size).to eq(2)
+        expect(entries.map(&:id)).to eq(original.sequences.entries.map(&:id))
+        expect(entries.map(&:sequence)).to eq(original.sequences.entries.map(&:sequence))
+      ensure
+        file.close!
+      end
+    end
+
+    it 'extracts metadata from minified JSON' do
+      file = Tempfile.open(['minified', '.json'])
+
+      begin
+        file.write JSON.generate(Oj.load(file_fixture('ddbj_record/multi_entry.json').read))
+        file.rewind
+
+        parser = DDBJRecord::StreamingParser.new(file.path)
+
+        expect(parser.metadata.submission.division).to eq('PLN')
+        expect(parser.each_entry.count).to eq(3)
+      ensure
+        file.close!
+      end
+    end
+  end
 end
