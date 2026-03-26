@@ -145,7 +145,7 @@ erDiagram
 
 | Code | Severity | Description |
 |------|----------|-------------|
-| TRD_R0001 | error | ApplicationNumberText contains invalid characters (only alphanumeric and hyphen are allowed) |
+| TRD_R0001 | error | ApplicationNumberText contains invalid characters (only alphanumeric, hyphen, and slash are allowed) |
 | TRD_R0002 | error | Sequence length is zero |
 | TRD_R0003 | error | N-only nucleotide sequence |
 | TRD_R0004 | error | X-only amino acid sequence |
