@@ -37,12 +37,21 @@ module DDBJRecordValidator
     record     = subject.ddbj_record.open { DDBJRecord.parse(it) }
     app_number = record.submission&.application_identification&.application_number_text
 
-    unless app_number&.match?(%r(\A\d{4}[-/]\d{1,6}\z))
+    if app_number && !app_number.match?(/\A[A-Za-z0-9\-]+\z/)
       details << {
         entry_id: nil,
         code:     'TRD_R0001',
         severity: 'error',
-        message:  'ApplicationNumberText must be in the format of yyyy-nnnnnn'
+        message:  'ApplicationNumberText contains invalid characters (only alphanumeric and hyphen are allowed)'
+      }
+    end
+
+    if app_number && !app_number.match?(%r(\A\d{4}[-/]\d{1,6}\z))
+      details << {
+        entry_id: nil,
+        code:     'TRD_R0011',
+        severity: 'warning',
+        message:  'ApplicationNumberText is not in the expected format of yyyy-nnnnnn'
       }
     end
 

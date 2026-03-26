@@ -141,6 +141,23 @@ erDiagram
     validations ||--o{ validation_details : "has many"
 ```
 
+## Validation Codes
+
+| Code | Severity | Description |
+|------|----------|-------------|
+| TRD_R0001 | error | ApplicationNumberText contains invalid characters (only alphanumeric and hyphen are allowed) |
+| TRD_R0002 | error | Sequence length is zero |
+| TRD_R0003 | error | N-only nucleotide sequence |
+| TRD_R0004 | error | X-only amino acid sequence |
+| TRD_R0005 | error | Invalid characters in nucleotide sequence |
+| TRD_R0006 | warning | Undefined feature key |
+| TRD_R0007 | warning | Undefined qualifier key |
+| TRD_R0008 | error | Invalid presence of qualifier value (missing value for non-boolean qualifier, or value present for boolean qualifier) |
+| TRD_R0009 | error | ST.26 fields (applicant/inventor names, invention titles) contain non-ASCII characters |
+| TRD_R0010 | error | No source feature with mol_type found |
+| TRD_R0011 | warning | ApplicationNumberText is not in the expected format of yyyy-nnnnnn |
+| TRD_R9999 | error | Unexpected internal error during validation |
+
 ## Tech Stack
 
 - **Backend:** Ruby on Rails, Puma, Solid Queue
