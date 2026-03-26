@@ -47,7 +47,7 @@ module DDBJRecord
     def ensure_root_parsed
       return if @root_parsed
 
-      handler = EntryStreamHandler.new {} # discard entries
+      handler = EntryStreamHandler.new { } # discard entries
 
       File.open(@path) {|f| Oj.sc_parse(handler, f) }
 
