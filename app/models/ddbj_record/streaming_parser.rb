@@ -187,23 +187,23 @@ module DDBJRecord
       attr_reader :result
 
       def initialize(&on_entry)
-        @on_entry = on_entry
-        @pending_key = nil
-        @depth       = 0
-        @result      = nil
+        @on_entry       = on_entry
+        @pending_key    = nil
+        @hash_key_stack = []
+        @result         = nil
       end
 
       def hash_start
+        @hash_key_stack.push @pending_key
         @pending_key = nil
-        @depth += 1
 
         h = {}
-        @result = h if @depth == 1
+        @result = h if @hash_key_stack.size == 1
         h
       end
 
       def hash_end
-        @depth -= 1
+        @hash_key_stack.pop
       end
 
       def hash_key(key)
@@ -216,7 +216,7 @@ module DDBJRecord
       end
 
       def array_start
-        if @pending_key == 'entries'
+        if @pending_key == 'entries' && @hash_key_stack.last == 'sequences'
           @pending_key = nil
           ENTRIES
         else

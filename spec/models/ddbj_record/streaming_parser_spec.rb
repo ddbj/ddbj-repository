@@ -155,6 +155,39 @@ RSpec.describe DDBJRecord::StreamingParser do
     end
   end
 
+  describe 'with "entries" key in nested context' do
+    it 'does not confuse nested "entries" with sequences.entries' do
+      json = JSON.generate({
+        'schema_version' => 'v2',
+        'provenance'     => {'source_format' => 'test', 'entries' => [1, 2, 3]},
+        'submission'     => {'submitters' => [], 'db_xrefs' => [], 'references' => [], 'comments' => [], 'division' => 'PAT'},
+        'sequences'      => {
+          'common_source' => {'organism' => '', 'mol_type' => '', 'qualifiers' => {}},
+          'entries'       => [
+            {'id' => 'e1', 'type' => 'other', 'topology' => 'linear', 'sequence' => 'atgc', 'source_features' => []}
+          ]
+        },
+        'features'       => []
+      })
+
+      file = Tempfile.open(['nested_entries', '.json'])
+
+      begin
+        file.write json
+        file.rewind
+
+        parser  = DDBJRecord::StreamingParser.new(file.path)
+        entries = parser.each_entry.to_a
+
+        expect(entries.size).to eq(1)
+        expect(entries.first.id).to eq('e1')
+        expect(parser.metadata.provenance.extras).to eq({'entries' => [1, 2, 3]})
+      ensure
+        file.close!
+      end
+    end
+  end
+
   describe 'with minified JSON' do
     it 'falls back to DDBJRecord.parse and yields entries correctly' do
       original = File.open(file_fixture('ddbj_record/example.json')) { DDBJRecord.parse(it) }
