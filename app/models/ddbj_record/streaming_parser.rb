@@ -86,43 +86,39 @@ module DDBJRecord
     def build_submission_deep(h)
       h = h.dup
 
-      h['submitters'] = (h['submitters'] || []).map {|p|
-        p = p.dup
-        p['organization'] = (p['organization'] || []).map {|o|
-          o = o.dup
-          o['address'] = build_address(o['address']) if o['address']
-          build_organization(o)
-        }
-        build_person(p)
+      h['submitters'] = Array.wrap(h['submitters']).map {|p|
+        build_person_deep(p)
       }
 
-      h['db_xrefs']   = (h['db_xrefs'] || []).map {|x| build_xref(x) }
-      h['references'] = (h['references'] || []).map {|r|
+      h['db_xrefs']   = Array.wrap(h['db_xrefs']).map {|x| build_xref(x) }
+      h['references'] = Array.wrap(h['references']).map {|r|
         r = r.dup
-        r['authors']     = (r['authors'] || []).map {|p|
-          p = p.dup
-          p['organization'] = (p['organization'] || []).map {|o|
-            o = o.dup
-            o['address'] = build_address(o['address']) if o['address']
-            build_organization(o)
-          } if p['organization']
-          build_person(p)
-        }
-        r['consortiums'] = r['consortiums']&.map {|o|
-          o = o.dup
-          o['address'] = build_address(o['address']) if o['address']
-          build_organization(o)
-        }
+
+        r['authors']     = Array.wrap(r['authors']).map {|p| build_person_deep(p) }
+        r['consortiums'] = r['consortiums'] && Array.wrap(r['consortiums']).map {|o| build_organization_deep(o) }
+
         build_reference(r)
       }
 
       h['application_identification'] = build_application_identification(h['application_identification']) if h['application_identification']
 
-      h['earliest_priority_application_identifications'] = (h['earliest_priority_application_identifications'] || []).map {|a|
+      h['earliest_priority_application_identifications'] = Array.wrap(h['earliest_priority_application_identifications']).map {|a|
         build_application_identification(a)
       }
 
       build_submission(h)
+    end
+
+    def build_person_deep(h)
+      h = h.dup
+      h['organization'] = h['organization'] && Array.wrap(h['organization']).map {|o| build_organization_deep(o) }
+      build_person(h)
+    end
+
+    def build_organization_deep(h)
+      h = h.dup
+      h['address'] = build_address(h['address']) if h['address']
+      build_organization(h)
     end
 
     def build_experiment_deep(h)
