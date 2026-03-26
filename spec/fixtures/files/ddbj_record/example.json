@@ -78,5 +78,17 @@
     ]
   },
 
-  "features": []
+  "features": [],
+
+  "st26": {
+    "applicant_names": [
+      {"language_code": "en", "text": "Test Corp"}
+    ],
+    "inventor_names": [
+      {"language_code": "en", "text": "Test Inventor"}
+    ],
+    "invention_titles": [
+      {"language_code": "en", "text": "Test Invention Title"}
+    ]
+  }
 }

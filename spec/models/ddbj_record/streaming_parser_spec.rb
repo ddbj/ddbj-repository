@@ -109,6 +109,15 @@ RSpec.describe DDBJRecord::StreamingParser do
       expect(parser.metadata.submission.division).to eq('PAT')
     end
 
+    it 'parses st26 section that appears after features' do
+      st26 = parser.metadata.st26
+
+      expect(st26).to be_a(DDBJRecord::St26)
+      expect(st26.applicant_names.first.text).to eq('Test Corp')
+      expect(st26.inventor_names.first.text).to eq('Test Inventor')
+      expect(st26.invention_titles.first.text).to eq('Test Invention Title')
+    end
+
     it 'streams entries with nested source objects' do
       entry = parser.each_entry.first
       sf    = entry.source_features.first
