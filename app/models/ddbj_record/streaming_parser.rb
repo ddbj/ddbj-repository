@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 module DDBJRecord
-  # Two-phase streaming parser for large DDBJ Record JSON files.
+  # Streaming parser for large DDBJ Record JSON files.
   #
-  # Unlike Handler (Oj::Saj), this parser handles multi-GB files with
-  # entries containing very long sequence strings (750MB+) that crash
-  # the SAJ parser.
+  # Uses Oj.sc_parse (ScHandler) for true streaming entry enumeration
+  # that works with both pretty-printed and minified JSON. Memory usage
+  # is proportional to the largest single entry, not the total file size.
   #
   # Phase 1: Extract metadata from file header + features from file tail
-  # Phase 2: Stream entries one at a time via line-based boundary detection
+  # Phase 2: Stream entries one at a time via Oj.sc_parse
   class StreamingParser
     include Builders
 
@@ -41,71 +41,15 @@ module DDBJRecord
 
     # Yields DDBJRecord::Entry objects one at a time.
     #
-    # For pretty-printed JSON (multi-line), uses indentation-based boundary
-    # detection to stream entries without loading everything into memory.
-    # This handles multi-GB files with 750MB+ sequence strings that crash
-    # Oj::Saj.
-    #
-    # For minified JSON (single-line), falls back to DDBJRecord.parse which
-    # uses Oj::Saj. This is safe because minified files are small (ST.26
-    # patent data); large genome files are always pretty-printed by
-    # DDBJRecord::Writer.
+    # Uses Oj.sc_parse with a custom ScHandler that intercepts the
+    # entries array and yields each entry hash individually, rather
+    # than accumulating all entries in memory.
     def each_entry(&block)
       return enum_for(:each_entry) unless block
 
-      yielded = each_entry_by_indent(&block)
+      handler = EntryStreamHandler.new {|h| block.call(build_entry_from_hash(h)) }
 
-      return if yielded
-
-      record = File.open(@path) { DDBJRecord.parse(it) }
-      record.sequences.entries.each(&block)
-    end
-
-    private
-
-    def each_entry_by_indent
-      inside_entries = false
-      entry_indent   = nil
-      entry_buf      = nil
-      yielded        = false
-
-      File.foreach(@path) do |line|
-        unless inside_entries
-          inside_entries = true if line.include?('"entries"')
-          next
-        end
-
-        indent   = line.size - line.lstrip.size
-        stripped = line.lstrip
-
-        if entry_indent.nil?
-          if stripped.start_with?('{')
-            entry_indent = indent
-            entry_buf    = +line
-          end
-
-          next
-        end
-
-        if indent == entry_indent && stripped.start_with?('{')
-          entry_buf = +line
-        elsif entry_buf
-          entry_buf << line
-
-          if indent == entry_indent && stripped.start_with?('}')
-            entry_buf.sub!(/,\s*\z/, '')
-
-            yield build_entry_from_hash(Oj.load(entry_buf))
-
-            yielded   = true
-            entry_buf = nil
-          end
-        elsif stripped.start_with?(']')
-          break
-        end
-      end
-
-      yielded
+      File.open(@path) {|f| Oj.sc_parse(handler, f) }
     end
 
     private
@@ -121,16 +65,18 @@ module DDBJRecord
 
         raise "features key not found in last #{tail_size} bytes of #{@path}" unless match
 
-        json           = tail[match.end(0)..].sub(/\]\s*\}\s*\z/, ']')
-        raw_features   = Oj.load(json)
+        json = tail[match.end(0)..].sub(/\]\s*\}\s*\z/, ']')
 
-        raw_features.map {|h| build_feature_from_hash(h) }
+        Oj.load(json).map {|h| build_feature_from_hash(h) }
       end
     end
 
     def build_entry_from_hash(h)
       h['source_features'] = (h['source_features'] || []).map {|sf|
-        sf['source'] = build_source(sf['source']) if sf['source']
+        if sf['source']
+          sf['source']['qualifiers'] = build_qualifiers(sf['source']['qualifiers'])
+          sf['source'] = build_source(sf['source'])
+        end
 
         build_source_feature(sf)
       }
@@ -139,11 +85,65 @@ module DDBJRecord
     end
 
     def build_feature_from_hash(h)
-      h['qualifiers'] = (h['qualifiers'] || {}).transform_values {|vals|
-        vals.map {|q| build_qualifier(q) }
-      }
+      h['qualifiers'] = build_qualifiers(h['qualifiers'])
 
       build_feature(h)
+    end
+
+    def build_qualifiers(quals)
+      (quals || {}).transform_values {|vals|
+        vals.map {|q| q.is_a?(DDBJRecord::Qualifier) ? q : build_qualifier(q) }
+      }
+    end
+
+    # Oj::ScHandler that streams entries from the "sequences.entries"
+    # array via a callback, without accumulating them in memory.
+    # All other JSON content is built normally as nested Hash/Array.
+    class EntryStreamHandler < Oj::ScHandler
+      ENTRIES = Object.new.freeze
+
+      def initialize(&on_entry)
+        @on_entry    = on_entry
+        @pending_key = nil
+      end
+
+      def hash_start
+        @pending_key = nil
+        {}
+      end
+
+      def hash_end = nil
+
+      def hash_key(key)
+        @pending_key = key
+        key
+      end
+
+      def hash_set(hash, key, value)
+        hash[key] = value unless value.equal?(ENTRIES)
+      end
+
+      def array_start
+        if @pending_key == 'entries'
+          @pending_key = nil
+          ENTRIES
+        else
+          @pending_key = nil
+          []
+        end
+      end
+
+      def array_end = nil
+
+      def array_append(array, value)
+        if array.equal?(ENTRIES)
+          @on_entry.call(value)
+        else
+          array << value
+        end
+      end
+
+      def add_value(value) = nil
     end
   end
 end
