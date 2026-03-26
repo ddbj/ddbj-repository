@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require_relative '../config/environment'
 
 abort 'Do not run in production!' if Rails.env.production?
