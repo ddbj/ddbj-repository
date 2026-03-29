@@ -1,8 +1,8 @@
 import Service from '@ember/service';
 import { modifier } from 'ember-modifier';
+import { trackedArray } from '@ember/reactive/collections';
 
 import { Toast } from 'bootstrap';
-import { TrackedArray } from 'tracked-built-ins';
 import { runTask } from 'ember-lifeline';
 
 export interface Data {
@@ -12,7 +12,7 @@ export interface Data {
 }
 
 export default class ToastService extends Service {
-  data = new TrackedArray<Data>();
+  data = trackedArray<Data>();
   refs = new Map<string, Toast>();
 
   register = modifier((el: Element) => {
