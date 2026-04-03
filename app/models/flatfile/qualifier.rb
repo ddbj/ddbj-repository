@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 module Flatfile
-  Qualifier = Data.define(:key, :value) {
+  Qualifier = Data.define(:key, :value)
+
+  class Qualifier
     KEYS = Rails.root.join('data/qual.list').readlines(chomp: true).to_set.freeze
 
     BOOLEAN_KEYS = %w[
@@ -33,5 +35,5 @@ module Flatfile
     def need_quote?
       NEED_QUOTE_KEYS.include?(key)
     end
-  }
+  end
 end

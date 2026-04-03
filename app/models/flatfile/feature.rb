@@ -75,7 +75,7 @@ module Flatfile
           [Qualifier.new('organism', entry.scientific_name || 'unidentified')]
         else
           vs.map {
-            value = BOOLEAN_KEYS.include?(k) ? nil : it.value
+            value = Qualifier::BOOLEAN_KEYS.include?(k) ? nil : it.value
 
             Qualifier.new(k, value)
           }
@@ -89,12 +89,18 @@ module Flatfile
 
     def source? = type == 'source'
 
-    def valid_qualifiers
-      qualifiers.select(&:valid?)
+    # Qualifiers for the FEATURES source section:
+    # NA: /organism, /mol_type, /db_xref
+    # AA: /organism, /db_xref (mol_type already excluded in constructor)
+    FEATURES_SOURCE_KEYS = %w[organism mol_type db_xref].to_set.freeze
+
+    def features_source_qualifiers
+      qualifiers.select { FEATURES_SOURCE_KEYS.include?(it.key) }
     end
 
-    def invalid_qualifiers
-      qualifiers.reject(&:valid?)
+    # Qualifiers for the COMMENT FT section (everything else)
+    def comment_qualifiers
+      qualifiers.reject { FEATURES_SOURCE_KEYS.include?(it.key) }
     end
 
     def sort_keys

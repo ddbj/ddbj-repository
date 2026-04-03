@@ -47,7 +47,9 @@
             "source": {
               "organism": "Homo sapiens",
               "mol_type": "genomic DNA",
-              "qualifiers": {}
+              "qualifiers": {
+                "note": [{"id": null, "value": "Forward Primer(test)"}]
+              }
             }
           }
         ]

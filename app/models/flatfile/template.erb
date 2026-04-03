@@ -43,7 +43,7 @@ COMMENT     OS   <%= entry.organism %>
             PS   <%= entry.seqid.sequence_number %>
             FH   Key             Location/Qualifiers
             <%- entry.features.each do |feature| -%>
-            <%-   if quals = (feature == entry.primary_source_feature ? feature.invalid_qualifiers : feature.qualifiers).presence -%>
+            <%-   if quals = (feature == entry.primary_source_feature ? feature.comment_qualifiers : feature.qualifiers).presence -%>
             FT   <%= feature.type.ljust(15) %> <%= feature.location %>
             <%-     quals.each do |qual| -%>
             FT                   <%= format_qualifier(qual) %>
@@ -52,7 +52,7 @@ COMMENT     OS   <%= entry.organism %>
             <%- end -%>
 FEATURES             Location/Qualifiers
      <%= 'source'.ljust(15) %> <%= entry.primary_source_feature.location %>
-     <%- entry.primary_source_feature.valid_qualifiers.each do |qual| -%>
+     <%- entry.primary_source_feature.features_source_qualifiers.each do |qual| -%>
                      <%= format_qualifier(qual) %>
      <%- end -%>
 <%- if entry.na? -%>

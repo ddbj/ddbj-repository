@@ -53,6 +53,8 @@ RSpec.describe Flatfile do
                   PI   Test Inventor
                   PS   1
                   FH   Key             Location/Qualifiers
+                  FT   source          1..21
+                  FT                   /note="Forward Primer(test)"
       FEATURES             Location/Qualifiers
            source          1..21
                            /organism="Homo sapiens"
