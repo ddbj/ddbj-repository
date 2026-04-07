@@ -75,7 +75,7 @@ class ApplySubmissionRequestJob < ApplicationJob
             accession:,
             locus:        accession,
             version:      1,
-            last_updated: now.iso8601
+            last_updated: entry.last_updated || now.iso8601
           )
 
           w << entry
