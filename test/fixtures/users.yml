@@ -1,0 +1,8 @@
+alice:
+  uid: alice
+  api_key: test_api_key_alice
+
+bob:
+  uid: bob
+  api_key: test_api_key_bob
+  admin: true
