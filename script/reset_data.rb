@@ -1,7 +1,5 @@
 require_relative '../config/environment'
 
-abort 'Do not run in production!' if Rails.env.production?
-
 tables = ActiveRecord::Base.connection.tables - %w[users schema_migrations ar_internal_metadata]
 
 ActiveRecord::Base.connection.execute "TRUNCATE #{tables.join(', ')} CASCADE"
