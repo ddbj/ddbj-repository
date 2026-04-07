@@ -1,0 +1,5 @@
+valid_one:
+  subject_type: SubmissionRequest
+  subject_id: <%= ActiveRecord::FixtureSet.identify(:one) %>
+  progress: finished
+  finished_at: 2024-01-03
