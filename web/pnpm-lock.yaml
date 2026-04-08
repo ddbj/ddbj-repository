@@ -198,8 +198,8 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1
       prettier-plugin-ember-template-tag:
-        specifier: ^2.1.3
-        version: 2.1.3(prettier@3.8.1)
+        specifier: ^2.1.4
+        version: 2.1.4(prettier@3.8.1)
       qunit:
         specifier: ^2.25.0
         version: 2.25.0
@@ -2576,8 +2576,8 @@ packages:
   caniuse-lite@1.0.30001782:
     resolution: {integrity: sha512-dZcaJLJeDMh4rELYFw1tvSn1bhZWYFOt468FcbHHxx/Z/dFidd1I6ciyFdi3iwfQCyOjqo9upF6lGQYtMiJWxw==}
 
-  caniuse-lite@1.0.30001786:
-    resolution: {integrity: sha512-4oxTZEvqmLLrERwxO76yfKM7acZo310U+v4kqexI2TL1DkkUEMT8UijrxxcnVdxR3qkVf5awGRX+4Z6aPHVKrA==}
+  caniuse-lite@1.0.30001787:
+    resolution: {integrity: sha512-mNcrMN9KeI68u7muanUpEejSLghOKlVhRqS/Za2IeyGllJ9I9otGpR9g3nsw7n4W378TE/LyIteA0+/FOZm4Kg==}
 
   capture-exit@2.0.0:
     resolution: {integrity: sha512-PiT/hQmTonHhl/HFGN+Lx3JJUznrVYJ3+AQsnthneZbvW7x+f08Tk7yLJTLEOUvBTbduLeeBkxEaYXUOUrRq6g==}
@@ -2917,9 +2917,6 @@ packages:
   content-tag@3.1.3:
     resolution: {integrity: sha512-4Kiv9mEroxuMXfWUNUHcljVJgxThCNk7eEswdHMXdzJnkBBaYDqDwzHkoh3F74JJhfU3taJOsgpR6oEGIDg17g==}
 
-  content-tag@4.1.0:
-    resolution: {integrity: sha512-On6gUuvI1l5MScHO+Xbwjeq1Pk9H6HOipDWkzqGGUGmKpq6K5TRmQuCl1LGSHbdIo2l+lSsgLKrLgCl5kKYA+A==}
-
   content-tag@4.1.1:
     resolution: {integrity: sha512-LyIbq4ZY+WbN0NoyHmg0w1kLPHyXZkZZrTDJZm/HW+MVurnKJy7U3m8WlpKm6lqbYbUSWP6ATNacE5dL2eH8+g==}
 
@@ -3169,8 +3166,8 @@ packages:
   electron-to-chromium@1.5.328:
     resolution: {integrity: sha512-QNQ5l45DzYytThO21403XN3FvK0hOkWDG8viNf6jqS42msJ8I4tGDSpBCgvDRRPnkffafiwAym2X2eHeGD2V0w==}
 
-  electron-to-chromium@1.5.331:
-    resolution: {integrity: sha512-IbxXrsTlD3hRodkLnbxAPP4OuJYdWCeM3IOdT+CpcMoIwIoDfCmRpEtSPfwBXxVkg9xmBeY7Lz2Eo2TDn/HC3Q==}
+  electron-to-chromium@1.5.333:
+    resolution: {integrity: sha512-skNh4FsE+IpCJV7xAQGbQ4eyOGvcEctVBAk7a5KPzxC3alES9rLrT+2IsPRPgeQr8LVxdJr8BHQ9481+TOr0xg==}
 
   ember-auto-import@2.13.1:
     resolution: {integrity: sha512-MjxJK2nfCJmmQI/rju2TrycmAa1AxmTarfvygbcrrgW0s4WeZHtbGXCO2z1lW9wfrShqeTo/o+3Mgk+9xcDTWg==}
@@ -5286,8 +5283,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  prettier-plugin-ember-template-tag@2.1.3:
-    resolution: {integrity: sha512-FfAvkU+fqDC3Zs8+qGhBHYuwq1DED+UTPMH33QXxivZxRekkItBNXfi1Y+YkIbhCnu6UeTE2aYdbQSLlkOC2bA==}
+  prettier-plugin-ember-template-tag@2.1.4:
+    resolution: {integrity: sha512-KMjDL4UFDuLpFD69SlhW2AB5YQ3AUS/1NNBjdY/rXko180eWo1VNeCvyZdqNR4Zamii/6Y/E3D/ey8BmhKLaJw==}
     engines: {node: 18.* || >= 20}
     peerDependencies:
       prettier: '>= 3.0.0'
@@ -9485,8 +9482,8 @@ snapshots:
   browserslist@4.28.2:
     dependencies:
       baseline-browser-mapping: 2.10.16
-      caniuse-lite: 1.0.30001786
-      electron-to-chromium: 1.5.331
+      caniuse-lite: 1.0.30001787
+      electron-to-chromium: 1.5.333
       node-releases: 2.0.37
       update-browserslist-db: 1.2.3(browserslist@4.28.2)
 
@@ -9537,7 +9534,7 @@ snapshots:
 
   caniuse-lite@1.0.30001782: {}
 
-  caniuse-lite@1.0.30001786: {}
+  caniuse-lite@1.0.30001787: {}
 
   capture-exit@2.0.0:
     dependencies:
@@ -9711,8 +9708,6 @@ snapshots:
   content-tag@2.0.3: {}
 
   content-tag@3.1.3: {}
-
-  content-tag@4.1.0: {}
 
   content-tag@4.1.1: {}
 
@@ -9944,7 +9939,7 @@ snapshots:
 
   electron-to-chromium@1.5.328: {}
 
-  electron-to-chromium@1.5.331: {}
+  electron-to-chromium@1.5.333: {}
 
   ember-auto-import@2.13.1(@glint/template@1.7.7)(webpack@5.102.1(esbuild@0.27.3)):
     dependencies:
@@ -12630,10 +12625,10 @@ snapshots:
 
   prelude-ls@1.2.1: {}
 
-  prettier-plugin-ember-template-tag@2.1.3(prettier@3.8.1):
+  prettier-plugin-ember-template-tag@2.1.4(prettier@3.8.1):
     dependencies:
       '@babel/traverse': 7.29.0
-      content-tag: 4.1.0
+      content-tag: 4.1.1
       prettier: 3.8.1
     transitivePeerDependencies:
       - supports-color
