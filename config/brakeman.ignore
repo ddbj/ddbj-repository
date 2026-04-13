@@ -66,6 +66,52 @@
         95
       ],
       "note": ""
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "d28b34a60a183eb02e29d483743846f27616bdb5aba2d1ae231a41ed1d74766d",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/jobs/load_taxdump_job.rb",
+      "line": 44,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": null,
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "LoadTaxdumpJob",
+        "method": "perform"
+      },
+      "user_input": null,
+      "confidence": "High",
+      "cwe_id": [
+        89
+      ],
+      "note": "Data source is NCBI taxdump file, not user input"
+    },
+    {
+      "warning_type": "SQL Injection",
+      "warning_code": 0,
+      "fingerprint": "77b788b4f4bafafa1aa4581053eabec14cc414cf7b119a691a4deb9c70158644",
+      "check_name": "SQL",
+      "message": "Possible SQL injection",
+      "file": "app/jobs/load_taxdump_job.rb",
+      "line": 62,
+      "link": "https://brakemanscanner.org/docs/warning_types/sql_injection/",
+      "code": null,
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "LoadTaxdumpJob",
+        "method": "perform"
+      },
+      "user_input": null,
+      "confidence": "High",
+      "cwe_id": [
+        89
+      ],
+      "note": "Data source is NCBI taxdump file, not user input"
     }
   ],
   "brakeman_version": "8.0.4"
