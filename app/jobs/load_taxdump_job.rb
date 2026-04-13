@@ -1,12 +1,4 @@
 class LoadTaxdumpJob < ApplicationJob
-  def self.loading?
-    SolidQueue::Job
-      .where(class_name: name)
-      .where(finished_at: nil)
-      .where.not(id: SolidQueue::FailedExecution.select(:job_id))
-      .exists?
-  end
-
   def perform
     path = Rails.root.join('storage/taxdump.tar.gz')
     conn = Taxdump::Record.connection

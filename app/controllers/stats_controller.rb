@@ -18,6 +18,11 @@ class StatsController < ApplicationController
           used:,
           remaining: total - used
         }
+      },
+
+      taxdump: {
+        names_count: Taxdump::Name.count,
+        nodes_count: Taxdump::Node.count
       }
     }
   end

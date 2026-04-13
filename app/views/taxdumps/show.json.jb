@@ -1,5 +1,0 @@
-{
-  names_count: @names_count,
-  nodes_count: @nodes_count,
-  loading:     @loading
-}
