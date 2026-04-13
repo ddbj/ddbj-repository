@@ -25,6 +25,8 @@ Rails.application.routes.draw do
       resources :updates,    only: %i[create], controller: 'submission_updates'
     end
 
+    resource :taxdump, only: %i[show create]
+
     resources :stats, only: %i[index]
   end
 
