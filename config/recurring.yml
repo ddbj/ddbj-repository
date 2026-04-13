@@ -1,4 +1,7 @@
-production:
+production: &production
   load_taxdump:
     class: LoadTaxdumpJob
     schedule: at 6am every day
+
+staging:
+  <<: *production
