@@ -1,4 +1,6 @@
 class ApplySubmissionUpdateJob < ApplicationJob
+  include SubmissionOutputWriter
+
   class NoChange < StandardError; end
 
   def perform(update)
@@ -67,15 +69,13 @@ class ApplySubmissionUpdateJob < ApplicationJob
       end
     }
 
-    new_record  = new_record.with(sequences: new_record.sequences.with(entries: new_entries))
-    ddbj_record = DDBJRecord.generate(new_record)
+    new_record = new_record.with(sequences: new_record.sequences.with(entries: new_entries))
 
-    update.submission.update! ddbj_record: {
-      io:           ddbj_record,
+    generate_outputs new_record, new_entries, **{
       filename:     update.ddbj_record.filename,
       content_type: update.ddbj_record.content_type
-    }
-  ensure
-    ddbj_record&.close!
+    } do |updates|
+      update.submission.update! updates
+    end
   end
 end

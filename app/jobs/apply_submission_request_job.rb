@@ -1,4 +1,6 @@
 class ApplySubmissionRequestJob < ApplicationJob
+  include SubmissionOutputWriter
+
   def perform(request)
     request.applying!
 
@@ -55,81 +57,25 @@ class ApplySubmissionRequestJob < ApplicationJob
       end
 
       # Pass 2: Stream entries → JSON + flatfiles
-      ddbj_record = Tempfile.open(['ddbj_record', '.json'])
-      ddbj_record.binmode
+      record = metadata.with(features: all_features)
 
-      flatfile_na = Tempfile.open(['flatfile-na', '.flat'])
-      flatfile_na.binmode
+      entries = parser.each_entry.lazy.map {|entry|
+        accession = entry_accessions.fetch(entry.id)
 
-      flatfile_aa = Tempfile.open(['flatfile-aa', '.flat'])
-      flatfile_aa.binmode
-
-      na_renderer = Flatfile::StreamingRenderer.new(metadata, features_by_seq_id, flatfile_na)
-      aa_renderer = Flatfile::StreamingRenderer.new(metadata, features_by_seq_id, flatfile_aa)
-
-      DDBJRecord::StreamingWriter.new(ddbj_record).write(metadata, features: all_features) do |w|
-        parser.each_entry do |entry|
-          accession = entry_accessions.fetch(entry.id)
-
-          entry = entry.with(
-            accession:,
-            locus:        accession,
-            version:      1,
-            last_updated: entry.last_updated || now.iso8601
-          )
-
-          w << entry
-
-          if aa?(entry)
-            aa_renderer.render_entry(entry)
-          else
-            na_renderer.render_entry(entry)
-          end
-        end
-      end
-
-      ddbj_record.write "\n"
-      ddbj_record.rewind
-
-      filename = request.ddbj_record.filename
-
-      updates = {
-        ddbj_record: {
-          io:           ddbj_record,
-          filename:,
-          content_type: request.ddbj_record.content_type
-        }
+        entry.with(
+          accession:,
+          locus:        accession,
+          version:      1,
+          last_updated: entry.last_updated || now.iso8601
+        )
       }
 
-      if flatfile_na.size > 0
-        flatfile_na.rewind
-
-        updates[:flatfile_na] = {
-          io:           flatfile_na,
-          filename:     "#{filename.base}-na.flat",
-          content_type: 'text/plain'
-        }
+      generate_outputs record, entries, **{
+        filename:     request.ddbj_record.filename,
+        content_type: request.ddbj_record.content_type
+      } do |updates|
+        submission.update! updates
       end
-
-      if flatfile_aa.size > 0
-        flatfile_aa.rewind
-
-        updates[:flatfile_aa] = {
-          io:           flatfile_aa,
-          filename:     "#{filename.base}-aa.flat",
-          content_type: 'text/plain'
-        }
-      end
-
-      submission.update! updates
-    ensure
-      ddbj_record&.close!
-      flatfile_na&.close!
-      flatfile_aa&.close!
     end
-  end
-
-  def aa?(entry)
-    entry.source_features.any? { it.source&.mol_type == 'protein' }
   end
 end
