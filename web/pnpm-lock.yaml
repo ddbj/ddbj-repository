@@ -156,8 +156,8 @@ importers:
         specifier: ~6.12.0
         version: 6.12.0(@glimmer/component@2.1.1)(rsvp@4.8.5)
       ember-style-modifier:
-        specifier: ^4.5.1
-        version: 4.5.1(@babel/core@7.29.0)(@ember/string@4.0.1)
+        specifier: ^4.6.0
+        version: 4.6.0(@babel/core@7.29.0)
       ember-template-lint:
         specifier: ^7.9.3
         version: 7.9.3
@@ -3301,11 +3301,9 @@ packages:
     peerDependencies:
       '@glimmer/component': '>= 1.1.2'
 
-  ember-style-modifier@4.5.1:
-    resolution: {integrity: sha512-ReVGW9fZmDIsCWsuJGH4joiiHOv9aF9Yv4lUZUjXjQyR9SEAae7RWjZcjPgmEJwpN7yDSyy4PIwdJa0smT2A3g==}
+  ember-style-modifier@4.6.0:
+    resolution: {integrity: sha512-ZM1pztpyEdZDfQEgOkWREiiUrsfnYGJGJzEw5QO60Sd2GAZIXLhCHxOTaT3ox5pUGb+ldG4I9Fk3srQreMJlQw==}
     engines: {node: 18.* || >= 20, pnpm: '>= 10.*'}
-    peerDependencies:
-      '@ember/string': ^3.1.1 || ^4.0.0
 
   ember-template-lint@7.9.3:
     resolution: {integrity: sha512-iqC4rv/oVlXViGuf7hlOA/bC550ZqacZKAc8WvQV0ueeCtIYPkYYK+Tc7FwpM8qGx3jiwu/ZsTuNfPInI5pL7Q==}
@@ -10396,9 +10394,8 @@ snapshots:
       - rsvp
       - supports-color
 
-  ember-style-modifier@4.5.1(@babel/core@7.29.0)(@ember/string@4.0.1):
+  ember-style-modifier@4.6.0(@babel/core@7.29.0):
     dependencies:
-      '@ember/string': 4.0.1
       '@embroider/addon-shim': 1.10.2
       csstype: 3.2.3
       decorator-transforms: 2.3.1(@babel/core@7.29.0)
