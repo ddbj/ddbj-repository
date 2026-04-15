@@ -19,5 +19,10 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert submission.ddbj_record.attached?
     assert submission.flatfile_na.attached?
     assert_not submission.flatfile_aa.attached?
+
+    histories = AccessionHistory.where(accession: submission.accessions)
+
+    assert_equal submission.accessions.count, histories.count
+    assert histories.all? { it.action == 'create' && it.user == request.user }
   end
 end

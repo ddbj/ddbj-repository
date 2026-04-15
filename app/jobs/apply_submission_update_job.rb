@@ -54,6 +54,17 @@ class ApplySubmissionUpdateJob < ApplicationJob
       }.transform_values(&:deep_symbolize_keys)
     }
 
+    user = update.submission.request.user
+
+    AccessionHistory.insert_all! changed_entries.map {|entry|
+      {
+        accession_id: accessions_by_number.fetch(entry.accession).id,
+        user_id:      user.id,
+        action:       'update',
+        created_at:   now
+      }
+    }
+
     new_entries = new_entries.map {|entry|
       attrs = updated_accessions_by_number[entry.accession]
 

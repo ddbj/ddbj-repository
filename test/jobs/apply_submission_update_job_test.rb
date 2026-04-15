@@ -33,6 +33,10 @@ class ApplySubmissionUpdateJobTest < ActiveSupport::TestCase
 
     assert @submission.flatfile_na.attached?
     assert_not_equal original_na_blob_id, @submission.flatfile_na.blob.id
+
+    history = AccessionHistory.where(accession: @submission.accessions, action: 'update').sole
+
+    assert_equal users(:alice), history.user
   end
 
   test 'purges flatfile when entries of that type are removed' do

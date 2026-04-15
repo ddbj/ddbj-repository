@@ -10,9 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_10_150846) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_14_095628) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "accession_histories", force: :cascade do |t|
+    t.bigint "accession_id", null: false
+    t.string "action", null: false
+    t.datetime "created_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["accession_id"], name: "index_accession_histories_on_accession_id"
+    t.index ["user_id"], name: "index_accession_histories_on_user_id"
+  end
 
   create_table "accessions", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -124,6 +133,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_10_150846) do
     t.index ["subject_type", "subject_id"], name: "index_validations_on_subject"
   end
 
+  add_foreign_key "accession_histories", "accessions"
+  add_foreign_key "accession_histories", "users"
   add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"

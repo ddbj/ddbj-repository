@@ -1,5 +1,5 @@
 class Accession < ApplicationRecord
   belongs_to :submission
 
-  has_many :renewals, dependent: :destroy, class_name: 'AccessionRenewal'
+  has_many :histories, dependent: :destroy, class_name: 'AccessionHistory'
 end

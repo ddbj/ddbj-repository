@@ -56,6 +56,15 @@ class ApplySubmissionRequestJob < ApplicationJob
         end
       end
 
+      AccessionHistory.insert_all! submission.accessions.ids.map {|id|
+        {
+          accession_id: id,
+          user_id:      request.user_id,
+          action:       'create',
+          created_at:   now
+        }
+      }
+
       # Pass 2: Stream entries → JSON + flatfiles
       record = metadata.with(features: all_features)
 
