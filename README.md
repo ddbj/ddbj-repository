@@ -96,7 +96,7 @@ erDiagram
         string number UK "e.g. LC000001"
         string entry_id
         integer version "default: 1"
-        datetime last_updated_at
+        date locus_date
         datetime created_at
         datetime updated_at
     }

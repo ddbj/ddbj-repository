@@ -748,7 +748,7 @@ components:
         - number
         - entry_id
         - version
-        - last_updated_at
+        - locus_date
 
       properties:
         number:
@@ -760,9 +760,9 @@ components:
         version:
           type: number
 
-        last_updated_at:
+        locus_date:
           type: string
-          format: date-time
+          format: date
 
     Attachment:
       type: object

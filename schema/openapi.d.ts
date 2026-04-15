@@ -606,8 +606,8 @@ export interface components {
             number: string;
             entry_id: string;
             version: number;
-            /** Format: date-time */
-            last_updated_at: string;
+            /** Format: date */
+            locus_date: string;
         };
         Attachment: {
             filename: string;

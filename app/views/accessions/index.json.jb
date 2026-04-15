@@ -3,6 +3,6 @@
     :number,
     :entry_id,
     :version,
-    :last_updated_at
+    :locus_date
   )
 }

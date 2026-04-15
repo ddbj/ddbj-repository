@@ -1,6 +1,6 @@
 import { LinkTo } from '@ember/routing';
 
-import formatDatetime from 'repository/helpers/format-datetime';
+
 import Pagination from 'repository/components/pagination';
 
 import type Controller from 'repository/controllers/submission/accessions';
@@ -20,7 +20,7 @@ export default <template>
         <th>Accession</th>
         <th>Entry ID</th>
         <th>Version</th>
-        <th>Last Updated</th>
+        <th>LOCUS Date</th>
       </tr>
     </thead>
 
@@ -30,7 +30,7 @@ export default <template>
           <td>{{accession.number}}</td>
           <td>{{accession.entry_id}}</td>
           <td>{{accession.version}}</td>
-          <td>{{formatDatetime accession.last_updated_at}}</td>
+          <td>{{accession.locus_date}}</td>
         </tr>
       {{/each}}
     </tbody>

@@ -42,17 +42,18 @@ class ApplySubmissionRequestJob < ApplicationJob
       }
 
       now              = Time.current
+      today            = now.to_date
       ts               = now.utc.iso8601(6)
       entry_accessions = {}
       conn             = ActiveRecord::Base.connection.raw_connection
 
-      conn.copy_data('COPY accessions (number, entry_id, submission_id, version, last_updated_at, created_at, updated_at) FROM STDIN') do
+      conn.copy_data('COPY accessions (number, entry_id, submission_id, version, locus_date, created_at, updated_at) FROM STDIN') do
         entry_metas.each do |meta|
           number = (meta[:is_aa] ? aa_nums : na_nums).shift
 
           entry_accessions[meta[:id]] = number
 
-          conn.put_copy_data "#{number}\t#{meta[:id]}\t#{submission.id}\t1\t#{ts}\t#{ts}\t#{ts}\n"
+          conn.put_copy_data "#{number}\t#{meta[:id]}\t#{submission.id}\t1\t#{today}\t#{ts}\t#{ts}\n"
         end
       end
 
@@ -75,7 +76,7 @@ class ApplySubmissionRequestJob < ApplicationJob
           accession:,
           locus:        accession,
           version:      1,
-          last_updated: entry.last_updated || now.iso8601
+          last_updated: entry.last_updated || today.to_s
         )
       }
 

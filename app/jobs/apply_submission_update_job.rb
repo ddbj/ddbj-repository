@@ -44,11 +44,11 @@ class ApplySubmissionUpdateJob < ApplicationJob
           **acc.attributes,
           entry_id:        entry.id,
           version:         acc.version.succ,
-          last_updated_at: now
+          locus_date: now.to_date
         }
       }, **{
         unique_by: :number,
-        returning: %i[number version last_updated_at]
+        returning: %i[number version locus_date]
       }).index_by {
         it['number']
       }.transform_values(&:deep_symbolize_keys)
@@ -69,11 +69,11 @@ class ApplySubmissionUpdateJob < ApplicationJob
       attrs = updated_accessions_by_number[entry.accession]
 
       if attrs
-        attrs => {version:, last_updated_at:}
+        attrs => {version:, locus_date:}
 
         entry.with(
           version:,
-          last_updated: last_updated_at.iso8601
+          last_updated: locus_date.to_s
         )
       else
         entry
