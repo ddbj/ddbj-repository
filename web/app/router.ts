@@ -31,5 +31,6 @@ Router.map(function () {
 
   this.route('admin', function () {
     this.route('proxy-login');
+    this.route('regenerate-flatfiles');
   });
 });

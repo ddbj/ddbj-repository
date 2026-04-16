@@ -60,8 +60,7 @@ class ApplySubmissionUpdateJob < ApplicationJob
       {
         accession_id: accessions_by_number.fetch(entry.accession).id,
         user_id:      user.id,
-        action:       'update',
-        created_at:   now
+        action:       'update'
       }
     }
 

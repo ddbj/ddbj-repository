@@ -26,6 +26,10 @@ Rails.application.routes.draw do
     end
 
     resources :stats, only: %i[index]
+
+    namespace :admin do
+      resource :regenerate_flatfiles, only: %i[show create]
+    end
   end
 
   namespace :admin do

@@ -1,0 +1,2 @@
+class RegenerateFlatfilesProgress < ApplicationRecord
+end

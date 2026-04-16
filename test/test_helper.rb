@@ -26,10 +26,6 @@ class ActiveSupport::TestCase
   set_fixture_class names: Taxdump::Name, nodes: Taxdump::Node
 
   fixtures :all
-
-  setup do
-    Rails.root.glob('tmp/storage/*', &:rmtree)
-  end
 end
 
 class ActionDispatch::IntegrationTest

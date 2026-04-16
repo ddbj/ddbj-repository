@@ -9,6 +9,10 @@ import { pageTitle } from 'ember-page-title';
     <li class="nav-item">
       <LinkTo @route="admin.proxy-login" class="nav-link">Proxy Login</LinkTo>
     </li>
+
+    <li class="nav-item">
+      <LinkTo @route="admin.regenerate-flatfiles" class="nav-link">Regenerate Flatfiles</LinkTo>
+    </li>
   </ul>
 
   {{outlet}}

@@ -1,6 +1,5 @@
 import { LinkTo } from '@ember/routing';
 
-
 import Pagination from 'repository/components/pagination';
 
 import type Controller from 'repository/controllers/submission/accessions';

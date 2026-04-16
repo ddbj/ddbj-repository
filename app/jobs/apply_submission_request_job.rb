@@ -61,8 +61,7 @@ class ApplySubmissionRequestJob < ApplicationJob
         {
           accession_id: id,
           user_id:      request.user_id,
-          action:       'create',
-          created_at:   now
+          action:       'create'
         }
       }
 
