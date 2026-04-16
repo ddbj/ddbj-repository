@@ -6,4 +6,8 @@ class AccessionsController < ApplicationController
 
     response.headers.merge! pagy.headers_hash
   end
+
+  def show
+    @accession = Accession.joins(:submission).merge(current_user.submissions).find_by!(number: params[:number])
+  end
 end

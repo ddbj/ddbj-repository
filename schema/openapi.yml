@@ -375,6 +375,55 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /accessions/{number}:
+    get:
+      description: Get an accession by number, including its submission and flatfile URLs.
+
+      tags:
+        - Submissions
+
+      parameters:
+        - name: number
+          in: path
+          required: true
+
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Returns the accession with its submission.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [number, entry_id, version, locus_date, submission]
+
+                properties:
+                  number:
+                    type: string
+
+                  entry_id:
+                    type: string
+
+                  version:
+                    type: number
+
+                  locus_date:
+                    type: string
+                    format: date
+
+                  submission:
+                    $ref: '#/components/schemas/Submission'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /submissions/{id}/updates:
     post:
       description: Create a submission update.
@@ -794,10 +843,10 @@ components:
     Error:
       type: object
       additionalProperties: false
-      required: [message]
+      required: [error]
 
       properties:
-        message:
+        error:
           type: string
 
   responses:

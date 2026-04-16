@@ -1,0 +1,10 @@
+{
+  **@accession.slice(
+    :number,
+    :entry_id,
+    :version,
+    :locus_date
+  ),
+
+  submission: render('submissions/submission', submission: @accession.submission)
+}

@@ -25,6 +25,8 @@ Rails.application.routes.draw do
       resources :updates,    only: %i[create], controller: 'submission_updates'
     end
 
+    resources :accessions, only: %i[show], param: :number, constraints: {number: %r{[^/]+}}
+
     resources :stats, only: %i[index]
 
     namespace :admin do
