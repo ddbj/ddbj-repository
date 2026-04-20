@@ -11,7 +11,7 @@ import style from 'ember-style-modifier';
 
 import autoRefresh from 'repository/modifiers/auto-refresh';
 
-import type RequestManager from '@ember-data/request';
+import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type { Model } from 'repository/routes/admin/regenerate-flatfiles';
 import type { TOC } from '@ember/component/template-only';

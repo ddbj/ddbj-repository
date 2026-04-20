@@ -3,7 +3,7 @@ import { tracked } from '@glimmer/tracking';
 
 import User from 'repository/models/user';
 
-import type RequestManager from '@ember-data/request';
+import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type Transition from '@ember/routing/transition';
 import type { paths } from 'schema/openapi';
