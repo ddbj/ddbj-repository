@@ -1,0 +1,8 @@
+shared:
+  path: <%= Rails.root.join('storage/taxdump.tar.gz') %>
+
+production: &production
+  path: /taxonomydb/taxdump.tar.gz
+
+staging:
+  <<: *production

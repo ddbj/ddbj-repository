@@ -1,6 +1,6 @@
 class LoadTaxdumpJob < ApplicationJob
   def perform
-    path = Rails.root.join('storage/taxdump.tar.gz')
+    path = Rails.application.config_for(:taxdump).path
     conn = Taxdump::Record.connection
 
     Dir.mktmpdir do |tmp|
