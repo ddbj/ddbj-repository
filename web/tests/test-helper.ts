@@ -1,3 +1,4 @@
+import '@warp-drive/ember/install';
 import Application from 'repository/app';
 import config from 'repository/config/environment';
 import * as QUnit from 'qunit';

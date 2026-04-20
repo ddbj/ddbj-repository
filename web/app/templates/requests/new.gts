@@ -8,7 +8,7 @@ import { DirectUpload } from '@rails/activestorage';
 
 import ENV from 'repository/config/environment';
 
-import type RequestManager from '@ember-data/request';
+import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type { Blob } from '@rails/activestorage';
 import type { paths } from 'schema/openapi';

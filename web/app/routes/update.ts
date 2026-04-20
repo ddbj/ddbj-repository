@@ -1,7 +1,7 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import type RequestManager from '@ember-data/request';
+import type { RequestManager } from '@warp-drive/core';
 import type { paths } from 'schema/openapi';
 
 type SubmissionUpdate = paths['/submission_updates/{id}']['get']['responses']['200']['content']['application/json'];

@@ -6,7 +6,7 @@ import { uniqueId } from '@ember/helper';
 
 import { pageTitle } from 'ember-page-title';
 
-import type RequestManager from '@ember-data/request';
+import type { RequestManager } from '@warp-drive/core';
 import type CurrentUserService from 'repository/services/current-user';
 import type ToastService from 'repository/services/toast';
 import type { paths } from 'schema/openapi';

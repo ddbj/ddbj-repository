@@ -11,7 +11,7 @@ import ValidityBadge from 'repository/components/validity-badge';
 import autoRefresh from 'repository/modifiers/auto-refresh';
 import formatDatetime from 'repository/helpers/format-datetime';
 
-import type RequestManager from '@ember-data/request';
+import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type { components } from 'schema/openapi';
 
