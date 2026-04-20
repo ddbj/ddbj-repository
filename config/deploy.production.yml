@@ -8,6 +8,8 @@ proxy:
 
 volumes:
   - ./volumes/repository-production/storage:/rails/storage
+  - /mnt/submission:/submission
+  - /lustre9/open/database/ddbjshare/public/ftp.ncbi.nih.gov/ncbi_taxonomy/taxonomydb:/taxonomydb:ro
 
 builder:
   args:

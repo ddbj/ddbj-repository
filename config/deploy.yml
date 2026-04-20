@@ -26,10 +26,6 @@ env:
   secret:
     - RAILS_MASTER_KEY
 
-volumes:
-  - /mnt/submission:/submission
-  - /lustre9/open/database/ddbjshare/public/ftp.ncbi.nih.gov/ncbi_taxonomy/taxonomydb:/taxonomydb:ro
-
 aliases:
   console: app exec --interactive --reuse "bin/rails console"
   shell: app exec --interactive --reuse "bash"
