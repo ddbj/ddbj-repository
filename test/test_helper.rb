@@ -5,10 +5,6 @@ require 'webmock/minitest'
 require 'minitest/mock'
 require 'minitest-default_http_header'
 
-# skooma 0.3.7 requires minitest/unit which was removed in minitest 6 (Ruby 4.0).
-# Provide a shim so that `require "minitest/unit"` succeeds.
-$LOADED_FEATURES << 'minitest/unit.rb' unless defined?(Minitest::Unit)
-
 WebMock.disable_net_connect! allow_localhost: true
 
 Skooma::BodyParsers.register 'multipart/form-data', ->(body, headers:) {
