@@ -13,7 +13,7 @@ env:
 volumes:
   - ./volumes/repository-staging/storage:/rails/storage
   - /mnt/submission:/submission
-  - /lustre9/open/database/ddbjshare/public/ftp.ncbi.nih.gov/ncbi_taxonomy/taxonomydb:/taxonomydb:ro
+  - /lustre9/open/home/ddbjshare/public/mirror_database/ftp.ncbi.nih.gov/ncbi_taxonomy/taxonomydb:/taxonomydb:ro
 
 builder:
   args:
