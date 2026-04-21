@@ -16,12 +16,10 @@ module Admin
       date        = Date.parse(params[:date])
       submissions = Submission.where.associated(:ddbj_record_attachment)
 
-      Accession.update_all locus_date: date
-
       progress = RegenerateFlatfilesProgress.create!(total: submissions.count)
 
       ActiveJob.perform_all_later submissions.map {|submission|
-        RegenerateSubmissionFlatfilesJob.new(submission, current_user, progress)
+        RegenerateSubmissionFlatfilesJob.new(submission, current_user, progress, date)
       }
 
       render json: {}, status: :accepted

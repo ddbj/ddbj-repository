@@ -12,7 +12,7 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
 
     request.save!
 
-    ApplySubmissionRequestJob.perform_now(request)
+    ApplySubmissionRequestJob.perform_now request
 
     submission = request.reload.submission
 
