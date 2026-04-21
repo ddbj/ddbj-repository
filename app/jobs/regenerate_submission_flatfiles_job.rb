@@ -1,10 +1,10 @@
 class RegenerateSubmissionFlatfilesJob < ApplicationJob
   include SubmissionOutputWriter
 
-  def perform(submission, user, progress, date)
+  def perform(submission, user, progress, date, force: false)
     record = submission.ddbj_record.open { DDBJRecord.parse(it) }
 
-    if changed?(submission, record)
+    if force || changed?(submission, record)
       submission.accessions.update_all locus_date: date
 
       entries             = build_entries(record, submission.accessions.reload)

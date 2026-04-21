@@ -21,6 +21,7 @@ class RegenerateFlatfilesForm extends Component<{ Args: { model: Model } }> {
   @service declare router: RouterService;
 
   @tracked date = '';
+  @tracked force = false;
 
   get loading() {
     return this.args.model.status.loading;
@@ -56,13 +57,18 @@ class RegenerateFlatfilesForm extends Component<{ Args: { model: Model } }> {
     this.date = (e.target as HTMLInputElement).value;
   }
 
+  @action
+  setForce(e: Event) {
+    this.force = (e.target as HTMLInputElement).checked;
+  }
+
   submitTask = task(async (e: Event) => {
     e.preventDefault();
 
     await this.requestManager.request({
       url: '/admin/regenerate_flatfiles',
       method: 'POST',
-      data: { date: this.date },
+      data: { date: this.date, force: this.force },
     });
 
     this.router.refresh();
@@ -84,6 +90,22 @@ class RegenerateFlatfilesForm extends Component<{ Args: { model: Model } }> {
                   disabled={{this.loading}}
                   {{on "input" this.setDate}}
                 />
+              {{/let}}
+            </div>
+
+            <div class="form-check mb-3">
+              {{#let (uniqueId) as |id|}}
+                <input
+                  type="checkbox"
+                  checked={{this.force}}
+                  id={{id}}
+                  class="form-check-input"
+                  disabled={{this.loading}}
+                  {{on "change" this.setForce}}
+                />
+                <label for={{id}} class="form-check-label">
+                  Force update all submissions (even if content is unchanged)
+                </label>
               {{/let}}
             </div>
 

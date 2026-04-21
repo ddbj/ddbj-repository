@@ -18,6 +18,18 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     @admin      = users(:alice).tap { it.update!(admin: true) }
   end
 
+  test 'force: true regenerates even when flatfiles would be identical' do
+    progress = RegenerateFlatfilesProgress.create!(total: 1)
+
+    assert_difference 'AccessionHistory.where(action: "regenerate").count', @submission.accessions.count do
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2026, 7, 1), force: true
+    end
+
+    @submission.accessions.each do |acc|
+      assert_equal Date.new(2026, 7, 1), acc.reload.locus_date
+    end
+  end
+
   test 'does nothing when flatfiles would be identical' do
     original_locus_dates = @submission.accessions.pluck(:id, :locus_date).to_h
     original_na_blob_id  = @submission.flatfile_na.blob.id
