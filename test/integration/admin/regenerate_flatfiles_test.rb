@@ -62,13 +62,13 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
 
     assert_response :accepted
 
-    submission.accessions.each do
-      assert_equal Date.new(2026, 7, 1), it.reload.locus_date
-    end
-
     progress = RegenerateFlatfilesProgress.order(created_at: :desc).first
 
     assert_equal 1, progress.total
+
+    enqueued = ActiveJob::Base.queue_adapter.enqueued_jobs.find { it['job_class'] == 'RegenerateSubmissionFlatfilesJob' }
+
+    assert_equal Date.new(2026, 7, 1).to_s, enqueued['arguments'].last['value']
   end
 
   test 'create returns 403 for non-admin users' do

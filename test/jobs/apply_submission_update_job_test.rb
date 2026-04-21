@@ -12,7 +12,7 @@ class ApplySubmissionUpdateJobTest < ActiveSupport::TestCase
 
     request.save!
 
-    ApplySubmissionRequestJob.perform_now(request)
+    ApplySubmissionRequestJob.perform_now request
 
     @submission = request.reload.submission
   end
@@ -27,7 +27,7 @@ class ApplySubmissionUpdateJobTest < ActiveSupport::TestCase
     update.ddbj_record.attach io: StringIO.new(JSON.generate(json)), filename: 'example.json', content_type: 'application/json'
     update.save!
 
-    ApplySubmissionUpdateJob.perform_now(update)
+    ApplySubmissionUpdateJob.perform_now update
 
     @submission.reload
 
@@ -51,7 +51,7 @@ class ApplySubmissionUpdateJobTest < ActiveSupport::TestCase
     update.ddbj_record.attach io: StringIO.new(JSON.generate(json)), filename: 'example.json', content_type: 'application/json'
     update.save!
 
-    ApplySubmissionUpdateJob.perform_now(update)
+    ApplySubmissionUpdateJob.perform_now update
 
     @submission.reload
 
