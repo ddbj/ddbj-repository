@@ -83,9 +83,10 @@ module('Acceptance | admin | regenerate flatfiles', function (hooks) {
       }),
 
       mswHttp.post(adminURL, async ({ request }) => {
-        const body = (await request.json()) as { date: string };
+        const body = (await request.json()) as { date: string; force: boolean };
 
         assert.strictEqual(body.date, '2026-07-01');
+        assert.false(body.force);
 
         postCalled = true;
 
@@ -101,5 +102,27 @@ module('Acceptance | admin | regenerate flatfiles', function (hooks) {
     await waitUntil(() => document.querySelector('.alert-success') !== null);
 
     assert.dom('.alert-success').includesText('3 submissions regenerated');
+  });
+
+  test('submit with force checkbox POSTs force=true', async (assert) => {
+    worker.use(
+      mswHttp.get(adminURL, () => {
+        return HttpResponse.json({ loading: false, total: null, processed: null });
+      }),
+
+      mswHttp.post(adminURL, async ({ request }) => {
+        const body = (await request.json()) as { date: string; force: boolean };
+
+        assert.true(body.force);
+
+        return new HttpResponse('{}', { status: 202, headers: { 'Content-Type': 'application/json' } });
+      }),
+    );
+
+    await visit('/admin/regenerate-flatfiles');
+
+    await fillIn('input[type="date"]', '2026-07-01');
+    await click('input[type="checkbox"]');
+    await click('button[type="submit"]');
   });
 });

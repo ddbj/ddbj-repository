@@ -68,7 +68,26 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
 
     enqueued = ActiveJob::Base.queue_adapter.enqueued_jobs.find { it['job_class'] == 'RegenerateSubmissionFlatfilesJob' }
 
-    assert_equal Date.new(2026, 7, 1).to_s, enqueued['arguments'].last['value']
+    assert_equal Date.new(2026, 7, 1).to_s, enqueued['arguments'][3]['value']
+    assert_equal false,                     enqueued['arguments'].last['force']
+  end
+
+  test 'create forwards force flag to the job' do
+    submission = submissions(:one)
+
+    submission.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+
+    post admin_regenerate_flatfiles_path, params: {date: '2026-07-01', force: true}, as: :json
+
+    assert_response :accepted
+
+    enqueued = ActiveJob::Base.queue_adapter.enqueued_jobs.find { it['job_class'] == 'RegenerateSubmissionFlatfilesJob' }
+
+    assert_equal true, enqueued['arguments'].last['force']
   end
 
   test 'create returns 403 for non-admin users' do
