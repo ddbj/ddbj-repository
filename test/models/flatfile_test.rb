@@ -26,6 +26,38 @@ class FlatfileTest < ActiveSupport::TestCase
     )
   end
 
+  test 'renders fallback applicant in JOURNAL and omits PA/PT/PI when nil' do
+    record = file_fixture('ddbj_record/example.json').open { DDBJRecord.parse(it) }
+
+    submission = record.submission.with(
+      publication_date: '2026-06-01',
+      applicant_name:   nil,
+      invention_title:  nil,
+      inventor_name:    nil
+    )
+
+    entries = record.sequences.entries.map.with_index(1) {|entry, i|
+      entry.with(
+        accession:    "AB00000#{i}",
+        locus:        "AB00000#{i}",
+        version:      1,
+        last_updated: '2026-06-01'
+      )
+    }
+
+    record = record.with(
+      submission: submission,
+      sequences:  record.sequences.with(entries:)
+    )
+
+    output = Flatfile.render(record, record.sequences.entries).read
+
+    assert_includes output, "  JOURNAL   Patent: JP 2026123456-A 1 01-JUN-2026;\n            Applicants [Refer to the patent publication]\n"
+    refute_match(/^ {12}PA /, output)
+    refute_match(/^ {12}PT /, output)
+    refute_match(/^ {12}PI /, output)
+  end
+
   test 'renders flatfile from Data objects' do
     record = build_record
     output = Flatfile.render(record, record.sequences.entries).read
