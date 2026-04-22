@@ -21,9 +21,7 @@ REFERENCE   1  (residues <%= entry.location_span.join(' to ') %>)
   AUTHORS
   TITLE     <%= entry.invention_title %>
   JOURNAL   Patent: <%= format_seqid(entry.seqid, format: :journal) %> <%= format_date(record.submission.publication_date) %>;
-            <%- if name = record.submission.applicant_name -%>
-            <%=   name %>
-            <%- end -%>
+            <%= record.submission.applicant_name || APPLICANT_NAME_FALLBACK %>
 COMMENT     OS   <%= entry.organism %>
             PN   <%= format_seqid(entry.seqid) %>
             PD   <%= format_date(record.submission.publication_date) %>

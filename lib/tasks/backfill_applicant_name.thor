@@ -9,7 +9,7 @@ class BackfillApplicantNameTasks < Thor
 
   def self.exit_on_failure? = true
 
-  desc 'execute', 'Fill empty applicant_name with placeholder on existing DDBJ Records'
+  desc 'execute', 'Revert placeholder applicant_name back to nil on existing DDBJ Records'
   method_option :dry_run, type: :boolean, default: false, aliases: '-n', desc: 'Report targets without writing'
   def execute
     scope = Submission.where.associated(:ddbj_record_attachment).includes(:request)
@@ -40,10 +40,10 @@ class BackfillApplicantNameTasks < Thor
     attachment = record.ddbj_record
     parsed     = JSON.parse(attachment.download, symbolize_names: true)
 
-    return false if parsed.dig(:submission, :applicant_name).present?
+    return false unless parsed.dig(:submission, :applicant_name) == FALLBACK
     return true  if dry_run
 
-    parsed[:submission][:applicant_name] = FALLBACK
+    parsed[:submission][:applicant_name] = nil
 
     record.update!(ddbj_record: {
       io:           StringIO.new(JSON.generate(parsed)),
