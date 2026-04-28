@@ -1,11 +1,23 @@
 import { LinkTo } from '@ember/routing';
+import { array, concat, hash } from '@ember/helper';
 
+import Breadcrumb from 'repository/components/breadcrumb';
+import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
 <template>
+  <Breadcrumb
+    @items={{array
+      (hash label="Home" route="index")
+      (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+      (hash label="Submissions" route="db.submissions" models=(array @model.db))
+      (hash label=(concat "Submission-" @model.id))
+    }}
+  />
+
   <h1 class="display-6 mb-4">Submission-{{@model.id}}</h1>
 
   <dl class="horizontal">
@@ -71,7 +83,7 @@ import type { components } from 'schema/openapi';
       {{#each @model.updates as |update|}}
         <tr>
           <td>
-            <LinkTo @route="update" @model={{update.id}}>
+            <LinkTo @route="update" @models={{array @model.db update.id}}>
               Update-{{update.id}}
             </LinkTo>
           </td>
@@ -84,6 +96,6 @@ import type { components } from 'schema/openapi';
   </table>
 </template> satisfies TOC<{
   Args: {
-    model: components['schemas']['Submission'];
+    model: { db: string } & components['schemas']['Submission'];
   };
 }>;

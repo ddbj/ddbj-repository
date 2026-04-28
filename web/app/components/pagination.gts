@@ -9,6 +9,7 @@ interface Signature {
 
   Args: {
     route: string;
+    models?: unknown[];
     current: number;
     total: number;
   };
@@ -17,6 +18,10 @@ interface Signature {
 const window = 5;
 
 export default class Pagination extends Component<Signature> {
+  get models() {
+    return this.args.models ?? [];
+  }
+
   get pages() {
     const { current, total } = this.args;
 
@@ -56,7 +61,13 @@ export default class Pagination extends Component<Signature> {
         <ul class="pagination">
           <li class="page-item {{unless this.prev 'disabled' ''}}" data-test-start>
             {{#if this.prev}}
-              <LinkTo @route={{@route}} @query={{hash page=1}} class="page-link" aria-label="Start">
+              <LinkTo
+                @route={{@route}}
+                @models={{this.models}}
+                @query={{hash page=1}}
+                class="page-link"
+                aria-label="Start"
+              >
                 <span aria-hidden="true">«</span>
               </LinkTo>
             {{else}}
@@ -68,7 +79,13 @@ export default class Pagination extends Component<Signature> {
 
           <li class="page-item {{unless this.prev 'disabled' ''}}" data-test-prev>
             {{#if this.prev}}
-              <LinkTo @route={{@route}} @query={{hash page=this.prev}} class="page-link" aria-label="Previous">
+              <LinkTo
+                @route={{@route}}
+                @models={{this.models}}
+                @query={{hash page=this.prev}}
+                class="page-link"
+                aria-label="Previous"
+              >
                 <span aria-hidden="true">‹</span>
               </LinkTo>
             {{else}}
@@ -86,7 +103,7 @@ export default class Pagination extends Component<Signature> {
 
           {{#each this.pages as |page|}}
             <li class="page-item {{if (eq page @current) 'active' ''}}" data-test-page={{page}}>
-              <LinkTo @route={{@route}} @query={{hash page=page}} class="page-link">
+              <LinkTo @route={{@route}} @models={{this.models}} @query={{hash page=page}} class="page-link">
                 {{page}}
               </LinkTo>
             </li>
@@ -100,7 +117,13 @@ export default class Pagination extends Component<Signature> {
 
           <li class="page-item {{unless this.next 'disabled' ''}}" data-test-next>
             {{#if this.next}}
-              <LinkTo @route={{@route}} @query={{hash page=this.next}} class="page-link" aria-label="Next">
+              <LinkTo
+                @route={{@route}}
+                @models={{this.models}}
+                @query={{hash page=this.next}}
+                class="page-link"
+                aria-label="Next"
+              >
                 <span aria-hidden="true">›</span>
               </LinkTo>
             {{else}}
@@ -112,7 +135,13 @@ export default class Pagination extends Component<Signature> {
 
           <li class="page-item {{unless this.next 'disabled' ''}}" data-test-last>
             {{#if this.next}}
-              <LinkTo @route={{@route}} @query={{hash page=@total}} class="page-link" aria-label="Last">
+              <LinkTo
+                @route={{@route}}
+                @models={{this.models}}
+                @query={{hash page=@total}}
+                class="page-link"
+                aria-label="Last"
+              >
                 <span aria-hidden="true">»</span>
               </LinkTo>
             {{else}}

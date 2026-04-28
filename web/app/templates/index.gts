@@ -1,13 +1,55 @@
+import Component from '@glimmer/component';
+import { LinkTo } from '@ember/routing';
+import { service } from '@ember/service';
 import { pageTitle } from 'ember-page-title';
 
 import ENV from 'repository/config/environment';
 
+import type CurrentUserService from 'repository/services/current-user';
+
 const authURL = new URL('/auth/keycloak', ENV.apiURL).href;
 
-<template>
-  {{pageTitle "Login"}}
+export default class extends Component {
+  @service declare currentUser: CurrentUserService;
 
-  <form action={{authURL}} method="POST">
-    <button type="submit" class="btn btn-primary btn-lg">Login</button>
-  </form>
-</template>
+  <template>
+    {{pageTitle "DDBJ Repository"}}
+
+    {{#if this.currentUser.isLoggedIn}}
+      <h1 class="display-6 mb-4">DDBJ Repository</h1>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <LinkTo @route="db" @model="st26" class="card text-decoration-none h-100">
+            <div class="card-body">
+              <h2 class="card-title h5">ST.26</h2>
+              <p class="card-text text-body-secondary mb-0">Patent sequence listings (ST.26 XML).</p>
+            </div>
+          </LinkTo>
+        </div>
+
+        <div class="col-md-4">
+          <LinkTo @route="db" @model="bioproject" class="card text-decoration-none h-100">
+            <div class="card-body">
+              <h2 class="card-title h5">BioProject</h2>
+              <p class="card-text text-body-secondary mb-0">Biological project metadata.</p>
+            </div>
+          </LinkTo>
+        </div>
+
+        <div class="col-md-4">
+          <LinkTo @route="db" @model="biosample" class="card text-decoration-none h-100">
+            <div class="card-body">
+              <h2 class="card-title h5">BioSample</h2>
+              <p class="card-text text-body-secondary mb-0">Biological sample metadata.</p>
+            </div>
+          </LinkTo>
+        </div>
+      </div>
+    {{else}}
+      <form action={{authURL}} method="POST">
+        <button type="submit" class="btn btn-primary btn-lg">Login</button>
+      </form>
+    {{/if}}
+  </template>
+}

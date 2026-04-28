@@ -3,13 +3,16 @@ import { LinkTo } from '@ember/routing';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import { array, concat, hash } from '@ember/helper';
 
 import { eq, or, not } from 'ember-truth-helpers';
 
+import Breadcrumb from 'repository/components/breadcrumb';
 import Diff from 'repository/components/diff';
 import StatusBadge from 'repository/components/status-badge';
 import ValidityBadge from 'repository/components/validity-badge';
 import autoRefresh from 'repository/modifiers/auto-refresh';
+import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 import type { RequestManager } from '@warp-drive/core';
@@ -18,7 +21,7 @@ import type { components } from 'schema/openapi';
 
 interface Signature {
   Args: {
-    model: components['schemas']['SubmissionUpdate'];
+    model: { db: string } & components['schemas']['SubmissionUpdate'];
   };
 }
 
@@ -31,7 +34,7 @@ export default class extends Component<Signature> {
     const { model } = this.args;
 
     await this.requestManager.request({
-      url: `/st26/submission_updates/${model.id}/submission`,
+      url: `/${model.db}/submission_updates/${model.id}/submission`,
       method: 'PATCH',
     });
 
@@ -40,6 +43,20 @@ export default class extends Component<Signature> {
 
   <template>
     <div {{autoRefresh while=(or @model.processing (not @model.diff)) interval=1000}}>
+      <Breadcrumb
+        @items={{array
+          (hash label="Home" route="index")
+          (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+          (hash label="Submissions" route="db.submissions" models=(array @model.db))
+          (hash
+            label=(concat "Submission-" @model.submission.id)
+            route="submission"
+            models=(array @model.db @model.submission.id)
+          )
+          (hash label=(concat "Update-" @model.id))
+        }}
+      />
+
       <h1 class="display-6 mb-4">Update-{{@model.id}}</h1>
 
       <div class="row">
@@ -48,7 +65,10 @@ export default class extends Component<Signature> {
             <dt>Submission</dt>
 
             <dd>
-              <LinkTo @route="submission" @model={{@model.submission.id}}>Submission-{{@model.submission.id}}</LinkTo>
+              <LinkTo
+                @route="submission"
+                @models={{array @model.db @model.submission.id}}
+              >Submission-{{@model.submission.id}}</LinkTo>
             </dd>
 
             <dt>Created</dt>

@@ -1,17 +1,29 @@
-import { LinkTo } from '@ember/routing';
+import { array, concat, hash } from '@ember/helper';
 
+import Breadcrumb from 'repository/components/breadcrumb';
 import Pagination from 'repository/components/pagination';
+import dbLabel from 'repository/helpers/db-label';
 
 import type Controller from 'repository/controllers/submission/accessions';
 import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
 export default <template>
-  <h1 class="display-6 mb-4">Accessions</h1>
+  <Breadcrumb
+    @items={{array
+      (hash label="Home" route="index")
+      (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+      (hash label="Submissions" route="db.submissions" models=(array @model.db))
+      (hash
+        label=(concat "Submission-" @model.submission_id)
+        route="submission"
+        models=(array @model.db @model.submission_id)
+      )
+      (hash label="Accessions")
+    }}
+  />
 
-  <div class="mb-3">
-    <LinkTo @route="submission">&larr; Back to Submission</LinkTo>
-  </div>
+  <h1 class="display-6 mb-4">Accessions</h1>
 
   <table class="table border">
     <thead class="table-light">
@@ -35,10 +47,17 @@ export default <template>
     </tbody>
   </table>
 
-  <Pagination @route="submission.accessions" @current={{@controller.page}} @total={{@model.totalPages}} />
+  <Pagination
+    @route="submission.accessions"
+    @models={{array @model.db @model.submission_id}}
+    @current={{@controller.page}}
+    @total={{@model.totalPages}}
+  />
 </template> satisfies TOC<{
   Args: {
     model: {
+      db: string;
+      submission_id: string;
       accessions: components['schemas']['Accession'][];
       totalPages: number;
     };

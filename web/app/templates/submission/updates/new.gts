@@ -2,11 +2,14 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import { uniqueId } from '@ember/helper';
+import { array, concat, hash, uniqueId } from '@ember/helper';
 
 import { DirectUpload } from '@rails/activestorage';
 
 import ENV from 'repository/config/environment';
+
+import Breadcrumb from 'repository/components/breadcrumb';
+import dbLabel from 'repository/helpers/db-label';
 
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
@@ -18,7 +21,7 @@ type CreateUpdateResponse =
 
 interface Signature {
   Args: {
-    model: components['schemas']['Submission'];
+    model: { db: string } & components['schemas']['Submission'];
   };
 }
 
@@ -39,6 +42,7 @@ export default class extends Component<Signature> {
 
     if (!this.file) return;
 
+    const { db, id: submission_id } = this.args.model;
     const upload = new DirectUpload(this.file, ENV.directUploadURL);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
@@ -46,15 +50,25 @@ export default class extends Component<Signature> {
     });
 
     const { content } = await this.requestManager.request<CreateUpdateResponse>({
-      url: `/st26/submissions/${this.args.model.id}/updates`,
+      url: `/${db}/submissions/${submission_id}/updates`,
       method: 'POST',
       data: { submission_update: { ddbj_record: blob.signed_id } },
     });
 
-    this.router.transitionTo('update', content.id);
+    this.router.transitionTo('update', db, content.id);
   }
 
   <template>
+    <Breadcrumb
+      @items={{array
+        (hash label="Home" route="index")
+        (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+        (hash label="Submissions" route="db.submissions" models=(array @model.db))
+        (hash label=(concat "Submission-" @model.id) route="submission" models=(array @model.db @model.id))
+        (hash label="Update")
+      }}
+    />
+
     <h1 class="display-6 mb-4">Update Submission</h1>
 
     <form {{on "submit" this.submit}}>

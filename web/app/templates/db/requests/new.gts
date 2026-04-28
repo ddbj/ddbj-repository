@@ -2,11 +2,14 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import { uniqueId } from '@ember/helper';
+import { array, hash, uniqueId } from '@ember/helper';
 
 import { DirectUpload } from '@rails/activestorage';
 
 import ENV from 'repository/config/environment';
+
+import Breadcrumb from 'repository/components/breadcrumb';
+import dbLabel from 'repository/helpers/db-label';
 
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
@@ -16,7 +19,13 @@ import type { paths } from 'schema/openapi';
 type CreateRequestResponse =
   paths['/{db}/submission_requests']['post']['responses']['202']['content']['application/json'];
 
-export default class extends Component {
+interface Signature {
+  Args: {
+    model: { db: string };
+  };
+}
+
+export default class extends Component<Signature> {
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
 
@@ -33,6 +42,7 @@ export default class extends Component {
 
     if (!this.file) return;
 
+    const { db } = this.args.model;
     const upload = new DirectUpload(this.file, ENV.directUploadURL);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
@@ -40,16 +50,25 @@ export default class extends Component {
     });
 
     const { content } = await this.requestManager.request<CreateRequestResponse>({
-      url: '/st26/submission_requests',
+      url: `/${db}/submission_requests`,
       method: 'POST',
       data: { submission_request: { ddbj_record: blob.signed_id } },
     });
 
-    this.router.transitionTo('request', content.id);
+    this.router.transitionTo('request', db, content.id);
   }
 
   <template>
-    <h1 class="display-6 mb-4">New Request</h1>
+    <Breadcrumb
+      @items={{array
+        (hash label="Home" route="index")
+        (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+        (hash label="Requests" route="db.requests" models=(array @model.db))
+        (hash label="New")
+      }}
+    />
+
+    <h1 class="display-6 mb-4">New Request ({{dbLabel @model.db}})</h1>
 
     <form {{on "submit" this.submit}}>
       <div class="mb-3">

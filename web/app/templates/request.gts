@@ -3,12 +3,15 @@ import { LinkTo } from '@ember/routing';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import { array, concat, hash } from '@ember/helper';
 
 import { eq } from 'ember-truth-helpers';
 
+import Breadcrumb from 'repository/components/breadcrumb';
 import StatusBadge from 'repository/components/status-badge';
 import ValidityBadge from 'repository/components/validity-badge';
 import autoRefresh from 'repository/modifiers/auto-refresh';
+import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 import type { RequestManager } from '@warp-drive/core';
@@ -17,7 +20,7 @@ import type { components } from 'schema/openapi';
 
 interface Signature {
   Args: {
-    model: components['schemas']['SubmissionRequest'];
+    model: { db: string } & components['schemas']['SubmissionRequest'];
   };
 }
 
@@ -30,7 +33,7 @@ export default class extends Component<Signature> {
     const { model } = this.args;
 
     await this.requestManager.request({
-      url: `/st26/submission_requests/${model.id}/submission`,
+      url: `/${model.db}/submission_requests/${model.id}/submission`,
       method: 'POST',
     });
 
@@ -39,6 +42,15 @@ export default class extends Component<Signature> {
 
   <template>
     <div {{autoRefresh while=@model.processing interval=1000}}>
+      <Breadcrumb
+        @items={{array
+          (hash label="Home" route="index")
+          (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+          (hash label="Requests" route="db.requests" models=(array @model.db))
+          (hash label=(concat "Request-" @model.id))
+        }}
+      />
+
       <h1 class="display-6 mb-4">Request-{{@model.id}}</h1>
 
       <dl class="horizontal">
@@ -120,7 +132,7 @@ export default class extends Component<Signature> {
       {{#if @model.submission}}
         <h2>Submission</h2>
 
-        <LinkTo @route="submission" @model={{@model.submission.id}}>
+        <LinkTo @route="submission" @models={{array @model.db @model.submission.id}}>
           Submission-{{@model.submission.id}}
         </LinkTo>
       {{/if}}

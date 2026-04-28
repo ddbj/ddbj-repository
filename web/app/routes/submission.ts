@@ -10,10 +10,12 @@ export default class SubmissionRoute extends Route {
   @service declare requestManager: RequestManager;
 
   async model({ submission_id }: { submission_id: string }) {
+    const { db } = this.paramsFor('db') as { db: string };
+
     const { content } = await this.requestManager.request<Submission>({
-      url: `/st26/submissions/${submission_id}`,
+      url: `/${db}/submissions/${submission_id}`,
     });
 
-    return content;
+    return { db, ...content };
   }
 }
