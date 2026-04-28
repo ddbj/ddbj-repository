@@ -6,10 +6,10 @@ class SubmissionsUpdatesTest < ActionDispatch::IntegrationTest
 
     default_headers['Authorization'] = "Bearer #{@user.api_key}"
 
-    @submission = submissions(:one)
+    @submission = submissions(:st26)
 
     attach_submission_files @submission
-    attach_ddbj_record submission_updates(:one)
+    attach_ddbj_record submission_updates(:st26)
   end
 
   test 'create' do
@@ -19,7 +19,7 @@ class SubmissionsUpdatesTest < ActionDispatch::IntegrationTest
       content_type: 'application/json'
     )
 
-    post submission_updates_path(@submission), params: {
+    post submission_updates_path(db: 'st26', submission_id: @submission.id), params: {
       submission_update: {
         ddbj_record: blob.signed_id
       }

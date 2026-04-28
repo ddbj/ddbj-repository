@@ -69,7 +69,10 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /submission_requests:
+  /{db}/submission_requests:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     get:
       description: Get a list of submission requests.
 
@@ -133,7 +136,10 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /submission_requests/{id}:
+  /{db}/submission_requests/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     get:
       description: Get a submission request.
 
@@ -163,7 +169,10 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /submission_requests/{id}/status:
+  /{db}/submission_requests/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     get:
       description: Get the status of a submission request. Lightweight endpoint for polling.
 
@@ -193,7 +202,10 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /submission_requests/{id}/submission:
+  /{db}/submission_requests/{id}/submission:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     post:
       description: Apply a submission request.
 
@@ -221,7 +233,10 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /submission_updates/{id}:
+  /{db}/submission_updates/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     get:
       description: Get a submission update.
 
@@ -251,7 +266,10 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /submission_updates/{id}/submission:
+  /{db}/submission_updates/{id}/submission:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     patch:
       description: Apply a submission update.
 
@@ -279,7 +297,10 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /submissions:
+  /{db}/submissions:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     get:
       description: Get a list of submissions.
 
@@ -301,7 +322,10 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /submissions/{id}:
+  /{db}/submissions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     get:
       description: Get a submission.
 
@@ -331,7 +355,10 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /submissions/{id}/accessions:
+  /{db}/submissions/{id}/accessions:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     get:
       description: Get a paginated list of accessions for a submission.
 
@@ -424,7 +451,10 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /submissions/{id}/updates:
+  /{db}/submissions/{id}/updates:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
     post:
       description: Create a submission update.
 
@@ -889,3 +919,18 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
+
+  parameters:
+    Db:
+      name: db
+      in: path
+      required: true
+      description: Database that the submission belongs to.
+
+      schema:
+        type: string
+
+        enum:
+          - st26
+          - bioproject
+          - biosample

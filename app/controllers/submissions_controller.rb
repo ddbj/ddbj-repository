@@ -1,12 +1,12 @@
 class SubmissionsController < ApplicationController
   def index
-    pagy, @submissions = pagy(current_user.submissions.order(id: :desc))
+    pagy, @submissions = pagy(current_user.submissions.where(db: params[:db]).order(id: :desc))
 
     response.headers.merge! pagy.headers_hash
   end
 
   def show
-    @submission = current_user.submissions.includes(
+    @submission = current_user.submissions.where(db: params[:db]).includes(
       :updates
     ).order(
       'submission_updates.id DESC'
@@ -14,7 +14,7 @@ class SubmissionsController < ApplicationController
   end
 
   def create
-    request = current_user.submission_requests.valid_only.joins(
+    request = current_user.submission_requests.where(db: params[:db]).valid_only.joins(
       :validation
     ).where(
       validations: {
@@ -32,7 +32,7 @@ class SubmissionsController < ApplicationController
   end
 
   def update
-    update = current_user.submission_updates.valid_only.joins(
+    update = current_user.submission_updates.where(db: params[:db]).valid_only.joins(
       :validation
     ).where(
       validations: {

@@ -37,7 +37,7 @@ class ApplySubmissionRequestJob < ApplicationJob
         [
           Sequence.allocate!(:jpo_na, na_count),
           Sequence.allocate!(:jpo_aa, aa_count),
-          request.create_submission!
+          request.create_submission!(db: request.db)
         ]
       }
 

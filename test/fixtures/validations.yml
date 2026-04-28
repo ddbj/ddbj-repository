@@ -1,5 +1,5 @@
-valid_one:
+valid_st26:
   subject_type: SubmissionRequest
-  subject_id: <%= ActiveRecord::FixtureSet.identify(:one) %>
+  subject_id: <%= ActiveRecord::FixtureSet.identify(:st26) %>
   progress: finished
   finished_at: 2024-01-03

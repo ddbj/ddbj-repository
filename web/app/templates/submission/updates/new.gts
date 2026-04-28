@@ -14,7 +14,7 @@ import type { Blob } from '@rails/activestorage';
 import type { components, paths } from 'schema/openapi';
 
 type CreateUpdateResponse =
-  paths['/submissions/{id}/updates']['post']['responses']['202']['content']['application/json'];
+  paths['/{db}/submissions/{id}/updates']['post']['responses']['202']['content']['application/json'];
 
 interface Signature {
   Args: {
@@ -46,7 +46,7 @@ export default class extends Component<Signature> {
     });
 
     const { content } = await this.requestManager.request<CreateUpdateResponse>({
-      url: `/submissions/${this.args.model.id}/updates`,
+      url: `/st26/submissions/${this.args.model.id}/updates`,
       method: 'POST',
       data: { submission_update: { ddbj_record: blob.signed_id } },
     });

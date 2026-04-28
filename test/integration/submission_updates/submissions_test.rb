@@ -8,7 +8,7 @@ class SubmissionUpdatesSubmissionsTest < ActionDispatch::IntegrationTest
   end
 
   test 'create' do
-    update = submission_updates(:one)
+    update = submission_updates(:st26)
 
     attach_ddbj_record update
     update.update! status: :ready_to_apply
@@ -20,7 +20,7 @@ class SubmissionUpdatesSubmissionsTest < ActionDispatch::IntegrationTest
     )
 
     perform_enqueued_jobs do
-      patch submission_update_submission_path(update)
+      patch submission_update_submission_path(db: 'st26', submission_update_id: update.id)
     end
 
     assert_conform_schema 204

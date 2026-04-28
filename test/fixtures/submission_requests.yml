@@ -1,3 +1,14 @@
-one:
+st26:
   user: alice
-  submission: one
+  submission: st26
+  db: st26
+
+bioproject:
+  user: alice
+  submission: bioproject
+  db: bioproject
+
+biosample:
+  user: alice
+  submission: biosample
+  db: biosample

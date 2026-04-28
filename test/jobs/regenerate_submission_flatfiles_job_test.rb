@@ -2,7 +2,7 @@ require 'test_helper'
 
 class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
   setup do
-    request = SubmissionRequest.new(user: users(:alice))
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
 
     request.ddbj_record.attach(
       io:           file_fixture('ddbj_record/example.json').open,

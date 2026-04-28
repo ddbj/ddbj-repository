@@ -8,10 +8,10 @@ class AccessionsTest < ActionDispatch::IntegrationTest
   end
 
   test 'show' do
-    submission = submissions(:one)
+    submission = submissions(:st26)
 
     attach_submission_files submission
-    attach_ddbj_record submission_updates(:one)
+    attach_ddbj_record submission_updates(:st26)
 
     accession = submission.accessions.first
 
@@ -38,7 +38,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     default_headers['Authorization'] = "Bearer #{users(:carol).api_key}"
 
     with_exceptions_app do
-      get accession_path(submissions(:one).accessions.first.number)
+      get accession_path(submissions(:st26).accessions.first.number)
     end
 
     assert_conform_schema 404

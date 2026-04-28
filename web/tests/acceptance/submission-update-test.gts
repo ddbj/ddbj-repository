@@ -41,7 +41,7 @@ module('Acceptance | submission update', function (hooks) {
     // --- Submission detail page ---
 
     worker.use(
-      http.get('/submissions/{id}', ({ response }) => {
+      http.get('/{db}/submissions/{id}', ({ response }) => {
         return response(200).json(submission);
       }),
     );
@@ -78,11 +78,11 @@ module('Acceptance | submission update', function (hooks) {
     };
 
     worker.use(
-      http.post('/submissions/{id}/updates', ({ response }) => {
+      http.post('/{db}/submissions/{id}/updates', ({ response }) => {
         return response(202).json(createdUpdate);
       }),
 
-      http.get('/submission_updates/{id}', ({ response }) => {
+      http.get('/{db}/submission_updates/{id}', ({ response }) => {
         return response(200).json({
           ...createdUpdate,
           status: 'ready_to_apply',
@@ -114,11 +114,11 @@ module('Acceptance | submission update', function (hooks) {
     // --- Apply ---
 
     worker.use(
-      http.patch('/submission_updates/{id}/submission', ({ response }) => {
+      http.patch('/{db}/submission_updates/{id}/submission', ({ response }) => {
         return response(204).empty();
       }),
 
-      http.get('/submission_updates/{id}', ({ response }) => {
+      http.get('/{db}/submission_updates/{id}', ({ response }) => {
         return response(200).json({
           ...createdUpdate,
           status: 'applied',

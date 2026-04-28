@@ -1,4 +1,10 @@
 class Submission < ApplicationRecord
+  enum :db, {
+    st26:       'st26',
+    bioproject: 'bioproject',
+    biosample:  'biosample'
+  }, suffix: true, validate: true
+
   has_one :request, dependent: :destroy, class_name: 'SubmissionRequest'
 
   has_many :updates,    dependent: :destroy, class_name: 'SubmissionUpdate'
