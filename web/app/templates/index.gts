@@ -47,9 +47,20 @@ export default class extends Component {
         </div>
       </div>
     {{else}}
-      <form action={{authURL}} method="POST">
-        <button type="submit" class="btn btn-primary btn-lg">Login</button>
-      </form>
+      <div class="row justify-content-center py-5">
+        <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+          <div class="card shadow-sm">
+            <div class="card-body p-4 p-md-5 text-center">
+              <h1 class="h3 mb-2">DDBJ Repository</h1>
+              <p class="text-body-secondary mb-4">Sign in with your DDBJ Account to continue.</p>
+
+              <form action={{authURL}} method="POST">
+                <button type="submit" class="btn btn-primary btn-lg">Login with DDBJ Account</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
     {{/if}}
   </template>
 }
