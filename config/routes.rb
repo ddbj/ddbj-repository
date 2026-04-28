@@ -32,6 +32,11 @@ Rails.application.routes.draw do
     resources :stats, only: %i[index]
 
     namespace :admin do
+      scope ':db', constraints: {db: Regexp.union(Submission.dbs.keys)} do
+        resources :submission_requests, only: %i[index]
+        resources :submissions,         only: %i[index]
+      end
+
       resource :regenerate_flatfiles, only: %i[show create]
     end
   end

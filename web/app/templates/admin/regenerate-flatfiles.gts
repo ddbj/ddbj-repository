@@ -3,12 +3,13 @@ import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
-import { concat, uniqueId } from '@ember/helper';
+import { array, concat, hash, uniqueId } from '@ember/helper';
 
 import { pageTitle } from 'ember-page-title';
 import { task } from 'ember-concurrency';
 import style from 'ember-style-modifier';
 
+import Breadcrumb from 'repository/components/breadcrumb';
 import autoRefresh from 'repository/modifiers/auto-refresh';
 
 import type { RequestManager } from '@warp-drive/core';
@@ -143,6 +144,16 @@ class RegenerateFlatfilesForm extends Component<{ Args: { model: Model } }> {
 
 export default <template>
   {{pageTitle "Regenerate Flatfiles"}}
+
+  <Breadcrumb
+    @items={{array
+      (hash label="Home" route="index")
+      (hash label="Administration" route="admin")
+      (hash label="Regenerate Flatfiles")
+    }}
+  />
+
+  <h1 class="display-6 mb-4">Regenerate Flatfiles</h1>
 
   <RegenerateFlatfilesForm @model={{@model}} />
 </template> satisfies TOC<{ Args: { model: Model } }>;

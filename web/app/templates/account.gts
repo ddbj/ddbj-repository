@@ -2,9 +2,11 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import { uniqueId } from '@ember/helper';
+import { array, hash, uniqueId } from '@ember/helper';
 
 import { pageTitle } from 'ember-page-title';
+
+import Breadcrumb from 'repository/components/breadcrumb';
 
 import type { RequestManager } from '@warp-drive/core';
 import type CurrentUserService from 'repository/services/current-user';
@@ -37,6 +39,10 @@ export default class Account extends Component {
 
   <template>
     {{pageTitle "Account"}}
+
+    <Breadcrumb @items={{array (hash label="Home" route="index") (hash label="Account")}} />
+
+    <h1 class="display-6 mb-4">Account</h1>
 
     <div class="card">
       <div class="card-body">

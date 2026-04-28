@@ -3,9 +3,11 @@ import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
-import { uniqueId } from '@ember/helper';
+import { array, hash, uniqueId } from '@ember/helper';
 
 import { pageTitle } from 'ember-page-title';
+
+import Breadcrumb from 'repository/components/breadcrumb';
 
 import type CurrentUserService from 'repository/services/current-user';
 
@@ -33,6 +35,16 @@ export default class extends Component {
 
   <template>
     {{pageTitle "Proxy Login"}}
+
+    <Breadcrumb
+      @items={{array
+        (hash label="Home" route="index")
+        (hash label="Administration" route="admin")
+        (hash label="Proxy Login")
+      }}
+    />
+
+    <h1 class="display-6 mb-4">Proxy Login</h1>
 
     <div class="card">
       <div class="card-body">

@@ -34,5 +34,10 @@ Router.map(function () {
   this.route('admin', function () {
     this.route('proxy-login');
     this.route('regenerate-flatfiles');
+
+    this.route('db', { path: ':db' }, function () {
+      this.route('requests');
+      this.route('submissions');
+    });
   });
 });
