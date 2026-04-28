@@ -3,6 +3,7 @@ import { array } from '@ember/helper';
 
 import Pagination from 'repository/components/pagination';
 import StatusBadge from 'repository/components/status-badge';
+import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 import type Controller from 'repository/controllers/db/requests/index';
@@ -10,7 +11,7 @@ import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
 export default <template>
-  <h1 class="display-6 mb-4">Requests ({{@model.db}})</h1>
+  <h1 class="display-6 mb-4">Requests ({{dbLabel @model.db}})</h1>
 
   <div class="mb-3">
     <LinkTo @route="db.requests.new" @model={{@model.db}} class="btn btn-primary">New Submission Request</LinkTo>

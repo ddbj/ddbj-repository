@@ -1,6 +1,7 @@
 import { LinkTo } from '@ember/routing';
 import { array } from '@ember/helper';
 
+import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 import Pagination from 'repository/components/pagination';
 
@@ -9,7 +10,7 @@ import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
 export default <template>
-  <h1 class="display-6 mb-4">Submissions ({{@model.db}})</h1>
+  <h1 class="display-6 mb-4">Submissions ({{dbLabel @model.db}})</h1>
 
   <table class="table border">
     <thead class="table-light">

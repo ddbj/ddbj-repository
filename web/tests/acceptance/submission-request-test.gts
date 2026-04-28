@@ -30,14 +30,14 @@ module('Acceptance | submission request', function (hooks) {
     await visit('/st26/requests');
 
     assert.strictEqual(currentURL(), '/st26/requests');
-    assert.dom('h1').hasText('Requests (st26)');
+    assert.dom('h1').hasText('Requests (ST.26)');
 
     // --- Navigate to new request page ---
 
     await click('a[href="/web/st26/requests/new"]');
 
     assert.strictEqual(currentURL(), '/st26/requests/new');
-    assert.dom('h1').hasText('New Request (st26)');
+    assert.dom('h1').hasText('New Request (ST.26)');
 
     // --- Upload file and submit ---
 

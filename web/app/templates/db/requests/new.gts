@@ -8,6 +8,8 @@ import { DirectUpload } from '@rails/activestorage';
 
 import ENV from 'repository/config/environment';
 
+import dbLabel from 'repository/helpers/db-label';
+
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type { Blob } from '@rails/activestorage';
@@ -56,7 +58,7 @@ export default class extends Component<Signature> {
   }
 
   <template>
-    <h1 class="display-6 mb-4">New Request ({{@model.db}})</h1>
+    <h1 class="display-6 mb-4">New Request ({{dbLabel @model.db}})</h1>
 
     <form {{on "submit" this.submit}}>
       <div class="mb-3">
