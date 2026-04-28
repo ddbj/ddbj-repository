@@ -1,6 +1,7 @@
 import { LinkTo } from '@ember/routing';
-import { array } from '@ember/helper';
+import { array, hash } from '@ember/helper';
 
+import Breadcrumb from 'repository/components/breadcrumb';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 import Pagination from 'repository/components/pagination';
@@ -10,6 +11,14 @@ import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
 export default <template>
+  <Breadcrumb
+    @items={{array
+      (hash label="Home" route="index")
+      (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+      (hash label="Submissions")
+    }}
+  />
+
   <h1 class="display-6 mb-4">Submissions ({{dbLabel @model.db}})</h1>
 
   <table class="table border">

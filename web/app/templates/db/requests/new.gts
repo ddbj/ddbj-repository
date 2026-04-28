@@ -2,12 +2,13 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import { uniqueId } from '@ember/helper';
+import { array, hash, uniqueId } from '@ember/helper';
 
 import { DirectUpload } from '@rails/activestorage';
 
 import ENV from 'repository/config/environment';
 
+import Breadcrumb from 'repository/components/breadcrumb';
 import dbLabel from 'repository/helpers/db-label';
 
 import type { RequestManager } from '@warp-drive/core';
@@ -58,6 +59,15 @@ export default class extends Component<Signature> {
   }
 
   <template>
+    <Breadcrumb
+      @items={{array
+        (hash label="Home" route="index")
+        (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+        (hash label="Requests" route="db.requests" models=(array @model.db))
+        (hash label="New")
+      }}
+    />
+
     <h1 class="display-6 mb-4">New Request ({{dbLabel @model.db}})</h1>
 
     <form {{on "submit" this.submit}}>

@@ -3,13 +3,15 @@ import { LinkTo } from '@ember/routing';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import { array } from '@ember/helper';
+import { array, concat, hash } from '@ember/helper';
 
 import { eq } from 'ember-truth-helpers';
 
+import Breadcrumb from 'repository/components/breadcrumb';
 import StatusBadge from 'repository/components/status-badge';
 import ValidityBadge from 'repository/components/validity-badge';
 import autoRefresh from 'repository/modifiers/auto-refresh';
+import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 import type { RequestManager } from '@warp-drive/core';
@@ -40,6 +42,15 @@ export default class extends Component<Signature> {
 
   <template>
     <div {{autoRefresh while=@model.processing interval=1000}}>
+      <Breadcrumb
+        @items={{array
+          (hash label="Home" route="index")
+          (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
+          (hash label="Requests" route="db.requests" models=(array @model.db))
+          (hash label=(concat "Request-" @model.id))
+        }}
+      />
+
       <h1 class="display-6 mb-4">Request-{{@model.id}}</h1>
 
       <dl class="horizontal">

@@ -1,10 +1,14 @@
 import { LinkTo } from '@ember/routing';
+import { array, hash } from '@ember/helper';
 
+import Breadcrumb from 'repository/components/breadcrumb';
 import dbLabel from 'repository/helpers/db-label';
 
 import type { TOC } from '@ember/component/template-only';
 
 export default <template>
+  <Breadcrumb @items={{array (hash label="Home" route="index") (hash label=(dbLabel @model.db))}} />
+
   <h1 class="display-6 mb-4">{{dbLabel @model.db}}</h1>
 
   <div class="row g-3">
