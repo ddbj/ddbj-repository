@@ -36,12 +36,28 @@ export default class extends Component {
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           {{#if this.currentUser.isLoggedIn}}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-              <li class="nav-item">
-                <LinkTo @route="requests" class="nav-link">Requests</LinkTo>
+              <li class="nav-item dropdown">
+                <button type="button" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                  Requests
+                </button>
+
+                <ul class="dropdown-menu">
+                  <li><LinkTo @route="db.requests" @model="st26" class="dropdown-item">ST.26</LinkTo></li>
+                  <li><LinkTo @route="db.requests" @model="bioproject" class="dropdown-item">BioProject</LinkTo></li>
+                  <li><LinkTo @route="db.requests" @model="biosample" class="dropdown-item">BioSample</LinkTo></li>
+                </ul>
               </li>
 
-              <li class="nav-item">
-                <LinkTo @route="submissions" class="nav-link">Submissions</LinkTo>
+              <li class="nav-item dropdown">
+                <button type="button" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                  Submissions
+                </button>
+
+                <ul class="dropdown-menu">
+                  <li><LinkTo @route="db.submissions" @model="st26" class="dropdown-item">ST.26</LinkTo></li>
+                  <li><LinkTo @route="db.submissions" @model="bioproject" class="dropdown-item">BioProject</LinkTo></li>
+                  <li><LinkTo @route="db.submissions" @model="biosample" class="dropdown-item">BioSample</LinkTo></li>
+                </ul>
               </li>
 
               {{#if this.currentUser.user.isAdmin}}

@@ -46,16 +46,16 @@ module('Acceptance | submission update', function (hooks) {
       }),
     );
 
-    await visit('/submissions/1');
+    await visit('/st26/submissions/1');
 
-    assert.strictEqual(currentURL(), '/submissions/1');
+    assert.strictEqual(currentURL(), '/st26/submissions/1');
     assert.dom('h1').hasText('Submission-1');
 
     // --- Navigate to new update page ---
 
-    await click('a[href="/web/submissions/1/updates/new"]');
+    await click('a[href="/web/st26/submissions/1/updates/new"]');
 
-    assert.strictEqual(currentURL(), '/submissions/1/updates/new');
+    assert.strictEqual(currentURL(), '/st26/submissions/1/updates/new');
     assert.dom('h1').hasText('Update Submission');
 
     // --- Upload file and submit ---
@@ -104,7 +104,7 @@ module('Acceptance | submission update', function (hooks) {
     await triggerEvent('input[type="file"]', 'change', { files: [file] });
 
     await click('button[type="submit"]');
-    await waitUntil(() => currentURL() === '/updates/42');
+    await waitUntil(() => currentURL() === '/st26/updates/42');
 
     // --- Update detail page (ready to apply) ---
 

@@ -3,6 +3,7 @@ import { LinkTo } from '@ember/routing';
 import { action } from '@ember/object';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
+import { array } from '@ember/helper';
 
 import { eq, or, not } from 'ember-truth-helpers';
 
@@ -18,7 +19,7 @@ import type { components } from 'schema/openapi';
 
 interface Signature {
   Args: {
-    model: components['schemas']['SubmissionUpdate'];
+    model: { db: string } & components['schemas']['SubmissionUpdate'];
   };
 }
 
@@ -31,7 +32,7 @@ export default class extends Component<Signature> {
     const { model } = this.args;
 
     await this.requestManager.request({
-      url: `/st26/submission_updates/${model.id}/submission`,
+      url: `/${model.db}/submission_updates/${model.id}/submission`,
       method: 'PATCH',
     });
 
@@ -48,7 +49,10 @@ export default class extends Component<Signature> {
             <dt>Submission</dt>
 
             <dd>
-              <LinkTo @route="submission" @model={{@model.submission.id}}>Submission-{{@model.submission.id}}</LinkTo>
+              <LinkTo
+                @route="submission"
+                @models={{array @model.db @model.submission.id}}
+              >Submission-{{@model.submission.id}}</LinkTo>
             </dd>
 
             <dt>Created</dt>

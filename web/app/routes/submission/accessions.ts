@@ -16,14 +16,17 @@ export default class extends Route {
   };
 
   async model({ page }: { page?: number }) {
+    const { db } = this.paramsFor('db') as { db: string };
     const { submission_id } = this.paramsFor('submission') as { submission_id: string };
 
     const { content, response } = await this.requestManager.request<Accessions>({
-      url: `/st26/submissions/${submission_id}/accessions`,
+      url: `/${db}/submissions/${submission_id}/accessions`,
       options: { params: { page } },
     });
 
     return {
+      db,
+      submission_id,
       accessions: content,
       totalPages: Number(response?.headers?.get('Total-Pages')) || 1,
     };

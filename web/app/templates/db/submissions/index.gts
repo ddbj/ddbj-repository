@@ -1,14 +1,15 @@
 import { LinkTo } from '@ember/routing';
+import { array } from '@ember/helper';
 
 import formatDatetime from 'repository/helpers/format-datetime';
 import Pagination from 'repository/components/pagination';
 
-import type Controller from 'repository/controllers/submissions/index';
+import type Controller from 'repository/controllers/db/submissions/index';
 import type { TOC } from '@ember/component/template-only';
 import type { components } from 'schema/openapi';
 
 export default <template>
-  <h1 class="display-6 mb-4">Submissions</h1>
+  <h1 class="display-6 mb-4">Submissions ({{@model.db}})</h1>
 
   <table class="table border">
     <thead class="table-light">
@@ -23,7 +24,7 @@ export default <template>
       {{#each @model.submissions as |submission|}}
         <tr>
           <td>
-            <LinkTo @route="submission" @model={{submission.id}}>
+            <LinkTo @route="submission" @models={{array @model.db submission.id}}>
               Submission-{{submission.id}}
             </LinkTo>
           </td>
@@ -35,10 +36,16 @@ export default <template>
     </tbody>
   </table>
 
-  <Pagination @route="submissions.index" @current={{@controller.page}} @total={{@model.totalPages}} />
+  <Pagination
+    @route="db.submissions.index"
+    @models={{array @model.db}}
+    @current={{@controller.page}}
+    @total={{@model.totalPages}}
+  />
 </template> satisfies TOC<{
   Args: {
     model: {
+      db: string;
       submissions: components['schemas']['SubmissionSummary'][];
       totalPages: number;
     };

@@ -1,4 +1,5 @@
 import { LinkTo } from '@ember/routing';
+import { array } from '@ember/helper';
 
 import Pagination from 'repository/components/pagination';
 
@@ -35,10 +36,17 @@ export default <template>
     </tbody>
   </table>
 
-  <Pagination @route="submission.accessions" @current={{@controller.page}} @total={{@model.totalPages}} />
+  <Pagination
+    @route="submission.accessions"
+    @models={{array @model.db @model.submission_id}}
+    @current={{@controller.page}}
+    @total={{@model.totalPages}}
+  />
 </template> satisfies TOC<{
   Args: {
     model: {
+      db: string;
+      submission_id: string;
       accessions: components['schemas']['Accession'][];
       totalPages: number;
     };

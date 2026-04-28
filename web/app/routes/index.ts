@@ -10,7 +10,7 @@ export default class IndexRoute extends Route {
 
   beforeModel() {
     if (this.currentUser.isLoggedIn) {
-      this.router.transitionTo('requests', { queryParams: { page: undefined } });
+      this.router.transitionTo('db.requests', 'st26', { queryParams: { page: undefined } });
     }
   }
 }

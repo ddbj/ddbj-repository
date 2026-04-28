@@ -18,7 +18,7 @@ type CreateUpdateResponse =
 
 interface Signature {
   Args: {
-    model: components['schemas']['Submission'];
+    model: { db: string } & components['schemas']['Submission'];
   };
 }
 
@@ -39,6 +39,7 @@ export default class extends Component<Signature> {
 
     if (!this.file) return;
 
+    const { db, id: submission_id } = this.args.model;
     const upload = new DirectUpload(this.file, ENV.directUploadURL);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
@@ -46,12 +47,12 @@ export default class extends Component<Signature> {
     });
 
     const { content } = await this.requestManager.request<CreateUpdateResponse>({
-      url: `/st26/submissions/${this.args.model.id}/updates`,
+      url: `/${db}/submissions/${submission_id}/updates`,
       method: 'POST',
       data: { submission_update: { ddbj_record: blob.signed_id } },
     });
 
-    this.router.transitionTo('update', content.id);
+    this.router.transitionTo('update', db, content.id);
   }
 
   <template>

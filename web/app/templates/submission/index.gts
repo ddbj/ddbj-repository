@@ -1,4 +1,5 @@
 import { LinkTo } from '@ember/routing';
+import { array } from '@ember/helper';
 
 import formatDatetime from 'repository/helpers/format-datetime';
 
@@ -71,7 +72,7 @@ import type { components } from 'schema/openapi';
       {{#each @model.updates as |update|}}
         <tr>
           <td>
-            <LinkTo @route="update" @model={{update.id}}>
+            <LinkTo @route="update" @models={{array @model.db update.id}}>
               Update-{{update.id}}
             </LinkTo>
           </td>
@@ -84,6 +85,6 @@ import type { components } from 'schema/openapi';
   </table>
 </template> satisfies TOC<{
   Args: {
-    model: components['schemas']['Submission'];
+    model: { db: string } & components['schemas']['Submission'];
   };
 }>;
