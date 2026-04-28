@@ -48,7 +48,7 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   end
 
   test 'create enqueues jobs for submissions with ddbj_record' do
-    submission = submissions(:one)
+    submission = submissions(:st26)
 
     submission.ddbj_record.attach(
       io:           file_fixture('ddbj_record/example.json').open,
@@ -73,7 +73,7 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   end
 
   test 'create forwards force flag to the job' do
-    submission = submissions(:one)
+    submission = submissions(:st26)
 
     submission.ddbj_record.attach(
       io:           file_fixture('ddbj_record/example.json').open,

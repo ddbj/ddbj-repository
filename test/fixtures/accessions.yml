@@ -1,11 +1,11 @@
 one:
-  submission: one
+  submission: st26
   number:     ACC_000001
   entry_id:   "SEQ|JP|2026123456|A|1"
   locus_date: 2026-01-15
 
 two:
-  submission: one
+  submission: st26
   number:     ACC_000002
   entry_id:   "SEQ|JP|2026123456|A|2"
   locus_date: 2026-01-15

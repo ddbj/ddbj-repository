@@ -84,11 +84,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submission_requests": {
+    "/{db}/submission_requests": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         /** @description Get a list of submission requests. */
@@ -96,7 +99,10 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -119,7 +125,10 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
+                };
                 cookie?: never;
             };
             requestBody: {
@@ -152,11 +161,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submission_requests/{id}": {
+    "/{db}/submission_requests/{id}": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         /** @description Get a submission request. */
@@ -165,6 +177,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -192,11 +206,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submission_requests/{id}/status": {
+    "/{db}/submission_requests/{id}/status": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         /** @description Get the status of a submission request. Lightweight endpoint for polling. */
@@ -205,6 +222,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -232,11 +251,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submission_requests/{id}/submission": {
+    "/{db}/submission_requests/{id}/submission": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         get?: never;
@@ -247,6 +269,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -271,11 +295,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submission_updates/{id}": {
+    "/{db}/submission_updates/{id}": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         /** @description Get a submission update. */
@@ -284,6 +311,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -311,11 +340,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submission_updates/{id}/submission": {
+    "/{db}/submission_updates/{id}/submission": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         get?: never;
@@ -330,6 +362,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -350,11 +384,14 @@ export interface paths {
         };
         trace?: never;
     };
-    "/submissions": {
+    "/{db}/submissions": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         /** @description Get a list of submissions. */
@@ -362,7 +399,10 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
+                };
                 cookie?: never;
             };
             requestBody?: never;
@@ -387,11 +427,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submissions/{id}": {
+    "/{db}/submissions/{id}": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         /** @description Get a submission. */
@@ -400,6 +443,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -427,11 +472,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submissions/{id}/accessions": {
+    "/{db}/submissions/{id}/accessions": {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         /** @description Get a paginated list of accessions for a submission. */
@@ -442,6 +490,8 @@ export interface paths {
                 };
                 header?: never;
                 path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -470,11 +520,61 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submissions/{id}/updates": {
+    "/accessions/{number}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        /** @description Get an accession by number, including its submission and flatfile URLs. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    number: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the accession with its submission. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            number: string;
+                            entry_id: string;
+                            version: number;
+                            /** Format: date */
+                            locus_date: string;
+                            submission: components["schemas"]["Submission"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/{db}/submissions/{id}/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
             cookie?: never;
         };
         get?: never;
@@ -485,6 +585,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -617,7 +719,7 @@ export interface components {
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
         Error: {
-            message: string;
+            error: string;
         };
     };
     responses: {
@@ -667,7 +769,10 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        /** @description Database that the submission belongs to. */
+        Db: "st26" | "bioproject" | "biosample";
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;

@@ -2,7 +2,7 @@ require 'test_helper'
 
 class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
   test 'generates NA flatfile for genomic DNA entries' do
-    request = SubmissionRequest.new(user: users(:alice))
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
 
     request.ddbj_record.attach(
       io:           file_fixture('ddbj_record/example.json').open,

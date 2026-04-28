@@ -1,1 +1,8 @@
-one: {}
+st26:
+  db: st26
+
+bioproject:
+  db: bioproject
+
+biosample:
+  db: biosample

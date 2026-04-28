@@ -11,18 +11,20 @@ Rails.application.routes.draw do
 
     resource :me, only: %i[show]
 
-    resources :submission_requests, only: %i[index show create] do
-      resource :status,     only: :show
-      resource :submission, only: :create
-    end
+    scope ':db', constraints: {db: Regexp.union(Submission.dbs.keys)} do
+      resources :submission_requests, only: %i[index show create] do
+        resource :status,     only: :show
+        resource :submission, only: :create
+      end
 
-    resources :submission_updates, only: %i[show] do
-      resource :submission, only: :update
-    end
+      resources :submission_updates, only: %i[show] do
+        resource :submission, only: :update
+      end
 
-    resources :submissions, only: %i[index show] do
-      resources :accessions, only: %i[index]
-      resources :updates,    only: %i[create], controller: 'submission_updates'
+      resources :submissions, only: %i[index show] do
+        resources :accessions, only: %i[index]
+        resources :updates,    only: %i[create], controller: 'submission_updates'
+      end
     end
 
     resources :accessions, only: %i[show], param: :number, constraints: {number: %r{[^/]+}}

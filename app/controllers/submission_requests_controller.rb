@@ -1,16 +1,16 @@
 class SubmissionRequestsController < ApplicationController
   def index
-    pagy, @requests = pagy(current_user.submission_requests.order(id: :desc))
+    pagy, @requests = pagy(current_user.submission_requests.where(db: params[:db]).order(id: :desc))
 
     response.headers.merge! pagy.headers_hash
   end
 
   def show
-    @request = current_user.submission_requests.find(params[:id])
+    @request = current_user.submission_requests.where(db: params[:db]).find(params[:id])
   end
 
   def create
-    @request = current_user.submission_requests.create!(request_params)
+    @request = current_user.submission_requests.create!(**request_params, db: params[:db])
 
     raise ActiveRecord::RecordInvalid unless @request.waiting_validation?
 

@@ -31,7 +31,7 @@ export default class extends Component<Signature> {
     const { model } = this.args;
 
     await this.requestManager.request({
-      url: `/submission_updates/${model.id}/submission`,
+      url: `/st26/submission_updates/${model.id}/submission`,
       method: 'PATCH',
     });
 

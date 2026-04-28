@@ -4,7 +4,7 @@ import { service } from '@ember/service';
 import type { RequestManager } from '@warp-drive/core';
 import type { paths } from 'schema/openapi';
 
-type Accessions = paths['/submissions/{id}/accessions']['get']['responses']['200']['content']['application/json'];
+type Accessions = paths['/{db}/submissions/{id}/accessions']['get']['responses']['200']['content']['application/json'];
 
 export default class extends Route {
   @service declare requestManager: RequestManager;
@@ -19,7 +19,7 @@ export default class extends Route {
     const { submission_id } = this.paramsFor('submission') as { submission_id: string };
 
     const { content, response } = await this.requestManager.request<Accessions>({
-      url: `/submissions/${submission_id}/accessions`,
+      url: `/st26/submissions/${submission_id}/accessions`,
       options: { params: { page } },
     });
 

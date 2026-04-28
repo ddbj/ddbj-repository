@@ -6,14 +6,14 @@ class SubmissionsTest < ActionDispatch::IntegrationTest
 
     default_headers['Authorization'] = "Bearer #{@user.api_key}"
 
-    @submission = submissions(:one)
+    @submission = submissions(:st26)
 
     attach_submission_files @submission
-    attach_ddbj_record submission_updates(:one)
+    attach_ddbj_record submission_updates(:st26)
   end
 
   test 'index' do
-    get submissions_path
+    get submissions_path(db: 'st26')
 
     assert_conform_schema 200
 
@@ -21,7 +21,7 @@ class SubmissionsTest < ActionDispatch::IntegrationTest
   end
 
   test 'show' do
-    get submission_path(@submission)
+    get submission_path(db: 'st26', id: @submission.id)
 
     assert_conform_schema 200
     assert_equal @submission.id, response.parsed_body['id']

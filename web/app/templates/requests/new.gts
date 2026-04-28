@@ -13,7 +13,8 @@ import type RouterService from '@ember/routing/router-service';
 import type { Blob } from '@rails/activestorage';
 import type { paths } from 'schema/openapi';
 
-type CreateRequestResponse = paths['/submission_requests']['post']['responses']['202']['content']['application/json'];
+type CreateRequestResponse =
+  paths['/{db}/submission_requests']['post']['responses']['202']['content']['application/json'];
 
 export default class extends Component {
   @service declare requestManager: RequestManager;
@@ -39,7 +40,7 @@ export default class extends Component {
     });
 
     const { content } = await this.requestManager.request<CreateRequestResponse>({
-      url: '/submission_requests',
+      url: '/st26/submission_requests',
       method: 'POST',
       data: { submission_request: { ddbj_record: blob.signed_id } },
     });

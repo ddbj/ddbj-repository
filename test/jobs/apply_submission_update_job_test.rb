@@ -2,7 +2,7 @@ require 'test_helper'
 
 class ApplySubmissionUpdateJobTest < ActiveSupport::TestCase
   setup do
-    request = SubmissionRequest.new(user: users(:alice))
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
 
     request.ddbj_record.attach(
       io:           file_fixture('ddbj_record/example.json').open,
@@ -23,7 +23,7 @@ class ApplySubmissionUpdateJobTest < ActiveSupport::TestCase
     json = @submission.ddbj_record.open { JSON.parse(it.read) }
     json['sequences']['entries'][0]['definition'] = 'modified definition'
 
-    update = @submission.updates.new
+    update = @submission.updates.new(db: @submission.db)
     update.ddbj_record.attach io: StringIO.new(JSON.generate(json)), filename: 'example.json', content_type: 'application/json'
     update.save!
 
@@ -47,7 +47,7 @@ class ApplySubmissionUpdateJobTest < ActiveSupport::TestCase
     json = @submission.ddbj_record.open { JSON.parse(it.read) }
     json['sequences']['entries'][0]['definition'] = 'modified definition'
 
-    update = @submission.updates.new
+    update = @submission.updates.new(db: @submission.db)
     update.ddbj_record.attach io: StringIO.new(JSON.generate(json)), filename: 'example.json', content_type: 'application/json'
     update.save!
 

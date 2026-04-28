@@ -1,6 +1,6 @@
 class AccessionsController < ApplicationController
   def index
-    submission = current_user.submissions.find(params[:submission_id])
+    submission = current_user.submissions.where(db: params[:db]).find(params[:submission_id])
 
     pagy, @accessions = pagy(submission.accessions.order(:id))
 

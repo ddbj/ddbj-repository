@@ -20,7 +20,7 @@ module('Acceptance | submission request', function (hooks) {
     // --- List page ---
 
     worker.use(
-      http.get('/submission_requests', ({ response }) => {
+      http.get('/{db}/submission_requests', ({ response }) => {
         return response(200).json([], {
           headers: { 'Total-Pages': '1' },
         });
@@ -58,11 +58,11 @@ module('Acceptance | submission request', function (hooks) {
     };
 
     worker.use(
-      http.post('/submission_requests', ({ response }) => {
+      http.post('/{db}/submission_requests', ({ response }) => {
         return response(202).json(createdRequest);
       }),
 
-      http.get('/submission_requests/{id}', ({ response }) => {
+      http.get('/{db}/submission_requests/{id}', ({ response }) => {
         return response(200).json({
           ...createdRequest,
           status: 'ready_to_apply',
@@ -92,11 +92,11 @@ module('Acceptance | submission request', function (hooks) {
     // --- Apply ---
 
     worker.use(
-      http.post('/submission_requests/{id}/submission', ({ response }) => {
+      http.post('/{db}/submission_requests/{id}/submission', ({ response }) => {
         return response(204).empty();
       }),
 
-      http.get('/submission_requests/{id}', ({ response }) => {
+      http.get('/{db}/submission_requests/{id}', ({ response }) => {
         return response(200).json({
           ...createdRequest,
           status: 'applied',

@@ -4,7 +4,8 @@ import { service } from '@ember/service';
 import type { RequestManager } from '@warp-drive/core';
 import type { paths } from 'schema/openapi';
 
-type SubmissionRequestSummary = paths['/submission_requests']['get']['responses']['200']['content']['application/json'];
+type SubmissionRequestSummary =
+  paths['/{db}/submission_requests']['get']['responses']['200']['content']['application/json'];
 
 export default class extends Route {
   @service declare requestManager: RequestManager;
@@ -17,7 +18,7 @@ export default class extends Route {
 
   async model({ page }: { page?: number }) {
     const { content, response } = await this.requestManager.request<SubmissionRequestSummary>({
-      url: '/submission_requests',
+      url: '/st26/submission_requests',
       options: { params: { page } },
     });
 
