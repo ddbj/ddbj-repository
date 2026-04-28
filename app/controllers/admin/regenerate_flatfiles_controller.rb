@@ -1,7 +1,5 @@
 module Admin
   class RegenerateFlatfilesController < ApplicationController
-    before_action :require_admin!
-
     def show
       progress = RegenerateFlatfilesProgress.order(created_at: :desc).first
 
@@ -24,12 +22,6 @@ module Admin
       }
 
       render json: {}, status: :accepted
-    end
-
-    private
-
-    def require_admin!
-      head :forbidden unless current_user&.admin?
     end
   end
 end

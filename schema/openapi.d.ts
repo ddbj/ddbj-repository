@@ -622,10 +622,122 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/{db}/submission_requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
+            cookie?: never;
+        };
+        /** @description Admin-only list of submission requests across all users. */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the list of submission requests. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminSubmissionRequestSummary"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/{db}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Database that the submission belongs to. */
+                db: components["parameters"]["Db"];
+            };
+            cookie?: never;
+        };
+        /** @description Admin-only list of submissions across all users. */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    /** @description Database that the submission belongs to. */
+                    db: components["parameters"]["Db"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the list of submissions. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminSubmissionSummary"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdminSubmissionRequestSummary: {
+            id: number;
+            status: components["schemas"]["SubmissionOperationStatus"];
+            /** Format: date-time */
+            created_at: string;
+            user: components["schemas"]["UserSummary"];
+        };
+        AdminSubmissionSummary: {
+            id: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            user: components["schemas"]["UserSummary"];
+        };
+        UserSummary: {
+            uid: string;
+        };
         SubmissionRequestSummary: {
             id: number;
             status: components["schemas"]["SubmissionOperationStatus"];

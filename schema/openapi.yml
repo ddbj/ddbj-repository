@@ -508,8 +508,146 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
+  /admin/{db}/submission_requests:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
+    get:
+      description: Admin-only list of submission requests across all users.
+
+      tags:
+        - Admin
+
+      parameters:
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: Returns the list of submission requests.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/AdminSubmissionRequestSummary'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /admin/{db}/submissions:
+    parameters:
+      - $ref: '#/components/parameters/Db'
+
+    get:
+      description: Admin-only list of submissions across all users.
+
+      tags:
+        - Admin
+
+      parameters:
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: Returns the list of submissions.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/AdminSubmissionSummary'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
 components:
   schemas:
+    AdminSubmissionRequestSummary:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - status
+        - created_at
+        - user
+
+      properties:
+        id:
+          type: number
+
+        status:
+          $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        created_at:
+          type: string
+          format: date-time
+
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    AdminSubmissionSummary:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - created_at
+        - updated_at
+        - user
+
+      properties:
+        id:
+          type: number
+
+        created_at:
+          type: string
+          format: date-time
+
+        updated_at:
+          type: string
+          format: date-time
+
+        user:
+          $ref: '#/components/schemas/UserSummary'
+
+    UserSummary:
+      type: object
+      additionalProperties: false
+      required: [uid]
+
+      properties:
+        uid:
+          type: string
+
     SubmissionRequestSummary:
       type: object
       additionalProperties: false
