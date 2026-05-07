@@ -90,7 +90,7 @@
     "eslint-plugin-n": "^17.24.0",
     "eslint-plugin-qunit": "^8.2.6",
     "eslint-plugin-warp-drive": "^5.8.1",
-    "globals": "^17.5.0",
+    "globals": "^17.6.0",
     "highlight.js": "^11.11.1",
     "msw": "^2.14.2",
     "openapi-msw": "^2.0.0",
