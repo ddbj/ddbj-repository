@@ -1,3 +1,10 @@
+/* Tailwind v4: skip preflight while Bootstrap is still loaded.
+   Switch to `@import "tailwindcss";` once Bootstrap is removed. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "../**/*.{gts,gjs,hbs,ts,js}";
+
 .text-pre-wrap {
   white-space: pre-wrap;
   line-break: anywhere;

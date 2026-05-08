@@ -47,17 +47,20 @@ export default class extends Component {
         </div>
       </div>
     {{else}}
-      <div class="row justify-content-center py-5">
-        <div class="col-12 col-sm-10 col-md-8 col-lg-6">
-          <div class="card shadow-sm">
-            <div class="card-body p-4 p-md-5 text-center">
-              <h1 class="h3 mb-2">DDBJ Repository</h1>
-              <p class="text-body-secondary mb-4">Sign in with your DDBJ Account to continue.</p>
+      <div class="flex justify-center py-12">
+        <div class="w-full sm:max-w-md">
+          <div class="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm sm:p-10">
+            <h1 class="mb-2 text-2xl font-medium">DDBJ Repository</h1>
+            <p class="mb-6 text-gray-600">Sign in with your DDBJ Account to continue.</p>
 
-              <form action={{authURL}} method="POST">
-                <button type="submit" class="btn btn-primary btn-lg">Login with DDBJ Account</button>
-              </form>
-            </div>
+            <form action={{authURL}} method="POST">
+              <button
+                type="submit"
+                class="rounded-md bg-blue-600 px-6 py-3 text-lg font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                Login with DDBJ Account
+              </button>
+            </form>
           </div>
         </div>
       </div>
