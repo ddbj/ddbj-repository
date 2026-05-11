@@ -42,45 +42,53 @@ export default class Account extends Component {
 
     <Breadcrumb @items={{array (hash label="Home" route="index") (hash label="Account")}} />
 
-    <h1 class="display-6 mb-4">Account</h1>
+    <h1 class="mb-6 text-3xl font-light">Account</h1>
 
-    <div class="card">
-      <div class="card-body">
-        <div class="row mb-3">
-          {{#let (uniqueId) as |id|}}
-            <label for={{id}} class="col-sm-2 col-form-label">Username</label>
+    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div class="mb-4 grid items-center gap-2 sm:grid-cols-6">
+        {{#let (uniqueId) as |id|}}
+          <label for={{id}} class="text-sm font-medium text-gray-700 sm:col-span-1">Username</label>
 
-            <div class="col-sm-10">
-              <input
-                type="text"
-                value={{this.currentUser.user.uid}}
-                readonly
-                id={{id}}
-                class="form-control-plaintext"
-              />
-            </div>
-          {{/let}}
-        </div>
+          <input
+            type="text"
+            value={{this.currentUser.user.uid}}
+            readonly
+            id={{id}}
+            class="bg-transparent text-gray-900 sm:col-span-5"
+          />
+        {{/let}}
+      </div>
 
-        <div class="row">
-          {{#let (uniqueId) as |id|}}
-            <label for={{id}} class="col-sm-2 col-form-label">API key</label>
+      <div class="grid items-center gap-2 sm:grid-cols-6">
+        {{#let (uniqueId) as |id|}}
+          <label for={{id}} class="text-sm font-medium text-gray-700 sm:col-span-1">API key</label>
 
-            <div class="col-sm-10">
-              <div class="input-group">
-                <input type="text" value={{this.currentUser.user.apiKey}} readonly id={{id}} class="form-control" />
+          <div class="flex gap-2 sm:col-span-5">
+            <input
+              type="text"
+              value={{this.currentUser.user.apiKey}}
+              readonly
+              id={{id}}
+              class="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 font-mono text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
 
-                <button type="button" class="btn btn-outline-secondary" {{on "click" this.copyApiKey}}>
-                  Copy
-                </button>
+            <button
+              type="button"
+              class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              {{on "click" this.copyApiKey}}
+            >
+              Copy
+            </button>
 
-                <button type="button" class="btn btn-outline-secondary" {{on "click" this.regenerateApiKey}}>
-                  Regenerate
-                </button>
-              </div>
-            </div>
-          {{/let}}
-        </div>
+            <button
+              type="button"
+              class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+              {{on "click" this.regenerateApiKey}}
+            >
+              Regenerate
+            </button>
+          </div>
+        {{/let}}
       </div>
     </div>
   </template>

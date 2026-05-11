@@ -1,7 +1,7 @@
-import { LinkTo } from '@ember/routing';
 import { array, hash } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
+import NavCard from 'repository/components/nav-card';
 import dbLabel from 'repository/helpers/db-label';
 
 import type { TOC } from '@ember/component/template-only';
@@ -9,35 +9,27 @@ import type { TOC } from '@ember/component/template-only';
 export default <template>
   <Breadcrumb @items={{array (hash label="Home" route="index") (hash label=(dbLabel @model.db))}} />
 
-  <h1 class="display-6 mb-4">{{dbLabel @model.db}}</h1>
+  <h1 class="mb-6 text-3xl font-light">{{dbLabel @model.db}}</h1>
 
-  <div class="row g-3">
-    <div class="col-md-4">
-      <LinkTo @route="db.requests.new" @model={{@model.db}} class="card text-decoration-none h-100">
-        <div class="card-body">
-          <h2 class="card-title h5">Submit</h2>
-          <p class="card-text text-body-secondary mb-0">Upload a new DDBJ Record for validation.</p>
-        </div>
-      </LinkTo>
-    </div>
-
-    <div class="col-md-4">
-      <LinkTo @route="db.requests" @model={{@model.db}} class="card text-decoration-none h-100">
-        <div class="card-body">
-          <h2 class="card-title h5">Requests</h2>
-          <p class="card-text text-body-secondary mb-0">Submission requests in progress or awaiting application.</p>
-        </div>
-      </LinkTo>
-    </div>
-
-    <div class="col-md-4">
-      <LinkTo @route="db.submissions" @model={{@model.db}} class="card text-decoration-none h-100">
-        <div class="card-body">
-          <h2 class="card-title h5">Submissions</h2>
-          <p class="card-text text-body-secondary mb-0">Applied submissions and their accessions.</p>
-        </div>
-      </LinkTo>
-    </div>
+  <div class="grid gap-4 md:grid-cols-3">
+    <NavCard
+      @route="db.requests.new"
+      @model={{@model.db}}
+      @title="Submit"
+      @description="Upload a new DDBJ Record for validation."
+    />
+    <NavCard
+      @route="db.requests"
+      @model={{@model.db}}
+      @title="Requests"
+      @description="Submission requests in progress or awaiting application."
+    />
+    <NavCard
+      @route="db.submissions"
+      @model={{@model.db}}
+      @title="Submissions"
+      @description="Applied submissions and their accessions."
+    />
   </div>
 </template> satisfies TOC<{
   Args: {

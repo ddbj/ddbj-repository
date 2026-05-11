@@ -1,9 +1,10 @@
 import Component from '@glimmer/component';
-import { LinkTo } from '@ember/routing';
 import { service } from '@ember/service';
 import { pageTitle } from 'ember-page-title';
 
 import ENV from 'repository/config/environment';
+
+import NavCard from 'repository/components/nav-card';
 
 import type CurrentUserService from 'repository/services/current-user';
 
@@ -16,35 +17,12 @@ export default class extends Component {
     {{pageTitle "DDBJ Repository"}}
 
     {{#if this.currentUser.isLoggedIn}}
-      <h1 class="display-6 mb-4">DDBJ Repository</h1>
+      <h1 class="mb-6 text-3xl font-light">DDBJ Repository</h1>
 
-      <div class="row g-3">
-        <div class="col-md-4">
-          <LinkTo @route="db" @model="st26" class="card text-decoration-none h-100">
-            <div class="card-body">
-              <h2 class="card-title h5">ST.26</h2>
-              <p class="card-text text-body-secondary mb-0">Patent sequence listings (ST.26 XML).</p>
-            </div>
-          </LinkTo>
-        </div>
-
-        <div class="col-md-4">
-          <LinkTo @route="db" @model="bioproject" class="card text-decoration-none h-100">
-            <div class="card-body">
-              <h2 class="card-title h5">BioProject</h2>
-              <p class="card-text text-body-secondary mb-0">Biological project metadata.</p>
-            </div>
-          </LinkTo>
-        </div>
-
-        <div class="col-md-4">
-          <LinkTo @route="db" @model="biosample" class="card text-decoration-none h-100">
-            <div class="card-body">
-              <h2 class="card-title h5">BioSample</h2>
-              <p class="card-text text-body-secondary mb-0">Biological sample metadata.</p>
-            </div>
-          </LinkTo>
-        </div>
+      <div class="grid gap-4 md:grid-cols-3">
+        <NavCard @route="db" @model="st26" @title="ST.26" @description="Patent sequence listings (ST.26 XML)." />
+        <NavCard @route="db" @model="bioproject" @title="BioProject" @description="Biological project metadata." />
+        <NavCard @route="db" @model="biosample" @title="BioSample" @description="Biological sample metadata." />
       </div>
     {{else}}
       <div class="flex justify-center py-12">
