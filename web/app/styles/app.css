@@ -1,5 +1,8 @@
 /* Tailwind v4: skip preflight while Bootstrap is still loaded.
    Switch to `@import "tailwindcss";` once Bootstrap is removed. */
+@layer bootstrap, theme, utilities;
+
+@import "bootstrap/dist/css/bootstrap.css" layer(bootstrap);
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 

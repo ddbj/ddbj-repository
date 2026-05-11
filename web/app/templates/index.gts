@@ -56,7 +56,7 @@ export default class extends Component {
             <form action={{authURL}} method="POST">
               <button
                 type="submit"
-                class="rounded-md bg-blue-600 px-6 py-3 text-lg font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                class="rounded-lg bg-blue-600 px-8 py-3 text-lg font-medium text-white shadow-sm transition hover:-translate-y-px hover:bg-blue-700 hover:shadow-md focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none active:translate-y-0 active:bg-blue-800 active:shadow-sm"
               >
                 Login with DDBJ Account
               </button>
