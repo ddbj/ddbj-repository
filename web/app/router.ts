@@ -32,7 +32,7 @@ Router.map(function () {
   });
 
   this.route('admin', function () {
-    this.route('proxy-login');
+    this.route('users');
     this.route('regenerate-flatfiles');
 
     this.route('db', { path: ':db' }, function () {

@@ -548,6 +548,39 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /admin/users:
+    get:
+      description: Admin-only list of D-way users (proxied from cloakman).
+
+      tags:
+        - Admin
+
+      parameters:
+        - name: query
+          in: query
+          description: Partial match against uid, email, and full name.
+
+          schema:
+            type: string
+
+      responses:
+        '200':
+          description: Returns the list of users.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/AdminUserSummary'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
   /admin/{db}/submissions:
     parameters:
       - $ref: '#/components/parameters/Db'
@@ -646,6 +679,39 @@ components:
 
       properties:
         uid:
+          type: string
+
+    AdminUserSummary:
+      type: object
+      additionalProperties: false
+
+      required:
+        - uid
+        - full_name
+        - email
+        - organization
+        - account_type_number
+
+      properties:
+        uid:
+          type: string
+
+        full_name:
+          type:
+            - string
+            - 'null'
+
+        email:
+          type:
+            - string
+            - 'null'
+
+        organization:
+          type:
+            - string
+            - 'null'
+
+        account_type_number:
           type: string
 
     SubmissionRequestSummary:

@@ -669,6 +669,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Admin-only list of D-way users (proxied from cloakman). */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Partial match against uid, email, and full name. */
+                    query?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the list of users. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminUserSummary"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/{db}/submissions": {
         parameters: {
             query?: never;
@@ -737,6 +778,13 @@ export interface components {
         };
         UserSummary: {
             uid: string;
+        };
+        AdminUserSummary: {
+            uid: string;
+            full_name: string | null;
+            email: string | null;
+            organization: string | null;
+            account_type_number: string;
         };
         SubmissionRequestSummary: {
             id: number;

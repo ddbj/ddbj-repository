@@ -1,0 +1,15 @@
+development:
+  url:       http://cloakman.localhost:3001
+  api_token: <%= ENV['CLOAKMAN_API_TOKEN'] %>
+
+test:
+  url:       http://cloakman.example.com
+  api_token: notasecret
+
+production:
+  url:       https://accounts.ddbj.nig.ac.jp
+  api_token: <%= Rails.application.credentials.dig(:cloakman, :api_token) %>
+
+staging:
+  url:       https://accounts-staging.ddbj.nig.ac.jp
+  api_token: <%= Rails.application.credentials.dig(:cloakman, :api_token) %>

@@ -482,6 +482,7 @@ DEPENDENCIES
   debug
   diff-lcs
   erubi
+  faraday
   image_processing
   jb
   json

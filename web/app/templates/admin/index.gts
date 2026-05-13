@@ -43,10 +43,10 @@ import Breadcrumb from 'repository/components/breadcrumb';
 
   <div class="row g-3">
     <div class="col-md-4">
-      <LinkTo @route="admin.proxy-login" class="card text-decoration-none h-100">
+      <LinkTo @route="admin.users" class="card text-decoration-none h-100">
         <div class="card-body">
-          <h3 class="card-title h5">Proxy Login</h3>
-          <p class="card-text text-body-secondary mb-0">Act on behalf of a D-way user.</p>
+          <h3 class="card-title h5">Users</h3>
+          <p class="card-text text-body-secondary mb-0">Browse D-way users and proxy-login as one of them.</p>
         </div>
       </LinkTo>
     </div>
