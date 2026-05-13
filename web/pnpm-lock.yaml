@@ -75,8 +75,8 @@ importers:
         specifier: ^5.2.10
         version: 5.2.10
       '@types/qunit':
-        specifier: ^2.19.13
-        version: 2.19.13
+        specifier: ^2.19.14
+        version: 2.19.14
       '@types/rails__activestorage':
         specifier: ^8.0.1
         version: 8.0.1
@@ -1948,8 +1948,8 @@ packages:
   '@types/node@25.7.0':
     resolution: {integrity: sha512-z+pdZyxE+RTQE9AcboAZCb4otwcrvgHD+GlBpPgn0emDVt0ohrTMhAwlr2Wd9nZ+nihhYFxO2pThz3C5qSu2Eg==}
 
-  '@types/qunit@2.19.13':
-    resolution: {integrity: sha512-N4xp3v4s7f0jb2Oij6+6xw5QhH7/IgHCoGIFLCWtbEWoPkGYp8Te4mIwIP21qaurr6ed5JiPMiy2/ZoiGPkLIw==}
+  '@types/qunit@2.19.14':
+    resolution: {integrity: sha512-ou2RMtwyDnW1btrMnDMZeL6V5/yRRbuHKrRC6y8IuzDljjVzw6wPCVFb8p4qJD0NkUkf3BdZeJJIBzjK1BUUDQ==}
 
   '@types/rails__activestorage@8.0.1':
     resolution: {integrity: sha512-gwUZjLHyllzSEmegCXfkL11PrpZ/3Z+vCXBbYWgIdtX0ChfjtZcKq7HGfXYO5v5UYGLYenjGH3u8U+PpnA3dhg==}
@@ -3300,8 +3300,8 @@ packages:
   electron-to-chromium@1.5.328:
     resolution: {integrity: sha512-QNQ5l45DzYytThO21403XN3FvK0hOkWDG8viNf6jqS42msJ8I4tGDSpBCgvDRRPnkffafiwAym2X2eHeGD2V0w==}
 
-  electron-to-chromium@1.5.353:
-    resolution: {integrity: sha512-kOrWphBi8TOZyiJZqsgqIle0lw+tzmnQK83pV9dZUd01Nm2POECSyFQMAuarzZdYqQW7FH9RaYOuaRo3h+bQ3w==}
+  electron-to-chromium@1.5.354:
+    resolution: {integrity: sha512-JaBHwWcfIdmSAfWM5l3uwjGd431j8YEMikZ+K/2nXVuBqJKyZ0f+2h4n4JY5AyNiZmnY9qQr2RU3v9DxDmHMNg==}
 
   ember-auto-import@2.13.1:
     resolution: {integrity: sha512-MjxJK2nfCJmmQI/rju2TrycmAa1AxmTarfvygbcrrgW0s4WeZHtbGXCO2z1lW9wfrShqeTo/o+3Mgk+9xcDTWg==}
@@ -8706,7 +8706,7 @@ snapshots:
     dependencies:
       undici-types: 7.21.0
 
-  '@types/qunit@2.19.13': {}
+  '@types/qunit@2.19.14': {}
 
   '@types/rails__activestorage@8.0.1': {}
 
@@ -9731,7 +9731,7 @@ snapshots:
     dependencies:
       baseline-browser-mapping: 2.10.29
       caniuse-lite: 1.0.30001792
-      electron-to-chromium: 1.5.353
+      electron-to-chromium: 1.5.354
       node-releases: 2.0.44
       update-browserslist-db: 1.2.3(browserslist@4.28.2)
 
@@ -10199,7 +10199,7 @@ snapshots:
 
   electron-to-chromium@1.5.328: {}
 
-  electron-to-chromium@1.5.353: {}
+  electron-to-chromium@1.5.354: {}
 
   ember-auto-import@2.13.1(@glint/template@1.7.7)(webpack@5.102.1(esbuild@0.27.3)(postcss@8.5.6)):
     dependencies:
