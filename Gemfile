@@ -8,6 +8,7 @@ gem 'bio'
 gem 'bootsnap', require: false
 gem 'diff-lcs'
 gem 'erubi'
+gem 'faraday'
 gem 'image_processing'
 gem 'jb'
 gem 'json'

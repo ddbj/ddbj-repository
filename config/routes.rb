@@ -37,6 +37,8 @@ Rails.application.routes.draw do
         resources :submissions,         only: %i[index]
       end
 
+      resources :users, only: %i[index]
+
       resource :regenerate_flatfiles, only: %i[show create]
     end
   end
