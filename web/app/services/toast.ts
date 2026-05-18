@@ -3,7 +3,6 @@ import { modifier } from 'ember-modifier';
 import { trackedArray } from '@ember/reactive/collections';
 
 import { Toast } from 'bootstrap';
-import { runTask } from 'ember-lifeline';
 
 export interface Data {
   id: string;
@@ -37,12 +36,12 @@ export default class ToastService extends Service {
 
     this.data.push({ id, body, color });
 
-    runTask(this, () => {
+    setTimeout(() => {
       const toast = this.refs.get(id);
 
       if (!toast) return;
 
       toast.show();
-    });
+    }, 0);
   }
 }
