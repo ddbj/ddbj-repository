@@ -5,64 +5,62 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     default_headers['Authorization'] = "Bearer #{users(:bob).api_key}"
   end
 
-  test 'index lists registered users with profile fetched from cloakman' do
-    body = [
-      {
-        uid:                 'alice',
-        full_name:           'Alice Liddell',
-        email:               'alice@example.com',
-        organization:        'Wonderland',
-        account_type_number: 'general'
-      },
-      {
-        uid:                 'bob',
-        full_name:           'Bob Builder',
-        email:               'bob@example.com',
-        organization:        'Construction',
-        account_type_number: 'general'
-      },
-      {
-        uid:                 'carol',
-        full_name:           'Carol King',
-        email:               'carol@example.com',
-        organization:        'Music',
-        account_type_number: 'general'
-      }
-    ]
-
-    stub = stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
-      .with(query: {uids: %w[alice bob carol]}, headers: {Authorization: 'Bearer notasecret'})
-      .to_return(status: 200, body: body.to_json, headers: {'Content-Type' => 'application/json'})
+  test 'index lists active users with profile fetched from cloakman' do
+    stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
+      .with(query: {uids: %w[alice]})
+      .to_return(
+        status:  200,
+        body:    [{uid: 'alice', full_name: 'Alice Liddell', email: 'alice@example.com', organization: 'Wonderland', account_type_number: 'general'}].to_json,
+        headers: {'Content-Type' => 'application/json'}
+      )
 
     get admin_users_path
 
     assert_conform_schema 200
 
-    assert_equal body.map(&:stringify_keys), response.parsed_body
-    assert_requested stub
+    body = response.parsed_body
+
+    assert_equal %w[alice],         body.map { it['uid'] }
+    assert_equal 'Alice Liddell',   body.first['full_name']
+    assert_equal 3,                 body.first['submission_requests_count']
+    assert_equal 3,                 body.first['submissions_count']
   end
 
-  test 'index filters cloakman search results to registered users only' do
-    body = [
-      {
-        uid:                 'alice',
-        full_name:           'Alice Liddell',
-        email:               'alice@example.com',
-        organization:        'Wonderland',
-        account_type_number: 'general'
-      },
-      {
-        uid:                 'alicia',
-        full_name:           'Alicia Keys',
-        email:               'alicia@example.com',
-        organization:        'Music',
-        account_type_number: 'general'
-      }
-    ]
+  test 'index includes inactive users when include_inactive=1' do
+    stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
+      .with(query: {uids: %w[alice bob carol]})
+      .to_return(
+        status:  200,
+        body:    [
+          {uid: 'alice', full_name: 'Alice Liddell', email: 'alice@example.com', organization: 'Wonderland',   account_type_number: 'general'},
+          {uid: 'bob',   full_name: 'Bob Builder',   email: 'bob@example.com',   organization: 'Construction', account_type_number: 'general'},
+          {uid: 'carol', full_name: 'Carol King',    email: 'carol@example.com', organization: 'Music',        account_type_number: 'general'}
+        ].to_json,
+        headers: {'Content-Type' => 'application/json'}
+      )
 
+    get admin_users_path, params: {include_inactive: '1'}
+
+    assert_response :ok
+
+    body = response.parsed_body
+
+    assert_equal %w[alice bob carol], body.map { it['uid'] }
+    assert_equal 0,                   body.find { it['uid'] == 'bob' }['submission_requests_count']
+    assert_equal 0,                   body.find { it['uid'] == 'carol' }['submissions_count']
+  end
+
+  test 'index filters cloakman search results to registered active users' do
     stub_request(:get, 'http://cloakman.example.com/api/users')
       .with(query: {query: 'ali'})
-      .to_return(status: 200, body: body.to_json, headers: {'Content-Type' => 'application/json'})
+      .to_return(
+        status:  200,
+        body:    [
+          {uid: 'alice',  full_name: 'Alice Liddell', email: 'alice@example.com',  organization: 'Wonderland', account_type_number: 'general'},
+          {uid: 'alicia', full_name: 'Alicia Keys',   email: 'alicia@example.com', organization: 'Music',      account_type_number: 'general'}
+        ].to_json,
+        headers: {'Content-Type' => 'application/json'}
+      )
 
     get admin_users_path, params: {query: 'ali'}
 
@@ -70,7 +68,7 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_equal %w[alice], response.parsed_body.map { it['uid'] }
   end
 
-  test 'show returns the user profile combined with the admin flag' do
+  test 'show returns the user profile combined with the admin flag and counts' do
     stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
       .with(query: {uids: %w[alice]})
       .to_return(
@@ -86,6 +84,8 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_equal 'alice',         response.parsed_body['uid']
     assert_equal 'Alice Liddell', response.parsed_body['full_name']
     assert_equal false,           response.parsed_body['admin']
+    assert_equal 3,               response.parsed_body['submission_requests_count']
+    assert_equal 3,               response.parsed_body['submissions_count']
   end
 
   test 'show returns 404 when the user is not registered locally' do

@@ -64,7 +64,7 @@ class AdminUserDetailPage extends Component<{ Args: { model: Model } }> {
       <div class="col-md-6">
         <LinkTo @route="admin.requests" @query={{hash user=@model.uid}} class="card text-decoration-none h-100">
           <div class="card-body">
-            <h3 class="card-title h6">Submission requests</h3>
+            <h3 class="card-title h6">Submission requests ({{@model.submission_requests_count}})</h3>
             <p class="card-text text-body-secondary mb-0">View this user's submission requests.</p>
           </div>
         </LinkTo>
@@ -73,7 +73,7 @@ class AdminUserDetailPage extends Component<{ Args: { model: Model } }> {
       <div class="col-md-6">
         <LinkTo @route="admin.submissions" @query={{hash user=@model.uid}} class="card text-decoration-none h-100">
           <div class="card-body">
-            <h3 class="card-title h6">Submissions</h3>
+            <h3 class="card-title h6">Submissions ({{@model.submissions_count}})</h3>
             <p class="card-text text-body-secondary mb-0">View this user's applied submissions.</p>
           </div>
         </LinkTo>

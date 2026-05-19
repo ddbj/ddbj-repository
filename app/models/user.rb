@@ -8,6 +8,8 @@ class User < ApplicationRecord
   has_many :submissions,        through: :submission_requests
   has_many :submission_updates, through: :submissions, source: :updates
 
+  scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }
+
   before_create do |user|
     user.api_key ||= self.class.generate_api_key
   end
