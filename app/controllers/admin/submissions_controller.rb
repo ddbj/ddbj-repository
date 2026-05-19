@@ -1,9 +1,11 @@
 module Admin
   class SubmissionsController < ApplicationController
     def index
-      pagy, @submissions = pagy(
-        Submission.where(db: params[:db]).joins(request: :user).includes(request: :user).order(id: :desc)
-      )
+      scope = Submission.joins(request: :user).includes(request: :user).order(id: :desc)
+      scope = scope.where(db: params[:db])           if params[:db].presence
+      scope = scope.where(users: {uid: params[:user]}) if params[:user].presence
+
+      pagy, @submissions = pagy(scope)
 
       response.headers.merge! pagy.headers_hash
     end

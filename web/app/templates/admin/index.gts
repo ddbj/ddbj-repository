@@ -8,32 +8,23 @@ import Breadcrumb from 'repository/components/breadcrumb';
 
   <h1 class="display-6 mb-4">Administration</h1>
 
-  <h2 class="h5 mt-4">Databases</h2>
+  <h2 class="h5 mt-4">Browse</h2>
 
   <div class="row g-3">
-    <div class="col-md-4">
-      <LinkTo @route="admin.db" @model="st26" class="card text-decoration-none h-100">
+    <div class="col-md-6">
+      <LinkTo @route="admin.requests" class="card text-decoration-none h-100">
         <div class="card-body">
-          <h3 class="card-title h5">ST.26</h3>
-          <p class="card-text text-body-secondary mb-0">Browse all users' requests and submissions.</p>
+          <h3 class="card-title h5">Submission requests</h3>
+          <p class="card-text text-body-secondary mb-0">Browse submission requests across all DBs and users.</p>
         </div>
       </LinkTo>
     </div>
 
-    <div class="col-md-4">
-      <LinkTo @route="admin.db" @model="bioproject" class="card text-decoration-none h-100">
+    <div class="col-md-6">
+      <LinkTo @route="admin.submissions" class="card text-decoration-none h-100">
         <div class="card-body">
-          <h3 class="card-title h5">BioProject</h3>
-          <p class="card-text text-body-secondary mb-0">Browse all users' requests and submissions.</p>
-        </div>
-      </LinkTo>
-    </div>
-
-    <div class="col-md-4">
-      <LinkTo @route="admin.db" @model="biosample" class="card text-decoration-none h-100">
-        <div class="card-body">
-          <h3 class="card-title h5">BioSample</h3>
-          <p class="card-text text-body-secondary mb-0">Browse all users' requests and submissions.</p>
+          <h3 class="card-title h5">Submissions</h3>
+          <p class="card-text text-body-secondary mb-0">Browse applied submissions across all DBs and users.</p>
         </div>
       </LinkTo>
     </div>

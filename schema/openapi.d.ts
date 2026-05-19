@@ -622,27 +622,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/{db}/submission_requests": {
+    "/admin/submission_requests": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** @description Admin-only list of submission requests across all users. */
+        /** @description Admin-only list of submission requests across all DBs and users. */
         get: {
             parameters: {
                 query?: {
+                    /** @description Filter by database. */
+                    db?: "st26" | "bioproject" | "biosample";
+                    /** @description Filter by exact user uid. */
+                    user?: string;
                     page?: number;
                 };
                 header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -710,27 +708,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/{db}/submissions": {
+    "/admin/submissions": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** @description Admin-only list of submissions across all users. */
+        /** @description Admin-only list of submissions across all DBs and users. */
         get: {
             parameters: {
                 query?: {
+                    /** @description Filter by database. */
+                    db?: "st26" | "bioproject" | "biosample";
+                    /** @description Filter by exact user uid. */
+                    user?: string;
                     page?: number;
                 };
                 header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -763,6 +759,8 @@ export interface components {
     schemas: {
         AdminSubmissionRequestSummary: {
             id: number;
+            /** @enum {string} */
+            db: "st26" | "bioproject" | "biosample";
             status: components["schemas"]["SubmissionOperationStatus"];
             /** Format: date-time */
             created_at: string;
@@ -770,6 +768,8 @@ export interface components {
         };
         AdminSubmissionSummary: {
             id: number;
+            /** @enum {string} */
+            db: "st26" | "bioproject" | "biosample";
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
