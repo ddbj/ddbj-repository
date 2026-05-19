@@ -12,7 +12,7 @@ module('Integration | Helper | format-datetime', function (hooks) {
 
     await render(<template>{{formatDatetime date}}</template>);
 
-    assert.dom().hasText('2024-01-02 03:04:56');
+    assert.dom().hasText('2024-01-02 03:04');
   });
 
   test('string', async function (assert) {
@@ -20,6 +20,6 @@ module('Integration | Helper | format-datetime', function (hooks) {
 
     await render(<template>{{formatDatetime date}}</template>);
 
-    assert.dom().hasText('2024-01-02 03:04:56');
+    assert.dom().hasText('2024-01-02 03:04');
   });
 });

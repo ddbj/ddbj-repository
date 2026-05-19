@@ -12,9 +12,8 @@ export default function formatDatetime(date: Date | string | null): string {
   const _date = padZero(date.getDate());
   const hours = padZero(date.getHours());
   const minutes = padZero(date.getMinutes());
-  const seconds = padZero(date.getSeconds());
 
-  return `${year}-${month}-${_date} ${hours}:${minutes}:${seconds}`;
+  return `${year}-${month}-${_date} ${hours}:${minutes}`;
 }
 
 function padZero(n: number) {
