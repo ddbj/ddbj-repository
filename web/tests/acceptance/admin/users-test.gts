@@ -1,5 +1,5 @@
 import { module, test } from 'qunit';
-import { visit, click } from '@ember/test-helpers';
+import { visit, click, fillIn } from '@ember/test-helpers';
 import { HttpResponse, http as mswHttp } from 'msw';
 
 import ENV from 'repository/config/environment';
@@ -17,6 +17,7 @@ const profile = {
   organization: 'Wonderland',
   account_type_number: 'general',
   admin: false,
+  notes: '',
   submission_requests_count: 5,
   submissions_count: 3,
 };
@@ -40,12 +41,31 @@ module('Acceptance | admin | user detail', function (hooks) {
     assert.dom('a[href*="/admin/submissions"]').includesText('Submissions (3)');
   });
 
+  test('saves notes via PATCH and writes the response back into the model', async (assert) => {
+    worker.use(
+      mswHttp.patch(userURL, async ({ request }) => {
+        const body = (await request.json()) as { user: { notes: string } };
+
+        return HttpResponse.json({ ...profile, notes: body.user.notes });
+      }),
+    );
+
+    await visit('/admin/users/alice');
+
+    assert.dom('textarea[name="notes"]').hasValue('');
+
+    await fillIn('textarea[name="notes"]', 'Watch this account.');
+    await click('main form button[type="submit"]');
+
+    assert.dom('textarea[name="notes"]').hasValue('Watch this account.');
+  });
+
   test('proxy login toggle activates and deactivates', async (assert) => {
     await visit('/admin/users/alice');
 
-    assert.dom('main button').includesText('Proxy login as alice');
+    assert.dom('button.btn-outline-primary').includesText('Proxy login as alice');
 
-    await click('main button');
+    await click('button.btn-outline-primary');
 
     assert.dom('.alert-warning').includesText('Currently acting as');
     assert.dom('.alert-warning strong').hasText('alice');
@@ -53,6 +73,6 @@ module('Acceptance | admin | user detail', function (hooks) {
     await click('.alert-warning button');
 
     assert.dom('.alert-warning').doesNotExist();
-    assert.dom('main button').includesText('Proxy login as alice');
+    assert.dom('button.btn-outline-primary').includesText('Proxy login as alice');
   });
 });

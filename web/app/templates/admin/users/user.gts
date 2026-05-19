@@ -1,24 +1,57 @@
 import Component from '@glimmer/component';
+import { action } from '@ember/object';
 import { LinkTo } from '@ember/routing';
 import { fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import { array, hash } from '@ember/helper';
+import { Textarea } from '@ember/component';
+import { tracked } from '@glimmer/tracking';
+import { array, hash, uniqueId } from '@ember/helper';
 
 import { pageTitle } from 'ember-page-title';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 
+import type { RequestManager } from '@warp-drive/core';
+import type Owner from '@ember/owner';
 import type CurrentUserService from 'repository/services/current-user';
-import type { components } from 'schema/openapi';
+import type ToastService from 'repository/services/toast';
+import type { components, paths } from 'schema/openapi';
 
 type Model = components['schemas']['AdminUserDetail'];
+type UpdateResponse = paths['/admin/users/{uid}']['patch']['responses']['200']['content']['application/json'];
 
 class AdminUserDetailPage extends Component<{ Args: { model: Model } }> {
   @service declare currentUser: CurrentUserService;
+  @service declare requestManager: RequestManager;
+  @service declare toast: ToastService;
+
+  @tracked notes: string;
+
+  constructor(owner: Owner, args: { model: Model }) {
+    super(owner, args);
+
+    this.notes = args.model.notes;
+  }
 
   get isActiveProxy() {
     return this.currentUser.isProxyLoggedInAs(this.args.model.uid);
+  }
+
+  @action
+  async saveNotes(e: Event) {
+    e.preventDefault();
+
+    const { content } = await this.requestManager.request<UpdateResponse>({
+      url: `/admin/users/${encodeURIComponent(this.args.model.uid)}`,
+      method: 'PATCH',
+      data: { user: { notes: this.notes } },
+    });
+
+    Object.assign(this.args.model, content);
+    this.notes = content.notes;
+
+    this.toast.show('Notes saved.', 'success');
   }
 
   <template>
@@ -79,6 +112,25 @@ class AdminUserDetailPage extends Component<{ Args: { model: Model } }> {
         </LinkTo>
       </div>
     </div>
+
+    <h2 class="h5 mt-4">Notes</h2>
+
+    <form class="mb-4" {{on "submit" this.saveNotes}}>
+      {{#let (uniqueId) as |id|}}
+        <label for={{id}} class="visually-hidden">Notes</label>
+
+        <Textarea
+          @value={{this.notes}}
+          name="notes"
+          id={{id}}
+          rows="6"
+          class="form-control mb-2"
+          placeholder="Share context with other administrators (e.g. past correspondence)."
+        />
+
+        <button type="submit" class="btn btn-primary">Save</button>
+      {{/let}}
+    </form>
 
     <h2 class="h5 mt-4">Proxy login</h2>
 

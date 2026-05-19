@@ -1,5 +1,7 @@
 module Admin
   class UsersController < ApplicationController
+    before_action :load_user_detail, only: %i[show update]
+
     def index
       include_inactive = ActiveModel::Type::Boolean.new.cast(params[:include_inactive])
 
@@ -20,14 +22,22 @@ module Admin
       @counts = activity_counts(@users.map(&:id))
     end
 
-    def show
+    def show; end
+
+    def update
+      @user.update!(params.expect(user: [:notes]))
+
+      render :show
+    end
+
+    private
+
+    def load_user_detail
       @user    = User.find_by!(uid: params[:uid])
       @profile = CloakmanClient.new.lookup([@user.uid]).first or raise ActiveRecord::RecordNotFound
 
       @counts = activity_counts([@user.id])
     end
-
-    private
 
     def activity_counts(user_ids)
       scope = SubmissionRequest.where(user_id: user_ids)

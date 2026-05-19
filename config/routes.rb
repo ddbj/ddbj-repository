@@ -34,7 +34,7 @@ Rails.application.routes.draw do
     namespace :admin do
       resources :submission_requests, only: %i[index]
       resources :submissions,         only: %i[index]
-      resources :users,               only: %i[index show], param: :uid
+      resources :users,               only: %i[index show update], param: :uid
 
       resource :regenerate_flatfiles, only: %i[show create]
     end
