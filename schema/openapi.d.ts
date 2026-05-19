@@ -674,7 +674,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Admin-only list of D-way users (proxied from cloakman). */
+        /** @description Admin-only list of DDBJ accounts (proxied from cloakman). */
         get: {
             parameters: {
                 query?: {

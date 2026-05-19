@@ -561,7 +561,7 @@ paths:
 
   /admin/users:
     get:
-      description: Admin-only list of D-way users (proxied from cloakman).
+      description: Admin-only list of DDBJ accounts (proxied from cloakman).
 
       tags:
         - Admin

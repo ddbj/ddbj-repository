@@ -33,7 +33,7 @@ import Breadcrumb from 'repository/components/breadcrumb';
       <LinkTo @route="admin.users" class="card text-decoration-none h-100">
         <div class="card-body">
           <h3 class="card-title h5">Users</h3>
-          <p class="card-text text-body-secondary mb-0">Browse D-way users and proxy-login as one of them.</p>
+          <p class="card-text text-body-secondary mb-0">Browse DDBJ accounts and proxy-login as one of them.</p>
         </div>
       </LinkTo>
     </div>
