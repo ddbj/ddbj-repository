@@ -6,26 +6,13 @@ import ENV from 'repository/config/environment';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
-import { http } from '../../msw/http';
 import { worker } from '../../msw/worker';
 
 const adminURL = `${ENV.apiURL}/admin/regenerate_flatfiles`;
 
 module('Acceptance | admin | regenerate flatfiles', function (hooks) {
   setupApplicationTest(hooks);
-  setupAuthentication(hooks);
-
-  hooks.beforeEach(() => {
-    worker.use(
-      http.get('/me', ({ response }) => {
-        return response(200).json({
-          uid: 'test-admin',
-          api_key: 'test-api-key',
-          admin: true,
-        });
-      }),
-    );
-  });
+  setupAuthentication(hooks, { admin: true });
 
   test('initial display shows form without completion message', async (assert) => {
     worker.use(

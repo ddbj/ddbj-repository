@@ -622,27 +622,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/{db}/submission_requests": {
+    "/admin/submission_requests": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** @description Admin-only list of submission requests across all users. */
+        /** @description Admin-only list of submission requests across all DBs and users. */
         get: {
             parameters: {
                 query?: {
+                    /** @description Filter by database. */
+                    db?: components["schemas"]["Db"];
+                    /** @description Filter by exact user uid. */
+                    user?: string;
                     page?: number;
                 };
                 header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -676,7 +674,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Admin-only list of D-way users (proxied from cloakman). */
+        /** @description Admin-only list of DDBJ accounts (proxied from cloakman). */
         get: {
             parameters: {
                 query?: {
@@ -710,27 +708,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/{db}/submissions": {
+    "/admin/submissions": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** @description Admin-only list of submissions across all users. */
+        /** @description Admin-only list of submissions across all DBs and users. */
         get: {
             parameters: {
                 query?: {
+                    /** @description Filter by database. */
+                    db?: components["schemas"]["Db"];
+                    /** @description Filter by exact user uid. */
+                    user?: string;
                     page?: number;
                 };
                 header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -761,8 +757,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        Db: "st26" | "bioproject" | "biosample";
         AdminSubmissionRequestSummary: {
             id: number;
+            db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
             /** Format: date-time */
             created_at: string;
@@ -770,6 +769,7 @@ export interface components {
         };
         AdminSubmissionSummary: {
             id: number;
+            db: components["schemas"]["Db"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -931,7 +931,7 @@ export interface components {
     };
     parameters: {
         /** @description Database that the submission belongs to. */
-        Db: "st26" | "bioproject" | "biosample";
+        Db: components["schemas"]["Db"];
     };
     requestBodies: never;
     headers: never;

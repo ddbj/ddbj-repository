@@ -1,6 +1,6 @@
 @requests.map {|request|
   {
-    **request.slice(:id, :status, :created_at),
+    **request.slice(:id, :db, :status, :created_at),
 
     user: request.user.slice(:uid)
   }

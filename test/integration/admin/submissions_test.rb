@@ -2,15 +2,25 @@ require 'test_helper'
 
 class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   setup do
-    @admin = users(:alice).tap { it.update!(admin: true) }
-
-    default_headers['Authorization'] = "Bearer #{@admin.api_key}"
+    default_headers['Authorization'] = "Bearer #{users(:bob).api_key}"
   end
 
-  test 'index returns submissions for the requested db with the owning user' do
-    get admin_submissions_path(db: 'st26')
+  test 'index returns submissions across all DBs by default' do
+    get admin_submissions_path
 
     assert_conform_schema 200
+
+    ids = response.parsed_body.pluck('id')
+
+    assert_includes ids, submissions(:st26).id
+    assert_includes ids, submissions(:bioproject).id
+    assert_includes ids, submissions(:biosample).id
+  end
+
+  test 'index filters by db' do
+    get admin_submissions_path, params: {db: 'st26'}
+
+    assert_response :ok
 
     body = response.parsed_body
     ids  = body.pluck('id')
@@ -20,14 +30,34 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
     entry = body.find { it['id'] == submissions(:st26).id }
 
+    assert_equal 'st26',            entry['db']
     assert_equal users(:alice).uid, entry.dig('user', 'uid')
+  end
+
+  test 'index filters by user uid' do
+    carol_request = SubmissionRequest.new(user: users(:carol), db: 'st26')
+    attach_ddbj_record(carol_request)
+    carol_request.save!
+
+    carol_submission = Submission.new(db: 'st26', request: carol_request)
+    attach_submission_files(carol_submission)
+    carol_submission.save!
+
+    get admin_submissions_path, params: {user: 'carol'}
+
+    assert_response :ok
+
+    ids = response.parsed_body.pluck('id')
+
+    assert_includes     ids, carol_submission.id
+    assert_not_includes ids, submissions(:st26).id
   end
 
   test 'index returns 403 for non-admin users' do
     default_headers['Authorization'] = "Bearer #{users(:carol).api_key}"
 
     with_exceptions_app do
-      get admin_submissions_path(db: 'st26')
+      get admin_submissions_path
     end
 
     assert_response :forbidden

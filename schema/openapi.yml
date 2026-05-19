@@ -508,17 +508,28 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /admin/{db}/submission_requests:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
+  /admin/submission_requests:
     get:
-      description: Admin-only list of submission requests across all users.
+      description: Admin-only list of submission requests across all DBs and users.
 
       tags:
         - Admin
 
       parameters:
+        - name: db
+          in: query
+          description: Filter by database.
+
+          schema:
+            $ref: '#/components/schemas/Db'
+
+        - name: user
+          in: query
+          description: Filter by exact user uid.
+
+          schema:
+            type: string
+
         - name: page
           in: query
 
@@ -550,7 +561,7 @@ paths:
 
   /admin/users:
     get:
-      description: Admin-only list of D-way users (proxied from cloakman).
+      description: Admin-only list of DDBJ accounts (proxied from cloakman).
 
       tags:
         - Admin
@@ -581,17 +592,28 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
-  /admin/{db}/submissions:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
+  /admin/submissions:
     get:
-      description: Admin-only list of submissions across all users.
+      description: Admin-only list of submissions across all DBs and users.
 
       tags:
         - Admin
 
       parameters:
+        - name: db
+          in: query
+          description: Filter by database.
+
+          schema:
+            $ref: '#/components/schemas/Db'
+
+        - name: user
+          in: query
+          description: Filter by exact user uid.
+
+          schema:
+            type: string
+
         - name: page
           in: query
 
@@ -623,12 +645,21 @@ paths:
 
 components:
   schemas:
+    Db:
+      type: string
+
+      enum:
+        - st26
+        - bioproject
+        - biosample
+
     AdminSubmissionRequestSummary:
       type: object
       additionalProperties: false
 
       required:
         - id
+        - db
         - status
         - created_at
         - user
@@ -636,6 +667,9 @@ components:
       properties:
         id:
           type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
 
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'
@@ -653,6 +687,7 @@ components:
 
       required:
         - id
+        - db
         - created_at
         - updated_at
         - user
@@ -660,6 +695,9 @@ components:
       properties:
         id:
           type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
 
         created_at:
           type: string
@@ -1132,9 +1170,4 @@ components:
       description: Database that the submission belongs to.
 
       schema:
-        type: string
-
-        enum:
-          - st26
-          - bioproject
-          - biosample
+        $ref: '#/components/schemas/Db'

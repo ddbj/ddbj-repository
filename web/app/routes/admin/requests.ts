@@ -5,27 +5,24 @@ import type { RequestManager } from '@warp-drive/core';
 import type { paths } from 'schema/openapi';
 
 type AdminSubmissionRequests =
-  paths['/admin/{db}/submission_requests']['get']['responses']['200']['content']['application/json'];
+  paths['/admin/submission_requests']['get']['responses']['200']['content']['application/json'];
 
 export default class extends Route {
   @service declare requestManager: RequestManager;
 
   queryParams = {
-    page: {
-      refreshModel: true,
-    },
+    db: { refreshModel: true },
+    user: { refreshModel: true },
+    page: { refreshModel: true },
   };
 
-  async model({ page }: { page?: number }) {
-    const { db } = this.paramsFor('admin.db') as { db: string };
-
+  async model({ db, user, page }: { db?: string; user?: string; page?: number }) {
     const { content, response } = await this.requestManager.request<AdminSubmissionRequests>({
-      url: `/admin/${db}/submission_requests`,
-      options: { params: { page } },
+      url: '/admin/submission_requests',
+      options: { params: { db, user, page } },
     });
 
     return {
-      db,
       requests: content,
       totalPages: Number(response?.headers?.get('Total-Pages')) || 1,
     };
