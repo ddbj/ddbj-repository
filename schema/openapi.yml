@@ -633,6 +633,44 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+    patch:
+      description: Update admin-editable fields on the DDBJ account.
+
+      tags:
+        - Admin
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [user]
+
+              properties:
+                user:
+                  type: object
+                  additionalProperties: false
+
+                  properties:
+                    notes:
+                      type: string
+
+      responses:
+        '204':
+          description: The notes were updated.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /admin/submissions:
     get:
       description: Admin-only list of submissions across all DBs and users.
@@ -812,6 +850,7 @@ components:
         - organization
         - account_type_number
         - admin
+        - notes
         - submission_requests_count
         - submissions_count
 
@@ -839,6 +878,9 @@ components:
 
         admin:
           type: boolean
+
+        notes:
+          type: string
 
         submission_requests_count:
           type: number

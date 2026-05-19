@@ -27,6 +27,13 @@ module Admin
       @counts = activity_counts([@user.id])
     end
 
+    def update
+      user = User.find_by!(uid: params[:uid])
+      user.update!(params.expect(user: [:notes]))
+
+      head :no_content
+    end
+
     private
 
     def activity_counts(user_ids)

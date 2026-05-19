@@ -750,7 +750,38 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** @description Update admin-editable fields on the DDBJ account. */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        user: {
+                            notes?: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description The notes were updated. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
         trace?: never;
     };
     "/admin/submissions": {
@@ -840,6 +871,7 @@ export interface components {
             organization: string | null;
             account_type_number: string;
             admin: boolean;
+            notes: string;
             submission_requests_count: number;
             submissions_count: number;
         };
