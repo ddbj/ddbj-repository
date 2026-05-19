@@ -11,7 +11,7 @@ import Breadcrumb from 'repository/components/breadcrumb';
   <h2 class="h5 mt-4">Browse</h2>
 
   <div class="row g-3">
-    <div class="col-md-6">
+    <div class="col-md-4">
       <LinkTo @route="admin.requests" class="card text-decoration-none h-100">
         <div class="card-body">
           <h3 class="card-title h5">Submission requests</h3>
@@ -20,7 +20,7 @@ import Breadcrumb from 'repository/components/breadcrumb';
       </LinkTo>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-4">
       <LinkTo @route="admin.submissions" class="card text-decoration-none h-100">
         <div class="card-body">
           <h3 class="card-title h5">Submissions</h3>
@@ -28,11 +28,7 @@ import Breadcrumb from 'repository/components/breadcrumb';
         </div>
       </LinkTo>
     </div>
-  </div>
 
-  <h2 class="h5 mt-5">Tools</h2>
-
-  <div class="row g-3">
     <div class="col-md-4">
       <LinkTo @route="admin.users" class="card text-decoration-none h-100">
         <div class="card-body">
@@ -41,7 +37,11 @@ import Breadcrumb from 'repository/components/breadcrumb';
         </div>
       </LinkTo>
     </div>
+  </div>
 
+  <h2 class="h5 mt-5">Tools</h2>
+
+  <div class="row g-3">
     <div class="col-md-4">
       <LinkTo @route="admin.regenerate-flatfiles" class="card text-decoration-none h-100">
         <div class="card-body">
