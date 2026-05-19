@@ -3,8 +3,10 @@ class CloakmanClient
     @config = config
   end
 
-  def users(query: nil)
-    res = connection.get('api/users', {query:}.compact)
+  def users(query: nil, uids: nil)
+    return [] if uids&.empty?
+
+    res = connection.get('api/users', {query:, uids:}.compact)
 
     res.body
   end
