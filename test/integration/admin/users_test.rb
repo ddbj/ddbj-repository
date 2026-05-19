@@ -30,7 +30,7 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
       }
     ]
 
-    stub = stub_request(:get, 'http://cloakman.example.com/api/users')
+    stub = stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
       .with(query: {uids: %w[alice bob carol]}, headers: {Authorization: 'Bearer notasecret'})
       .to_return(status: 200, body: body.to_json, headers: {'Content-Type' => 'application/json'})
 
