@@ -4,7 +4,7 @@ class CloakmanClient
   end
 
   def search(query)
-    connection.get('api/users', {query:}.compact).body
+    connection.get('api/users', {query:}).body
   end
 
   def lookup(uids)
