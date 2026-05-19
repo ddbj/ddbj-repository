@@ -1,8 +1,10 @@
 module Admin
   class UsersController < ApplicationController
     def index
+      include_inactive = ActiveModel::Type::Boolean.new.cast(params[:include_inactive])
+
       scope = User.order(:uid)
-      scope = scope.with_submission_requests unless params[:include_inactive] == '1'
+      scope = scope.with_submission_requests unless include_inactive
 
       @users = scope.to_a
 
