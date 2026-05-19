@@ -592,6 +592,39 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
 
+  /admin/users/{uid}:
+    parameters:
+      - name: uid
+        in: path
+        required: true
+
+        schema:
+          type: string
+
+    get:
+      description: Admin-only DDBJ account detail combined with local admin flag.
+
+      tags:
+        - Admin
+
+      responses:
+        '200':
+          description: Returns the user detail.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetail'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /admin/submissions:
     get:
       description: Admin-only list of submissions across all DBs and users.
@@ -751,6 +784,43 @@ components:
 
         account_type_number:
           type: string
+
+    AdminUserDetail:
+      type: object
+      additionalProperties: false
+
+      required:
+        - uid
+        - full_name
+        - email
+        - organization
+        - account_type_number
+        - admin
+
+      properties:
+        uid:
+          type: string
+
+        full_name:
+          type:
+            - string
+            - 'null'
+
+        email:
+          type:
+            - string
+            - 'null'
+
+        organization:
+          type:
+            - string
+            - 'null'
+
+        account_type_number:
+          type: string
+
+        admin:
+          type: boolean
 
     SubmissionRequestSummary:
       type: object
