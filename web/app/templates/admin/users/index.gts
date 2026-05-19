@@ -79,7 +79,7 @@ class UsersIndex extends Component<{ Args: { model: Model; controller: Controlle
       Up to 100 users are shown. Refine your search if you don't see the user you're looking for.
     </p>
 
-    <table class="table border">
+    <table class="table table-hover border">
       <thead class="table-light">
         <tr>
           <th>Username</th>
