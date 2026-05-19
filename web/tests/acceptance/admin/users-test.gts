@@ -46,7 +46,7 @@ module('Acceptance | admin | user detail', function (hooks) {
       mswHttp.patch(userURL, async ({ request }) => {
         const body = (await request.json()) as { user: { notes: string } };
 
-        return HttpResponse.json({ notes: body.user.notes });
+        return HttpResponse.json({ ...profile, notes: body.user.notes });
       }),
     );
 

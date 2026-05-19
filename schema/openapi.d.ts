@@ -770,15 +770,13 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description Returns the updated notes. */
+                /** @description Returns the updated user detail. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            notes: string;
-                        };
+                        "application/json": components["schemas"]["AdminUserDetail"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];

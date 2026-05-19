@@ -113,13 +113,22 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_equal 'Existing note', response.parsed_body['notes']
   end
 
-  test 'update persists notes and echoes them back' do
+  test 'update persists notes and returns the refreshed detail' do
+    stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
+      .with(query: {uids: %w[alice]})
+      .to_return(
+        status:  200,
+        body:    [{uid: 'alice', full_name: 'Alice Liddell', email: 'alice@example.com', organization: 'Wonderland', account_type_number: 'general'}].to_json,
+        headers: {'Content-Type' => 'application/json'}
+      )
+
     patch admin_user_path(uid: 'alice'), params: {user: {notes: 'Be careful with this account.'}}, as: :json
 
     assert_conform_schema 200
 
-    assert_equal 'Be careful with this account.', response.parsed_body['notes']
-    assert_equal 'Be careful with this account.', users(:alice).reload.notes
+    assert_equal 'alice',                          response.parsed_body['uid']
+    assert_equal 'Be careful with this account.',  response.parsed_body['notes']
+    assert_equal 'Be careful with this account.',  users(:alice).reload.notes
   end
 
   test 'update returns 403 for non-admin users' do

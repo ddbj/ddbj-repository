@@ -660,18 +660,12 @@ paths:
 
       responses:
         '200':
-          description: Returns the updated notes.
+          description: Returns the updated user detail.
 
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: false
-                required: [notes]
-
-                properties:
-                  notes:
-                    type: string
+                $ref: '#/components/schemas/AdminUserDetail'
 
         '401':
           $ref: '#/components/responses/Unauthorized'

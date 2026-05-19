@@ -48,7 +48,7 @@ class AdminUserDetailPage extends Component<{ Args: { model: Model } }> {
       data: { user: { notes: this.notes } },
     });
 
-    this.args.model.notes = content.notes;
+    Object.assign(this.args.model, content);
     this.notes = content.notes;
 
     this.toast.show('Notes saved.', 'success');
