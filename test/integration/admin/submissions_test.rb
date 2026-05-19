@@ -2,9 +2,7 @@ require 'test_helper'
 
 class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   setup do
-    @admin = users(:alice).tap { it.update!(admin: true) }
-
-    default_headers['Authorization'] = "Bearer #{@admin.api_key}"
+    default_headers['Authorization'] = "Bearer #{users(:bob).api_key}"
   end
 
   test 'index returns submissions across all DBs by default' do
@@ -37,21 +35,21 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   end
 
   test 'index filters by user uid' do
-    bob_request = SubmissionRequest.new(user: users(:bob), db: 'st26')
-    attach_ddbj_record(bob_request)
-    bob_request.save!
+    carol_request = SubmissionRequest.new(user: users(:carol), db: 'st26')
+    attach_ddbj_record(carol_request)
+    carol_request.save!
 
-    bob_submission = Submission.new(db: 'st26', request: bob_request)
-    attach_submission_files(bob_submission)
-    bob_submission.save!
+    carol_submission = Submission.new(db: 'st26', request: carol_request)
+    attach_submission_files(carol_submission)
+    carol_submission.save!
 
-    get admin_submissions_path, params: {user: 'bob'}
+    get admin_submissions_path, params: {user: 'carol'}
 
     assert_response :ok
 
     ids = response.parsed_body.pluck('id')
 
-    assert_includes     ids, bob_submission.id
+    assert_includes     ids, carol_submission.id
     assert_not_includes ids, submissions(:st26).id
   end
 

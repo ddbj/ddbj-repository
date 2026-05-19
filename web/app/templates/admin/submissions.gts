@@ -1,10 +1,8 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
-import { on } from '@ember/modifier';
-import { array, hash, uniqueId } from '@ember/helper';
+import { array, hash } from '@ember/helper';
 
-import { eq } from 'ember-truth-helpers';
-
+import AdminListFilter from 'repository/components/admin/list-filter';
 import Breadcrumb from 'repository/components/breadcrumb';
 import Pagination from 'repository/components/pagination';
 import dbLabel from 'repository/helpers/db-label';
@@ -20,17 +18,9 @@ type Model = {
 
 class AdminSubmissions extends Component<{ Args: { model: Model; controller: Controller } }> {
   @action
-  filter(e: Event) {
-    e.preventDefault();
-
-    const data = new FormData(e.target as HTMLFormElement);
-    const text = (key: string) => {
-      const value = data.get(key);
-      return typeof value === 'string' ? value : '';
-    };
-
-    this.args.controller.db = text('db');
-    this.args.controller.user = text('user');
+  apply({ db, user }: { db: string; user: string }) {
+    this.args.controller.db = db;
+    this.args.controller.user = user;
     this.args.controller.page = 1;
   }
 
@@ -45,37 +35,7 @@ class AdminSubmissions extends Component<{ Args: { model: Model; controller: Con
 
     <h1 class="display-6 mb-4">Submissions</h1>
 
-    <form class="row g-2 mb-3" {{on "submit" this.filter}}>
-      {{#let (uniqueId) (uniqueId) as |dbId userId|}}
-        <div class="col-sm-4">
-          <label for={{dbId}} class="form-label visually-hidden">Database</label>
-
-          <select name="db" id={{dbId}} class="form-select">
-            <option value="" selected={{eq @controller.db ""}}>All databases</option>
-            <option value="st26" selected={{eq @controller.db "st26"}}>ST.26</option>
-            <option value="bioproject" selected={{eq @controller.db "bioproject"}}>BioProject</option>
-            <option value="biosample" selected={{eq @controller.db "biosample"}}>BioSample</option>
-          </select>
-        </div>
-
-        <div class="col-sm-6">
-          <label for={{userId}} class="form-label visually-hidden">User uid</label>
-
-          <input
-            type="search"
-            name="user"
-            id={{userId}}
-            value={{@controller.user}}
-            class="form-control"
-            placeholder="Filter by user uid"
-          />
-        </div>
-
-        <div class="col-sm-2">
-          <button type="submit" class="btn btn-primary w-100">Filter</button>
-        </div>
-      {{/let}}
-    </form>
+    <AdminListFilter @db={{@controller.db}} @user={{@controller.user}} @onApply={{this.apply}} />
 
     <table class="table border">
       <thead class="table-light">

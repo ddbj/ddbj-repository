@@ -634,7 +634,7 @@ export interface paths {
             parameters: {
                 query?: {
                     /** @description Filter by database. */
-                    db?: "st26" | "bioproject" | "biosample";
+                    db?: components["schemas"]["Db"];
                     /** @description Filter by exact user uid. */
                     user?: string;
                     page?: number;
@@ -720,7 +720,7 @@ export interface paths {
             parameters: {
                 query?: {
                     /** @description Filter by database. */
-                    db?: "st26" | "bioproject" | "biosample";
+                    db?: components["schemas"]["Db"];
                     /** @description Filter by exact user uid. */
                     user?: string;
                     page?: number;
@@ -757,10 +757,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        Db: "st26" | "bioproject" | "biosample";
         AdminSubmissionRequestSummary: {
             id: number;
-            /** @enum {string} */
-            db: "st26" | "bioproject" | "biosample";
+            db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
             /** Format: date-time */
             created_at: string;
@@ -768,8 +769,7 @@ export interface components {
         };
         AdminSubmissionSummary: {
             id: number;
-            /** @enum {string} */
-            db: "st26" | "bioproject" | "biosample";
+            db: components["schemas"]["Db"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -931,7 +931,7 @@ export interface components {
     };
     parameters: {
         /** @description Database that the submission belongs to. */
-        Db: "st26" | "bioproject" | "biosample";
+        Db: components["schemas"]["Db"];
     };
     requestBodies: never;
     headers: never;

@@ -521,12 +521,7 @@ paths:
           description: Filter by database.
 
           schema:
-            type: string
-
-            enum:
-              - st26
-              - bioproject
-              - biosample
+            $ref: '#/components/schemas/Db'
 
         - name: user
           in: query
@@ -610,12 +605,7 @@ paths:
           description: Filter by database.
 
           schema:
-            type: string
-
-            enum:
-              - st26
-              - bioproject
-              - biosample
+            $ref: '#/components/schemas/Db'
 
         - name: user
           in: query
@@ -655,6 +645,14 @@ paths:
 
 components:
   schemas:
+    Db:
+      type: string
+
+      enum:
+        - st26
+        - bioproject
+        - biosample
+
     AdminSubmissionRequestSummary:
       type: object
       additionalProperties: false
@@ -671,12 +669,7 @@ components:
           type: number
 
         db:
-          type: string
-
-          enum:
-            - st26
-            - bioproject
-            - biosample
+          $ref: '#/components/schemas/Db'
 
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'
@@ -704,12 +697,7 @@ components:
           type: number
 
         db:
-          type: string
-
-          enum:
-            - st26
-            - bioproject
-            - biosample
+          $ref: '#/components/schemas/Db'
 
         created_at:
           type: string
@@ -1182,9 +1170,4 @@ components:
       description: Database that the submission belongs to.
 
       schema:
-        type: string
-
-        enum:
-          - st26
-          - bioproject
-          - biosample
+        $ref: '#/components/schemas/Db'
