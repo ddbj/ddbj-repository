@@ -1,0 +1,69 @@
+import { module, test } from 'qunit';
+import { visit, click } from '@ember/test-helpers';
+import { HttpResponse, http as mswHttp } from 'msw';
+
+import ENV from 'repository/config/environment';
+import { setupApplicationTest } from 'repository/tests/helpers';
+import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
+
+import { worker } from '../../msw/worker';
+
+const userURL = `${ENV.apiURL}/admin/users/alice`;
+
+module('Acceptance | admin | user detail', function (hooks) {
+  setupApplicationTest(hooks);
+  setupAuthentication(hooks, { admin: true });
+
+  test('renders the cloakman profile and activity links', async (assert) => {
+    worker.use(
+      mswHttp.get(userURL, () => {
+        return HttpResponse.json({
+          uid: 'alice',
+          full_name: 'Alice Liddell',
+          email: 'alice@example.com',
+          organization: 'Wonderland',
+          account_type_number: 'general',
+          admin: false,
+        });
+      }),
+    );
+
+    await visit('/admin/users/alice');
+
+    assert.dom('h1').hasText('alice');
+    assert.dom('dl').includesText('Alice Liddell');
+    assert.dom('dl').includesText('alice@example.com');
+    assert.dom('dl').includesText('Wonderland');
+    assert.dom('a[href*="/admin/requests"]').exists();
+    assert.dom('a[href*="/admin/submissions"]').exists();
+  });
+
+  test('proxy login toggle activates and deactivates', async (assert) => {
+    worker.use(
+      mswHttp.get(userURL, () => {
+        return HttpResponse.json({
+          uid: 'alice',
+          full_name: 'Alice Liddell',
+          email: 'alice@example.com',
+          organization: 'Wonderland',
+          account_type_number: 'general',
+          admin: false,
+        });
+      }),
+    );
+
+    await visit('/admin/users/alice');
+
+    assert.dom('main button').includesText('Proxy login as alice');
+
+    await click('main button');
+
+    assert.dom('.alert-warning').includesText('Currently acting as');
+    assert.dom('.alert-warning strong').hasText('alice');
+
+    await click('.alert-warning button');
+
+    assert.dom('.alert-warning').doesNotExist();
+    assert.dom('main button').includesText('Proxy login as alice');
+  });
+});

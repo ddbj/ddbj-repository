@@ -1,0 +1,5 @@
+{
+  **@profile.slice('uid', 'full_name', 'email', 'organization', 'account_type_number'),
+
+  admin: @user.admin
+}

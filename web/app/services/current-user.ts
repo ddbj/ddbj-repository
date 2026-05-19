@@ -1,4 +1,5 @@
 import Service, { service } from '@ember/service';
+import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
 import User from 'repository/models/user';
@@ -6,6 +7,7 @@ import User from 'repository/models/user';
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type Transition from '@ember/routing/transition';
+import type ToastService from 'repository/services/toast';
 import type { paths } from 'schema/openapi';
 
 type Me = paths['/me']['get']['responses']['200']['content']['application/json'];
@@ -15,6 +17,7 @@ export class LoginError extends Error {}
 export default class CurrentUserService extends Service {
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
+  @service declare toast: ToastService;
 
   @tracked token?: string;
   @tracked user?: User;
@@ -28,6 +31,24 @@ export default class CurrentUserService extends Service {
 
   get isProxyLoggedIn() {
     return Boolean(this.proxyUid);
+  }
+
+  isProxyLoggedInAs(uid: string) {
+    return this.proxyUid === uid;
+  }
+
+  @action
+  startProxy(uid: string) {
+    this.proxyUid = uid;
+
+    this.toast.show(`Proxy login as ${uid}.`, 'success');
+  }
+
+  @action
+  stopProxy() {
+    this.proxyUid = undefined;
+
+    this.toast.show('Proxy login deactivated.', 'success');
   }
 
   get authorizationHeader() {

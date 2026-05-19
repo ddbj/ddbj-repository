@@ -32,7 +32,10 @@ Router.map(function () {
   });
 
   this.route('admin', function () {
-    this.route('users');
+    this.route('users', function () {
+      this.route('user', { path: ':uid' });
+    });
+
     this.route('regenerate-flatfiles');
     this.route('requests');
     this.route('submissions');

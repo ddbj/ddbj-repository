@@ -10,5 +10,10 @@ module Admin
         CloakmanClient.new.lookup(User.order(:uid).pluck(:uid))
       end
     end
+
+    def show
+      @user    = User.find_by!(uid: params[:uid])
+      @profile = CloakmanClient.new.lookup([@user.uid]).first or raise ActiveRecord::RecordNotFound
+    end
   end
 end

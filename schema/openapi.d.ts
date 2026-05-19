@@ -708,6 +708,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users/{uid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                uid: string;
+            };
+            cookie?: never;
+        };
+        /** @description Admin-only DDBJ account detail combined with local admin flag. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the user detail. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdminUserDetail"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/submissions": {
         parameters: {
             query?: never;
@@ -785,6 +828,14 @@ export interface components {
             email: string | null;
             organization: string | null;
             account_type_number: string;
+        };
+        AdminUserDetail: {
+            uid: string;
+            full_name: string | null;
+            email: string | null;
+            organization: string | null;
+            account_type_number: string;
+            admin: boolean;
         };
         SubmissionRequestSummary: {
             id: number;
