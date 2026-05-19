@@ -14,17 +14,16 @@ import Breadcrumb from 'repository/components/breadcrumb';
 
 import type { RequestManager } from '@warp-drive/core';
 import type Owner from '@ember/owner';
-import type RouterService from '@ember/routing/router-service';
 import type CurrentUserService from 'repository/services/current-user';
 import type ToastService from 'repository/services/toast';
-import type { components } from 'schema/openapi';
+import type { components, paths } from 'schema/openapi';
 
 type Model = components['schemas']['AdminUserDetail'];
+type UpdateResponse = paths['/admin/users/{uid}']['patch']['responses']['200']['content']['application/json'];
 
 class AdminUserDetailPage extends Component<{ Args: { model: Model } }> {
   @service declare currentUser: CurrentUserService;
   @service declare requestManager: RequestManager;
-  @service declare router: RouterService;
   @service declare toast: ToastService;
 
   @tracked notes: string;
@@ -43,15 +42,16 @@ class AdminUserDetailPage extends Component<{ Args: { model: Model } }> {
   async saveNotes(e: Event) {
     e.preventDefault();
 
-    await this.requestManager.request({
+    const { content } = await this.requestManager.request<UpdateResponse>({
       url: `/admin/users/${encodeURIComponent(this.args.model.uid)}`,
       method: 'PATCH',
       data: { user: { notes: this.notes } },
     });
 
-    this.toast.show('Notes saved.', 'success');
+    this.args.model.notes = content.notes;
+    this.notes = content.notes;
 
-    await this.router.refresh();
+    this.toast.show('Notes saved.', 'success');
   }
 
   <template>

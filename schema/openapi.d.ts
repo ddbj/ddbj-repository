@@ -770,12 +770,16 @@ export interface paths {
                 };
             };
             responses: {
-                /** @description The notes were updated. */
-                204: {
+                /** @description Returns the updated notes. */
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            notes: string;
+                        };
+                    };
                 };
                 401: components["responses"]["Unauthorized"];
                 403: components["responses"]["Forbidden"];

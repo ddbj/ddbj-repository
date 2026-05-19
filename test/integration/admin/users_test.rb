@@ -113,10 +113,12 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_equal 'Existing note', response.parsed_body['notes']
   end
 
-  test 'update persists notes' do
+  test 'update persists notes and echoes them back' do
     patch admin_user_path(uid: 'alice'), params: {user: {notes: 'Be careful with this account.'}}, as: :json
 
-    assert_response :no_content
+    assert_conform_schema 200
+
+    assert_equal 'Be careful with this account.', response.parsed_body['notes']
     assert_equal 'Be careful with this account.', users(:alice).reload.notes
   end
 

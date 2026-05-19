@@ -41,20 +41,12 @@ module('Acceptance | admin | user detail', function (hooks) {
     assert.dom('a[href*="/admin/submissions"]').includesText('Submissions (3)');
   });
 
-  test('saves notes via PATCH and refreshes the model', async (assert) => {
-    let savedNotes = '';
-
+  test('saves notes via PATCH and writes the response back into the model', async (assert) => {
     worker.use(
-      mswHttp.get(userURL, () => {
-        return HttpResponse.json({ ...profile, notes: savedNotes });
-      }),
-
       mswHttp.patch(userURL, async ({ request }) => {
         const body = (await request.json()) as { user: { notes: string } };
 
-        savedNotes = body.user.notes;
-
-        return new HttpResponse(null, { status: 204 });
+        return HttpResponse.json({ notes: body.user.notes });
       }),
     );
 

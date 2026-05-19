@@ -31,7 +31,7 @@ module Admin
       user = User.find_by!(uid: params[:uid])
       user.update!(params.expect(user: [:notes]))
 
-      head :no_content
+      render json: {notes: user.notes}
     end
 
     private

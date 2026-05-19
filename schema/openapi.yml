@@ -659,8 +659,19 @@ paths:
                       type: string
 
       responses:
-        '204':
-          description: The notes were updated.
+        '200':
+          description: Returns the updated notes.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [notes]
+
+                properties:
+                  notes:
+                    type: string
 
         '401':
           $ref: '#/components/responses/Unauthorized'
