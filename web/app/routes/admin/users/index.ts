@@ -10,16 +10,14 @@ export default class extends Route {
   @service declare requestManager: RequestManager;
 
   queryParams = {
-    query: {
-      refreshModel: true,
-      replace: true,
-    },
+    query: { refreshModel: true, replace: true },
+    include_inactive: { refreshModel: true, replace: true },
   };
 
-  async model({ query }: { query?: string }) {
+  async model({ query, include_inactive }: { query?: string; include_inactive?: string }) {
     const { content } = await this.requestManager.request<AdminUsers>({
       url: '/admin/users',
-      options: { params: { query } },
+      options: { params: { query, include_inactive } },
     });
 
     return {

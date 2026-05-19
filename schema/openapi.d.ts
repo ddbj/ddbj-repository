@@ -680,6 +680,8 @@ export interface paths {
                 query?: {
                     /** @description Partial match against uid, email, and full name. */
                     query?: string;
+                    /** @description Include users without any submission requests or submissions. */
+                    include_inactive?: "1";
                 };
                 header?: never;
                 path?: never;
@@ -828,6 +830,8 @@ export interface components {
             email: string | null;
             organization: string | null;
             account_type_number: string;
+            submission_requests_count: number;
+            submissions_count: number;
         };
         AdminUserDetail: {
             uid: string;
@@ -836,6 +840,8 @@ export interface components {
             organization: string | null;
             account_type_number: string;
             admin: boolean;
+            submission_requests_count: number;
+            submissions_count: number;
         };
         SubmissionRequestSummary: {
             id: number;

@@ -1,5 +1,7 @@
 {
   **@profile.slice('uid', 'full_name', 'email', 'organization', 'account_type_number'),
 
-  admin: @user.admin
+  admin:                     @user.admin,
+  submission_requests_count: @counts[:requests][@user.id]    || 0,
+  submissions_count:         @counts[:submissions][@user.id] || 0
 }

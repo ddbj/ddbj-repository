@@ -10,48 +10,37 @@ import { worker } from '../../msw/worker';
 
 const userURL = `${ENV.apiURL}/admin/users/alice`;
 
+const profile = {
+  uid: 'alice',
+  full_name: 'Alice Liddell',
+  email: 'alice@example.com',
+  organization: 'Wonderland',
+  account_type_number: 'general',
+  admin: false,
+  submission_requests_count: 5,
+  submissions_count: 3,
+};
+
 module('Acceptance | admin | user detail', function (hooks) {
   setupApplicationTest(hooks);
   setupAuthentication(hooks, { admin: true });
 
-  test('renders the cloakman profile and activity links', async (assert) => {
-    worker.use(
-      mswHttp.get(userURL, () => {
-        return HttpResponse.json({
-          uid: 'alice',
-          full_name: 'Alice Liddell',
-          email: 'alice@example.com',
-          organization: 'Wonderland',
-          account_type_number: 'general',
-          admin: false,
-        });
-      }),
-    );
+  hooks.beforeEach(() => {
+    worker.use(mswHttp.get(userURL, () => HttpResponse.json(profile)));
+  });
 
+  test('renders the cloakman profile and activity links with counts', async (assert) => {
     await visit('/admin/users/alice');
 
     assert.dom('h1').hasText('alice');
     assert.dom('dl').includesText('Alice Liddell');
     assert.dom('dl').includesText('alice@example.com');
     assert.dom('dl').includesText('Wonderland');
-    assert.dom('a[href*="/admin/requests"]').exists();
-    assert.dom('a[href*="/admin/submissions"]').exists();
+    assert.dom('a[href*="/admin/requests"]').includesText('Submission requests (5)');
+    assert.dom('a[href*="/admin/submissions"]').includesText('Submissions (3)');
   });
 
   test('proxy login toggle activates and deactivates', async (assert) => {
-    worker.use(
-      mswHttp.get(userURL, () => {
-        return HttpResponse.json({
-          uid: 'alice',
-          full_name: 'Alice Liddell',
-          email: 'alice@example.com',
-          organization: 'Wonderland',
-          account_type_number: 'general',
-          admin: false,
-        });
-      }),
-    );
-
     await visit('/admin/users/alice');
 
     assert.dom('main button').includesText('Proxy login as alice');

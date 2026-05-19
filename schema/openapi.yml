@@ -574,6 +574,14 @@ paths:
           schema:
             type: string
 
+        - name: include_inactive
+          in: query
+          description: Include users without any submission requests or submissions.
+
+          schema:
+            type: string
+            enum: ['1']
+
       responses:
         '200':
           description: Returns the list of users.
@@ -762,6 +770,8 @@ components:
         - email
         - organization
         - account_type_number
+        - submission_requests_count
+        - submissions_count
 
       properties:
         uid:
@@ -785,6 +795,12 @@ components:
         account_type_number:
           type: string
 
+        submission_requests_count:
+          type: number
+
+        submissions_count:
+          type: number
+
     AdminUserDetail:
       type: object
       additionalProperties: false
@@ -796,6 +812,8 @@ components:
         - organization
         - account_type_number
         - admin
+        - submission_requests_count
+        - submissions_count
 
       properties:
         uid:
@@ -821,6 +839,12 @@ components:
 
         admin:
           type: boolean
+
+        submission_requests_count:
+          type: number
+
+        submissions_count:
+          type: number
 
     SubmissionRequestSummary:
       type: object
