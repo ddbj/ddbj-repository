@@ -1,0 +1,14 @@
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <% items.each_with_index do |item, i| %>
+      <% last = i == items.size - 1 %>
+      <li class="breadcrumb-item <%= 'active' if last %>" <%= 'aria-current="page"'.html_safe if last %>>
+        <% if item[:path] && !last %>
+          <%= link_to item[:label], item[:path] %>
+        <% else %>
+          <%= item[:label] %>
+        <% end %>
+      </li>
+    <% end %>
+  </ol>
+</nav>

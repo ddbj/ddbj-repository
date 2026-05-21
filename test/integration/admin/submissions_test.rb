@@ -2,36 +2,24 @@ require 'test_helper'
 
 class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   setup do
-    default_headers['Authorization'] = "Bearer #{users(:bob).api_key}"
+    sign_in_as users(:bob)
   end
 
   test 'index returns submissions across all DBs by default' do
     get admin_submissions_path
 
-    assert_conform_schema 200
-
-    ids = response.parsed_body.pluck('id')
-
-    assert_includes ids, submissions(:st26).id
-    assert_includes ids, submissions(:bioproject).id
-    assert_includes ids, submissions(:biosample).id
+    assert_response :ok
+    assert_match "Submission-#{submissions(:st26).id}",       response.body
+    assert_match "Submission-#{submissions(:bioproject).id}", response.body
+    assert_match "Submission-#{submissions(:biosample).id}",  response.body
   end
 
   test 'index filters by db' do
     get admin_submissions_path, params: {db: 'st26'}
 
     assert_response :ok
-
-    body = response.parsed_body
-    ids  = body.pluck('id')
-
-    assert_includes     ids, submissions(:st26).id
-    assert_not_includes ids, submissions(:bioproject).id
-
-    entry = body.find { it['id'] == submissions(:st26).id }
-
-    assert_equal 'st26',            entry['db']
-    assert_equal users(:alice).uid, entry.dig('user', 'uid')
+    assert_match    "Submission-#{submissions(:st26).id}",       response.body
+    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
   end
 
   test 'index filters by user uid' do
@@ -46,15 +34,12 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     get admin_submissions_path, params: {user: 'carol'}
 
     assert_response :ok
-
-    ids = response.parsed_body.pluck('id')
-
-    assert_includes     ids, carol_submission.id
-    assert_not_includes ids, submissions(:st26).id
+    assert_match    "Submission-#{carol_submission.id}",     response.body
+    assert_no_match "Submission-#{submissions(:st26).id}",   response.body
   end
 
   test 'index returns 403 for non-admin users' do
-    default_headers['Authorization'] = "Bearer #{users(:carol).api_key}"
+    sign_in_as users(:carol)
 
     with_exceptions_app do
       get admin_submissions_path

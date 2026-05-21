@@ -1,7 +1,0 @@
-@submissions.map {|submission|
-  {
-    **submission.slice(:id, :db, :created_at, :updated_at),
-
-    user: submission.request.user.slice(:uid)
-  }
-}

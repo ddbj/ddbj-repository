@@ -17,7 +17,7 @@ volumes:
 
 builder:
   args:
-    API_URL: https://repository-staging.ddbj.nig.ac.jp/api
+    APP_URL: https://repository-staging.ddbj.nig.ac.jp
 
 accessories:
   postgres:

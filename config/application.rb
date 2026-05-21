@@ -1,4 +1,5 @@
 require_relative 'boot'
+require_relative '../lib/middleware/path_scoped'
 
 require 'rails'
 # Pick the frameworks you want:
@@ -43,7 +44,15 @@ module Repository
 
     config.time_zone = 'Asia/Tokyo'
 
-    config.middleware.use ActionDispatch::Cookies
-    config.middleware.use ActionDispatch::Session::CookieStore
+    api_paths = %r{\A/api(/|\z)}
+
+    [
+      Rack::MethodOverride,
+      ActionDispatch::Cookies,
+      ActionDispatch::Session::CookieStore,
+      ActionDispatch::Flash
+    ].each do |middleware|
+      config.middleware.use Middleware::PathScoped, middleware, except: api_paths
+    end
   end
 end

@@ -8,9 +8,7 @@ module Admin
         scope = scope.where(request: SubmissionRequest.where(user: User.where(uid: params[:user])))
       end
 
-      pagy, @submissions = pagy(scope)
-
-      response.headers.merge! pagy.headers_hash
+      @pagy, @submissions = pagy(scope)
     end
   end
 end

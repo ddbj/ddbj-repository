@@ -1,6 +1,12 @@
 class RegenerateSubmissionFlatfilesJob < ApplicationJob
   include SubmissionOutputWriter
 
+  rescue_from StandardError do |error|
+    arguments.find { it.is_a?(RegenerateFlatfilesProgress) }&.increment! :failed
+
+    raise error
+  end
+
   def perform(submission, user, progress, date, force: false)
     record = submission.ddbj_record.open { DDBJRecord.parse(it) }
 

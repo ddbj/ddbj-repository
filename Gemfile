@@ -6,6 +6,9 @@ gem 'active_storage_validations'
 gem 'aws-sdk-s3'
 gem 'bio'
 gem 'bootsnap', require: false
+gem 'bootstrap'
+gem 'dartsass-rails'
+gem 'importmap-rails'
 gem 'diff-lcs'
 gem 'erubi'
 gem 'faraday'
@@ -25,7 +28,9 @@ gem 'rack-cors'
 gem 'rambulance'
 gem 'sentry-rails'
 gem 'solid_queue'
+gem 'stimulus-rails'
 gem 'thruster'
+gem 'turbo-rails'
 
 group :development do
   gem 'brakeman', require: false

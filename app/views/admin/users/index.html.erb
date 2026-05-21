@@ -1,0 +1,68 @@
+<% content_for :title, 'Users' %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration', path: admin_root_path},
+  {label: 'Users'}
+] %>
+
+<h1 class="display-6 mb-4">Users</h1>
+
+<%= form_with url: admin_users_path, method: :get, local: true do |f| %>
+  <div class="mb-3">
+    <label for="users-query" class="visually-hidden">Search</label>
+
+    <div class="input-group">
+      <%= f.search_field :query, value: params[:query], id: 'users-query', class: 'form-control', placeholder: 'Search by username, email, or name' %>
+      <%= f.submit 'Search', class: 'btn btn-primary' %>
+    </div>
+  </div>
+
+  <div class="form-check mb-3">
+    <%= f.check_box :include_inactive, {checked: @include_inactive, class: 'form-check-input', id: 'users-include-inactive', onchange: 'this.form.submit()'}, '1', '' %>
+    <label for="users-include-inactive" class="form-check-label">
+      Include users without submission requests
+    </label>
+  </div>
+<% end %>
+
+<p class="text-body-secondary small">
+  Up to 100 users are shown. Refine your search if you don't see the user you're looking for.
+</p>
+
+<table class="table table-hover border">
+  <thead class="table-light">
+    <tr>
+      <th>Username</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Organization</th>
+      <th>Account type</th>
+      <th class="text-end">Requests</th>
+      <th class="text-end">Submissions</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% rows = @users.filter_map {|user| [user, @profiles_by_uid[user.uid]] if @profiles_by_uid.key?(user.uid) } %>
+
+    <% rows.each do |user, profile| %>
+      <tr class="position-relative">
+        <td>
+          <%= link_to user.uid, admin_user_path(uid: user.uid), class: 'stretched-link text-decoration-none text-reset' %>
+        </td>
+        <td><%= profile['full_name'] %></td>
+        <td><%= profile['email'] %></td>
+        <td><%= profile['organization'] %></td>
+        <td><%= profile['account_type_number'] %></td>
+        <td class="text-end"><%= @counts[:requests][user.id] %></td>
+        <td class="text-end"><%= @counts[:submissions][user.id] %></td>
+      </tr>
+    <% end %>
+
+    <% if rows.empty? %>
+      <tr>
+        <td colspan="7" class="text-center text-body-secondary py-4">No users found.</td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

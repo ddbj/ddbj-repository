@@ -1,15 +1,22 @@
 class SessionsController < ApplicationController
-  skip_before_action :authenticate!, only: %i[create]
+  ADMIN_ACCOUNT_TYPE = 3
+
+  skip_before_action :authenticate!, only: %i[create destroy]
 
   def create
     uid  = request.env.dig('omniauth.auth', 'extra', 'raw_info', 'preferred_username')
     user = User.find_or_initialize_by(uid:)
 
-    user.update! admin: request.env.dig('omniauth.auth', 'extra', 'raw_info', 'account_type_number') == 3
+    user.update! admin: request.env.dig('omniauth.auth', 'extra', 'raw_info', 'account_type_number') == ADMIN_ACCOUNT_TYPE
 
-    url       = URI.join(Rails.application.config_for(:app).web_url!, '/web/login')
-    url.query = URI.encode_www_form(token: user.token)
+    session[:user_id] = user.id
 
-    redirect_to url.to_s, allow_other_host: true
+    redirect_to_web '/web/login', token: user.token
+  end
+
+  def destroy
+    reset_session
+
+    redirect_to_web
   end
 end

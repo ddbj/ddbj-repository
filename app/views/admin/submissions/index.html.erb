@@ -1,0 +1,42 @@
+<% content_for :title, 'Submissions' %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration', path: admin_root_path},
+  {label: 'Submissions'}
+] %>
+
+<h1 class="display-6 mb-4">Submissions</h1>
+
+<%= render 'admin/shared/list_filter', url: admin_submissions_path %>
+
+<table class="table border">
+  <thead class="table-light">
+    <tr>
+      <th>ID</th>
+      <th>Database</th>
+      <th>User</th>
+      <th>Created</th>
+      <th>Updated</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @submissions.each do |submission| %>
+      <tr>
+        <td>Submission-<%= submission.id %></td>
+        <td><%= db_label(submission.db) %></td>
+        <td><%= submission.request.user.uid %></td>
+        <td><%= submission.created_at.to_fs(:db) %></td>
+        <td><%= submission.updated_at.to_fs(:db) %></td>
+      </tr>
+    <% end %>
+
+    <% if @submissions.empty? %>
+      <tr>
+        <td colspan="5" class="text-center text-body-secondary py-4">No submissions found.</td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<%= render 'admin/shared/pagy_nav', pagy: @pagy %>

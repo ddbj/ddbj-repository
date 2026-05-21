@@ -1,0 +1,66 @@
+<% content_for :title, @user.uid %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration', path: admin_root_path},
+  {label: 'Users', path: admin_users_path},
+  {label: @user.uid}
+] %>
+
+<h1 class="display-6 mb-4"><%= @user.uid %></h1>
+
+<dl class="row">
+  <dt class="col-sm-3">Name</dt>
+  <dd class="col-sm-9"><%= @profile['full_name'] %></dd>
+
+  <dt class="col-sm-3">Email</dt>
+  <dd class="col-sm-9"><%= @profile['email'] %></dd>
+
+  <dt class="col-sm-3">Organization</dt>
+  <dd class="col-sm-9"><%= @profile['organization'] %></dd>
+
+  <dt class="col-sm-3">Account type</dt>
+  <dd class="col-sm-9"><%= @profile['account_type_number'] %></dd>
+
+  <dt class="col-sm-3">Admin</dt>
+  <dd class="col-sm-9">
+    <% if @user.admin? %>
+      <span class="badge text-bg-success">Yes</span>
+    <% else %>
+      <span class="badge text-bg-secondary">No</span>
+    <% end %>
+  </dd>
+</dl>
+
+<h2 class="h5 mt-4">Activity</h2>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <%= link_to admin_submission_requests_path(user: @user.uid), class: 'card text-decoration-none h-100' do %>
+      <div class="card-body">
+        <h3 class="card-title h6">Submission requests (<%= @counts[:requests][@user.id] %>)</h3>
+        <p class="card-text text-body-secondary mb-0">View this user's submission requests.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-md-6">
+    <%= link_to admin_submissions_path(user: @user.uid), class: 'card text-decoration-none h-100' do %>
+      <div class="card-body">
+        <h3 class="card-title h6">Submissions (<%= @counts[:submissions][@user.id] %>)</h3>
+        <p class="card-text text-body-secondary mb-0">View this user's applied submissions.</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<h2 class="h5 mt-4">Notes</h2>
+
+<%= form_with model: @user, url: admin_user_path(uid: @user.uid), method: :patch, local: true, class: 'mb-4' do |f| %>
+  <%= f.label :notes, class: 'visually-hidden' %>
+  <%= f.text_area :notes, rows: 6, class: 'form-control mb-2', placeholder: 'Share context with other administrators (e.g. past correspondence).' %>
+  <%= f.submit 'Save', class: 'btn btn-primary' %>
+<% end %>
+
+<h2 class="h5 mt-4">Proxy login</h2>
+
+<%= button_to "Proxy login as #{@user.uid}", admin_user_proxy_login_path(user_uid: @user.uid), method: :post, class: 'btn btn-outline-primary', data: {turbo: false} %>

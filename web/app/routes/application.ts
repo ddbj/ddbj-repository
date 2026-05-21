@@ -24,6 +24,16 @@ export default class ApplicationRoute extends Route {
         throw err;
       }
     }
+
+    const url = new URL(location.href);
+    const proxyUid = url.searchParams.get('proxy_login');
+
+    if (proxyUid && this.currentUser.isLoggedIn) {
+      this.currentUser.startProxy(proxyUid);
+
+      url.searchParams.delete('proxy_login');
+      window.history.replaceState(null, '', url.toString());
+    }
   }
 
   @action

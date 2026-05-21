@@ -1,0 +1,53 @@
+<% content_for :title, 'Regenerate Flatfiles' %>
+
+<% loading = @progress&.loading? %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration', path: admin_root_path},
+  {label: 'Regenerate Flatfiles'}
+] %>
+
+<h1 class="display-6 mb-4">Regenerate Flatfiles</h1>
+
+<div class="card">
+  <div class="card-body">
+    <%= form_with url: admin_regenerate_flatfiles_path, method: :post, local: true do |f| %>
+      <div class="mb-3">
+        <%= f.label :date, 'LOCUS Date', class: 'form-label' %>
+        <%= f.date_field :date, class: 'form-control', required: true, disabled: loading %>
+      </div>
+
+      <div class="form-check mb-3">
+        <%= f.check_box :force, {class: 'form-check-input', disabled: loading}, '1', '' %>
+        <%= f.label :force, 'Force update all submissions (even if content is unchanged)', class: 'form-check-label' %>
+      </div>
+
+      <%= f.submit 'Regenerate', class: 'btn btn-primary', disabled: loading %>
+    <% end %>
+  </div>
+</div>
+
+<% if loading %>
+  <div class="card mt-3" data-controller="auto-refresh">
+    <div class="card-body">
+      <p class="mb-2">
+        Processing: <%= @progress.processed %> succeeded
+        <% if @progress.failed.positive? %>, <%= @progress.failed %> failed<% end %>
+        / <%= @progress.total %> submissions
+      </p>
+
+      <div class="progress">
+        <% percent = @progress.total.zero? ? 100 : ((@progress.processed + @progress.failed).to_f / @progress.total * 100).round %>
+        <div class="progress-bar" role="progressbar" style="width: <%= percent %>%;"></div>
+      </div>
+    </div>
+  </div>
+<% elsif @progress&.completed? %>
+  <div class="alert alert-<%= @progress.failed.positive? ? 'warning' : 'success' %> mt-3 mb-0" role="alert">
+    Completed at <%= @progress.updated_at.to_fs(:db) %>:
+    <%= @progress.processed %> succeeded<% if @progress.failed.positive? %>, <%= @progress.failed %> failed<% end %>.
+    <% if @progress.failed.positive? %>
+      See <%= link_to 'Jobs', admin_mission_control_jobs_path, class: 'alert-link' %> for failure details.
+    <% end %>
+  </div>
+<% end %>

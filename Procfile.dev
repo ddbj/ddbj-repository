@@ -1,3 +1,4 @@
 api: PORT=3000 SOLID_QUEUE_IN_PUMA=true bundle exec puma
+css: bundle exec rails dartsass:watch
 web: cd web && pnpm start --port 4200
 services: docker compose -f compose.dev.yaml up

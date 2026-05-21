@@ -1,5 +1,5 @@
 development:
-  url:       http://cloakman.localhost:3001
+  url:       <%= ENV.fetch('CLOAKMAN_URL', 'http://localhost:3001') %>
   api_token: <%= ENV['CLOAKMAN_API_TOKEN'] %>
 
 test:
