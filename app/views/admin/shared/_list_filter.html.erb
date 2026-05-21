@@ -1,0 +1,15 @@
+<%= form_with url:, method: :get, local: true, class: 'row g-2 mb-3' do |f| %>
+  <div class="col-sm-4">
+    <%= f.label :db, 'Database', class: 'form-label visually-hidden' %>
+    <%= f.select :db, db_options, {include_blank: 'All databases', selected: params[:db]}, class: 'form-select' %>
+  </div>
+
+  <div class="col-sm-6">
+    <%= f.label :user, 'User uid', class: 'form-label visually-hidden' %>
+    <%= f.search_field :user, value: params[:user], class: 'form-control', placeholder: 'Filter by user uid' %>
+  </div>
+
+  <div class="col-sm-2">
+    <%= f.submit 'Filter', class: 'btn btn-primary w-100' %>
+  </div>
+<% end %>

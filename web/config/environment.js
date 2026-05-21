@@ -19,10 +19,12 @@ module.exports = function (environment) {
       // when it is created
     },
 
-    apiURL: process.env.API_URL || 'http://repository.localhost:3000/api',
+    appURL: process.env.APP_URL || 'http://localhost:3000',
   };
 
-  ENV.directUploadURL = new URL('/rails/active_storage/direct_uploads', ENV.apiURL).toString();
+  ENV.apiURL = new URL('/api', ENV.appURL).toString();
+  ENV.adminURL = new URL('/admin', ENV.appURL).toString();
+  ENV.directUploadURL = new URL('/rails/active_storage/direct_uploads', ENV.appURL).toString();
 
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;

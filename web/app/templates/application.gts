@@ -6,12 +6,15 @@ import { service } from '@ember/service';
 
 import { pageTitle } from 'ember-page-title';
 
+import ENV from 'repository/config/environment';
 import ErrorMessage from 'repository/components/error-message';
 
 import type CurrentUserService from 'repository/services/current-user';
 import type ErrorModalService from 'repository/services/error-modal';
 import type LoadingService from 'repository/services/loading';
 import type ToastService from 'repository/services/toast';
+
+const adminURL = ENV.adminURL;
 
 export default class extends Component {
   @service declare currentUser: CurrentUserService;
@@ -20,8 +23,8 @@ export default class extends Component {
   @service declare toast: ToastService;
 
   @action
-  logout() {
-    this.currentUser.logout();
+  async logout() {
+    await this.currentUser.logout();
 
     this.toast.show('Logged out.', 'success');
   }
@@ -38,7 +41,7 @@ export default class extends Component {
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
               {{#if this.currentUser.user.isAdmin}}
                 <li class="nav-item">
-                  <LinkTo @route="admin" class="nav-link">Administration</LinkTo>
+                  <a href={{adminURL}} class="nav-link">Administration</a>
                 </li>
               {{/if}}
             </ul>

@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::API
   include ActionController::HttpAuthentication::Token::ControllerMethods
   include Pagy::Method
+  include WebRedirect
 
   before_action :authenticate!
 

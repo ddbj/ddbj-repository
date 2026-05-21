@@ -3,7 +3,7 @@ OmniAuth.config.request_validation_phase = nil
 keycloak     = Rails.application.config_for(:keycloak)
 keycloak_url = URI.parse(keycloak.url!)
 
-Rails.application.config.middleware.use OmniAuth::Builder do
+Rails.application.config.middleware.use Middleware::PathScoped, OmniAuth::Builder, except: %r{\A/api(/|\z)} do
   provider :openid_connect, **{
     name:      'keycloak',
     issuer:    URI.join(keycloak_url, '/realms/master').to_s,

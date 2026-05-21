@@ -1,11 +1,13 @@
 module Admin
-  class ApplicationController < ::ApplicationController
-    before_action :require_admin!
+  class ApplicationController < ActionController::Base
+    include AdminAuthentication
+    include WebRedirect
+    include Pagy::Method
 
-    private
+    helper Admin::ViewHelpers
 
-    def require_admin!
-      head :forbidden unless current_user&.admin?
-    end
+    layout 'admin'
+
+    before_action :authenticate_admin!
   end
 end

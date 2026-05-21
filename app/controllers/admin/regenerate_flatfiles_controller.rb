@@ -1,13 +1,7 @@
 module Admin
   class RegenerateFlatfilesController < ApplicationController
     def show
-      progress = RegenerateFlatfilesProgress.order(created_at: :desc).first
-
-      render json: {
-        loading:   progress ? progress.processed < progress.total : false,
-        total:     progress&.total,
-        processed: progress&.processed
-      }
+      @progress = RegenerateFlatfilesProgress.order(created_at: :desc).first
     end
 
     def create
@@ -21,7 +15,7 @@ module Admin
         RegenerateSubmissionFlatfilesJob.new(submission, current_user, progress, date, force:)
       }
 
-      render json: {}, status: :accepted
+      redirect_to admin_regenerate_flatfiles_path, notice: 'Flatfile regeneration started.', status: :see_other
     end
   end
 end

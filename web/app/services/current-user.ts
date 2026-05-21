@@ -2,6 +2,7 @@ import Service, { service } from '@ember/service';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
+import ENV from 'repository/config/environment';
 import User from 'repository/models/user';
 
 import type { RequestManager } from '@warp-drive/core';
@@ -63,12 +64,8 @@ export default class CurrentUserService extends Service {
     return headers;
   }
 
-  ensureLogin(transition: Transition, requireAdmin = false) {
-    if (requireAdmin) {
-      if (this.isLoggedIn && this.user?.isAdmin) return;
-    } else {
-      if (this.isLoggedIn) return;
-    }
+  ensureLogin(transition: Transition) {
+    if (this.isLoggedIn) return;
 
     this.previousTransition = transition;
 
@@ -95,9 +92,20 @@ export default class CurrentUserService extends Service {
     }
   }
 
-  logout() {
+  async logout() {
     this.clear();
     localStorage.removeItem('token');
+
+    // /session is outside /api, so RequestManager's BaseURLHandler wouldn't
+    // route it; AuthHandler would also attach a stale bearer token.
+    const sessionUrl = new URL('/session', ENV.apiURL).toString();
+
+    try {
+      // eslint-disable-next-line warp-drive/no-external-request-patterns
+      await fetch(sessionUrl, { method: 'DELETE', credentials: 'include' });
+    } catch {
+      // Network failures are non-fatal: local state is already cleared.
+    }
 
     this.router.transitionTo('index');
   }

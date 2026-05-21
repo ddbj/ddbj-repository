@@ -2,49 +2,47 @@ require 'test_helper'
 
 class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   setup do
-    @admin = users(:alice).tap { it.update!(admin: true) }
-
-    default_headers['Authorization'] = "Bearer #{@admin.api_key}"
+    sign_in_as users(:bob)
   end
 
   test 'show returns idle state when no progress exists' do
     get admin_regenerate_flatfiles_path
 
     assert_response :ok
-
-    body = response.parsed_body
-
-    assert_equal false, body['loading']
-    assert_nil          body['total']
-    assert_nil          body['processed']
+    assert_match 'Regenerate Flatfiles', response.body
+    assert_no_match 'Processing:',       response.body
   end
 
-  test 'show returns loading state while regeneration is in progress' do
+  test 'show renders progress bar while regeneration is in progress' do
     RegenerateFlatfilesProgress.create!(total: 10, processed: 3)
 
     get admin_regenerate_flatfiles_path
 
     assert_response :ok
-
-    body = response.parsed_body
-
-    assert_equal true, body['loading']
-    assert_equal 10,   body['total']
-    assert_equal 3,    body['processed']
+    assert_match 'Processing: 3 succeeded',         response.body
+    assert_match 'data-controller="auto-refresh"',  response.body
   end
 
-  test 'show returns not-loading state when regeneration has completed' do
-    RegenerateFlatfilesProgress.create!(total: 5, processed: 5)
+  test 'show counts failed jobs in progress so the run can finish despite failures' do
+    RegenerateFlatfilesProgress.create!(total: 10, processed: 7, failed: 3)
 
     get admin_regenerate_flatfiles_path
 
     assert_response :ok
+    assert_match 'Completed at',                       response.body
+    assert_match '7 succeeded, 3 failed',              response.body
+    assert_no_match 'data-controller="auto-refresh"',  response.body
+  end
 
-    body = response.parsed_body
+  test 'show renders completion alert with the finish timestamp' do
+    progress = RegenerateFlatfilesProgress.create!(total: 5, processed: 5)
 
-    assert_equal false, body['loading']
-    assert_equal 5,     body['total']
-    assert_equal 5,     body['processed']
+    get admin_regenerate_flatfiles_path
+
+    assert_response :ok
+    assert_match "Completed at #{progress.updated_at.to_fs(:db)}",  response.body
+    assert_match '5 succeeded.',                                    response.body
+    assert_no_match 'data-controller="auto-refresh"',               response.body
   end
 
   test 'create enqueues jobs for submissions with ddbj_record' do
@@ -57,10 +55,10 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     )
 
     assert_enqueued_with job: RegenerateSubmissionFlatfilesJob do
-      post admin_regenerate_flatfiles_path, params: {date: '2026-07-01'}, as: :json
+      post admin_regenerate_flatfiles_path, params: {date: '2026-07-01'}
     end
 
-    assert_response :accepted
+    assert_redirected_to admin_regenerate_flatfiles_path
 
     progress = RegenerateFlatfilesProgress.order(created_at: :desc).first
 
@@ -81,9 +79,9 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
       content_type: 'application/json'
     )
 
-    post admin_regenerate_flatfiles_path, params: {date: '2026-07-01', force: true}, as: :json
+    post admin_regenerate_flatfiles_path, params: {date: '2026-07-01', force: '1'}
 
-    assert_response :accepted
+    assert_redirected_to admin_regenerate_flatfiles_path
 
     enqueued = ActiveJob::Base.queue_adapter.enqueued_jobs.find { it['job_class'] == 'RegenerateSubmissionFlatfilesJob' }
 
@@ -91,9 +89,11 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   end
 
   test 'create returns 403 for non-admin users' do
-    default_headers['Authorization'] = "Bearer #{users(:carol).api_key}"
+    sign_in_as users(:carol)
 
-    post admin_regenerate_flatfiles_path, params: {date: '2026-07-01'}, as: :json
+    with_exceptions_app do
+      post admin_regenerate_flatfiles_path, params: {date: '2026-07-01'}
+    end
 
     assert_response :forbidden
   end

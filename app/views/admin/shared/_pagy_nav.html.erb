@@ -1,0 +1,40 @@
+<% if pagy.pages > 1 %>
+  <nav>
+    <ul class="pagination justify-content-center">
+      <li class="page-item <%= 'disabled' if pagy.page == 1 %>">
+        <%= link_to '«', pagy.page_url(:first), class: 'page-link', 'aria-label': 'First' %>
+      </li>
+
+      <li class="page-item <%= 'disabled' unless pagy.previous %>">
+        <% if pagy.previous %>
+          <%= link_to '‹', pagy.page_url(:previous), class: 'page-link', 'aria-label': 'Previous' %>
+        <% else %>
+          <span class="page-link" aria-hidden="true">‹</span>
+        <% end %>
+      </li>
+
+      <% pagy.data_hash(data_keys: [:series])[:series].each do |item| %>
+        <% case item %>
+        <% when :gap %>
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        <% when String %>
+          <li class="page-item active" aria-current="page"><span class="page-link"><%= item %></span></li>
+        <% else %>
+          <li class="page-item"><%= link_to item, pagy.page_url(item), class: 'page-link' %></li>
+        <% end %>
+      <% end %>
+
+      <li class="page-item <%= 'disabled' unless pagy.next %>">
+        <% if pagy.next %>
+          <%= link_to '›', pagy.page_url(:next), class: 'page-link', 'aria-label': 'Next' %>
+        <% else %>
+          <span class="page-link" aria-hidden="true">›</span>
+        <% end %>
+      </li>
+
+      <li class="page-item <%= 'disabled' if pagy.page == pagy.last %>">
+        <%= link_to '»', pagy.page_url(:last), class: 'page-link', 'aria-label': 'Last' %>
+      </li>
+    </ul>
+  </nav>
+<% end %>

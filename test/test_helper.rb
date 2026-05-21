@@ -7,6 +7,8 @@ require 'minitest-default_http_header'
 
 WebMock.disable_net_connect! allow_localhost: true
 
+OmniAuth.config.test_mode = true
+
 Skooma::BodyParsers.register 'multipart/form-data', ->(body, headers:) {
   Rack::Multipart::Parser.parse(
     StringIO.new(body),
@@ -27,6 +29,10 @@ end
 class ActionDispatch::IntegrationTest
   include Skooma::Minitest[Rails.root.join('schema/openapi.yml'), path_prefix: '/api']
   include Rambulance::TestHelper
+
+  teardown do
+    OmniAuth.config.mock_auth[:keycloak] = nil
+  end
 
   private
 
@@ -56,5 +62,31 @@ class ActionDispatch::IntegrationTest
       filename:     'example-aa.flat',
       content_type: 'text/plain'
     )
+  end
+
+  def sign_in_as(user)
+    OmniAuth.config.mock_auth[:keycloak] = OmniAuth::AuthHash.new(
+      'provider' => 'keycloak',
+      'uid'      => user.uid,
+
+      'extra' => {
+        'raw_info' => {
+          'preferred_username'  => user.uid,
+          'account_type_number' => user.admin? ? SessionsController::ADMIN_ACCOUNT_TYPE : 1
+        }
+      }
+    )
+
+    get '/auth/keycloak/callback'
+  end
+
+  def stub_cloakman_lookup(profiles, uids: profiles.map { it[:uid] })
+    stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
+      .with(query: {uids:})
+      .to_return(
+        status:  200,
+        body:    profiles.to_json,
+        headers: {'Content-Type' => 'application/json'}
+      )
   end
 end
