@@ -1,21 +1,21 @@
 development:
-  app_url:                http://repository.localhost:3000
-  mass_dir_path_template: <%= Rails.root.join("storage/mass/{user}") %>
-  repository_dir:         <%= Rails.root.join("storage/repository") %>
+  app_url:                <%= ENV.fetch('APP_URL', 'http://localhost:3000') %>
+  mass_dir_path_template: <%= Rails.root.join('storage/mass/{user}') %>
+  repository_dir:         <%= Rails.root.join('storage/repository') %>
   validator_url:          http://localhost:3001/api
-  web_url:                http://repository.localhost:4200
+  web_url:                <%= ENV.fetch('WEB_URL', 'http://localhost:4200') %>
 
 test:
   app_url:                http://repository.example.com:3000
-  mass_dir_path_template: <%= Rails.root.join("spec/fixtures/files/submission/{user}") %>
-  repository_dir:         <%= Rails.root.join("tmp/storage/repository") %>
+  mass_dir_path_template: <%= Rails.root.join('spec/fixtures/files/submission/{user}') %>
+  repository_dir:         <%= Rails.root.join('tmp/storage/repository') %>
   validator_url:          http://validator.example.com/api
   web_url:                http://repository.example.com:4200
 
 production: &production
   app_url:                https://repository.ddbj.nig.ac.jp
   mass_dir_path_template: /submission/{user}/submission/{user}/mass
-  repository_dir:         <%= Rails.root.join("storage/repository") %>
+  repository_dir:         <%= Rails.root.join('storage/repository') %>
   validator_url:          http://repository-validator:3000/api
   web_url:                https://repository.ddbj.nig.ac.jp
 
