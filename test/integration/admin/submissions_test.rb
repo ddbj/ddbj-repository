@@ -27,7 +27,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     attach_ddbj_record(carol_request)
     carol_request.save!
 
-    carol_submission = Submission.new(db: 'st26', request: carol_request)
+    carol_submission = Submission.new(db: 'st26', user: users(:carol), request: carol_request)
     attach_submission_files(carol_submission)
     carol_submission.save!
 

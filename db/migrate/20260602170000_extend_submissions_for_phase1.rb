@@ -21,9 +21,25 @@ class ExtendSubmissionsForPhase1 < ActiveRecord::Migration[8.1]
        WHERE submission_requests.submission_id = submissions.id
          AND submissions.user_id IS NULL
     SQL
+
+    # Production has 0 orphans (verified 2026-06-02); staging orphans must be
+    # cleaned manually before deploy. If any remain we'd rather fail loudly
+    # than silently store ownerless records.
+    n = ActiveRecord::Base.connection.select_value(
+      'SELECT COUNT(*) FROM submissions WHERE user_id IS NULL'
+    ).to_i
+
+    if n.positive?
+      raise "Refusing to add NOT NULL constraint while #{n} submission(s) lack a user_id. " \
+            'Backfill manually or delete the orphans before re-running this migration.'
+    end
+
+    change_column_null :submissions, :user_id, false
   end
 
   def down
+    change_column_null :submissions, :user_id, true
+
     change_table :submissions do |t|
       t.remove_index :migration_run_id
       t.remove_index :source_id
