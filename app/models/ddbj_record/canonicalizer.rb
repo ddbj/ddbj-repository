@@ -69,15 +69,15 @@ module DDBJRecord
         }
       end
 
-      # Apply a patch atomically. `base` is deep-copied via Marshal so caller
-      # state is never observed mid-mutation; on raise the working copy is
-      # discarded. NOTE: `apply` is a pure RFC 6902 operation — it does NOT
-      # canonicalise `base` first. Callers that need a canonical output must
-      # pass already-canonical bytes (`Oj.load(canonicalize(base))`).
+      # Apply a patch atomically. `base` is deep-copied so caller state is
+      # never observed mid-mutation; on raise the working copy is discarded.
+      # NOTE: `apply` is a pure RFC 6902 operation — it does NOT canonicalise
+      # `base` first. Callers that need a canonical output must pass
+      # already-canonical bytes (`Oj.load(canonicalize(base))`).
       def apply(base, patch)
         patch.each {|op| reject_bag_descent!(op) }
 
-        working = Marshal.load(Marshal.dump(coerce_for_strip(base)))
+        working = coerce_for_strip(base).deep_dup
         Hana::Patch.new(patch).apply(working)
       rescue Hana::Patch::Exception, Hana::Patch::FailedTestException, Hana::Patch::OutOfBoundsException => e
         raise Error, "patch apply failed: #{e.class}: #{e.message}"
