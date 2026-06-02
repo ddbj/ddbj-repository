@@ -32,19 +32,35 @@ class Submission < ApplicationRecord
     Pathname.new(base).join(user.uid, 'submissions', id.to_s)
   end
 
+  class MaterialisationFailed < StandardError
+    attr_reader :update_id, :original
+
+    def initialize(update_id:, original:)
+      @update_id = update_id
+      @original  = original
+      super("SubmissionUpdate ##{update_id} replay failed: #{original.class}: #{original.message}")
+    end
+  end
+
   # Materialise the current state of the record by replaying every
   # SubmissionUpdate's JSON Patch from the empty document. Returns nil when
   # there are no updates yet (a freshly inserted Submission row pre-baseline).
+  # Raises MaterialisationFailed (carrying the offending update_id) when any
+  # patch fails to apply, so callers can localise the poisoned row.
   #
   # Phase 3 spike: lazy, no cache. canonical-json.md §1.6 prescribes a
   # write-through cache (`has_one_attached :current_record` blob) when
   # 30-patch chains start to bite latency budgets — defer until measured.
   def materialised_record
-    raw_patches = updates.order(:id).pluck(:patch)
-    return nil if raw_patches.empty?
+    rows = updates.order(:id).pluck(:id, :patch)
+    return nil if rows.empty?
 
-    raw_patches.reduce({}) {|state, raw|
-      DDBJRecord::Canonicalizer.apply(state, Oj.load(raw, mode: :strict))
+    rows.reduce({}) {|state, (id, raw)|
+      begin
+        DDBJRecord::Canonicalizer.apply(state, Oj.load(raw, mode: :strict))
+      rescue StandardError => e
+        raise MaterialisationFailed.new(update_id: id, original: e)
+      end
     }
   end
 end
