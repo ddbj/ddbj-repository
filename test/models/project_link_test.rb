@@ -35,10 +35,10 @@ class ProjectLinkTest < ActiveSupport::TestCase
 
   test 'database CHECK constraint blocks bypassing model validation' do
     assert_raises ActiveRecord::StatementInvalid do
-      ProjectLink.connection.execute(
-        "INSERT INTO project_links (child_project_id, parent_project_id, external_accession, created_at, updated_at) " \
-        "VALUES (#{projects(:primary).id}, #{projects(:umbrella).id}, 'PRJNA1', NOW(), NOW())"
-      )
+      ProjectLink.connection.execute(<<~SQL.squish)
+        INSERT INTO project_links (child_project_id, parent_project_id, external_accession, created_at, updated_at)
+        VALUES (#{projects(:primary).id}, #{projects(:umbrella).id}, 'PRJNA1', NOW(), NOW())
+      SQL
     end
   end
 end
