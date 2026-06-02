@@ -6,8 +6,18 @@ module BioSample
   # BioProject::Importer's idempotency contract: re-running with the same
   # ssub_id + identical EAV state is a no-op (the baseline patch is
   # byte-identical to the prior tail), cross-user re-attribution raises,
-  # and Sample rows are refreshed only when the patch is actually new
-  # (so curator edits survive byte-identical re-imports).
+  # and Sample rows / Submission columns are refreshed only when the
+  # patch is actually new (so curator edits to typed columns survive
+  # byte-identical re-imports).
+  #
+  # Sample identity (sync_samples!) is position-based against the staging
+  # ORDER BY smp_id, NOT accession. That handles the 14% of staging
+  # samples that have NULL accession (pre-accession drafts). Phase 6
+  # should add a `staging_smp_id` column to the samples table for a
+  # stable persistent identity that survives re-ordering / staging
+  # smp_id renumbering; the spike's position-based sync is correct only
+  # while the staging query remains `ORDER BY smp_id` and no inserts
+  # land mid-prefix.
   class Importer
     class CrossUserError < StandardError; end
 
@@ -69,27 +79,43 @@ module BioSample
     private
 
     def sync_samples!(submission, record)
-      existing_by_accession = submission.samples.index_by(&:accession)
+      v3_samples       = record.fetch('samples')
+      staging_samples  = @row.samples
+      existing_samples = submission.samples.order(:id).to_a
 
-      record.fetch('samples').each do |s|
+      if v3_samples.length != staging_samples.length
+        raise "PSUB #{@row.ssub_id}: v3 sample count (#{v3_samples.length}) " \
+              "diverges from staging sample count (#{staging_samples.length})"
+      end
+
+      v3_samples.zip(staging_samples).each_with_index do |(v3, staging), idx|
         attrs = {
-          accession:   s['accession'],
-          sample_name: s['alias'],
-          status:      map_status(@row.samples.find {|x| x.accession == s['accession'] }&.status_id),
-          title:       s['title'],
-          package:     s['package'],
-          taxonomy_id: s.dig('organism', 'taxonomy_id'),
-          organism:    s.dig('organism', 'name')
+          accession:   v3['accession'],
+          sample_name: v3['alias'],
+          status:      map_status(staging.status_id),
+          title:       v3['title'],
+          package:     v3['package'],
+          taxonomy_id: v3.dig('organism', 'taxonomy_id'),
+          organism:    v3.dig('organism', 'name')
         }
 
-        if (existing = existing_by_accession[s['accession']])
+        if (existing = existing_samples[idx])
           existing.update!(attrs)
         else
           submission.samples.create!(attrs)
         end
       end
+
+      # Drop trailing Sample rows whose position is no longer in the
+      # staging snapshot (curator removed a sample in D-way). Without
+      # this the typed-column view drifts away from the materialised v3
+      # record forever.
+      existing_samples[v3_samples.length..].to_a.each(&:destroy)
     end
 
+    # BS staging is entirely on the new 5xxx Lifecycleable codes (verified
+    # against staging: 0 rows have legacy status_id=700, unlike BP). So
+    # the BP `when 700` arm is intentionally absent here.
     def map_status(legacy_status_id)
       case legacy_status_id
       when 5500 then :public
