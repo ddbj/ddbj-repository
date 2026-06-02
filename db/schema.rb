@@ -189,7 +189,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_02_170600) do
     t.uuid "migration_run_id"
     t.string "source_id"
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.index ["db"], name: "index_submissions_on_db"
     t.index ["migration_run_id"], name: "index_submissions_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
     t.index ["source_id"], name: "index_submissions_on_source_id", unique: true, where: "(source_id IS NOT NULL)"
