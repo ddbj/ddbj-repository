@@ -79,6 +79,68 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     end
   end
 
+  test 'syncs samples by position, supporting nil-accession drafts' do
+    drafts = [
+      SC::Sample.new(smp_id: 10, accession: nil, sample_name: 'DRS_DRAFT_A', package: 'Generic', status_id: 5400, attributes: []),
+      SC::Sample.new(smp_id: 11, accession: nil, sample_name: 'DRS_DRAFT_B', package: 'Generic', status_id: 5500, attributes: [])
+    ]
+    row = SC::Submission.new(
+      ssub_id: 'SSUB-nil-acc', submitter_id: 'u', organization: nil, comment: nil,
+      contacts: [], samples: drafts
+    )
+
+    result = BioSample::Importer.new(staging_submission: row, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
+
+    assert_equal :created, result.outcome
+    assert_equal 2, result.submission.samples.count
+
+    by_name = result.submission.samples.order(:id).index_by(&:sample_name)
+    assert_equal 'private', by_name['DRS_DRAFT_A'].status, 'each draft must keep its own status_id'
+    assert_equal 'public',  by_name['DRS_DRAFT_B'].status
+  end
+
+  test 'sync_samples drops trailing Sample rows removed from the staging snapshot' do
+    build(samples_count: 3).call
+    submission = Submission.find_by(source_id: 'SSUB-test')
+    assert_equal 3, submission.samples.count
+
+    # Same psub_id but with only 2 samples now (third removed in D-way).
+    smaller = (1..2).map {|i|
+      SC::Sample.new(
+        smp_id: i, accession: "SAMD0009999#{i}", sample_name: "DRS00000#{i}",
+        package: 'Generic', status_id: 5500, attributes: [{'name' => 'organism', 'value' => 'sample organism'}]
+      )
+    }
+    row = SC::Submission.new(
+      ssub_id: 'SSUB-test', submitter_id: 'migration-test', organization: nil, comment: nil,
+      contacts: [], samples: smaller
+    )
+
+    BioSample::Importer.new(staging_submission: row, user_uid: 'migration-test', migration_run_id: SecureRandom.uuid).call
+
+    assert_equal 2, submission.samples.reload.count
+    refute submission.samples.exists?(accession: 'SAMD00099993'), 'trailing row must be destroyed'
+  end
+
+  test ':skipped re-run does not touch Submission columns nor Sample typed columns' do
+    importer  = build
+    first     = importer.call.submission
+    first_seen = first.updated_at
+    first_run  = first.migration_run_id
+
+    travel 1.second
+    sample = first.samples.first
+    sample.update!(title: 'Curator-edited title')
+
+    second = build(migration_run_id: SecureRandom.uuid).call
+    assert_equal :skipped, second.outcome
+    submission = second.submission
+
+    assert_equal first_run,            submission.reload.migration_run_id
+    assert_equal first_seen.to_i,      submission.updated_at.to_i
+    assert_equal 'Curator-edited title', sample.reload.title
+  end
+
   test 'maps unknown status_id to :curating' do
     samples = [SC::Sample.new(
       smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',

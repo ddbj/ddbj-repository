@@ -75,6 +75,18 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
                  record['samples'].map {|s| s['accession'] }
   end
 
+  test 'non-numeric taxonomy_id drops rather than silently becoming 0' do
+    sub = build_submission(samples: [sample(attributes: [
+      {'name' => 'organism',    'value' => 'unknown organism'},
+      {'name' => 'taxonomy_id', 'value' => 'unknown'}
+    ])])
+
+    organism = C.new(submission: sub).call.dig('samples', 0, 'organism')
+
+    assert_equal({'name' => 'unknown organism'}, organism,
+                 "expected taxonomy_id to drop (was 'unknown'); got #{organism.inspect}")
+  end
+
   test 'canonicalises cleanly via the production pipeline' do
     sub = build_submission(samples: [sample(attributes: [
       {'name' => 'sample_name', 'value' => 'DRS999999'},

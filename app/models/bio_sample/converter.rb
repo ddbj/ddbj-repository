@@ -3,18 +3,18 @@
 module BioSample
   # D-way BioSample EAV → DDBJ Record v3 hash. Phase 5 spike scope:
   # enough fields to drive the admin show page (1 submission with N
-  # samples in the samples array). EAV-shaped attribute rows survive
-  # in `samples[*].attributes`; well-known attributes (organism,
-  # taxonomy_id, sample_title, sample comment) are also lifted into
-  # the v3-typed sample fields for convenience.
+  # samples in the samples array).
+  #
+  # Well-known attributes (organism, taxonomy_id, sample_title) are
+  # lifted out of the EAV bag into v3-typed sample fields for
+  # convenience; the same value also survives in
+  # samples[*].attributes. Blank-value EAV rows ARE dropped from the
+  # attribute bag for canonicalisation cleanliness; an audit comparing
+  # D-way row counts to v3 attribute counts will disagree on those
+  # placeholder rows. Phase 6 should decide whether to keep blanks
+  # (faithful row-count audit) or strip them (cleaner v3 records).
   class Converter
     SOURCE_FORMAT = 'dway_bs_eav'
-
-    # Attribute names that get lifted out of the EAV bag into typed
-    # fields on the v3 Sample. The bag still retains them; lifting is
-    # convenience, not relocation, so the canonical record carries
-    # every original attribute exactly once.
-    TYPED_ATTRS = %w[organism taxonomy_id sample_title sample_name].to_set.freeze
 
     def initialize(submission:)
       @submission = submission
@@ -59,13 +59,16 @@ module BioSample
     end
 
     def organism_block(attrs_by_name)
-      tax  = attrs_by_name['taxonomy_id'].presence
+      # `Integer(_, exception: false)` rejects non-numeric staging values
+      # ('unknown', 'N/A', 'sp.') by returning nil rather than silently
+      # coercing them to 0 via String#to_i.
+      tax  = Integer(attrs_by_name['taxonomy_id'].to_s, 10, exception: false)
       name = attrs_by_name['organism'].presence
 
       return nil unless tax || name
 
       {
-        'taxonomy_id' => tax&.to_i,
+        'taxonomy_id' => tax,
         'name'        => name
       }.compact
     end
