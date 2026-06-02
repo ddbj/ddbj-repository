@@ -23,6 +23,10 @@ module DDBJRecord
     class IdempotenceViolationError < Error; end
     class UnsupportedValueError     < Error; end
 
+    # JSON Patch ops that mutate the document. `test` is read-only and cannot
+    # shift bag indices, so it is exempt from the bag-descent guard.
+    MUTATING_OPS = %w[add remove replace move copy].freeze
+
     class << self
       # Canonical UTF-8 bytes per ddbj-canon/v1. Pass `for_diff: true` to
       # strip volatile sub-trees (provenance, server-assigned accessions,
@@ -46,12 +50,13 @@ module DDBJRecord
       end
 
       # `json-diff` based differ. Both sides are canonicalised first so
-      # numeric indices into `keyed` / `bag` arrays match. `moves: false`
-      # blocks `move` ops; the result is post-filtered to add / remove /
-      # replace only.
+      # numeric indices into `keyed` / `bag` arrays match. Volatile sub-trees
+      # are stripped (canonical-json.md §4.2: "chain replay uses True on
+      # both sides"). `moves: false` blocks `move` ops; the result is
+      # post-filtered to add / remove / replace only.
       def diff(a, b)
-        canon_a  = parse_canonical(a)
-        canon_b  = parse_canonical(b)
+        canon_a = parse_canonical(a, for_diff: true)
+        canon_b = parse_canonical(b, for_diff: true)
 
         ops = JsonDiff.diff(canon_a, canon_b, moves: false, include_was: false)
         ops.filter_map {|op|
@@ -64,12 +69,15 @@ module DDBJRecord
         }
       end
 
-      # Apply a patch atomically — work on a deep dup and discard on raise.
+      # Apply a patch atomically. `base` is deep-copied via Marshal so caller
+      # state is never observed mid-mutation; on raise the working copy is
+      # discarded. NOTE: `apply` is a pure RFC 6902 operation — it does NOT
+      # canonicalise `base` first. Callers that need a canonical output must
+      # pass already-canonical bytes (`Oj.load(canonicalize(base))`).
       def apply(base, patch)
-        canon_base  = parse_canonical(base)
         patch.each {|op| reject_bag_descent!(op) }
 
-        working = Marshal.load(Marshal.dump(canon_base))
+        working = Marshal.load(Marshal.dump(coerce_for_strip(base)))
         Hana::Patch.new(patch).apply(working)
       rescue Hana::Patch::Exception, Hana::Patch::FailedTestException, Hana::Patch::OutOfBoundsException => e
         raise Error, "patch apply failed: #{e.class}: #{e.message}"
@@ -98,8 +106,8 @@ module DDBJRecord
         coerce_for_strip(value)
       end
 
-      def parse_canonical(value)
-        bytes = canonicalize(value)
+      def parse_canonical(value, for_diff: false)
+        bytes = canonicalize(value, for_diff:)
         Oj.load(bytes, mode: :strict)
       end
 
@@ -112,11 +120,20 @@ module DDBJRecord
         end
       end
 
+      # Mutating ops into a bag array's interior are forbidden by
+      # canonical-json.md §3.1 — bags are content-addressed, so an
+      # element-level edit would re-sort the whole array. `test` is
+      # read-only and exempt.
       def reject_bag_descent!(op)
+        return unless MUTATING_OPS.include?(op['op'])
+
         %w[path from].each do |field|
           path = op[field] or next
 
-          segments = path.split('/').drop(1)
+          # `split('/', -1)` preserves trailing empty segments — an empty
+          # string IS a valid RFC 6901 reference token, so dropping it would
+          # let `/experiments/0/` sneak through the guard.
+          segments = path.split('/', -1).drop(1)
           prefix   = +''
           segments.each_with_index do |seg, idx|
             prefix << '/' << seg

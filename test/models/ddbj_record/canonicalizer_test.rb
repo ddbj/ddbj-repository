@@ -78,6 +78,15 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
     assert_equal 'A', stripped['samples'][0]['alias']
   end
 
+  test 'strip_volatile honours index-targeted volatile path in arrays' do
+    DDBJRecord::Canonicalizer::Registry.stub(:volatile_paths, ['/items/0']) do
+      input    = {'items' => [{'id' => 'a'}, {'id' => 'b'}]}
+      stripped = DDBJRecord::Canonicalizer.strip_volatile(input)
+
+      assert_equal [{'id' => 'b'}], stripped['items'], 'element 0 must be filtered'
+    end
+  end
+
   test 'sha256 matches Digest::SHA256.hexdigest of canonical bytes' do
     v = {'a' => 1, 'b' => 'x'}
     assert_equal Digest::SHA256.hexdigest(C.canonicalize(v)), C.sha256(v)
@@ -158,9 +167,56 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
     end
   end
 
+  test 'accepts floats at registry-listed paths' do
+    bytes = C.canonicalize({
+      'features' => [
+        {'type' => 'CDS', 'score' => 0.97}
+      ]
+    })
+
+    assert_includes bytes, '"score":0.97'
+  end
+
   test 'rejects integers outside IEEE-754 safe range' do
     assert_raises C::IntegerOutOfRangeError do
       C.canonicalize({'big' => (2**60)})
+    end
+  end
+
+  test 'diff strips volatile sub-trees before diffing' do
+    a = {'submission' => {'comments' => 'hello'}, 'schema_version' => 'v3', 'provenance' => {'source_format' => 'xml'}}
+    b = {'submission' => {'comments' => 'hello'}, 'schema_version' => 'v3', 'provenance' => {'source_format' => 'json'}}
+
+    assert_empty C.diff(a, b), 'curator content unchanged, only volatile differs — diff must be empty'
+  end
+
+  test 'apply does not rewrite untouched fields' do
+    base  = {'project' => {'description' => "Foo\r\n\r\nbar  "}, 'submission' => {'comments' => 'old'}}
+    patch = [{'op' => 'replace', 'path' => '/submission/comments', 'value' => 'new'}]
+
+    out = C.apply(base, patch)
+
+    assert_equal "Foo\r\n\r\nbar  ",  out.dig('project', 'description'), 'untouched field must keep raw bytes'
+    assert_equal 'new',                out.dig('submission', 'comments')
+  end
+
+  test 'reject_bag_descent allows read-only test op against bag interior' do
+    base  = {'experiments' => [{'title' => 'A'}]}
+    patch = [{'op' => 'test', 'path' => '/experiments/0/title', 'value' => 'A'}]
+
+    # `test` is read-only and must not raise BagPatchPathError; Hana itself
+    # decides whether the assertion holds.
+    assert_nothing_raised do
+      C.apply(base, patch)
+    end
+  end
+
+  test 'reject_bag_descent catches trailing empty segment' do
+    base  = {'experiments' => [{'id' => 'e1'}]}
+    patch = [{'op' => 'add', 'path' => '/experiments/0/', 'value' => 'sneaky'}]
+
+    assert_raises C::BagPatchPathError do
+      C.apply(base, patch)
     end
   end
 end

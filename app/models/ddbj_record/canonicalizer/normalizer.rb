@@ -38,7 +38,7 @@ module DDBJRecord
         when Array        then visit_array(value, pointer:)
         when String       then visit_string(value, pointer:)
         when Integer      then leaf(NumberGuard.check!(value, pointer:))
-        when Float        then leaf(NumberGuard.check!(value, pointer:))
+        when Float        then leaf(NumberGuard.check!(value, pointer:, allow_float: PathClassifier.float_allowed?(pointer)))
         when TrueClass, FalseClass then leaf(value)
         when nil          then leaf(nil)
         else

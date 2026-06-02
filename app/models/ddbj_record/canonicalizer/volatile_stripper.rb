@@ -26,7 +26,9 @@ module DDBJRecord
         when Array
           value.each_with_index.filter_map {|element, idx|
             child_pointer = "#{pointer}/#{idx}"
-            stripped      = strip(element, pointer: child_pointer)
+            next nil if PathClassifier.volatile?(child_pointer)
+
+            stripped = strip(element, pointer: child_pointer)
             stripped unless EmptyDropper.empty?(stripped)
           }
         else
