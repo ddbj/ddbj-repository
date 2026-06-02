@@ -34,6 +34,13 @@
     <dt class="col-sm-3">Canonical SHA-256</dt>
     <dd class="col-sm-9"><code><%= @sha256 %></code></dd>
   <% end %>
+
+  <% if @materialisation_error %>
+    <dt class="col-sm-3">Replay status</dt>
+    <dd class="col-sm-9 text-danger">
+      <%= @materialisation_error.class %>: <%= @materialisation_error.message %>
+    </dd>
+  <% end %>
 </dl>
 
 <h2 class="h4 mt-4">
@@ -50,9 +57,9 @@
       </div>
       <%= link_to 'Show latest', admin_submission_path(@submission), class: 'btn btn-sm btn-outline-primary' %>
     </div>
-  <% elsif @as_of %>
+  <% elsif @requested_as_of %>
     <div class="alert alert-warning" role="alert">
-      Update #<%= @as_of %> not found on this submission; showing latest.
+      Update #<%= @requested_as_of %> not found on this submission; showing latest.
     </div>
   <% end %>
 
@@ -71,16 +78,27 @@
     <tbody>
       <% @updates.each do |update| %>
         <% is_current = @as_of_row ? update.id == @as_of_row.id : update == @updates.last %>
+        <% parsed = begin; update.parsed_patch; rescue StandardError => e; e; end %>
         <tr class="<%= 'table-info' if is_current %>">
           <td><code>#<%= update.id %></code></td>
           <td><%= update.created_at.to_fs(:db) %></td>
           <td><%= update.actor || '—' %></td>
           <td><span class="badge text-bg-light"><%= update.source %></span></td>
-          <td class="text-end"><%= update.op_count %></td>
+          <td class="text-end">
+            <% if parsed.is_a?(StandardError) %>
+              <span class="text-danger" title="unparseable">!</span>
+            <% else %>
+              <%= parsed.length %>
+            <% end %>
+          </td>
           <td>
             <details>
               <summary class="small text-body-secondary" role="button">show ops</summary>
-              <pre class="mb-0 mt-2 small bg-body-tertiary border rounded p-2"><%= JSON.pretty_generate(update.parsed_patch) %></pre>
+              <% if parsed.is_a?(StandardError) %>
+                <pre class="mb-0 mt-2 small text-danger bg-body-tertiary border rounded p-2">patch unreadable: <%= parsed.class %>: <%= parsed.message %></pre>
+              <% else %>
+                <pre class="mb-0 mt-2 small bg-body-tertiary border rounded p-2"><%= JSON.pretty_generate(parsed) %></pre>
+              <% end %>
             </details>
           </td>
           <td>
@@ -102,6 +120,11 @@
 
 <% if @materialised %>
   <pre class="bg-body-tertiary border rounded p-3" style="max-height: 60vh; overflow: auto;"><%= JSON.pretty_generate(@materialised) %></pre>
+<% elsif @materialisation_error %>
+  <div class="alert alert-danger" role="alert">
+    Replay failed. See the Replay status field above; the patch chain table
+    is rendered as-is so the bad row (<code>#<%= @materialisation_error.try(:update_id) || '?' %></code>) can be located.
+  </div>
 <% else %>
   <p class="text-body-secondary">No updates have been applied yet — nothing to materialise.</p>
 <% end %>
