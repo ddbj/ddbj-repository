@@ -87,4 +87,33 @@ namespace :data_migration do
 
     puts 'Done. ' + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
   end
+
+  # Single-BS spike entry: pulls one submission from staging biosample.mass,
+  # creates Submission + N Sample rows + baseline SubmissionUpdate.
+  #
+  #   ssh -L 54301:172.19.15.12:54301 a012 -N &
+  #   DWAY_DB_PASSWORD=... bin/rails 'data_migration:import_bs[SSUB002065]'
+  desc 'Import a single BioSample submission from D-way staging (spike, single record)'
+  task :import_bs, %i[ssub_id user_uid] => :environment do |_, args|
+    ssub_id   = args.fetch(:ssub_id)
+    fallback  = args[:user_uid].presence || 'migration'
+    run_id    = SecureRandom.uuid
+
+    client = BioSample::StagingClient.new
+    begin
+      row = client.fetch(ssub_id) or raise "SSUB #{ssub_id} not found in staging"
+
+      importer = BioSample::Importer.new(
+        staging_submission: row,
+        user_uid:           row.submitter_id || fallback,
+        migration_run_id:   run_id
+      )
+
+      result = importer.call
+      puts "[#{result.outcome}] SSUB #{ssub_id} → Submission ##{result.submission&.id} " \
+           "(#{result.submission&.samples&.count} sample[s])"
+    ensure
+      client.close
+    end
+  end
 end

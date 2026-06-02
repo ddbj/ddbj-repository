@@ -126,6 +126,27 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match    'visible',                      response.body
   end
 
+  test 'show renders the Samples table for a biosample submission' do
+    submission = submissions(:biosample)
+    submission.samples.create!(
+      accession:   'SAMD00099001',
+      sample_name: 'DRS999001',
+      package:     'Generic',
+      status:      :public,
+      organism:    'sample organism',
+      taxonomy_id: 408170
+    )
+    submission.append_update!({'samples' => [{'accession' => 'SAMD00099001'}]}, actor: 'test')
+
+    get admin_submission_path(submission)
+
+    assert_response :ok
+    assert_match 'Samples',         response.body
+    assert_match 'SAMD00099001',    response.body
+    assert_match 'sample organism', response.body
+    assert_match 'DRS999001',       response.body
+  end
+
   test 'show survives a single poisoned patch — timeline renders, materialised pane reports the bad row' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
