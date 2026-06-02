@@ -192,7 +192,16 @@ module DDBJRecord
   )
 
   def self.parse(io)
-    Handler.new.tap { Oj.saj_parse(it, io) }.result
+    major, head = SchemaVersionDetector.detect(io)
+
+    # Stitch the read bytes back in so parsers see the full document. SAJ
+    # and load can both consume a String.
+    body = head + io.read.to_s.b
+
+    case major
+    when '2' then Handler.new.tap { Oj.saj_parse(it, body) }.result
+    when '3' then V3::Parser.parse(body)
+    end
   end
 
   def self.generate(record)
