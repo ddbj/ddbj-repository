@@ -24,8 +24,8 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
 
   test 'normalises strings — NFC, line endings, whitespace' do
     # café in NFD (e + combining acute) should fold to NFC
-    nfd  = "café"
-    nfc  = "café"
+    nfd  = 'café'
+    nfc  = 'café'
     refute_equal nfc, nfd
 
     out = C.canonicalize({'name' => nfd})

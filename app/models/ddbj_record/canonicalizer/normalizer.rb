@@ -82,9 +82,9 @@ module DDBJRecord
 
         normalised = if klass == 'sequence'
                        SequenceCodec.normalize(string)
-                     else
+        else
                        StringNormalizer.normalize(string, klass)
-                     end
+        end
 
         leaf(normalised)
       end
