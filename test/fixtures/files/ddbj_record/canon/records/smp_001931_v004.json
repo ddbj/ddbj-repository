@@ -28,10 +28,10 @@
   ],
   "submitters": [
     {
-      "email": "akifumi.tanabe+D-way@gmail.com",
-      "first": "Akifumi",
+      "email": "sample-1@example.test",
+      "first": "Sample-First-1",
       "is_primary": true,
-      "last": "S Tanabe"
+      "last": "Sample-Last-5"
     }
   ],
   "title": "G63WAOO01__ACAGTGTC__rbcL"
