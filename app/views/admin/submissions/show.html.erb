@@ -43,6 +43,38 @@
   <% end %>
 </dl>
 
+<% if @submission.biosample_db? && @submission.samples.any? %>
+  <h2 class="h4 mt-4">
+    Samples
+    <span class="badge text-bg-secondary"><%= @submission.samples.count %></span>
+  </h2>
+
+  <table class="table border align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Accession</th>
+        <th>Sample name</th>
+        <th>Package</th>
+        <th>Organism</th>
+        <th>Tax ID</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @submission.samples.order(:id).each do |sample| %>
+        <tr>
+          <td><code><%= sample.accession || '—' %></code></td>
+          <td><%= sample.sample_name %></td>
+          <td><%= sample.package || '—' %></td>
+          <td><%= sample.organism || '—' %></td>
+          <td><%= sample.taxonomy_id || '—' %></td>
+          <td><span class="badge text-bg-light"><%= sample.status %></span></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
 <h2 class="h4 mt-4">
   Patch chain
   <span class="badge text-bg-secondary"><%= @updates.size %></span>
