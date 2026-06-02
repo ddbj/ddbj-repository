@@ -1,0 +1,76 @@
+{
+  "alias": "Sample32",
+  "attributes": [
+    {
+      "name": "age",
+      "value": "20 weeks"
+    },
+    {
+      "name": "biome",
+      "value": "host-associated"
+    },
+    {
+      "name": "collection_date",
+      "value": "2012"
+    },
+    {
+      "name": "feature",
+      "value": "mammalia-associated habitat"
+    },
+    {
+      "name": "geo_loc_name",
+      "value": "Japan"
+    },
+    {
+      "name": "lat_lon",
+      "value": "35.35 N 136.28 E"
+    },
+    {
+      "name": "material",
+      "value": "feces"
+    },
+    {
+      "name": "project_name",
+      "value": "Pyrosequencing of 16S rRNA gene amplicon from mice fecal samples"
+    },
+    {
+      "name": "specific_host",
+      "value": "Mus musculus"
+    },
+    {
+      "name": "strain",
+      "value": "BALB"
+    }
+  ],
+  "env_package": "survey.host-associated",
+  "organism": {
+    "name": "mouse gut metagenome",
+    "taxonomy_id": 410661
+  },
+  "organization": {
+    "name": "Tokyo Institute of Technology"
+  },
+  "package": "MIMARKS.survey.host-associated",
+  "package_group": "MIMARKS",
+  "submitters": [
+    {
+      "email": "hmori@bio.titech.ac.jp",
+      "first": "Hiroshi",
+      "is_primary": true,
+      "last": "Mori"
+    },
+    {
+      "email": "r_shinkura@nagahama-i-bio.ac.jp",
+      "first": "Reiko",
+      "is_primary": false,
+      "last": "Shinkura"
+    },
+    {
+      "email": "tkato@rcai.riken.jp",
+      "first": "Tamotsu",
+      "is_primary": false,
+      "last": "Kato"
+    }
+  ],
+  "title": "mouse feces"
+}

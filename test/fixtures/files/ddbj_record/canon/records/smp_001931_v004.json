@@ -1,0 +1,38 @@
+{
+  "accession": "SAMD00001842",
+  "alias": "DRS004772",
+  "attributes": [
+    {
+      "name": "sample comment",
+      "value": "Root samples collected in a temperate secondary forest on Mt. Yoshida, Kyoto, Japan."
+    },
+    {
+      "name": "sample_name",
+      "value": "DRS004772"
+    }
+  ],
+  "organism": {
+    "name": "rhizosphere metagenome",
+    "taxonomy_id": 939928
+  },
+  "package": "Generic",
+  "package_group": "Generic",
+  "relations": [
+    {
+      "target": {
+        "db": "sra",
+        "id": "DRS004772"
+      },
+      "type": "xref"
+    }
+  ],
+  "submitters": [
+    {
+      "email": "akifumi.tanabe+D-way@gmail.com",
+      "first": "Akifumi",
+      "is_primary": true,
+      "last": "S Tanabe"
+    }
+  ],
+  "title": "G63WAOO01__ACAGTGTC__rbcL"
+}
