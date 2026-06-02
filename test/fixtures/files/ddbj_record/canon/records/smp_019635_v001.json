@@ -1,0 +1,56 @@
+{
+  "alias": "HPNCG7G01__502__ITS3_KYO2",
+  "attributes": [
+    {
+      "name": "collection_date",
+      "value": "February 2-5, 2012"
+    },
+    {
+      "name": "env_biome",
+      "value": "Tropical rainforest"
+    },
+    {
+      "name": "env_feature",
+      "value": "Root-associated habitat"
+    },
+    {
+      "name": "env_material",
+      "value": "Root sample collected from Lambri Hills national park, Sarawak, Malaysia"
+    },
+    {
+      "name": "geo_loc_name",
+      "value": "Lambir Hills National Park, Sarawak, Malaysia"
+    },
+    {
+      "name": "lat_lon",
+      "value": "N4.20, E114.04"
+    },
+    {
+      "name": "project_name",
+      "value": "Lambir"
+    },
+    {
+      "name": "sample_name",
+      "value": "HPNCG7G01__502__ITS3_KYO2"
+    }
+  ],
+  "env_package": "me",
+  "organism": {
+    "name": "rhizosphere metagenome",
+    "taxonomy_id": 939928
+  },
+  "organization": {
+    "name": "Center for Ecological Research, Kyoto University"
+  },
+  "package": "MIMS.me",
+  "package_group": "MIMS",
+  "submitters": [
+    {
+      "email": "virosa13@yahoo.co.jp",
+      "first": "Hirotoshi",
+      "is_primary": true,
+      "last": "Sato"
+    }
+  ],
+  "title": "MIMS Environmental/Metagenome sample from rhizosphere metagenome"
+}

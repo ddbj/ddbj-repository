@@ -92,6 +92,7 @@ strings:
     '/**/language_code':                                  single_line
     '/relations/*/properties/*':                          single_line
     '/project/relevance/*':                               single_line
+    '/access_control/policy/policy_url':                  single_line
 
 # ----------------------------------------------------------------------
 # JSON number paths that are allowed to carry a Float per canonical-json.md
