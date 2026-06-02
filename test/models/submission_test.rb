@@ -110,6 +110,27 @@ class SubmissionTest < ActiveSupport::TestCase
     end
   end
 
+  test 'append_update! serialises concurrent writers via row-level lock' do
+    skip 'sqlite test env lacks row locking' if ActiveRecord::Base.connection.adapter_name.match?(/sqlite/i)
+
+    submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "race-#{SecureRandom.hex(4)}")
+    submission.append_update!({'project' => {'title' => 'v0'}}, actor: 'seed')
+
+    threads = 4.times.map {|i|
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          fresh = Submission.find(submission.id)
+          fresh.append_update!({'project' => {'title' => "v#{i + 1}"}}, actor: "writer-#{i}")
+        end
+      end
+    }
+    threads.each(&:join)
+
+    # All 4 appends must have landed; replay must succeed (no diverged chain).
+    assert_equal 5, submission.updates.reload.count
+    assert_includes %w[v0 v1 v2 v3 v4], submission.materialised_record.dig('project', 'title')
+  end
+
   test 'materialise_at p99 < 500ms over a 30-patch chain' do
     submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "bench-#{SecureRandom.hex(4)}")
     30.times {|i| submission.append_update!({'project' => {'title' => "v#{i}"}}, actor: 'bench') }

@@ -101,4 +101,49 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match 'not found on this submission', response.body
     assert_match 'only',                         response.body
   end
+
+  test 'show ?as_of=foo (non-numeric) is treated as no cutoff and shows latest without a warning' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'visible'}}, actor: 'test')
+
+    get admin_submission_path(submission, as_of: 'foo')
+
+    assert_response :ok
+    assert_no_match 'not found on this submission', response.body
+    assert_no_match 'nothing to materialise',       response.body
+    assert_match    'visible',                      response.body
+  end
+
+  test 'show ?as_of=0 is rejected and shows latest without a warning' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'visible'}}, actor: 'test')
+
+    get admin_submission_path(submission, as_of: 0)
+
+    assert_response :ok
+    assert_no_match 'not found on this submission', response.body
+    assert_no_match 'nothing to materialise',       response.body
+    assert_match    'visible',                      response.body
+  end
+
+  test 'show survives a single poisoned patch — timeline renders, materialised pane reports the bad row' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
+    poisoned = submission.updates.create!(
+      db:                       'bioproject',
+      status:                   :applied,
+      actor:                    'test',
+      source:                   :manual,
+      patch:                    'not-json',
+      patch_canonical_version:  1
+    )
+
+    get admin_submission_path(submission)
+
+    assert_response :ok
+    assert_match    'Replay failed',                                       response.body
+    assert_match    "##{poisoned.id}",                                     response.body
+    assert_match    'patch unreadable',                                    response.body
+    assert_no_match 'nothing to materialise',                              response.body
+  end
 end
