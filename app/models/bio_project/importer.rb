@@ -7,13 +7,18 @@ module BioProject
   # (`import_bp_batch`).
   #
   # Idempotency contract:
-  #   - Re-running with the same psub_id + identical XML is a no-op (the
-  #     baseline patch is byte-identical to the prior tail, so the
-  #     SubmissionUpdate insert is skipped).
+  #   - Re-running with the same psub_id + identical XML is a true no-op:
+  #     find_or_create_by! reuses the existing row and no further writes
+  #     happen. updated_at / migration_run_id / Project columns are
+  #     untouched on the :skipped path.
   #   - Re-running with a different user_uid against an existing Submission
   #     raises CrossUserError; we never silently re-attribute.
-  #   - Migration runs share a per-run UUID via migration_run_id so a bad
-  #     batch can be rolled back as a unit.
+  #   - When a new patch IS appended (XML actually changed), Submission and
+  #     Project columns are refreshed AND migration_run_id is restamped to
+  #     the current run so a bad batch can be `Submission.where(
+  #     migration_run_id: <bad_run>).destroy_all`-d. NB: the same UUID does
+  #     NOT yet propagate to submission_updates rows — adding the column +
+  #     join-based rollback is a Phase 6 schema-change task.
   class Importer
     class CrossUserError < StandardError; end
 
@@ -39,8 +44,7 @@ module BioProject
       # batch summary stays meaningful.
       return Result.new(submission: nil, outcome: :no_accession) unless accession
 
-      user = User.find_or_create_by!(uid: @user_uid)
-
+      user  = User.find_or_create_by!(uid: @user_uid)
       patch = Oj.dump([{'op' => 'add', 'path' => '', 'value' => record}], mode: :strict)
 
       Submission.transaction do
@@ -55,18 +59,32 @@ module BioProject
                 "refusing to silently re-attribute to '#{@user_uid}'."
         end
 
+        # Force ASCII-8BIT on both sides — PG returns bytea as ASCII-8BIT
+        # while Oj.dump returns UTF-8, and Ruby's String#== treats them as
+        # unequal whenever any byte is >= 0x80 even when the bytes match.
+        prior_patch = submission.updates.order(:id).last&.patch&.b
+
+        if prior_patch == patch.b
+          return Result.new(submission:, outcome: :skipped)
+        end
+
         # `update_columns` bypasses the v2-era `validates :ddbj_record,
         # on: :update` — migration-sourced submissions store state in
         # submission_updates patches, not in the ddbj_record blob.
         submission.update_columns(
           canonical_version: 1,
           converter_version: "bp_v3/#{Converter::SOURCE_FORMAT}",
+          migration_run_id:  @migration_run_id,
           updated_at:        Time.current
         )
 
         project = submission.project ||
                   Project.create!(submission:, accession:, project_type: @project_type)
 
+        # Project columns track the materialised record's snapshot; refreshed
+        # only on real updates so curator-edited fields survive byte-identical
+        # re-imports. Phase 6 needs explicit curator-edit-vs-import diff to
+        # handle the case where XML diverges AFTER a curator touched the row.
         project.update!(
           accession:    accession,
           project_type: @project_type,
@@ -74,23 +92,16 @@ module BioProject
           title:        record.dig('project', 'title')
         )
 
-        # Force ASCII-8BIT on both sides — PG returns bytea as ASCII-8BIT
-        # while Oj.dump returns UTF-8, and Ruby's String#== treats them as
-        # unequal whenever any byte is >= 0x80 even when the bytes match.
-        prior_patch = submission.updates.order(:id).last&.patch&.b
-        if prior_patch == patch.b
-          Result.new(submission:, outcome: :skipped)
-        else
-          submission.updates.create!(
-            db:                       'bioproject',
-            status:                   :applied,
-            actor:                    "migration:#{@user_uid}",
-            source:                   :migration,
-            patch:                    patch,
-            patch_canonical_version:  1
-          )
-          Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
-        end
+        submission.updates.create!(
+          db:                       'bioproject',
+          status:                   :applied,
+          actor:                    "migration:#{@user_uid}",
+          source:                   :migration,
+          patch:                    patch,
+          patch_canonical_version:  1
+        )
+
+        Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
       end
     end
 

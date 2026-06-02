@@ -33,12 +33,45 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal 1, submission.updates.count
   end
 
-  test 're-run with identical XML is :skipped and does not append a duplicate patch' do
-    build.call
+  test 're-run with identical XML is :skipped and does not touch Submission / Project rows' do
+    first       = build.call.submission
+    first_run   = first.migration_run_id
+    first_seen  = first.updated_at
+    first_title = first.project.title
 
-    result = build.call
-    assert_equal :skipped, result.outcome
-    assert_equal 1, result.submission.updates.count
+    travel 1.second
+    first.project.update!(title: 'Curator-edited title')
+
+    second = build(migration_run_id: SecureRandom.uuid).call
+    assert_equal :skipped, second.outcome
+
+    submission = second.submission
+    assert_equal first_run, submission.reload.migration_run_id, 'migration_run_id must NOT be restamped on :skipped'
+    assert_equal first_seen.to_i, submission.updated_at.to_i,    'updated_at must NOT be bumped on :skipped'
+    assert_equal 'Curator-edited title', submission.project.reload.title,
+                 'Project columns must NOT be clobbered by an idempotent re-run'
+    refute_equal first_title, 'Curator-edited title' # sanity: the precondition flipped
+    assert_equal 1, submission.updates.count
+  end
+
+  test 'on a real :updated run migration_run_id IS restamped' do
+    first = build.call.submission
+
+    second_run = SecureRandom.uuid
+    edited_xml = File.read(XML_FIXTURE).sub('Chromosome Mycobacterium avium sequencing',
+                                            'Chromosome Mycobacterium avium sequencing v2')
+
+    result = BioProject::Importer.new(
+      psub_id:          'PSUB000604',
+      xml:              edited_xml,
+      user_uid:         'migration-test',
+      project_type:     'primary',
+      migration_run_id: second_run
+    ).call
+
+    assert_equal :updated,    result.outcome
+    assert_equal second_run,  result.submission.reload.migration_run_id
+    refute_equal first.migration_run_id, second_run # sanity
   end
 
   test 're-run dedup survives the UTF-8 vs bytea encoding gap on non-ASCII payloads' do
