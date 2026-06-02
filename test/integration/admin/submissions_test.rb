@@ -76,4 +76,29 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_match 'nothing to materialise', response.body
   end
+
+  test 'show ?as_of=N renders the snapshot at that update' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    v2 = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+    submission.append_update!({'project' => {'title' => 'v3'}}, actor: 'test')
+
+    get admin_submission_path(submission, as_of: v2.id)
+
+    assert_response :ok
+    assert_match    'Viewing snapshot at',  response.body
+    assert_match    'v2',                   response.body
+    assert_no_match(/"title":\s*"v3"/,      response.body)
+  end
+
+  test 'show ?as_of=999999 warns and shows latest' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'only'}}, actor: 'test')
+
+    get admin_submission_path(submission, as_of: 999_999)
+
+    assert_response :ok
+    assert_match 'not found on this submission', response.body
+    assert_match 'only',                         response.body
+  end
 end

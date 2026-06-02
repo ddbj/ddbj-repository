@@ -27,9 +27,6 @@
   <dt class="col-sm-3">Created / Updated</dt>
   <dd class="col-sm-9"><%= @submission.created_at.to_fs(:db) %> / <%= @submission.updated_at.to_fs(:db) %></dd>
 
-  <dt class="col-sm-3">Updates</dt>
-  <dd class="col-sm-9"><%= @submission.updates.size %></dd>
-
   <% if @canonical_bytes %>
     <dt class="col-sm-3">Canonical bytes</dt>
     <dd class="col-sm-9"><%= number_with_delimiter(@canonical_bytes.bytesize) %> bytes</dd>
@@ -38,6 +35,68 @@
     <dd class="col-sm-9"><code><%= @sha256 %></code></dd>
   <% end %>
 </dl>
+
+<h2 class="h4 mt-4">
+  Patch chain
+  <span class="badge text-bg-secondary"><%= @updates.size %></span>
+</h2>
+
+<% if @updates.any? %>
+  <% if @as_of_row %>
+    <div class="alert alert-info d-flex justify-content-between align-items-center" role="alert">
+      <div>
+        Viewing snapshot at <strong>Update #<%= @as_of_row.id %></strong>
+        (<%= @as_of_row.created_at.to_fs(:db) %>) — latest is #<%= @updates.last.id %>.
+      </div>
+      <%= link_to 'Show latest', admin_submission_path(@submission), class: 'btn btn-sm btn-outline-primary' %>
+    </div>
+  <% elsif @as_of %>
+    <div class="alert alert-warning" role="alert">
+      Update #<%= @as_of %> not found on this submission; showing latest.
+    </div>
+  <% end %>
+
+  <table class="table border align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>ID</th>
+        <th>Created</th>
+        <th>Actor</th>
+        <th>Source</th>
+        <th class="text-end">Ops</th>
+        <th>Patch</th>
+        <th>Snapshot</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @updates.each do |update| %>
+        <% is_current = @as_of_row ? update.id == @as_of_row.id : update == @updates.last %>
+        <tr class="<%= 'table-info' if is_current %>">
+          <td><code>#<%= update.id %></code></td>
+          <td><%= update.created_at.to_fs(:db) %></td>
+          <td><%= update.actor || '—' %></td>
+          <td><span class="badge text-bg-light"><%= update.source %></span></td>
+          <td class="text-end"><%= update.op_count %></td>
+          <td>
+            <details>
+              <summary class="small text-body-secondary" role="button">show ops</summary>
+              <pre class="mb-0 mt-2 small bg-body-tertiary border rounded p-2"><%= JSON.pretty_generate(update.parsed_patch) %></pre>
+            </details>
+          </td>
+          <td>
+            <% if is_current %>
+              <span class="badge text-bg-primary">current</span>
+            <% else %>
+              <%= link_to 'view', admin_submission_path(@submission, as_of: update.id), class: 'btn btn-sm btn-outline-secondary' %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="text-body-secondary">No updates have been applied yet — nothing to materialise.</p>
+<% end %>
 
 <h2 class="h4 mt-4">Materialised v3 record</h2>
 

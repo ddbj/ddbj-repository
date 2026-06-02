@@ -16,4 +16,14 @@ class SubmissionUpdate < ApplicationRecord
   belongs_to :submission, inverse_of: :updates
 
   validates :patch, length: {minimum: 1, maximum: 16.megabytes}
+
+  # Memoised parse of the bytea-stored JSON Patch. Returns the RFC 6902
+  # operation array.
+  def parsed_patch
+    @parsed_patch ||= Oj.load(patch, mode: :strict)
+  end
+
+  def op_count
+    parsed_patch.length
+  end
 end
