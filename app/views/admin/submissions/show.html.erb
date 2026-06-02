@@ -28,16 +28,14 @@
   <dd class="col-sm-9"><%= @submission.created_at.to_fs(:db) %> / <%= @submission.updated_at.to_fs(:db) %></dd>
 
   <dt class="col-sm-3">Updates</dt>
-  <dd class="col-sm-9"><%= @submission.updates.count %></dd>
-
-  <% if @sha256 %>
-    <dt class="col-sm-3">Content SHA-256 (for_diff)</dt>
-    <dd class="col-sm-9"><code><%= @sha256 %></code></dd>
-  <% end %>
+  <dd class="col-sm-9"><%= @submission.updates.size %></dd>
 
   <% if @canonical_bytes %>
     <dt class="col-sm-3">Canonical bytes</dt>
     <dd class="col-sm-9"><%= number_with_delimiter(@canonical_bytes.bytesize) %> bytes</dd>
+
+    <dt class="col-sm-3">Canonical SHA-256</dt>
+    <dd class="col-sm-9"><code><%= @sha256 %></code></dd>
   <% end %>
 </dl>
 

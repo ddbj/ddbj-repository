@@ -46,4 +46,23 @@ class SubmissionTest < ActiveSupport::TestCase
 
     assert_equal 'second', submission.materialised_record.dig('project', 'title')
   end
+
+  test '#materialised_record raises MaterialisationFailed carrying the offending update_id' do
+    submission = submissions(:bioproject)
+    bad_update = submission.updates.create!(
+      db:                      'bioproject',
+      status:                  'applied',
+      actor:                   'test',
+      source:                  'manual',
+      patch:                   'not-json-at-all',
+      patch_canonical_version: 1
+    )
+
+    error = assert_raises(Submission::MaterialisationFailed) do
+      submission.materialised_record
+    end
+
+    assert_equal bad_update.id, error.update_id
+    assert_kind_of Oj::ParseError, error.original
+  end
 end
