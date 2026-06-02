@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_02_170600) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -64,12 +64,81 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "project_links", force: :cascade do |t|
+    t.bigint "child_project_id", null: false
+    t.datetime "created_at", null: false
+    t.string "external_accession"
+    t.bigint "parent_project_id"
+    t.datetime "updated_at", null: false
+    t.index ["child_project_id", "external_accession"], name: "index_project_links_on_child_and_external", unique: true, where: "(external_accession IS NOT NULL)"
+    t.index ["child_project_id", "parent_project_id"], name: "index_project_links_on_child_and_parent", unique: true, where: "(parent_project_id IS NOT NULL)"
+    t.index ["child_project_id"], name: "index_project_links_on_child_project_id"
+    t.index ["parent_project_id"], name: "index_project_links_on_parent_project_id"
+    t.check_constraint "parent_project_id IS NOT NULL AND external_accession IS NULL OR parent_project_id IS NULL AND external_accession IS NOT NULL", name: "project_links_target_exclusivity"
+  end
+
+  create_table "projects", force: :cascade do |t|
+    t.string "accession"
+    t.bigint "assignee_id"
+    t.datetime "created_at", null: false
+    t.date "dist_date"
+    t.date "hold_date"
+    t.date "issued_date"
+    t.integer "project_type", null: false
+    t.date "release_date"
+    t.integer "status", default: 5100, null: false
+    t.bigint "submission_id", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["accession"], name: "index_projects_on_accession", unique: true, where: "(accession IS NOT NULL)"
+    t.index ["assignee_id"], name: "index_projects_on_assignee_id"
+    t.index ["status"], name: "index_projects_on_status"
+    t.index ["submission_id"], name: "index_projects_on_submission_id", unique: true
+  end
+
   create_table "regenerate_flatfiles_progresses", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "failed", default: 0, null: false
     t.integer "processed", default: 0, null: false
     t.integer "total", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "sample_references", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ref_accession", null: false
+    t.string "ref_db", null: false
+    t.bigint "sample_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ref_db", "ref_accession"], name: "index_sample_references_on_ref_db_and_ref_accession"
+    t.index ["sample_id", "ref_db", "ref_accession"], name: "index_sample_references_on_sample_db_accession", unique: true
+    t.index ["sample_id"], name: "index_sample_references_on_sample_id"
+  end
+
+  create_table "samples", force: :cascade do |t|
+    t.string "accession"
+    t.bigint "assignee_id"
+    t.datetime "created_at", null: false
+    t.date "dist_date"
+    t.string "env_package"
+    t.string "organism"
+    t.string "package"
+    t.string "package_group"
+    t.date "release_date"
+    t.integer "release_type"
+    t.string "sample_name", null: false
+    t.integer "status", default: 5100, null: false
+    t.bigint "submission_id", null: false
+    t.integer "taxonomy_id"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["accession"], name: "index_samples_on_accession", unique: true, where: "(accession IS NOT NULL)"
+    t.index ["assignee_id"], name: "index_samples_on_assignee_id"
+    t.index ["package"], name: "index_samples_on_package"
+    t.index ["package_group"], name: "index_samples_on_package_group"
+    t.index ["sample_name"], name: "index_samples_on_sample_name"
+    t.index ["status"], name: "index_samples_on_status"
+    t.index ["submission_id"], name: "index_samples_on_submission_id"
   end
 
   create_table "sequences", force: :cascade do |t|
@@ -95,22 +164,36 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
   end
 
   create_table "submission_updates", force: :cascade do |t|
+    t.string "actor"
     t.datetime "created_at", null: false
     t.string "db", null: false
-    t.string "diff"
     t.string "error_message"
+    t.binary "patch", null: false
+    t.integer "patch_canonical_version", default: 1, null: false
+    t.integer "source", default: 0, null: false
     t.integer "status", default: 0, null: false
     t.bigint "submission_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["actor"], name: "index_submission_updates_on_actor", where: "(actor IS NOT NULL)"
     t.index ["db"], name: "index_submission_updates_on_db"
+    t.index ["submission_id", "created_at"], name: "index_submission_updates_on_submission_id_and_created_at"
     t.index ["submission_id"], name: "index_submission_updates_on_submission_id"
+    t.check_constraint "octet_length(patch) > 0", name: "submission_updates_patch_nonempty"
   end
 
   create_table "submissions", force: :cascade do |t|
+    t.integer "canonical_version", default: 1, null: false
+    t.string "converter_version"
     t.datetime "created_at", null: false
     t.string "db", null: false
+    t.uuid "migration_run_id"
+    t.string "source_id"
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.index ["db"], name: "index_submissions_on_db"
+    t.index ["migration_run_id"], name: "index_submissions_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
+    t.index ["source_id"], name: "index_submissions_on_source_id", unique: true, where: "(source_id IS NOT NULL)"
+    t.index ["user_id"], name: "index_submissions_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -153,8 +236,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
   add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "project_links", "projects", column: "child_project_id"
+  add_foreign_key "project_links", "projects", column: "parent_project_id"
+  add_foreign_key "projects", "submissions"
+  add_foreign_key "projects", "users", column: "assignee_id"
+  add_foreign_key "sample_references", "samples"
+  add_foreign_key "samples", "submissions"
+  add_foreign_key "samples", "users", column: "assignee_id"
   add_foreign_key "submission_requests", "submissions"
   add_foreign_key "submission_requests", "users"
   add_foreign_key "submission_updates", "submissions"
+  add_foreign_key "submissions", "users"
   add_foreign_key "validation_details", "validations"
 end

@@ -8,14 +8,6 @@ xsmdb_default: &xsmdb_default
   schema_search_path: mass,public
   default_timezone: local
 
-bioproject_default: &bioproject_default
-  <<: *xsmdb_default
-  migrations_paths: db/bioproject_migrate
-
-biosample_default: &biosample_default
-  <<: *xsmdb_default
-  migrations_paths: db/biosample_migrate
-
 drmdb_default: &drmdb_default
   <<: *xsmdb_default
   migrations_paths: db/drmdb_migrate
@@ -42,12 +34,6 @@ development:
     <<: *default
     database: taxdump_development
     migrations_paths: db/taxdump_migrate
-  bioproject:
-    <<: *bioproject_default
-    database: bioproject_development
-  biosample:
-    <<: *biosample_default
-    database: biosample_development
   drmdb:
     <<: *drmdb_default
     database: drmdb_development
@@ -66,12 +52,6 @@ test:
     <<: *default
     database: taxdump_test
     migrations_paths: db/taxdump_migrate
-  bioproject:
-    <<: *bioproject_default
-    database: bioproject_test
-  biosample:
-    <<: *biosample_default
-    database: biosample_test
   drmdb:
     <<: *drmdb_default
     database: drmdb_test
@@ -102,16 +82,6 @@ production: &production
     <<: *default
     url: <%= Rails.application.credentials.dig(:database_url, :taxdump) %>
     migrations_paths: db/taxdump_migrate
-  bioproject:
-    <<: *bioproject_default
-    url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
-    database: bioproject
-    database_tasks: false
-  biosample:
-    <<: *biosample_default
-    url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
-    database: biosample
-    database_tasks: false
   drmdb:
     <<: *drmdb_default
     url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>

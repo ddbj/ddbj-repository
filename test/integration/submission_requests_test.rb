@@ -18,7 +18,6 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
 
     attach_ddbj_record request
     attach_submission_files request.submission
-    attach_ddbj_record submission_updates(:st26)
 
     get submission_request_path(db: 'st26', id: request.id)
 

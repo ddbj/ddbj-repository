@@ -10,3 +10,12 @@ shared:
     - prefix: '<%= prefix %>'
       digits: 7
     <% end %>
+
+  bp:
+    - prefix: 'PRJDB'
+      digits: 9
+      pad:    false
+
+  bs:
+    - prefix: 'SAMD'
+      digits: 8

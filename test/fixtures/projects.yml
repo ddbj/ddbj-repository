@@ -1,0 +1,12 @@
+primary:
+  submission: bioproject
+  project_type: primary
+  status: 5400 # private
+  title: Primary fixture project
+  accession: PRJDB000001
+
+umbrella:
+  submission: biosample
+  project_type: umbrella
+  status: 5500 # public
+  title: Umbrella fixture project
