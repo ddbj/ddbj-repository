@@ -49,10 +49,19 @@ class Submission < ApplicationRecord
   # patch fails to apply, so callers can localise the poisoned row.
   #
   # Phase 3 spike: lazy, no cache. canonical-json.md §1.6 prescribes a
-  # write-through cache (`has_one_attached :current_record` blob) when
-  # 30-patch chains start to bite latency budgets — defer until measured.
+  # write-through cache when 30-patch chains start to bite latency budgets
+  # — defer until measured.
   def materialised_record
-    rows = updates.order(:id).pluck(:id, :patch)
+    materialise_at
+  end
+
+  # Replay submission_updates up to and including `update_id` (defaults to
+  # the most recent). Used both for the show page's default render and for
+  # `?as_of=N` point-in-time snapshots.
+  def materialise_at(update_id: nil)
+    scope = updates.order(:id)
+    scope = scope.where('submission_updates.id <= ?', update_id) if update_id
+    rows  = scope.pluck(:id, :patch)
     return nil if rows.empty?
 
     rows.reduce({}) {|state, (id, raw)|
@@ -62,5 +71,22 @@ class Submission < ApplicationRecord
         raise MaterialisationFailed.new(update_id: id, original: e)
       end
     }
+  end
+
+  # Compute a JSON Patch from the current materialised state to
+  # `new_record`, append it as a new SubmissionUpdate, and return that
+  # update. Returns nil (no-op) when the canonical diff is empty.
+  def append_update!(new_record, actor:, source: :manual)
+    patch = DDBJRecord::Canonicalizer.diff(materialised_record || {}, new_record)
+    return nil if patch.empty?
+
+    updates.create!(
+      db:                       db,
+      status:                   :applied,
+      actor:                    actor,
+      source:                   source,
+      patch:                    Oj.dump(patch, mode: :strict),
+      patch_canonical_version:  1
+    )
   end
 end

@@ -65,4 +65,62 @@ class SubmissionTest < ActiveSupport::TestCase
     assert_equal bad_update.id, error.update_id
     assert_kind_of Oj::ParseError, error.original
   end
+
+  test '#materialise_at(update_id:) replays only up to the given update' do
+    submission = submissions(:bioproject)
+    baseline   = submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    edit       = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+
+    assert_equal 'v1', submission.materialise_at(update_id: baseline.id).dig('project', 'title')
+    assert_equal 'v2', submission.materialise_at(update_id: edit.id).dig('project', 'title')
+    assert_equal 'v2', submission.materialise_at.dig('project', 'title')
+  end
+
+  test '#append_update! computes diff, appends, no-op when nothing changed' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'hello'}}, actor: 'curator')
+    assert_equal 1, submission.updates.count
+
+    again = submission.append_update!({'project' => {'title' => 'hello'}}, actor: 'curator')
+    assert_nil again, 'identical record should produce empty diff and skip insert'
+    assert_equal 1, submission.updates.count
+
+    submission.append_update!({'project' => {'title' => 'world'}}, actor: 'curator')
+    assert_equal 2, submission.updates.count
+    assert_equal 'world', submission.materialised_record.dig('project', 'title')
+  end
+
+  test 'round-trip: apply(empty, diff(empty, R)) == R for 50 random records' do
+    submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "rt-#{SecureRandom.hex(4)}")
+    50.times do |i|
+      record = {
+        'project' => {
+          'accession'   => "PRJDB#{1000 + i}",
+          'title'       => "title-#{SecureRandom.hex(3)}",
+          'description' => "desc\nline2\nline3" * (i % 3 + 1)
+        }
+      }
+
+      submission.updates.destroy_all
+      submission.append_update!(record, actor: 'rt')
+
+      assert_equal DDBJRecord::Canonicalizer.sha256(record, for_diff: true),
+                   DDBJRecord::Canonicalizer.sha256(submission.materialised_record, for_diff: true),
+                   "round-trip failed for iteration #{i}"
+    end
+  end
+
+  test 'materialise_at p99 < 500ms over a 30-patch chain' do
+    submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "bench-#{SecureRandom.hex(4)}")
+    30.times {|i| submission.append_update!({'project' => {'title' => "v#{i}"}}, actor: 'bench') }
+
+    timings = Array.new(20) do
+      t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      submission.materialised_record
+      (Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000
+    end
+
+    p99 = timings.sort[(timings.size * 0.99).ceil - 1]
+    assert_operator p99, :<, 500, "30-patch p99 was #{p99.round(2)}ms"
+  end
 end
