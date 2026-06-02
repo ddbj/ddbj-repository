@@ -30,8 +30,20 @@ class SampleTest < ActiveSupport::TestCase
     sample.release_type = :hold
     assert sample.valid?
 
+    sample.release_type = :release
+    assert sample.valid?
+
     sample.release_type = nil
     assert sample.valid?
+  end
+
+  test 'status accepts every Lifecycleable value' do
+    sample = samples(:first)
+
+    Sample.statuses.each_key do |name|
+      sample.status = name
+      assert sample.valid?, "Expected status #{name} to be valid"
+    end
   end
 
   test 'assignee_must_be_admin rejects non-admin users' do

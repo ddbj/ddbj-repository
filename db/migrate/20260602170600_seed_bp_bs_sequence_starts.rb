@@ -1,14 +1,25 @@
 class SeedBpBsSequenceStarts < ActiveRecord::Migration[8.1]
-  def up
-    Sequence.ensure_records!
+  # Idempotent + safe: only advances `next` forward when the existing value
+  # is behind the production floor. Never rolls counters backward, so it
+  # tolerates `allocate!` running before this migration on a deployed DB.
+  SEEDS = [
+    {scope: 'bp', prefix: 'PRJDB', floor: 42366},
+    {scope: 'bs', prefix: 'SAMD',  floor: 1921307}
+  ].freeze
 
-    # Idempotent: only seed when the counter is still at the initial value (1).
-    # Avoids clobbering a live counter if allocate! was already invoked.
-    Sequence.where(scope: 'bp', next: 1).update_all(next: 42366)
-    Sequence.where(scope: 'bs', next: 1).update_all(next: 1921307)
+  def up
+    SEEDS.each do |seed|
+      execute <<~SQL.squish
+        INSERT INTO sequences (scope, prefix, next, created_at, updated_at)
+        VALUES ('#{seed[:scope]}', '#{seed[:prefix]}', #{seed[:floor]}, NOW(), NOW())
+        ON CONFLICT (scope) DO UPDATE
+          SET next = EXCLUDED.next
+          WHERE sequences.next < EXCLUDED.next
+      SQL
+    end
   end
 
   def down
-    Sequence.where(scope: %w[bp bs]).delete_all
+    execute "DELETE FROM sequences WHERE scope IN ('bp', 'bs')"
   end
 end

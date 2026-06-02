@@ -8,12 +8,12 @@ class SubmissionUpdate < ApplicationRecord
   }, suffix: true, validate: true
 
   enum :source, {
-    migration: 0,
-    manual:    1,
+    manual:    0,
+    migration: 1,
     batch:     2
   }, validate: true
 
   belongs_to :submission, inverse_of: :updates
 
-  validates :patch, length: {minimum: 1}
+  validates :patch, length: {minimum: 1, maximum: 16.megabytes}
 end

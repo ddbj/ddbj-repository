@@ -3,7 +3,7 @@ bp:
   ref_db: bioproject
   ref_accession: PRJDB000001
 
-dra:
+sra:
   sample: first
   ref_db: sra
   ref_accession: DRS012345

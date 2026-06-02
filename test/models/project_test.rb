@@ -38,11 +38,20 @@ class ProjectTest < ActiveSupport::TestCase
     assert project.valid?
   end
 
-  test 'parent / children relations through ProjectLink' do
+  test 'parents / children relations through ProjectLink' do
     parent = projects(:umbrella)
     child  = projects(:primary)
 
-    assert_equal parent, child.parent
+    assert_includes child.parents,   parent
     assert_includes parent.children, child
+  end
+
+  test 'status accepts every Lifecycleable value' do
+    project = projects(:primary)
+
+    Project.statuses.each_key do |name|
+      project.status = name
+      assert project.valid?, "Expected status #{name} to be valid"
+    end
   end
 end
