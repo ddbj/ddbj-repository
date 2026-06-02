@@ -8,4 +8,18 @@ class SequenceTest < ActiveSupport::TestCase
 
     assert_equal 'QQ000001', Sequence.allocate!(:jpo_na, 1).last
   end
+
+  test 'bp scope emits PRJDB-prefixed numbers without zero padding' do
+    Sequence.ensure_records!
+    Sequence.find_by!(scope: 'bp').update! next: 42366
+
+    assert_equal %w[PRJDB42366 PRJDB42367], Sequence.allocate!(:bp, 2)
+  end
+
+  test 'bs scope emits SAMD-prefixed numbers with 8-digit zero padding' do
+    Sequence.ensure_records!
+    Sequence.find_by!(scope: 'bs').update! next: 1921307
+
+    assert_equal %w[SAMD01921307 SAMD01921308], Sequence.allocate!(:bs, 2)
+  end
 end

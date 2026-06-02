@@ -233,70 +233,6 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /{db}/submission_updates/{id}:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
-    get:
-      description: Get a submission update.
-
-      tags:
-        - Submission Updates
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
-
-      responses:
-        '200':
-          description: Returns the requested submission update.
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubmissionUpdate'
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /{db}/submission_updates/{id}/submission:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
-    patch:
-      description: Apply a submission update.
-
-      tags:
-        - Submission Updates
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
-
-      responses:
-        '204':
-          description: Accepted the submission update application.
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-        '422':
-          $ref: '#/components/responses/UnprocessableContent'
-
   /{db}/submissions:
     parameters:
       - $ref: '#/components/parameters/Db'
@@ -451,63 +387,6 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submissions/{id}/updates:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
-    post:
-      description: Create a submission update.
-
-      tags:
-        - Submissions
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
-
-      requestBody:
-        required: true
-
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [submission_update]
-
-              properties:
-                submission_update:
-                  type: object
-                  additionalProperties: false
-                  required: [ddbj_record]
-
-                  properties:
-                    ddbj_record:
-                      type: string
-                      format: binary
-
-      responses:
-        '202':
-          description: Accepted the submission update creation.
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubmissionUpdate'
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-        '422':
-          $ref: '#/components/responses/UnprocessableContent'
-
 components:
   schemas:
     Db:
@@ -608,56 +487,6 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Submission'
             - type: 'null'
-
-    SubmissionUpdate:
-      type: object
-      additionalProperties: false
-
-      required:
-        - id
-        - status
-        - diff
-        - error_message
-        - created_at
-        - processing
-        - ddbj_record
-        - validation
-        - submission
-
-      properties:
-        id:
-          type: number
-
-        status:
-          $ref: '#/components/schemas/SubmissionOperationStatus'
-
-        diff:
-          type:
-            - string
-            - 'null'
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        created_at:
-          type: string
-          format: date-time
-
-        processing:
-          type: boolean
-
-        ddbj_record:
-          $ref: '#/components/schemas/Attachment'
-
-        validation:
-          anyOf:
-            - $ref: '#/components/schemas/Validation'
-            - type: 'null'
-
-        submission:
-          $ref: '#/components/schemas/Submission'
 
     Validation:
       type: object
@@ -767,7 +596,6 @@ components:
         - ddbj_record
         - flatfile_na
         - flatfile_aa
-        - updates
 
       properties:
         id:
@@ -793,39 +621,6 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Attachment'
             - type: 'null'
-
-        updates:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - id
-              - status
-              - created_at
-              - ddbj_record
-              - validation
-
-            properties:
-              id:
-                type: number
-
-              status:
-                $ref: '#/components/schemas/SubmissionOperationStatus'
-
-              created_at:
-                type: string
-                format: date-time
-
-              ddbj_record:
-                $ref: '#/components/schemas/Attachment'
-
-              validation:
-                anyOf:
-                  - $ref: '#/components/schemas/Validation'
-                  - type: 'null'
 
     Accession:
       type: object
