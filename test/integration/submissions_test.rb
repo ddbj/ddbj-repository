@@ -9,7 +9,6 @@ class SubmissionsTest < ActionDispatch::IntegrationTest
     @submission = submissions(:st26)
 
     attach_submission_files @submission
-    attach_ddbj_record submission_updates(:st26)
   end
 
   test 'index' do

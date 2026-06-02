@@ -28,6 +28,7 @@ class Sequence < ApplicationRecord
           end
 
           digits  = list[i][:digits]
+          pad     = list[i].fetch(:pad, true)
           max_val = (10 ** digits) - 1
           start   = seq.next
           avail   = max_val - start + 1
@@ -46,7 +47,7 @@ class Sequence < ApplicationRecord
           take = [count, avail].min
           stop = start + take - 1
 
-          out.concat format_range(seq.prefix, start, stop, digits)
+          out.concat format_range(seq.prefix, start, stop, digits, pad)
           count -= take
 
           if stop == max_val
@@ -67,8 +68,8 @@ class Sequence < ApplicationRecord
 
     private
 
-    def format_range(prefix, from, to, digits)
-      (from..to).map { "#{prefix}#{it.to_s.rjust(digits, '0')}" }
+    def format_range(prefix, from, to, digits, pad)
+      (from..to).map { "#{prefix}#{pad ? it.to_s.rjust(digits, '0') : it.to_s}" }
     end
   end
 end

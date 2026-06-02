@@ -7,9 +7,13 @@ class SubmissionUpdate < ApplicationRecord
     biosample:  'biosample'
   }, suffix: true, validate: true
 
+  enum :source, {
+    migration: 0,
+    manual:    1,
+    batch:     2
+  }, validate: true
+
   belongs_to :submission, inverse_of: :updates
 
-  has_one_attached :ddbj_record
-
-  validates :ddbj_record, attached: true, content_type: 'application/json'
+  validates :patch, length: {minimum: 1}
 end
