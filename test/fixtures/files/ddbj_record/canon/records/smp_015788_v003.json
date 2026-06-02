@@ -1,0 +1,35 @@
+{
+  "accession": "SAMD00014694",
+  "alias": "DRS007522",
+  "attributes": [
+    {
+      "name": "sample attribute",
+      "value": "Missing"
+    }
+  ],
+  "description": "Root samples collected in a temperate secondary forest In Tomakomai Experimental Forest, Hokkaido University, Tomakomai, Hokkaido, Japan.",
+  "organism": {
+    "name": "rhizosphere metagenome",
+    "taxonomy_id": 939928
+  },
+  "package": "Generic",
+  "package_group": "Generic",
+  "relations": [
+    {
+      "target": {
+        "db": "sra",
+        "id": "DRS007522"
+      },
+      "type": "xref"
+    }
+  ],
+  "submitters": [
+    {
+      "email": "toju.hirokazu.4c@kyoto-u.ac.jp",
+      "first": "Hirokazu",
+      "is_primary": true,
+      "last": "Toju"
+    }
+  ],
+  "title": "H33YU2J01__TOMA_939__rbcL_F3"
+}
