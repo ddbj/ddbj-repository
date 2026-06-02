@@ -14,8 +14,12 @@ module Lifecycleable
       temporarily_suppressed: 5900
     }, prefix: :status, validate: true
 
-    # DRAFT: Spike 0.8 (status 5900 / suppressed の可視性確定) 待ち。確定後はここを差し替える。
+    # TODO(spike-0.8): DRAFT scopes — visibility for Temporarily / Permanently
+    # Suppressed records is unresolved (waiting on curator + Confluence 1899364353).
+    # Pin current behavior via test/models/concerns/lifecycleable_test.rb so the
+    # final answer surfaces as a visible diff. Do NOT wire into external-facing
+    # endpoints until 0.8 resolves.
     scope :publicly_visible, -> { status_public }
-    scope :curator_visible,  -> { where.not(status: %i[status_canceled status_withdrawn]) }
+    scope :curator_visible,  -> { where.not(status: %i[canceled withdrawn]) }
   end
 end

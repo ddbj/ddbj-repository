@@ -23,12 +23,16 @@ class Submission < ApplicationRecord
   validates :ddbj_record, attached: true, content_type: 'application/json', on: :update
 
   after_destroy do |submission|
-    submission.dir.rmtree
+    submission.dir&.rmtree
   end
 
   def dir
+    owner = user || request&.user
+
+    return unless owner
+
     base = Rails.application.config_for(:app).repository_dir!
 
-    Pathname.new(base).join(request.user.uid, 'submissions', id.to_s)
+    Pathname.new(base).join(owner.uid, 'submissions', id.to_s)
   end
 end

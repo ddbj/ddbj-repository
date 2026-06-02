@@ -1,5 +1,5 @@
 class ProjectLink < ApplicationRecord
-  belongs_to :child_project,  class_name: 'Project', inverse_of: :parent_link
+  belongs_to :child_project,  class_name: 'Project', inverse_of: :parent_links
   belongs_to :parent_project, class_name: 'Project', inverse_of: :child_links, optional: true
 
   validate :exactly_one_target
