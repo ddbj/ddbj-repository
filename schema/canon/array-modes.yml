@@ -92,3 +92,13 @@ strings:
     '/**/language_code':                                  single_line
     '/relations/*/properties/*':                          single_line
     '/project/relevance/*':                               single_line
+
+# ----------------------------------------------------------------------
+# JSON number paths that are allowed to carry a Float per canonical-json.md
+# §2.3. Defaults to NONE — every other numeric path must be an Integer in
+# IEEE-754 safe range or a String (identifier-like).
+# ----------------------------------------------------------------------
+floats:
+  - '/experiments/*/library/nominal_sdev'
+  - '/features/*/score'
+

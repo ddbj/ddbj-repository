@@ -14,6 +14,7 @@ module DDBJRecord
         def arrays         = load!.fetch('arrays')
         def volatile_paths = load!.fetch('volatile_paths')
         def strings        = load!.fetch('strings')
+        def floats         = load!.fetch('floats', [])
 
         def reload!
           @data = nil

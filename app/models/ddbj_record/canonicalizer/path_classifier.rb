@@ -37,6 +37,10 @@ module DDBJRecord
         Registry.volatile_paths.any? {|pattern| match?(pattern, pointer) }
       end
 
+      def float_allowed?(pointer)
+        Registry.floats.any? {|pattern| match?(pattern, pointer) }
+      end
+
       # @api private
       def best_match(pointer, table)
         candidates = table.filter_map {|pattern, value|
