@@ -219,4 +219,22 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
       C.apply(base, patch)
     end
   end
+
+  test 'reject_bag_descent catches move whose path descends into bag interior' do
+    base  = {'experiments' => [{'title' => 'A'}], 'tmp' => 'X'}
+    patch = [{'op' => 'move', 'from' => '/tmp', 'path' => '/experiments/0/title'}]
+
+    assert_raises C::BagPatchPathError do
+      C.apply(base, patch)
+    end
+  end
+
+  test 'reject_bag_descent catches copy whose from descends into bag interior' do
+    base  = {'experiments' => [{'title' => 'A'}], 'tmp' => nil}
+    patch = [{'op' => 'copy', 'from' => '/experiments/0/title', 'path' => '/tmp'}]
+
+    assert_raises C::BagPatchPathError do
+      C.apply(base, patch)
+    end
+  end
 end

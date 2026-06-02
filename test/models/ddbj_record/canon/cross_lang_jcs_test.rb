@@ -2,10 +2,7 @@ require 'test_helper'
 require 'open3'
 require 'tempfile'
 
-module DDBJRecord
-  module Canon
-  end
-end
+module DDBJRecord::Canon; end
 
 # Cross-language byte-identity check between Ruby `json-canonicalization`
 # 1.0.0 (via JcsAdapter) and Python `rfc8785` 0.1.4 on the canonicalised

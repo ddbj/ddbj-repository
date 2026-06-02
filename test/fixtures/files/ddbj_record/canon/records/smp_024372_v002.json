@@ -49,7 +49,7 @@
     "taxonomy_id": 410661
   },
   "organization": {
-    "name": "Tokyo Institute of Technology"
+    "name": "Sample Organization 2"
   },
   "package": "MIMARKS.survey.host-associated",
   "package_group": "MIMARKS",
@@ -64,22 +64,22 @@
   ],
   "submitters": [
     {
-      "email": "hmori@bio.titech.ac.jp",
-      "first": "Hiroshi",
+      "email": "sample-2@example.test",
+      "first": "Sample-First-3",
       "is_primary": true,
-      "last": "Mori"
+      "last": "Sample-Last-2"
     },
     {
-      "email": "r_shinkura@nagahama-i-bio.ac.jp",
-      "first": "Reiko",
+      "email": "sample-3@example.test",
+      "first": "Sample-First-5",
       "is_primary": false,
-      "last": "Shinkura"
+      "last": "Sample-Last-4"
     },
     {
-      "email": "tkato@rcai.riken.jp",
-      "first": "Tamotsu",
+      "email": "sample-4@example.test",
+      "first": "Sample-First-6",
       "is_primary": false,
-      "last": "Kato"
+      "last": "Sample-Last-1"
     }
   ],
   "title": "mouse feces"
