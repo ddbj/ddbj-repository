@@ -1,0 +1,78 @@
+{
+  "smp_001931_v001": {
+    "sha256": "c3a5e88a3c31327b97253a58b637e03d1db45e0589b7f542dc22ed048c3da3ca",
+    "bytes": 449
+  },
+  "smp_001931_v002": {
+    "sha256": "f15c2b9b3e96e5006ca8ad21ebc89deec719130fcdccf86a485eaf781ff2f6a2",
+    "bytes": 542
+  },
+  "smp_001931_v003": {
+    "sha256": "f15c2b9b3e96e5006ca8ad21ebc89deec719130fcdccf86a485eaf781ff2f6a2",
+    "bytes": 542
+  },
+  "smp_001931_v004": {
+    "sha256": "5e3eceeff34404c51f451665ef6be07ecd057834bb9c86561f5b0147f5a78346",
+    "bytes": 559
+  },
+  "smp_001931_v005": {
+    "sha256": "5e3eceeff34404c51f451665ef6be07ecd057834bb9c86561f5b0147f5a78346",
+    "bytes": 559
+  },
+  "smp_015788_v001": {
+    "sha256": "5fe6fe153e223ab4068d6ad64e67fb9089154b7958350e3651bf36fb1857d4e0",
+    "bytes": 497
+  },
+  "smp_015788_v002": {
+    "sha256": "130a4e56e59a2988acbd7f88919db9f471af0e39e8ea6609de74bba464f37146",
+    "bytes": 598
+  },
+  "smp_015788_v003": {
+    "sha256": "130a4e56e59a2988acbd7f88919db9f471af0e39e8ea6609de74bba464f37146",
+    "bytes": 598
+  },
+  "smp_015788_v004": {
+    "sha256": "dda065ceafbe91ffcca3cd3aa30d67dec8f9a6e9d5fcc5bee652d72c5c3e20bd",
+    "bytes": 615
+  },
+  "smp_015788_v005": {
+    "sha256": "dda065ceafbe91ffcca3cd3aa30d67dec8f9a6e9d5fcc5bee652d72c5c3e20bd",
+    "bytes": 615
+  },
+  "smp_019635_v001": {
+    "sha256": "fc0eb5abb19ee8574c1025163a440d0af467c09ace6dd68256fc4e33c5b94496",
+    "bytes": 913
+  },
+  "smp_019635_v002": {
+    "sha256": "ea580c524474c9379b43cb5d26aadb78378c047ecea076e0840e81e271e1223d",
+    "bytes": 921
+  },
+  "smp_020637_v001": {
+    "sha256": "4f918b8b5f47831f16f15cfedbd08cff44eb9859b39738c8f4e46bbcd55edbb1",
+    "bytes": 909
+  },
+  "smp_020637_v002": {
+    "sha256": "e88a03faf6f977126efee0a8a55ce35cd021ff55f4f8b32b7eb0a39390c94bf9",
+    "bytes": 917
+  },
+  "smp_024372_v001": {
+    "sha256": "67e9d6b08962e869ebbef692ab665c978ce4de38acb8529f0f501c30f455eb13",
+    "bytes": 1072
+  },
+  "smp_024372_v002": {
+    "sha256": "1cee6499a183ad6b53ea6a3973291e76f6194351886ee45328c415e371a7b26f",
+    "bytes": 1202
+  },
+  "smp_024372_v003": {
+    "sha256": "0eb01d95e01d62ae7f2a804578b12e101fccdca1647b4f0c994e7fac1b123f84",
+    "bytes": 1229
+  },
+  "smp_024372_v004": {
+    "sha256": "1bbfe2c66c3d88508b2179e28673c88d4fd17203414f86733739ec8a28603d3d",
+    "bytes": 1274
+  },
+  "smp_024372_v005": {
+    "sha256": "1bbfe2c66c3d88508b2179e28673c88d4fd17203414f86733739ec8a28603d3d",
+    "bytes": 1274
+  }
+}

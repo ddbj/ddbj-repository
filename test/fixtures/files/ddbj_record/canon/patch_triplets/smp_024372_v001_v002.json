@@ -1,0 +1,201 @@
+{
+  "name": "smp_024372_v001_v002",
+  "base": {
+    "alias": "Sample32",
+    "attributes": [
+      {
+        "name": "age",
+        "value": "20 weeks"
+      },
+      {
+        "name": "biome",
+        "value": "host-associated"
+      },
+      {
+        "name": "collection_date",
+        "value": "2012"
+      },
+      {
+        "name": "feature",
+        "value": "mammalia-associated habitat"
+      },
+      {
+        "name": "geo_loc_name",
+        "value": "Japan"
+      },
+      {
+        "name": "lat_lon",
+        "value": "35.35 N 136.28 E"
+      },
+      {
+        "name": "material",
+        "value": "feces"
+      },
+      {
+        "name": "project_name",
+        "value": "Pyrosequencing of 16S rRNA gene amplicon from mice fecal samples"
+      },
+      {
+        "name": "specific_host",
+        "value": "Mus musculus"
+      },
+      {
+        "name": "strain",
+        "value": "BALB"
+      }
+    ],
+    "env_package": "survey.host-associated",
+    "organism": {
+      "name": "mouse gut metagenome",
+      "taxonomy_id": 410661
+    },
+    "organization": {
+      "name": "Sample Organization 2"
+    },
+    "package": "MIMARKS.survey.host-associated",
+    "package_group": "MIMARKS",
+    "submitters": [
+      {
+        "email": "sample-2@example.test",
+        "first": "Sample-First-3",
+        "is_primary": true,
+        "last": "Sample-Last-2"
+      },
+      {
+        "email": "sample-3@example.test",
+        "first": "Sample-First-5",
+        "is_primary": false,
+        "last": "Sample-Last-4"
+      },
+      {
+        "email": "sample-4@example.test",
+        "first": "Sample-First-6",
+        "is_primary": false,
+        "last": "Sample-Last-1"
+      }
+    ],
+    "title": "mouse feces"
+  },
+  "after": {
+    "alias": "Sample32",
+    "attributes": [
+      {
+        "name": "age",
+        "value": "20 weeks"
+      },
+      {
+        "name": "biome",
+        "value": "host-associated"
+      },
+      {
+        "name": "bioproject id",
+        "value": "PRJDB3207"
+      },
+      {
+        "name": "collection_date",
+        "value": "2012"
+      },
+      {
+        "name": "feature",
+        "value": "mammalia-associated habitat"
+      },
+      {
+        "name": "geo_loc_name",
+        "value": "Japan"
+      },
+      {
+        "name": "lat_lon",
+        "value": "35.35 N 136.28 E"
+      },
+      {
+        "name": "material",
+        "value": "feces"
+      },
+      {
+        "name": "project_name",
+        "value": "Pyrosequencing of 16S rRNA gene amplicon from mice fecal samples"
+      },
+      {
+        "name": "specific_host",
+        "value": "Mus musculus"
+      }
+    ],
+    "description": "Mus musculus strain: BALB",
+    "env_package": "survey.host-associated",
+    "organism": {
+      "name": "mouse gut metagenome",
+      "taxonomy_id": 410661
+    },
+    "organization": {
+      "name": "Sample Organization 2"
+    },
+    "package": "MIMARKS.survey.host-associated",
+    "package_group": "MIMARKS",
+    "relations": [
+      {
+        "target": {
+          "db": "bioproject",
+          "id": "PRJDB3207"
+        },
+        "type": "xref"
+      }
+    ],
+    "submitters": [
+      {
+        "email": "sample-2@example.test",
+        "first": "Sample-First-3",
+        "is_primary": true,
+        "last": "Sample-Last-2"
+      },
+      {
+        "email": "sample-3@example.test",
+        "first": "Sample-First-5",
+        "is_primary": false,
+        "last": "Sample-Last-4"
+      },
+      {
+        "email": "sample-4@example.test",
+        "first": "Sample-First-6",
+        "is_primary": false,
+        "last": "Sample-Last-1"
+      }
+    ],
+    "title": "mouse feces"
+  },
+  "patch": [
+    {
+      "op": "remove",
+      "path": "/attributes/9"
+    },
+    {
+      "op": "add",
+      "path": "/attributes/2",
+      "value": {
+        "name": "bioproject id",
+        "value": "PRJDB3207"
+      }
+    },
+    {
+      "op": "add",
+      "path": "/description",
+      "value": "Mus musculus strain: BALB"
+    },
+    {
+      "op": "add",
+      "path": "/relations",
+      "value": [
+        {
+          "target": {
+            "db": "bioproject",
+            "id": "PRJDB3207"
+          },
+          "type": "xref"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "op_count": 4,
+    "classification": "signal.medium"
+  }
+}

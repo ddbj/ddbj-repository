@@ -1,0 +1,105 @@
+# DDBJ Record Canonical JSON v1 — array mode + string class + volatile path registry.
+#
+# Derived from ddbj-record-specifications @ bdcdb8d8 (2026-04-13) and
+# tmp/data-migration/canonical-json.md §3 / §4 / §6.
+#
+# DO NOT modify after first use. Changes require canonical_version bump
+# (ddbj-canon/v2) and a migration re-canonicalising every stored record.
+canonical_version: ddbj-canon/v1
+
+# ----------------------------------------------------------------------
+# Arrays: ordered (preserve input order) / keyed (sort by tuple) / bag
+# (sort by sha256 of canonical bytes).
+# ----------------------------------------------------------------------
+arrays:
+  # ----- ordered -----
+  '/submission/submitters':                              {mode: ordered}
+  '/sequences/entries':                                  {mode: ordered}
+  '/sequences/entries/*/source_features':                {mode: ordered}
+  '/sequences/entries/*/source_features/*/qualifiers/*': {mode: ordered}
+  '/sequences/entries/*/comments':                       {mode: ordered}
+  '/experiments/*/spot_descriptor/reads':                {mode: ordered}
+  '/experiments/*/processing':                           {mode: ordered}
+  '/analyses/*/processing':                              {mode: ordered}
+  '/runs/*/files':                                       {mode: ordered}
+  '/analyses/*/files':                                   {mode: ordered}
+  '/project/publications/*/authors':                     {mode: ordered}
+  '/features/*/qualifiers/*':                            {mode: ordered}
+  '/provenance/gff/pragmas':                             {mode: ordered}
+
+  # ----- keyed -----
+  '/samples':                                            {mode: keyed, key: [alias]}
+  '/relations':                                          {mode: keyed, key: [type, label, source/db, source/id, target/db, target/id, target/url]}
+  '/project/publications':                               {mode: keyed, key: [doi, pubmed_id, title]}
+  '/project/grants':                                     {mode: keyed, key: [id, title, agency]}
+  '/datasets':                                           {mode: keyed, key: [alias]}
+  '/access_control/dacs':                                {mode: keyed, key: [alias, accession]}
+  '/access_control/dacs/*/contacts':                     {mode: keyed, key: [email, last, first]}
+  '/submission/st26/invention_titles':                   {mode: keyed, key: [language_code]}
+  '/submission/attributes':                              {mode: keyed, key: [name, unit]}
+  '/assembly/attributes':                                {mode: keyed, key: [name, unit]}
+  '/datasets/*/attributes':                              {mode: keyed, key: [name, unit]}
+  # Fallback: any other path ending in /attributes (samples, project, run,
+  # analysis, experiment, sequences, etc.) keys by (name, unit).
+  '/**/attributes':                                      {mode: keyed, key: [name, unit]}
+
+  # ----- bag -----
+  '/experiments':                                        {mode: bag}
+  '/runs':                                               {mode: bag}
+  '/analyses':                                           {mode: bag}
+  '/features':                                           {mode: bag}
+  '/features/*/parent_ids':                              {mode: bag}
+  '/sequences/entries/*/structured_comments':            {mode: bag}
+  '/submission/submitters/*/organizations':              {mode: bag}
+  '/datasets/*/dataset_types':                           {mode: bag}
+  '/project/keywords':                                   {mode: bag}
+  '/project/study_types':                                {mode: bag}
+  '/project/locus_tag_prefix':                           {mode: bag}
+  '/project/target/data_types':                          {mode: bag}
+  '/experiments/*/targeted_loci':                        {mode: bag}
+
+# ----------------------------------------------------------------------
+# Volatile sub-trees stripped before diff (for_diff: true).
+# ----------------------------------------------------------------------
+volatile_paths:
+  - '/provenance'           # whole sub-tree
+  - '/schema_version'
+  - '/**/accession'         # archive-assigned, not curator data
+  - '/**/last_update'
+  - '/**/access'
+  - '/**/publication_date'
+
+# ----------------------------------------------------------------------
+# String classification. Default = multi_line (preserve newlines, trim
+# horizontal whitespace per line). single_line collapses internal whitespace
+# to a single ASCII space. sequence is a streaming-compatible class for
+# nucleotide sequences (no NFC, no collapse, alphabet-restricted).
+# ----------------------------------------------------------------------
+strings:
+  default: multi_line
+  paths:
+    '/sequences/entries/*/sequence':                      sequence
+    '/submission/hold_date':                              single_line
+    '/submission/st26/filing_date':                       single_line
+    '/submission/st26/production_date':                   single_line
+    '/**/orcid':                                          single_line
+    '/**/doi':                                            single_line
+    '/**/pubmed_id':                                      single_line
+    '/**/checksum':                                       single_line
+    '/**/email':                                          single_line
+    '/**/url':                                            single_line
+    '/**/ror_id':                                         single_line
+    '/**/language_code':                                  single_line
+    '/relations/*/properties/*':                          single_line
+    '/project/relevance/*':                               single_line
+    '/access_control/policy/policy_url':                  single_line
+
+# ----------------------------------------------------------------------
+# JSON number paths that are allowed to carry a Float per canonical-json.md
+# §2.3. Defaults to NONE — every other numeric path must be an Integer in
+# IEEE-754 safe range or a String (identifier-like).
+# ----------------------------------------------------------------------
+floats:
+  - '/experiments/*/library/nominal_sdev'
+  - '/features/*/score'
+

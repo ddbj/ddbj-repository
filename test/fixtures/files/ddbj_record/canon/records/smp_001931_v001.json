@@ -1,0 +1,27 @@
+{
+  "accession": "SAMD00001842",
+  "alias": "akifumi_tanabe-0003_Sample_0928",
+  "attributes": [
+    {
+      "name": "sample attribute",
+      "value": "Missing"
+    }
+  ],
+  "description": "Root samples collected in a temperate secondary forest on Mt. Yoshida, Kyoto, Japan.",
+  "organism": {
+    "name": "rhizosphere metagenome",
+    "taxonomy_id": 939928
+  },
+  "package": "Generic",
+  "package_group": "Generic",
+  "relations": [
+    {
+      "target": {
+        "db": "sra",
+        "id": "DRS004772"
+      },
+      "type": "xref"
+    }
+  ],
+  "title": "G63WAOO01__ACAGTGTC__rbcL"
+}
