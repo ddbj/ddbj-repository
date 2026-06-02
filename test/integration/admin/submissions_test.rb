@@ -47,4 +47,33 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
   end
+
+  test 'show renders the materialised v3 record' do
+    submission = submissions(:bioproject)
+    record     = {'project' => {'accession' => 'PRJDB502', 'title' => 'hello'}}
+    submission.updates.create!(
+      db:                       'bioproject',
+      status:                   :applied,
+      actor:                    'migration:test',
+      source:                   :migration,
+      patch:                    Oj.dump([{'op' => 'add', 'path' => '', 'value' => record}], mode: :strict),
+      patch_canonical_version:  1
+    )
+
+    get admin_submission_path(submission)
+
+    assert_response :ok
+    assert_match "Submission-#{submission.id}", response.body
+    assert_match 'PRJDB502',                    response.body
+    assert_match 'hello',                       response.body
+  end
+
+  test 'show falls back gracefully when no updates have been applied' do
+    submission = submissions(:bioproject)
+
+    get admin_submission_path(submission)
+
+    assert_response :ok
+    assert_match 'nothing to materialise', response.body
+  end
 end
