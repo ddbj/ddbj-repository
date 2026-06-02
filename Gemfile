@@ -17,6 +17,7 @@ gem 'hana'
 gem 'jb'
 gem 'json'
 gem 'json-canonicalization'
+gem 'json-diff'
 gem 'oj'
 gem 'jwt'
 gem 'kamal', require: false
