@@ -116,4 +116,70 @@ namespace :data_migration do
       client.close
     end
   end
+
+  # Batch import every BioSample submission in the staging mass schema.
+  # Mirrors data_migration:import_bp_batch — same hardening pattern
+  # (PG::ConnectionBad re-raise to abort on dropped tunnel, dedicated
+  # `:cross_user` counter, progress emitted inside `ensure`, `after:`
+  # cursor for resume, full lifecycle inside begin/ensure so client.close
+  # always runs).
+  #
+  #   ssh -L 54301:172.19.15.12:54301 a012 -N &
+  #   DWAY_DB_PASSWORD=... bin/rails 'data_migration:import_bs_batch[100]'
+  #
+  # Resume: bin/rails 'data_migration:import_bs_batch[100,migration,SSUB001234]'
+  desc 'Batch-import BioSamples from D-way staging via SSH tunnel'
+  task :import_bs_batch, %i[limit user_uid after] => :environment do |_, args|
+    limit            = args[:limit].presence&.to_i
+    user_uid         = args[:user_uid].presence || 'migration'
+    after            = args[:after].presence
+    migration_run_id = SecureRandom.uuid
+
+    counters = Hash.new(0)
+    client   = BioSample::StagingClient.new
+
+    begin
+      ssub_ids = client.submission_ids(limit:, after:)
+      total    = ssub_ids.size
+
+      puts "Starting BS batch (#{total} candidate[s], migration_run_id=#{migration_run_id}, after=#{after || '-'})"
+
+      ssub_ids.each_with_index do |ssub_id, idx|
+        begin
+          row = client.fetch(ssub_id)
+
+          if row.nil?
+            counters[:missing] += 1
+            next
+          end
+
+          importer = BioSample::Importer.new(
+            staging_submission: row,
+            user_uid:           row.submitter_id || user_uid,
+            migration_run_id:   migration_run_id
+          )
+
+          counters[importer.call.outcome] += 1
+        rescue PG::ConnectionBad, PG::UnableToSend, ActiveRecord::ConnectionNotEstablished => e
+          warn "Connection lost at SSUB #{ssub_id} (#{idx + 1}/#{total}): #{e.class}: #{e.message}"
+          raise
+        rescue BioSample::Importer::CrossUserError => e
+          counters[:cross_user] += 1
+          warn "[#{ssub_id}] CROSS-USER: #{e.message}"
+        rescue StandardError => e
+          counters[:failed] += 1
+          trace = e.backtrace&.first(3)&.join("\n  ") || '(no backtrace)'
+          warn "[#{ssub_id}] FAIL: #{e.class}: #{e.message}\n  #{trace}"
+        ensure
+          if ((idx + 1) % 100).zero? || idx + 1 == total
+            puts "[#{idx + 1}/#{total}] last=#{ssub_id} " + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
+          end
+        end
+      end
+    ensure
+      client.close
+    end
+
+    puts 'Done. ' + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
+  end
 end
