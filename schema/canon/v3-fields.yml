@@ -1,0 +1,342 @@
+# Derived from ddbj-record-specifications @ bdcdb8d8 (2026-04-13)
+# vendor/ddbj-record-specifications/docs/v3-schema.md
+# canonical_version: ddbj-canon/v1
+#
+# Used by `bundle exec rake canon:fields_check` to detect drift between
+# the V3 Data classes and the spec.
+
+classes:
+  # Group A: Top-level / Provenance / Submission
+  Root:
+    - schema_version
+    - provenance
+    - submission
+    - project
+    - samples
+    - experiments
+    - runs
+    - analyses
+    - sequences
+    - features
+    - assembly
+    - datasets
+    - relations
+    - access_control
+
+  Provenance:
+    - source_format
+    - submission_category
+    - gff
+
+  GffMeta:
+    - version
+    - pragmas
+    - source_tool
+
+  Submission:
+    - submitters
+    - hold_date
+    - comments
+    - st26
+    - attributes
+
+  St26Meta:
+    - dtd_version
+    - software_name
+    - software_version
+    - production_date
+    - original_language
+    - non_english_language
+    - applicant_file_reference
+    - applicant_name
+    - applicant_name_latin
+    - inventor_name
+    - inventor_name_latin
+    - application
+    - earliest_priority
+    - invention_titles
+
+  ApplicationIdentification:
+    - ip_office_code
+    - application_number_text
+    - filing_date
+
+  InventionTitle:
+    - title
+    - language_code
+
+  # Group B: Project
+  Project:
+    - accession
+    - alias
+    - name
+    - title
+    - description
+    - project_type
+    - umbrella_subtype
+    - study_types
+    - organism
+    - publications
+    - grants
+    - keywords
+    - relevance
+    - locus_tag_prefix
+    - target
+    - attributes
+
+  Publication:
+    - title
+    - pubmed_id
+    - doi
+    - status
+    - date
+    - journal
+    - volume
+    - issue
+    - pages_from
+    - pages_to
+    - authors
+    - consortiums
+
+  Grant:
+    - title
+    - agency
+    - id
+
+  ProjectTarget:
+    - sample_scope
+    - material
+    - capture
+    - method
+    - data_types
+
+  # Group C: Sample
+  Sample:
+    - accession
+    - alias
+    - title
+    - description
+    - package
+    - donor_id
+    - sample_group_type
+    - organism
+    - attributes
+
+  # Group D: Experiment / Run / Analysis
+  Experiment:
+    - accession
+    - alias
+    - title
+    - description
+    - library
+    - platform
+    - targeted_loci
+    - spot_descriptor
+    - processing
+    - attributes
+
+  LibraryDescriptor:
+    - name
+    - strategy
+    - source
+    - selection
+    - layout
+    - construction_protocol
+    - nominal_length
+    - nominal_sdev
+
+  Platform:
+    - type
+    - instrument_model
+    - array_name
+    - array_description
+    - array_provider
+
+  SpotDescriptor:
+    - spot_length
+    - reads
+
+  ReadSpec:
+    - read_index
+    - base_coord
+    - read_class
+    - read_type
+
+  PipelineStep:
+    - step_index
+    - prev_step_index
+    - program
+    - version
+
+  Run:
+    - accession
+    - alias
+    - title
+    - run_date
+    - data_type
+    - files
+    - attributes
+
+  DataFile:
+    - filename
+    - filetype
+    - checksum_method
+    - checksum
+    - unencrypted_checksum
+
+  Analysis:
+    - accession
+    - alias
+    - title
+    - description
+    - analysis_type
+    - analysis_date
+    - files
+    - processing
+    - attributes
+
+  # Group E: Sequences / Features
+  Sequences:
+    - seq_prefix
+    - common_source
+    - entries
+    - structured_comments
+    - attributes
+
+  Source:
+    - organism
+    - mol_type
+    - qualifiers
+
+  Entry:
+    - accession
+    - alias
+    - name
+    - type
+    - topology
+    - division
+    - sequence
+    - comments
+    - source_features
+
+  SourceFeature:
+    - alias
+    - location
+    - source
+    - definition
+
+  StructuredComment:
+    - tagset_id
+    - fields
+
+  Feature:
+    - alias
+    - type
+    - location
+    - sequence_id
+    - locus_tag_id
+    - source_tool
+    - qualifiers
+    - score
+    - phase
+    - parent_ids
+
+  Qualifier:
+    - alias
+    - value
+
+  # Group F: Assembly / Dataset / AccessControl
+  Assembly:
+    - accession
+    - alias
+    - name
+    - organism
+    - level
+    - scaffold_count
+    - total_length
+    - n50
+    - submission_category
+    - attributes
+
+  Dataset:
+    - accession
+    - alias
+    - title
+    - description
+    - dataset_types
+    - attributes
+    - runs
+    - analyses
+    - policy_accession
+
+  AccessControl:
+    - policy
+    - dacs
+
+  Policy:
+    - accession
+    - alias
+    - title
+    - description
+    - dac_accession
+
+  Dac:
+    - accession
+    - alias
+    - name
+    - contacts
+
+  # Group G: Relations
+  Relation:
+    - type
+    - target
+    - source
+    - label
+    - properties
+
+  RelationSource:
+    - db
+    - id
+    - role
+
+  RelationTarget:
+    - db
+    - id
+    - url
+    - role
+
+  # Group H: Shared
+  Organism:
+    - name
+    - common_name
+    - taxonomy_id
+
+  Person:
+    - first
+    - last
+    - email
+    - orcid
+    - organization
+    - role
+
+  Organization:
+    - name
+    - abbreviation
+    - url
+    - role
+    - type
+    - department
+    - address
+    - ror_id
+
+  Address:
+    - country
+    - state
+    - city
+    - street
+    - postal_code
+
+  Attribute:
+    - name
+    - value
+    - unit

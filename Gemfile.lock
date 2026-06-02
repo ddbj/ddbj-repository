@@ -178,6 +178,7 @@ GEM
     jb (0.8.2)
     jmespath (1.6.2)
     json (2.21.1)
+    json-canonicalization (1.0.0)
     json-jwt (1.17.0)
       activesupport (>= 4.2)
       aes_key_wrap
@@ -493,9 +494,11 @@ DEPENDENCIES
   diff-lcs
   erubi
   faraday
+  hana
   importmap-rails
   jb
   json
+  json-canonicalization
   jwt
   kamal
   minitest-default_http_header
