@@ -1,0 +1,50 @@
+<% content_for :title, "Submission-#{@submission.id}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration', path: admin_root_path},
+  {label: 'Submissions',    path: admin_submissions_path},
+  {label: "Submission-#{@submission.id}"}
+] %>
+
+<h1 class="display-6 mb-4">Submission-<%= @submission.id %></h1>
+
+<dl class="row">
+  <dt class="col-sm-3">Database</dt>
+  <dd class="col-sm-9"><%= db_label(@submission.db) %></dd>
+
+  <dt class="col-sm-3">Source ID</dt>
+  <dd class="col-sm-9"><%= @submission.source_id || '—' %></dd>
+
+  <dt class="col-sm-3">User</dt>
+  <dd class="col-sm-9"><%= @submission.user.uid %></dd>
+
+  <dt class="col-sm-3">Canonical version</dt>
+  <dd class="col-sm-9">ddbj-canon/v<%= @submission.canonical_version %></dd>
+
+  <dt class="col-sm-3">Converter version</dt>
+  <dd class="col-sm-9"><%= @submission.converter_version || '—' %></dd>
+
+  <dt class="col-sm-3">Created / Updated</dt>
+  <dd class="col-sm-9"><%= @submission.created_at.to_fs(:db) %> / <%= @submission.updated_at.to_fs(:db) %></dd>
+
+  <dt class="col-sm-3">Updates</dt>
+  <dd class="col-sm-9"><%= @submission.updates.count %></dd>
+
+  <% if @sha256 %>
+    <dt class="col-sm-3">Content SHA-256 (for_diff)</dt>
+    <dd class="col-sm-9"><code><%= @sha256 %></code></dd>
+  <% end %>
+
+  <% if @canonical_bytes %>
+    <dt class="col-sm-3">Canonical bytes</dt>
+    <dd class="col-sm-9"><%= number_with_delimiter(@canonical_bytes.bytesize) %> bytes</dd>
+  <% end %>
+</dl>
+
+<h2 class="h4 mt-4">Materialised v3 record</h2>
+
+<% if @materialised %>
+  <pre class="bg-body-tertiary border rounded p-3" style="max-height: 60vh; overflow: auto;"><%= JSON.pretty_generate(@materialised) %></pre>
+<% else %>
+  <p class="text-body-secondary">No updates have been applied yet — nothing to materialise.</p>
+<% end %>

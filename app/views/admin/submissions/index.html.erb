@@ -23,9 +23,9 @@
   <tbody>
     <% @submissions.each do |submission| %>
       <tr>
-        <td>Submission-<%= submission.id %></td>
+        <td><%= link_to "Submission-#{submission.id}", admin_submission_path(submission) %></td>
         <td><%= db_label(submission.db) %></td>
-        <td><%= submission.request.user.uid %></td>
+        <td><%= submission.user&.uid || submission.request&.user&.uid %></td>
         <td><%= submission.created_at.to_fs(:db) %></td>
         <td><%= submission.updated_at.to_fs(:db) %></td>
       </tr>

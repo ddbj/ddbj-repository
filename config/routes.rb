@@ -33,7 +33,7 @@ Rails.application.routes.draw do
     root to: 'dashboard#show'
 
     resources :submission_requests, only: %i[index]
-    resources :submissions,         only: %i[index]
+    resources :submissions,         only: %i[index show]
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]
     end

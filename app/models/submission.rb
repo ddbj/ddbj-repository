@@ -31,4 +31,20 @@ class Submission < ApplicationRecord
 
     Pathname.new(base).join(user.uid, 'submissions', id.to_s)
   end
+
+  # Materialise the current state of the record by replaying every
+  # SubmissionUpdate's JSON Patch from the empty document. Returns nil when
+  # there are no updates yet (a freshly inserted Submission row pre-baseline).
+  #
+  # Phase 3 spike: lazy, no cache. canonical-json.md §1.6 prescribes a
+  # write-through cache (`has_one_attached :current_record` blob) when
+  # 30-patch chains start to bite latency budgets — defer until measured.
+  def materialised_record
+    raw_patches = updates.order(:id).pluck(:patch)
+    return nil if raw_patches.empty?
+
+    raw_patches.reduce({}) {|state, raw|
+      DDBJRecord::Canonicalizer.apply(state, Oj.load(raw, mode: :strict))
+    }
+  end
 end
