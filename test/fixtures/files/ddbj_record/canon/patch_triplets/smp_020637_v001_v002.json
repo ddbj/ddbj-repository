@@ -42,16 +42,16 @@
       "taxonomy_id": 939928
     },
     "organization": {
-      "name": "Center for Ecological Research, Kyoto University"
+      "name": "Sample Organization 1"
     },
     "package": "MIMS.me",
     "package_group": "MIMS",
     "submitters": [
       {
-        "email": "virosa13@yahoo.co.jp",
-        "first": "Hirotoshi",
+        "email": "sample-6@example.test",
+        "first": "Sample-First-4",
         "is_primary": true,
-        "last": "Sato"
+        "last": "Sample-Last-3"
       }
     ],
     "title": "MIMS Environmental/Metagenome sample from rhizosphere metagenome"
@@ -98,16 +98,16 @@
       "taxonomy_id": 939928
     },
     "organization": {
-      "name": "Center for Ecological Research, Kyoto University"
+      "name": "Sample Organization 1"
     },
     "package": "MIMS.me",
     "package_group": "MIMS",
     "submitters": [
       {
-        "email": "virosa13@yahoo.co.jp.ddbj.test",
-        "first": "Hirotoshi",
+        "email": "sample-6@example.test",
+        "first": "Sample-First-4",
         "is_primary": true,
-        "last": "Sato"
+        "last": "Sample-Last-3"
       }
     ],
     "title": "MIMS Environmental/Metagenome sample from rhizosphere metagenome"
@@ -152,7 +152,7 @@
     {
       "op": "replace",
       "path": "/submitters/0/email",
-      "value": "virosa13@yahoo.co.jp.ddbj.test"
+      "value": "sample-6@example.test"
     }
   ],
   "meta": {
