@@ -10,5 +10,12 @@ module Admin
 
       @pagy, @submissions = pagy(scope)
     end
+
+    def show
+      @submission         = Submission.includes(:user, :updates, :project).find(params[:id])
+      @materialised       = @submission.materialised_record
+      @canonical_bytes    = @materialised && DDBJRecord::Canonicalizer.canonicalize(@materialised, for_diff: false)
+      @sha256             = @materialised && DDBJRecord::Canonicalizer.sha256(@materialised, for_diff: true)
+    end
   end
 end
