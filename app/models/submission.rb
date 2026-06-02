@@ -5,12 +5,18 @@ class Submission < ApplicationRecord
     biosample:  'biosample'
   }, suffix: true, validate: true
 
+  belongs_to :user
+
   has_one :request, dependent: :destroy, class_name: 'SubmissionRequest'
 
   has_many :updates,    dependent: :destroy, class_name: 'SubmissionUpdate'
   has_many :accessions, dependent: :destroy
 
+  has_one  :project, dependent: :destroy
+  has_many :samples, dependent: :destroy
+
   has_one_attached :ddbj_record
+  has_one_attached :current_record
   has_one_attached :flatfile_na
   has_one_attached :flatfile_aa
 
@@ -23,6 +29,6 @@ class Submission < ApplicationRecord
   def dir
     base = Rails.application.config_for(:app).repository_dir!
 
-    Pathname.new(base).join(request.user.uid, 'submissions', id.to_s)
+    Pathname.new(base).join(user.uid, 'submissions', id.to_s)
   end
 end

@@ -6,11 +6,7 @@ class SubmissionsController < ApplicationController
   end
 
   def show
-    @submission = current_user.submissions.where(db: params[:db]).includes(
-      :updates
-    ).order(
-      'submission_updates.id DESC'
-    ).find(params.expect(:id))
+    @submission = current_user.submissions.where(db: params[:db]).find(params.expect(:id))
   end
 
   def create
@@ -27,24 +23,6 @@ class SubmissionsController < ApplicationController
     request.waiting_application!
 
     ApplySubmissionRequestJob.perform_later request
-
-    head :no_content
-  end
-
-  def update
-    update = current_user.submission_updates.where(db: params[:db]).valid_only.joins(
-      :validation
-    ).where(
-      validations: {
-        finished_at: 1.day.ago..
-      }
-    ).find(params[:submission_update_id])
-
-    raise ActiveRecord::RecordInvalid unless update.ready_to_apply?
-
-    update.waiting_application!
-
-    ApplySubmissionUpdateJob.perform_later update
 
     head :no_content
   end

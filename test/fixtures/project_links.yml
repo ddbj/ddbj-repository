@@ -1,0 +1,7 @@
+internal:
+  child_project:  primary
+  parent_project: umbrella
+
+external:
+  child_project:      primary
+  external_accession: PRJNA707598

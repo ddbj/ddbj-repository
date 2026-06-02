@@ -1,0 +1,14 @@
+first:
+  submission: biosample
+  sample_name: fixture-sample-1
+  status: private
+  package_group: Standard
+  package: Generic.1.0
+  accession: SAMD00000001
+
+second:
+  submission: biosample
+  sample_name: fixture-sample-2
+  status: public
+  package_group: MIxS
+  package: MIxS.air.5.0

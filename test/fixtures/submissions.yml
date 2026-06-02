@@ -1,8 +1,11 @@
 st26:
+  user: alice
   db: st26
 
 bioproject:
+  user: alice
   db: bioproject
 
 biosample:
+  user: alice
   db: biosample
