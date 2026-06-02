@@ -1,69 +1,73 @@
 namespace :data_migration do
-  # Phase 3 spike scope: import a single BioProject from a D-way XML file.
-  # Idempotent on re-run with the same source XML (skips the SubmissionUpdate
-  # insert when the prior tail patch is byte-identical to the new baseline);
-  # raises on cross-user collision instead of silently re-attributing.
-  desc 'Import a single BioProject from a D-way XML file (Phase 3 spike, single record)'
+  desc 'Import a single BioProject from a D-way XML file (spike, single record)'
   task :import_bp_from_file, %i[xml_path psub_id user_uid project_type] => :environment do |_, args|
-    xml_path     = args.fetch(:xml_path)
-    psub_id      = args.fetch(:psub_id)
-    user_uid     = args.fetch(:user_uid)
-    project_type = args[:project_type].presence || 'primary'
+    importer = BioProject::Importer.new(
+      psub_id:          args.fetch(:psub_id),
+      xml:              File.read(args.fetch(:xml_path)),
+      user_uid:         args.fetch(:user_uid),
+      project_type:     args[:project_type].presence || 'primary',
+      migration_run_id: SecureRandom.uuid
+    )
 
-    xml  = File.read(xml_path)
-    user = User.find_by!(uid: user_uid)
+    result = importer.call
+    puts "[#{result.outcome}] PSUB #{args[:psub_id]} → Submission ##{result.submission.id}"
+  end
 
-    record    = BioProject::Converter.new(xml:, project_row: {project_type:}).call
-    accession = record.dig('project', 'accession') or
-      raise 'XML had no /Project/Project/ProjectID/ArchiveID/@accession; cannot derive accession'
+  # Batch import every BioProject in the staging mass schema.
+  #
+  # Run locally via an SSH local-forward tunnel:
+  #
+  #   ssh -L 54301:172.19.15.12:54301 a012 -N &
+  #   DWAY_DB_PASSWORD=... bin/rails 'data_migration:import_bp_batch[100]'
+  #
+  # The optional `limit` arg caps the run for incremental rollouts. Skip
+  # with `data_migration:import_bp_batch` to import everything.
+  #
+  # The task is idempotent: a re-run resumes where the prior crashed and
+  # skips submissions whose baseline patch is byte-identical.
+  desc 'Batch-import BioProjects from D-way staging via SSH tunnel'
+  task :import_bp_batch, %i[limit user_uid] => :environment do |_, args|
+    limit            = args[:limit].presence&.to_i
+    user_uid         = args[:user_uid].presence || 'migration'
+    migration_run_id = SecureRandom.uuid
 
-    baseline = [{'op' => 'add', 'path' => '', 'value' => record}]
-    patch    = Oj.dump(baseline, mode: :strict)
+    client    = BioProject::StagingClient.new
+    psub_ids  = client.submission_ids(limit: limit)
+    total     = psub_ids.size
+    counters  = Hash.new(0)
 
-    Submission.transaction do
-      submission = Submission.find_or_create_by!(db: :bioproject, source_id: psub_id) {|s|
-        s.user           = user
-        s.migration_run_id = SecureRandom.uuid
-      }
+    puts "Starting batch (#{total} candidate[s], migration_run_id=#{migration_run_id})"
 
-      if submission.user_id != user.id
-        raise "Submission #{psub_id} already exists under user '#{submission.user.uid}'; " \
-              "refusing to silently re-attribute to '#{user_uid}'."
+    psub_ids.each_with_index do |psub_id, idx|
+      row = client.fetch(psub_id)
+
+      if row.nil? || row.xml.blank?
+        counters[:no_xml] += 1
+        next
       end
 
-      # `update_columns` bypasses the v2-era `validates :ddbj_record, on: :update`
-      # constraint — migration-sourced submissions store state in
-      # submission_updates patches, not in the ddbj_record blob.
-      submission.update_columns(
-        canonical_version: 1,
-        converter_version: "bp_v3/#{BioProject::Converter::SOURCE_FORMAT}",
-        updated_at:        Time.current
+      importer = BioProject::Importer.new(
+        psub_id:          row.psub_id,
+        xml:              row.xml,
+        user_uid:         row.submitter_id || user_uid,
+        project_type:     row.project_type,
+        status:           row.status_id,
+        migration_run_id: migration_run_id
       )
 
-      submission.project ||
-        Project.create!(
-          submission:,
-          accession:,
-          project_type:,
-          status:    :public,
-          title:     record.dig('project', 'title')
-        )
+      result = importer.call
+      counters[result.outcome] += 1
 
-      last_patch = submission.updates.order(:id).last&.patch
-      if last_patch == patch
-        puts "Skipped: Submission ##{submission.id} (#{accession}) — baseline patch unchanged"
-      else
-        submission.updates.create!(
-          db:                       'bioproject',
-          status:                   :applied,
-          actor:                    "migration:#{user_uid}",
-          source:                   :migration,
-          patch:                    patch,
-          patch_canonical_version:  1
-        )
-
-        puts "Imported #{accession} → Submission ##{submission.id} (#{submission.updates.count} update[s])"
+      if ((idx + 1) % 100).zero? || idx + 1 == total
+        puts "[#{idx + 1}/#{total}] " + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
       end
+    rescue StandardError => e
+      counters[:failed] += 1
+      warn "[#{psub_id}] FAIL: #{e.class}: #{e.message}"
     end
+
+    client.close
+
+    puts 'Done. ' + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
   end
 end
