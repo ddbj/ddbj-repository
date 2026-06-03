@@ -10,6 +10,8 @@ module Admin
         .order(id: :desc)
       scope = scope.where(db: params[:db]) if params[:db].present?
       scope = scope.where(user: User.where(uid: params[:user])) if params[:user].present?
+      scope = filter_by_source_id(scope, params[:source_id]) if params[:source_id].present?
+      scope = filter_by_accession(scope, params[:accession]) if params[:accession].present?
 
       @pagy, @submissions = pagy(scope)
     end
@@ -46,6 +48,50 @@ module Admin
 
       parsed = Integer(raw, 10, exception: false)
       parsed&.positive? ? parsed : nil
+    end
+
+    # Longer than any real PSUB/SSUB/PRJDB/SAMD/SAMN/etc. accession. Bounds
+    # both the SQL ILIKE cost and the request-log payload for crafted/fuzzed
+    # input.
+    MAX_FILTER_LENGTH = 64
+
+    # Coerce param input to a bounded, trimmed string. Non-String shapes
+    # (Array, Hash, ActionController::Parameters) become '' so the calling
+    # helpers no-op on them instead of raising NoMethodError on sanitize.
+    def normalize_filter_value(raw)
+      return '' unless raw.is_a?(String)
+
+      raw.strip[0, MAX_FILTER_LENGTH] || ''
+    end
+
+    # Case-insensitive PREFIX match on submissions.source_id. Column name is
+    # table-qualified so a future scope chain that joins a sibling table
+    # with a same-named column does not trip Postgres ambiguous-column.
+    def filter_by_source_id(scope, raw)
+      value = normalize_filter_value(raw)
+      return scope if value.empty?
+
+      scope.where('submissions.source_id ILIKE ?', "#{sanitize_sql_like(value)}%")
+    end
+
+    # Case-insensitive PREFIX match OR-ed across the three accession-bearing
+    # associations (projects for BP, samples for BS, accessions for ST26).
+    # EXISTS subqueries avoid the row duplication a join would introduce
+    # when a single submission has many matching samples / entries.
+    def filter_by_accession(scope, raw)
+      value = normalize_filter_value(raw)
+      return scope if value.empty?
+
+      pattern = "#{sanitize_sql_like(value)}%"
+      scope.where(<<~SQL.squish, pattern:)
+        EXISTS (SELECT 1 FROM projects   WHERE projects.submission_id   = submissions.id AND projects.accession   ILIKE :pattern) OR
+        EXISTS (SELECT 1 FROM samples    WHERE samples.submission_id    = submissions.id AND samples.accession    ILIKE :pattern) OR
+        EXISTS (SELECT 1 FROM accessions WHERE accessions.submission_id = submissions.id AND accessions.number    ILIKE :pattern)
+      SQL
+    end
+
+    def sanitize_sql_like(value)
+      ActiveRecord::Base.sanitize_sql_like(value)
     end
   end
 end
