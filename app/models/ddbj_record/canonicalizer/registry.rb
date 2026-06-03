@@ -18,6 +18,7 @@ module DDBJRecord
 
         def reload!
           @data = nil
+          PathClassifier.reset!
         end
 
         private
