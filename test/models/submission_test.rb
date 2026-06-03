@@ -135,7 +135,7 @@ class SubmissionTest < ActiveSupport::TestCase
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'cached'}}, actor: 'test')
 
-    assert_nil submission.cached_at_update_id
+    assert_nil submission.reload.cached_at_update_id
     assert_nil submission.cached_materialised_record
 
     first = submission.materialised_record
@@ -145,12 +145,14 @@ class SubmissionTest < ActiveSupport::TestCase
     assert submission.cached_materialised_record.present?, 'cache bytea must be written through'
     assert_equal submission.updates.maximum(:id), submission.cached_at_update_id
 
-    # On the cache hit path, do not consult submission_updates.patch at all.
-    # Corrupt every patch row in place; if the cache works, the read still
-    # succeeds.
-    submission.updates.update_all(patch: 'not-json-at-all')
-    assert_equal first, submission.materialised_record,
-                 'cache hit must bypass patch replay entirely'
+    # On the cache hit path, do not invoke the replay engine. Stubbing
+    # Canonicalizer.apply to raise asserts the bypass without depending
+    # on the patch column's evolving integrity rules (DB CHECK
+    # constraints, future BEFORE-UPDATE triggers, etc.).
+    DDBJRecord::Canonicalizer.stub(:apply, ->(*) { raise 'replay must not be called on cache hit' }) do
+      assert_equal first, submission.materialised_record,
+                   'cache hit must bypass patch replay entirely'
+    end
   end
 
   test 'write-through cache: invalidates when a new update is appended' do
@@ -158,15 +160,31 @@ class SubmissionTest < ActiveSupport::TestCase
     submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
     submission.materialised_record # warms cache
 
-    cached_id = submission.reload.cached_at_update_id
-    assert_equal submission.updates.maximum(:id), cached_id
+    assert submission.reload.cached_at_update_id.present?, 'baseline cache warm-up must populate cache'
 
     submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
 
-    # New update means cached_at_update_id no longer matches latest;
-    # next read recomputes and re-caches at the new latest.
+    # SubmissionUpdate#after_create_commit must have nil-cleared cache.
+    assert_nil submission.reload.cached_at_update_id, 'append must invalidate cache'
+    assert_nil submission.cached_materialised_record
+
+    # Next read recomputes and re-stamps at the new latest.
     assert_equal 'v2', submission.materialised_record.dig('project', 'title')
     assert_equal submission.updates.reload.maximum(:id), submission.reload.cached_at_update_id
+  end
+
+  test 'write-through cache: invalidates when a SubmissionUpdate is destroyed' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    second = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+    submission.materialised_record # warms cache at v2
+    assert submission.reload.cached_at_update_id.present?
+
+    second.destroy!
+
+    assert_nil submission.reload.cached_at_update_id,
+               'after_destroy_commit must invalidate cache when any update row is destroyed'
+    assert_nil submission.cached_materialised_record
   end
 
   test 'materialise_at(update_id:) historical snapshots never consult the cache' do

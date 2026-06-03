@@ -6,7 +6,6 @@ class Submission < ApplicationRecord
   }, suffix: true, validate: true
 
   belongs_to :user
-  belongs_to :cached_at_update, class_name: 'SubmissionUpdate', optional: true
 
   has_one :request, dependent: :destroy, class_name: 'SubmissionRequest'
 
@@ -47,23 +46,26 @@ class Submission < ApplicationRecord
   # JSON Patch from {}. Returns nil if there are no updates yet.
   #
   # Caches the latest-snapshot bytes in the `cached_materialised_record`
-  # bytea column and stamps `cached_at_update_id` with the update id
-  # the cache reflects. On the next read, if `cached_at_update_id ==
-  # updates.max(:id)` the column is parsed directly without replay.
+  # bytea column. Invariant: `cached_at_update_id` is non-nil iff the
+  # cache is fresh — SubmissionUpdate#after_create_commit and
+  # after_destroy_commit unconditionally nil-clear the cache columns, so
+  # any chain edit (append, undo, intermediate delete) invalidates.
+  # That lets the read path short-circuit on column presence alone
+  # without a round trip to submission_updates.
   #
   # bytea (not ActiveStorage) so the cache read is a single column fetch
   # — no SeaweedFS round trip in production. BS records with ~20K
-  # samples land around 2-3MB, well within Postgres row toasting.
+  # samples land around 7MB, within Postgres TOAST handling.
   #
   # `materialise_at(update_id:)` for historical snapshots does NOT
   # consult the cache — only the latest-state path is cached.
   def materialised_record
-    latest_id = updates.maximum(:id)
-    return nil unless latest_id
-
-    if cached_at_update_id == latest_id && cached_materialised_record.present?
+    if cached_at_update_id.present? && cached_materialised_record.present?
       return Oj.load(cached_materialised_record, mode: :strict)
     end
+
+    latest_id = updates.maximum(:id)
+    return nil unless latest_id
 
     fresh = materialise_at(update_id: latest_id)
     write_through_cache(fresh, latest_id) if fresh
@@ -105,33 +107,43 @@ class Submission < ApplicationRecord
   # remove them.
   def append_update!(new_record, actor:, source: :manual)
     with_lock do
-      patch = DDBJRecord::Canonicalizer.diff(materialised_record || {}, new_record)
+      latest_id = updates.maximum(:id)
+      base      = latest_id ? materialise_at(update_id: latest_id) : {}
+      patch     = DDBJRecord::Canonicalizer.diff(base, new_record)
       return nil if patch.empty?
 
       updates.create!(
-        db:                       db,
-        status:                   :applied,
-        actor:                    actor,
-        source:                   source,
-        patch:                    Oj.dump(patch, mode: :strict),
-        patch_canonical_version:  1
+        db:                      db,
+        status:                  :applied,
+        actor:                   actor,
+        source:                  source,
+        patch:                   Oj.dump(patch, mode: :strict),
+        patch_canonical_version: 1
       )
-      # Cache invalidates passively — the next materialised_record sees
-      # cached_at_update_id < latest_id and recomputes + re-caches.
+      # Cache invalidates via SubmissionUpdate#after_create_commit — no
+      # explicit clear here. Deliberately bypassing the cached read
+      # (using materialise_at directly) because we are about to
+      # invalidate the cache anyway, so consuming it would be wasted IO.
     end
   end
 
   private
 
+  # Guarded write: the WHERE clause prevents a slower concurrent reader
+  # from clobbering a newer cache stamp written by a faster reader. The
+  # `<= ?` form treats equal updates as idempotent (no harm in writing
+  # the same snapshot twice).
   def write_through_cache(record, update_id)
-    update_columns(
-      cached_materialised_record: Oj.dump(record, mode: :strict),
-      cached_at_update_id:        update_id
-    )
+    self.class.where(id: id)
+      .where('cached_at_update_id IS NULL OR cached_at_update_id <= ?', update_id)
+      .update_all(
+        cached_materialised_record: Oj.dump(record, mode: :strict),
+        cached_at_update_id:        update_id
+      )
   rescue StandardError => e
-    # Cache write failure must not break the read path — `fresh` is
-    # already in hand. Worth a Sentry breadcrumb so persistent cache
-    # write failures (toast row limits, etc.) get noticed.
+    # Cache write failure must not break the read path — `record` is
+    # already in hand. Sentry breadcrumb so persistent failures
+    # (toast row limits, FK violations, etc.) get noticed.
     Rails.error.report e, context: {submission_id: id, update_id: update_id}
   end
 end
