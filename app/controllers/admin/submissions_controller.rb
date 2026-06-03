@@ -16,6 +16,13 @@ module Admin
       @pagy, @submissions = pagy(scope)
     end
 
+    # Canonicalisation walks every subtree and produces canonical bytes +
+    # SHA-256 for each, which costs ~20s on a 7 MB record (BS 20K-sample
+    # scale, see SSUB004153). Skip both display rows above this size and
+    # surface a banner instead — the materialised record itself still
+    # renders fine via plain JSON.pretty_generate.
+    CANONICAL_DISPLAY_SIZE_LIMIT = 1.megabyte
+
     def show
       @submission = Submission.includes(:user).find(params[:id])
       @updates    = @submission.updates.order(:id).to_a
@@ -27,12 +34,24 @@ module Admin
       requested        = parse_as_of(params[:as_of])
       @requested_as_of = requested unless requested == latest_id
       @as_of_row       = @requested_as_of && @updates.find {|u| u.id == @requested_as_of }
-      effective_as_of  = @as_of_row&.id
 
       begin
-        @materialised    = @submission.materialise_at(update_id: effective_as_of)
-        @canonical_bytes = @materialised && DDBJRecord::Canonicalizer.canonicalize(@materialised)
-        @sha256          = @materialised && DDBJRecord::Canonicalizer.sha256(@materialised)
+        # Cache-aware fast path on the latest snapshot; as_of snapshots
+        # always replay because the cache stores only the latest.
+        @materialised = @as_of_row ? @submission.materialise_at(update_id: @as_of_row.id) : @submission.materialised_record
+
+        if @materialised
+          dump_size = Oj.dump(@materialised, mode: :strict).bytesize
+
+          if dump_size <= CANONICAL_DISPLAY_SIZE_LIMIT
+            @canonical_bytes = DDBJRecord::Canonicalizer.canonicalize(@materialised)
+            # Hash the already-computed canonical bytes instead of calling
+            # Canonicalizer.sha256, which re-canonicalises from scratch.
+            @sha256 = Digest::SHA256.hexdigest(@canonical_bytes)
+          else
+            @canonical_skipped_size = dump_size
+          end
+        end
       rescue Submission::MaterialisationFailed, DDBJRecord::Canonicalizer::Error => e
         @materialisation_error = e
       end

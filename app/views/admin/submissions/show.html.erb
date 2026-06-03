@@ -33,6 +33,14 @@
 
     <dt class="col-sm-3">Canonical SHA-256</dt>
     <dd class="col-sm-9"><code><%= @sha256 %></code></dd>
+  <% elsif @canonical_skipped_size %>
+    <dt class="col-sm-3">Canonical bytes / SHA-256</dt>
+    <dd class="col-sm-9 text-body-secondary">
+      Skipped — materialised record is <%= number_to_human_size(@canonical_skipped_size) %>
+      (limit <%= number_to_human_size(Admin::SubmissionsController::CANONICAL_DISPLAY_SIZE_LIMIT) %>).
+      Canonicalisation walks every subtree and costs ~20 s on 7 MB records;
+      avoiding it keeps the page interactive.
+    </dd>
   <% end %>
 
   <% if @materialisation_error %>

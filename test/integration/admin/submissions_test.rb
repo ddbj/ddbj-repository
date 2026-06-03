@@ -224,6 +224,34 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match    'visible',                      response.body
   end
 
+  test 'show skips canonical bytes / sha for records over the size limit (avoids 20s canonicalise)' do
+    submission = submissions(:bioproject)
+    # Synthesise a payload whose Oj.dump exceeds the 1 MB display limit.
+    # A 2 MB string is plenty; Canonicalizer.canonicalize on this would
+    # take seconds and dominate the show response.
+    big_value = 'x' * (2 * 1024 * 1024)
+    submission.append_update!({'project' => {'title' => 'big', 'description' => big_value}}, actor: 'test')
+
+    get admin_submission_path(submission)
+
+    assert_response :ok
+    assert_match    'Skipped',                  response.body
+    assert_match    'materialised record is',   response.body
+    assert_no_match 'Canonical SHA-256',        response.body
+  end
+
+  test 'show computes canonical bytes / sha for records under the size limit' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'small'}}, actor: 'test')
+
+    get admin_submission_path(submission)
+
+    assert_response :ok
+    assert_match    'Canonical bytes',   response.body
+    assert_match    'Canonical SHA-256', response.body
+    assert_no_match 'Skipped',           response.body
+  end
+
   test 'show renders the Samples table for a biosample submission' do
     submission = submissions(:biosample)
     submission.samples.create!(
