@@ -44,7 +44,6 @@ module BioSample
 
       record = Converter.new(submission: @row).call
       user   = User.find_or_create_by!(uid: @user_uid)
-      patch  = Oj.dump([{'op' => 'add', 'path' => '', 'value' => record}], mode: :strict)
 
       Submission.transaction do
         submission = Submission.find_or_create_by!(db: :biosample, source_id: @row.ssub_id) {|s|
@@ -60,13 +59,43 @@ module BioSample
 
         # Sample typed columns ALWAYS sync — they include staging-only
         # fields (package_group, env_package) that never reach the
-        # canonical patch, so the patch-byte-equality skip below cannot
+        # canonical patch, so the patch-difference skip below cannot
         # protect them without permanently stranding staging updates.
         sync_samples!(submission, record)
 
-        prior_patch = submission.updates.order(:id).last&.patch&.b
+        # Semantic diff against the prior materialised state when
+        # possible. First-import path: materialised_record is nil →
+        # diff({}, record) returns one `add /<top_level_key>` op per
+        # top-level key (NOT a single root op — JsonDiff decomposes
+        # the missing-everything baseline). Re-import of an unchanged
+        # record: diff is empty → :skipped. Real shape delta: minimal
+        # RFC 6902 ops.
+        #
+        # compute_patch_ops falls back to a root-level snapshot when
+        # the structural diff (a) would descend into a bag-array
+        # element (any inner `/samples/N/...` change trips
+        # reject_bag_descent! because intermediate prefixes default to
+        # bag mode) or (b) hits any other Canonicalizer::Error
+        # (control chars, number guard, sequence alphabet, etc.).
+        # safe_prior_materialised swallows MaterialisationFailed so a
+        # poisoned historical patch lets the importer self-heal by
+        # overwriting forward instead of permanently failing every
+        # re-import for that submission.
+        prior_record = safe_prior_materialised(submission)
+        patch_ops    = compute_patch_ops(prior_record, record)
 
-        if prior_patch == patch.b
+        if patch_ops.empty?
+          # sync_samples! ran above (typed columns ALWAYS sync), so the
+          # bad-batch rollback selector
+          #   Submission.where(migration_run_id: 'R-bad').destroy_all
+          # would miss this row unless we stamp it here too. Bump
+          # migration_run_id + updated_at; leave canonical_version /
+          # converter_version untouched because the chain itself is
+          # unchanged.
+          submission.update_columns(
+            migration_run_id: @migration_run_id,
+            updated_at:       Time.current
+          )
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -78,12 +107,12 @@ module BioSample
         )
 
         submission.updates.create!(
-          db:                       'biosample',
-          status:                   :applied,
-          actor:                    "migration:#{@user_uid}",
-          source:                   :migration,
-          patch:                    patch,
-          patch_canonical_version:  1
+          db:                      'biosample',
+          status:                  :applied,
+          actor:                   "migration:#{@user_uid}",
+          source:                  :migration,
+          patch:                   Oj.dump(patch_ops, mode: :strict),
+          patch_canonical_version: 1
         )
 
         Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
@@ -91,6 +120,32 @@ module BioSample
     end
 
     private
+
+    def safe_prior_materialised(submission)
+      submission.materialised_record || {}
+    rescue Submission::MaterialisationFailed => e
+      Rails.error.report e, context: {submission_id: submission.id, source_id: @row.ssub_id}
+      {}
+    end
+
+    # Catches the full Canonicalizer::Error hierarchy, not just
+    # BagPatchPathError. The other reachable subclasses
+    # (ControlCharacterError, IntegerOutOfRangeError, FloatNotAllowedError,
+    # UnsupportedValueError, OrderedEmptyElementError, SequenceAlphabetError)
+    # come from Normalizer / NumberGuard / SequenceCodec / ArraySorter
+    # during the canonicalize pass diff() runs on BOTH sides. Apply, by
+    # contrast, is pure RFC 6902 with no validation — so a baseline
+    # patch from the pre-this-commit code path can carry bytes that
+    # diff() rejects on the very next re-import. Without this widened
+    # rescue any such mismatch rolls the whole importer transaction
+    # back (including sync_samples!), turning a one-off staging bug
+    # into a permanent :failed row.
+    def compute_patch_ops(prior, current)
+      DDBJRecord::Canonicalizer.diff(prior, current)
+    rescue DDBJRecord::Canonicalizer::Error
+      op = prior.empty? ? 'add' : 'replace'
+      [{'op' => op, 'path' => '', 'value' => current}]
+    end
 
     def sync_samples!(submission, record)
       v3_samples       = record.fetch('samples')
