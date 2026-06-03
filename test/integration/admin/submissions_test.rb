@@ -38,6 +38,91 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match "Submission-#{submissions(:st26).id}",   response.body
   end
 
+  test 'index filters by source_id prefix (case-insensitive)' do
+    submissions(:bioproject).update_columns(source_id: 'PSUB000604')
+    submissions(:biosample).update_columns(source_id: 'SSUB002065')
+
+    get admin_submissions_path, params: {source_id: 'psub'}
+
+    assert_response :ok
+    assert_match    "Submission-#{submissions(:bioproject).id}", response.body
+    assert_no_match "Submission-#{submissions(:biosample).id}",  response.body
+    assert_no_match "Submission-#{submissions(:st26).id}",       response.body
+  end
+
+  test 'index filters by accession across projects (BP) / samples (BS) / accessions (ST26)' do
+    # projects(:primary) has accession 'PRJDB000001' tied to submissions(:bioproject)
+    # samples(:first) has accession 'SAMD00000001' tied to submissions(:biosample)
+    # accessions(:one) has number 'ACC_000001' tied to submissions(:st26)
+
+    get admin_submissions_path, params: {accession: 'PRJDB'}
+    assert_match    "Submission-#{submissions(:bioproject).id}", response.body
+    assert_no_match "Submission-#{submissions(:biosample).id}",  response.body
+    assert_no_match "Submission-#{submissions(:st26).id}",       response.body
+
+    get admin_submissions_path, params: {accession: 'SAMD'}
+    assert_match    "Submission-#{submissions(:biosample).id}",  response.body
+    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+
+    get admin_submissions_path, params: {accession: 'ACC_'}
+    assert_match    "Submission-#{submissions(:st26).id}",       response.body
+    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+  end
+
+  test 'index treats SQL LIKE metacharacters in filter input as literals' do
+    submissions(:bioproject).update_columns(source_id: 'PSUB000604')
+
+    # If '%' were unescaped, this would match anything; sanitize_sql_like
+    # should escape it so the literal '%' is required in source_id.
+    get admin_submissions_path, params: {source_id: '%PSUB'}
+    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+  end
+
+  test 'index escapes _ (single-char LIKE wildcard) in accession filter' do
+    # Without sanitize_sql_like, `_` would match ANY single char, so the
+    # filter 'ACC_' would also match this synthetic 'ACCX000001' on the
+    # bioproject submission, leaking unrelated submissions into the list.
+    # Accession.number has no format validator (unlike Sample/Project), so
+    # we can attach a literal probe value to a non-st26 submission.
+    submissions(:bioproject).accessions.create!(
+      number:     'ACCX000001',
+      entry_id:   'wildcard-probe',
+      locus_date: Date.current
+    )
+
+    get admin_submissions_path, params: {accession: 'ACC_'}
+
+    # accessions(:one) has number 'ACC_000001' (literal underscore) — must match
+    assert_match    "Submission-#{submissions(:st26).id}",       response.body
+    # 'ACCX000001' must NOT match — proves '_' was treated as a literal
+    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+  end
+
+  test 'index ignores non-String filter values instead of crashing on sanitize' do
+    # An Array / Hash params shape used to reach sanitize_sql_like and
+    # raise NoMethodError: undefined method 'gsub' for an instance of Array,
+    # 500-ing the index. Now silently treated as no filter.
+    get admin_submissions_path, params: {source_id: ['psub']}
+    assert_response :ok
+
+    get admin_submissions_path, params: {accession: {nested: 'x'}}
+    assert_response :ok
+  end
+
+  test 'index caps filter input length to bound ILIKE cost / log payload' do
+    submissions(:bioproject).update_columns(source_id: 'PSUB000604')
+
+    # 70 chars > MAX_FILTER_LENGTH (64). The cap truncates input to the
+    # 'PSUB' prefix (4 chars + 60 'A's truncated to 64 total) — still does
+    # NOT match 'PSUB000604' because the truncated value contains 'A's
+    # after the leading 'PSUB'.
+    long_value = 'PSUB' + ('A' * 70)
+
+    get admin_submissions_path, params: {source_id: long_value}
+    assert_response :ok
+    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+  end
+
   test 'index returns 403 for non-admin users' do
     sign_in_as users(:carol)
 
