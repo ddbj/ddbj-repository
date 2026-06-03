@@ -40,7 +40,14 @@ module BioProject
     # <XPath under Organism node> => v3 attribute name (snake_case).
     # Each entry produces 0..1 attribute (dropped when blank).
     ORGANISM_SCALAR_ATTRS = {
+      # Identity siblings (Strain + others under typeOrganism's sequence)
       'Strain'                                       => 'strain',
+      'IsolateName'                                  => 'isolate_name',
+      'Breed'                                        => 'breed',
+      'Cultivar'                                     => 'cultivar',
+      'Label'                                        => 'organism_label',
+      'Supergroup'                                   => 'supergroup',
+
       'BiologicalProperties/Morphology/Gram'         => 'gram_stain',
       'BiologicalProperties/Morphology/Enveloped'    => 'enveloped',
       'BiologicalProperties/Morphology/Shape'        => 'shape',
@@ -54,11 +61,12 @@ module BioProject
       'BiologicalProperties/Phenotype/BioticRelationship'   => 'biotic_relationship',
       'BiologicalProperties/Phenotype/TrophicLevel'  => 'trophic_level',
       'BiologicalProperties/Phenotype/Disease'       => 'disease',
-      # `<Organization>` directly under Organism is the eColonial / etc.
-      # multicellularity attribute, NOT the submitter Organization.
-      # Renamed to `multicellularity` to avoid name collision with
-      # submission-side organization data.
-      'Organization'                                 => 'multicellularity',
+      # `<Organization>` directly under Organism is the eUnicellular /
+      # eMulticellular / eColonial organisation-level attribute, NOT the
+      # submitter Organization. `biological_organization` avoids both
+      # collision and the semantic distortion of an earlier
+      # `multicellularity` rename (colonial ≠ multicellular).
+      'Organization'                                 => 'biological_organization',
       'Reproduction'                                 => 'reproduction'
     }.freeze
 
@@ -84,12 +92,25 @@ module BioProject
 
     private
 
-    def submission_block(project_node, node)
+    # hold_date is sourced from the Project node, not the Submission
+    # node — so a row with a populated <ProjectReleaseDate> but missing
+    # <Submission><Submission> still surfaces a hold_date. Submitters
+    # come from the Submission node when present.
+    def submission_block(project_node, submission_node)
+      block = {
+        'submitters' => submitters(submission_node),
+        'hold_date'  => hold_date(project_node)
+      }.reject {|_, v| v.blank? }
+
+      block.presence
+    end
+
+    def submitters(node)
       return nil unless node
 
       org_block = submission_organization(node)
 
-      submitters = node.xpath('.//Contact').filter_map {|contact|
+      list = node.xpath('.//Contact').filter_map {|contact|
         person = {
           'email' => contact['email']&.strip&.presence,
           'first' => contact.at_xpath('./Name/First')&.text&.strip&.presence,
@@ -106,10 +127,7 @@ module BioProject
         person
       }
 
-      {
-        'submitters' => submitters,
-        'hold_date'  => hold_date(project_node)
-      }.reject {|_, v| v.blank? }.presence
+      list.presence
     end
 
     def submission_organization(node)
@@ -126,15 +144,21 @@ module BioProject
 
     # v3 Submission.hold_date is `str | None`. ProjectReleaseDate ships
     # as ISO-8601 datetime ("2013-05-30T17:44:31.148+09:00"); keep the
-    # date part. Anything that doesn't parse drops silently — Phase 6
-    # audit will catch outliers.
+    # date part. Strict ISO parsing only — Date.parse would happily
+    # turn 'May' / '12' / 'Jan' into a today-anchored date, silently
+    # fabricating release dates that Phase 6 audits cannot distinguish
+    # from real ones.
     def hold_date(project_node)
       return nil unless project_node
 
       raw = project_node.at_xpath('./ProjectDescr/ProjectReleaseDate')&.text&.strip&.presence
       return nil unless raw
 
-      Date.parse(raw).iso8601
+      # Strip the date portion strictly. The leading YYYY-MM-DD anchor
+      # rejects month-name / day-only partials; the regex also rejects
+      # invalid month/day numbers via Date.iso8601's own validation.
+      date = raw[/\A\d{4}-\d{2}-\d{2}/] or return nil
+      Date.iso8601(date).iso8601
     rescue Date::Error
       nil
     end
@@ -271,32 +295,49 @@ module BioProject
     end
 
     # RepliconSet ships any mix of repeating <Replicon> (each with
-    # Name/Type/Size sub-elements) plus singleton <Ploidy @type>.
-    # Each Replicon leaf becomes one v3 attribute so that the v3 bag
-    # preserves N replicons rather than collapsing them. Type is taken
-    # as body text (eg "ePlasmid"); @location / @isSingle metadata is
-    # dropped at this iteration — surface them via a follow-up if
-    # curators need them.
+    # Name/Type/Size + optional @location/@isSingle metadata) plus
+    # singleton <Ploidy @type>. v3 Attribute has no nested-value slot,
+    # so each Replicon's fields are emitted as a tuple keyed by a
+    # 1-based index suffix — `replicon_1_name`, `replicon_1_type`,
+    # `replicon_1_location`, `replicon_1_size` (with @units), … — so
+    # mixed-missing-fields cases don't collapse two Replicons into one
+    # ambiguous flat list. Curators querying for any replicon attribute
+    # can match on `replicon_%_<field>`.
     def replicon_set_attrs(organism)
       rs = organism.at_xpath('./RepliconSet')
       return [] unless rs
 
       out = []
 
-      rs.xpath('./Replicon').each do |r|
+      rs.xpath('./Replicon').each_with_index do |r, i|
+        idx    = i + 1
+        prefix = "replicon_#{idx}"
+
         if (name = r.at_xpath('./Name')&.text&.strip&.presence)
-          out << {'name' => 'replicon_name', 'value' => name}
+          out << {'name' => "#{prefix}_name", 'value' => name}
         end
-        if (type = r.at_xpath('./Type')&.text&.strip&.presence)
-          out << {'name' => 'replicon_type', 'value' => type}
+
+        type_node = r.at_xpath('./Type')
+        if type_node
+          if (type = type_node.text&.strip&.presence)
+            out << {'name' => "#{prefix}_type", 'value' => type}
+          end
+          if (location = type_node['location']&.strip&.presence)
+            out << {'name' => "#{prefix}_location", 'value' => location}
+          end
+          if (is_single = type_node['isSingle']&.strip&.presence)
+            out << {'name' => "#{prefix}_is_single", 'value' => is_single}
+          end
         end
+
         if (size_node = r.at_xpath('./Size'))
           size = size_node.text&.strip&.presence
-          if size
-            attr = {'name' => 'replicon_size', 'value' => size}
-            if (unit = size_node['units']&.strip&.presence)
-              attr['unit'] = unit
-            end
+          unit = size_node['units']&.strip&.presence
+
+          if size || unit
+            attr = {'name' => "#{prefix}_size"}
+            attr['value'] = size if size
+            attr['unit']  = unit if unit
             out << attr
           end
         end
@@ -307,10 +348,8 @@ module BioProject
       end
 
       # NOTE: RepliconSet/Count[@repliconType] is intentionally not
-      # lifted — v3 Attribute has no slot that fits a typed-count
-      # ("1 of type ePlasmid"). Curators get the per-replicon
-      # breakdown via replicon_name / replicon_type / replicon_size
-      # tuples above; aggregate counts are derivable.
+      # lifted — aggregate counts are derivable from the per-replicon
+      # tuples above.
 
       out
     end

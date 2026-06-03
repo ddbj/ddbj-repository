@@ -2,13 +2,23 @@
 
 module BioSample
   # Wraps one BS submission's worth of writes (Submission + N Sample rows
-  # + baseline SubmissionUpdate) in a single transaction. Mirrors
-  # BioProject::Importer's idempotency contract: re-running with the same
-  # ssub_id + identical EAV state is a no-op (the baseline patch is
-  # byte-identical to the prior tail), cross-user re-attribution raises,
-  # and Sample rows / Submission columns are refreshed only when the
-  # patch is actually new (so curator edits to typed columns survive
-  # byte-identical re-imports).
+  # + baseline SubmissionUpdate) in a single transaction.
+  #
+  # Idempotency model (two levels):
+  #   - SubmissionUpdate insert + Submission canonical_version / converter_
+  #     version / migration_run_id refresh: gated on a real patch byte
+  #     difference. Re-running with identical EAV state returns :skipped
+  #     and does not append a duplicate baseline patch nor bump
+  #     migration_run_id.
+  #   - Sample typed-column sync (accession / sample_name / package /
+  #     package_group / env_package / taxonomy_id / organism / status /
+  #     title): ALWAYS runs. Some of those columns (package_group,
+  #     env_package) live only on the staging row and never reach the
+  #     canonical patch, so gating sync on patch-difference would
+  #     permanently strand any staging-side updates to them. The trade-
+  #     off is that curator edits to typed columns survive only until
+  #     the next re-import — Phase 6 needs explicit curator-edit-vs-
+  #     staging diff handling.
   #
   # Sample identity (sync_samples!) is position-based against the staging
   # ORDER BY smp_id, NOT accession. That handles the 14% of staging
@@ -48,6 +58,12 @@ module BioSample
                 "refusing to silently re-attribute to '#{@user_uid}'."
         end
 
+        # Sample typed columns ALWAYS sync — they include staging-only
+        # fields (package_group, env_package) that never reach the
+        # canonical patch, so the patch-byte-equality skip below cannot
+        # protect them without permanently stranding staging updates.
+        sync_samples!(submission, record)
+
         prior_patch = submission.updates.order(:id).last&.patch&.b
 
         if prior_patch == patch.b
@@ -60,8 +76,6 @@ module BioSample
           migration_run_id:  @migration_run_id,
           updated_at:        Time.current
         )
-
-        sync_samples!(submission, record)
 
         submission.updates.create!(
           db:                       'biosample',

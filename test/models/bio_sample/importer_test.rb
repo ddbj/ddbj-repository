@@ -126,9 +126,15 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     refute submission.samples.exists?(accession: 'SAMD00099993'), 'trailing row must be destroyed'
   end
 
-  test ':skipped re-run does not touch Submission columns nor Sample typed columns' do
-    importer  = build
-    first     = importer.call.submission
+  test ':skipped re-run keeps Submission columns frozen but always re-syncs Sample typed columns from staging' do
+    # New contract (after the typed-column lift iteration): Sample
+    # typed columns include staging-only fields (package_group,
+    # env_package) that never reach the canonical patch, so gating
+    # sync on patch-equality would permanently strand staging updates.
+    # Trade-off: curator edits to typed columns survive only until the
+    # next re-import. Documented in BioSample::Importer's docstring.
+    importer   = build
+    first      = importer.call.submission
     first_seen = first.updated_at
     first_run  = first.migration_run_id
 
@@ -140,9 +146,50 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal :skipped, second.outcome
     submission = second.submission
 
-    assert_equal first_run,            submission.reload.migration_run_id
-    assert_equal first_seen.to_i,      submission.updated_at.to_i
-    assert_equal 'Curator-edited title', sample.reload.title
+    # Submission-level write-through still gated on patch difference.
+    assert_equal first_run,       submission.reload.migration_run_id
+    assert_equal first_seen.to_i, submission.updated_at.to_i
+
+    # Sample typed columns were re-synced from staging; curator edit lost.
+    assert_equal 'sample-1', sample.reload.title
+  end
+
+  test 'staging-only typed columns (package_group / env_package) backfill on re-run even when patch is byte-identical' do
+    # Initial run: staging row has NULL package_group / env_package.
+    samples = [SC::Sample.new(
+      smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
+      package: 'Generic', package_group: nil, env_package: nil,
+      status_id: 5500, attributes: []
+    )]
+    row = SC::Submission.new(
+      ssub_id: 'SSUB-typed-backfill', submitter_id: 'u', organization: nil, organization_url: nil,
+      comment: nil, contacts: [], samples: samples
+    )
+    BioSample::Importer.new(staging_submission: row, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
+
+    sample = Submission.find_by(source_id: 'SSUB-typed-backfill').samples.first
+    assert_nil sample.package_group
+    assert_nil sample.env_package
+
+    # Re-run after staging side fills the typed columns. Canonical
+    # patch is byte-identical (package_group/env_package never reach
+    # the v3 record), so :skipped fires — but sync_samples must still
+    # backfill the typed columns from staging.
+    row_updated = SC::Submission.new(
+      ssub_id: 'SSUB-typed-backfill', submitter_id: 'u', organization: nil, organization_url: nil,
+      comment: nil, contacts: [],
+      samples: [SC::Sample.new(
+        smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
+        package: 'Generic', package_group: 'MIGS.ba', env_package: 'soil',
+        status_id: 5500, attributes: []
+      )]
+    )
+    result = BioSample::Importer.new(staging_submission: row_updated, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
+
+    assert_equal :skipped, result.outcome
+    sample.reload
+    assert_equal 'MIGS.ba', sample.package_group
+    assert_equal 'soil',    sample.env_package
   end
 
   test 'maps unknown status_id to :curating' do

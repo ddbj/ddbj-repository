@@ -151,6 +151,36 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal({'name' => 'foo'}, organism)
   end
 
+  test 'submission.hold_date strict parsing: partial / month-name / day-only inputs drop instead of fabricating dates' do
+    %w[May Jan 12 abc].each do |bad|
+      xml = <<~XML
+        <?xml version="1.0"?>
+        <PackageSet><Package><Project><Project>
+          <ProjectID><ArchiveID accession="PRJDB999"/></ProjectID>
+          <ProjectDescr><ProjectReleaseDate>#{bad}</ProjectReleaseDate></ProjectDescr>
+        </Project></Project></Package></PackageSet>
+      XML
+
+      hold = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
+                                  .dig('submission', 'hold_date')
+
+      assert_nil hold, "expected hold_date to drop on #{bad.inspect}, got #{hold.inspect}"
+    end
+  end
+
+  test 'submission.hold_date survives even when no <Submission><Submission> element exists' do
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet><Package><Project><Project>
+        <ProjectID><ArchiveID accession="PRJDB999"/></ProjectID>
+        <ProjectDescr><ProjectReleaseDate>2024-02-29T00:00:00+09:00</ProjectReleaseDate></ProjectDescr>
+      </Project></Project></Package></PackageSet>
+    XML
+
+    record = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
+    assert_equal '2024-02-29', record.dig('submission', 'hold_date')
+  end
+
   test 'Grant: empty <Title/> <Agency/> elements drop instead of becoming ""' do
     xml = <<~XML
       <?xml version="1.0"?>
@@ -264,23 +294,25 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_includes attrs, {'name' => 'disease',             'value' => 'Mycobacterium avium complex disease'}
   end
 
-  test 'PSUB000604 — project.attributes lifts Organization (multicellularity) and Reproduction' do
+  test 'PSUB000604 — project.attributes lifts Organization (biological_organization) and Reproduction' do
     attrs = convert.dig('project', 'attributes')
 
-    assert_includes attrs, {'name' => 'multicellularity', 'value' => 'eColonial'}
-    assert_includes attrs, {'name' => 'reproduction',     'value' => 'eAsexual'}
+    assert_includes attrs, {'name' => 'biological_organization', 'value' => 'eColonial'}
+    assert_includes attrs, {'name' => 'reproduction',            'value' => 'eAsexual'}
   end
 
-  test 'PSUB000604 — project.attributes lifts RepliconSet (Name, Type, Size with unit, Ploidy)' do
+  test 'PSUB000604 — project.attributes lifts RepliconSet (per-replicon index, location, isSingle, Ploidy)' do
     attrs = convert.dig('project', 'attributes')
 
-    assert_includes attrs, {'name' => 'replicon_name', 'value' => 'plasmid'}
-    assert_includes attrs, {'name' => 'replicon_type', 'value' => 'ePlasmid'}
-    assert_includes attrs, {'name' => 'replicon_size', 'value' => '20', 'unit' => 'Kb'}
-    assert_includes attrs, {'name' => 'ploidy',        'value' => 'eHaploid'}
+    assert_includes attrs, {'name' => 'replicon_1_name',      'value' => 'plasmid'}
+    assert_includes attrs, {'name' => 'replicon_1_type',      'value' => 'ePlasmid'}
+    assert_includes attrs, {'name' => 'replicon_1_location',  'value' => 'eNuclearProkaryote'}
+    assert_includes attrs, {'name' => 'replicon_1_is_single', 'value' => 'false'}
+    assert_includes attrs, {'name' => 'replicon_1_size',      'value' => '20', 'unit' => 'Kb'}
+    assert_includes attrs, {'name' => 'ploidy',               'value' => 'eHaploid'}
   end
 
-  test 'project.attributes: multiple Replicons each emit their own Name/Type/Size tuple' do
+  test 'project.attributes: multiple Replicons are unambiguously grouped by index even with mixed missing fields' do
     xml = <<~XML
       <?xml version="1.0"?>
       <PackageSet><Package><Project><Project>
@@ -290,8 +322,8 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
             <Organism taxID="1">
               <OrganismName>foo</OrganismName>
               <RepliconSet>
-                <Replicon><Name>chr1</Name><Type>eChromosome</Type><Size units="Mb">3</Size></Replicon>
-                <Replicon><Name>chr2</Name><Type>eChromosome</Type><Size units="Mb">2</Size></Replicon>
+                <Replicon><Type location="eMitochondrion">eChromosome</Type><Size units="Mb">3</Size></Replicon>
+                <Replicon><Name>chr2</Name><Type location="eNuclearProkaryote">eChromosome</Type><Size units="Mb">2</Size></Replicon>
               </RepliconSet>
             </Organism>
           </Target>
@@ -302,13 +334,17 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     attrs = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
                                  .dig('project', 'attributes')
 
-    replicon_names = attrs.select {|a| a['name'] == 'replicon_name' }.map {|a| a['value'] }
-    replicon_sizes = attrs.select {|a| a['name'] == 'replicon_size' }
+    # First Replicon: no name, but type + location + size by index 1.
+    assert_includes attrs, {'name' => 'replicon_1_type',     'value' => 'eChromosome'}
+    assert_includes attrs, {'name' => 'replicon_1_location', 'value' => 'eMitochondrion'}
+    assert_includes attrs, {'name' => 'replicon_1_size',     'value' => '3', 'unit' => 'Mb'}
+    refute_includes attrs.map {|a| a['name'] }, 'replicon_1_name'
 
-    assert_equal ['chr1', 'chr2'], replicon_names
-    assert_equal 2, replicon_sizes.size
-    assert_equal({'name' => 'replicon_size', 'value' => '3', 'unit' => 'Mb'}, replicon_sizes[0])
-    assert_equal({'name' => 'replicon_size', 'value' => '2', 'unit' => 'Mb'}, replicon_sizes[1])
+    # Second Replicon: full triple under index 2.
+    assert_includes attrs, {'name' => 'replicon_2_name',     'value' => 'chr2'}
+    assert_includes attrs, {'name' => 'replicon_2_type',     'value' => 'eChromosome'}
+    assert_includes attrs, {'name' => 'replicon_2_location', 'value' => 'eNuclearProkaryote'}
+    assert_includes attrs, {'name' => 'replicon_2_size',     'value' => '2', 'unit' => 'Mb'}
   end
 
   test 'PSUB000604 — project.attributes lifts GenomeSize with unit' do
