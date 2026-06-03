@@ -133,24 +133,19 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  test 'show renders the materialised v3 record' do
+  test 'show links to the materialised JSON endpoint and surfaces orientation metadata' do
     submission = submissions(:bioproject)
-    record     = {'project' => {'accession' => 'PRJDB502', 'title' => 'hello'}}
-    submission.updates.create!(
-      db:                       'bioproject',
-      status:                   :applied,
-      actor:                    'migration:test',
-      source:                   :migration,
-      patch:                    Oj.dump([{'op' => 'add', 'path' => '', 'value' => record}], mode: :strict),
-      patch_canonical_version:  1
-    )
+    submission.append_update!({'project' => {'accession' => 'PRJDB502', 'title' => 'hello'}}, actor: 'test')
 
     get admin_submission_path(submission)
 
     assert_response :ok
-    assert_match "Submission-#{submission.id}", response.body
-    assert_match 'PRJDB502',                    response.body
-    assert_match 'hello',                       response.body
+    assert_match "Submission-#{submission.id}",                          response.body
+    assert_match 'View as JSON',                                         response.body
+    assert_match materialised_admin_submission_path(submission),         response.body
+    # Materialised content itself is no longer inlined — the body must
+    # NOT contain the project payload.
+    assert_no_match 'PRJDB502',                                          response.body
   end
 
   test 'show falls back gracefully when no updates have been applied' do
@@ -162,66 +157,131 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match 'nothing to materialise', response.body
   end
 
-  test 'show ?as_of=N renders the snapshot at that update' do
+  test 'materialised returns the latest snapshot as JSON' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'first'}}, actor: 'test')
+    submission.append_update!({'project' => {'title' => 'second'}}, actor: 'test')
+
+    get materialised_admin_submission_path(submission)
+
+    assert_response :ok
+    assert_equal 'application/json', response.media_type
+    body = JSON.parse(response.body)
+    assert_equal 'second', body.dig('project', 'title')
+  end
+
+  test 'materialised ?as_of=N returns the snapshot at that update' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
     v2 = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
     submission.append_update!({'project' => {'title' => 'v3'}}, actor: 'test')
 
-    get admin_submission_path(submission, as_of: v2.id)
+    get materialised_admin_submission_path(submission, as_of: v2.id)
 
     assert_response :ok
-    assert_match    'Viewing snapshot at',  response.body
-    assert_match    'v2',                   response.body
-    assert_no_match(/"title":\s*"v3"/,      response.body)
+    body = JSON.parse(response.body)
+    assert_equal 'v2', body.dig('project', 'title')
   end
 
-  test 'show ?as_of=<latest_id> behaves like no as_of (no snapshot banner)' do
+  test 'materialised ?as_of=<latest_id> returns the same payload as no as_of' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
-    latest = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+    submission.append_update!({'project' => {'title' => 'only'}}, actor: 'test')
+    latest = submission.updates.last
 
-    get admin_submission_path(submission, as_of: latest.id)
+    get materialised_admin_submission_path(submission)
+    no_as_of = JSON.parse(response.body)
 
-    assert_response :ok
-    assert_no_match 'Viewing snapshot at', response.body
-    assert_no_match 'not found on this submission', response.body
-    assert_match    'v2',                            response.body
+    get materialised_admin_submission_path(submission, as_of: latest.id)
+    with_as_of = JSON.parse(response.body)
+
+    assert_equal no_as_of, with_as_of
   end
 
-  test 'show ?as_of=999999 warns and shows latest' do
+  test 'materialised ?as_of=<unknown_id> 404s — stale link must not silently fall back' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'only'}}, actor: 'test')
 
-    get admin_submission_path(submission, as_of: 999_999)
-
-    assert_response :ok
-    assert_match 'not found on this submission', response.body
-    assert_match 'only',                         response.body
+    get materialised_admin_submission_path(submission, as_of: 999_999)
+    assert_response :not_found
   end
 
-  test 'show ?as_of=foo (non-numeric) is treated as no cutoff and shows latest without a warning' do
+  test 'materialised ?as_of=<non-numeric|0> falls through to latest (parse_as_of returns nil)' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'visible'}}, actor: 'test')
 
-    get admin_submission_path(submission, as_of: 'foo')
-
+    get materialised_admin_submission_path(submission, as_of: 'foo')
     assert_response :ok
-    assert_no_match 'not found on this submission', response.body
-    assert_no_match 'nothing to materialise',       response.body
-    assert_match    'visible',                      response.body
+    assert_equal 'visible', JSON.parse(response.body).dig('project', 'title')
+
+    get materialised_admin_submission_path(submission, as_of: 0)
+    assert_response :ok
+    assert_equal 'visible', JSON.parse(response.body).dig('project', 'title')
   end
 
-  test 'show ?as_of=0 is rejected and shows latest without a warning' do
+  test 'materialised 404s when no updates have been applied' do
+    submission = submissions(:bioproject)
+
+    get materialised_admin_submission_path(submission)
+    assert_response :not_found
+  end
+
+  test 'materialised ?as_of=N always replays (does NOT serve the bytea cache shortcut even when N == latest_id)' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'visible'}}, actor: 'test')
+    latest = submission.updates.last
+    submission.materialised_record # warm the cache
 
-    get admin_submission_path(submission, as_of: 0)
+    # Pin the cache to a tampered value that differs from what
+    # materialise_at would replay. If the action takes the cache shortcut
+    # for ?as_of=<latest_id> the response will reflect the tampered cache;
+    # if it always replays (the correct behaviour) the response reflects
+    # the chain.
+    submission.update_columns(cached_materialised_record: Oj.dump({'tampered' => true}, mode: :strict))
+
+    get materialised_admin_submission_path(submission, as_of: latest.id)
 
     assert_response :ok
-    assert_no_match 'not found on this submission', response.body
-    assert_no_match 'nothing to materialise',       response.body
-    assert_match    'visible',                      response.body
+    body = JSON.parse(response.body)
+    assert_equal 'visible', body.dig('project', 'title'), 'explicit as_of must always replay, never serve cache'
+    refute body.key?('tampered'), 'cache shortcut must not be taken when ?as_of= is supplied'
+  end
+
+  test 'materialised serves the cached bytea directly on the latest path (skipping Oj.load/re-encode roundtrip)' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'real'}}, actor: 'test')
+    submission.materialised_record # warm the cache
+
+    # If the action ships cached bytea directly, a sentinel inserted into
+    # the bytea round-trips byte-for-byte. (Sibling test pins the OPPOSITE
+    # behaviour for the ?as_of= path.)
+    sentinel = Oj.dump({'cached_marker' => 'served-from-bytea'}, mode: :strict)
+    submission.update_columns(cached_materialised_record: sentinel)
+
+    get materialised_admin_submission_path(submission)
+
+    assert_response :ok
+    assert_equal 'served-from-bytea', JSON.parse(response.body)['cached_marker']
+  end
+
+  test 'materialised returns 422 + JSON error body on a poisoned patch chain' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
+    poisoned = submission.updates.create!(
+      db:                      'bioproject',
+      status:                  :applied,
+      actor:                   'test',
+      source:                  :manual,
+      patch:                   'not-json',
+      patch_canonical_version: 1
+    )
+
+    get materialised_admin_submission_path(submission)
+
+    assert_response :unprocessable_content
+    body = JSON.parse(response.body)
+    assert_equal 'replay_failed',  body['error']
+    assert_equal poisoned.id,      body['update_id']
+    assert_match(/parse/i,         body['message'])
   end
 
   test 'show skips canonical bytes / sha for records over the size limit (avoids 20s canonicalise)' do
