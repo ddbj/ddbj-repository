@@ -23,6 +23,7 @@ gem 'jwt'
 gem 'kamal', require: false
 gem 'mission_control-jobs'
 gem 'omniauth_openid_connect'
+gem 'csv' # data_migration:dump_excluded_* rake tasks
 gem 'pagy'
 gem 'pg'
 gem 'propshaft' # mission_control-jobs

@@ -48,6 +48,45 @@ module BioSample
       @conn.exec_params(sql, params).column_values(0)
     end
 
+    # Excluded BS submissions — rows that the regular `submission_ids` →
+    # `fetch` → Importer pipeline would silently drop. One category:
+    #
+    #   - no_samples: mass.submission row exists but has zero rows in
+    #     mass.sample. Importer returns :no_samples. Typically zero on
+    #     staging; production may differ.
+    #
+    # BS submission has no aggregate `status_id` (status is per-sample),
+    # so the curator-facing fields are smaller than the BP counterpart.
+    Excluded = Data.define(:ssub_id, :reason, :submitter_id, :organization, :create_date, :modified_date, :charge_id)
+
+    def enumerate_excluded
+      sql = <<~SQL
+        SELECT    s.submission_id,
+                  s.submitter_id,
+                  s.organization,
+                  s.create_date,
+                  s.modified_date,
+                  s.charge_id
+        FROM      submission s
+        LEFT JOIN sample sm USING (submission_id)
+        GROUP BY  s.submission_id, s.submitter_id, s.organization, s.create_date, s.modified_date, s.charge_id
+        HAVING    COUNT(sm.smp_id) = 0
+        ORDER BY  s.submission_id
+      SQL
+
+      @conn.exec(sql).map {|row|
+        Excluded.new(
+          ssub_id:       row['submission_id'],
+          reason:        'no_samples',
+          submitter_id:  row['submitter_id'],
+          organization:  row['organization'],
+          create_date:   row['create_date'],
+          modified_date: row['modified_date'],
+          charge_id:     row['charge_id']&.to_i
+        )
+      }
+    end
+
     def fetch(ssub_id)
       sub_row = @conn.exec_params(<<~SQL, [ssub_id]).first
         SELECT submission_id, submitter_id, organization, organization_url, comment

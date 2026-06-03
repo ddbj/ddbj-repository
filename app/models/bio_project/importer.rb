@@ -38,13 +38,16 @@ module BioProject
       record    = Converter.new(xml: @xml, project_row: {project_type: @project_type, accession: @accession}).call
       accession = record.dig('project', 'accession')
 
-      # `:no_accession` fires when BOTH the staging DB column
-      # (`project.project_id_prefix || project_id_counter`) AND the XML
-      # `<ArchiveID/>` are blank — see Converter precedence at line 173.
+      # `:no_accession` fires when the staging DB column
+      # (`project.project_id_prefix || project_id_counter`) is blank.
       # Real cohort: 277 staging rows, 943 production rows. These are
       # legacy / withdrawn submissions that genuinely lack an accession
       # at the canonical source. Curator review (the "excluded data list"
       # workflow) decides per-row whether to skip permanently or recover.
+      # XML <ArchiveID> is intentionally NOT a fallback source — see
+      # converter.rb accession comment; in short, XML is user-editable
+      # and a 2026-06-03 prod scan found zero rows where XML carried a
+      # valid accession against an empty DB column.
       return Result.new(submission: nil, outcome: :no_accession) unless accession
 
       user = User.find_or_create_by!(uid: @user_uid)

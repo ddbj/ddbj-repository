@@ -4,8 +4,17 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   PSUB604_XML = Rails.root.join('test/fixtures/files/data_migration/bio_project/PSUB000604.xml').freeze
   PSUB671_XML = Rails.root.join('test/fixtures/files/data_migration/bio_project/PSUB002671.xml').freeze
 
-  def convert(path = PSUB604_XML, project_type: 'primary')
-    BioProject::Converter.new(xml: File.read(path), project_row: {project_type:}).call
+  # Mirror the staging DB's project.project_id_prefix || project_id_counter,
+  # which is the sole accession source post-XML-fallback-removal. Without
+  # this, every `convert(...)` call would resolve project.accession to nil
+  # and field-mapping tests below would lose their accession anchor.
+  ACCESSION_FOR = {
+    PSUB604_XML => 'PRJDB502',
+    PSUB671_XML => 'PRJDB2222'
+  }.freeze
+
+  def convert(path = PSUB604_XML, project_type: 'primary', accession: ACCESSION_FOR.fetch(path))
+    BioProject::Converter.new(xml: File.read(path), project_row: {project_type:, accession:}).call
   end
 
   test 'project_row[:accession] wins over XML <ArchiveID> (DB column is source of truth)' do
@@ -22,14 +31,21 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
                  'DB-column accession must override the XML ArchiveID'
   end
 
-  test 'project_row without :accession (or with nil) falls back to XML ArchiveID' do
-    # File-based importer path: only XML is available, no staging row.
-    # Existing behaviour preserved — XML serves as the fallback.
+  test 'project_row without :accession (or with nil) yields nil — no XML fallback' do
+    # XML <ArchiveID accession="..."> is freely editable in D-way and
+    # the staging set carried PSUB ids in that slot for years (the
+    # cohort that motivated DB-wins precedence in the first place).
+    # The 2026-06-03 prod scan confirmed zero rows have XML-only
+    # accession against an empty DB column, so falling back to XML
+    # would only surface user-typed garbage. nil-in / nil-out — the
+    # Importer turns nil into :no_accession and routes the row to the
+    # curator-review CSV.
     record_no_key  = BioProject::Converter.new(xml: File.read(PSUB604_XML), project_row: {project_type: 'primary'}).call
     record_nil_key = BioProject::Converter.new(xml: File.read(PSUB604_XML), project_row: {project_type: 'primary', accession: nil}).call
 
-    assert_equal 'PRJDB502', record_no_key.dig('project', 'accession')
-    assert_equal 'PRJDB502', record_nil_key.dig('project', 'accession')
+    assert_nil record_no_key.dig('project', 'accession'),
+               'no project_row[:accession] must NOT fall back to XML <ArchiveID>'
+    assert_nil record_nil_key.dig('project', 'accession')
   end
 
   test 'DB present + XML <ArchiveID/> empty → DB wins (headline production-win cohort)' do

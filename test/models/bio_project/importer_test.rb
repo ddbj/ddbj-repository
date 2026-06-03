@@ -9,6 +9,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
       xml:              File.read(XML_FIXTURE),
       user_uid:         'migration-test',
       project_type:     'primary',
+      accession:        'PRJDB502', # mirrors staging.project.project_id_prefix||counter for PSUB000604
       migration_run_id: SecureRandom.uuid,
       **overrides
     )
@@ -114,6 +115,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
       xml:              edited_xml,
       user_uid:         'migration-test',
       project_type:     'primary',
+      accession:        'PRJDB502',
       migration_run_id: second_run
     ).call
 
@@ -134,6 +136,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
       xml:              xml,
       user_uid:         'migration-test',
       project_type:     'primary',
+      accession:        'PRJDB502',
       migration_run_id: SecureRandom.uuid
     )
 
