@@ -35,6 +35,16 @@ module Admin
       @requested_as_of = requested unless requested == latest_id
       @as_of_row       = @requested_as_of && @updates.find {|u| u.id == @requested_as_of }
 
+      # Samples list is paginated inside a turbo-frame so 20K-row BS
+      # records don't blow up the page. `page_key: :samples_page`
+      # namespaces the URL param so future paginators on the same page
+      # (e.g. patch chain) won't collide. (pagy v43 renamed `page_param`
+      # → `page_key`; the wrong name is silently ignored, see
+      # Pagy::Request#page reading `@options[:page_key]`.)
+      if @submission.biosample_db?
+        @samples_pagy, @samples = pagy(@submission.samples.order(:id), page_key: 'samples_page', limit: 50)
+      end
+
       begin
         # Cache-aware fast path on the latest snapshot; as_of snapshots
         # always replay because the cache stores only the latest.

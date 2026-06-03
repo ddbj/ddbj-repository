@@ -51,36 +51,43 @@
   <% end %>
 </dl>
 
-<% if @submission.biosample_db? && @submission.samples.any? %>
+<% if @submission.biosample_db? && @samples_pagy.count.positive? %>
   <h2 class="h4 mt-4">
     Samples
-    <span class="badge text-bg-secondary"><%= @submission.samples.count %></span>
+    <span class="badge text-bg-secondary"><%= @samples_pagy.count %></span>
   </h2>
 
-  <table class="table border align-middle">
-    <thead class="table-light">
-      <tr>
-        <th>Accession</th>
-        <th>Sample name</th>
-        <th>Package</th>
-        <th>Organism</th>
-        <th>Tax ID</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @submission.samples.order(:id).each do |sample| %>
+  <%# turbo-frame + data-turbo-action="advance": pagy clicks swap only %>
+  <%# this frame (scroll position is preserved) AND push the URL to %>
+  <%# browser history so ?samples_page=N is permalinkable / shareable. %>
+  <turbo-frame id="samples" data-turbo-action="advance">
+    <table class="table border align-middle">
+      <thead class="table-light">
         <tr>
-          <td><code><%= sample.accession || '—' %></code></td>
-          <td><%= sample.sample_name %></td>
-          <td><%= sample.package || '—' %></td>
-          <td><%= sample.organism || '—' %></td>
-          <td><%= sample.taxonomy_id || '—' %></td>
-          <td><span class="badge text-bg-light"><%= sample.status %></span></td>
+          <th>Accession</th>
+          <th>Sample name</th>
+          <th>Package</th>
+          <th>Organism</th>
+          <th>Tax ID</th>
+          <th>Status</th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% @samples.each do |sample| %>
+          <tr>
+            <td><code><%= sample.accession || '—' %></code></td>
+            <td><%= sample.sample_name %></td>
+            <td><%= sample.package || '—' %></td>
+            <td><%= sample.organism || '—' %></td>
+            <td><%= sample.taxonomy_id || '—' %></td>
+            <td><span class="badge text-bg-light"><%= sample.status %></span></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <%= render 'admin/shared/pagy_nav', pagy: @samples_pagy %>
+  </turbo-frame>
 <% end %>
 
 <h2 class="h4 mt-4">

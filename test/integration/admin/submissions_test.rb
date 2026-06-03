@@ -252,6 +252,31 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match 'Skipped',           response.body
   end
 
+  test 'show paginates samples inside a turbo-frame and supports ?samples_page= permalink' do
+    submission = submissions(:biosample)
+    # 60 samples crosses the 50-per-page boundary, exercising page 2.
+    60.times {|i| submission.samples.create!(sample_name: "probe-#{format('%03d', i)}", status: :public) }
+
+    # Page 1: probe-000 visible, probe-050 (page 2) not.
+    get admin_submission_path(submission)
+    assert_response :ok
+    assert_match    '<turbo-frame id="samples"',                                       response.body
+    assert_match    'data-turbo-action="advance"',                                     response.body
+    assert_match    'probe-000',                                                       response.body
+    assert_no_match 'probe-050',                                                       response.body
+
+    # Permalink — directly loading ?samples_page=2 lands on page 2.
+    get admin_submission_path(submission, samples_page: 2)
+    assert_response :ok
+    assert_match    'probe-050',                                                       response.body
+    assert_no_match 'probe-000',                                                       response.body
+
+    # pagy links use the namespaced param so they don't collide with
+    # a future paginator that might want plain ?page=.
+    assert_match    'samples_page=',                                                   response.body
+    assert_no_match(/[?&]page=\d/,                                                     response.body)
+  end
+
   test 'show renders the Samples table for a biosample submission' do
     submission = submissions(:biosample)
     submission.samples.create!(
