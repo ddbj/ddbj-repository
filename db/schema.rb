@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_03_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_03_134220) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -62,6 +62,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_120100) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "migration_runs", force: :cascade do |t|
+    t.jsonb "counters", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.string "db", null: false
+    t.text "error_log"
+    t.datetime "finished_at"
+    t.datetime "started_at"
+    t.string "status", default: "queued", null: false
+    t.integer "total"
+    t.datetime "updated_at", null: false
+    t.uuid "uuid", null: false
+    t.index ["created_at"], name: "index_migration_runs_on_created_at"
+    t.index ["db", "status"], name: "index_migration_runs_on_db_and_status"
+    t.index ["uuid"], name: "index_migration_runs_on_uuid", unique: true
   end
 
   create_table "project_links", force: :cascade do |t|

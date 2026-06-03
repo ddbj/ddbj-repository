@@ -48,6 +48,15 @@
   </div>
 
   <div class="col-md-4">
+    <%= link_to admin_migration_runs_path, class: 'card text-decoration-none h-100' do %>
+      <div class="card-body">
+        <h3 class="card-title h5">Migration runs</h3>
+        <p class="card-text text-body-secondary mb-0">Run and inspect D-way → repository imports.</p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-md-4">
     <%= link_to admin_mission_control_jobs_path, class: 'card text-decoration-none h-100' do %>
       <div class="card-body">
         <h3 class="card-title h5">Jobs</h3>

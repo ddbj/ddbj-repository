@@ -60,80 +60,40 @@ namespace :data_migration do
     puts "[#{result.outcome}] PSUB #{args[:psub_id]} → Submission ##{result.submission&.id}"
   end
 
-  # Batch import every BioProject in the staging mass schema.
+  # Batch-import every BioProject from D-way staging via
+  # `DataMigration::SyncBpJob`. Creates a MigrationRun row so progress
+  # / counters / resume state are visible on `/admin/migration_runs`,
+  # then runs the job inline (perform_now) — the operator sees live
+  # progress through Rails.logger + the job's own checkpoint logging.
+  # The admin UI path uses perform_later (queued via SolidQueue,
+  # picked up by the in-Puma worker — see SOLID_QUEUE_IN_PUMA).
   #
-  # Run locally via an SSH local-forward tunnel:
+  # Resume after a crash is automatic via ActiveJob::Continuation —
+  # the job persists its cursor per row, so a re-perform picks up
+  # where the previous one left off without re-processing already-
+  # imported rows. There is no `after` arg anymore.
+  #
+  # The task refuses to start if a previous run is still :queued or
+  # :running. Without that guard, perform_now + an already-running
+  # admin-triggered job would race the importer against itself for
+  # every row.
   #
   #   ssh -L 54301:172.19.15.12:54301 a012 -N &
-  #   DWAY_DB_PASSWORD=... bin/rails 'data_migration:import_bp_batch[100]'
-  #
-  # Resume after a crash by passing the last successfully-processed PSUB:
-  #
-  #   bin/rails 'data_migration:import_bp_batch[100,migration,PSUB000503]'
-  #
-  # The optional `limit` caps the run; `user_uid` is the fallback owner
-  # when a row has no submitter_id (rare); `after` resumes from the next
-  # PSUB after the given one.
-  desc 'Batch-import BioProjects from D-way staging via SSH tunnel'
-  task :import_bp_batch, %i[limit user_uid after] => :environment do |_, args|
-    limit            = args[:limit].presence&.to_i
-    user_uid         = args[:user_uid].presence || 'migration'
-    after            = args[:after].presence
-    migration_run_id = SecureRandom.uuid
-
-    counters = Hash.new(0)
-    client   = BioProject::StagingClient.new
-
-    begin
-      psub_ids = client.submission_ids(limit:, after:)
-      total    = psub_ids.size
-
-      puts "Starting batch (#{total} candidate[s], migration_run_id=#{migration_run_id}, after=#{after || '-'})"
-
-      psub_ids.each_with_index do |psub_id, idx|
-        begin
-          row = client.fetch(psub_id)
-
-          if row.nil? || row.xml.blank?
-            counters[:no_xml] += 1
-            next
-          end
-
-          importer = BioProject::Importer.new(
-            psub_id:          row.psub_id,
-            xml:              row.xml,
-            user_uid:         row.submitter_id || user_uid,
-            project_type:     row.project_type,
-            accession:        row.accession,
-            status:           row.status_id,
-            migration_run_id: migration_run_id
-          )
-
-          counters[importer.call.outcome] += 1
-        rescue PG::ConnectionBad, PG::UnableToSend, ActiveRecord::ConnectionNotEstablished => e
-          # Connection-level failure: every subsequent row would also fail.
-          # Abort so the operator notices immediately rather than amassing
-          # spurious `failed=N` lines.
-          warn "Connection lost at PSUB #{psub_id} (#{idx + 1}/#{total}): #{e.class}: #{e.message}"
-          raise
-        rescue BioProject::Importer::CrossUserError => e
-          counters[:cross_user] += 1
-          warn "[#{psub_id}] CROSS-USER: #{e.message}"
-        rescue StandardError => e
-          counters[:failed] += 1
-          trace = e.backtrace&.first(3)&.join("\n  ") || '(no backtrace)'
-          warn "[#{psub_id}] FAIL: #{e.class}: #{e.message}\n  #{trace}"
-        ensure
-          if ((idx + 1) % 100).zero? || idx + 1 == total
-            puts "[#{idx + 1}/#{total}] last=#{psub_id} " + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
-          end
-        end
-      end
-    ensure
-      client.close
+  #   DWAY_DB_PASSWORD=... bin/rails data_migration:import_bp_batch
+  desc 'Run a BioProject sync (inline). Creates a MigrationRun row + runs DataMigration::SyncBpJob.'
+  task import_bp_batch: :environment do
+    if (active = MigrationRun.where(db: :bioproject, status: %w[queued running]).order(:id).last)
+      abort "Aborting: BP MigrationRun ##{active.id} is already #{active.status}. " \
+            'See /admin/migration_runs.'
     end
 
-    puts 'Done. ' + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
+    run = MigrationRun.create!(db: :bioproject)
+    puts "Created MigrationRun ##{run.id} (uuid=#{run.uuid}). Running inline..."
+
+    DataMigration::SyncBpJob.perform_now(run.id)
+
+    run.reload
+    puts "Done. status=#{run.status} " + run.counters.map {|k, v| "#{k}=#{v}" }.join(' ')
   end
 
   # Single-BS spike entry: pulls one submission from staging biosample.mass,
@@ -165,70 +125,26 @@ namespace :data_migration do
     end
   end
 
-  # Batch import every BioSample submission in the staging mass schema.
-  # Mirrors data_migration:import_bp_batch — same hardening pattern
-  # (PG::ConnectionBad re-raise to abort on dropped tunnel, dedicated
-  # `:cross_user` counter, progress emitted inside `ensure`, `after:`
-  # cursor for resume, full lifecycle inside begin/ensure so client.close
-  # always runs).
+  # Run a BioSample sync inline through DataMigration::SyncBsJob — see
+  # import_bp_batch for the wrapping rationale (MigrationRun row,
+  # Continuation resume, in-progress precheck).
   #
   #   ssh -L 54301:172.19.15.12:54301 a012 -N &
-  #   DWAY_DB_PASSWORD=... bin/rails 'data_migration:import_bs_batch[100]'
-  #
-  # Resume: bin/rails 'data_migration:import_bs_batch[100,migration,SSUB001234]'
-  desc 'Batch-import BioSamples from D-way staging via SSH tunnel'
-  task :import_bs_batch, %i[limit user_uid after] => :environment do |_, args|
-    limit            = args[:limit].presence&.to_i
-    user_uid         = args[:user_uid].presence || 'migration'
-    after            = args[:after].presence
-    migration_run_id = SecureRandom.uuid
-
-    counters = Hash.new(0)
-    client   = BioSample::StagingClient.new
-
-    begin
-      ssub_ids = client.submission_ids(limit:, after:)
-      total    = ssub_ids.size
-
-      puts "Starting BS batch (#{total} candidate[s], migration_run_id=#{migration_run_id}, after=#{after || '-'})"
-
-      ssub_ids.each_with_index do |ssub_id, idx|
-        begin
-          row = client.fetch(ssub_id)
-
-          if row.nil?
-            counters[:missing] += 1
-            next
-          end
-
-          importer = BioSample::Importer.new(
-            staging_submission: row,
-            user_uid:           row.submitter_id || user_uid,
-            migration_run_id:   migration_run_id
-          )
-
-          counters[importer.call.outcome] += 1
-        rescue PG::ConnectionBad, PG::UnableToSend, ActiveRecord::ConnectionNotEstablished => e
-          warn "Connection lost at SSUB #{ssub_id} (#{idx + 1}/#{total}): #{e.class}: #{e.message}"
-          raise
-        rescue BioSample::Importer::CrossUserError => e
-          counters[:cross_user] += 1
-          warn "[#{ssub_id}] CROSS-USER: #{e.message}"
-        rescue StandardError => e
-          counters[:failed] += 1
-          trace = e.backtrace&.first(3)&.join("\n  ") || '(no backtrace)'
-          warn "[#{ssub_id}] FAIL: #{e.class}: #{e.message}\n  #{trace}"
-        ensure
-          if ((idx + 1) % 100).zero? || idx + 1 == total
-            puts "[#{idx + 1}/#{total}] last=#{ssub_id} " + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
-          end
-        end
-      end
-    ensure
-      client.close
+  #   DWAY_DB_PASSWORD=... bin/rails data_migration:import_bs_batch
+  desc 'Run a BioSample sync (inline). Creates a MigrationRun row + runs DataMigration::SyncBsJob.'
+  task import_bs_batch: :environment do
+    if (active = MigrationRun.where(db: :biosample, status: %w[queued running]).order(:id).last)
+      abort "Aborting: BS MigrationRun ##{active.id} is already #{active.status}. " \
+            'See /admin/migration_runs.'
     end
 
-    puts 'Done. ' + counters.map {|k, v| "#{k}=#{v}" }.join(' ')
+    run = MigrationRun.create!(db: :biosample)
+    puts "Created MigrationRun ##{run.id} (uuid=#{run.uuid}). Running inline..."
+
+    DataMigration::SyncBsJob.perform_now(run.id)
+
+    run.reload
+    puts "Done. status=#{run.status} " + run.counters.map {|k, v| "#{k}=#{v}" }.join(' ')
   end
 
   # Dump excluded BP submissions — curator-review CSV.
