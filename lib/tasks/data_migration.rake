@@ -57,6 +57,7 @@ namespace :data_migration do
             xml:              row.xml,
             user_uid:         row.submitter_id || user_uid,
             project_type:     row.project_type,
+            accession:        row.accession,
             status:           row.status_id,
             migration_run_id: migration_run_id
           )

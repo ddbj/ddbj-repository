@@ -8,6 +8,98 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     BioProject::Converter.new(xml: File.read(path), project_row: {project_type:}).call
   end
 
+  test 'project_row[:accession] wins over XML <ArchiveID> (DB column is source of truth)' do
+    # Staging-observed pathology: XML <ArchiveID accession="PSUB..."> carries
+    # the PSUB id instead of the canonical PRJDB. The DB column
+    # project.project_id_prefix || project_id_counter holds the real
+    # accession. When the caller passes it, Converter must prefer it.
+    record = BioProject::Converter.new(
+      xml:         File.read(PSUB604_XML),
+      project_row: {project_type: 'primary', accession: 'PRJDB9999999'}
+    ).call
+
+    assert_equal 'PRJDB9999999', record.dig('project', 'accession'),
+                 'DB-column accession must override the XML ArchiveID'
+  end
+
+  test 'project_row without :accession (or with nil) falls back to XML ArchiveID' do
+    # File-based importer path: only XML is available, no staging row.
+    # Existing behaviour preserved — XML serves as the fallback.
+    record_no_key  = BioProject::Converter.new(xml: File.read(PSUB604_XML), project_row: {project_type: 'primary'}).call
+    record_nil_key = BioProject::Converter.new(xml: File.read(PSUB604_XML), project_row: {project_type: 'primary', accession: nil}).call
+
+    assert_equal 'PRJDB502', record_no_key.dig('project', 'accession')
+    assert_equal 'PRJDB502', record_nil_key.dig('project', 'accession')
+  end
+
+  test 'DB present + XML <ArchiveID/> empty → DB wins (headline production-win cohort)' do
+    # Production has ~17/43,372 rows where the XML carries an empty
+    # <ArchiveID/> but the DB has a valid PRJDB. Pre-change those flowed
+    # as :no_accession; post-change they flow as :created with the DB
+    # value. Pin the precedence so a future refactor that drops .presence
+    # from the XML side (silently short-circuiting on '') can't regress
+    # them.
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet>
+        <Package>
+          <Project><Project>
+            <ProjectID><ArchiveID accession=""/></ProjectID>
+            <ProjectType><ProjectTypeSubmission>
+              <Target/>
+            </ProjectTypeSubmission></ProjectType>
+            <ProjectDescr><Title>t</Title></ProjectDescr>
+          </Project></Project>
+        </Package>
+      </PackageSet>
+    XML
+
+    record = BioProject::Converter.new(xml:, project_row: {project_type: 'primary', accession: 'PRJDB7777777'}).call
+    assert_equal 'PRJDB7777777', record.dig('project', 'accession')
+  end
+
+  test 'staging PSUB-id-in-ArchiveID pathology: DB wins, PSUB id in XML is discarded' do
+    # The exact 2,383-row staging pathology that motivated this commit:
+    # XML <ArchiveID accession="PSUB990415"> carries a PSUB id (NOT a
+    # PRJDB accession). The DB column holds the canonical PRJDB. Pin
+    # the recovery contract directly with the pathological shape so
+    # future readers see the bug being prevented.
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet>
+        <Package>
+          <Project><Project>
+            <ProjectID><ArchiveID accession="PSUB990415"/></ProjectID>
+            <ProjectType><ProjectTypeSubmission>
+              <Target/>
+            </ProjectTypeSubmission></ProjectType>
+            <ProjectDescr><Title>t</Title></ProjectDescr>
+          </Project></Project>
+        </Package>
+      </PackageSet>
+    XML
+
+    record = BioProject::Converter.new(xml:, project_row: {project_type: 'primary', accession: 'PRJDB3723'}).call
+    assert_equal 'PRJDB3723', record.dig('project', 'accession')
+  end
+
+  test 'whitespace in accession is stripped (matches Project::ACCESSION_FORMAT anchored regex)' do
+    # Defence in depth: both DB and XML paths use &.strip&.presence so
+    # a value like 'PRJDB123 ' (trailing space — however it might end
+    # up there) does not bypass Project's anchored format validator.
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet><Package><Project><Project>
+        <ProjectID><ArchiveID accession=""/></ProjectID>
+        <ProjectType><ProjectTypeSubmission><Target/></ProjectTypeSubmission></ProjectType>
+        <ProjectDescr><Title>t</Title></ProjectDescr>
+      </Project></Project></Package></PackageSet>
+    XML
+
+    record = BioProject::Converter.new(xml:, project_row: {project_type: 'primary', accession: '  PRJDB42  '}).call
+    assert_equal 'PRJDB42', record.dig('project', 'accession')
+  end
+
   test 'PSUB000604 (PRJDB502, primary) — top-level field mapping' do
     record = convert
 

@@ -24,24 +24,27 @@ module BioProject
 
     Result = Data.define(:submission, :outcome) # outcome: :created | :updated | :skipped | :no_accession
 
-    def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, status: nil)
+    def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, accession: nil, status: nil)
       @psub_id          = psub_id
       @xml              = xml
       @user_uid         = user_uid
       @project_type     = project_type
+      @accession        = accession
       @migration_run_id = migration_run_id
       @status           = status
     end
 
     def call
-      record    = Converter.new(xml: @xml, project_row: {project_type: @project_type}).call
+      record    = Converter.new(xml: @xml, project_row: {project_type: @project_type, accession: @accession}).call
       accession = record.dig('project', 'accession')
 
-      # Legacy / withdrawn submissions in D-way often have an empty
-      # `<ArchiveID />` even when status_id says "public". Phase 6 will
-      # revisit the policy (fall back to EAV, hold for curator review,
-      # etc.); for the spike just skip with a distinct outcome so the
-      # batch summary stays meaningful.
+      # `:no_accession` fires when BOTH the staging DB column
+      # (`project.project_id_prefix || project_id_counter`) AND the XML
+      # `<ArchiveID/>` are blank — see Converter precedence at line 173.
+      # Real cohort: 277 staging rows, 943 production rows. These are
+      # legacy / withdrawn submissions that genuinely lack an accession
+      # at the canonical source. Curator review (the "excluded data list"
+      # workflow) decides per-row whether to skip permanently or recover.
       return Result.new(submission: nil, outcome: :no_accession) unless accession
 
       user = User.find_or_create_by!(uid: @user_uid)
