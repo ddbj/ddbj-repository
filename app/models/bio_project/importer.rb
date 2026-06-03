@@ -146,20 +146,32 @@ module BioProject
       {}
     end
 
-    # Catches the full Canonicalizer::Error hierarchy, not just
-    # BagPatchPathError. The other reachable subclasses come from the
-    # Normalizer / NumberGuard / SequenceCodec / ArraySorter pass that
-    # diff() runs on BOTH sides. Apply, by contrast, is pure RFC 6902 —
-    # so a baseline patch from the pre-this-commit code path can carry
-    # bytes diff() rejects on the very next re-import. Without this
-    # widened rescue any such mismatch rolls the whole importer
-    # transaction back, turning a one-off staging bug into a permanent
-    # :failed row.
+    # First import (empty prior) → single `add /` root snapshot, so
+    # volatile fields (/schema_version, /provenance, /**/accession,
+    # ...) reach the chain. Subsequent semantic-diff updates preserve
+    # them via the diff-strips-but-apply-keeps asymmetry documented
+    # on Submission#append_update!. Going through Canonicalizer.diff
+    # for the empty-prior case would strip volatiles from both sides
+    # — the chain would then replay to a record SMALLER than what
+    # the importer's bytea cache holds, surfacing as a divergence
+    # between materialised_record (cache) and materialise_at(past)
+    # (pure replay) on the admin show page.
+    #
+    # Non-empty prior → semantic diff. The rescue catches the full
+    # Canonicalizer::Error hierarchy (BagPatchPathError plus
+    # ControlCharacterError / NumberGuard / SequenceCodec /
+    # OrderedEmptyElement / UnsupportedValue) — those come from the
+    # canonicalize pass diff() runs on BOTH sides. apply() is pure
+    # RFC 6902 with no validation, so an earlier baseline can carry
+    # bytes diff() rejects on re-import; falling through to a
+    # root-`replace` snapshot keeps a one-off staging bug from
+    # becoming a permanent :failed row.
     def compute_patch_ops(prior, current)
+      return [{'op' => 'add', 'path' => '', 'value' => current}] if prior.empty?
+
       DDBJRecord::Canonicalizer.diff(prior, current)
     rescue DDBJRecord::Canonicalizer::Error
-      op = prior.empty? ? 'add' : 'replace'
-      [{'op' => op, 'path' => '', 'value' => current}]
+      [{'op' => 'replace', 'path' => '', 'value' => current}]
     end
 
     # Stand-in for the proper Spike 0.8 mapping table. status_id 700 was the

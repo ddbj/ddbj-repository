@@ -14,6 +14,33 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     )
   end
 
+  test 'first-import baseline is a single root `add` snapshot that carries volatile fields' do
+    # Going through Canonicalizer.diff({}, record) would strip
+    # /schema_version, /provenance and /**/accession from both sides
+    # → patch chain replay would produce a record SMALLER than the
+    # importer cache holds, surfacing as admin show / ?as_of=
+    # divergence. Pin the snapshot shape directly.
+    result = build.call
+
+    assert_equal :created, result.outcome
+    assert_equal 1, result.submission.updates.count
+
+    baseline = result.submission.updates.first.parsed_patch
+    assert_equal 1,     baseline.size, 'first-import baseline must be a single op'
+    assert_equal 'add', baseline.first['op']
+    assert_equal '',    baseline.first['path']
+
+    # Materialise via PURE REPLAY (cache cleared) — must include
+    # the volatile fields the baseline carries.
+    result.submission.update_columns(cached_materialised_record: nil, cached_at_update_id: nil)
+    replayed = result.submission.reload.materialised_record
+
+    assert_equal 'v3',                                replayed['schema_version']
+    assert_equal({'source_format' => 'dway_bp_xml'},  replayed['provenance'])
+    assert replayed.key?('project'),     'project must be in the materialised replay'
+    assert replayed.key?('submission'),  'submission must be in the materialised replay'
+  end
+
   test 'creates Submission + Project + baseline SubmissionUpdate on first run' do
     result = build.call
 
