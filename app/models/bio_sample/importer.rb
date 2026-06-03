@@ -63,35 +63,54 @@ module BioSample
         # protect them without permanently stranding staging updates.
         sync_samples!(submission, record)
 
-        # Semantic diff against the prior materialised state when
-        # possible. First-import path: materialised_record is nil →
+        # Fast :skipped path: if the cached materialised bytes match the
+        # freshly-dumped record bytes, the chain content has not changed
+        # and we can short-circuit without paying Canonicalizer.diff's
+        # canonicalize × 2 cost (~3 s per BS record at 7 MB scale, the
+        # cost that turned a 4060-record re-import sweep into a
+        # 3.5-hour run). The byte-equality is a CORRECT fast check —
+        # the Converter emits hashes in a deterministic key order, the
+        # patch-chain replay preserves that order, and `Oj.dump(_,
+        # mode: :strict)` is deterministic for the same Ruby Hash; so
+        # semantically-equivalent unchanged records always byte-match.
+        # False negatives (Unicode reordering, formatting drift)
+        # gracefully fall through to the full diff path and still
+        # produce correct results.
+        # Force ASCII-8BIT on both sides — PG returns bytea as ASCII-8BIT
+        # while Oj.dump returns UTF-8, and Ruby's String#== treats them
+        # as unequal whenever any byte is >= 0x80 even when the bytes
+        # match (same trap the BP importer originally had on its raw
+        # patch byte-compare).
+        new_dump = Oj.dump(record, mode: :strict).b
+
+        if submission.cached_materialised_record == new_dump
+          submission.update_columns(
+            migration_run_id: @migration_run_id,
+            updated_at:       Time.current
+          )
+          return Result.new(submission:, outcome: :skipped)
+        end
+
+        # Semantic diff path. First-import: materialised_record is nil →
         # diff({}, record) returns one `add /<top_level_key>` op per
-        # top-level key (NOT a single root op — JsonDiff decomposes
-        # the missing-everything baseline). Re-import of an unchanged
-        # record: diff is empty → :skipped. Real shape delta: minimal
-        # RFC 6902 ops.
-        #
-        # compute_patch_ops falls back to a root-level snapshot when
-        # the structural diff (a) would descend into a bag-array
-        # element (any inner `/samples/N/...` change trips
-        # reject_bag_descent! because intermediate prefixes default to
-        # bag mode) or (b) hits any other Canonicalizer::Error
-        # (control chars, number guard, sequence alphabet, etc.).
-        # safe_prior_materialised swallows MaterialisationFailed so a
-        # poisoned historical patch lets the importer self-heal by
-        # overwriting forward instead of permanently failing every
-        # re-import for that submission.
+        # top-level key. Re-import unchanged: diff is empty (but the
+        # fast path above already caught it). Real shape delta: minimal
+        # RFC 6902 ops, or a root snapshot fallback when the diff
+        # would descend into a bag-array element or hit any
+        # Canonicalizer::Error. safe_prior_materialised swallows
+        # MaterialisationFailed so a poisoned historical patch lets
+        # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
         patch_ops    = compute_patch_ops(prior_record, record)
 
         if patch_ops.empty?
-          # sync_samples! ran above (typed columns ALWAYS sync), so the
-          # bad-batch rollback selector
-          #   Submission.where(migration_run_id: 'R-bad').destroy_all
-          # would miss this row unless we stamp it here too. Bump
-          # migration_run_id + updated_at; leave canonical_version /
-          # converter_version untouched because the chain itself is
-          # unchanged.
+          # The fast byte-equality check above should normally catch
+          # this case, but Canonicalizer.diff can also return [] when
+          # prior and current canonicalise to the same form despite
+          # differing in non-canonical noise (whitespace, key order
+          # not preserved across some intermediate step, etc.). Same
+          # stamping: sync_samples! ran, so re-stamp migration_run_id
+          # for rollback-grain correctness.
           submission.update_columns(
             migration_run_id: @migration_run_id,
             updated_at:       Time.current
@@ -106,13 +125,25 @@ module BioSample
           updated_at:        Time.current
         )
 
-        submission.updates.create!(
+        new_update = submission.updates.create!(
           db:                      'biosample',
           status:                  :applied,
           actor:                   "migration:#{@user_uid}",
           source:                  :migration,
           patch:                   Oj.dump(patch_ops, mode: :strict),
           patch_canonical_version: 1
+        )
+
+        # Re-populate the bytea cache that SubmissionUpdate#after_create
+        # just nulled, so the NEXT re-import's fast-path byte-equality
+        # check hits without having to replay the chain via
+        # materialised_record. update_columns bypasses the read-side
+        # race guard but the importer is single-threaded per submission
+        # (find_or_create_by! plus the surrounding Submission.transaction),
+        # so there is no contender to lose to.
+        submission.update_columns(
+          cached_materialised_record: new_dump,
+          cached_at_update_id:        new_update.id
         )
 
         Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
