@@ -33,6 +33,27 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal 1, submission.updates.count
   end
 
+  test 'accession kwarg threads through Importer → Converter → Project (DB-column-wins end-to-end)' do
+    # End-to-end seam test for the headline recovery contract:
+    # data_migration.rake passes `accession: row.accession` from the
+    # staging Submission Data; Importer forwards into Converter's
+    # project_row; Converter precedence picks DB over XML; Project.accession
+    # gets the DB value. Without this test, a refactor that drops
+    # `accession: @accession` from the Converter call (importer.rb line
+    # threading) would silently regress without any Converter unit test
+    # noticing — the existing :created test uses XML=DB so both paths
+    # produce the same string.
+    result = build(accession: 'PRJDB7777777').call
+
+    assert_equal :created, result.outcome
+    assert_equal 'PRJDB7777777', result.submission.project.accession,
+                 'Importer must thread accession: kwarg through to Project.accession'
+    # Note: materialised_record does NOT carry project.accession because
+    # `/**/accession` is registered as volatile (Canonicalizer strips it
+    # from the patch chain on diff). The typed Project.accession column
+    # IS the authoritative read path for accession — verified above.
+  end
+
   test 're-run with identical XML is :skipped and does not touch Submission / Project rows' do
     first       = build.call.submission
     first_run   = first.migration_run_id
