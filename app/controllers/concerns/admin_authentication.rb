@@ -12,7 +12,7 @@ module AdminAuthentication
   end
 
   def authenticate_admin!
-    return redirect_to('/auth/keycloak', allow_other_host: true) unless current_user
+    return redirect_to_web('/web/') unless current_user
 
     head :forbidden unless current_user.admin?
   end
