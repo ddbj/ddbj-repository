@@ -33,9 +33,14 @@ module DDBJRecordValidator
   end
 
   def _validate(subject)
-    details    = []
-    record     = subject.ddbj_record.open { DDBJRecord.parse(it) }
-    app_number = record.submission&.application_identification&.application_number_text
+    details = []
+    record  = subject.ddbj_record.open { DDBJRecord.parse(it) }
+    v3      = record.is_a?(DDBJRecord::V3::Root)
+
+    # ST26 application identification — v2: submission.application_identification,
+    # v3: submission.st26.application (per v3 St26Meta).
+    app_node   = v3 ? record.submission&.st26&.application : record.submission&.application_identification
+    app_number = app_node&.application_number_text
 
     if app_number && !app_number.match?(%r{\A[A-Za-z0-9/\-]+\z})
       details << {
@@ -55,13 +60,29 @@ module DDBJRecordValidator
       }
     end
 
-    [
-      ['applicant_names',      pluck_en_texts(record.st26&.applicant_names)],
-      ['applicant_name_latin', record.st26&.applicant_name_latin],
-      ['inventor_names',       pluck_en_texts(record.st26&.inventor_names)],
-      ['inventor_name_latin',  record.st26&.inventor_name_latin],
-      ['invention_titles',     pluck_en_texts(record.st26&.invention_titles)]
-    ].each do |key, texts|
+    # ST26 name fields: v2 keeps arrays of LocalizedText (multi-language);
+    # v3 collapses to bare strings (single representative language).
+    st26 = v3 ? record.submission&.st26 : record.st26
+
+    non_ascii_groups = if v3
+      [
+        ['applicant_name',       Array(st26&.applicant_name)],
+        ['applicant_name_latin', Array(st26&.applicant_name_latin)],
+        ['inventor_name',        Array(st26&.inventor_name)],
+        ['inventor_name_latin',  Array(st26&.inventor_name_latin)],
+        ['invention_titles',     Array(st26&.invention_titles).map(&:title)]
+      ]
+    else
+      [
+        ['applicant_names',      pluck_en_texts(st26&.applicant_names)],
+        ['applicant_name_latin', st26&.applicant_name_latin],
+        ['inventor_names',       pluck_en_texts(st26&.inventor_names)],
+        ['inventor_name_latin',  st26&.inventor_name_latin],
+        ['invention_titles',     pluck_en_texts(st26&.invention_titles)]
+      ]
+    end
+
+    non_ascii_groups.each do |key, texts|
       Array(texts).each do |text|
         next if text.nil? || text.ascii_only?
 
@@ -74,17 +95,19 @@ module DDBJRecordValidator
       end
     end
 
-    record.sequences.entries.each do |entry|
-      entry_id = entry.id
+    Array(record.sequences&.entries).each do |entry|
+      # v2 Entry has :id (server-extension); v3 Entry uses :alias as the
+      # curator-facing identifier and :accession for archive-assigned.
+      entry_id = v3 ? (entry.alias || entry.accession) : entry.id
 
-      entry.source_features.each do |sf|
+      Array(entry.source_features).each do |sf|
         details.concat validate_qualifiers(sf.source&.qualifiers || {}, **{
           entry_id:,
           feature: :source
         })
       end
 
-      unless entry.source_features.any? { it.source&.mol_type }
+      unless Array(entry.source_features).any? { it.source&.mol_type }
         details << {
           entry_id:,
           code:     'TRD_R0010',
@@ -104,7 +127,7 @@ module DDBJRecordValidator
         }
       end
 
-      aa = entry.source_features.any? { it.source&.mol_type == 'protein' }
+      aa = Array(entry.source_features).any? { it.source&.mol_type == 'protein' }
 
       if !aa && seq.match?(/\AN+\z/i)
         details << {
@@ -134,7 +157,7 @@ module DDBJRecordValidator
       end
     end
 
-    record.features.each do |feature|
+    Array(record.features).each do |feature|
       fkey     = feature.type
       entry_id = feature.sequence_id
 

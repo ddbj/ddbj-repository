@@ -25,4 +25,24 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert_equal submission.accessions.count, histories.count
     assert histories.all? { it.action == 'create' && it.user == request.user }
   end
+
+  test 'refuses v3 records explicitly (Phase 6+ deferral)' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+
+    request.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/v3_trad_gnm.json').open,
+      filename:     'v3_trad_gnm.json',
+      content_type: 'application/json'
+    )
+
+    request.save!
+
+    # NotImplementedError isn't StandardError; the job's rescue does
+    # NOT catch it, so it propagates out (and SolidQueue marks the
+    # job as failed). request stays in :applying — the loud failure
+    # mode the data-migration plan documents.
+    assert_raises NotImplementedError do
+      ApplySubmissionRequestJob.perform_now request
+    end
+  end
 end
