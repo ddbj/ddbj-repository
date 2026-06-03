@@ -42,7 +42,7 @@ module Admin
       # → `page_key`; the wrong name is silently ignored, see
       # Pagy::Request#page reading `@options[:page_key]`.)
       if @submission.biosample_db?
-        @samples_pagy, @samples = pagy(@submission.samples.order(:id), page_key: 'samples_page', limit: 50)
+        @samples_pagy, @samples = pagy(@submission.samples.order(:id), page_key: 'samples_page', limit: 20)
       end
 
       begin
