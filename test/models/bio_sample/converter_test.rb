@@ -4,14 +4,15 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
   C  = BioSample::Converter
   SC = BioSample::StagingClient
 
-  def build_submission(samples:, contacts: [], comment: '[2014] Test submission')
+  def build_submission(samples:, contacts: [], comment: '[2014] Test submission', organization: 'Sample Organization', organization_url: nil)
     SC::Submission.new(
-      ssub_id:      'SSUB-test',
-      submitter_id: 'sample-uid',
-      organization: 'Sample Organization',
-      comment:      comment,
-      contacts:     contacts,
-      samples:      samples
+      ssub_id:          'SSUB-test',
+      submitter_id:     'sample-uid',
+      organization:     organization,
+      organization_url: organization_url,
+      comment:          comment,
+      contacts:         contacts,
+      samples:          samples
     )
   end
 
@@ -49,10 +50,12 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     assert_equal 4,                                                           sample_v3['attributes'].size
   end
 
-  test 'lifts contacts into submission.submitters and skips blank values' do
+  test 'lifts contacts into submission.submitters carrying the shared organization' do
     sub = build_submission(
-      samples:  [sample],
-      contacts: [
+      organization:     'Sample Organization 1',
+      organization_url: 'https://example.test/org-1',
+      samples:          [sample],
+      contacts:         [
         SC::Contact.new(email: 'sample-1@example.test', first: 'Sample-First-1', last: 'Sample-Last-1'),
         SC::Contact.new(email: nil,                     first: 'Sample-First-2', last: nil)
       ]
@@ -60,9 +63,23 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
 
     submitters = C.new(submission: sub).call.dig('submission', 'submitters')
 
+    expected_org = {'name' => 'Sample Organization 1', 'url' => 'https://example.test/org-1'}
     assert_equal 2, submitters.size
-    assert_equal({'email' => 'sample-1@example.test', 'first' => 'Sample-First-1', 'last' => 'Sample-Last-1'}, submitters[0])
-    assert_equal({'first' => 'Sample-First-2'},                                                                submitters[1])
+    assert_equal({'email' => 'sample-1@example.test', 'first' => 'Sample-First-1', 'last' => 'Sample-Last-1',
+                  'organization' => expected_org}, submitters[0])
+    assert_equal({'first' => 'Sample-First-2', 'organization' => expected_org}, submitters[1])
+  end
+
+  test 'omits organization key entirely when staging has neither name nor url' do
+    sub = build_submission(
+      organization:     nil,
+      organization_url: nil,
+      samples:          [sample],
+      contacts:         [SC::Contact.new(email: 'x@example.test', first: 'X', last: 'Y')]
+    )
+
+    submitter = C.new(submission: sub).call.dig('submission', 'submitters', 0)
+    refute_includes submitter.keys, 'organization'
   end
 
   test 'N samples in samples array preserve staging order' do

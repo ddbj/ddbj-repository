@@ -20,12 +20,13 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     }
 
     row = SC::Submission.new(
-      ssub_id:      ssub_id,
-      submitter_id: user_uid,
-      organization: 'Sample Organization',
-      comment:      '[2014] sample import',
-      contacts:     [],
-      samples:      samples
+      ssub_id:          ssub_id,
+      submitter_id:     user_uid,
+      organization:     'Sample Organization',
+      organization_url: nil,
+      comment:          '[2014] sample import',
+      contacts:         [],
+      samples:          samples
     )
 
     BioSample::Importer.new(staging_submission: row, user_uid: user_uid, migration_run_id: migration_run_id)
@@ -52,7 +53,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
   test 'returns :no_samples (no writes) when the staging submission has none' do
     row = SC::Submission.new(
-      ssub_id: 'SSUB-empty', submitter_id: 'u', organization: nil, comment: nil,
+      ssub_id: 'SSUB-empty', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil,
       contacts: [], samples: []
     )
 
@@ -85,7 +86,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
       SC::Sample.new(smp_id: 11, accession: nil, sample_name: 'DRS_DRAFT_B', package: 'Generic', status_id: 5500, attributes: [])
     ]
     row = SC::Submission.new(
-      ssub_id: 'SSUB-nil-acc', submitter_id: 'u', organization: nil, comment: nil,
+      ssub_id: 'SSUB-nil-acc', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil,
       contacts: [], samples: drafts
     )
 
@@ -112,7 +113,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
       )
     }
     row = SC::Submission.new(
-      ssub_id: 'SSUB-test', submitter_id: 'migration-test', organization: nil, comment: nil,
+      ssub_id: 'SSUB-test', submitter_id: 'migration-test', organization: nil, organization_url: nil, comment: nil,
       contacts: [], samples: smaller
     )
 
@@ -147,7 +148,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
       package: 'Generic', status_id: 99_999, attributes: []
     )]
     row = SC::Submission.new(
-      ssub_id: 'SSUB-status', submitter_id: 'u', organization: nil, comment: nil,
+      ssub_id: 'SSUB-status', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil,
       contacts: [], samples: samples
     )
 

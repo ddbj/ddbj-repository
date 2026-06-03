@@ -32,14 +32,27 @@ module BioSample
     private
 
     def submission_block
+      org_block = organization_block
+
       block = {
         'submitters' => @submission.contacts.map {|c|
-          {'email' => c.email, 'first' => c.first, 'last' => c.last}.compact.presence
+          person = {'email' => c.email, 'first' => c.first, 'last' => c.last}.compact.presence
+          next nil unless person
+
+          person['organization'] = org_block if org_block
+          person
         }.compact,
         'comments'   => @submission.comment
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }
 
       block.presence
+    end
+
+    def organization_block
+      {
+        'name' => @submission.organization,
+        'url'  => @submission.organization_url
+      }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }.presence
     end
 
     def sample_block(sample)
