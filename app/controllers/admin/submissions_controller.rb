@@ -1,7 +1,13 @@
 module Admin
   class SubmissionsController < ApplicationController
     def index
-      scope = Submission.includes(:user).order(id: :desc)
+      # Project away `cached_materialised_record` (bytea, BS-scale ~7MB
+      # per row) — the index view never reads it, and pagy(20) × 7MB =
+      # 140MB transferred per page once caches are warmed.
+      scope = Submission
+        .select(Submission.column_names - %w[cached_materialised_record])
+        .includes(:user)
+        .order(id: :desc)
       scope = scope.where(db: params[:db]) if params[:db].present?
       scope = scope.where(user: User.where(uid: params[:user])) if params[:user].present?
 
