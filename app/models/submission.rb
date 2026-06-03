@@ -47,11 +47,12 @@ class Submission < ApplicationRecord
   #
   # Caches the latest-snapshot bytes in the `cached_materialised_record`
   # bytea column. Invariant: `cached_at_update_id` is non-nil iff the
-  # cache is fresh — SubmissionUpdate#after_create_commit and
-  # after_destroy_commit unconditionally nil-clear the cache columns, so
-  # any chain edit (append, undo, intermediate delete) invalidates.
-  # That lets the read path short-circuit on column presence alone
-  # without a round trip to submission_updates.
+  # cache is fresh — SubmissionUpdate#after_create and #after_destroy
+  # (in-transaction hooks, not _commit; see submission_update.rb)
+  # unconditionally nil-clear the cache columns, so any chain edit
+  # (append, undo, intermediate delete) invalidates. That lets the read
+  # path short-circuit on column presence alone without a round trip
+  # to submission_updates.
   #
   # bytea (not ActiveStorage) so the cache read is a single column fetch
   # — no SeaweedFS round trip in production. BS records with ~20K
@@ -120,10 +121,10 @@ class Submission < ApplicationRecord
         patch:                   Oj.dump(patch, mode: :strict),
         patch_canonical_version: 1
       )
-      # Cache invalidates via SubmissionUpdate#after_create_commit — no
-      # explicit clear here. Deliberately bypassing the cached read
-      # (using materialise_at directly) because we are about to
-      # invalidate the cache anyway, so consuming it would be wasted IO.
+      # Cache invalidates via SubmissionUpdate#after_create (inside this
+      # transaction) — no explicit clear here. Deliberately bypassing the
+      # cached read (using materialise_at directly) because we are about
+      # to invalidate the cache anyway, so consuming it would be wasted IO.
     end
   end
 
