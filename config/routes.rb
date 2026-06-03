@@ -35,7 +35,11 @@ Rails.application.routes.draw do
     resource :session, only: %i[new]
 
     resources :submission_requests, only: %i[index]
-    resources :submissions,         only: %i[index show]
+    resources :submissions, only: %i[index show] do
+      member do
+        get :materialised
+      end
+    end
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]
     end

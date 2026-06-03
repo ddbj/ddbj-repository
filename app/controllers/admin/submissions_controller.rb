@@ -19,47 +19,40 @@ module Admin
     # Canonicalisation walks every subtree and produces canonical bytes +
     # SHA-256 for each, which costs ~20s on a 7 MB record (BS 20K-sample
     # scale, see SSUB004153). Skip both display rows above this size and
-    # surface a banner instead — the materialised record itself still
-    # renders fine via plain JSON.pretty_generate.
+    # surface a banner instead — the curator can still pull the raw
+    # materialised JSON via the dedicated `materialised` action below.
     CANONICAL_DISPLAY_SIZE_LIMIT = 1.megabyte
 
     def show
       @submission = Submission.includes(:user).find(params[:id])
       @updates    = @submission.updates.order(:id).to_a
-      latest_id   = @updates.last&.id
-
-      # Treat ?as_of=<latest_id> as identical to no as_of at all — the
-      # resulting snapshot IS the current state, so the "Viewing snapshot
-      # at ..." banner would be misleading.
-      requested        = parse_as_of(params[:as_of])
-      @requested_as_of = requested unless requested == latest_id
-      @as_of_row       = @requested_as_of && @updates.find {|u| u.id == @requested_as_of }
 
       # Samples list is paginated inside a turbo-frame so 20K-row BS
-      # records don't blow up the page. `page_key: :samples_page`
+      # records don't blow up the page. `page_key: 'samples_page'`
       # namespaces the URL param so future paginators on the same page
-      # (e.g. patch chain) won't collide. (pagy v43 renamed `page_param`
-      # → `page_key`; the wrong name is silently ignored, see
-      # Pagy::Request#page reading `@options[:page_key]`.)
+      # won't collide. (pagy v43: option name is `page_key` not
+      # `page_param`, and the value must be a String not a Symbol; the
+      # wrong shape is silently ignored.)
       if @submission.biosample_db?
         @samples_pagy, @samples = pagy(@submission.samples.order(:id), page_key: 'samples_page', limit: 20)
       end
 
       begin
-        # Cache-aware fast path on the latest snapshot; as_of snapshots
-        # always replay because the cache stores only the latest.
-        @materialised = @as_of_row ? @submission.materialise_at(update_id: @as_of_row.id) : @submission.materialised_record
+        @materialised = @submission.materialised_record
 
         if @materialised
-          dump_size = Oj.dump(@materialised, mode: :strict).bytesize
+          # `@materialised_size` is the Oj :strict serialised byte length,
+          # cached in an ivar so the view's size badge does not re-encode.
+          # NOTE this is the JSON dump size, NOT the canonical byte count;
+          # the dl above shows `@canonical_bytes.bytesize` (post-JCS) which
+          # is structurally different and usually a bit smaller.
+          @materialised_size = Oj.dump(@materialised, mode: :strict).bytesize
 
-          if dump_size <= CANONICAL_DISPLAY_SIZE_LIMIT
+          if @materialised_size <= CANONICAL_DISPLAY_SIZE_LIMIT
             @canonical_bytes = DDBJRecord::Canonicalizer.canonicalize(@materialised)
             # Hash the already-computed canonical bytes instead of calling
             # Canonicalizer.sha256, which re-canonicalises from scratch.
             @sha256 = Digest::SHA256.hexdigest(@canonical_bytes)
-          else
-            @canonical_skipped_size = dump_size
           end
         end
       rescue Submission::MaterialisationFailed, DDBJRecord::Canonicalizer::Error => e
@@ -67,11 +60,58 @@ module Admin
       end
     end
 
+    # Raw materialised v3 JSON for the submission.
+    #
+    # - No `?as_of` (or as_of that parse_as_of rejects: blank, non-numeric,
+    #   non-positive) — returns the latest snapshot. Cache-aware: when the
+    #   bytea cache is populated, ships those bytes directly without an
+    #   Oj.load / re-encode roundtrip.
+    # - `?as_of=N` where N matches a SubmissionUpdate on this submission —
+    #   returns the snapshot at that update. ALWAYS replays through
+    #   materialise_at, even when N happens to equal latest_id; the cache
+    #   shortcut would race with a concurrent append landing between the
+    #   id check and the read, serving a newer state under a URL pinned to
+    #   a specific id.
+    # - `?as_of=N` where N is positive but unknown on this submission —
+    #   404 (stale link explicitly rejected; we do not silently fall back
+    #   to latest because the curator asked for a specific snapshot).
+    # - MaterialisationFailed during replay — 422 with the offending
+    #   update_id in the JSON body. Sibling `show` surfaces the same
+    #   condition as the "Replay failed" banner.
+    def materialised
+      submission = Submission.find(params[:id])
+      requested  = parse_as_of(params[:as_of])
+
+      payload =
+        if requested
+          update = submission.updates.find_by(id: requested)
+          return head :not_found unless update
+
+          Oj.dump(submission.materialise_at(update_id: update.id), mode: :strict)
+        else
+          cached = submission.cached_materialised_record
+
+          if cached.present?
+            cached
+          else
+            record = submission.materialised_record
+            return head :not_found unless record
+
+            Oj.dump(record, mode: :strict)
+          end
+        end
+
+      render plain: payload, content_type: 'application/json'
+    rescue Submission::MaterialisationFailed => e
+      render json:   {error: 'replay_failed', update_id: e.update_id, message: e.message},
+             status: :unprocessable_entity
+    end
+
     private
 
-    # Strict positive-integer parser. Non-numeric or non-positive input is
-    # discarded — the view treats `nil` as "no cutoff" and reports a banner
-    # when the original `params[:as_of]` was provided but didn't resolve.
+    # Strict positive-integer parser. Returns nil for anything other than
+    # an explicit positive integer; callers treat nil as "no cutoff" /
+    # "use latest".
     def parse_as_of(raw)
       return nil if raw.blank?
 

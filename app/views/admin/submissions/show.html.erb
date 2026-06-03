@@ -33,10 +33,10 @@
 
     <dt class="col-sm-3">Canonical SHA-256</dt>
     <dd class="col-sm-9"><code><%= @sha256 %></code></dd>
-  <% elsif @canonical_skipped_size %>
+  <% elsif @materialised_size && @materialised_size > Admin::SubmissionsController::CANONICAL_DISPLAY_SIZE_LIMIT %>
     <dt class="col-sm-3">Canonical bytes / SHA-256</dt>
     <dd class="col-sm-9 text-body-secondary">
-      Skipped — materialised record is <%= number_to_human_size(@canonical_skipped_size) %>
+      Skipped — materialised record is <%= number_to_human_size(@materialised_size) %>
       (limit <%= number_to_human_size(Admin::SubmissionsController::CANONICAL_DISPLAY_SIZE_LIMIT) %>).
       Canonicalisation walks every subtree and costs ~20 s on 7 MB records;
       avoiding it keeps the page interactive.
@@ -100,20 +100,6 @@
 </h2>
 
 <% if @updates.any? %>
-  <% if @as_of_row %>
-    <div class="alert alert-info d-flex justify-content-between align-items-center" role="alert">
-      <div>
-        Viewing snapshot at <strong>Update #<%= @as_of_row.id %></strong>
-        (<%= @as_of_row.created_at.to_fs(:db) %>) — latest is #<%= @updates.last.id %>.
-      </div>
-      <%= link_to 'Show latest', admin_submission_path(@submission), class: 'btn btn-sm btn-outline-primary' %>
-    </div>
-  <% elsif @requested_as_of %>
-    <div class="alert alert-warning" role="alert">
-      Update #<%= @requested_as_of %> not found on this submission; showing latest.
-    </div>
-  <% end %>
-
   <table class="table border align-middle">
     <thead class="table-light">
       <tr>
@@ -128,7 +114,7 @@
     </thead>
     <tbody>
       <% @updates.each do |update| %>
-        <% is_current = @as_of_row ? update.id == @as_of_row.id : update == @updates.last %>
+        <% is_current = update == @updates.last %>
         <% parsed = begin; update.parsed_patch; rescue StandardError => e; e; end %>
         <tr class="<%= 'table-info' if is_current %>">
           <td><code>#<%= update.id %></code></td>
@@ -153,10 +139,14 @@
             </details>
           </td>
           <td>
+            <%# Snapshot links point to the raw JSON endpoint (the show %>
+            <%# page no longer renders snapshots itself; latest is its %>
+            <%# only mode). Current row links without ?as_of so the URL %>
+            <%# stays clean for the most common click target. %>
             <% if is_current %>
-              <span class="badge text-bg-primary">current</span>
+              <%= link_to 'view (JSON)', materialised_admin_submission_path(@submission), class: 'btn btn-sm btn-primary' %>
             <% else %>
-              <%= link_to 'view', admin_submission_path(@submission, as_of: update.id), class: 'btn btn-sm btn-outline-secondary' %>
+              <%= link_to 'view (JSON)', materialised_admin_submission_path(@submission, as_of: update.id), class: 'btn btn-sm btn-outline-secondary' %>
             <% end %>
           </td>
         </tr>
@@ -170,7 +160,15 @@
 <h2 class="h4 mt-4">Materialised v3 record</h2>
 
 <% if @materialised %>
-  <pre class="bg-body-tertiary border rounded p-3" style="max-height: 60vh; overflow: auto;"><%= JSON.pretty_generate(@materialised) %></pre>
+  <p>
+    <%= link_to 'View as JSON', materialised_admin_submission_path(@submission), class: 'btn btn-primary' %>
+    <%# Labelled "JSON:" to distinguish from "Canonical bytes" above — %>
+    <%# they're structurally different sizes (canonical strips volatile %>
+    <%# fields + sorts keys + normalises). %>
+    <span class="text-body-secondary ms-2">
+      JSON: <%= number_to_human_size(@materialised_size) %>
+    </span>
+  </p>
 <% elsif @materialisation_error %>
   <div class="alert alert-danger" role="alert">
     Replay failed. See the Replay status field above; the patch chain table
