@@ -60,7 +60,11 @@
   <%# turbo-frame + data-turbo-action="advance": pagy clicks swap only %>
   <%# this frame (scroll position is preserved) AND push the URL to %>
   <%# browser history so ?samples_page=N is permalinkable / shareable. %>
-  <turbo-frame id="samples" data-turbo-action="advance">
+  <%# frame-scroll-top: after a frame swap, if the user was scrolled past %>
+  <%# the top of the table (typical: clicked pagy nav at the bottom of %>
+  <%# the previous page), scroll back up so the new page starts at the %>
+  <%# table header. Initial page load is left alone. %>
+  <turbo-frame id="samples" data-turbo-action="advance" data-controller="frame-scroll-top">
     <table class="table border align-middle">
       <thead class="table-light">
         <tr>
