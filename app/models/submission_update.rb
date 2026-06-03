@@ -31,15 +31,6 @@ class SubmissionUpdate < ApplicationRecord
   after_create  :invalidate_submission_cache!
   after_destroy :invalidate_submission_cache!
 
-  private
-
-  def invalidate_submission_cache!
-    Submission.where(id: submission_id).update_all(
-      cached_materialised_record: nil,
-      cached_at_update_id:        nil
-    )
-  end
-
   # Memoised parse of the bytea-stored JSON Patch. Returns the RFC 6902
   # operation array.
   def parsed_patch
@@ -48,5 +39,14 @@ class SubmissionUpdate < ApplicationRecord
 
   def op_count
     parsed_patch.length
+  end
+
+  private
+
+  def invalidate_submission_cache!
+    Submission.where(id: submission_id).update_all(
+      cached_materialised_record: nil,
+      cached_at_update_id:        nil
+    )
   end
 end
