@@ -61,22 +61,30 @@ module BioProject
                 "refusing to silently re-attribute to '#{@user_uid}'."
         end
 
-        # Semantic diff against the prior materialised state when
-        # possible. First-import path: materialised_record is nil →
-        # diff({}, record) returns one `add /<top_level_key>` op per
-        # top-level key (NOT a single root op — JsonDiff decomposes
-        # the missing-everything baseline). Re-import of an unchanged
-        # record: diff is empty → :skipped. Real shape delta: minimal
-        # RFC 6902 ops.
-        #
-        # compute_patch_ops falls back to a root-level snapshot when
-        # the structural diff (a) would descend into a bag-array
-        # element (publications, grants, attributes etc. default to
-        # bag at any intermediate prefix) or (b) hits any other
+        # Fast :skipped path: if the cached materialised bytes match the
+        # freshly-dumped record bytes, the chain content has not changed
+        # and we can short-circuit without paying Canonicalizer.diff's
+        # canonicalize × 2 cost. Same rationale as the BS importer —
+        # Converter output is deterministic in key order, replay
+        # preserves it, Oj :strict is deterministic, so unchanged
+        # records always byte-match. False negatives fall through to
+        # the full diff path and produce correct results.
+        # ASCII-8BIT force on both sides — PG bytea comes back as
+        # ASCII-8BIT, Oj.dump emits UTF-8, and Ruby's String#== treats
+        # them as unequal when any byte is >= 0x80 even with identical
+        # bytes (the same trap the original BP byte-compare hit).
+        new_dump = Oj.dump(record, mode: :strict).b
+
+        if submission.cached_materialised_record == new_dump
+          return Result.new(submission:, outcome: :skipped)
+        end
+
+        # Semantic diff path. First-import: diff({}, record) →
+        # per-top-level-key add ops. Real shape delta: minimal RFC
+        # 6902 ops or root-snapshot fallback on bag-descent / other
         # Canonicalizer::Error. safe_prior_materialised swallows
         # MaterialisationFailed so a poisoned historical patch lets
-        # the importer self-heal forward instead of permanently
-        # failing every re-import for that submission.
+        # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
         patch_ops    = compute_patch_ops(prior_record, record)
 
@@ -108,13 +116,21 @@ module BioProject
           title:        record.dig('project', 'title')
         )
 
-        submission.updates.create!(
+        new_update = submission.updates.create!(
           db:                      'bioproject',
           status:                  :applied,
           actor:                   "migration:#{@user_uid}",
           source:                  :migration,
           patch:                   Oj.dump(patch_ops, mode: :strict),
           patch_canonical_version: 1
+        )
+
+        # Re-populate the bytea cache that SubmissionUpdate#after_create
+        # just nulled, so the NEXT re-import's fast-path byte-equality
+        # check hits without paying for chain replay + canonicalize × 2.
+        submission.update_columns(
+          cached_materialised_record: new_dump,
+          cached_at_update_id:        new_update.id
         )
 
         Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
