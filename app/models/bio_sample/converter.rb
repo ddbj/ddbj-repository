@@ -40,17 +40,23 @@ module BioSample
           # would only drop nils, so guard each field with `.presence`
           # to drop empty-string fields cleanly. Mirrors BP Converter.
           person = {
-            'email' => c.email.presence,
-            'first' => c.first.presence,
-            'last'  => c.last.presence
+            'email'      => c.email.presence,
+            'first_name' => c.first.presence,
+            'last_name'  => c.last.presence
           }.compact.presence
 
           next nil unless person
 
-          person['organization'] = org_block if org_block
+          # v3 Person.organizations is `list[Organization]`; D-way has
+          # one organization per submission shared across all contacts,
+          # so we lift it as a single-element array.
+          person['organizations'] = [org_block] if org_block
           person
         },
-        'comments'   => @submission.comment
+        # v3 Submission.comments is `list[str]`; staging carries a single
+        # free-form scalar comment. Wrap to satisfy the schema; drop the
+        # key entirely if the staging comment is blank.
+        'comments'   => Array(@submission.comment.presence).presence
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }
 
       block.presence
@@ -67,12 +73,18 @@ module BioSample
       attrs_by_name = sample.attributes.to_h {|a| [a['name'], a['value']] }
 
       {
-        'accession' => sample.accession,
-        'alias'     => sample.sample_name,
-        'title'     => attrs_by_name['sample_title'].presence,
-        'package'   => sample.package,
-        'organism'  => organism_block(attrs_by_name),
-        'attributes' => sample.attributes.filter_map {|a|
+        'accession'   => sample.accession,
+        'alias'       => sample.sample_name,
+        'title'       => attrs_by_name['sample_title'].presence,
+        # Same lift-but-retain convention as `title` and `organism` — the
+        # value reaches v3 `Sample.description` AND stays in the attribute
+        # bag, so an audit comparing EAV row counts can still reconcile.
+        # `description` is one of the most common BS attributes (~17k
+        # staging samples) and the v3 slot is freeform `str | None`.
+        'description' => attrs_by_name['description'].presence,
+        'package'     => sample.package,
+        'organism'    => organism_block(attrs_by_name),
+        'attributes'  => sample.attributes.filter_map {|a|
           next nil if a['value'].blank?
           {'name' => a['name'], 'value' => a['value']}
         }.presence

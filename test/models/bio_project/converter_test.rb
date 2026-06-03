@@ -165,10 +165,12 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
       'type' => 'center'
     }
     assert_equal 2, submitters.size
-    assert_equal({'email' => 'sample-1@example.test', 'first' => 'Sample-First-1', 'last' => 'Sample-Last-1',
-                  'organization' => expected_org},
+    assert_equal({'email'         => 'sample-1@example.test',
+                  'first_name'    => 'Sample-First-1',
+                  'last_name'     => 'Sample-Last-1',
+                  'organizations' => [expected_org]},
                  submitters[0])
-    assert_equal expected_org, submitters[1]['organization']
+    assert_equal [expected_org], submitters[1]['organizations']
   end
 
   test 'PSUB002671 — Publication lifts pubmed_id + status (Reference body absent)' do
