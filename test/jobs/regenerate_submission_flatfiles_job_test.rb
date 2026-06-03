@@ -18,6 +18,19 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     @admin      = users(:alice).tap { it.update!(admin: true) }
   end
 
+  test 'raises NotImplementedError on v3 submissions (Phase 6+ deferral)' do
+    progress = RegenerateFlatfilesProgress.create!(total: 1)
+    @submission.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/v3_trad_gnm.json').open,
+      filename:     'v3_trad_gnm.json',
+      content_type: 'application/json'
+    )
+
+    assert_raises NotImplementedError do
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2026, 7, 1), force: true
+    end
+  end
+
   test 'force: true regenerates even when flatfiles would be identical' do
     progress = RegenerateFlatfilesProgress.create!(total: 1)
 

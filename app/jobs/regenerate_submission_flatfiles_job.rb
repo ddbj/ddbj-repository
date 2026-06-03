@@ -10,6 +10,16 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   def perform(submission, user, progress, date, force: false)
     record = submission.ddbj_record.open { DDBJRecord.parse(it) }
 
+    # v3 flatfile generation requires server-extension entry fields
+    # (locus / version / last_updated) that v3 Entry does not carry.
+    # Phase 6+ will introduce a v3-native flatfile renderer; until then
+    # refuse explicitly so the silent-NoMethodError landmine surfaces
+    # as an actionable error.
+    if record.is_a?(DDBJRecord::V3::Root)
+      raise NotImplementedError,
+            "Submission ##{submission.id}: flatfile regeneration not yet implemented for v3 records (Phase 6+)"
+    end
+
     if force || changed?(submission, record)
       submission.accessions.update_all(locus_date: date) if date
 

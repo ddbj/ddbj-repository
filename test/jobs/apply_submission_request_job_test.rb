@@ -54,4 +54,24 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert_equal 'stack level too deep', request.error_message
     assert_not request.processing?
   end
+
+  test 'refuses v3 records explicitly (Phase 6+ deferral)' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+
+    request.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/v3_trad_gnm.json').open,
+      filename:     'v3_trad_gnm.json',
+      content_type: 'application/json'
+    )
+
+    request.save!
+
+    # v3 streaming+apply is unimplemented and refused with NotImplementedError.
+    # That isn't a StandardError, so the job's `rescue Exception` marks the
+    # request application_failed (terminal — no stuck :applying) and then
+    # re-raises, keeping the failure loud (SolidQueue marks the job failed).
+    assert_raises NotImplementedError do
+      ApplySubmissionRequestJob.perform_now request
+    end
+  end
 end
