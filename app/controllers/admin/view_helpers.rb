@@ -27,6 +27,15 @@ module Admin::ViewHelpers
     DB_LABELS.fetch(db.to_s, db.to_s)
   end
 
+  # Primary curator-facing identifier for a submission. Uses the staging
+  # source_id (PSUB.../SSUB...) when present so admin pages match how
+  # curators talk about records; falls back to the internal
+  # "Submission-#{id}" form for ST.26 (no source_id, since it comes from
+  # user uploads rather than D-way migration).
+  def submission_label(submission)
+    submission.source_id.presence || "Submission-#{submission.id}"
+  end
+
   def db_options
     DB_LABELS.map {|value, label| [label, value] }
   end
