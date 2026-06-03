@@ -1,5 +1,44 @@
 require 'csv' # used by dump_excluded_* tasks; csv stopped being a default gem in Ruby 3.4
 
+# Shared scaffolding for the dump_excluded_bp / dump_excluded_bs rake tasks:
+# enumerate a StagingClient, write a CSV atomically (tempfile + rename so a
+# SIGINT mid-write never leaves a syntactically-complete but truncated file
+# for a curator to mistake for a finished dump), and print a per-reason
+# breakdown derived from the rows themselves — no hard-coded reason literals
+# in the task body, so adding a new reason on either StagingClient surfaces
+# in the summary without a parallel rake edit.
+module DataMigration
+  module DumpExcluded
+    module_function
+
+    def call(client_class:, default_stem:, header:, row_mapper:, output_path: nil)
+      output_path = output_path.presence ||
+                    "tmp/data-migration/#{default_stem}-#{Time.current.strftime('%Y%m%d-%H%M%S')}.csv"
+      FileUtils.mkdir_p(File.dirname(output_path))
+
+      client = client_class.new
+
+      rows = begin
+        client.enumerate_excluded
+      ensure
+        client.close
+      end
+
+      tmp_path = "#{output_path}.tmp.#{Process.pid}"
+      CSV.open(tmp_path, 'w') {|csv|
+        csv << header
+        rows.each {|r| csv << row_mapper.call(r) }
+      }
+      File.rename(tmp_path, output_path)
+
+      puts "Wrote #{rows.size} excluded row[s] to #{output_path}"
+      rows.group_by(&:reason).transform_values(&:size).sort_by {|_, n| -n }.each {|reason, n|
+        puts "  #{reason}: #{n}"
+      }
+    end
+  end
+end
+
 namespace :data_migration do
   # Spike utility: single-record import from a local XML file. accession
   # is REQUIRED — XML <ArchiveID> is no longer treated as an accession
@@ -199,8 +238,8 @@ namespace :data_migration do
   #   - no_project_row: in mass.submission but not in mass.project
   #     (filtered out by the INNER JOIN in `submission_ids`)
   #   - no_accession:   project row present but project_id_prefix +
-  #                     project_id_counter is empty AND XML <ArchiveID/>
-  #                     is also blank (DB-column-as-source-of-truth)
+  #                     project_id_counter is NULL (DB column is the
+  #                     sole accession source post-XML-fallback-removal)
   #   - no_xml:         project row present but mass.xml has no content
   #
   # The query runs entirely in staging — no ddbj-repository writes happen.
@@ -221,34 +260,21 @@ namespace :data_migration do
   # in D-way) or to skip permanently.
   desc 'Dump excluded BP submissions to CSV for curator review'
   task :dump_excluded_bp, %i[output_path] => :environment do |_, args|
-    output_path = args[:output_path].presence || "tmp/data-migration/excluded-bp-#{Time.current.strftime('%Y%m%d-%H%M%S')}.csv"
-    FileUtils.mkdir_p(File.dirname(output_path))
-
-    client = BioProject::StagingClient.new
-
-    begin
-      rows = client.enumerate_excluded
-    ensure
-      client.close
-    end
-
-    CSV.open(output_path, 'w') {|csv|
-      csv << %w[psub_id reason status_id submitter_id charge_id create_date modified_date]
-
-      rows.each {|r|
-        csv << [r.psub_id, r.reason, r.status_id, r.submitter_id, r.charge_id, r.create_date, r.modified_date]
-      }
-    }
-
-    by_reason = rows.group_by(&:reason).transform_values(&:size).sort_by {|_, n| -n }
-    puts "Wrote #{rows.size} excluded row[s] to #{output_path}"
-    by_reason.each {|reason, n| puts "  #{reason}: #{n}" }
+    DataMigration::DumpExcluded.call(
+      client_class: BioProject::StagingClient,
+      default_stem: 'excluded-bp',
+      header:       %w[psub_id reason status_id submitter_id charge_id create_date modified_date],
+      row_mapper:   ->(r) {
+        [r.psub_id, r.reason, r.status_id, r.submitter_id, r.charge_id, r.create_date, r.modified_date]
+      },
+      output_path:  args[:output_path]
+    )
   end
 
   # Dump excluded BS submissions — curator-review CSV.
   #
   # "Excluded" means the regular import_bs_batch pipeline would silently
-  # drop the row. One reason:
+  # drop the row. One reason today:
   #   - no_samples: mass.submission row exists but has zero mass.sample
   #                 rows. Importer returns :no_samples.
   #
@@ -257,26 +283,14 @@ namespace :data_migration do
   # See dump_excluded_bp's comment for production / staging invocation.
   desc 'Dump excluded BS submissions to CSV for curator review'
   task :dump_excluded_bs, %i[output_path] => :environment do |_, args|
-    output_path = args[:output_path].presence || "tmp/data-migration/excluded-bs-#{Time.current.strftime('%Y%m%d-%H%M%S')}.csv"
-    FileUtils.mkdir_p(File.dirname(output_path))
-
-    client = BioSample::StagingClient.new
-
-    begin
-      rows = client.enumerate_excluded
-    ensure
-      client.close
-    end
-
-    CSV.open(output_path, 'w') {|csv|
-      csv << %w[ssub_id reason submitter_id organization charge_id create_date modified_date]
-
-      rows.each {|r|
-        csv << [r.ssub_id, r.reason, r.submitter_id, r.organization, r.charge_id, r.create_date, r.modified_date]
-      }
-    }
-
-    puts "Wrote #{rows.size} excluded row[s] to #{output_path}"
-    puts '  no_samples: ' + rows.size.to_s if rows.any?
+    DataMigration::DumpExcluded.call(
+      client_class: BioSample::StagingClient,
+      default_stem: 'excluded-bs',
+      header:       %w[ssub_id reason submitter_id organization charge_id create_date modified_date],
+      row_mapper:   ->(r) {
+        [r.ssub_id, r.reason, r.submitter_id, r.organization, r.charge_id, r.create_date, r.modified_date]
+      },
+      output_path:  args[:output_path]
+    )
   end
 end

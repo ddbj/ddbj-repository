@@ -60,18 +60,21 @@ module BioSample
     Excluded = Data.define(:ssub_id, :reason, :submitter_id, :organization, :create_date, :modified_date, :charge_id)
 
     def enumerate_excluded
+      # NOT EXISTS instead of LEFT JOIN + GROUP BY + HAVING COUNT(...)=0:
+      # production mass.sample has tens of millions of rows, and the
+      # anti-join lets PG short-circuit per submission via the
+      # sample.submission_id index without materializing the full join
+      # or aggregating across 6 grouping columns.
       sql = <<~SQL
-        SELECT    s.submission_id,
-                  s.submitter_id,
-                  s.organization,
-                  s.create_date,
-                  s.modified_date,
-                  s.charge_id
-        FROM      submission s
-        LEFT JOIN sample sm USING (submission_id)
-        GROUP BY  s.submission_id, s.submitter_id, s.organization, s.create_date, s.modified_date, s.charge_id
-        HAVING    COUNT(sm.smp_id) = 0
-        ORDER BY  s.submission_id
+        SELECT   s.submission_id,
+                 s.submitter_id,
+                 s.organization,
+                 s.create_date,
+                 s.modified_date,
+                 s.charge_id
+        FROM     submission s
+        WHERE    NOT EXISTS (SELECT 1 FROM sample sm WHERE sm.submission_id = s.submission_id)
+        ORDER BY s.submission_id
       SQL
 
       @conn.exec(sql).map {|row|
