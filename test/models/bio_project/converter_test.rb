@@ -34,8 +34,8 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal 'Japan Society for the Promotion of Science', grants[0]['agency']
   end
 
-  test 'PSUB000604 — Relevance flattens tag names to lowercase array' do
-    assert_equal ['medical'], convert.dig('project', 'relevance')
+  test 'PSUB000604 — Relevance is a dict of tag name → body text (v3 dict[str,str])' do
+    assert_equal({'medical' => 'yes'}, convert.dig('project', 'relevance'))
   end
 
   test 'PSUB000604 — Target attrs + Method + ProjectDataTypeSet' do
@@ -48,14 +48,19 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal ['Genome Sequencing'], target['data_types']
   end
 
-  test 'PSUB000604 — Submitters carry shared Organization' do
+  test 'PSUB000604 — Submitters carry shared Organization (name + role + type)' do
     submitters = convert.dig('submission', 'submitters')
 
+    expected_org = {
+      'name' => 'Meijo University faculty of pharmacy',
+      'role' => 'owner',
+      'type' => 'center'
+    }
     assert_equal 2, submitters.size
     assert_equal({'email' => 'sample-1@example.test', 'first' => 'Sample-First-1', 'last' => 'Sample-Last-1',
-                  'organization' => {'name' => 'Meijo University faculty of pharmacy'}},
+                  'organization' => expected_org},
                  submitters[0])
-    assert_equal 'Meijo University faculty of pharmacy', submitters[1]['organization']['name']
+    assert_equal expected_org, submitters[1]['organization']
   end
 
   test 'PSUB002671 — Publication lifts pubmed_id + status (Reference body absent)' do
@@ -67,8 +72,100 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     refute_includes pubs[0].keys, 'doi'
   end
 
-  test 'PSUB002671 — Relevance Other carries through' do
-    assert_equal ['other'], convert(PSUB671_XML).dig('project', 'relevance')
+  test 'PSUB002671 — Relevance Other (empty body) yields {"other" => ""}' do
+    assert_equal({'other' => ''}, convert(PSUB671_XML).dig('project', 'relevance'))
+  end
+
+  test 'Relevance with body text on Other preserves the curator description' do
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet><Package><Project><Project>
+        <ProjectID><ArchiveID accession="PRJDB999"/></ProjectID>
+        <ProjectDescr>
+          <Relevance><Other>Cancer cell line characterization</Other></Relevance>
+        </ProjectDescr>
+      </Project></Project></Package></PackageSet>
+    XML
+
+    relevance = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
+                                     .dig('project', 'relevance')
+
+    assert_equal({'other' => 'Cancer cell line characterization'}, relevance)
+  end
+
+  test 'Publication: DbType nested inside Reference is recognised (eDOI → doi)' do
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet><Package><Project><Project>
+        <ProjectID><ArchiveID accession="PRJDB999"/></ProjectID>
+        <ProjectDescr>
+          <Publication id="10.1000/foo" status="ePublished">
+            <Reference><DbType>eDOI</DbType></Reference>
+          </Publication>
+        </ProjectDescr>
+      </Project></Project></Package></PackageSet>
+    XML
+
+    pubs = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
+                                .dig('project', 'publications')
+
+    assert_equal 1, pubs.size
+    assert_equal '10.1000/foo', pubs[0]['doi']
+    assert_equal 'ePublished',  pubs[0]['status']
+    refute_includes pubs[0].keys, 'pubmed_id'
+  end
+
+  test 'Publication: unknown DbType drops id (no silent mis-bind to pubmed_id)' do
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet><Package><Project><Project>
+        <ProjectID><ArchiveID accession="PRJDB999"/></ProjectID>
+        <ProjectDescr>
+          <Publication id="some-isbn" status="ePublished">
+            <DbType>eBookChapter</DbType>
+          </Publication>
+        </ProjectDescr>
+      </Project></Project></Package></PackageSet>
+    XML
+
+    pubs = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
+                                .dig('project', 'publications')
+
+    assert_equal [{'status' => 'ePublished'}], pubs
+  end
+
+  test 'Organism: non-numeric taxID drops rather than becoming 0' do
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet><Package><Project><Project>
+        <ProjectID><ArchiveID accession="PRJDB999"/></ProjectID>
+        <ProjectType><ProjectTypeSubmission>
+          <Target><Organism taxID="unknown"><OrganismName>foo</OrganismName></Organism></Target>
+        </ProjectTypeSubmission></ProjectType>
+      </Project></Project></Package></PackageSet>
+    XML
+
+    organism = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
+                                    .dig('project', 'organism')
+
+    assert_equal({'name' => 'foo'}, organism)
+  end
+
+  test 'Grant: empty <Title/> <Agency/> elements drop instead of becoming ""' do
+    xml = <<~XML
+      <?xml version="1.0"?>
+      <PackageSet><Package><Project><Project>
+        <ProjectID><ArchiveID accession="PRJDB999"/></ProjectID>
+        <ProjectDescr>
+          <Grant GrantId="X1"><Title></Title><Agency abbr="NIH"></Agency></Grant>
+        </ProjectDescr>
+      </Project></Project></Package></PackageSet>
+    XML
+
+    grants = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
+                                  .dig('project', 'grants')
+
+    assert_equal [{'id' => 'X1'}], grants
   end
 
   test 'canonicalises cleanly via the production pipeline' do
