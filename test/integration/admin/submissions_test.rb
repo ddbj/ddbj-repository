@@ -91,6 +91,19 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match(/"title":\s*"v3"/,      response.body)
   end
 
+  test 'show ?as_of=<latest_id> behaves like no as_of (no snapshot banner)' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    latest = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+
+    get admin_submission_path(submission, as_of: latest.id)
+
+    assert_response :ok
+    assert_no_match 'Viewing snapshot at', response.body
+    assert_no_match 'not found on this submission', response.body
+    assert_match    'v2',                            response.body
+  end
+
   test 'show ?as_of=999999 warns and shows latest' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'only'}}, actor: 'test')

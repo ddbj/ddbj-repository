@@ -15,9 +15,15 @@ module Admin
     end
 
     def show
-      @submission      = Submission.includes(:user).find(params[:id])
-      @updates         = @submission.updates.order(:id).to_a
-      @requested_as_of = parse_as_of(params[:as_of])
+      @submission = Submission.includes(:user).find(params[:id])
+      @updates    = @submission.updates.order(:id).to_a
+      latest_id   = @updates.last&.id
+
+      # Treat ?as_of=<latest_id> as identical to no as_of at all — the
+      # resulting snapshot IS the current state, so the "Viewing snapshot
+      # at ..." banner would be misleading.
+      requested        = parse_as_of(params[:as_of])
+      @requested_as_of = requested unless requested == latest_id
       @as_of_row       = @requested_as_of && @updates.find {|u| u.id == @requested_as_of }
       effective_as_of  = @as_of_row&.id
 
