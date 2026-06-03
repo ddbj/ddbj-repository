@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_02_170600) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_03_120100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -182,6 +182,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_02_170600) do
   end
 
   create_table "submissions", force: :cascade do |t|
+    t.bigint "cached_at_update_id"
+    t.binary "cached_materialised_record"
     t.integer "canonical_version", default: 1, null: false
     t.string "converter_version"
     t.datetime "created_at", null: false
@@ -190,6 +192,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_02_170600) do
     t.string "source_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["cached_at_update_id"], name: "index_submissions_on_cached_at_update_id", where: "(cached_at_update_id IS NOT NULL)"
     t.index ["db"], name: "index_submissions_on_db"
     t.index ["migration_run_id"], name: "index_submissions_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
     t.index ["source_id"], name: "index_submissions_on_source_id", unique: true, where: "(source_id IS NOT NULL)"
@@ -246,6 +249,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_02_170600) do
   add_foreign_key "submission_requests", "submissions"
   add_foreign_key "submission_requests", "users"
   add_foreign_key "submission_updates", "submissions"
+  add_foreign_key "submissions", "submission_updates", column: "cached_at_update_id", on_delete: :nullify
   add_foreign_key "submissions", "users"
   add_foreign_key "validation_details", "validations"
 end

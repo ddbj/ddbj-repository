@@ -131,6 +131,57 @@ class SubmissionTest < ActiveSupport::TestCase
     assert_includes %w[v0 v1 v2 v3 v4], submission.materialised_record.dig('project', 'title')
   end
 
+  test 'write-through cache: first call computes + persists; second call returns from column without replay' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'cached'}}, actor: 'test')
+
+    assert_nil submission.cached_at_update_id
+    assert_nil submission.cached_materialised_record
+
+    first = submission.materialised_record
+    assert_equal 'cached', first.dig('project', 'title')
+
+    submission.reload
+    assert submission.cached_materialised_record.present?, 'cache bytea must be written through'
+    assert_equal submission.updates.maximum(:id), submission.cached_at_update_id
+
+    # On the cache hit path, do not consult submission_updates.patch at all.
+    # Corrupt every patch row in place; if the cache works, the read still
+    # succeeds.
+    submission.updates.update_all(patch: 'not-json-at-all')
+    assert_equal first, submission.materialised_record,
+                 'cache hit must bypass patch replay entirely'
+  end
+
+  test 'write-through cache: invalidates when a new update is appended' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    submission.materialised_record # warms cache
+
+    cached_id = submission.reload.cached_at_update_id
+    assert_equal submission.updates.maximum(:id), cached_id
+
+    submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+
+    # New update means cached_at_update_id no longer matches latest;
+    # next read recomputes and re-caches at the new latest.
+    assert_equal 'v2', submission.materialised_record.dig('project', 'title')
+    assert_equal submission.updates.reload.maximum(:id), submission.reload.cached_at_update_id
+  end
+
+  test 'materialise_at(update_id:) historical snapshots never consult the cache' do
+    submission = submissions(:bioproject)
+    first  = submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    second = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+
+    submission.materialised_record # populates cache at second.id
+
+    # Cache is for "latest"; historical snapshots must replay so the
+    # cache cannot serve the wrong-version data to a ?as_of query.
+    assert_equal 'v1', submission.materialise_at(update_id: first.id).dig('project', 'title')
+    assert_equal 'v2', submission.materialise_at(update_id: second.id).dig('project', 'title')
+  end
+
   test 'materialise_at p99 < 500ms over a 30-patch chain' do
     submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "bench-#{SecureRandom.hex(4)}")
     30.times {|i| submission.append_update!({'project' => {'title' => "v#{i}"}}, actor: 'bench') }
