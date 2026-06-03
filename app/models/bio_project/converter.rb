@@ -171,21 +171,19 @@ module BioProject
       target     = submission&.at_xpath('./Target')
 
       {
-        # Accession's source of truth is the staging DB column
+        # Accession's sole source of truth is the staging DB column
         # `project.project_id_prefix || project_id_counter`. D-way
-        # allocates the accession as a `mass.project` sequence and
-        # renders it into the XML at write time, so XML can drift in
-        # two observed directions: staging carries PSUB ids in
-        # `<ArchiveID accession="PSUB...">` for ~2,383 rows; production
-        # carries empty `<ArchiveID/>` while the DB column is populated
-        # for ~17/43,372 rows (sample-extrapolated). DB precedence
-        # recovers both. The XML fallback only fires when the caller
-        # has no staging row (file-based importer) or both sides are
-        # blank. `.strip&.presence` matches the converter's prevailing
-        # idiom and absorbs whitespace that would otherwise fail
-        # Project::ACCESSION_FORMAT's anchored regex.
-        'accession'        => @project_row[:accession]&.strip&.presence ||
-                              node.at_xpath('./ProjectID/ArchiveID/@accession')&.value&.strip&.presence,
+        # renders the accession into the XML at write time, but a 2026-06-03
+        # full prod scan (43,373 rows) showed the XML column is purely
+        # derivative: 42,428 rows agree byte-for-byte with the DB column,
+        # 943 rows are mutually empty, 2 rows have the DB value with an
+        # empty <ArchiveID/>. ZERO rows had a non-empty XML attribute
+        # against an empty DB column. Falling back to the XML would only
+        # surface user-typed garbage (XML is freely editable in D-way and
+        # the staging set carried PSUB ids in the slot for years), so we
+        # take DB-only. `.strip&.presence` absorbs whitespace that would
+        # otherwise fail Project::ACCESSION_FORMAT's anchored regex.
+        'accession'        => @project_row[:accession]&.strip&.presence,
         'project_type'     => @project_row.fetch(:project_type),
         'title'            => descr&.at_xpath('./Title')&.text&.presence,
         'description'      => descr&.at_xpath('./Description')&.text&.presence,
