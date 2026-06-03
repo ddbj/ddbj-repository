@@ -16,14 +16,16 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     )
   end
 
-  def sample(smp_id: 1, accession: 'SAMD00099999', alias_name: 'DRS999999', package: 'Generic', status_id: 5500, attributes: [])
+  def sample(smp_id: 1, accession: 'SAMD00099999', alias_name: 'DRS999999', package: 'Generic', package_group: nil, env_package: nil, status_id: 5500, attributes: [])
     SC::Sample.new(
-      smp_id:      smp_id,
-      accession:   accession,
-      sample_name: alias_name,
-      package:     package,
-      status_id:   status_id,
-      attributes:  attributes
+      smp_id:        smp_id,
+      accession:     accession,
+      sample_name:   alias_name,
+      package:       package,
+      package_group: package_group,
+      env_package:   env_package,
+      status_id:     status_id,
+      attributes:    attributes
     )
   end
 
@@ -68,6 +70,25 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     assert_equal({'email' => 'sample-1@example.test', 'first' => 'Sample-First-1', 'last' => 'Sample-Last-1',
                   'organization' => expected_org}, submitters[0])
     assert_equal({'first' => 'Sample-First-2', 'organization' => expected_org}, submitters[1])
+  end
+
+  test 'drops Contact fields that arrive as empty strings (PG SQL NULL surrogate)' do
+    sub = build_submission(
+      organization: nil,
+      samples:      [sample],
+      contacts:     [
+        # All-empty contact must drop entirely.
+        SC::Contact.new(email: '', first: '', last: ''),
+        # Partially-empty contact must keep only non-empty fields.
+        SC::Contact.new(email: '', first: 'Sample-First', last: '')
+      ]
+    )
+
+    submitters = C.new(submission: sub).call.dig('submission', 'submitters')
+
+    assert_equal 1, submitters.size, 'all-empty contact must drop'
+    assert_equal({'first' => 'Sample-First'}, submitters[0],
+                 'empty-string fields must not survive as "" in v3 record')
   end
 
   test 'omits organization key entirely when staging has neither name nor url' do

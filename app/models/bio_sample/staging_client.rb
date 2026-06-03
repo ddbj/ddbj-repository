@@ -23,7 +23,7 @@ module BioSample
     }.freeze
 
     Submission = Data.define(:ssub_id, :submitter_id, :organization, :organization_url, :comment, :samples, :contacts)
-    Sample     = Data.define(:smp_id, :accession, :sample_name, :package, :status_id, :attributes)
+    Sample     = Data.define(:smp_id, :accession, :sample_name, :package, :package_group, :env_package, :status_id, :attributes)
     Contact    = Data.define(:email, :first, :last)
 
     def initialize(**overrides)
@@ -58,7 +58,7 @@ module BioSample
       return nil unless sub_row
 
       sample_rows = @conn.exec_params(<<~SQL, [ssub_id]).to_a
-        SELECT s.smp_id, a.accession_id, s.sample_name, s.package, s.status_id
+        SELECT s.smp_id, a.accession_id, s.sample_name, s.package, s.package_group, s.env_package, s.status_id
         FROM   sample s
         LEFT JOIN accession a USING (smp_id)
         WHERE  s.submission_id = $1
@@ -87,12 +87,14 @@ module BioSample
         comment:          sub_row['comment'],
         samples:      sample_rows.map {|s|
           Sample.new(
-            smp_id:      s['smp_id'].to_i,
-            accession:   s['accession_id'],
-            sample_name: s['sample_name'],
-            package:     s['package'],
-            status_id:   s['status_id']&.to_i,
-            attributes:  (attrs_by_smp[s['smp_id'].to_i] || []).map {|a|
+            smp_id:        s['smp_id'].to_i,
+            accession:     s['accession_id'],
+            sample_name:   s['sample_name'],
+            package:       s['package'],
+            package_group: s['package_group'],
+            env_package:   s['env_package'],
+            status_id:     s['status_id']&.to_i,
+            attributes:    (attrs_by_smp[s['smp_id'].to_i] || []).map {|a|
               {'name' => a['attribute_name'], 'value' => a['attribute_value']}
             }
           )

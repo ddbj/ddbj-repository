@@ -6,12 +6,14 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
   def build(samples_count: 2, ssub_id: 'SSUB-test', user_uid: 'migration-test', migration_run_id: SecureRandom.uuid)
     samples = (1..samples_count).map {|i|
       SC::Sample.new(
-        smp_id:      i,
-        accession:   "SAMD0009999#{i}",
-        sample_name: "DRS00000#{i}",
-        package:     'Generic',
-        status_id:   5500,
-        attributes:  [
+        smp_id:        i,
+        accession:     "SAMD0009999#{i}",
+        sample_name:   "DRS00000#{i}",
+        package:       'Generic',
+        package_group: nil,
+        env_package:   nil,
+        status_id:     5500,
+        attributes:    [
           {'name' => 'organism',    'value' => 'human gut metagenome'},
           {'name' => 'taxonomy_id', 'value' => '408170'},
           {'name' => 'sample_title', 'value' => "sample-#{i}"}
@@ -82,8 +84,8 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
   test 'syncs samples by position, supporting nil-accession drafts' do
     drafts = [
-      SC::Sample.new(smp_id: 10, accession: nil, sample_name: 'DRS_DRAFT_A', package: 'Generic', status_id: 5400, attributes: []),
-      SC::Sample.new(smp_id: 11, accession: nil, sample_name: 'DRS_DRAFT_B', package: 'Generic', status_id: 5500, attributes: [])
+      SC::Sample.new(smp_id: 10, accession: nil, sample_name: 'DRS_DRAFT_A', package: 'Generic', package_group: nil, env_package: nil, status_id: 5400, attributes: []),
+      SC::Sample.new(smp_id: 11, accession: nil, sample_name: 'DRS_DRAFT_B', package: 'Generic', package_group: nil, env_package: nil, status_id: 5500, attributes: [])
     ]
     row = SC::Submission.new(
       ssub_id: 'SSUB-nil-acc', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil,
@@ -109,7 +111,8 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     smaller = (1..2).map {|i|
       SC::Sample.new(
         smp_id: i, accession: "SAMD0009999#{i}", sample_name: "DRS00000#{i}",
-        package: 'Generic', status_id: 5500, attributes: [{'name' => 'organism', 'value' => 'sample organism'}]
+        package: 'Generic', package_group: nil, env_package: nil, status_id: 5500,
+        attributes: [{'name' => 'organism', 'value' => 'sample organism'}]
       )
     }
     row = SC::Submission.new(
@@ -145,7 +148,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
   test 'maps unknown status_id to :curating' do
     samples = [SC::Sample.new(
       smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
-      package: 'Generic', status_id: 99_999, attributes: []
+      package: 'Generic', package_group: nil, env_package: nil, status_id: 99_999, attributes: []
     )]
     row = SC::Submission.new(
       ssub_id: 'SSUB-status', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil,
@@ -155,5 +158,42 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     result = BioSample::Importer.new(staging_submission: row, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
 
     assert_equal 'curating', result.submission.samples.first.status
+  end
+
+  test 'lifts staging package_group + env_package into Sample typed columns' do
+    samples = [
+      SC::Sample.new(
+        smp_id:        1,
+        accession:     'SAMD00099991',
+        sample_name:   'DRS001',
+        package:       'MIGS.ba.soil.6.0',
+        package_group: 'MIGS.ba',
+        env_package:   'soil',
+        status_id:     5500,
+        attributes:    []
+      ),
+      SC::Sample.new(
+        smp_id:        2,
+        accession:     'SAMD00099992',
+        sample_name:   'DRS002',
+        package:       'Generic.1.0',
+        package_group: nil,
+        env_package:   nil,
+        status_id:     5500,
+        attributes:    []
+      )
+    ]
+    row = SC::Submission.new(
+      ssub_id: 'SSUB-pkg', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil,
+      contacts: [], samples: samples
+    )
+
+    result = BioSample::Importer.new(staging_submission: row, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
+
+    by_acc = result.submission.samples.index_by(&:accession)
+    assert_equal 'MIGS.ba', by_acc['SAMD00099991'].package_group
+    assert_equal 'soil',    by_acc['SAMD00099991'].env_package
+    assert_nil              by_acc['SAMD00099992'].package_group
+    assert_nil              by_acc['SAMD00099992'].env_package
   end
 end
