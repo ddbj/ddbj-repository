@@ -112,9 +112,9 @@ module BioProject
 
       list = node.xpath('.//Contact').filter_map {|contact|
         person = {
-          'email' => contact['email']&.strip&.presence,
-          'first' => contact.at_xpath('./Name/First')&.text&.strip&.presence,
-          'last'  => contact.at_xpath('./Name/Last')&.text&.strip&.presence
+          'email'      => contact['email']&.strip&.presence,
+          'first_name' => contact.at_xpath('./Name/First')&.text&.strip&.presence,
+          'last_name'  => contact.at_xpath('./Name/Last')&.text&.strip&.presence
         }.compact.presence
 
         next nil unless person
@@ -122,8 +122,9 @@ module BioProject
         # All contacts under one submission share the Organization in
         # D-way's model — lifting once per contact keeps the v3 record
         # self-describing. Phase 6 needs per-contact org for multi-org
-        # submissions.
-        person['organization'] = org_block if org_block
+        # submissions. v3 `Person.organizations` is `list[Organization]`
+        # so we wrap as a single-element array.
+        person['organizations'] = [org_block] if org_block
         person
       }
 

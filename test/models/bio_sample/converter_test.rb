@@ -41,7 +41,7 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
 
     assert_equal 'v3',                                record['schema_version']
     assert_equal({'source_format' => 'dway_bs_eav'}, record['provenance'])
-    assert_equal '[2014] Test submission',            record.dig('submission', 'comments')
+    assert_equal ['[2014] Test submission'],          record.dig('submission', 'comments')
 
     sample_v3 = record.fetch('samples').first
     assert_equal 'SAMD00099999',                                              sample_v3['accession']
@@ -67,9 +67,12 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
 
     expected_org = {'name' => 'Sample Organization 1', 'url' => 'https://example.test/org-1'}
     assert_equal 2, submitters.size
-    assert_equal({'email' => 'sample-1@example.test', 'first' => 'Sample-First-1', 'last' => 'Sample-Last-1',
-                  'organization' => expected_org}, submitters[0])
-    assert_equal({'first' => 'Sample-First-2', 'organization' => expected_org}, submitters[1])
+    assert_equal({'email'         => 'sample-1@example.test',
+                  'first_name'    => 'Sample-First-1',
+                  'last_name'     => 'Sample-Last-1',
+                  'organizations' => [expected_org]}, submitters[0])
+    assert_equal({'first_name'    => 'Sample-First-2',
+                  'organizations' => [expected_org]}, submitters[1])
   end
 
   test 'drops Contact fields that arrive as empty strings (PG SQL NULL surrogate)' do
@@ -87,11 +90,11 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     submitters = C.new(submission: sub).call.dig('submission', 'submitters')
 
     assert_equal 1, submitters.size, 'all-empty contact must drop'
-    assert_equal({'first' => 'Sample-First'}, submitters[0],
+    assert_equal({'first_name' => 'Sample-First'}, submitters[0],
                  'empty-string fields must not survive as "" in v3 record')
   end
 
-  test 'omits organization key entirely when staging has neither name nor url' do
+  test 'omits organizations key entirely when staging has neither name nor url' do
     sub = build_submission(
       organization:     nil,
       organization_url: nil,
@@ -100,7 +103,48 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     )
 
     submitter = C.new(submission: sub).call.dig('submission', 'submitters', 0)
-    refute_includes submitter.keys, 'organization'
+    refute_includes submitter.keys, 'organizations'
+  end
+
+  test 'omits comments key entirely when staging comment is blank' do
+    [nil, '', '   '].each do |blank|
+      sub = build_submission(
+        comment:  blank,
+        samples:  [sample],
+        contacts: [SC::Contact.new(email: 'x@example.test', first: 'X', last: 'Y')] # keeps submission block non-empty
+      )
+      submission = C.new(submission: sub).call.fetch('submission')
+
+      refute_includes submission.keys, 'comments',
+                      "blank comment (#{blank.inspect}) must not produce a `comments` key"
+    end
+  end
+
+  test 'lifts description from EAV into Sample.description (value also stays in attributes bag)' do
+    sub = build_submission(samples: [sample(attributes: [
+      {'name' => 'sample_name', 'value' => 'DRS999999'},
+      {'name' => 'description', 'value' => 'Liver biopsy from healthy donor'}
+    ])])
+
+    sample_v3 = C.new(submission: sub).call.dig('samples', 0)
+
+    assert_equal 'Liver biopsy from healthy donor', sample_v3['description'],
+                 'EAV `description` must lift into v3 Sample.description'
+    assert_includes sample_v3['attributes'],
+                    {'name' => 'description', 'value' => 'Liver biopsy from healthy donor'},
+                    'lifted attribute must also survive in the bag (mirrors the title / organism lift convention)'
+  end
+
+  test 'blank-valued description EAV does NOT produce a description key' do
+    sub = build_submission(samples: [sample(attributes: [
+      {'name' => 'sample_name', 'value' => 'DRS999999'},
+      {'name' => 'description', 'value' => ''}
+    ])])
+
+    sample_v3 = C.new(submission: sub).call.dig('samples', 0)
+
+    refute_includes sample_v3.keys, 'description',
+                    "blank `description` EAV must drop the key (mirrors title's .presence chain)"
   end
 
   test 'N samples in samples array preserve staging order' do
