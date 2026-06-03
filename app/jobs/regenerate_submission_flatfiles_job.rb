@@ -8,16 +8,20 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   end
 
   def perform(submission, user, progress, date, force: false)
-    record = submission.ddbj_record.open { DDBJRecord.parse(it) }
+    # Detect v3 BEFORE parsing — v3 ddbj_records can be multi-GB and
+    # V3::Parser is full-document (Oj.load on the whole blob). Eating
+    # that allocation just to raise V3NotImplementedError would burn RAM
+    # and IO with no value. The detector peeks 64KB of head bytes.
+    record = submission.ddbj_record.open do |file|
+      major, = DDBJRecord::SchemaVersionDetector.detect(file)
+      file.rewind
 
-    # v3 flatfile generation requires server-extension entry fields
-    # (locus / version / last_updated) that v3 Entry does not carry.
-    # Phase 6+ will introduce a v3-native flatfile renderer; until then
-    # refuse explicitly so the silent-NoMethodError landmine surfaces
-    # as an actionable error.
-    if record.is_a?(DDBJRecord::V3::Root)
-      raise NotImplementedError,
-            "Submission ##{submission.id}: flatfile regeneration not yet implemented for v3 records (Phase 6+)"
+      if major == '3'
+        raise DDBJRecord::V3NotImplementedError,
+              "Submission ##{submission.id}: flatfile regeneration not yet implemented for v3 records (Phase 6+)"
+      end
+
+      DDBJRecord.parse(file)
     end
 
     if force || changed?(submission, record)

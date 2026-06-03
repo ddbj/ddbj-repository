@@ -55,7 +55,7 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert_not request.processing?
   end
 
-  test 'refuses v3 records explicitly (Phase 6+ deferral)' do
+  test 'refuses v3 records, transitions request to application_failed cleanly' do
     request = SubmissionRequest.new(user: users(:alice), db: 'st26')
 
     request.ddbj_record.attach(
@@ -66,12 +66,13 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
 
     request.save!
 
-    # v3 streaming+apply is unimplemented and refused with NotImplementedError.
-    # That isn't a StandardError, so the job's `rescue Exception` marks the
-    # request application_failed (terminal — no stuck :applying) and then
-    # re-raises, keeping the failure loud (SolidQueue marks the job failed).
-    assert_raises NotImplementedError do
-      ApplySubmissionRequestJob.perform_now request
-    end
+    # V3NotImplementedError is a StandardError so the job's bareword
+    # rescue catches it; request transitions to :application_failed
+    # with the deferral message recorded for operator triage.
+    ApplySubmissionRequestJob.perform_now request
+
+    request.reload
+    assert request.application_failed?
+    assert_match(/v3 record application not yet implemented/, request.error_message)
   end
 end

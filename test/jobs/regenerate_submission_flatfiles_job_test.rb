@@ -18,7 +18,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     @admin      = users(:alice).tap { it.update!(admin: true) }
   end
 
-  test 'raises NotImplementedError on v3 submissions (Phase 6+ deferral)' do
+  test 'refuses v3 submissions, increments :failed, leaves the progress UI completable' do
     progress = RegenerateFlatfilesProgress.create!(total: 1)
     @submission.ddbj_record.attach(
       io:           file_fixture('ddbj_record/v3_trad_gnm.json').open,
@@ -26,9 +26,14 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
       content_type: 'application/json'
     )
 
-    assert_raises NotImplementedError do
+    # V3NotImplementedError is a StandardError so rescue_from catches
+    # it AND re-raises. progress.failed advances so the admin progress
+    # UI eventually reports completed? instead of hanging at loading?.
+    assert_raises DDBJRecord::V3NotImplementedError do
       RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2026, 7, 1), force: true
     end
+
+    assert_equal 1, progress.reload.failed
   end
 
   test 'force: true regenerates even when flatfiles would be identical' do
