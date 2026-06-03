@@ -6,6 +6,7 @@ class Submission < ApplicationRecord
   }, suffix: true, validate: true
 
   belongs_to :user
+  belongs_to :cached_at_update, class_name: 'SubmissionUpdate', optional: true
 
   has_one :request, dependent: :destroy, class_name: 'SubmissionRequest'
 
@@ -42,27 +43,39 @@ class Submission < ApplicationRecord
     end
   end
 
-  # Materialise the current state of the record by replaying every
-  # SubmissionUpdate's JSON Patch from the empty document. Returns nil when
-  # there are no updates yet (a freshly inserted Submission row pre-baseline).
-  # Raises MaterialisationFailed (carrying the offending update_id) when any
-  # patch fails to apply, so callers can localise the poisoned row.
+  # Materialise the current state by replaying every SubmissionUpdate's
+  # JSON Patch from {}. Returns nil if there are no updates yet.
   #
-  # Phase 3 spike: lazy, no cache. canonical-json.md §1.6 prescribes a
-  # write-through cache when 30-patch chains start to bite latency budgets
-  # — defer until measured.
+  # Caches the latest-snapshot bytes in the `cached_materialised_record`
+  # bytea column and stamps `cached_at_update_id` with the update id
+  # the cache reflects. On the next read, if `cached_at_update_id ==
+  # updates.max(:id)` the column is parsed directly without replay.
+  #
+  # bytea (not ActiveStorage) so the cache read is a single column fetch
+  # — no SeaweedFS round trip in production. BS records with ~20K
+  # samples land around 2-3MB, well within Postgres row toasting.
+  #
+  # `materialise_at(update_id:)` for historical snapshots does NOT
+  # consult the cache — only the latest-state path is cached.
   def materialised_record
-    materialise_at
+    latest_id = updates.maximum(:id)
+    return nil unless latest_id
+
+    if cached_at_update_id == latest_id && cached_materialised_record.present?
+      return Oj.load(cached_materialised_record, mode: :strict)
+    end
+
+    fresh = materialise_at(update_id: latest_id)
+    write_through_cache(fresh, latest_id) if fresh
+
+    fresh
   end
 
-  # Replay submission_updates up to and including `update_id` (defaults to
-  # the most recent). Used both for the show page's default render and for
-  # `?as_of=N` point-in-time snapshots.
+  # Replay submission_updates up to and including `update_id` (defaults
+  # to the most recent). Used for `?as_of=N` historical snapshots; the
+  # cache-aware fast path lives on materialised_record.
   def materialise_at(update_id: nil)
     scope = updates.order(:id)
-    # Guard with `&.positive?` so caller bugs that pass 0 / negative ids
-    # don't accidentally trigger `id <= 0`, which would silently return an
-    # empty replay even when the submission has updates.
     scope = scope.where('submission_updates.id <= ?', update_id) if update_id&.positive?
     rows  = scope.pluck(:id, :patch)
     return nil if rows.empty?
@@ -82,16 +95,14 @@ class Submission < ApplicationRecord
   #
   # Wrapped in `with_lock` so a row-level lock on the parent Submission
   # serialises concurrent appenders — without it two callers would diff
-  # against the same stale base and produce a divergent chain whose later
-  # replay raises MaterialisationFailed.
+  # against the same stale base and produce a divergent chain.
   #
-  # NOTE on volatile fields (canonical-json.md §4.2 asymmetry): diff strips
-  # `/provenance` / `/**/accession` / etc. on BOTH sides, while apply is
-  # pure RFC 6902 and leaves them intact during replay. The combination
-  # means volatile keys introduced by a migration-source baseline stick
-  # around — there is no append_update! path that can remove them.
-  # Migration baselines should avoid writing volatile fields if downstream
-  # curator edits need to be able to clear them.
+  # NOTE on volatile fields (canonical-json.md §4.2 asymmetry): diff
+  # strips `/provenance` / `/**/accession` / etc. on BOTH sides, while
+  # apply is pure RFC 6902 and leaves them intact during replay. The
+  # combination means volatile keys introduced by a migration-source
+  # baseline stick around — there is no append_update! path that can
+  # remove them.
   def append_update!(new_record, actor:, source: :manual)
     with_lock do
       patch = DDBJRecord::Canonicalizer.diff(materialised_record || {}, new_record)
@@ -105,6 +116,22 @@ class Submission < ApplicationRecord
         patch:                    Oj.dump(patch, mode: :strict),
         patch_canonical_version:  1
       )
+      # Cache invalidates passively — the next materialised_record sees
+      # cached_at_update_id < latest_id and recomputes + re-caches.
     end
+  end
+
+  private
+
+  def write_through_cache(record, update_id)
+    update_columns(
+      cached_materialised_record: Oj.dump(record, mode: :strict),
+      cached_at_update_id:        update_id
+    )
+  rescue StandardError => e
+    # Cache write failure must not break the read path — `fresh` is
+    # already in hand. Worth a Sentry breadcrumb so persistent cache
+    # write failures (toast row limits, etc.) get noticed.
+    Rails.error.report e, context: {submission_id: id, update_id: update_id}
   end
 end
