@@ -1,12 +1,12 @@
-<% content_for :title, "Submission-#{@submission.id}" %>
+<% content_for :title, submission_label(@submission) %>
 
 <%= render 'admin/shared/breadcrumb', items: [
   {label: 'Administration', path: admin_root_path},
   {label: 'Submissions',    path: admin_submissions_path},
-  {label: "Submission-#{@submission.id}"}
+  {label: submission_label(@submission)}
 ] %>
 
-<h1 class="display-6 mb-4">Submission-<%= @submission.id %></h1>
+<h1 class="display-6 mb-4"><%= submission_label(@submission) %></h1>
 
 <dl class="row">
   <dt class="col-sm-3">Database</dt>

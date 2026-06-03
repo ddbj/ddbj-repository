@@ -45,9 +45,11 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     get admin_submissions_path, params: {source_id: 'psub'}
 
     assert_response :ok
-    assert_match    "Submission-#{submissions(:bioproject).id}", response.body
-    assert_no_match "Submission-#{submissions(:biosample).id}",  response.body
-    assert_no_match "Submission-#{submissions(:st26).id}",       response.body
+    # Assert on the row href (id-based) so the test stays robust to
+    # display-label changes (submission_label uses source_id when present).
+    assert_match    admin_submission_path(submissions(:bioproject)), response.body
+    assert_no_match admin_submission_path(submissions(:biosample)),  response.body
+    assert_no_match admin_submission_path(submissions(:st26)),       response.body
   end
 
   test 'index filters by accession across projects (BP) / samples (BS) / accessions (ST26)' do
@@ -75,7 +77,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # If '%' were unescaped, this would match anything; sanitize_sql_like
     # should escape it so the literal '%' is required in source_id.
     get admin_submissions_path, params: {source_id: '%PSUB'}
-    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+    assert_no_match admin_submission_path(submissions(:bioproject)), response.body
   end
 
   test 'index escapes _ (single-char LIKE wildcard) in accession filter' do
