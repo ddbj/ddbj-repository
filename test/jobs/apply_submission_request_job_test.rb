@@ -26,7 +26,7 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert histories.all? { it.action == 'create' && it.user == request.user }
   end
 
-  test 'refuses v3 records explicitly (Phase 6+ deferral)' do
+  test 'refuses v3 records, transitions request to application_failed cleanly' do
     request = SubmissionRequest.new(user: users(:alice), db: 'st26')
 
     request.ddbj_record.attach(
@@ -37,12 +37,13 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
 
     request.save!
 
-    # NotImplementedError isn't StandardError; the job's rescue does
-    # NOT catch it, so it propagates out (and SolidQueue marks the
-    # job as failed). request stays in :applying — the loud failure
-    # mode the data-migration plan documents.
-    assert_raises NotImplementedError do
-      ApplySubmissionRequestJob.perform_now request
-    end
+    # V3NotImplementedError is a StandardError so the job's bareword
+    # rescue catches it; request transitions to :application_failed
+    # with the deferral message recorded for operator triage.
+    ApplySubmissionRequestJob.perform_now request
+
+    request.reload
+    assert request.application_failed?
+    assert_match(/v3 record application not yet implemented/, request.error_message)
   end
 end

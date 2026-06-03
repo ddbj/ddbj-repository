@@ -26,7 +26,7 @@ class ApplySubmissionRequestJob < ApplicationJob
       major, = DDBJRecord::SchemaVersionDetector.detect(file)
       file.rewind
       if major == '3'
-        raise NotImplementedError,
+        raise DDBJRecord::V3NotImplementedError,
               "SubmissionRequest ##{request.id}: v3 record application not yet implemented (Phase 6+)"
       end
 

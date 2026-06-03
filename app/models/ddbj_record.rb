@@ -1,4 +1,10 @@
 module DDBJRecord
+  # Raised by v2-only consumers when fed a v3 ddbj_record. StandardError-
+  # derived so `rescue_from StandardError` and bareword `rescue` clauses
+  # catch it (NotImplementedError is a ScriptError and would bypass them,
+  # leaving progress counters stuck and request rows wedged in :applying).
+  class V3NotImplementedError < StandardError; end
+
   Qualifier = Data.define(
     :id,
     :value

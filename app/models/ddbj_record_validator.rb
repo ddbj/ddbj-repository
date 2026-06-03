@@ -60,17 +60,22 @@ module DDBJRecordValidator
       }
     end
 
-    # ST26 name fields: v2 keeps arrays of LocalizedText (multi-language);
-    # v3 collapses to bare strings (single representative language).
+    # ST26 name fields (TRD_R0009: non-ASCII).
+    # v2: arrays of LocalizedText; the en-only filter is what the rule
+    #   intends to enforce ("the English text must be ASCII").
+    # v3: applicant_name / inventor_name are bare strings whose language is
+    #   the producer's choice (often the original Japanese), while
+    #   applicant_name_latin / inventor_name_latin is the Latin form. The
+    #   v3 equivalent of "must be ASCII" only applies to the *_latin
+    #   variants. invention_titles keeps language_code per entry, so we
+    #   mirror v2's en-only filter.
     st26 = v3 ? record.submission&.st26 : record.st26
 
     non_ascii_groups = if v3
       [
-        ['applicant_name',       Array(st26&.applicant_name)],
         ['applicant_name_latin', Array(st26&.applicant_name_latin)],
-        ['inventor_name',        Array(st26&.inventor_name)],
         ['inventor_name_latin',  Array(st26&.inventor_name_latin)],
-        ['invention_titles',     Array(st26&.invention_titles).map(&:title)]
+        ['invention_titles',     Array(st26&.invention_titles).select { it.language_code == 'en' }.map(&:title)]
       ]
     else
       [
@@ -95,10 +100,20 @@ module DDBJRecordValidator
       end
     end
 
-    Array(record.sequences&.entries).each do |entry|
+    # For v3, mol_type is hoisted to sequences.common_source.mol_type
+    # (per V3::Sequences); v2 carries it per-entry inside source_features.
+    common_mol_type = v3 ? record.sequences&.common_source&.mol_type : nil
+
+    # Don't Array()-wrap the v2 path here — v2 records with a missing
+    # `sequences` block used to fail loudly via NoMethodError → TRD_R9999;
+    # silencing that would let a malformed v2 record reach ready_to_apply.
+    entries = v3 ? Array(record.sequences&.entries) : record.sequences.entries
+
+    entries.each do |entry|
       # v2 Entry has :id (server-extension); v3 Entry uses :alias as the
-      # curator-facing identifier and :accession for archive-assigned.
-      entry_id = v3 ? (entry.alias || entry.accession) : entry.id
+      # curator-facing identifier and falls back to :accession when alias
+      # is blank (or, rarely, the empty string).
+      entry_id = v3 ? (entry.alias.presence || entry.accession.presence) : entry.id
 
       Array(entry.source_features).each do |sf|
         details.concat validate_qualifiers(sf.source&.qualifiers || {}, **{
@@ -107,7 +122,10 @@ module DDBJRecordValidator
         })
       end
 
-      unless Array(entry.source_features).any? { it.source&.mol_type }
+      has_mol_type = common_mol_type.present? ||
+                     Array(entry.source_features).any? { it.source&.mol_type }
+
+      unless has_mol_type
         details << {
           entry_id:,
           code:     'TRD_R0010',
@@ -127,7 +145,8 @@ module DDBJRecordValidator
         }
       end
 
-      aa = Array(entry.source_features).any? { it.source&.mol_type == 'protein' }
+      aa = common_mol_type == 'protein' ||
+           Array(entry.source_features).any? { it.source&.mol_type == 'protein' }
 
       if !aa && seq.match?(/\AN+\z/i)
         details << {
@@ -157,7 +176,9 @@ module DDBJRecordValidator
       end
     end
 
-    Array(record.features).each do |feature|
+    features = v3 ? Array(record.features) : record.features
+
+    features.each do |feature|
       fkey     = feature.type
       entry_id = feature.sequence_id
 
@@ -170,9 +191,15 @@ module DDBJRecordValidator
         }
       end
 
-      details.concat validate_qualifiers(feature.qualifiers, entry_id:, feature: fkey)
+      details.concat validate_qualifiers(feature.qualifiers || {}, entry_id:, feature: fkey)
     end
-  rescue Oj::ParseError => e
+  # Oj::ParseError is raised by the v2 SAJ Handler on malformed JSON.
+  # TypeError is what V3::Parser raises when the JSON is well-formed
+  # but a node has the wrong container type (e.g. `"sequences": []`
+  # where an object is expected) — surface both as a parse error
+  # detail rather than letting them escape into the outer rescue =>
+  # TRD_R9999 catch-all.
+  rescue Oj::ParseError, TypeError => e
     details << {
       entry_id: nil,
       code:     nil,
