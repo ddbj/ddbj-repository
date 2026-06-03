@@ -22,7 +22,7 @@ module BioSample
       password: ENV['DWAY_DB_PASSWORD']
     }.freeze
 
-    Submission = Data.define(:ssub_id, :submitter_id, :organization, :comment, :samples, :contacts)
+    Submission = Data.define(:ssub_id, :submitter_id, :organization, :organization_url, :comment, :samples, :contacts)
     Sample     = Data.define(:smp_id, :accession, :sample_name, :package, :status_id, :attributes)
     Contact    = Data.define(:email, :first, :last)
 
@@ -50,7 +50,7 @@ module BioSample
 
     def fetch(ssub_id)
       sub_row = @conn.exec_params(<<~SQL, [ssub_id]).first
-        SELECT submission_id, submitter_id, organization, comment
+        SELECT submission_id, submitter_id, organization, organization_url, comment
         FROM   submission
         WHERE  submission_id = $1
       SQL
@@ -80,10 +80,11 @@ module BioSample
       SQL
 
       Submission.new(
-        ssub_id:      sub_row['submission_id'],
-        submitter_id: sub_row['submitter_id'],
-        organization: sub_row['organization'],
-        comment:      sub_row['comment'],
+        ssub_id:          sub_row['submission_id'],
+        submitter_id:     sub_row['submitter_id'],
+        organization:     sub_row['organization'],
+        organization_url: sub_row['organization_url'],
+        comment:          sub_row['comment'],
         samples:      sample_rows.map {|s|
           Sample.new(
             smp_id:      s['smp_id'].to_i,
