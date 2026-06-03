@@ -90,13 +90,15 @@ module BioSample
 
       v3_samples.zip(staging_samples).each_with_index do |(v3, staging), idx|
         attrs = {
-          accession:   v3['accession'],
-          sample_name: v3['alias'],
-          status:      map_status(staging.status_id),
-          title:       v3['title'],
-          package:     v3['package'],
-          taxonomy_id: v3.dig('organism', 'taxonomy_id'),
-          organism:    v3.dig('organism', 'name')
+          accession:     v3['accession'],
+          sample_name:   v3['alias'],
+          status:        map_status(staging.status_id),
+          title:         v3['title'],
+          package:       v3['package'],
+          package_group: staging.package_group,
+          env_package:   staging.env_package,
+          taxonomy_id:   v3.dig('organism', 'taxonomy_id'),
+          organism:      v3.dig('organism', 'name')
         }
 
         if (existing = existing_samples[idx])

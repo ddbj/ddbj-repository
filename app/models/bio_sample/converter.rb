@@ -35,13 +35,21 @@ module BioSample
       org_block = organization_block
 
       block = {
-        'submitters' => @submission.contacts.map {|c|
-          person = {'email' => c.email, 'first' => c.first, 'last' => c.last}.compact.presence
+        'submitters' => @submission.contacts.filter_map {|c|
+          # PG returns SQL empty strings as `""` (not nil); `.compact`
+          # would only drop nils, so guard each field with `.presence`
+          # to drop empty-string fields cleanly. Mirrors BP Converter.
+          person = {
+            'email' => c.email.presence,
+            'first' => c.first.presence,
+            'last'  => c.last.presence
+          }.compact.presence
+
           next nil unless person
 
           person['organization'] = org_block if org_block
           person
-        }.compact,
+        },
         'comments'   => @submission.comment
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }
 
