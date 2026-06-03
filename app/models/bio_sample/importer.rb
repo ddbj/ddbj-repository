@@ -204,6 +204,10 @@ module BioSample
           status:        map_status(staging.status_id),
           title:         v3['title'],
           package:       v3['package'],
+          # NOTE(phase 6 deferral): :package_group is derivable from :package
+          # against a versioned catalog snapshot — see staging_client.rb Sample
+          # Data class comment. Persisting staging's value as-is for now so we
+          # have an audit anchor when the derivation lands.
           package_group: staging.package_group,
           env_package:   staging.env_package,
           taxonomy_id:   v3.dig('organism', 'taxonomy_id'),

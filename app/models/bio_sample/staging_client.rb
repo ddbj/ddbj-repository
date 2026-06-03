@@ -23,6 +23,11 @@ module BioSample
     }.freeze
 
     Submission = Data.define(:ssub_id, :submitter_id, :organization, :organization_url, :comment, :samples, :contacts)
+    # NOTE(phase 6 deferral): :package_group is derivable from :package against
+    # a known catalog version (`/package_and_group_list?version=<v>`). Today we
+    # mirror staging's value as a typed column. Once Sample carries a
+    # `package_version` field and we cache the catalog, this slot can become
+    # an audit-only artefact and the typed column on `samples` can be dropped.
     Sample     = Data.define(:smp_id, :accession, :sample_name, :package, :package_group, :env_package, :status_id, :attributes)
     Contact    = Data.define(:email, :first, :last)
 
