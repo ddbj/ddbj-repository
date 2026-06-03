@@ -30,4 +30,17 @@ class SubmissionUpdateTest < ActiveSupport::TestCase
 
     assert_equal raw, update.reload.patch
   end
+
+  test '#parsed_patch / #op_count are PUBLIC (admin show view calls them externally)' do
+    update = submission_updates(:st26)
+
+    # Bare callable check — NoMethodError 'private method called for ...'
+    # is what the admin show view would catch and render as "patch
+    # unreadable". The view calls update.parsed_patch on an external
+    # receiver, so private-by-accident is a UX regression.
+    assert update.public_methods.include?(:parsed_patch),
+           '#parsed_patch must be public — admin show view depends on external call'
+    assert update.public_methods.include?(:op_count),
+           '#op_count must be public — admin show view depends on external call'
+  end
 end
