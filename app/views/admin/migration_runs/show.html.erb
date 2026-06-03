@@ -1,0 +1,86 @@
+<% content_for :title, "Migration run ##{@migration_run.id}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration',  path: admin_root_path},
+  {label: 'Migration runs',  path: admin_migration_runs_path},
+  {label: "##{@migration_run.id}"}
+] %>
+
+<h1 class="display-6 mb-4">Migration run #<%= @migration_run.id %></h1>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">Database</dt>
+      <dd class="col-sm-9"><%= db_label(@migration_run.db) %></dd>
+
+      <dt class="col-sm-3">Status</dt>
+      <dd class="col-sm-9"><%= migration_run_status_badge(@migration_run) %></dd>
+
+      <dt class="col-sm-3">UUID</dt>
+      <dd class="col-sm-9"><code><%= @migration_run.uuid %></code></dd>
+
+      <dt class="col-sm-3">Started</dt>
+      <dd class="col-sm-9"><%= @migration_run.started_at&.to_fs(:db) || '—' %></dd>
+
+      <dt class="col-sm-3">Finished</dt>
+      <dd class="col-sm-9"><%= @migration_run.finished_at&.to_fs(:db) || '—' %></dd>
+
+      <dt class="col-sm-3">Submissions touched</dt>
+      <dd class="col-sm-9">
+        <% if @touched_count.positive? %>
+          <%= link_to "#{number_with_delimiter(@touched_count)} submission(s)",
+                      admin_submissions_path(db: @migration_run.db) %>
+        <% else %>
+          —
+        <% end %>
+      </dd>
+    </dl>
+  </div>
+</div>
+
+<h2 class="h5 mt-4 mb-3">Progress</h2>
+
+<% if @migration_run.total.to_i.zero? %>
+  <p class="text-body-secondary">Total not yet enumerated.</p>
+<% else %>
+  <div class="progress mb-2" style="height: 1.5rem;" role="progressbar"
+       aria-valuenow="<%= @migration_run.progress_percent %>" aria-valuemin="0" aria-valuemax="100">
+    <div class="progress-bar" style="width: <%= @migration_run.progress_percent %>%">
+      <%= @migration_run.progress_percent %>%
+    </div>
+  </div>
+
+  <p class="text-body-secondary">
+    <%= number_with_delimiter(@migration_run.counters_total) %>
+    /
+    <%= number_with_delimiter(@migration_run.total) %>
+    rows processed
+  </p>
+<% end %>
+
+<h2 class="h5 mt-4 mb-3">Outcome counters</h2>
+
+<% if @migration_run.counters.any? %>
+  <table class="table table-sm border w-auto">
+    <thead class="table-light">
+      <tr><th>Outcome</th><th class="text-end">Count</th></tr>
+    </thead>
+    <tbody>
+      <% @migration_run.counters.sort_by {|_, n| -n.to_i }.each do |outcome, n| %>
+        <tr>
+          <td><code><%= outcome %></code></td>
+          <td class="text-end"><%= number_with_delimiter(n) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p class="text-body-secondary">No counters yet.</p>
+<% end %>
+
+<% if @migration_run.error_log.present? %>
+  <h2 class="h5 mt-4 mb-3">Errors</h2>
+
+  <pre class="bg-body-tertiary p-3 border rounded small"><%= @migration_run.error_log %></pre>
+<% end %>

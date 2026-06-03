@@ -23,6 +23,13 @@ module Admin::ViewHelpers
     'error'  => 'danger'
   }.freeze
 
+  MIGRATION_RUN_STATUS_COLORS = {
+    'queued'    => 'secondary',
+    'running'   => 'warning',
+    'completed' => 'success',
+    'failed'    => 'danger'
+  }.freeze
+
   def db_label(db)
     DB_LABELS.fetch(db.to_s, db.to_s)
   end
@@ -48,5 +55,11 @@ module Admin::ViewHelpers
 
   def flash_bootstrap_class(level)
     FLASH_CLASSES.fetch(level.to_s, 'secondary')
+  end
+
+  def migration_run_status_badge(run)
+    color = MIGRATION_RUN_STATUS_COLORS.fetch(run.status, 'secondary')
+
+    tag.span run.status, class: "badge text-bg-#{color} text-capitalize"
   end
 end

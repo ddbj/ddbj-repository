@@ -46,6 +46,8 @@ Rails.application.routes.draw do
 
     resource :regenerate_flatfiles, only: %i[show create]
 
+    resources :migration_runs, only: %i[index show new create]
+
     mount MissionControl::Jobs::Engine, at: '/jobs'
   end
 
