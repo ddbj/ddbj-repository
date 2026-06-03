@@ -24,6 +24,15 @@ class ActiveSupport::TestCase
   set_fixture_class names: Taxdump::Name, nodes: Taxdump::Node
 
   fixtures :all
+
+  # PathClassifier holds process-global memoised caches + structural-key
+  # safety flags. Registry.stub blocks (and any other test-time rule
+  # mutation) leave stale entries behind that would leak into subsequent
+  # tests; clear before every test so each starts from the canonical
+  # registry state.
+  setup do
+    DDBJRecord::Canonicalizer::PathClassifier.reset!
+  end
 end
 
 class ActionDispatch::IntegrationTest

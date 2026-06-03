@@ -39,6 +39,7 @@ group :development do
   gem 'brakeman', require: false
   gem 'debug', require: 'debug/prelude', group: :test
   gem 'rubocop-rails-omakase', require: false
+  gem 'stackprof', require: false
 end
 
 group :test do
