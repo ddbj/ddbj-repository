@@ -44,8 +44,7 @@ module BioProject
       # batch summary stays meaningful.
       return Result.new(submission: nil, outcome: :no_accession) unless accession
 
-      user  = User.find_or_create_by!(uid: @user_uid)
-      patch = Oj.dump([{'op' => 'add', 'path' => '', 'value' => record}], mode: :strict)
+      user = User.find_or_create_by!(uid: @user_uid)
 
       Submission.transaction do
         submission = Submission.find_or_create_by!(db: :bioproject, source_id: @psub_id) {|s|
@@ -59,12 +58,26 @@ module BioProject
                 "refusing to silently re-attribute to '#{@user_uid}'."
         end
 
-        # Force ASCII-8BIT on both sides — PG returns bytea as ASCII-8BIT
-        # while Oj.dump returns UTF-8, and Ruby's String#== treats them as
-        # unequal whenever any byte is >= 0x80 even when the bytes match.
-        prior_patch = submission.updates.order(:id).last&.patch&.b
+        # Semantic diff against the prior materialised state when
+        # possible. First-import path: materialised_record is nil →
+        # diff({}, record) returns one `add /<top_level_key>` op per
+        # top-level key (NOT a single root op — JsonDiff decomposes
+        # the missing-everything baseline). Re-import of an unchanged
+        # record: diff is empty → :skipped. Real shape delta: minimal
+        # RFC 6902 ops.
+        #
+        # compute_patch_ops falls back to a root-level snapshot when
+        # the structural diff (a) would descend into a bag-array
+        # element (publications, grants, attributes etc. default to
+        # bag at any intermediate prefix) or (b) hits any other
+        # Canonicalizer::Error. safe_prior_materialised swallows
+        # MaterialisationFailed so a poisoned historical patch lets
+        # the importer self-heal forward instead of permanently
+        # failing every re-import for that submission.
+        prior_record = safe_prior_materialised(submission)
+        patch_ops    = compute_patch_ops(prior_record, record)
 
-        if prior_patch == patch.b
+        if patch_ops.empty?
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -93,12 +106,12 @@ module BioProject
         )
 
         submission.updates.create!(
-          db:                       'bioproject',
-          status:                   :applied,
-          actor:                    "migration:#{@user_uid}",
-          source:                   :migration,
-          patch:                    patch,
-          patch_canonical_version:  1
+          db:                      'bioproject',
+          status:                  :applied,
+          actor:                   "migration:#{@user_uid}",
+          source:                  :migration,
+          patch:                   Oj.dump(patch_ops, mode: :strict),
+          patch_canonical_version: 1
         )
 
         Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
@@ -106,6 +119,29 @@ module BioProject
     end
 
     private
+
+    def safe_prior_materialised(submission)
+      submission.materialised_record || {}
+    rescue Submission::MaterialisationFailed => e
+      Rails.error.report e, context: {submission_id: submission.id, source_id: @psub_id}
+      {}
+    end
+
+    # Catches the full Canonicalizer::Error hierarchy, not just
+    # BagPatchPathError. The other reachable subclasses come from the
+    # Normalizer / NumberGuard / SequenceCodec / ArraySorter pass that
+    # diff() runs on BOTH sides. Apply, by contrast, is pure RFC 6902 —
+    # so a baseline patch from the pre-this-commit code path can carry
+    # bytes diff() rejects on the very next re-import. Without this
+    # widened rescue any such mismatch rolls the whole importer
+    # transaction back, turning a one-off staging bug into a permanent
+    # :failed row.
+    def compute_patch_ops(prior, current)
+      DDBJRecord::Canonicalizer.diff(prior, current)
+    rescue DDBJRecord::Canonicalizer::Error
+      op = prior.empty? ? 'add' : 'replace'
+      [{'op' => op, 'path' => '', 'value' => current}]
+    end
 
     # Stand-in for the proper Spike 0.8 mapping table. status_id 700 was the
     # legacy "public" code and dominates the staging set (>99% of rows).

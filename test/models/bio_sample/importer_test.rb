@@ -74,6 +74,89 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal 1,        second.submission.updates.count
   end
 
+  test 're-run with a bag-internal change falls back to a root snapshot (still replayable)' do
+    build(samples_count: 2).call
+
+    # Bag-internal change: one sample's title bumped. Canonicalizer.diff
+    # would produce `replace /samples/0/title`, which descends into the
+    # `samples` bag → BagPatchPathError → importer falls back to a
+    # whole-record snapshot at root. The chain stays replayable; we
+    # just lose per-field granularity for this op.
+    bumped = SC::Submission.new(
+      ssub_id: 'SSUB-test', submitter_id: 'migration-test',
+      organization: 'Sample Organization', organization_url: nil,
+      comment: '[2014] sample import', contacts: [],
+      samples: [
+        SC::Sample.new(smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS000001', package: 'Generic',
+                       package_group: nil, env_package: nil, status_id: 5500, attributes: [
+                         {'name' => 'organism',     'value' => 'human gut metagenome'},
+                         {'name' => 'taxonomy_id',  'value' => '408170'},
+                         {'name' => 'sample_title', 'value' => 'sample-1 BUMPED'}
+                       ]),
+        SC::Sample.new(smp_id: 2, accession: 'SAMD00099992', sample_name: 'DRS000002', package: 'Generic',
+                       package_group: nil, env_package: nil, status_id: 5500, attributes: [
+                         {'name' => 'organism',     'value' => 'human gut metagenome'},
+                         {'name' => 'taxonomy_id',  'value' => '408170'},
+                         {'name' => 'sample_title', 'value' => 'sample-2'}
+                       ])
+      ]
+    )
+
+    result = BioSample::Importer.new(staging_submission: bumped, user_uid: 'migration-test', migration_run_id: SecureRandom.uuid).call
+
+    assert_equal :updated, result.outcome
+    assert_equal 2,        result.submission.updates.count
+
+    second_patch = result.submission.updates.order(:id).last.parsed_patch
+    assert_equal 1, second_patch.size, 'fallback should be a single root op'
+    assert_equal '',         second_patch.first['path']
+    assert_equal 'replace',  second_patch.first['op'],
+                 'second-run fallback should be `replace`, not `add` (prior chain is non-empty)'
+
+    # Replay correctness — exact set must materialise; the snapshot
+    # must REPLACE (not add) sample-2 alongside sample-1.
+    titles = result.submission.materialised_record['samples'].map {|s| s['title'] }.sort
+    assert_equal ['sample-1 BUMPED', 'sample-2'], titles
+  end
+
+  test ':skipped re-run still stamps migration_run_id so a bad-batch rollback selector catches typed-column drift' do
+    first_run_id = SecureRandom.uuid
+    BioSample::Importer.new(staging_submission: build.instance_variable_get(:@row),
+                            user_uid:         'migration-test',
+                            migration_run_id: first_run_id).call
+
+    second_run_id = SecureRandom.uuid
+    result = BioSample::Importer.new(staging_submission: build.instance_variable_get(:@row),
+                                     user_uid:         'migration-test',
+                                     migration_run_id: second_run_id).call
+
+    assert_equal :skipped, result.outcome
+    # sync_samples! ran in this run, so the rollback selector
+    # Submission.where(migration_run_id: second_run_id).destroy_all
+    # MUST pick this row up; otherwise typed-column drift survives
+    # the rollback.
+    assert_equal second_run_id, result.submission.reload.migration_run_id
+  end
+
+  test 'compute_patch_ops falls back to root snapshot when Canonicalizer.diff raises ANY Canonicalizer::Error (not just bag descent)' do
+    submission = submissions(:biosample)
+    submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
+    record     = {'project' => {'title' => 'irrelevant'}}
+
+    importer = BioSample::Importer.new(staging_submission: build.instance_variable_get(:@row),
+                                       user_uid:         'migration-test',
+                                       migration_run_id: SecureRandom.uuid)
+
+    DDBJRecord::Canonicalizer.stub(:diff, ->(*) { raise DDBJRecord::Canonicalizer::ControlCharacterError, 'simulated' }) do
+      ops = importer.send(:compute_patch_ops, {'project' => {'title' => 'prior'}}, record)
+
+      assert_equal 1,         ops.size
+      assert_equal '',        ops.first['path']
+      assert_equal 'replace', ops.first['op']
+      assert_equal record,    ops.first['value']
+    end
+  end
+
   test 'rejects cross-user re-attribution' do
     build(user_uid: 'first-user').call
 
@@ -126,31 +209,34 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     refute submission.samples.exists?(accession: 'SAMD00099993'), 'trailing row must be destroyed'
   end
 
-  test ':skipped re-run keeps Submission columns frozen but always re-syncs Sample typed columns from staging' do
-    # New contract (after the typed-column lift iteration): Sample
-    # typed columns include staging-only fields (package_group,
+  test ':skipped re-run re-stamps migration_run_id (sync_samples! ran) and always re-syncs Sample typed columns from staging' do
+    # Sample typed columns include staging-only fields (package_group,
     # env_package) that never reach the canonical patch, so gating
     # sync on patch-equality would permanently strand staging updates.
-    # Trade-off: curator edits to typed columns survive only until the
-    # next re-import. Documented in BioSample::Importer's docstring.
-    importer   = build
-    first      = importer.call.submission
-    first_seen = first.updated_at
-    first_run  = first.migration_run_id
+    # Because sync_samples! DID write on this run, migration_run_id is
+    # re-stamped so the bad-batch rollback selector
+    #   Submission.where(migration_run_id: 'R-bad').destroy_all
+    # picks the row up. canonical_version / converter_version stay
+    # frozen because the chain itself didn't change. Trade-off:
+    # curator edits to typed columns survive only until the next
+    # re-import. Documented in BioSample::Importer's docstring.
+    importer = build
+    first    = importer.call.submission
 
     travel 1.second
     sample = first.samples.first
     sample.update!(title: 'Curator-edited title')
 
-    second = build(migration_run_id: SecureRandom.uuid).call
+    second_run_id = SecureRandom.uuid
+    second        = build(migration_run_id: second_run_id).call
     assert_equal :skipped, second.outcome
-    submission = second.submission
+    submission = second.submission.reload
 
-    # Submission-level write-through still gated on patch difference.
-    assert_equal first_run,       submission.reload.migration_run_id
-    assert_equal first_seen.to_i, submission.updated_at.to_i
+    # migration_run_id MUST be re-stamped — sync_samples! wrote, so a
+    # rollback selector must catch this row.
+    assert_equal second_run_id, submission.migration_run_id
 
-    # Sample typed columns were re-synced from staging; curator edit lost.
+    # Sample typed columns re-synced from staging; curator edit lost.
     assert_equal 'sample-1', sample.reload.title
   end
 
