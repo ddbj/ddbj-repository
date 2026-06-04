@@ -76,6 +76,12 @@ Rails.application.routes.draw do
       # Curator edit to v3 `submission.hold_date: str | None` (ISO
       # YYYY-MM-DD). Same patch-chain pattern as comments / submitters.
       resource :hold_date, only: %i[update], controller: 'hold_dates'
+
+      # Curator edits to v3 `project.title` + `project.description` on
+      # BP submissions. Goes through the patch chain AND mirrors title
+      # back to the `Project.title` typed column so the index display
+      # stays consistent without waiting for a re-import.
+      resource :project_record, only: %i[update], controller: 'project_records'
     end
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]
