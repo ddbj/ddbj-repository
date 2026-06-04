@@ -59,7 +59,8 @@
 <%# Submission field, not BP/BS-specific. Skip when the chain failed to %>
 <%# replay (a corrupted patch chain can't be safely edited). %>
 <% if @materialised && !@materialisation_error %>
-  <%= render 'admin/comments/curator_edit', submission: @submission %>
+  <%= render 'admin/comments/curator_edit',   submission: @submission %>
+  <%= render 'admin/submitters/curator_edit', submission: @submission %>
 <% end %>
 
 <% if @submission.biosample_db? && @samples_pagy.count.positive? %>
