@@ -16,6 +16,8 @@ module Admin
       scope = scope.where(user: User.where(uid: params[:user])) if params[:user].present?
       scope = filter_by_source_id(scope, params[:source_id]) if params[:source_id].present?
       scope = filter_by_accession(scope, params[:accession]) if params[:accession].present?
+      scope = filter_by_status(scope, params[:status])       if params[:status].present?
+      scope = filter_by_assignee(scope, params[:assignee])   if params[:assignee].present?
 
       @pagy, @submissions = pagy(scope)
       @sample_aggregates  = sample_aggregates_for(@submissions)
@@ -163,10 +165,78 @@ module Admin
                   notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} sample(s)."
     end
 
+    # Cross-submission bulk: apply (status, assignee) to many submissions
+    # in one form post from the index. BP submissions' Project row is
+    # updated; BS submissions' Samples rows are all updated. Validation
+    # for status / assignee mirrors `bulk_update_samples`.
+    def bulk_update
+      ids = Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
+
+      if ids.empty?
+        return redirect_to admin_submissions_path(index_filter_params),
+                           alert: 'No submissions selected.'
+      end
+
+      raw = bulk_cross_params
+      attrs = {}
+
+      if raw[:status].present?
+        unless Lifecycleable::STATUSES.key?(raw[:status])
+          return redirect_to admin_submissions_path(index_filter_params),
+                             alert: "Unknown status: #{raw[:status].inspect}."
+        end
+
+        attrs[:status] = Lifecycleable::STATUSES.fetch(raw[:status])
+      end
+
+      if raw.key?(:assignee_id) && raw[:assignee_id] != ''
+        if raw[:assignee_id] == '0'
+          attrs[:assignee_id] = nil
+        else
+          assignee = User.find_by(id: raw[:assignee_id])
+          unless assignee&.admin?
+            return redirect_to admin_submissions_path(index_filter_params),
+                               alert: 'Assignee must be an admin user.'
+          end
+
+          attrs[:assignee_id] = assignee.id
+        end
+      end
+
+      if attrs.empty?
+        return redirect_to admin_submissions_path(index_filter_params),
+                           alert: 'No changes specified (both fields left as-is).'
+      end
+
+      attrs[:updated_at] = Time.current
+
+      subs   = Submission.where(id: ids)
+      bp_ids = subs.where(db: 'bioproject').pluck(:id)
+      bs_ids = subs.where(db: 'biosample').pluck(:id)
+
+      bp_affected = bp_ids.any? ? Project.where(submission_id: bp_ids).update_all(attrs) : 0
+      bs_affected = bs_ids.any? ? Sample.where(submission_id: bs_ids).update_all(attrs) : 0
+
+      redirect_to admin_submissions_path(index_filter_params),
+                  notice: "Bulk-updated #{helpers.number_with_delimiter(bp_affected)} project(s) " \
+                          "+ #{helpers.number_with_delimiter(bs_affected)} sample(s) " \
+                          "across #{ids.size} submission(s)."
+    end
+
     private
 
     def bulk_sample_params
       params.expect(bulk_sample: %i[status assignee_id])
+    end
+
+    def bulk_cross_params
+      params.expect(bulk: [:status, :assignee_id, {submission_ids: []}])
+    end
+
+    # Carry the current index filter selection across a bulk-update
+    # redirect so the curator lands back on the same filtered view.
+    def index_filter_params
+      params.slice(:db, :user, :source_id, :accession, :status, :assignee).permit!.to_h
     end
 
     # Per-BS-submission aggregate of (status, assignee) across samples,
@@ -245,6 +315,43 @@ module Admin
 
     def sanitize_sql_like(value)
       ActiveRecord::Base.sanitize_sql_like(value)
+    end
+
+    # Match a submission iff its BP project status OR any of its BS
+    # samples' status equals the requested name. ST26 has no
+    # status_id of this shape so its rows are filtered out by the
+    # OR-of-EXISTS construction. Unknown status names are a no-op
+    # (defensive — keeps a typo in the URL from breaking the page).
+    def filter_by_status(scope, raw)
+      value = raw.to_s.strip
+      return scope unless Lifecycleable::STATUSES.key?(value)
+
+      sid = Lifecycleable::STATUSES.fetch(value)
+      scope.where(<<~SQL.squish, sid:)
+        EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submissions.id AND projects.status = :sid) OR
+        EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submissions.id AND samples.status  = :sid)
+      SQL
+    end
+
+    # `assignee=0` means "unassigned" (i.e. assignee_id IS NULL on at
+    # least one project/sample row). A user id matches when any
+    # project/sample row is assigned to that user.
+    def filter_by_assignee(scope, raw)
+      value = raw.to_s.strip
+      return scope if value.empty?
+
+      if value == '0'
+        scope.where(<<~SQL.squish)
+          EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submissions.id AND projects.assignee_id IS NULL) OR
+          EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submissions.id AND samples.assignee_id  IS NULL)
+        SQL
+      else
+        uid = value.to_i
+        scope.where(<<~SQL.squish, uid:)
+          EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submissions.id AND projects.assignee_id = :uid) OR
+          EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submissions.id AND samples.assignee_id  = :uid)
+        SQL
+      end
     end
   end
 end

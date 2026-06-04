@@ -1,18 +1,24 @@
 module Lifecycleable
   extend ActiveSupport::Concern
 
+  # Canonical name → integer mapping. Lifted to a module constant so
+  # callers that work generically across Project + Sample (e.g. the
+  # admin index's cross-submission bulk action) don't have to pick
+  # one model's `.statuses` arbitrarily.
+  STATUSES = {
+    'submission_accepted'    => 5100,
+    'curating'               => 5200,
+    'accession_issued'       => 5300,
+    'private'                => 5400,
+    'public'                 => 5500,
+    'withdrawn'              => 5600,
+    'canceled'               => 5700,
+    'permanently_suppressed' => 5800,
+    'temporarily_suppressed' => 5900
+  }.freeze
+
   included do
-    enum :status, {
-      submission_accepted:    5100,
-      curating:               5200,
-      accession_issued:       5300,
-      private:                5400,
-      public:                 5500,
-      withdrawn:              5600,
-      canceled:               5700,
-      permanently_suppressed: 5800,
-      temporarily_suppressed: 5900
-    }, prefix: :status, validate: true
+    enum :status, STATUSES, prefix: :status, validate: true
 
     # TODO(spike-0.8): DRAFT scopes — visibility for Temporarily / Permanently
     # Suppressed records is unresolved (waiting on curator + Confluence 1899364353).

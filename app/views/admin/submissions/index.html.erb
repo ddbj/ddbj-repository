@@ -7,43 +7,139 @@
 
 <h1 class="display-6 mb-4">Submissions</h1>
 
-<%= render 'admin/shared/list_filter', url: admin_submissions_path, extra_fields: [
-  {name: :source_id, placeholder: 'Source ID (PSUB / SSUB ...)'},
-  {name: :accession, placeholder: 'Accession (PRJDB / SAMD ...)'}
-] %>
+<%# Filter (GET). Status + Assignee match against project (BP) OR samples %>
+<%# (BS) via OR-EXISTS, so 'curating' picks up any submission whose %>
+<%# Project OR any Sample is curating. %>
+<%= form_with url: admin_submissions_path, method: :get, local: true, class: 'row g-2 mb-3' do |f| %>
+  <div class="col-md">
+    <%= f.label :db, 'Database', class: 'form-label visually-hidden' %>
+    <%= f.select :db, db_options, {include_blank: 'All databases', selected: params[:db]}, class: 'form-select form-select-sm' %>
+  </div>
 
-<table class="table border align-middle">
-  <thead class="table-light">
-    <tr>
-      <th>ID</th>
-      <th>Database</th>
-      <th>User</th>
-      <th>Status</th>
-      <th>Assignee</th>
-      <th>Created</th>
-      <th>Updated</th>
-    </tr>
-  </thead>
+  <div class="col-md">
+    <%= f.label :user, 'User uid', class: 'form-label visually-hidden' %>
+    <%= f.search_field :user, value: params[:user], class: 'form-control form-control-sm', placeholder: 'User uid' %>
+  </div>
 
-  <tbody>
-    <% @submissions.each do |submission| %>
+  <div class="col-md">
+    <%= f.search_field :source_id, value: params[:source_id], class: 'form-control form-control-sm', placeholder: 'Source ID (PSUB / SSUB ...)' %>
+  </div>
+
+  <div class="col-md">
+    <%= f.search_field :accession, value: params[:accession], class: 'form-control form-control-sm', placeholder: 'Accession (PRJDB / SAMD ...)' %>
+  </div>
+
+  <div class="col-md">
+    <%= f.label :status, 'Status', class: 'form-label visually-hidden' %>
+    <%= f.select :status,
+                 Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                 {include_blank: 'Any status', selected: params[:status]},
+                 class: 'form-select form-select-sm' %>
+  </div>
+
+  <div class="col-md">
+    <%= f.label :assignee, 'Assignee', class: 'form-label visually-hidden' %>
+    <%= f.select :assignee,
+                 [['Unassigned', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                 {include_blank: 'Any assignee', selected: params[:assignee]},
+                 class: 'form-select form-select-sm' %>
+  </div>
+
+  <div class="col-md-auto">
+    <%= f.submit 'Filter', class: 'btn btn-primary btn-sm' %>
+    <%= link_to 'Reset', admin_submissions_path, class: 'btn btn-link btn-sm' %>
+  </div>
+<% end %>
+
+<%# Bulk action form (PATCH). The action URL carries the current filter %>
+<%# params so the controller's post-update redirect lands back on the %>
+<%# same filtered view. Checkboxes + status/assignee selects live inside %>
+<%# this form; submit fires the cross-submission bulk-update action. %>
+<%= form_with url: bulk_update_admin_submissions_path(params.permit(:db, :user, :source_id, :accession, :status, :assignee)),
+              method: :patch,
+              scope:  :bulk,
+              local:  true,
+              data:   {controller: 'bulk-select'} do |f| %>
+  <table class="table border align-middle">
+    <thead class="table-light">
       <tr>
-        <td><%= link_to submission_label(submission), admin_submission_path(submission) %></td>
-        <td><%= db_label(submission.db) %></td>
-        <td><%= submission.user.uid %></td>
-        <td><%= submission_status_display(submission, @sample_aggregates) %></td>
-        <td><%= submission_assignee_display(submission, @sample_aggregates) %></td>
-        <td><%= submission.created_at.to_fs(:db) %></td>
-        <td><%= submission.updated_at.to_fs(:db) %></td>
+        <th style="width: 1rem;">
+          <input type="checkbox" class="form-check-input" data-bulk-select-target="toggle" aria-label="Select all on this page">
+        </th>
+        <th>ID</th>
+        <th>Database</th>
+        <th>User</th>
+        <th>Status</th>
+        <th>Assignee</th>
+        <th>Created</th>
+        <th>Updated</th>
       </tr>
-    <% end %>
+    </thead>
 
-    <% if @submissions.empty? %>
-      <tr>
-        <td colspan="7" class="text-center text-body-secondary py-4">No submissions found.</td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+    <tbody>
+      <% @submissions.each do |submission| %>
+        <tr>
+          <td>
+            <%= f.check_box :submission_ids,
+                            {multiple: true, class: 'form-check-input', data: {bulk_select_target: 'row'}, 'aria-label': "Select #{submission_label(submission)}"},
+                            submission.id, nil %>
+          </td>
+          <td><%= link_to submission_label(submission), admin_submission_path(submission) %></td>
+          <td><%= db_label(submission.db) %></td>
+          <td><%= submission.user.uid %></td>
+          <td><%= submission_status_display(submission, @sample_aggregates) %></td>
+          <td><%= submission_assignee_display(submission, @sample_aggregates) %></td>
+          <td><%= submission.created_at.to_fs(:db) %></td>
+          <td><%= submission.updated_at.to_fs(:db) %></td>
+        </tr>
+      <% end %>
 
-<%= render 'admin/shared/pagy_nav', pagy: @pagy %>
+      <% if @submissions.empty? %>
+        <tr>
+          <td colspan="8" class="text-center text-body-secondary py-4">No submissions found.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <%= render 'admin/shared/pagy_nav', pagy: @pagy %>
+
+  <% if @submissions.any? %>
+    <section class="card mt-3">
+      <div class="card-body">
+        <h2 class="h6 card-title">
+          Apply to selected
+          <span class="badge text-bg-secondary" data-bulk-select-target="counter">0</span>
+        </h2>
+
+        <p class="text-body-secondary small">
+          Sets status / assignee on selected submissions' Project (BP) and every Sample (BS).
+          Leave a field blank to keep its current value. Selection is per-page.
+        </p>
+
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <%= f.label :status, class: 'form-label form-label-sm' %>
+            <%= f.select :status,
+                         Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                         {include_blank: '— Leave as-is —'},
+                         class: 'form-select form-select-sm' %>
+          </div>
+
+          <div class="col-md-5">
+            <%= f.label :assignee_id, 'Assignee', class: 'form-label form-label-sm' %>
+            <%= f.select :assignee_id,
+                         [['— Unassigned —', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                         {include_blank: '— Leave as-is —'},
+                         class: 'form-select form-select-sm' %>
+          </div>
+
+          <div class="col-md-3">
+            <%= f.submit 'Apply to selected', class: 'btn btn-warning btn-sm w-100',
+                        data: {turbo_confirm: 'Apply to the selected submissions?'} %>
+          </div>
+        </div>
+      </div>
+    </section>
+  <% end %>
+<% end %>
