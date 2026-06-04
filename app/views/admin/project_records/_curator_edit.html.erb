@@ -1,0 +1,35 @@
+<%# Curator-edit for v3 `/project/title` + `/project/description`. %>
+<%# Goes through the patch chain; title also mirrors back to the %>
+<%# Project.title typed column inside the controller. %>
+<section class="card mt-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Project details</h2>
+
+    <p class="text-body-secondary small">
+      Title and description on the BP record. Blank input drops the key from
+      the v3 record. Saving generates a new patch in the update chain.
+    </p>
+
+    <%
+      title       = submission.materialised_record.dig('project', 'title')
+      description = submission.materialised_record.dig('project', 'description')
+    %>
+
+    <%= form_with url: admin_submission_project_record_path(submission),
+                  method: :patch,
+                  scope:  :project_record,
+                  local:  true do |f| %>
+      <div class="mb-3">
+        <%= f.label :title, class: 'form-label form-label-sm' %>
+        <%= f.text_field :title, value: title, class: 'form-control form-control-sm' %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :description, class: 'form-label form-label-sm' %>
+        <%= f.text_area :description, value: description, rows: 5, class: 'form-control form-control-sm font-monospace' %>
+      </div>
+
+      <%= f.submit 'Save project details', class: 'btn btn-primary btn-sm' %>
+    <% end %>
+  </div>
+</section>

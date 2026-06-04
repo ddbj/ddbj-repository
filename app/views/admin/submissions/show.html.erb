@@ -52,7 +52,10 @@
 </dl>
 
 <% if @submission.bioproject_db? && (project = @submission.project) %>
-  <%= render 'admin/projects/curator_edit', submission: @submission, project: project %>
+  <%= render 'admin/projects/curator_edit',        submission: @submission, project: project %>
+  <% if @materialised && !@materialisation_error %>
+    <%= render 'admin/project_records/curator_edit', submission: @submission %>
+  <% end %>
 <% end %>
 
 <%# Comments edit is available for all DBs — submission.comments is a v3 %>
