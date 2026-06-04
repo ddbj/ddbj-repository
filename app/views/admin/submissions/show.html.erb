@@ -87,6 +87,7 @@
           <th>Organism</th>
           <th>Tax ID</th>
           <th>Status</th>
+          <th>Assignee</th>
         </tr>
       </thead>
       <tbody>
@@ -98,6 +99,7 @@
             <td><%= sample.organism || '—' %></td>
             <td><%= sample.taxonomy_id || '—' %></td>
             <td><span class="badge text-bg-light"><%= sample.status %></span></td>
+            <td><%= sample.assignee&.uid || '—' %></td>
           </tr>
         <% end %>
       </tbody>

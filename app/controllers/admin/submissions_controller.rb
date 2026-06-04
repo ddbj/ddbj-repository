@@ -39,7 +39,10 @@ module Admin
       # `page_param`, and the value must be a String not a Symbol; the
       # wrong shape is silently ignored.)
       if @submission.biosample_db?
-        @samples_pagy, @samples = pagy(@submission.samples.order(:id), page_key: 'samples_page', limit: 20)
+        # `includes(:assignee)` preloads the assignee for the 20-row page
+        # so the table's Assignee column doesn't N+1.
+        @samples_pagy, @samples = pagy(@submission.samples.includes(:assignee).order(:id),
+                                       page_key: 'samples_page', limit: 20)
       end
 
       begin
