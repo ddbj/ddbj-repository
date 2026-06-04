@@ -1,0 +1,30 @@
+<%# Curator-edit for v3 `submission.hold_date: str | None`. Single ISO %>
+<%# date input; empty submit clears the key from the record. %>
+<section class="card mt-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Hold date</h2>
+
+    <p class="text-body-secondary small">
+      Submission-level scheduled-release date (<code>YYYY-MM-DD</code>).
+      Leave blank to clear. Saving generates a new patch in the update chain.
+    </p>
+
+    <% current = submission.materialised_record.dig('submission', 'hold_date') %>
+
+    <%= form_with url: admin_submission_hold_date_path(submission),
+                  method: :patch,
+                  scope:  :submission,
+                  local:  true do |f| %>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <%= f.label :hold_date, class: 'form-label form-label-sm' %>
+          <%= f.date_field :hold_date, value: current, class: 'form-control form-control-sm' %>
+        </div>
+
+        <div class="col-md-3">
+          <%= f.submit 'Save hold date', class: 'btn btn-primary btn-sm' %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</section>

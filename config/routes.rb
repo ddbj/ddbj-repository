@@ -65,6 +65,10 @@ Rails.application.routes.draw do
       # a positional array; rebuild the submitters block and let
       # append_update! emit minimal RFC 6902 ops.
       resource :submitters, only: %i[update], controller: 'submitters'
+
+      # Curator edit to v3 `submission.hold_date: str | None` (ISO
+      # YYYY-MM-DD). Same patch-chain pattern as comments / submitters.
+      resource :hold_date, only: %i[update], controller: 'hold_dates'
     end
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]
