@@ -38,6 +38,52 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match "Submission-#{submissions(:st26).id}",   response.body
   end
 
+  test 'index shows BP Project.status + assignee for bioproject rows' do
+    project = projects(:primary)
+    project.update!(status: 'curating', assignee: users(:bob))
+
+    get admin_submissions_path, params: {db: 'bioproject'}
+
+    assert_response :ok
+    body = css_select("tr a[href='#{admin_submission_path(submissions(:bioproject))}']").first
+                                                                                       .ancestors('tr').first.to_s
+    assert_match 'curating', body
+    assert_match users(:bob).uid, body
+  end
+
+  test 'index shows BS Sample aggregate — uniform status / assignee surfaces directly' do
+    samples(:first).update!(status: 'public',   assignee: users(:bob))
+    samples(:second).update!(status: 'public',  assignee: users(:bob))
+
+    get admin_submissions_path, params: {db: 'biosample'}
+
+    assert_response :ok
+    body = css_select("tr a[href='#{admin_submission_path(submissions(:biosample))}']").first
+                                                                                      .ancestors('tr').first.to_s
+    assert_match 'public', body
+    assert_match users(:bob).uid, body
+    refute_match(/Mixed/, body, 'uniform values must not be reported as Mixed')
+  end
+
+  test 'index shows BS Sample aggregate — mixed status surfaces as "Mixed (N)"' do
+    samples(:first).update!(status: 'curating', assignee: users(:bob))
+    samples(:second).update!(status: 'public',  assignee: users(:bob))
+
+    get admin_submissions_path, params: {db: 'biosample'}
+
+    body = css_select("tr a[href='#{admin_submission_path(submissions(:biosample))}']").first
+                                                                                      .ancestors('tr').first.to_s
+    assert_match 'Mixed (2)', body
+  end
+
+  test 'index shows "—" for ST26 (no curator status / assignee yet)' do
+    get admin_submissions_path, params: {db: 'st26'}
+
+    body = css_select("tr a[href='#{admin_submission_path(submissions(:st26))}']").first
+                                                                                 .ancestors('tr').first.to_s
+    assert_match '—', body
+  end
+
   test 'index filters by source_id prefix (case-insensitive)' do
     submissions(:bioproject).update_columns(source_id: 'PSUB000604')
     submissions(:biosample).update_columns(source_id: 'SSUB002065')

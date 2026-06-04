@@ -12,12 +12,14 @@
   {name: :accession, placeholder: 'Accession (PRJDB / SAMD ...)'}
 ] %>
 
-<table class="table border">
+<table class="table border align-middle">
   <thead class="table-light">
     <tr>
       <th>ID</th>
       <th>Database</th>
       <th>User</th>
+      <th>Status</th>
+      <th>Assignee</th>
       <th>Created</th>
       <th>Updated</th>
     </tr>
@@ -29,6 +31,8 @@
         <td><%= link_to submission_label(submission), admin_submission_path(submission) %></td>
         <td><%= db_label(submission.db) %></td>
         <td><%= submission.user.uid %></td>
+        <td><%= submission_status_display(submission, @sample_aggregates) %></td>
+        <td><%= submission_assignee_display(submission, @sample_aggregates) %></td>
         <td><%= submission.created_at.to_fs(:db) %></td>
         <td><%= submission.updated_at.to_fs(:db) %></td>
       </tr>
@@ -36,7 +40,7 @@
 
     <% if @submissions.empty? %>
       <tr>
-        <td colspan="5" class="text-center text-body-secondary py-4">No submissions found.</td>
+        <td colspan="7" class="text-center text-body-secondary py-4">No submissions found.</td>
       </tr>
     <% end %>
   </tbody>
