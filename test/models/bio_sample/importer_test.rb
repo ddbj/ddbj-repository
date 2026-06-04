@@ -103,14 +103,18 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert replayed.key?('submission'),  'submission must be in the materialised replay'
   end
 
-  test 're-run with a bag-internal change falls back to a root snapshot (still replayable)' do
+  test 're-run with a non-key field change inside a keyed array produces per-field patches (no fallback)' do
     build(samples_count: 2).call
 
-    # Bag-internal change: one sample's title bumped. Canonicalizer.diff
-    # would produce `replace /samples/0/title`, which descends into the
-    # `samples` bag → BagPatchPathError → importer falls back to a
-    # whole-record snapshot at root. The chain stays replayable; we
-    # just lose per-field granularity for this op.
+    # Non-key edit inside `/samples` (keyed by alias) and inside
+    # `/samples/*/attributes` (keyed by name+unit). The bag-descent
+    # guard's `explicit_bag?` check correctly does NOT fire on either
+    # path because they are KEYED, not BAG — keyed-sort stays stable
+    # for non-key edits so the per-field patch indices are correct
+    # under replay. (Pre-fix: the guard's `array_mode` fell through
+    # to default-bag for the OBJECT prefix `/samples/0`, false-positive
+    # raised BagPatchPathError, and the importer fell back to a root
+    # snapshot — losing per-field granularity for no real reason.)
     bumped = SC::Submission.new(
       ssub_id: 'SSUB-test', submitter_id: 'migration-test',
       organization: 'Sample Organization', organization_url: nil,
@@ -137,13 +141,12 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal 2,        result.submission.updates.count
 
     second_patch = result.submission.updates.order(:id).last.parsed_patch
-    assert_equal 1, second_patch.size, 'fallback should be a single root op'
-    assert_equal '',         second_patch.first['path']
-    assert_equal 'replace',  second_patch.first['op'],
-                 'second-run fallback should be `replace`, not `add` (prior chain is non-empty)'
+    paths = second_patch.map {|op| op['path'] }.sort
+    assert_equal ['/samples/0/attributes/1/value', '/samples/0/title'], paths,
+                 'expected two per-field replace ops (lift-but-retain: bumped value lives in both slots)'
+    assert(second_patch.all? {|op| op['op'] == 'replace' })
 
-    # Replay correctness — exact set must materialise; the snapshot
-    # must REPLACE (not add) sample-2 alongside sample-1.
+    # Replay correctness — exact set must materialise; sample-2 stays put.
     titles = result.submission.materialised_record['samples'].map {|s| s['title'] }.sort
     assert_equal ['sample-1 BUMPED', 'sample-2'], titles
   end

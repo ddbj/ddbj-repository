@@ -146,6 +146,29 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
     end
   end
 
+  test 'bag-descent guard does NOT fire on unregistered (default-bag) OBJECT prefixes' do
+    # Pre-fix bug: `PathClassifier.array_mode` returns the default `'bag'`
+    # for ANY unregistered pointer including OBJECT prefixes like
+    # `/submission`. The guard walked every prefix and saw `/submission`
+    # as bag, rejecting otherwise-fine patches that just happened to
+    # descend through an unregistered hash key. Switching to
+    # `explicit_bag?` (only true when REGISTERED as bag) fixes it.
+    #
+    # Pin the regression with the actual production trigger: extending
+    # `/submission/comments` (ordered) from one element to two emits
+    # `add /submission/comments/1`, whose prefix walk hits `/submission`
+    # along the way.
+    ops = C.diff(
+      {'submission' => {'comments' => ['first']}},
+      {'submission' => {'comments' => %w[first second]}}
+    )
+
+    assert_equal 1, ops.size
+    assert_equal 'add',                       ops[0]['op']
+    assert_equal '/submission/comments/1',    ops[0]['path']
+    assert_equal 'second',                    ops[0]['value']
+  end
+
   test 'accepts v3 Data instances via coerce' do
     person = DDBJRecord::V3::Person.new(
       first:        'Alice',
