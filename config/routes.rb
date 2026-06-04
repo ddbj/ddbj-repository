@@ -44,7 +44,13 @@ Rails.application.routes.draw do
       # singular nested resource is the natural URL for "edit THIS BP's
       # project metadata". BS / ST26 don't have a Project — the controller
       # 404s in those cases.
-      resource :project, only: %i[update], controller: 'projects'
+      resource :project,  only: %i[update], controller: 'projects'
+
+      # Curator edits to the record-level free-text comments (v3
+      # `submission.comments: list[str]`). Goes through the patch chain
+      # via Submission#append_update! — each save generates a new
+      # SubmissionUpdate row instead of mutating the typed columns.
+      resource :comments, only: %i[update], controller: 'comments'
     end
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]
