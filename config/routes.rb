@@ -59,6 +59,12 @@ Rails.application.routes.draw do
       # via Submission#append_update! — each save generates a new
       # SubmissionUpdate row instead of mutating the typed columns.
       resource :comments, only: %i[update], controller: 'comments'
+
+      # Curator edits to v3 `submission.submitters: list[Person]`.
+      # Same patch-chain semantics as comments — submitter form posts
+      # a positional array; rebuild the submitters block and let
+      # append_update! emit minimal RFC 6902 ops.
+      resource :submitters, only: %i[update], controller: 'submitters'
     end
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]

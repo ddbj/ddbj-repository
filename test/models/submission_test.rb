@@ -90,6 +90,48 @@ class SubmissionTest < ActiveSupport::TestCase
     assert_equal 'world', submission.materialised_record.dig('project', 'title')
   end
 
+  test '#append_update! falls back to a root snapshot when diff lands inside a bag (e.g. submitter organizations)' do
+    submission = submissions(:bioproject)
+
+    submission.append_update!(
+      {
+        'submission' => {
+          'submitters' => [{
+            'first_name'    => 'Hanako',
+            'organizations' => [{'name' => 'NIG', 'role' => 'owner'}]
+          }]
+        }
+      },
+      actor: 'seed'
+    )
+
+    # Edit: add `url` to the existing organization. A minimal semantic
+    # diff would emit `add /submission/submitters/0/organizations/0/url`
+    # which descends into the `/submission/submitters/*/organizations`
+    # bag — Canonicalizer rejects that as a BagPatchPathError. The
+    # fallback emits a single root-level `replace` op instead so the
+    # curator's save still lands.
+    submission.append_update!(
+      {
+        'submission' => {
+          'submitters' => [{
+            'first_name'    => 'Hanako',
+            'organizations' => [{'name' => 'NIG', 'role' => 'owner', 'url' => 'https://nig.ac.jp/'}]
+          }]
+        }
+      },
+      actor: 'curator'
+    )
+
+    fallback_patch = submission.updates.order(:id).last.parsed_patch
+    assert_equal 1, fallback_patch.size, 'bag-internal edit must coarsen to a single root op'
+    assert_equal '',        fallback_patch.first['path']
+    assert_equal 'replace', fallback_patch.first['op']
+
+    assert_equal 'https://nig.ac.jp/',
+                 submission.materialised_record.dig('submission', 'submitters', 0, 'organizations', 0, 'url')
+  end
+
   test 'round-trip: apply(empty, diff(empty, R)) == R for 50 random records' do
     submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "rt-#{SecureRandom.hex(4)}")
     50.times do |i|

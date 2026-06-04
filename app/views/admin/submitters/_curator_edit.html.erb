@@ -1,0 +1,81 @@
+<%# Curator-edit form for v3 `submission.submitters: list[Person]`. %>
+<%# One fieldset per existing submitter + one trailing blank for an %>
+<%# inline add. Blank submitter rows drop on the server side. %>
+<%
+  current_submitters = submission.materialised_record.dig('submission', 'submitters') || []
+  rows               = current_submitters + [{}] # trailing blank for add
+%>
+<section class="card mt-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Submitters</h2>
+
+    <p class="text-body-secondary small">
+      Each submitter posts as a positional row. To remove a submitter, blank every field in that row.
+      The trailing empty row is for adding a new submitter — leave it blank if you don't need it.
+      Saving generates a new patch in the update chain.
+    </p>
+
+    <%= form_with url: admin_submission_submitters_path(submission),
+                  method: :patch,
+                  local:  true do %>
+      <% rows.each_with_index do |person, idx| %>
+        <% org = (person['organizations'] || [])[0] || {} %>
+        <fieldset class="border rounded p-3 mb-3">
+          <legend class="float-none w-auto px-2 fs-6 text-body-secondary">
+            <%= idx < current_submitters.size ? "Submitter #{idx + 1}" : 'Add new submitter' %>
+          </legend>
+
+          <div class="row g-2 mb-2">
+            <div class="col-md-4">
+              <label class="form-label form-label-sm" for="submitters_<%= idx %>_email">Email</label>
+              <input type="email" id="submitters_<%= idx %>_email"
+                     name="submitters[<%= idx %>][email]" value="<%= person['email'] %>"
+                     class="form-control form-control-sm">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm" for="submitters_<%= idx %>_first_name">First name</label>
+              <input type="text" id="submitters_<%= idx %>_first_name"
+                     name="submitters[<%= idx %>][first_name]" value="<%= person['first_name'] %>"
+                     class="form-control form-control-sm">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label form-label-sm" for="submitters_<%= idx %>_last_name">Last name</label>
+              <input type="text" id="submitters_<%= idx %>_last_name"
+                     name="submitters[<%= idx %>][last_name]" value="<%= person['last_name'] %>"
+                     class="form-control form-control-sm">
+            </div>
+          </div>
+
+          <div class="row g-2">
+            <div class="col-md-3">
+              <label class="form-label form-label-sm" for="submitters_<%= idx %>_org_name">Organization name</label>
+              <input type="text" id="submitters_<%= idx %>_org_name"
+                     name="submitters[<%= idx %>][organizations][0][name]" value="<%= org['name'] %>"
+                     class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm" for="submitters_<%= idx %>_org_role">Role</label>
+              <input type="text" id="submitters_<%= idx %>_org_role"
+                     name="submitters[<%= idx %>][organizations][0][role]" value="<%= org['role'] %>"
+                     class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm" for="submitters_<%= idx %>_org_type">Type</label>
+              <input type="text" id="submitters_<%= idx %>_org_type"
+                     name="submitters[<%= idx %>][organizations][0][type]" value="<%= org['type'] %>"
+                     class="form-control form-control-sm">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label form-label-sm" for="submitters_<%= idx %>_org_url">URL</label>
+              <input type="url" id="submitters_<%= idx %>_org_url"
+                     name="submitters[<%= idx %>][organizations][0][url]" value="<%= org['url'] %>"
+                     class="form-control form-control-sm">
+            </div>
+          </div>
+        </fieldset>
+      <% end %>
+
+      <%= submit_tag 'Save submitters', class: 'btn btn-primary' %>
+    <% end %>
+  </div>
+</section>

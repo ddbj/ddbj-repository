@@ -110,7 +110,20 @@ class Submission < ApplicationRecord
     with_lock do
       latest_id = updates.maximum(:id)
       base      = latest_id ? materialise_at(update_id: latest_id) : {}
-      patch     = DDBJRecord::Canonicalizer.diff(base, new_record)
+
+      # Try a minimal semantic diff. If it lands inside a bag-mode array
+      # (or any other Canonicalizer::Error — NumberGuard, ControlChar,
+      # OrderedEmptyElement, etc.) fall back to a root-level snapshot.
+      # That loses per-field chain granularity for THIS op but keeps
+      # curator edits on bag-internal fields (e.g. submitter
+      # organizations) replayable. Mirrors the same fallback used by
+      # BP/BS Importer's `compute_patch_ops`.
+      patch = begin
+        DDBJRecord::Canonicalizer.diff(base, new_record)
+      rescue DDBJRecord::Canonicalizer::Error
+        op = base.empty? ? 'add' : 'replace'
+        [{'op' => op, 'path' => '', 'value' => new_record}]
+      end
       return nil if patch.empty?
 
       updates.create!(
