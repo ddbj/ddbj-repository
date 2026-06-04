@@ -68,6 +68,8 @@
     <span class="badge text-bg-secondary"><%= @samples_pagy.count %></span>
   </h2>
 
+  <%= render 'admin/submissions/bulk_sample_edit', submission: @submission, sample_count: @samples_pagy.count %>
+
   <%# turbo-frame + data-turbo-action="advance": pagy clicks swap only %>
   <%# this frame (scroll position is preserved) AND push the URL to %>
   <%# browser history so ?samples_page=N is permalinkable / shareable. %>

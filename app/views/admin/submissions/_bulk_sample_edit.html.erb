@@ -1,0 +1,41 @@
+<%# Curator-facing bulk update for every Sample in a BS submission. %>
+<%# 1 SQL `update_all` so a 20K-sample submission stays interactive. %>
+<%# Empty form field = "leave as-is"; assignee `0` = explicit unassign. %>
+<section class="card mb-3">
+  <div class="card-body">
+    <h3 class="h6 card-title">Bulk update all samples</h3>
+
+    <p class="text-body-secondary small">
+      Applies to all <%= number_with_delimiter(sample_count) %> sample(s) in this submission.
+      Leave a field blank to keep the current value for that field.
+    </p>
+
+    <%= form_with url: bulk_update_samples_admin_submission_path(submission),
+                  method: :patch,
+                  scope:  :bulk_sample,
+                  local:  true do |f| %>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <%= f.label :status, class: 'form-label form-label-sm' %>
+          <%= f.select :status,
+                       Sample.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                       {include_blank: '— Leave as-is —'},
+                       class: 'form-select form-select-sm' %>
+        </div>
+
+        <div class="col-md-5">
+          <%= f.label :assignee_id, 'Assignee', class: 'form-label form-label-sm' %>
+          <%= f.select :assignee_id,
+                       [['— Unassigned —', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                       {include_blank: '— Leave as-is —'},
+                       class: 'form-select form-select-sm' %>
+        </div>
+
+        <div class="col-md-3">
+          <%= f.submit 'Apply to all samples', class: 'btn btn-warning btn-sm w-100',
+                      data: {turbo_confirm: "Apply to all #{number_with_delimiter(sample_count)} sample(s)?"} %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</section>

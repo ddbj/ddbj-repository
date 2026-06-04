@@ -107,7 +107,59 @@ module Admin
              status: :unprocessable_entity
     end
 
+    # Bulk-apply (status, assignee) to every Sample in a BS submission.
+    # Uses `update_all` (1 SQL) so the 20K-sample case stays interactive,
+    # which bypasses ActiveRecord validations + callbacks — we validate
+    # both fields manually upfront.
+    #
+    # Empty form field = "leave as-is" (key omitted from the update);
+    # `assignee_id = "0"` is the explicit "set to unassigned" sentinel
+    # (distinguishable from leave-as-is because '' parses as blank).
+    def bulk_update_samples
+      submission = Submission.find(params[:id])
+      return head :not_found unless submission.biosample_db?
+
+      attrs   = {}
+      raw     = bulk_sample_params
+
+      if raw[:status].present?
+        unless Sample.statuses.key?(raw[:status])
+          return redirect_to admin_submission_path(submission), alert: "Unknown status: #{raw[:status].inspect}."
+        end
+
+        attrs[:status] = Sample.statuses.fetch(raw[:status])
+      end
+
+      if raw.key?(:assignee_id) && raw[:assignee_id] != ''
+        if raw[:assignee_id] == '0'
+          attrs[:assignee_id] = nil
+        else
+          assignee = User.find_by(id: raw[:assignee_id])
+          unless assignee&.admin?
+            return redirect_to admin_submission_path(submission), alert: 'Assignee must be an admin user.'
+          end
+
+          attrs[:assignee_id] = assignee.id
+        end
+      end
+
+      if attrs.empty?
+        return redirect_to admin_submission_path(submission),
+                           alert: 'No changes specified (both fields left as-is).'
+      end
+
+      attrs[:updated_at] = Time.current
+      affected = submission.samples.update_all(attrs)
+
+      redirect_to admin_submission_path(submission),
+                  notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} sample(s)."
+    end
+
     private
+
+    def bulk_sample_params
+      params.expect(bulk_sample: %i[status assignee_id])
+    end
 
     # Strict positive-integer parser. Returns nil for anything other than
     # an explicit positive integer; callers treat nil as "no cutoff" /
