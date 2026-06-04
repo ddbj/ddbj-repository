@@ -1,0 +1,37 @@
+<%# Curator-facing edit form for a BP Project: status (Lifecycleable 9-state) %>
+<%# + assignee (admin user). One form posts to PATCH /admin/submissions/:id/project. %>
+<section class="card mt-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Curator edit</h2>
+
+    <%= form_with model: project, url: admin_submission_project_path(submission), method: :patch, local: true do |f| %>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <%= f.label :status, class: 'form-label' %>
+          <%= f.select :status,
+                       Project.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                       {},
+                       class: 'form-select' %>
+        </div>
+
+        <div class="col-md-5">
+          <%= f.label :assignee_id, 'Assignee', class: 'form-label' %>
+          <%= f.collection_select :assignee_id, User.staff.order(:uid), :id, :uid,
+                                  {include_blank: '— Unassigned —'},
+                                  class: 'form-select' %>
+        </div>
+
+        <div class="col-md-3">
+          <%= f.submit 'Update', class: 'btn btn-primary w-100' %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if project.accession.present? %>
+      <p class="text-body-secondary small mt-3 mb-0">
+        Accession: <code><%= project.accession %></code> ·
+        Project type: <%= project.project_type %>
+      </p>
+    <% end %>
+  </div>
+</section>
