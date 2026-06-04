@@ -38,7 +38,12 @@
 
     <main class="container pb-5">
       <% flash.each do |level, message| %>
-        <div class="alert alert-<%= flash_bootstrap_class(level) %> alert-dismissible fade show" role="alert">
+        <%# data-controller="flash-focus" scrolls the banner into view on %>
+        <%# render so a post-save redirect doesn't leave the notice above %>
+        <%# the curator's current scroll position (turbo-refresh-scroll is %>
+        <%# preserve so the form-bottom scroll position survives). %>
+        <div class="alert alert-<%= flash_bootstrap_class(level) %> alert-dismissible fade show"
+             role="alert" data-controller="flash-focus">
           <%= message %>
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
