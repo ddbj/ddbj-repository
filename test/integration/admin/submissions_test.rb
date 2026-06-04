@@ -408,6 +408,23 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match 'DRS999001',       response.body
   end
 
+  test 'show samples table renders Assignee column with per-sample uid' do
+    submission = submissions(:biosample)
+    samples(:first).update!(assignee: users(:bob))
+    # samples(:second) intentionally left unassigned to pin the "—" case.
+
+    get admin_submission_path(submission)
+
+    assert_response :ok
+    table_row_with_assignee = css_select('tbody tr').find {|tr| tr.css('td')[1]&.text == samples(:first).sample_name }
+    assert_match users(:bob).uid, table_row_with_assignee.to_s,
+                 'assigned sample row must show the assignee uid'
+
+    table_row_without_assignee = css_select('tbody tr').find {|tr| tr.css('td')[1]&.text == samples(:second).sample_name }
+    assert_match '—', table_row_without_assignee.css('td').last.text,
+                 'unassigned sample row must show — in the Assignee cell'
+  end
+
   test 'show survives a single poisoned patch — timeline renders, materialised pane reports the bad row' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
