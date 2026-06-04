@@ -83,6 +83,11 @@ Rails.application.routes.draw do
       # stays consistent without waiting for a re-import.
       resource :project_record, only: %i[update], controller: 'project_records'
     end
+
+    # Per-sample edit for BS — overrides the per-submission bulk apply
+    # when a curator needs to set a single sample's status / assignee
+    # differently from the rest.
+    resources :samples, only: %i[edit update]
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]
     end

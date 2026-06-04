@@ -420,8 +420,10 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match users(:bob).uid, table_row_with_assignee.to_s,
                  'assigned sample row must show the assignee uid'
 
+    # Assignee is the 7th cell (0-indexed: 6) — last cell is the Edit-link
+    # button column added by PR 8.
     table_row_without_assignee = css_select('tbody tr').find {|tr| tr.css('td')[1]&.text == samples(:second).sample_name }
-    assert_match '—', table_row_without_assignee.css('td').last.text,
+    assert_equal '—', table_row_without_assignee.css('td')[6].text.strip,
                  'unassigned sample row must show — in the Assignee cell'
   end
 
