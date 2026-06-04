@@ -62,4 +62,45 @@ module Admin::ViewHelpers
 
     tag.span run.status, class: "badge text-bg-#{color} text-capitalize"
   end
+
+  # Status display for a Submission on the admin index.
+  #   - BP: the Project's Lifecycleable status, or "—" if absent.
+  #   - BS: aggregate over Samples — "—" / "<status>" if uniform / "Mixed (N)" if not.
+  #   - ST26: "—" (not yet curated through this UI).
+  def submission_status_display(submission, sample_aggregates)
+    if submission.bioproject_db?
+      submission.project&.status&.tr('_', ' ') || '—'
+    elsif submission.biosample_db?
+      agg = sample_aggregates[submission.id]
+      return '—' unless agg
+
+      if agg.statuses.size == 1
+        # `Sample.statuses` is {'public' => 5500, ...} so invert is keyed by integer.
+        Sample.statuses.invert.fetch(agg.statuses.first, agg.statuses.first.to_s).tr('_', ' ')
+      else
+        "Mixed (#{agg.statuses.size})"
+      end
+    else
+      '—'
+    end
+  end
+
+  # Assignee display for a Submission on the admin index.
+  #   - BP: project.assignee.uid, or "—" if unassigned/no project.
+  #   - BS: aggregate over Samples — "—" if all unassigned / a single uid if uniform / "Mixed (N)".
+  #   - ST26: "—".
+  def submission_assignee_display(submission, sample_aggregates)
+    if submission.bioproject_db?
+      submission.project&.assignee&.uid || '—'
+    elsif submission.biosample_db?
+      agg = sample_aggregates[submission.id]
+      return '—' unless agg
+      return '—' if agg.assignee_ids == [nil] || agg.assignee_ids.empty?
+      return User.find_by(id: agg.assignee_ids.first)&.uid || '—' if agg.assignee_ids.size == 1
+
+      "Mixed (#{agg.assignee_ids.size})"
+    else
+      '—'
+    end
+  end
 end

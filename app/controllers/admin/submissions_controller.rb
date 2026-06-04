@@ -4,9 +4,13 @@ module Admin
       # Project away `cached_materialised_record` (bytea, BS-scale ~7MB
       # per row) — the index view never reads it, and pagy(20) × 7MB =
       # 140MB transferred per page once caches are warmed.
+      #
+      # Preload project + assignee for the per-row BP status/assignee
+      # columns. BS shows aggregated per-sample status/assignee instead
+      # (computed below in one SQL).
       scope = Submission
         .select(Submission.column_names - %w[cached_materialised_record])
-        .includes(:user)
+        .includes(:user, project: :assignee)
         .order(id: :desc)
       scope = scope.where(db: params[:db]) if params[:db].present?
       scope = scope.where(user: User.where(uid: params[:user])) if params[:user].present?
@@ -14,6 +18,7 @@ module Admin
       scope = filter_by_accession(scope, params[:accession]) if params[:accession].present?
 
       @pagy, @submissions = pagy(scope)
+      @sample_aggregates  = sample_aggregates_for(@submissions)
     end
 
     # Canonicalisation walks every subtree and produces canonical bytes +
@@ -159,6 +164,30 @@ module Admin
 
     def bulk_sample_params
       params.expect(bulk_sample: %i[status assignee_id])
+    end
+
+    # Per-BS-submission aggregate of (status, assignee) across samples,
+    # so the index can show "Uniform: public / kodama" vs "Mixed (3)"
+    # without hauling every Sample row over the wire. One SQL for the
+    # whole page — no N+1, no per-row distinct() calls.
+    #
+    # Returns a Hash keyed by submission_id, with keys :statuses /
+    # :assignee_ids (Arrays of distinct integer values; nil assignee
+    # surfaces as nil in the array).
+    SampleAggregate = Data.define(:statuses, :assignee_ids)
+
+    def sample_aggregates_for(submissions)
+      bs_ids = submissions.select(&:biosample_db?).map(&:id)
+      return {} if bs_ids.empty?
+
+      rows = Sample
+        .where(submission_id: bs_ids)
+        .group(:submission_id)
+        .pluck(:submission_id,
+               Arel.sql('ARRAY_AGG(DISTINCT status) AS statuses'),
+               Arel.sql('ARRAY_AGG(DISTINCT assignee_id) AS assignee_ids'))
+
+      rows.to_h {|sid, statuses, assignees| [sid, SampleAggregate.new(statuses:, assignee_ids: assignees)] }
     end
 
     # Strict positive-integer parser. Returns nil for anything other than
