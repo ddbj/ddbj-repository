@@ -93,6 +93,7 @@
           <th>Tax ID</th>
           <th>Status</th>
           <th>Assignee</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -105,6 +106,7 @@
             <td><%= sample.taxonomy_id || '—' %></td>
             <td><span class="badge text-bg-light"><%= sample.status %></span></td>
             <td><%= sample.assignee&.uid || '—' %></td>
+            <td><%= link_to 'Edit', edit_admin_sample_path(sample), class: 'btn btn-sm btn-outline-secondary' %></td>
           </tr>
         <% end %>
       </tbody>
