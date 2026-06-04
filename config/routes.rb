@@ -38,6 +38,14 @@ Rails.application.routes.draw do
     resources :submissions, only: %i[index show] do
       member do
         get :materialised
+
+        # Bulk-apply a (status, assignee) tuple to every Sample in a BS
+        # submission. Per-sample editing is intentionally NOT exposed:
+        # a submission can carry 20K samples and the typical curator
+        # workflow advances them together (all curating → all
+        # accession_issued → all public). Per-sample diversity is rare
+        # enough to defer to a later UI.
+        patch :bulk_update_samples
       end
 
       # Per-submission curator edits. BP submissions have one Project; the
