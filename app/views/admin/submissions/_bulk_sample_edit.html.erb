@@ -37,5 +37,26 @@
         </div>
       </div>
     <% end %>
+
+    <%
+      issuable_count = submission.samples
+                                 .where(accession: nil)
+                                 .where(status: AccessionIssue::ISSUABLE_FROM)
+                                 .count
+    %>
+    <% if issuable_count.positive? %>
+      <hr>
+      <p class="text-body-secondary small mb-2">
+        <%= number_with_delimiter(issuable_count) %> sample(s) are eligible for accession issuance
+        (no accession + status in <code>submission_accepted / curating</code>). Issuing allocates
+        SAMD accessions from the Sequence, stamps each Sample + the materialised record,
+        transitions status to <code>accession_issued</code>, and emails the submitter once.
+      </p>
+      <%= button_to "Issue SAMD for #{number_with_delimiter(issuable_count)} sample(s)",
+                    admin_submission_accession_path(submission),
+                    method: :post,
+                    class:  'btn btn-warning btn-sm',
+                    data:   {turbo_confirm: "Issue SAMD accessions for #{number_with_delimiter(issuable_count)} sample(s)?"} %>
+    <% end %>
   </div>
 </section>

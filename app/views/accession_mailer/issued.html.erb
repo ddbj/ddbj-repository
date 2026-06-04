@@ -1,0 +1,20 @@
+<p>Dear submitter,</p>
+
+<p>
+  We have issued <%= @accessions.size %> accession<%= 's' if @accessions.size != 1 %>
+  for your <%= @submission.db.humanize %> submission
+  (<%= @submission.source_id.presence || "##{@submission.id}" %>).
+</p>
+
+<ul>
+  <% @accessions.each do |a| %>
+    <li><code><%= a %></code></li>
+  <% end %>
+</ul>
+
+<p>If you have any questions, please reply to this email.</p>
+
+<p>
+  Regards,<br>
+  DDBJ Repository
+</p>

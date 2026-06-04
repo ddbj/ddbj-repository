@@ -39,6 +39,7 @@ gem 'turbo-rails'
 group :development do
   gem 'brakeman', require: false
   gem 'debug', require: 'debug/prelude', group: :test
+  gem 'letter_opener' # 配信のたびにデフォルトブラウザで .eml を開く (Phase B accession 発行 mail inspect)
   gem 'rubocop-rails-omakase', require: false
   gem 'stackprof', require: false
 end

@@ -41,6 +41,11 @@ Rails.application.routes.draw do
         # checkboxed rows on the index. BP submissions update their
         # Project row; BS submissions update all their Samples.
         patch :bulk_update
+
+        # Cross-submission bulk accession issuance. Selected submissions
+        # are walked through AccessionIssue (BP → 1 PRJDB; BS → all
+        # un-accessioned samples get a SAMD).
+        post :bulk_issue_accessions
       end
 
       member do
@@ -59,29 +64,12 @@ Rails.application.routes.draw do
       # singular nested resource is the natural URL for "edit THIS BP's
       # project metadata". BS / ST26 don't have a Project — the controller
       # 404s in those cases.
-      resource :project,  only: %i[update], controller: 'projects'
-
-      # Curator edits to the record-level free-text comments (v3
-      # `submission.comments: list[str]`). Goes through the patch chain
-      # via Submission#append_update! — each save generates a new
-      # SubmissionUpdate row instead of mutating the typed columns.
-      resource :comments, only: %i[update], controller: 'comments'
-
-      # Curator edits to v3 `submission.submitters: list[Person]`.
-      # Same patch-chain semantics as comments — submitter form posts
-      # a positional array; rebuild the submitters block and let
-      # append_update! emit minimal RFC 6902 ops.
-      resource :submitters, only: %i[update], controller: 'submitters'
-
-      # Curator edit to v3 `submission.hold_date: str | None` (ISO
-      # YYYY-MM-DD). Same patch-chain pattern as comments / submitters.
-      resource :hold_date, only: %i[update], controller: 'hold_dates'
-
-      # Curator edits to v3 `project.title` + `project.description` on
-      # BP submissions. Goes through the patch chain AND mirrors title
-      # back to the `Project.title` typed column so the index display
-      # stays consistent without waiting for a re-import.
-      resource :project_record, only: %i[update], controller: 'project_records'
+      resource :project,        only: %i[update]
+      resource :comments,       only: %i[update]
+      resource :submitters,     only: %i[update]
+      resource :hold_date,      only: %i[update]
+      resource :project_record, only: %i[update]
+      resource :accession,      only: %i[create]
     end
 
     # Per-sample edit for BS — overrides the per-submission bulk apply

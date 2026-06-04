@@ -44,6 +44,11 @@ module Repository
 
     config.time_zone = 'Asia/Tokyo'
 
+    # Use the project-owned MailDeliveryJob subclass so mail-only retry
+    # (Net::OpenTimeout → polynomial backoff) doesn't leak onto every
+    # other ApplicationJob descendant. See app/jobs/mail_delivery_job.rb.
+    config.action_mailer.delivery_job = 'MailDeliveryJob'
+
     api_paths = %r{\A/api(/|\z)}
 
     [

@@ -223,6 +223,39 @@ module Admin
                           "across #{ids.size} submission(s)."
     end
 
+    # Cross-submission bulk accession issuance from the index. Walks each
+    # selected submission through `AccessionIssue` (BP → 1 PRJDB, BS →
+    # all un-accessioned samples). Refused submissions surface in the
+    # flash with their reason; successful ones are summarised. The
+    # per-submission service handles transactions + mail enqueue, so
+    # one failure doesn't poison the rest.
+    def bulk_issue_accessions
+      ids = Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
+
+      if ids.empty?
+        return redirect_to admin_submissions_path(index_filter_params),
+                           alert: 'No submissions selected.'
+      end
+
+      issued = 0
+      refused = []
+
+      Submission.where(id: ids).find_each do |submission|
+        result = AccessionIssue.call(submission:, actor: "admin:#{current_user.uid}")
+        issued += result.accessions.size
+      rescue AccessionIssue::Refused => e
+        refused << [submission.source_id.presence || "##{submission.id}", e.message]
+      end
+
+      notice = "Issued #{helpers.number_with_delimiter(issued)} accession(s) across #{ids.size - refused.size} submission(s)."
+      notice += " #{refused.size} refused." if refused.any?
+
+      flash[:notice] = notice
+      flash[:alert]  = refused.map {|sid, msg| "#{sid}: #{msg}" }.join("\n") if refused.any?
+
+      redirect_to admin_submissions_path(index_filter_params)
+    end
+
     private
 
     def bulk_sample_params

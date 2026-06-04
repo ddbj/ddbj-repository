@@ -32,6 +32,18 @@
         Accession: <code><%= project.accession %></code> ·
         Project type: <%= project.project_type %>
       </p>
+    <% else %>
+      <hr>
+      <p class="text-body-secondary small mb-2">
+        No accession assigned yet. Issuing allocates the next PRJDB from the
+        Sequence, stamps Project + materialised record, transitions status to
+        <code>accession_issued</code>, and emails the submitter.
+      </p>
+      <%= button_to 'Issue PRJDB accession',
+                    admin_submission_accession_path(submission),
+                    method: :post,
+                    class:  'btn btn-warning',
+                    data:   {turbo_confirm: 'Issue a new PRJDB accession for this submission?'} %>
     <% end %>
   </div>
 </section>

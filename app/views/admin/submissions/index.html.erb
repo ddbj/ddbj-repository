@@ -139,6 +139,20 @@
                         data: {turbo_confirm: 'Apply to the selected submissions?'} %>
           </div>
         </div>
+
+        <hr>
+
+        <p class="text-body-secondary small mb-2">
+          Issue accessions for selected submissions (BP: 1 PRJDB each, BS: SAMD for every
+          un-accessioned sample). One mail per submission.
+        </p>
+
+        <%= f.button 'Issue accessions for selected',
+                     type:      :submit,
+                     formaction: bulk_issue_accessions_admin_submissions_path(params.permit(:db, :user, :source_id, :accession, :status, :assignee)),
+                     formmethod: :post,
+                     class:     'btn btn-warning btn-sm',
+                     data:      {turbo_confirm: 'Issue accessions for the selected submissions?'} %>
       </div>
     </section>
   <% end %>
