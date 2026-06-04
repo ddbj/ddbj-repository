@@ -1,19 +1,28 @@
 import { Controller } from '@hotwired/stimulus';
 
-// Scroll the host flash banner into view when it lands on the page.
+// Scroll the host flash banner into view whenever a new flash lands on
+// the page.
 //
 // The admin layout uses `<meta name="turbo-refresh-method" content="morph">`
 // + `<meta name="turbo-refresh-scroll" content="preserve">`, which means
 // after a curator-edit form submit + redirect, the new flash banner
 // renders at the top of the page but the curator is still scrolled
 // down to wherever the form was. Without this controller the success
-// notice never reaches the eye. The controller is attached per-flash
-// in admin.html.erb so it only fires when a flash actually rendered.
+// notice never reaches the eye.
+//
+// Why a value-change callback instead of `connect()`: Turbo's morph
+// PRESERVES the existing `.alert` element across renders when its
+// shape is similar; only the text inside changes. Stimulus's
+// `connect()` fires once on first mount and not again, so a second
+// save would update the message but not re-scroll. Token-value
+// callbacks fire on initial connect AND whenever the value changes
+// (morph updates the attribute → callback fires). The layout
+// re-emits a random token per render so each new flash is a value
+// change.
 export default class extends Controller {
-  connect() {
-    // The flash is in the DOM at the top of <main>. If the curator is
-    // already at or above it (initial page load with a flash, or rare
-    // scroll-into-view-via-anchor case), this scroll is a no-op.
+  static values = { token: String };
+
+  tokenValueChanged() {
     this.element.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }
 }
