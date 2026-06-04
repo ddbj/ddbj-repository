@@ -38,6 +38,12 @@ Rails.application.configure do
   # Set localhost to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = {host: 'localhost', port: 3000}
 
+  # letter_opener: each delivery opens the rendered `.eml` in the default
+  # browser via xdg-open, so curators / dev can inspect the mail
+  # (HTML + text parts, headers, subject) without configuring a real
+  # SMTP server.
+  config.action_mailer.delivery_method = :letter_opener
+
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 
