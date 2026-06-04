@@ -82,6 +82,18 @@ module DDBJRecord
         }
       end
 
+      # True ONLY when `pointer` is EXPLICITLY registered as a bag — used
+      # by the bag-descent guard so it doesn't false-positive on OBJECT
+      # prefixes that just happen to be absent from the registry (every
+      # unregistered path returns ARRAY_DEFAULT = bag from `array_mode`,
+      # but most of those are Hash keys like `/submission` or `/project`,
+      # not arrays at all).
+      def explicit_bag?(pointer)
+        key  = PathClassifier.normalize_arrays? ? structural_key(pointer) : pointer
+        rule = best_match(key, Registry.arrays)
+        rule && rule['mode'] == 'bag'
+      end
+
       def string_class(pointer)
         key = PathClassifier.normalize_strings? ? structural_key(pointer) : pointer
 

@@ -124,6 +124,14 @@ module DDBJRecord
       # canonical-json.md §3.1 — bags are content-addressed, so an
       # element-level edit would re-sort the whole array. `test` is
       # read-only and exempt.
+      #
+      # The guard uses `PathClassifier.explicit_bag?` (NOT `array_mode`):
+      # `array_mode` returns the default `'bag'` for ANY unregistered
+      # pointer, including OBJECT prefixes like `/submission` or
+      # `/project`. Walking those with `array_mode == 'bag'` would
+      # false-positive on every patch whose path passes through an
+      # unregistered hash key. `explicit_bag?` only returns true when
+      # the path is registered as `{mode: bag}` in array-modes.yml.
       def reject_bag_descent!(op)
         return unless MUTATING_OPS.include?(op['op'])
 
@@ -137,7 +145,7 @@ module DDBJRecord
           prefix   = +''
           segments.each_with_index do |seg, idx|
             prefix << '/' << seg
-            next unless PathClassifier.array_mode(prefix) == 'bag'
+            next unless PathClassifier.explicit_bag?(prefix)
 
             tail = segments[(idx + 1)..]
             next if tail.length <= 1 # bag/<idx> is fine; bag/<idx>/anything is not

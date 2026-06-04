@@ -86,6 +86,32 @@ class AdminCommentsTest < ActionDispatch::IntegrationTest
                  @submission.reload.materialised_record.dig('submission', 'comments')
   end
 
+  test 'PATCH update extends an existing 1-element comments list to 2 (no bag-descent false-positive)' do
+    # Pre-fix bug: the bag-descent guard walked every path prefix and
+    # called PathClassifier.array_mode which returns the default 'bag'
+    # for unregistered pointers. /submission (a Hash, not an array) is
+    # unregistered, so the guard treated it as a bag and rejected the
+    # `add /submission/comments/1 ...` op produced by extending an
+    # existing one-element comments list. Fixed by switching the guard
+    # to PathClassifier.explicit_bag? — only paths registered as bag
+    # in array-modes.yml count.
+    @submission.append_update!(
+      {
+        'schema_version' => 'v3',
+        'submission'     => {'submitters' => [{'first_name' => 'Hanako'}], 'comments' => ['first']}
+      },
+      actor:  'test-seed-extend',
+      source: :manual
+    )
+
+    patch admin_submission_comments_path(@submission),
+          params: {submission_comments: {body: "first\nsecond"}}
+
+    assert_redirected_to admin_submission_path(@submission)
+    refute_match(/Cannot edit/, flash[:alert].to_s)
+    assert_equal %w[first second], @submission.reload.materialised_record.dig('submission', 'comments')
+  end
+
   test 'PATCH update preserves unrelated submission keys' do
     # Submitters is the other field in the seeded submission block. It
     # MUST round-trip unchanged when we edit comments.
