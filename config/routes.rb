@@ -39,6 +39,12 @@ Rails.application.routes.draw do
       member do
         get :materialised
       end
+
+      # Per-submission curator edits. BP submissions have one Project; the
+      # singular nested resource is the natural URL for "edit THIS BP's
+      # project metadata". BS / ST26 don't have a Project — the controller
+      # 404s in those cases.
+      resource :project, only: %i[update], controller: 'projects'
     end
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]

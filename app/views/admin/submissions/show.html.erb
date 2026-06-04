@@ -51,6 +51,10 @@
   <% end %>
 </dl>
 
+<% if @submission.bioproject_db? && (project = @submission.project) %>
+  <%= render 'admin/projects/curator_edit', submission: @submission, project: project %>
+<% end %>
+
 <% if @submission.biosample_db? && @samples_pagy.count.positive? %>
   <h2 class="h4 mt-4">
     Samples
