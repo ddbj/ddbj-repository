@@ -14,6 +14,16 @@ canonical_version: ddbj-canon/v1
 arrays:
   # ----- ordered -----
   '/submission/submitters':                              {mode: ordered}
+  # v3 Submission.comments is `list[str]` — curator notes accumulate in
+  # input order and reading them sorted destroys narrative continuity
+  # ("first I noted X, then Y"). Omitted from the original registry
+  # because at canonical_version bump time no record had multi-element
+  # comments (2677 BS records had exactly one-element arrays from the
+  # Converter's `Array(comment.presence)` wrap, which bag-mode sorts to
+  # themselves — verified 2026-06-04). Adding the path here is a
+  # registry-omission fix; canonical bytes for every existing record
+  # are byte-identical because single-element arrays are sort-invariant.
+  '/submission/comments':                                {mode: ordered}
   '/sequences/entries':                                  {mode: ordered}
   '/sequences/entries/*/source_features':                {mode: ordered}
   '/sequences/entries/*/source_features/*/qualifiers/*': {mode: ordered}

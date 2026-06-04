@@ -55,6 +55,13 @@
   <%= render 'admin/projects/curator_edit', submission: @submission, project: project %>
 <% end %>
 
+<%# Comments edit is available for all DBs — submission.comments is a v3 %>
+<%# Submission field, not BP/BS-specific. Skip when the chain failed to %>
+<%# replay (a corrupted patch chain can't be safely edited). %>
+<% if @materialised && !@materialisation_error %>
+  <%= render 'admin/comments/curator_edit', submission: @submission %>
+<% end %>
+
 <% if @submission.biosample_db? && @samples_pagy.count.positive? %>
   <h2 class="h4 mt-4">
     Samples
