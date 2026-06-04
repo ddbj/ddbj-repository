@@ -36,6 +36,13 @@ Rails.application.routes.draw do
 
     resources :submission_requests, only: %i[index]
     resources :submissions, only: %i[index show] do
+      collection do
+        # Cross-submission bulk: apply (status, assignee) to all
+        # checkboxed rows on the index. BP submissions update their
+        # Project row; BS submissions update all their Samples.
+        patch :bulk_update
+      end
+
       member do
         get :materialised
 
