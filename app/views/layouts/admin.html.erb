@@ -42,8 +42,13 @@
         <%# render so a post-save redirect doesn't leave the notice above %>
         <%# the curator's current scroll position (turbo-refresh-scroll is %>
         <%# preserve so the form-bottom scroll position survives). %>
+        <%# The token value re-emits per render so Stimulus fires the %>
+        <%# value-change callback even when Turbo morph reuses the .alert %>
+        <%# element across saves (connect() would only fire on first mount). %>
         <div class="alert alert-<%= flash_bootstrap_class(level) %> alert-dismissible fade show"
-             role="alert" data-controller="flash-focus">
+             role="alert"
+             data-controller="flash-focus"
+             data-flash-focus-token-value="<%= SecureRandom.hex(8) %>">
           <%= message %>
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
