@@ -15,6 +15,20 @@
   <dt class="col-sm-3">Source ID</dt>
   <dd class="col-sm-9"><%= @submission.source_id || '—' %></dd>
 
+  <% if @submission.bioproject_db? %>
+    <dt class="col-sm-3">Accession</dt>
+    <dd class="col-sm-9">
+      <% if @submission.project&.accession.present? %>
+        <code><%= @submission.project.accession %></code>
+      <% else %>
+        <span class="text-body-secondary">— (not issued)</span>
+      <% end %>
+    </dd>
+  <% elsif @submission.biosample_db? %>
+    <dt class="col-sm-3">Accession</dt>
+    <dd class="col-sm-9"><%= "#{number_with_delimiter(@accessioned_sample_count)} / #{number_with_delimiter(@samples_pagy.count)} sample(s) issued" %></dd>
+  <% end %>
+
   <dt class="col-sm-3">User</dt>
   <dd class="col-sm-9"><%= @submission.user.uid %></dd>
 

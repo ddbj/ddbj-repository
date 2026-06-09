@@ -145,3 +145,37 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 end
+
+class AdminSubmissionAccessionDisplayTest < ActionDispatch::IntegrationTest
+  setup do
+    sign_in_as users(:bob)
+  end
+
+  test 'BP show displays project.accession in the top dl when present' do
+    projects(:primary).update!(accession: 'PRJDB000999')
+
+    get admin_submission_path(submissions(:bioproject))
+
+    assert_response :ok
+    assert_match 'PRJDB000999', response.body
+  end
+
+  test 'BP show displays "— (not issued)" when project.accession is nil' do
+    projects(:primary).update!(accession: nil)
+
+    get admin_submission_path(submissions(:bioproject))
+
+    assert_response :ok
+    assert_match '— (not issued)', response.body
+  end
+
+  test 'BS show displays "X / Y sample(s) issued" in the top dl' do
+    samples(:first).update!(accession: 'SAMD00000001')
+    samples(:second).update!(accession: nil)
+
+    get admin_submission_path(submissions(:biosample))
+
+    assert_response :ok
+    assert_match '1 / 2 sample(s) issued', response.body
+  end
+end

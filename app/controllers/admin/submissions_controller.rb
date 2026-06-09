@@ -45,6 +45,10 @@ module Admin
         # so the table's Assignee column doesn't N+1.
         @samples_pagy, @samples = pagy(@submission.samples.includes(:assignee).order(:id),
                                        page_key: 'samples_page', limit: 20)
+
+        # For the Accession row in the dl. One extra COUNT vs walking
+        # samples is cheaper than reading the bytea-projected materialised.
+        @accessioned_sample_count = @submission.samples.where.not(accession: nil).count
       end
 
       begin
