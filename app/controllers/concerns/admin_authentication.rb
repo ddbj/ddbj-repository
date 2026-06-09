@@ -12,7 +12,7 @@ module AdminAuthentication
   end
 
   def authenticate_admin!
-    return render('admin/sessions/new', layout: 'admin', status: :unauthorized) unless current_user
+    return redirect_to(new_admin_session_path(origin: request.original_fullpath)) unless current_user
 
     head :forbidden unless current_user.admin?
   end

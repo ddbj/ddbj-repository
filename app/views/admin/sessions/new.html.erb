@@ -8,7 +8,7 @@
         <p class="text-body-secondary mb-4">Use your DDBJ Account to access the administration.</p>
 
         <form action="/auth/keycloak" method="post">
-          <input type="hidden" name="origin" value="<%= request.original_fullpath %>">
+          <input type="hidden" name="origin" value="<%= @origin %>">
           <button type="submit" class="btn btn-primary btn-lg">Login with DDBJ Account</button>
         </form>
       </div>
