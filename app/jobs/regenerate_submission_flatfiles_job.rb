@@ -11,7 +11,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     record = submission.ddbj_record.open { DDBJRecord.parse(it) }
 
     if force || changed?(submission, record)
-      submission.accessions.update_all locus_date: date
+      submission.accessions.update_all(locus_date: date) if date
 
       entries             = build_entries(record, submission.accessions.reload)
       record_with_entries = record.with(sequences: record.sequences.with(entries:))

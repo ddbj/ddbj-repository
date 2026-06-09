@@ -13,13 +13,21 @@
   <div class="card-body">
     <%= form_with url: admin_regenerate_flatfiles_path, method: :post, local: true do |f| %>
       <div class="mb-3">
+        <%= f.label :numbers, 'Accession numbers', class: 'form-label' %>
+        <%= f.text_area :numbers, class: 'form-control font-monospace', rows: 4, disabled: loading,
+                                  placeholder: "One per line (or comma-separated). Leave blank to target all submissions." %>
+        <div class="form-text">Submissions that own any of these accessions are regenerated.</div>
+      </div>
+
+      <div class="mb-3">
         <%= f.label :date, 'LOCUS Date', class: 'form-label' %>
-        <%= f.date_field :date, class: 'form-control', required: true, disabled: loading %>
+        <%= f.date_field :date, class: 'form-control', disabled: loading %>
+        <div class="form-text">Leave blank to keep existing LOCUS dates (flatfiles are regenerated without touching <code>accessions.locus_date</code>).</div>
       </div>
 
       <div class="form-check mb-3">
         <%= f.check_box :force, {class: 'form-check-input', disabled: loading}, '1', '' %>
-        <%= f.label :force, 'Force update all submissions (even if content is unchanged)', class: 'form-check-label' %>
+        <%= f.label :force, 'Force regenerate (even if content is unchanged)', class: 'form-check-label' %>
       </div>
 
       <%= f.submit 'Regenerate', class: 'btn btn-primary', disabled: loading %>
