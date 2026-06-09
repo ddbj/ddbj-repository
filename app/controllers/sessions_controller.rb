@@ -11,7 +11,13 @@ class SessionsController < ApplicationController
 
     session[:user_id] = user.id
 
-    redirect_to_web '/web/login', token: user.token
+    origin = request.env['omniauth.origin']
+
+    if origin == '/admin' || origin&.start_with?('/admin/')
+      redirect_to origin
+    else
+      redirect_to_web '/web/login', token: user.token
+    end
   end
 
   def destroy

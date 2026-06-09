@@ -1,0 +1,17 @@
+<% content_for :title, 'Sign in' %>
+
+<div class="row justify-content-center py-5">
+  <div class="col-12 col-sm-10 col-md-8 col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body p-4 p-md-5 text-center">
+        <h1 class="h3 mb-2">Sign in required</h1>
+        <p class="text-body-secondary mb-4">Use your DDBJ Account to access the administration.</p>
+
+        <form action="/auth/keycloak" method="post">
+          <input type="hidden" name="origin" value="<%= request.original_fullpath %>">
+          <button type="submit" class="btn btn-primary btn-lg">Login with DDBJ Account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

@@ -16,21 +16,23 @@
       <div class="container">
         <%= link_to 'DDBJ Repository Administration', admin_root_path, class: 'navbar-brand' %>
 
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item dropdown">
-            <button type="button" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-              <%= current_user.uid %>
-            </button>
+        <% if current_user %>
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item dropdown">
+              <button type="button" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <%= current_user.uid %>
+              </button>
 
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><%= link_to 'Back to repository', '/web/', class: 'dropdown-item', data: {turbo: false} %></li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <%= button_to 'Logout', session_path, method: :delete, class: 'dropdown-item', data: {turbo: false} %>
-              </li>
-            </ul>
-          </li>
-        </ul>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><%= link_to 'Back to repository', '/web/', class: 'dropdown-item', data: {turbo: false} %></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <%= button_to 'Logout', session_path, method: :delete, class: 'dropdown-item', data: {turbo: false} %>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        <% end %>
       </div>
     </nav>
 
