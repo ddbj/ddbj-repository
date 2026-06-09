@@ -75,6 +75,8 @@ class LoadTaxdumpJob < ApplicationJob
         conn.execute 'ALTER TABLE nodes RENAME TO old_nodes'
         conn.execute 'ALTER TABLE new_names RENAME TO names'
         conn.execute 'ALTER TABLE new_nodes RENAME TO nodes'
+
+        Taxdump::Load.create!
       end
 
       conn.execute 'DROP TABLE old_names'

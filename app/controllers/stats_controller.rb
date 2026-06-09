@@ -22,7 +22,8 @@ class StatsController < ApplicationController
 
       taxdump: {
         names_count: Taxdump::Name.count,
-        nodes_count: Taxdump::Node.count
+        nodes_count: Taxdump::Node.count,
+        loaded_at:   Taxdump::Load.maximum(:created_at)
       }
     }
   end
