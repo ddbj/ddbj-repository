@@ -18,7 +18,7 @@ REFERENCE   1  (bases <%= entry.location_span.join(' to ') %>)
 <%- else -%>
 REFERENCE   1  (residues <%= entry.location_span.join(' to ') %>)
 <%- end -%>
-  AUTHORS
+<%= '  AUTHORS'.ljust(12) %>
   TITLE     <%= entry.invention_title %>
   JOURNAL   Patent: <%= format_seqid(entry.seqid, format: :journal) %> <%= format_date(record.submission.publication_date) %>;
             <%= record.submission.applicant_name || APPLICANT_NAME_FALLBACK %>
@@ -56,7 +56,7 @@ FEATURES             Location/Qualifiers
 <%- if entry.na? -%>
 BASE COUNT  <%= base_count(entry.sequence) %>
 <%- end -%>
-ORIGIN
+<%= 'ORIGIN'.ljust(12) %>
 <%- i = 0; while i < entry.sequence.size -%>
 <%= (i + 1).to_s.rjust(9) %> <%= entry.sequence[i, 60].scan(/.{1,10}/).join(' ') %>
 <%- i += 60; end -%>

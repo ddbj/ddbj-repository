@@ -36,7 +36,7 @@ class Flatfile::Buffer
 
   def wrap(io, line)
     if line.size <= 80
-      io.puts line.delete_suffix(' ')
+      io.puts line
       return
     end
 

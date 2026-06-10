@@ -72,7 +72,7 @@ class FlatfileTest < ActiveSupport::TestCase
         ORGANISM  Homo sapiens
                   Homo.
       REFERENCE   1  (bases 1 to 21)
-        AUTHORS
+        AUTHORS#{'   '}
         TITLE     Test Invention
         JOURNAL   Patent: JP 2026123456-A 1 01-JUN-2026;
                   Test Applicant
@@ -93,7 +93,7 @@ class FlatfileTest < ActiveSupport::TestCase
                            /mol_type="genomic DNA"
                            /db_xref="taxon:9606"
       BASE COUNT            5 a            5 c            6 g            5 t
-      ORIGIN
+      ORIGIN#{'      '}
               1 atgcgtagct agctagctag c
       //
       LOCUS       AB000002                  21 bp    DNA     linear   PAT 01-JUN-2026
@@ -105,7 +105,7 @@ class FlatfileTest < ActiveSupport::TestCase
         ORGANISM  Homo sapiens
                   Homo.
       REFERENCE   1  (bases 1 to 21)
-        AUTHORS
+        AUTHORS#{'   '}
         TITLE     Test Invention
         JOURNAL   Patent: JP 2026123456-A 2 01-JUN-2026;
                   Test Applicant
@@ -124,7 +124,7 @@ class FlatfileTest < ActiveSupport::TestCase
                            /mol_type="genomic DNA"
                            /db_xref="taxon:9606"
       BASE COUNT            6 a            4 c            5 g            6 t
-      ORIGIN
+      ORIGIN#{'      '}
               1 ttagcgtagc tagctagcta a
       //
     FLAT
