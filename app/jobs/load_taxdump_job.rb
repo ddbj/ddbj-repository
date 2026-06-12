@@ -1,7 +1,18 @@
 class LoadTaxdumpJob < ApplicationJob
+  STALE_THRESHOLD = 36.hours
+
   def perform
     path = Rails.application.config_for(:taxdump).path
     conn = Taxdump::Record.connection
+
+    mtime = File.mtime(path)
+    age   = Time.current - mtime
+
+    logger.info "Loading taxdump from #{path} (mtime: #{mtime.iso8601}, size: #{File.size(path)})"
+
+    if age > STALE_THRESHOLD
+      logger.warn "taxdump.tar.gz is #{(age / 1.hour).round(1)}h old (>#{STALE_THRESHOLD.inspect}). Mirror sync may be lagging or the container's bind mount may be stale."
+    end
 
     Dir.mktmpdir do |tmp|
       system 'tar', '-xzf', path.to_s, '-C', tmp, exception: true
