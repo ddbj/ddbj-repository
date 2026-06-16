@@ -11,3 +11,7 @@ production: &production
 staging:
   <<: *production
   endpoint: https://repository-storage-staging.ddbj.nig.ac.jp
+
+dev:
+  <<: *production
+  endpoint: https://repository-storage-dev.ddbj.nig.ac.jp

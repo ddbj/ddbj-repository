@@ -1,0 +1,54 @@
+servers:
+  web:
+    hosts:
+      - repository-dev
+
+proxy:
+  host: repository-dev.ddbj.nig.ac.jp
+
+env:
+  clear:
+    RAILS_ENV: dev
+
+volumes:
+  - ./volumes/repository-dev/storage:/rails/storage
+  - /mnt/submission:/submission
+  - /lustre9/open/home/ddbjshare:/ddbjshare:ro
+
+builder:
+  args:
+    APP_URL: https://repository-dev.ddbj.nig.ac.jp
+
+accessories:
+  postgres:
+    host: repository-dev
+
+    volumes:
+      - ./volumes/repository-dev/postgres:/var/lib/postgresql
+
+  seaweedfs:
+    host: repository-dev
+
+    proxy:
+      host: repository-storage-dev.ddbj.nig.ac.jp
+
+    volumes:
+      - ./volumes/repository-dev/seaweedfs:/data
+
+  virtuoso:
+    host: repository-dev
+
+    volumes:
+      - ./volumes/repository-dev/virtuoso:/database
+
+  validator:
+    host: repository-dev
+
+    env:
+      clear:
+        DDBJ_VALIDATOR_APP_POSTGRES_HOST: a012
+
+    volumes:
+      - ./volumes/repository-dev/validator/conf/pub:/usr/src/ddbj_validator/conf/pub
+      - ./volumes/repository-dev/validator/conf/coll_dump:/usr/src/ddbj_validator/conf/coll_dump
+      - ./volumes/repository-dev/validator/logs:/usr/src/ddbj_validator/logs
