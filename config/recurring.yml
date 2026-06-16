@@ -5,3 +5,6 @@ production: &production
 
 staging:
   <<: *production
+
+dev:
+  <<: *production

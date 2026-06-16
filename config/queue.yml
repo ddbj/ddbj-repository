@@ -19,3 +19,6 @@ production:
 
 staging:
   <<: *default
+
+dev:
+  <<: *default

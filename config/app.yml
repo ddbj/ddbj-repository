@@ -23,3 +23,8 @@ staging:
   <<: *production
   app_url: https://repository-staging.ddbj.nig.ac.jp
   web_url: https://repository-staging.ddbj.nig.ac.jp
+
+dev:
+  <<: *production
+  app_url: https://repository-dev.ddbj.nig.ac.jp
+  web_url: https://repository-dev.ddbj.nig.ac.jp

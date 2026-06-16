@@ -13,3 +13,7 @@ production:
 staging:
   url:       https://accounts-staging.ddbj.nig.ac.jp
   api_token: <%= Rails.application.credentials.dig(:cloakman, :api_token) %>
+
+dev:
+  url:       https://accounts-staging.ddbj.nig.ac.jp
+  api_token: <%= Rails.application.credentials.dig(:cloakman, :api_token) %>
