@@ -3,26 +3,22 @@
 require 'pg'
 
 module BioProject
-  # Read-only connection to the D-way staging BioProject database.
+  # Read-only connection to the D-way BioProject database.
   #
-  # Runs from dev via an SSH local-forward tunnel:
+  # Connection options come from DataMigration::DwayDefaults — env vars
+  # override the parsed xsmdb URL credential, which in turn overrides
+  # the hardcoded localhost default. For local SSH-tunnel usage:
   #
   #   ssh -L 54301:172.19.15.12:54301 a012 -N &
+  #   DWAY_DB_PASSWORD=... bin/rails data_migration:import_bp_batch
   #
-  # Then point this client at localhost:54301. In the deployed app the
-  # connection goes direct to 172.19.15.12 — the host/port/etc. are
-  # read from PG* env vars so libpq's standard precedence applies.
+  # In the deployed app no env vars are needed; the xsmdb URL already
+  # points at the right Postgres instance.
   #
   # The class is intentionally a thin wrapper around `pg`; nothing here
   # belongs in Phase 3 spike's surface beyond what the batch import needs.
   class StagingClient
-    DEFAULT_OPTIONS = {
-      host:     ENV.fetch('DWAY_PGHOST', 'localhost'),
-      port:     ENV.fetch('DWAY_PGPORT', '54301').to_i,
-      user:     ENV.fetch('DWAY_PGUSER', 'const'),
-      dbname:   'bioproject',
-      password: ENV['DWAY_DB_PASSWORD']
-    }.freeze
+    DEFAULT_OPTIONS = DataMigration::DwayDefaults.options(dbname: 'bioproject').freeze
 
     Submission = Data.define(:psub_id, :submitter_id, :status_id, :accession, :project_type, :xml)
 

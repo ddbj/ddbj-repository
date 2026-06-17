@@ -3,10 +3,8 @@
 require 'pg'
 
 module BioSample
-  # Read-only connection to the D-way staging BioSample database. Same
-  # tunnel pattern as BioProject::StagingClient:
-  #
-  #   ssh -L 54301:172.19.15.12:54301 a012 -N &
+  # Read-only connection to the D-way BioSample database. Same tunnel
+  # pattern + connection-options precedence as BioProject::StagingClient.
   #
   # The BS schema diverges from BP: 1 submission → N samples, each sample
   # has its own accession + XML + EAV attribute rows. This client returns
@@ -14,13 +12,7 @@ module BioSample
   # the per-sample XML is intentionally skipped because the EAV is the
   # canonical editable form in D-way and the XML is regenerated downstream.
   class StagingClient
-    DEFAULT_OPTIONS = {
-      host:     ENV.fetch('DWAY_PGHOST', 'localhost'),
-      port:     ENV.fetch('DWAY_PGPORT', '54301').to_i,
-      user:     ENV.fetch('DWAY_PGUSER', 'const'),
-      dbname:   'biosample',
-      password: ENV['DWAY_DB_PASSWORD']
-    }.freeze
+    DEFAULT_OPTIONS = DataMigration::DwayDefaults.options(dbname: 'biosample').freeze
 
     Submission = Data.define(:ssub_id, :submitter_id, :organization, :organization_url, :comment, :samples, :contacts)
     # NOTE(phase 6 deferral): :package_group is derivable from :package against
