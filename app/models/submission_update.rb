@@ -15,7 +15,11 @@ class SubmissionUpdate < ApplicationRecord
 
   belongs_to :submission, inverse_of: :updates
 
-  validates :patch, length: {minimum: 1, maximum: 16.megabytes}
+  # No maximum — patch sizes can legitimately reach GB scale (genome
+  # assemblies, multi-K-sample BS submissions). The DB-side check is
+  # nonempty only (octet_length(patch) > 0), and Postgres bytea's
+  # ~1GB practical ceiling is the real upper bound.
+  validates :patch, length: {minimum: 1}
 
   # Single canonical invalidator for the parent Submission's cached
   # materialised_record. Firing on create AND destroy keeps the cache
