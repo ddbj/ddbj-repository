@@ -24,8 +24,13 @@
 </dl>
 
 <%= form_with model: @sample, url: admin_sample_path(@sample), method: :patch, local: true do |f| %>
+  <%# Field column widths (col-md-4 / col-md-5) mirror projects/_curator_edit %>
+  <%# and _bulk_sample_edit so a curator switching between bulk and per-sample %>
+  <%# edits sees the same field shape. Save + Cancel live together below the %>
+  <%# row because this is a dedicated edit page (the inline cards have no %>
+  <%# Cancel — they rely on navigating away). %>
   <div class="row g-3 mb-3">
-    <div class="col-md-5">
+    <div class="col-md-4">
       <%= f.label :status, class: 'form-label' %>
       <%= f.select :status,
                    Sample.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
