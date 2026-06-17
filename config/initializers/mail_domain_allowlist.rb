@@ -45,6 +45,13 @@ class MailDomainAllowlistInterceptor
   end
 end
 
-if (domains = Rails.application.config_for(:app).mail_allowed_domains.presence)
-  ActionMailer::Base.register_interceptor MailDomainAllowlistInterceptor.new(domains)
+# Defer the actual registration to after_initialize: touching
+# ActionMailer::Base at top-level forces ActionMailer to resolve
+# config.action_mailer.delivery_job ('MailDeliveryJob') before
+# Zeitwerk has wired up app/jobs/, which crashes `bin/rails db:prepare`
+# with `uninitialized constant MailDeliveryJob`.
+Rails.application.config.after_initialize do
+  if (domains = Rails.application.config_for(:app).mail_allowed_domains.presence)
+    ActionMailer::Base.register_interceptor MailDomainAllowlistInterceptor.new(domains)
+  end
 end
