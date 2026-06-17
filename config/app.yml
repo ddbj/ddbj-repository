@@ -21,10 +21,12 @@ production: &production
 
 staging:
   <<: *production
-  app_url: https://repository-staging.ddbj.nig.ac.jp
-  web_url: https://repository-staging.ddbj.nig.ac.jp
+  app_url:              https://repository-staging.ddbj.nig.ac.jp
+  mail_allowed_domains: [ddbj.nig.ac.jp, ursm.jp]
+  web_url:              https://repository-staging.ddbj.nig.ac.jp
 
 dev:
   <<: *production
-  app_url: https://repository-dev.ddbj.nig.ac.jp
-  web_url: https://repository-dev.ddbj.nig.ac.jp
+  app_url:              https://repository-dev.ddbj.nig.ac.jp
+  mail_allowed_domains: [ddbj.nig.ac.jp, ursm.jp]
+  web_url:              https://repository-dev.ddbj.nig.ac.jp

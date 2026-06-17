@@ -29,6 +29,14 @@ class AccessionMailerTest < ActionMailer::TestCase
     end
   end
 
+  test 'issued — dev environment prepends [Dev] to subject' do
+    submission = submissions(:bioproject)
+    Rails.stub(:env, ActiveSupport::StringInquirer.new('dev')) do
+      mail = AccessionMailer.with(submission:, accessions: ['PRJDB1']).issued
+      assert_match(/\A\[Dev\] /, mail.subject)
+    end
+  end
+
   test 'issued — falls back to placeholder when User.email is unavailable' do
     submission = submissions(:bioproject)
     mail = AccessionMailer.with(submission:, accessions: ['PRJDB1']).issued
