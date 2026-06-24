@@ -40,4 +40,5 @@ updates:
     groups:
       types:
         patterns:
+          - '@glint/*'
           - '@types/*'
