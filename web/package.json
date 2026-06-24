@@ -93,7 +93,7 @@
     "highlight.js": "^11.11.1",
     "msw": "^2.14.6",
     "openapi-msw": "^2.0.0",
-    "prettier": "^3.8.3",
+    "prettier": "^3.8.4",
     "prettier-plugin-ember-template-tag": "^2.1.6",
     "qunit": "^2.26.0",
     "qunit-dom": "^3.5.1",
