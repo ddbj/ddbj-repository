@@ -49,7 +49,7 @@ RUN bundle exec bootsnap precompile app/ lib/
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
-FROM docker.io/library/node:24.14.1 AS web
+FROM docker.io/library/node:24.17.0 AS web
 
 ARG APP_URL
 ENV APP_URL=${APP_URL:?}
