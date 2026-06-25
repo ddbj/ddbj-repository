@@ -1,6 +1,23 @@
 'use strict';
 
 module.exports = function (environment) {
+  // Origin of the Rails backend, used as the base for every backend URL below.
+  //
+  // In production the built assets are served from the same origin as the API,
+  // so we leave this empty and let the URLs resolve relative to wherever the app
+  // is served. That keeps a single production image environment-agnostic (no
+  // per-environment APP_URL baked in at build time).
+  //
+  // In development the Ember and Rails servers run on separate origins, so we
+  // honour APP_URL (e.g. a Caddy endpoint terminating a socket) and fall back to
+  // the default Puma port.
+  const appURL =
+    environment === 'development'
+      ? process.env.APP_URL || 'http://localhost:3000'
+      : environment === 'test'
+        ? 'http://localhost:3000'
+        : '';
+
   const ENV = {
     modulePrefix: 'repository',
     environment,
@@ -19,12 +36,13 @@ module.exports = function (environment) {
       // when it is created
     },
 
-    appURL: process.env.APP_URL || 'http://localhost:3000',
+    appURL,
   };
 
-  ENV.apiURL = new URL('/api', ENV.appURL).toString();
-  ENV.adminURL = new URL('/admin', ENV.appURL).toString();
-  ENV.directUploadURL = new URL('/rails/active_storage/direct_uploads', ENV.appURL).toString();
+  ENV.apiURL = `${appURL}/api`;
+  ENV.adminURL = `${appURL}/admin`;
+  ENV.authURL = `${appURL}/auth/keycloak`;
+  ENV.directUploadURL = `${appURL}/rails/active_storage/direct_uploads`;
 
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;

@@ -51,9 +51,6 @@ RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
 FROM docker.io/library/node:24.17.0 AS web
 
-ARG APP_URL
-ENV APP_URL=${APP_URL:?}
-
 RUN npm install --global pnpm
 
 WORKDIR /web

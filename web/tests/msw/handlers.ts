@@ -4,8 +4,8 @@ import ENV from 'repository/config/environment';
 
 import { http } from './http';
 
-const directUploadURL = new URL('/rails/active_storage/direct_uploads', ENV.apiURL).toString();
-const diskURL = new URL('/rails/active_storage/disk/', ENV.apiURL).toString();
+const directUploadURL = ENV.directUploadURL;
+const diskURL = `${ENV.appURL}/rails/active_storage/disk/`;
 
 export const handlers = [
   http.get('/me', ({ response }) => {

@@ -23,6 +23,7 @@ export default config as {
   APP: Record<string, unknown>;
   apiURL: string;
   appURL: string;
+  authURL: string;
   directUploadURL: string;
   adminURL: string;
 } & Record<string, unknown>;
