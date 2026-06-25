@@ -15,10 +15,6 @@ volumes:
   - /mnt/submission:/submission
   - /lustre9/open/home/ddbjshare:/ddbjshare:ro
 
-builder:
-  args:
-    APP_URL: https://repository-dev.ddbj.nig.ac.jp
-
 accessories:
   postgres:
     host: repository-dev
