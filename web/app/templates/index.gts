@@ -7,7 +7,7 @@ import ENV from 'repository/config/environment';
 
 import type CurrentUserService from 'repository/services/current-user';
 
-const authURL = new URL('/auth/keycloak', ENV.apiURL).href;
+const authURL = ENV.authURL;
 
 export default class extends Component {
   @service declare currentUser: CurrentUserService;

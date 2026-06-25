@@ -98,7 +98,7 @@ export default class CurrentUserService extends Service {
 
     // /session is outside /api, so RequestManager's BaseURLHandler wouldn't
     // route it; AuthHandler would also attach a stale bearer token.
-    const sessionUrl = new URL('/session', ENV.apiURL).toString();
+    const sessionUrl = `${ENV.appURL}/session`;
 
     try {
       // eslint-disable-next-line warp-drive/no-external-request-patterns
