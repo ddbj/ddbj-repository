@@ -5,7 +5,7 @@ import type { RequestManager } from '@warp-drive/core';
 import type { paths } from 'schema/openapi';
 
 type SubmissionRequest =
-  paths['/{db}/submission_requests/{id}']['get']['responses']['200']['content']['application/json'];
+  paths['/submission_requests/{id}']['get']['responses']['200']['content']['application/json'];
 
 export default class extends Route {
   @service declare requestManager: RequestManager;
@@ -14,7 +14,7 @@ export default class extends Route {
     const { db } = this.paramsFor('db') as { db: string };
 
     const { content } = await this.requestManager.request<SubmissionRequest>({
-      url: `/${db}/submission_requests/${request_id}`,
+      url: `/submission_requests/${request_id}`,
     });
 
     return { db, ...content };

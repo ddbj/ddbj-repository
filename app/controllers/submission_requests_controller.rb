@@ -1,16 +1,19 @@
 class SubmissionRequestsController < ApplicationController
   def index
-    pagy, @requests = pagy(current_user.submission_requests.where(db: params[:db]).order(id: :desc))
+    scope = current_user.submission_requests.includes(submission: :accessions)
+    scope = scope.where(db: params[:db]) if params[:db].present?
+
+    pagy, @requests = pagy(scope.order(id: :desc))
 
     response.headers.merge! pagy.headers_hash
   end
 
   def show
-    @request = current_user.submission_requests.where(db: params[:db]).find(params[:id])
+    @request = current_user.submission_requests.find(params.expect(:id))
   end
 
   def create
-    @request = current_user.submission_requests.create!(**request_params, db: params[:db])
+    @request = current_user.submission_requests.create!(**request_params)
 
     raise ActiveRecord::RecordInvalid unless @request.waiting_validation?
 
@@ -22,8 +25,6 @@ class SubmissionRequestsController < ApplicationController
   private
 
   def request_params
-    params.expect(submission_request: [
-      :ddbj_record
-    ])
+    params.expect(submission_request: %i[db ddbj_record])
   end
 end

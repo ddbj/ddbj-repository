@@ -69,19 +69,34 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /{db}/submission_requests:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
+  /submission_requests:
     get:
-      description: Get a list of submission requests.
+      description: Get a list of submission requests. Omit `db` to span every database the user has access to.
 
       tags:
         - Submission Requests
 
+      parameters:
+        - name: db
+          in: query
+
+          schema:
+            $ref: '#/components/schemas/Db'
+
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
       responses:
         '200':
           description: Returns the list of submission requests.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
 
           content:
             application/json:
@@ -114,9 +129,12 @@ paths:
                 submission_request:
                   type: object
                   additionalProperties: false
-                  required: [ddbj_record]
+                  required: [db, ddbj_record]
 
                   properties:
+                    db:
+                      $ref: '#/components/schemas/Db'
+
                     ddbj_record:
                       type: string
                       format: binary
@@ -136,23 +154,20 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /{db}/submission_requests/{id}:
+  /submission_requests/{id}:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
       description: Get a submission request.
 
       tags:
         - Submission Requests
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
 
       responses:
         '200':
@@ -169,23 +184,20 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submission_requests/{id}/status:
+  /submission_requests/{id}/status:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
       description: Get the status of a submission request. Lightweight endpoint for polling.
 
       tags:
         - Submission Requests
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
 
       responses:
         '200':
@@ -202,23 +214,20 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submission_requests/{id}/submission:
+  /submission_requests/{id}/submission:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     post:
       description: Apply a submission request.
 
       tags:
         - Submission Requests
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
 
       responses:
         '204':
@@ -233,19 +242,34 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /{db}/submissions:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
+  /submissions:
     get:
-      description: Get a list of submissions.
+      description: Get a list of submissions. Omit `db` to span every database the user has access to.
 
       tags:
         - Submissions
 
+      parameters:
+        - name: db
+          in: query
+
+          schema:
+            $ref: '#/components/schemas/Db'
+
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
       responses:
         '200':
           description: Returns the list of submissions.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
 
           content:
             application/json:
@@ -258,23 +282,20 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /{db}/submissions/{id}:
+  /submissions/{id}:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
       description: Get a submission.
 
       tags:
         - Submissions
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
 
       responses:
         '200':
@@ -291,9 +312,14 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submissions/{id}/accessions:
+  /submissions/{id}/accessions:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
       description: Get a paginated list of accessions for a submission.
@@ -302,13 +328,6 @@ paths:
         - Submissions
 
       parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
-
         - name: page
           in: query
 
@@ -403,12 +422,18 @@ components:
 
       required:
         - id
+        - db
         - status
         - created_at
+        - submission_id
+        - has_accession
 
       properties:
         id:
           type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
 
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'
@@ -416,6 +441,13 @@ components:
         created_at:
           type: string
           format: date-time
+
+        submission_id:
+          type: number
+          nullable: true
+
+        has_accession:
+          type: boolean
 
     SubmissionRequestStatus:
       type: object
@@ -570,12 +602,16 @@ components:
 
       required:
         - id
+        - db
         - created_at
         - updated_at
 
       properties:
         id:
           type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
 
         created_at:
           type: string
@@ -723,12 +759,3 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
 
-  parameters:
-    Db:
-      name: db
-      in: path
-      required: true
-      description: Database that the submission belongs to.
-
-      schema:
-        $ref: '#/components/schemas/Db'

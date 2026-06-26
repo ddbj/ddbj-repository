@@ -45,7 +45,7 @@ export default <template>
           </td>
 
           <td>{{formatDatetime request.created_at}}</td>
-          <td><StatusBadge @status={{request.status}} /></td>
+          <td><StatusBadge @status={{request.status}} @hasAccession={{request.has_accession}} /></td>
         </tr>
       {{/each}}
     </tbody>

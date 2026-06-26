@@ -33,7 +33,7 @@ export default class extends Component<Signature> {
     const { model } = this.args;
 
     await this.requestManager.request({
-      url: `/${model.db}/submission_requests/${model.id}/submission`,
+      url: `/submission_requests/${model.id}/submission`,
       method: 'POST',
     });
 

@@ -13,15 +13,16 @@ Rails.application.routes.draw do
 
     resource :me, only: %i[show]
 
-    scope ':db', constraints: {db: Regexp.union(Submission.dbs.keys)} do
-      resources :submission_requests, only: %i[index show create] do
-        resource :status,     only: :show
-        resource :submission, only: :create
-      end
+    # Submission identifiers are globally unique, so the routes are flat
+    # — no /:db scope. `index` accepts an optional `?db=xxx` query to
+    # filter; `create` reads the target database from the request body.
+    resources :submission_requests, only: %i[index show create] do
+      resource :status,     only: :show
+      resource :submission, only: :create
+    end
 
-      resources :submissions, only: %i[index show] do
-        resources :accessions, only: %i[index]
-      end
+    resources :submissions, only: %i[index show] do
+      resources :accessions, only: %i[index]
     end
 
     resources :accessions, only: %i[show], param: :number, constraints: {number: %r{[^/]+}}

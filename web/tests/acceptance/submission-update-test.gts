@@ -41,7 +41,7 @@ module('Acceptance | submission update', function (hooks) {
     // --- Submission detail page ---
 
     worker.use(
-      http.get('/{db}/submissions/{id}', ({ response }) => {
+      http.get('/submissions/{id}', ({ response }) => {
         return response(200).json(submission);
       }),
     );
