@@ -84,25 +84,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_requests": {
+    "/submission_requests": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** @description Get a list of submission requests. */
+        /** @description Get a list of submission requests. Omit `db` to span every database the user has access to. */
         get: {
             parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
+                query?: {
+                    db?: components["schemas"]["Db"];
+                    page?: number;
                 };
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -110,6 +107,7 @@ export interface paths {
                 /** @description Returns the list of submission requests. */
                 200: {
                     headers: {
+                        "Total-Pages"?: string;
                         [name: string]: unknown;
                     };
                     content: {
@@ -125,16 +123,14 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody: {
                 content: {
                     "application/json": {
                         submission_request: {
+                            db: components["schemas"]["Db"];
                             /** Format: binary */
                             ddbj_record: string;
                         };
@@ -161,13 +157,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_requests/{id}": {
+    "/submission_requests/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -177,8 +172,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -206,13 +199,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_requests/{id}/status": {
+    "/submission_requests/{id}/status": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -222,8 +214,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -251,13 +241,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_requests/{id}/submission": {
+    "/submission_requests/{id}/submission": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -269,8 +258,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -295,114 +282,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_updates/{id}": {
+    "/submissions": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** @description Get a submission update. */
+        /** @description Get a list of submissions. Omit `db` to span every database the user has access to. */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    db?: components["schemas"]["Db"];
+                    page?: number;
+                };
                 header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Returns the requested submission update. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SubmissionUpdate"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/{db}/submission_updates/{id}/submission": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description Apply a submission update. */
-        patch: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Accepted the submission update application. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-                422: components["responses"]["UnprocessableContent"];
-            };
-        };
-        trace?: never;
-    };
-    "/{db}/submissions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
-            cookie?: never;
-        };
-        /** @description Get a list of submissions. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -410,6 +305,7 @@ export interface paths {
                 /** @description Returns the list of submissions. */
                 200: {
                     headers: {
+                        "Total-Pages"?: string;
                         [name: string]: unknown;
                     };
                     content: {
@@ -427,13 +323,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submissions/{id}": {
+    "/submissions/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -443,8 +338,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -472,13 +365,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submissions/{id}/accessions": {
+    "/submissions/{id}/accessions": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -490,8 +382,6 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -567,61 +457,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submissions/{id}/updates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Create a submission update. */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        submission_update: {
-                            /** Format: binary */
-                            ddbj_record: string;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description Accepted the submission update creation. */
-                202: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SubmissionUpdate"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-                422: components["responses"]["UnprocessableContent"];
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -630,9 +465,12 @@ export interface components {
         Db: "st26" | "bioproject" | "biosample";
         SubmissionRequestSummary: {
             id: number;
+            db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
             /** Format: date-time */
             created_at: string;
+            submission_id: number | null;
+            has_accession: boolean;
         };
         SubmissionRequestStatus: {
             id: number;
@@ -650,18 +488,6 @@ export interface components {
             ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;
             submission: components["schemas"]["Submission"] | null;
-        };
-        SubmissionUpdate: {
-            id: number;
-            status: components["schemas"]["SubmissionOperationStatus"];
-            diff: string | null;
-            error_message: string | null;
-            /** Format: date-time */
-            created_at: string;
-            processing: boolean;
-            ddbj_record: components["schemas"]["Attachment"];
-            validation: components["schemas"]["Validation"] | null;
-            submission: components["schemas"]["Submission"];
         };
         Validation: {
             id: number;
@@ -683,6 +509,7 @@ export interface components {
         };
         SubmissionSummary: {
             id: number;
+            db: components["schemas"]["Db"];
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -697,14 +524,6 @@ export interface components {
             ddbj_record: components["schemas"]["Attachment"];
             flatfile_na: components["schemas"]["Attachment"] | null;
             flatfile_aa: components["schemas"]["Attachment"] | null;
-            updates: {
-                id: number;
-                status: components["schemas"]["SubmissionOperationStatus"];
-                /** Format: date-time */
-                created_at: string;
-                ddbj_record: components["schemas"]["Attachment"];
-                validation: components["schemas"]["Validation"] | null;
-            }[];
         };
         Accession: {
             number: string;
@@ -771,10 +590,7 @@ export interface components {
             };
         };
     };
-    parameters: {
-        /** @description Database that the submission belongs to. */
-        Db: components["schemas"]["Db"];
-    };
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;

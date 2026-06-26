@@ -1,3 +1,8 @@
 # locals: (submission_request:)
 
-submission_request.slice(:id, :status, :created_at)
+{
+  **submission_request.slice(:id, :db, :status, :created_at),
+
+  submission_id: submission_request.submission&.id,
+  has_accession: submission_request.submission&.accessions&.any? || false
+}

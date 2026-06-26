@@ -1,16 +1,19 @@
 class SubmissionsController < ApplicationController
   def index
-    pagy, @submissions = pagy(current_user.submissions.where(db: params[:db]).order(id: :desc))
+    scope = current_user.submissions
+    scope = scope.where(db: params[:db]) if params[:db].present?
+
+    pagy, @submissions = pagy(scope.order(id: :desc))
 
     response.headers.merge! pagy.headers_hash
   end
 
   def show
-    @submission = current_user.submissions.where(db: params[:db]).find(params.expect(:id))
+    @submission = current_user.submissions.find(params.expect(:id))
   end
 
   def create
-    request = current_user.submission_requests.where(db: params[:db]).valid_only.joins(
+    request = current_user.submission_requests.valid_only.joins(
       :validation
     ).where(
       validations: {

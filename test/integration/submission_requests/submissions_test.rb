@@ -20,7 +20,7 @@ class SubmissionRequestsSubmissionsTest < ActionDispatch::IntegrationTest
     )
 
     perform_enqueued_jobs do
-      post submission_request_submission_path(db: 'st26', submission_request_id: request.id)
+      post submission_request_submission_path(submission_request_id: request.id)
     end
 
     assert_conform_schema 204
