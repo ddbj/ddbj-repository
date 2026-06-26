@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_03_134220) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_26_162708) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -110,6 +110,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_03_134220) do
     t.index ["assignee_id"], name: "index_projects_on_assignee_id"
     t.index ["status"], name: "index_projects_on_status"
     t.index ["submission_id"], name: "index_projects_on_submission_id", unique: true
+  end
+
+  create_table "public_xml_runs", force: :cascade do |t|
+    t.integer "added", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.string "db", null: false
+    t.integer "emitted", default: 0, null: false
+    t.text "error_log"
+    t.datetime "finished_at"
+    t.string "kind", null: false
+    t.datetime "started_at", null: false
+    t.string "status", default: "running", null: false
+    t.integer "unchanged", default: 0, null: false
+    t.integer "updated", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["db", "kind", "finished_at"], name: "index_public_xml_runs_on_db_and_kind_and_finished_at"
+    t.index ["db", "kind", "status"], name: "index_public_xml_runs_on_db_and_kind_and_status"
   end
 
   create_table "regenerate_flatfiles_progresses", force: :cascade do |t|
