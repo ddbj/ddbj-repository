@@ -133,14 +133,17 @@
 <% end %>
 
 <%# === Common edits === %>
-<%# hold_date / comments / submitters apply to every DB (v3 Submission-level %>
-<%# fields, not BP/BS-specific). Skipped when the patch chain failed to %>
-<%# replay since a corrupted chain can't be safely edited. %>
+<%# hold_date / submitters apply to every DB (v3 Submission-level fields, %>
+<%# not BP/BS-specific). Skipped when the patch chain failed to replay %>
+<%# since a corrupted chain can't be safely edited. %>
 <% if @materialised && !@materialisation_error %>
   <%= render 'admin/hold_dates/curator_edit', submission: @submission %>
-  <%= render 'admin/comments/curator_edit',   submission: @submission %>
   <%= render 'admin/submitters/curator_edit', submission: @submission %>
 <% end %>
+
+<%# curator_comment is a typed AR column — independent of the patch chain, %>
+<%# so it stays editable even when the materialised record is broken. %>
+<%= render 'admin/curator_comments/curator_edit', submission: @submission %>
 
 <h2 class="h4 mt-4">
   Patch chain

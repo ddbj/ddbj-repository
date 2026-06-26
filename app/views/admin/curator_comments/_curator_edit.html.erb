@@ -1,0 +1,23 @@
+<%# Curator-edit form for Submission#curator_comment — a typed AR text %>
+<%# column. Internal-only note; never reaches the DDBJ Record. %>
+<section class="card mt-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Curator comment</h2>
+
+    <p class="text-body-secondary small">
+      Free-form note visible only to other curators. Not part of the DDBJ Record.
+    </p>
+
+    <%= form_with url: admin_submission_curator_comment_path(submission),
+                  method: :patch,
+                  scope:  :submission_curator_comment,
+                  local:  true do |f| %>
+      <div class="mb-3">
+        <%= f.label :body, 'Comment', class: 'form-label' %>
+        <%= f.text_area :body, value: submission.curator_comment, rows: 4, class: 'form-control font-monospace small' %>
+      </div>
+
+      <%= f.submit 'Save comment', class: 'btn btn-primary' %>
+    <% end %>
+  </div>
+</section>
