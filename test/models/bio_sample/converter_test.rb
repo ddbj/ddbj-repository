@@ -39,9 +39,13 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
 
     record = C.new(submission: sub).call
 
-    assert_equal 'v3',                                record['schema_version']
+    assert_equal 'v3',                               record['schema_version']
     assert_equal({'source_format' => 'dway_bs_eav'}, record['provenance'])
-    assert_equal ['[2014] Test submission'],          record.dig('submission', 'comments')
+
+    # Staging's `comment` column is now carried by the Importer onto a
+    # typed Submission#curator_comment AR column, NOT lifted into v3.
+    refute_includes Array(record['submission']&.keys), 'comments',
+                    'D-way comment must not leak into v3 submission.comments'
 
     sample_v3 = record.fetch('samples').first
     assert_equal 'SAMD00099999',                                              sample_v3['accession']
@@ -106,17 +110,17 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     refute_includes submitter.keys, 'organizations'
   end
 
-  test 'omits comments key entirely when staging comment is blank' do
-    [nil, '', '   '].each do |blank|
+  test 'never lifts the staging comment into v3 submission.comments (curator_comment is typed-column)' do
+    ['', '   ', 'a real comment', "multi\nline"].each do |value|
       sub = build_submission(
-        comment:  blank,
+        comment:  value,
         samples:  [sample],
         contacts: [SC::Contact.new(email: 'x@example.test', first: 'X', last: 'Y')] # keeps submission block non-empty
       )
       submission = C.new(submission: sub).call.fetch('submission')
 
       refute_includes submission.keys, 'comments',
-                      "blank comment (#{blank.inspect}) must not produce a `comments` key"
+                      "comment value #{value.inspect} must never produce a `comments` key — the v3 slot is reserved for legitimate (e.g. Trad) commentary"
     end
   end
 

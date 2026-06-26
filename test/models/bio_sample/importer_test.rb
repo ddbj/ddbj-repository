@@ -39,10 +39,11 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
     assert_equal :created, result.outcome
     submission = result.submission
-    assert_equal 'biosample', submission.db
-    assert_equal 'SSUB-test', submission.source_id
-    assert_equal 3,           submission.samples.count
-    assert_equal 1,           submission.updates.count
+    assert_equal 'biosample',            submission.db
+    assert_equal 'SSUB-test',            submission.source_id
+    assert_equal 3,                      submission.samples.count
+    assert_equal 1,                      submission.updates.count
+    assert_equal '[2014] sample import', submission.curator_comment, 'curator_comment is sourced from the staging row comment column'
 
     sample = submission.samples.find_by(accession: 'SAMD00099991')
     assert_equal 'DRS000001',            sample.sample_name
@@ -97,10 +98,14 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     result.submission.update_columns(cached_materialised_record: nil, cached_at_update_id: nil)
     replayed = result.submission.reload.materialised_record
 
-    assert_equal 'v3',                                replayed['schema_version']
-    assert_equal({'source_format' => 'dway_bs_eav'},  replayed['provenance'])
-    assert replayed.key?('samples'),     'samples must be in the materialised replay'
-    assert replayed.key?('submission'),  'submission must be in the materialised replay'
+    assert_equal 'v3',                               replayed['schema_version']
+    assert_equal({'source_format' => 'dway_bs_eav'}, replayed['provenance'])
+    assert replayed.key?('samples'), 'samples must be in the materialised replay'
+    # NB: the build helper supplies no contacts and the staging `comment`
+    # column is no longer lifted into v3, so the `submission` block is
+    # legitimately empty and dropped by the Converter. Volatile-field
+    # carry-through is verified by the schema_version / provenance
+    # assertions above.
   end
 
   test 're-run with a non-key field change inside a keyed array produces per-field patches (no fallback)' do

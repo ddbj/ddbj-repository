@@ -63,6 +63,14 @@ module BioSample
         # protect them without permanently stranding staging updates.
         sync_samples!(submission, record)
 
+        # curator_comment is staging-only too: the Converter intentionally
+        # does NOT put it into v3 (it's a curator-internal note, not
+        # DDBJ Record content), so the patch-difference skip cannot
+        # carry it. Always re-stamp.
+        if submission.curator_comment != @row.comment
+          submission.update_columns(curator_comment: @row.comment)
+        end
+
         # Fast :skipped path: if the cached materialised bytes match the
         # freshly-dumped record bytes, the chain content has not changed
         # and we can short-circuit without paying Canonicalizer.diff's

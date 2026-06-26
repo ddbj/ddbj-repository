@@ -52,13 +52,16 @@ module BioSample
           # so we lift it as a single-element array.
           person['organizations'] = [org_block] if org_block
           person
-        },
-        # v3 Submission.comments is `list[str]`; staging carries a single
-        # free-form scalar comment. Wrap to satisfy the schema; drop the
-        # key entirely if the staging comment is blank.
-        'comments'   => Array(@submission.comment.presence).presence
+        }
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }
 
+      # NOTE: the D-way staging `comment` column is intentionally NOT
+      # carried into v3. It is a curator-internal note (visible only to
+      # other curators) and not part of the DDBJ Record contract — the
+      # Importer copies it to Submission#curator_comment as a typed AR
+      # column instead. v3 `submission.comments` remains a legitimate
+      # slot for submitter-visible commentary (e.g. Trad genome
+      # submissions), just not the one D-way's BS comment maps to.
       block.presence
     end
 
