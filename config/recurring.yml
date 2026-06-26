@@ -3,6 +3,14 @@ production: &production
     class: LoadTaxdumpJob
     schedule: at 6am every day
 
+  publish_bp_xml:
+    class: PublishBpXMLJob
+    schedule: at 2am every day
+
+  publish_bs_xml:
+    class: PublishBsXMLJob
+    schedule: at 2:30am every day
+
 staging:
   <<: *production
 

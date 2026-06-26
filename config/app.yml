@@ -5,6 +5,9 @@ development:
   validator_url:          http://localhost:3001/api
   web_url:                <%= ENV.fetch('WEB_URL', 'http://localhost:4200') %>
 
+  public_xml_bp_dir: <%= Rails.root.join('storage/public_xml/bp') %>
+  public_xml_bs_dir: <%= Rails.root.join('storage/public_xml/bs') %>
+
 test:
   app_url:                http://repository.example.com:3000
   mass_dir_path_template: <%= Rails.root.join('spec/fixtures/files/submission/{user}') %>
@@ -12,12 +15,18 @@ test:
   validator_url:          http://validator.example.com/api
   web_url:                http://repository.example.com:4200
 
+  public_xml_bp_dir: <%= Rails.root.join('tmp/storage/public_xml/bp') %>
+  public_xml_bs_dir: <%= Rails.root.join('tmp/storage/public_xml/bs') %>
+
 production: &production
   app_url:                https://repository.ddbj.nig.ac.jp
   mass_dir_path_template: /submission/{user}/submission/{user}/mass
   repository_dir:         <%= Rails.root.join('storage/repository') %>
   validator_url:          http://repository-validator:3000/api
   web_url:                https://repository.ddbj.nig.ac.jp
+
+  public_xml_bp_dir: <%= Rails.root.join('storage/public_xml/bp') %>
+  public_xml_bs_dir: <%= Rails.root.join('storage/public_xml/bs') %>
 
 staging:
   <<: *production
