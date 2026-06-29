@@ -21,7 +21,10 @@ module SampleTSV
   class Importer
     Result = Struct.new(:total, :processed, :failed, :error_report, :fatal_error, keyword_init: true)
 
-    BOM = '﻿'
+    # U+FEFF (UTF-8: EF BB BF). Written via the Unicode escape so the
+    # source file isn't carrying invisible zero-width bytes that look
+    # like an empty string to a reviewer.
+    BOM = "\u{FEFF}"
 
     def initialize(submission:, tsv_body:, actor:)
       @submission = submission

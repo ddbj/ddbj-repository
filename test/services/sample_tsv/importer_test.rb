@@ -146,7 +146,7 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
   end
 
   test 'strips UTF-8 BOM from the leading header so Excel-exported TSVs parse' do
-    tsv = "﻿sample_name\torganism\nsample-A\tMus musculus\n"
+    tsv = "\u{FEFF}sample_name\torganism\nsample-A\tMus musculus\n"
 
     result = run_importer(tsv)
 
