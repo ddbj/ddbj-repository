@@ -1,1 +1,6 @@
-render(partial: 'submission_request_summary', collection: @requests, as: :submission_request)
+render(
+  partial:    'submission_request_summary',
+  collection: @requests,
+  as:         :submission_request,
+  locals:     {unread_submission_ids: @unread_submission_ids}
+)

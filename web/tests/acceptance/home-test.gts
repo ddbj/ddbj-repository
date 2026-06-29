@@ -24,6 +24,7 @@ module('Acceptance | home', function (hooks) {
               created_at: now,
               submission_id: 42,
               has_accession: true,
+              has_unread_curator_message: true,
             },
             {
               id: 3,
@@ -32,6 +33,7 @@ module('Acceptance | home', function (hooks) {
               created_at: now,
               submission_id: null,
               has_accession: false,
+              has_unread_curator_message: false,
             },
           ],
           {
@@ -52,12 +54,14 @@ module('Acceptance | home', function (hooks) {
     assert.dom(`${firstRow} td:nth-child(2)`).hasText('BioSample');
     assert.dom(`${firstRow} td:nth-child(3) .badge`).hasText('Accessioned');
     assert.dom(`${firstRow} td:nth-child(4) a`).hasText('Submission-42');
+    assert.dom(`${firstRow} td:nth-child(4) .badge.text-bg-warning`).hasText('New message');
 
     const secondRow = 'tbody tr:nth-child(2)';
     assert.dom(`${secondRow} td:nth-child(1)`).hasText('Request-3');
     assert.dom(`${secondRow} td:nth-child(2)`).hasText('BioProject');
     assert.dom(`${secondRow} td:nth-child(3) .badge`).hasText('validating');
     assert.dom(`${secondRow} td:nth-child(4) a`).doesNotExist();
+    assert.dom(`${secondRow} td:nth-child(4) .badge.text-bg-warning`).doesNotExist();
   });
 
   test('empty state links to /new', async function (assert) {

@@ -357,6 +357,83 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /submissions/{submission_id}/messages:
+    parameters:
+      - name: submission_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    get:
+      description: Get the curator ↔ submitter message thread for a submission. Marks any unread curator-authored messages as read.
+
+      tags:
+        - Submissions
+
+      responses:
+        '200':
+          description: Returns the chronological list of messages.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/Message'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      description: Submitter posts a reply to the thread. Notifies curators by email.
+
+      tags:
+        - Submissions
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [submission_message]
+
+              properties:
+                submission_message:
+                  type: object
+                  additionalProperties: false
+                  required: [body]
+
+                  properties:
+                    body:
+                      type: string
+
+      responses:
+        '201':
+          description: Returns the newly-created message.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
   /accessions/{number}:
     get:
       description: Get an accession by number, including its submission and flatfile URLs.
@@ -427,6 +504,7 @@ components:
         - created_at
         - submission_id
         - has_accession
+        - has_unread_curator_message
 
       properties:
         id:
@@ -447,6 +525,9 @@ components:
           nullable: true
 
         has_accession:
+          type: boolean
+
+        has_unread_curator_message:
           type: boolean
 
     SubmissionRequestStatus:
@@ -694,6 +775,46 @@ components:
         url:
           type: string
           format: uri
+
+    Message:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - body
+        - author_role
+        - author_uid
+        - created_at
+        - read_at
+
+      properties:
+        id:
+          type: number
+
+        body:
+          type: string
+
+        author_role:
+          type: string
+
+          enum:
+            - curator
+            - submitter
+
+        author_uid:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        read_at:
+          type:
+            - string
+            - 'null'
+
+          format: date-time
 
     SubmissionOperationStatus:
       type: string

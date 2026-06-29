@@ -44,6 +44,11 @@ module('Acceptance | submission update', function (hooks) {
       http.get('/submissions/{id}', ({ response }) => {
         return response(200).json(submission);
       }),
+
+      // SubmissionMessages component auto-fetches on render.
+      http.get('/submissions/{submission_id}/messages', ({ response }) => {
+        return response(200).json([]);
+      }),
     );
 
     await visit('/st26/submissions/1');

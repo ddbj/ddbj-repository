@@ -68,6 +68,10 @@ export default class extends Component<Signature> {
                     <LinkTo @route="submission" @models={{array request.db request.submission_id}}>
                       Submission-{{request.submission_id}}
                     </LinkTo>
+
+                    {{#if request.has_unread_curator_message}}
+                      <span class="badge text-bg-warning ms-2" title="Curator has posted a new message">New message</span>
+                    {{/if}}
                   {{/if}}
                 </td>
 

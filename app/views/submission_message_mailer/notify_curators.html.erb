@@ -1,0 +1,18 @@
+<% app_url = Rails.application.config_for(:app).app_url! %>
+<% thread_url = File.join(app_url, 'admin', 'submissions', @submission.id.to_s) %>
+
+<p>
+  The submitter (<%= @submission.user.uid %>) has replied on
+  <%= @submission.db.humanize %> submission
+  (<%= @submission.source_id.presence || "##{@submission.id}" %>):
+</p>
+
+<blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
+  <%= simple_format @message.body %>
+</blockquote>
+
+<p>
+  <a href="<%= thread_url %>">Open the thread in the admin UI.</a>
+</p>
+
+<p>— DDBJ Repository</p>

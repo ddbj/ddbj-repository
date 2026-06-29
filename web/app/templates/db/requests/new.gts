@@ -16,8 +16,7 @@ import type RouterService from '@ember/routing/router-service';
 import type { Blob } from '@rails/activestorage';
 import type { paths } from 'schema/openapi';
 
-type CreateRequestResponse =
-  paths['/submission_requests']['post']['responses']['202']['content']['application/json'];
+type CreateRequestResponse = paths['/submission_requests']['post']['responses']['202']['content']['application/json'];
 
 interface Signature {
   Args: {

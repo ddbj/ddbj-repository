@@ -1,0 +1,45 @@
+<%# Per-submission curator ↔ submitter thread. Submitter posts via the %>
+<%# web UI; curator posts via the form at the bottom of this card. %>
+<section class="card mt-4">
+  <div class="card-body">
+    <h2 class="h5 card-title">Messages</h2>
+
+    <p class="text-body-secondary small">
+      Conversation between the submitter (<code><%= submission.user.uid %></code>) and curators.
+      Notification emails fire on each post; replies happen here.
+    </p>
+
+    <% if messages.any? %>
+      <ul class="list-unstyled mb-3">
+        <% messages.each do |m| %>
+          <li class="border rounded p-2 mb-2 <%= 'bg-light' if m.curator_role? %>">
+            <div class="d-flex justify-content-between small text-body-secondary">
+              <span>
+                <strong>
+                  <%= m.curator_role? ? 'Curator' : 'Submitter' %>
+                </strong>
+                — <%= m.user.uid %>
+              </span>
+              <span><%= m.created_at.iso8601 %></span>
+            </div>
+            <div class="mt-1" style="white-space: pre-wrap;"><%= m.body %></div>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-body-secondary fst-italic">No messages yet.</p>
+    <% end %>
+
+    <%= form_with url: admin_submission_messages_path(submission),
+                  method: :post,
+                  scope:  :submission_message,
+                  local:  true do |f| %>
+      <div class="mb-3">
+        <%= f.label :body, 'New message to submitter', class: 'form-label' %>
+        <%= f.text_area :body, rows: 4, class: 'form-control font-monospace small', required: true %>
+      </div>
+
+      <%= f.submit 'Send message', class: 'btn btn-primary' %>
+    <% end %>
+  </div>
+</section>

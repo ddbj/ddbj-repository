@@ -2,6 +2,7 @@ import { LinkTo } from '@ember/routing';
 import { array, concat, hash } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
+import SubmissionMessages from 'repository/components/submission-messages';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 
@@ -94,6 +95,8 @@ import type { components } from 'schema/openapi';
       {{/each}}
     </tbody>
   </table>
+
+  <SubmissionMessages @submissionId={{@model.id}} />
 </template> satisfies TOC<{
   Args: {
     model: { db: string } & components['schemas']['Submission'];

@@ -5,6 +5,18 @@ class SubmissionRequestsController < ApplicationController
 
     pagy, @requests = pagy(scope.order(id: :desc))
 
+    # Pre-fetch the set of submissions with at least one unread curator
+    # message so the view's `has_unread_curator_message` flag doesn't
+    # N+1. One indexed query per page.
+    submission_ids = @requests.filter_map { it.submission&.id }
+    @unread_submission_ids =
+      SubmissionMessage
+        .curator_role.unread
+        .where(submission_id: submission_ids)
+        .distinct
+        .pluck(:submission_id)
+        .to_set
+
     response.headers.merge! pagy.headers_hash
   end
 
