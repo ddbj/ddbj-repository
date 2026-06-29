@@ -102,7 +102,6 @@
           <th>Tax ID</th>
           <th>Status</th>
           <th>Assignee</th>
-          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -115,14 +114,6 @@
             <td><%= sample.taxonomy_id || '—' %></td>
             <td><span class="badge text-bg-light"><%= sample.status %></span></td>
             <td><%= sample.assignee&.uid || '—' %></td>
-            <%# data-turbo-frame="_top" breaks out of the enclosing %>
-            <%# <turbo-frame id="samples"> wrapper around the samples %>
-            <%# table — without it Turbo would try to load the full edit %>
-            <%# page into the samples frame and fail with "content missing" %>
-            <%# since the edit page has no matching <turbo-frame id="samples">. %>
-            <td><%= link_to 'Edit', edit_admin_sample_path(sample),
-                            class: 'btn btn-sm btn-outline-secondary',
-                            data:  {turbo_frame: '_top'} %></td>
           </tr>
         <% end %>
       </tbody>
@@ -130,6 +121,35 @@
 
     <%= render 'admin/shared/pagy_nav', pagy: @samples_pagy %>
   </turbo-frame>
+
+  <%# 100K-sample BS submissions are routinely curated via TSV round-trip %>
+  <%# rather than per-row editing. Export streams the current sample bag; %>
+  <%# Upload enqueues an async import that re-projects v3 attributes + %>
+  <%# typed columns and surfaces a per-row error report on the import show. %>
+  <section class="card mt-3">
+    <div class="card-body">
+      <h2 class="h5 card-title">Samples — bulk edit via TSV</h2>
+
+      <p class="text-body-secondary small">
+        Download the current samples as TSV, edit in a spreadsheet, then upload to apply.
+        Blank attribute cells delete the attribute; new column headers add new attributes.
+        Identifier column is <code>sample_name</code>; <code>accession</code> is read-only context.
+      </p>
+
+      <%= link_to 'Download TSV',
+                  admin_submission_sample_tsv_export_path(@submission),
+                  class: 'btn btn-outline-secondary me-2' %>
+
+      <%= form_with url:        admin_submission_sample_tsv_imports_path(@submission),
+                    method:     :post,
+                    multipart:  true,
+                    local:      true,
+                    class:      'd-inline-flex align-items-center gap-2' do |f| %>
+        <%= f.file_field :file, accept: 'text/tab-separated-values,text/plain,.tsv,.txt', required: true, class: 'form-control form-control-sm' %>
+        <%= f.submit 'Upload TSV', class: 'btn btn-primary' %>
+      <% end %>
+    </div>
+  </section>
 <% end %>
 
 <%# === Common edits === %>

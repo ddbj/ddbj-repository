@@ -17,11 +17,11 @@ class SubmissionUpdateTest < ActiveSupport::TestCase
     end
   end
 
-  test 'source enum exposes migration / manual / batch' do
+  test 'source enum exposes migration / manual / batch / tsv_import' do
     update = submission_updates(:st26)
 
     assert update.migration?
-    assert_equal({'manual' => 0, 'migration' => 1, 'batch' => 2}, SubmissionUpdate.sources)
+    assert_equal({'manual' => 0, 'migration' => 1, 'batch' => 2, 'tsv_import' => 3}, SubmissionUpdate.sources)
   end
 
   test 'roundtrips arbitrary patch bytes including null bytes' do

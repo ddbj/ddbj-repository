@@ -1,0 +1,64 @@
+<% content_for :title, "Sample TSV import ##{@import.id}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration', path: admin_root_path},
+  {label: 'Submissions',    path: admin_submissions_path},
+  {label: submission_label(@submission), path: admin_submission_path(@submission)},
+  {label: "Sample TSV import ##{@import.id}"}
+] %>
+
+<h1 class="display-6 mb-4">Sample TSV import</h1>
+
+<dl class="row">
+  <dt class="col-sm-3">Submission</dt>
+  <dd class="col-sm-9">
+    <%= link_to submission_label(@submission), admin_submission_path(@submission) %>
+  </dd>
+
+  <dt class="col-sm-3">Triggered by</dt>
+  <dd class="col-sm-9"><%= @import.actor %></dd>
+
+  <dt class="col-sm-3">Started at</dt>
+  <dd class="col-sm-9"><%= @import.started_at.to_fs(:db) %></dd>
+
+  <% if @import.finished_at %>
+    <dt class="col-sm-3">Finished at</dt>
+    <dd class="col-sm-9"><%= @import.finished_at.to_fs(:db) %></dd>
+  <% end %>
+</dl>
+
+<% if @import.loading? %>
+  <div class="card" data-controller="auto-refresh">
+    <div class="card-body">
+      <p class="mb-2">Importing — refreshing automatically…</p>
+
+      <div class="progress">
+        <div class="progress-bar progress-bar-striped progress-bar-animated"
+             role="progressbar"
+             style="width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+<% elsif @import.failed_status? %>
+  <div class="alert alert-danger" role="alert">
+    Import failed.
+    <% if @import.error_report.present? %>
+      <pre class="mt-2 mb-0"><%= @import.error_report %></pre>
+    <% end %>
+  </div>
+<% else %>
+  <div class="alert alert-<%= @import.failed.positive? ? 'warning' : 'success' %>" role="alert">
+    Completed:
+    <strong><%= @import.processed %></strong> rows applied<% if @import.failed.positive? %>,
+    <strong><%= @import.failed %></strong> rows failed<% end %>
+    (of <strong><%= @import.total %></strong> total).
+
+    <% if @import.error_report.present? %>
+      <div class="mt-2">
+        <%= link_to 'Download error report TSV',
+                    error_report_admin_submission_sample_tsv_import_path(@submission, @import),
+                    class: 'alert-link' %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

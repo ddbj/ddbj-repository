@@ -8,9 +8,10 @@ class SubmissionUpdate < ApplicationRecord
   }, suffix: true, validate: true
 
   enum :source, {
-    manual:    0,
-    migration: 1,
-    batch:     2
+    manual:     0,
+    migration:  1,
+    batch:      2,
+    tsv_import: 3
   }, validate: true
 
   belongs_to :submission, inverse_of: :updates
