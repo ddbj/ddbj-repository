@@ -4,8 +4,7 @@ import { service } from '@ember/service';
 import type { RequestManager } from '@warp-drive/core';
 import type { paths } from 'schema/openapi';
 
-type SubmissionRequest =
-  paths['/submission_requests/{id}']['get']['responses']['200']['content']['application/json'];
+type SubmissionRequest = paths['/submission_requests/{id}']['get']['responses']['200']['content']['application/json'];
 
 export default class extends Route {
   @service declare requestManager: RequestManager;

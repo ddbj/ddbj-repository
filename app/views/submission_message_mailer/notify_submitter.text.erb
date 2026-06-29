@@ -1,0 +1,12 @@
+<% web_url = Rails.application.config_for(:app).web_url! -%>
+Dear submitter,
+
+A DDBJ curator (<%= @curator.uid %>) has posted a message on your <%= @submission.db.humanize %> submission (<%= @submission.source_id.presence || "##{@submission.id}" %>):
+
+  <%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+
+Open the thread on the web UI to reply:
+<%= File.join(web_url, @submission.db, 'submissions', @submission.id.to_s) %>
+
+Regards,
+DDBJ Repository

@@ -56,6 +56,25 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_not row_without_accession['has_accession']
   end
 
+  test 'index reports has_unread_curator_message when an unread curator-authored message exists' do
+    submissions(:bioproject).messages.create!(
+      user:        users(:bob),
+      author_role: :curator,
+      body:        'curator note'
+    )
+
+    get submission_requests_path
+
+    assert_conform_schema 200
+
+    body = response.parsed_body
+    bp   = body.find { it['id'] == submission_requests(:bioproject).id }
+    st26 = body.find { it['id'] == submission_requests(:st26).id }
+
+    assert bp['has_unread_curator_message']
+    assert_not st26['has_unread_curator_message']
+  end
+
   test 'show' do
     request = submission_requests(:st26)
 

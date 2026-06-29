@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_26_172125) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_29_123649) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -183,6 +183,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_26_172125) do
     t.index ["scope"], name: "index_sequences_on_scope", unique: true
   end
 
+  create_table "submission_messages", force: :cascade do |t|
+    t.string "author_role", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "read_at"
+    t.bigint "submission_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["submission_id", "author_role", "read_at"], name: "idx_on_submission_id_author_role_read_at_a092a1e630"
+    t.index ["submission_id", "created_at"], name: "index_submission_messages_on_submission_id_and_created_at"
+    t.index ["submission_id"], name: "index_submission_messages_on_submission_id"
+    t.index ["user_id"], name: "index_submission_messages_on_user_id"
+  end
+
   create_table "submission_requests", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "db", null: false
@@ -280,6 +294,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_26_172125) do
   add_foreign_key "sample_references", "samples"
   add_foreign_key "samples", "submissions"
   add_foreign_key "samples", "users", column: "assignee_id"
+  add_foreign_key "submission_messages", "submissions"
+  add_foreign_key "submission_messages", "users"
   add_foreign_key "submission_requests", "submissions"
   add_foreign_key "submission_requests", "users"
   add_foreign_key "submission_updates", "submissions"

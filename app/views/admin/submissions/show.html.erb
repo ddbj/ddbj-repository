@@ -145,6 +145,9 @@
 <%# so it stays editable even when the materialised record is broken. %>
 <%= render 'admin/curator_comments/curator_edit', submission: @submission %>
 
+<%# Submitter ↔ curator conversation. Independent of the patch chain. %>
+<%= render 'admin/messages/thread', submission: @submission, messages: @messages %>
+
 <h2 class="h4 mt-4">
   Patch chain
   <span class="badge text-bg-secondary"><%= @updates.size %></span>

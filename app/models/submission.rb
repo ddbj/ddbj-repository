@@ -15,6 +15,8 @@ class Submission < ApplicationRecord
   has_one  :project, dependent: :destroy
   has_many :samples, dependent: :destroy
 
+  has_many :messages, -> { chronological }, class_name: 'SubmissionMessage', dependent: :destroy
+
   has_one_attached :ddbj_record
   has_one_attached :current_record
   has_one_attached :flatfile_na

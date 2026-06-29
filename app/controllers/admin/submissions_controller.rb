@@ -33,6 +33,13 @@ module Admin
     def show
       @submission = Submission.includes(:user).find(params[:id])
       @updates    = @submission.updates.order(:id).to_a
+      @messages   = @submission.messages.includes(:user).to_a
+
+      # Mark unread submitter messages as read by virtue of any curator
+      # opening this page. Submitter-authored messages without a read_at
+      # drive the "返信待ち" hint that Phase B will surface; clearing it
+      # here keeps the indicator semantically "any curator has looked".
+      @submission.messages.submitter_role.unread.update_all(read_at: Time.current)
 
       # Samples list is paginated inside a turbo-frame so 20K-row BS
       # records don't blow up the page. `page_key: 'samples_page'`

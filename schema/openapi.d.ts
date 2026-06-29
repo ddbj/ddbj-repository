@@ -410,6 +410,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submissions/{submission_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: number;
+            };
+            cookie?: never;
+        };
+        /** @description Get the curator ↔ submitter message thread for a submission. Marks any unread curator-authored messages as read. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the chronological list of messages. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Message"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** @description Submitter posts a reply to the thread. Notifies curators by email. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        submission_message: {
+                            body: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Returns the newly-created message. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Message"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/accessions/{number}": {
         parameters: {
             query?: never;
@@ -471,6 +546,7 @@ export interface components {
             created_at: string;
             submission_id: number | null;
             has_accession: boolean;
+            has_unread_curator_message: boolean;
         };
         SubmissionRequestStatus: {
             id: number;
@@ -536,6 +612,17 @@ export interface components {
             filename: string;
             /** Format: uri */
             url: string;
+        };
+        Message: {
+            id: number;
+            body: string;
+            /** @enum {string} */
+            author_role: "curator" | "submitter";
+            author_uid: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            read_at: string | null;
         };
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
