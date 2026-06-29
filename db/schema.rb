@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_29_123649) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_29_141611) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -146,6 +146,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_123649) do
     t.index ["ref_db", "ref_accession"], name: "index_sample_references_on_ref_db_and_ref_accession"
     t.index ["sample_id", "ref_db", "ref_accession"], name: "index_sample_references_on_sample_db_accession", unique: true
     t.index ["sample_id"], name: "index_sample_references_on_sample_id"
+  end
+
+  create_table "sample_tsv_imports", force: :cascade do |t|
+    t.string "actor", null: false
+    t.datetime "created_at", null: false
+    t.text "error_report"
+    t.integer "failed", default: 0, null: false
+    t.datetime "finished_at"
+    t.integer "processed", default: 0, null: false
+    t.datetime "started_at", null: false
+    t.string "status", default: "running", null: false
+    t.bigint "submission_id", null: false
+    t.integer "total", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["submission_id"], name: "index_sample_tsv_imports_on_submission_id"
   end
 
   create_table "samples", force: :cascade do |t|
@@ -292,6 +307,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_123649) do
   add_foreign_key "projects", "submissions"
   add_foreign_key "projects", "users", column: "assignee_id"
   add_foreign_key "sample_references", "samples"
+  add_foreign_key "sample_tsv_imports", "submissions"
   add_foreign_key "samples", "submissions"
   add_foreign_key "samples", "users", column: "assignee_id"
   add_foreign_key "submission_messages", "submissions"

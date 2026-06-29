@@ -66,19 +66,25 @@ Rails.application.routes.draw do
       # singular nested resource is the natural URL for "edit THIS BP's
       # project metadata". BS / ST26 don't have a Project — the controller
       # 404s in those cases.
-      resource  :project,         only: %i[update]
-      resource  :curator_comment, only: %i[update]
-      resource  :submitters,      only: %i[update]
-      resource  :hold_date,       only: %i[update]
-      resource  :project_record,  only: %i[update]
-      resource  :accession,       only: %i[create]
-      resources :messages,        only: %i[create]
+      resource  :project,            only: %i[update]
+      resource  :curator_comment,    only: %i[update]
+      resource  :submitters,         only: %i[update]
+      resource  :hold_date,          only: %i[update]
+      resource  :project_record,     only: %i[update]
+      resource  :accession,          only: %i[create]
+      resource  :sample_tsv_export,  only: %i[show]
+      resources :messages,           only: %i[create]
+
+      # Per-submission BS sample-bag editing via TSV round-trip. The
+      # export endpoint above streams the current state; this endpoint
+      # accepts the edited file and runs an async job.
+      resources :sample_tsv_imports, only: %i[show create] do
+        member do
+          get :error_report
+        end
+      end
     end
 
-    # Per-sample edit for BS — overrides the per-submission bulk apply
-    # when a curator needs to set a single sample's status / assignee
-    # differently from the rest.
-    resources :samples, only: %i[edit update]
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]
     end
