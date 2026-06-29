@@ -10,13 +10,17 @@ class ApplySubmissionUpdateJob < ApplicationJob
       apply update
     rescue NoChange
       update.no_change!
-    rescue => e
+    rescue Exception => e # rubocop:disable Lint/RescueException
+      # StandardError 以外（SystemStackError 等）でも必ず終端状態に落とす。
+      # ここで取り逃すと update が applying のまま取り残される。
       Rails.error.report e
 
       update.update!(
         status:        :application_failed,
         error_message: e.message
       )
+
+      raise unless e.is_a?(StandardError)
     else
       update.applied!
     end

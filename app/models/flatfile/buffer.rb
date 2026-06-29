@@ -34,37 +34,45 @@ class Flatfile::Buffer
 
   private
 
+  # 80 桁を超える行を、継続行を indent で揃えながら折り返してすべて出力する。
+  #
+  # 折り返し桁 b（この行に残す末尾の桁）は必ず indent 幅より右に取る。継続行は
+  # `indent + 残り` なので、b < indent.size だと行が縮まず無限ループになる。
+  # COMMENT 内に埋め込んだ feature table のように indent が 40 桁を超える行
+  # （巨大な化学名など空白で折り返せない値）で実際にこれが起きる。再帰実装の
+  # 頃は同じ条件で SystemStackError になっていた。
   def wrap(io, line)
-    if line.size <= 80
-      io.puts line
-      return
-    end
+    loop do
+      if line.size <= 80
+        io.puts line
+        return
+      end
 
-    indent = case line
-    when /\A((?:COMMENT|\s{7})\s{5})([A-Z]{2})(\s+)/
-      ' ' * $1.size + $2 + ' ' * $3.size
-    when /\A([A-Z\s]{,12}\s*)/
-      ' ' * $1.size
-    else
-      raise 'unreachable'
-    end
+      indent = case line
+      when /\A((?:COMMENT|\s{7})\s{5})([A-Z]{2})(\s+)/
+        ' ' * $1.size + $2 + ' ' * $3.size
+      when /\A([A-Z\s]{,12}\s*)/
+        ' ' * $1.size
+      else
+        raise 'unreachable'
+      end
 
-    late = line[40..79]
+      late = line[40..79]
 
-    if i = late.rindex(' ')
-      io.puts (line[0..39] + late[0..i]).delete_suffix(' ')
+      # 空白優先、次に区切り文字、どちらも indent より右に無ければ 80 桁で固定折り。
+      # いずれも b >= indent.size を満たすものだけ採用して前進を保証する。
+      b =
+        if (i = late.rindex(' ')) && 40 + i >= indent.size
+          40 + i
+        elsif (i = %w[, - / ( )].filter_map { late.rindex(it) }.max) && 40 + (pos = late[i] == '(' ? i - 1 : i) >= indent.size
+          40 + pos
+        else
+          [79, indent.size].max
+        end
 
-      wrap io, indent + late[(i + 1)..] + line[80..]
-    elsif i = %w[, - / ( )].filter_map { late.rindex(it) }.max
-      wrap_pos = late[i] == '(' ? i - 1 : i
+      io.puts line[0..b].delete_suffix(' ')
 
-      io.puts (line[0..39] + late[0..wrap_pos]).delete_suffix(' ')
-
-      wrap io, indent + late[(wrap_pos + 1)..] + line[80..]
-    else
-      io.puts line[0..79].delete_suffix(' ')
-
-      wrap io, indent + line[80..]
+      line = indent + line[(b + 1)..]
     end
   end
 end
