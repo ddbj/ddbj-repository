@@ -10,7 +10,11 @@ module DDBJRecordValidator
     ActiveRecord::Base.transaction do
       begin
         _validate subject
-      rescue => e
+      rescue Exception => e # rubocop:disable Lint/RescueException
+        # StandardError 以外（SystemStackError 等）でも必ず終端状態に落とす。
+        # ここで取り逃すと subject が validating のまま取り残される。
+        # この rescue はトランザクション内なので、再 raise すると
+        # validation_failed の書き込みごとロールバックされてしまう。記録のみ行う。
         Rails.error.report e
 
         subject.validation_failed!

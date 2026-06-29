@@ -5,13 +5,18 @@ class ApplySubmissionRequestJob < ApplicationJob
     request.applying!
 
     apply request
-  rescue => e
+  rescue Exception => e # rubocop:disable Lint/RescueException
+    # StandardError 以外（SystemStackError 等）でも必ず終端状態に落とす。
+    # ここで取り逃すと request が applying のまま取り残され、クライアントが
+    # status を永久にポーリングし続ける。シグナル等は記録だけして上位へ流す。
     Rails.error.report e
 
     request.update!(
       status:        :application_failed,
       error_message: e.message
     )
+
+    raise unless e.is_a?(StandardError)
   else
     request.applied!
   end
