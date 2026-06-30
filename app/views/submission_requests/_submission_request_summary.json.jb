@@ -9,4 +9,3 @@ submission = submission_request.submission
   has_accession:              submission&.accessions&.any? || false,
   has_unread_curator_message: submission ? unread_submission_ids.include?(submission.id) : false
 }
-
