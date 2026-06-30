@@ -17,17 +17,9 @@ Router.map(function () {
       this.route('request', { path: ':request_id', resetNamespace: true });
     });
 
-    this.route('updates', function () {
-      this.route('update', { path: ':update_id', resetNamespace: true });
-    });
-
     this.route('submissions', function () {
       this.route('submission', { path: ':submission_id', resetNamespace: true }, function () {
         this.route('accessions');
-
-        this.route('updates', function () {
-          this.route('new');
-        });
       });
     });
   });
