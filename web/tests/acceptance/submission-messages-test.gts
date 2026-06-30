@@ -12,18 +12,15 @@ type Message = components['schemas']['Message'];
 
 const now = '2025-01-01T00:00:00.000Z';
 
-// Minimal Submission shape the show route needs to render. Cast through
-// `as never` so the pre-existing `updates` field drift in the schema
-// doesn't fail tsc here.
-const submission = {
+// Minimal Submission shape the show route needs to render.
+const submission: components['schemas']['Submission'] = {
   id: 1,
   created_at: now,
   updated_at: now,
   ddbj_record: { filename: 'original.json', url: 'http://example.com/original.json' },
   flatfile_na: null,
   flatfile_aa: null,
-  updates: [],
-} as never;
+};
 
 module('Acceptance | submission messages', function (hooks) {
   setupApplicationTest(hooks);

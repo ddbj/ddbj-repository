@@ -65,37 +65,6 @@ import type { components } from 'schema/openapi';
     <LinkTo @route="submission.accessions">Accessions</LinkTo>
   </div>
 
-  <h2 class="mt-3">Updates</h2>
-
-  <div class="my-3">
-    <LinkTo @route="submission.updates.new" class="btn btn-primary">Update Submission</LinkTo>
-  </div>
-
-  <table class="table border">
-    <thead class="table-light">
-      <tr>
-        <th>ID</th>
-        <th>Created</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {{#each @model.updates as |update|}}
-        <tr>
-          <td>
-            <LinkTo @route="update" @models={{array @model.db update.id}}>
-              Update-{{update.id}}
-            </LinkTo>
-          </td>
-
-          <td>{{formatDatetime update.created_at}}</td>
-          <td>{{update.status}}</td>
-        </tr>
-      {{/each}}
-    </tbody>
-  </table>
-
   <SubmissionMessages @submissionId={{@model.id}} />
 </template> satisfies TOC<{
   Args: {
