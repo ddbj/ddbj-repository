@@ -95,7 +95,8 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     # cache-backed materialised_record. Catches a regression where
     # the baseline strips volatiles and only the cache happens to
     # hold them.
-    result.submission.update_columns(cached_materialised_record: nil, cached_at_update_id: nil)
+    result.submission.cached_materialised_record.purge
+    result.submission.update_columns(cached_at_update_id: nil)
     replayed = result.submission.reload.materialised_record
 
     assert_equal 'v3',                               replayed['schema_version']

@@ -273,7 +273,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test 'materialised ?as_of=N always replays (does NOT serve the bytea cache shortcut even when N == latest_id)' do
+  test 'materialised ?as_of=N always replays (does NOT serve the cached blob shortcut even when N == latest_id)' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'visible'}}, actor: 'test')
     latest = submission.updates.last
@@ -284,7 +284,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # for ?as_of=<latest_id> the response will reflect the tampered cache;
     # if it always replays (the correct behaviour) the response reflects
     # the chain.
-    submission.update_columns(cached_materialised_record: Oj.dump({'tampered' => true}, mode: :strict))
+    submission.prime_cache!(bytes: Oj.dump({'tampered' => true}, mode: :strict), update_id: latest.id)
 
     get materialised_admin_submission_path(submission, as_of: latest.id)
 
@@ -294,32 +294,34 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     refute body.key?('tampered'), 'cache shortcut must not be taken when ?as_of= is supplied'
   end
 
-  test 'materialised serves the cached bytea directly on the latest path (skipping Oj.load/re-encode roundtrip)' do
+  test 'materialised serves the cached blob bytes directly on the latest path (skipping Oj.load/re-encode roundtrip)' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'real'}}, actor: 'test')
     submission.materialised_record # warm the cache
+    latest = submission.updates.last
 
-    # If the action ships cached bytea directly, a sentinel inserted into
-    # the bytea round-trips byte-for-byte. (Sibling test pins the OPPOSITE
+    # If the action ships cached bytes directly, a sentinel attached to
+    # the blob round-trips byte-for-byte. (Sibling test pins the OPPOSITE
     # behaviour for the ?as_of= path.)
-    sentinel = Oj.dump({'cached_marker' => 'served-from-bytea'}, mode: :strict)
-    submission.update_columns(cached_materialised_record: sentinel)
+    sentinel = Oj.dump({'cached_marker' => 'served-from-cache'}, mode: :strict)
+    submission.prime_cache!(bytes: sentinel, update_id: latest.id)
 
     get materialised_admin_submission_path(submission)
 
     assert_response :ok
-    assert_equal 'served-from-bytea', JSON.parse(response.body)['cached_marker']
+    assert_equal 'served-from-cache', JSON.parse(response.body)['cached_marker']
   end
 
   test 'materialised returns 422 + JSON error body on a poisoned patch chain' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
-    poisoned = submission.updates.create!(
+    poisoned = SubmissionUpdate.create_with_patch!(
+      submission:              submission,
+      patch_json:              'not-json',
       db:                      'bioproject',
       status:                  :applied,
       actor:                   'test',
       source:                  :manual,
-      patch:                   'not-json',
       patch_canonical_version: 1
     )
 
@@ -430,13 +432,14 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   test 'show survives a single poisoned patch — timeline renders, materialised pane reports the bad row' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
-    poisoned = submission.updates.create!(
-      db:                       'bioproject',
-      status:                   :applied,
-      actor:                    'test',
-      source:                   :manual,
-      patch:                    'not-json',
-      patch_canonical_version:  1
+    poisoned = SubmissionUpdate.create_with_patch!(
+      submission:              submission,
+      patch_json:              'not-json',
+      db:                      'bioproject',
+      status:                  :applied,
+      actor:                   'test',
+      source:                  :manual,
+      patch_canonical_version: 1
     )
 
     get admin_submission_path(submission)

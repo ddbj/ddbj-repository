@@ -100,15 +100,15 @@ class AccessionIssue
   # edits produce an empty patch and don't generate a SubmissionUpdate
   # entry. The canonical record for accession is the typed column
   # (Project.accession / Sample.accession), not the materialised_record;
-  # we just have to null the cached_materialised_record bytea so the
-  # next read recomputes from the chain + the current typed-column
-  # value (Importer convention: typed column drives the next re-emit).
+  # we just have to null the cache stamp so the next read recomputes
+  # from the chain + the current typed-column value. The orphaned blob
+  # is displaced on the next prime_cache! (read-side cache fill or
+  # importer re-run).
   #
   # Goes through `update_all` to skip the model's update callbacks
   # (we don't want a recursive cache write).
   def invalidate_cache!(submission)
-    Submission.where(id: submission.id)
-              .update_all(cached_materialised_record: nil, cached_at_update_id: nil)
+    Submission.where(id: submission.id).update_all(cached_at_update_id: nil)
   end
 
   def enqueue_mail(submission, accessions)

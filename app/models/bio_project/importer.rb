@@ -64,21 +64,21 @@ module BioProject
                 "refusing to silently re-attribute to '#{@user_uid}'."
         end
 
-        # Fast :skipped path: if the cached materialised bytes match the
-        # freshly-dumped record bytes, the chain content has not changed
-        # and we can short-circuit without paying Canonicalizer.diff's
-        # canonicalize × 2 cost. Same rationale as the BS importer —
-        # Converter output is deterministic in key order, replay
-        # preserves it, Oj :strict is deterministic, so unchanged
-        # records always byte-match. False negatives fall through to
-        # the full diff path and produce correct results.
-        # ASCII-8BIT force on both sides — PG bytea comes back as
-        # ASCII-8BIT, Oj.dump emits UTF-8, and Ruby's String#== treats
-        # them as unequal when any byte is >= 0x80 even with identical
-        # bytes (the same trap the original BP byte-compare hit).
-        new_dump = Oj.dump(record, mode: :strict).b
+        # Fast :skipped path: if the SeaweedFS-stored snapshot from the
+        # PREVIOUS importer run still hashes to what this run would
+        # emit, the source XML hasn't changed meaningfully and we
+        # short-circuit without paying Canonicalizer.diff's
+        # canonicalize × 2 cost. The blob is left attached even when
+        # SubmissionUpdate#after_create invalidates the cache stamp
+        # (curator edits between imports), so this matches "vs last
+        # import" not "vs current chain" — which is correct: skipping
+        # here preserves curator edits made through the workbench
+        # against an unchanged D-way source. False negatives fall
+        # through to the full diff path and still produce correct
+        # results. See Submission#cached_record_matches_dump?.
+        new_dump = Oj.dump(record, mode: :strict)
 
-        if submission.cached_materialised_record == new_dump
+        if submission.cached_record_matches_dump?(new_dump)
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -119,22 +119,20 @@ module BioProject
           title:        record.dig('project', 'title')
         )
 
-        new_update = submission.updates.create!(
+        new_update = SubmissionUpdate.create_with_patch!(
+          submission:              submission,
+          patch_json:              Oj.dump(patch_ops, mode: :strict),
           db:                      'bioproject',
           status:                  :applied,
           actor:                   "migration:#{@user_uid}",
           source:                  :migration,
-          patch:                   Oj.dump(patch_ops, mode: :strict),
           patch_canonical_version: 1
         )
 
-        # Re-populate the bytea cache that SubmissionUpdate#after_create
-        # just nulled, so the NEXT re-import's fast-path byte-equality
+        # Re-populate the cache that SubmissionUpdate#after_create
+        # just nulled, so the NEXT re-import's fast-path checksum
         # check hits without paying for chain replay + canonicalize × 2.
-        submission.update_columns(
-          cached_materialised_record: new_dump,
-          cached_at_update_id:        new_update.id
-        )
+        submission.prime_cache!(bytes: new_dump, update_id: new_update.id)
 
         Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
       end

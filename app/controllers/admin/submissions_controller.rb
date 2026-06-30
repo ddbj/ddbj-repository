@@ -1,15 +1,12 @@
 module Admin
   class SubmissionsController < ApplicationController
     def index
-      # Project away `cached_materialised_record` (bytea, BS-scale ~7MB
-      # per row) — the index view never reads it, and pagy(20) × 7MB =
-      # 140MB transferred per page once caches are warmed.
-      #
       # Preload project + assignee for the per-row BP status/assignee
       # columns. BS shows aggregated per-sample status/assignee instead
-      # (computed below in one SQL).
+      # (computed below in one SQL). The cache snapshot now lives in
+      # ActiveStorage so it isn't on the submissions row — no bytea
+      # projection trick needed any more.
       scope = Submission
-        .select(Submission.column_names - %w[cached_materialised_record])
         .includes(:user, project: :assignee)
         .order(id: :desc)
       scope = scope.where(db: params[:db]) if params[:db].present?
@@ -110,9 +107,9 @@ module Admin
 
           Oj.dump(submission.materialise_at(update_id: update.id), mode: :strict)
         else
-          cached = submission.cached_materialised_record
+          cached = submission.cached_materialised_bytes
 
-          if cached.present?
+          if cached
             cached
           else
             record = submission.materialised_record

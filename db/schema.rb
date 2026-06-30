@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_29_141611) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_30_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -230,7 +230,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_141611) do
     t.datetime "created_at", null: false
     t.string "db", null: false
     t.string "error_message"
-    t.binary "patch", null: false
     t.integer "patch_canonical_version", default: 1, null: false
     t.integer "source", default: 0, null: false
     t.integer "status", default: 0, null: false
@@ -240,12 +239,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_141611) do
     t.index ["db"], name: "index_submission_updates_on_db"
     t.index ["submission_id", "created_at"], name: "index_submission_updates_on_submission_id_and_created_at"
     t.index ["submission_id"], name: "index_submission_updates_on_submission_id"
-    t.check_constraint "octet_length(patch) > 0", name: "submission_updates_patch_nonempty"
   end
 
   create_table "submissions", force: :cascade do |t|
     t.bigint "cached_at_update_id"
-    t.binary "cached_materialised_record"
     t.integer "canonical_version", default: 1, null: false
     t.string "converter_version"
     t.datetime "created_at", null: false

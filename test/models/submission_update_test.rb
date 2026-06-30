@@ -1,20 +1,19 @@
 require 'test_helper'
 
 class SubmissionUpdateTest < ActiveSupport::TestCase
-  test 'requires non-empty patch via model validation' do
-    update = SubmissionUpdate.new(submission: submissions(:st26), db: :st26, source: :migration, patch: '')
+  test 'requires a patch attachment via model validation' do
+    update = SubmissionUpdate.new(submission: submissions(:st26), db: :st26, source: :migration)
 
     assert_not update.valid?
-    assert_includes update.errors[:patch], 'is too short (minimum is 1 character)'
+    assert_includes update.errors[:patch], "can't be blank"
   end
 
-  test 'database CHECK constraint rejects empty patch when validation is bypassed' do
-    assert_raises ActiveRecord::StatementInvalid do
-      SubmissionUpdate.connection.execute(<<~SQL.squish)
-        INSERT INTO submission_updates (submission_id, db, source, patch, created_at, updated_at)
-        VALUES (#{submissions(:st26).id}, 'st26', 0, ''::bytea, NOW(), NOW())
-      SQL
-    end
+  test 'rejects an empty patch attachment (defence in depth for the dropped bytea CHECK)' do
+    update = SubmissionUpdate.new(submission: submissions(:st26), db: :st26, source: :migration)
+    update.patch.attach(io: StringIO.new(''), filename: 'empty.json', content_type: 'application/json')
+
+    assert_not update.valid?
+    assert_includes update.errors[:patch], 'must not be empty'
   end
 
   test 'source enum exposes migration / manual / batch / tsv_import' do
@@ -24,11 +23,17 @@ class SubmissionUpdateTest < ActiveSupport::TestCase
     assert_equal({'manual' => 0, 'migration' => 1, 'batch' => 2, 'tsv_import' => 3}, SubmissionUpdate.sources)
   end
 
-  test 'roundtrips arbitrary patch bytes including null bytes' do
+  test '.create_with_patch! attaches the patch JSON in a single transactional save' do
     raw    = '[{"op":"replace","path":"/x","value":" "}]'
-    update = SubmissionUpdate.create!(submission: submissions(:st26), db: :st26, source: :manual, patch: raw)
+    update = SubmissionUpdate.create_with_patch!(
+      submission: submissions(:st26),
+      patch_json: raw,
+      db:         :st26,
+      source:     :manual
+    )
 
-    assert_equal raw, update.reload.patch
+    assert update.patch.attached?
+    assert_equal raw, update.patch.download
   end
 
   test '#parsed_patch / #op_count are PUBLIC (admin show view calls them externally)' do

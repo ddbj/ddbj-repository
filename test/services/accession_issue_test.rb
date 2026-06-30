@@ -18,7 +18,8 @@ class AccessionIssueTest < ActiveSupport::TestCase
     # cached_at_update_id holds.
     submission.append_update!({'project' => {'title' => 'seed'}}, actor: 'test-seed')
     submission.materialised_record # write-through cache populates
-    assert_not_nil submission.reload.cached_materialised_record
+    assert submission.reload.cached_materialised_record.attached?,
+           'cache blob must be attached after write-through'
 
     result = AccessionIssue.call(submission:, actor: 'test-curator')
 
@@ -30,10 +31,11 @@ class AccessionIssueTest < ActiveSupport::TestCase
     assert_equal 'accession_issued',      project.status
 
     # `/**/accession` is volatile so no SubmissionUpdate is created — see
-    # AccessionIssue#invalidate_cache! rationale. Cache MUST be nulled so the
-    # next read picks up the typed-column accession.
+    # AccessionIssue#invalidate_cache! rationale. Cache stamp MUST be
+    # nulled so the next read picks up the typed-column accession. The
+    # blob itself stays attached until displaced by the next prime_cache!
+    # (orphan turnover is bounded by re-import / read cadence).
     submission.reload
-    assert_nil submission.cached_materialised_record
     assert_nil submission.cached_at_update_id
   end
 
