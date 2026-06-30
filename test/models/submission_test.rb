@@ -15,12 +15,13 @@ class SubmissionTest < ActiveSupport::TestCase
     }
     baseline = [{'op' => 'add', 'path' => '', 'value' => record}]
 
-    submission.updates.create!(
+    SubmissionUpdate.create_with_patch!(
+      submission:              submission,
+      patch_json:              Oj.dump(baseline, mode: :strict),
       db:                      'bioproject',
       status:                  'applied',
       actor:                   'migration',
       source:                  'migration',
-      patch:                   Oj.dump(baseline, mode: :strict),
       patch_canonical_version: DDBJRecord::Canonicalizer::VERSION
     )
 
@@ -34,12 +35,13 @@ class SubmissionTest < ActiveSupport::TestCase
     edit     = [{'op' => 'replace', 'path' => '/project/title', 'value' => 'second'}]
 
     [baseline, edit].each do |patch|
-      submission.updates.create!(
+      SubmissionUpdate.create_with_patch!(
+        submission:              submission,
+        patch_json:              Oj.dump(patch, mode: :strict),
         db:                      'bioproject',
         status:                  'applied',
         actor:                   'migration',
         source:                  'migration',
-        patch:                   Oj.dump(patch, mode: :strict),
         patch_canonical_version: DDBJRecord::Canonicalizer::VERSION
       )
     end
@@ -49,12 +51,13 @@ class SubmissionTest < ActiveSupport::TestCase
 
   test '#materialised_record raises MaterialisationFailed carrying the offending update_id' do
     submission = submissions(:bioproject)
-    bad_update = submission.updates.create!(
+    bad_update = SubmissionUpdate.create_with_patch!(
+      submission:              submission,
+      patch_json:              'not-json-at-all',
       db:                      'bioproject',
       status:                  'applied',
       actor:                   'test',
       source:                  'manual',
-      patch:                   'not-json-at-all',
       patch_canonical_version: 1
     )
 
@@ -173,24 +176,23 @@ class SubmissionTest < ActiveSupport::TestCase
     assert_includes %w[v0 v1 v2 v3 v4], submission.materialised_record.dig('project', 'title')
   end
 
-  test 'write-through cache: first call computes + persists; second call returns from column without replay' do
+  test 'write-through cache: first call attaches blob + stamps; second call returns from cache without replay' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'cached'}}, actor: 'test')
 
     assert_nil submission.reload.cached_at_update_id
-    assert_nil submission.cached_materialised_record
+    assert_not submission.cached_materialised_record.attached?
 
     first = submission.materialised_record
     assert_equal 'cached', first.dig('project', 'title')
 
     submission.reload
-    assert submission.cached_materialised_record.present?, 'cache bytea must be written through'
+    assert submission.cached_materialised_record.attached?, 'cache blob must be attached after write-through'
     assert_equal submission.updates.maximum(:id), submission.cached_at_update_id
 
     # On the cache hit path, do not invoke the replay engine. Stubbing
     # Canonicalizer.apply to raise asserts the bypass without depending
-    # on the patch column's evolving integrity rules (DB CHECK
-    # constraints, future BEFORE-UPDATE triggers, etc.).
+    # on the patch storage's evolving integrity rules.
     DDBJRecord::Canonicalizer.stub(:apply, ->(*) { raise 'replay must not be called on cache hit' }) do
       assert_equal first, submission.materialised_record,
                    'cache hit must bypass patch replay entirely'
@@ -206,9 +208,8 @@ class SubmissionTest < ActiveSupport::TestCase
 
     submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
 
-    # SubmissionUpdate#after_create_commit must have nil-cleared cache.
+    # SubmissionUpdate#after_create must have nil-cleared the cache stamp.
     assert_nil submission.reload.cached_at_update_id, 'append must invalidate cache'
-    assert_nil submission.cached_materialised_record
 
     # Next read recomputes and re-stamps at the new latest.
     assert_equal 'v2', submission.materialised_record.dig('project', 'title')
@@ -225,8 +226,7 @@ class SubmissionTest < ActiveSupport::TestCase
     second.destroy!
 
     assert_nil submission.reload.cached_at_update_id,
-               'after_destroy_commit must invalidate cache when any update row is destroyed'
-    assert_nil submission.cached_materialised_record
+               'after_destroy must invalidate cache when any update row is destroyed'
   end
 
   test 'materialise_at(update_id:) historical snapshots never consult the cache' do

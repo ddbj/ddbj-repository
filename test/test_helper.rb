@@ -33,6 +33,22 @@ class ActiveSupport::TestCase
   setup do
     DDBJRecord::Canonicalizer::PathClassifier.reset!
   end
+
+  # SubmissionUpdate#patch is an ActiveStorage attachment. Fixture rows
+  # are raw INSERTed so `validates :patch, attached: true` is bypassed;
+  # tests that touch parsed_patch / download still need an attachment.
+  # Attach a canned baseline patch to the one fixture row at setup so
+  # individual tests don't have to remember.
+  setup do
+    update = submission_updates(:st26)
+    next if update.patch.attached?
+
+    update.patch.attach(
+      io:           StringIO.new('[{"op":"add","path":"/title","value":"fixture"}]'),
+      filename:     'patch.json',
+      content_type: 'application/json'
+    )
+  end
 end
 
 class ActionDispatch::IntegrationTest

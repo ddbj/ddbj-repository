@@ -71,27 +71,23 @@ module BioSample
           submission.update_columns(curator_comment: @row.comment)
         end
 
-        # Fast :skipped path: if the cached materialised bytes match the
-        # freshly-dumped record bytes, the chain content has not changed
-        # and we can short-circuit without paying Canonicalizer.diff's
+        # Fast :skipped path: if the SeaweedFS-stored snapshot from the
+        # PREVIOUS importer run still hashes to what this run would
+        # emit, the source XML hasn't changed meaningfully and we
+        # short-circuit without paying Canonicalizer.diff's
         # canonicalize × 2 cost (~3 s per BS record at 7 MB scale, the
         # cost that turned a 4060-record re-import sweep into a
-        # 3.5-hour run). The byte-equality is a CORRECT fast check —
-        # the Converter emits hashes in a deterministic key order, the
-        # patch-chain replay preserves that order, and `Oj.dump(_,
-        # mode: :strict)` is deterministic for the same Ruby Hash; so
-        # semantically-equivalent unchanged records always byte-match.
-        # False negatives (Unicode reordering, formatting drift)
-        # gracefully fall through to the full diff path and still
-        # produce correct results.
-        # Force ASCII-8BIT on both sides — PG returns bytea as ASCII-8BIT
-        # while Oj.dump returns UTF-8, and Ruby's String#== treats them
-        # as unequal whenever any byte is >= 0x80 even when the bytes
-        # match (same trap the BP importer originally had on its raw
-        # patch byte-compare).
-        new_dump = Oj.dump(record, mode: :strict).b
+        # 3.5-hour run). The blob is left attached even when
+        # SubmissionUpdate#after_create invalidates the cache stamp
+        # (curator edits between imports), so this matches "vs last
+        # import" not "vs current chain" — which is correct: skipping
+        # here preserves workbench edits against an unchanged D-way
+        # source. False negatives (Unicode reordering, formatting
+        # drift) fall through to the full diff path. See
+        # Submission#cached_record_matches_dump?.
+        new_dump = Oj.dump(record, mode: :strict)
 
-        if submission.cached_materialised_record == new_dump
+        if submission.cached_record_matches_dump?(new_dump)
           submission.update_columns(
             migration_run_id: @migration_run_id,
             updated_at:       Time.current
@@ -133,26 +129,23 @@ module BioSample
           updated_at:        Time.current
         )
 
-        new_update = submission.updates.create!(
+        new_update = SubmissionUpdate.create_with_patch!(
+          submission:              submission,
+          patch_json:              Oj.dump(patch_ops, mode: :strict),
           db:                      'biosample',
           status:                  :applied,
           actor:                   "migration:#{@user_uid}",
           source:                  :migration,
-          patch:                   Oj.dump(patch_ops, mode: :strict),
           patch_canonical_version: 1
         )
 
-        # Re-populate the bytea cache that SubmissionUpdate#after_create
-        # just nulled, so the NEXT re-import's fast-path byte-equality
+        # Re-populate the cache that SubmissionUpdate#after_create
+        # just nulled, so the NEXT re-import's fast-path checksum
         # check hits without having to replay the chain via
-        # materialised_record. update_columns bypasses the read-side
-        # race guard but the importer is single-threaded per submission
-        # (find_or_create_by! plus the surrounding Submission.transaction),
-        # so there is no contender to lose to.
-        submission.update_columns(
-          cached_materialised_record: new_dump,
-          cached_at_update_id:        new_update.id
-        )
+        # materialised_record. prime_cache! holds a row-level lock for
+        # the (blob, stamp) write — overkill here (importer is single-
+        # threaded per submission) but cheap.
+        submission.prime_cache!(bytes: new_dump, update_id: new_update.id)
 
         Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
       end
