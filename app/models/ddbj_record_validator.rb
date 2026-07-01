@@ -1,4 +1,14 @@
 module DDBJRecordValidator
+  # IUPAC nucleotide codes (upper and lower case). The sequence-character
+  # checks below match against this set with String#count instead of a
+  # case-insensitive regexp: a multi-MB sequence would otherwise blow past
+  # Rails' 1-second Regexp.timeout and surface as a TRD_R9999 catch-all
+  # ("regexp match timeout") even though the sequence is perfectly valid.
+  # Keep this a plain set of letters: String#count treats a leading '^' as
+  # negation and '-'/'\' as range/escape, so adding those would silently
+  # change the matching semantics.
+  NUCLEOTIDE_CODES = 'acgtmrwsykvhdbnACGTMRWSYKVHDBN'
+
   module_function
 
   def validate(subject)
@@ -110,7 +120,7 @@ module DDBJRecordValidator
 
       aa = entry.source_features.any? { it.source&.mol_type == 'protein' }
 
-      if !aa && seq.match?(/\AN+\z/i)
+      if !aa && !seq.empty? && seq.count('^Nn').zero?
         details << {
           entry_id:,
           code:     'TRD_R0003',
@@ -119,7 +129,7 @@ module DDBJRecordValidator
         }
       end
 
-      if aa && seq.match?(/\AX+\z/i)
+      if aa && !seq.empty? && seq.count('^Xx').zero?
         details << {
           entry_id:,
           code:     'TRD_R0004',
@@ -128,7 +138,7 @@ module DDBJRecordValidator
         }
       end
 
-      if !aa && seq.match?(/[^acgtmrwsykvhdbn]/i)
+      if !aa && seq.count("^#{NUCLEOTIDE_CODES}").positive?
         details << {
           entry_id:,
           code:     'TRD_R0005',
