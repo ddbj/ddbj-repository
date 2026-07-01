@@ -7,7 +7,12 @@ module DDBJRecordValidator
   # Keep this a plain set of letters: String#count treats a leading '^' as
   # negation and '-'/'\' as range/escape, so adding those would silently
   # change the matching semantics.
-  NUCLEOTIDE_CODES = 'acgtmrwsykvhdbnACGTMRWSYKVHDBN'
+  NUCLEOTIDE_CODES = 'acgtmrwsykvhdbnACGTMRWSYKVHDBN'.freeze
+
+  # Pre-negated form for `String#count` — "any character outside the IUPAC
+  # nucleotide set" — cached so the per-entry loop below doesn't rebuild
+  # the argument String on every call.
+  INVALID_NUCLEOTIDE_PATTERN = "^#{NUCLEOTIDE_CODES}".freeze
 
   module_function
 
@@ -138,7 +143,7 @@ module DDBJRecordValidator
         }
       end
 
-      if !aa && seq.count("^#{NUCLEOTIDE_CODES}").positive?
+      if !aa && seq.count(INVALID_NUCLEOTIDE_PATTERN).positive?
         details << {
           entry_id:,
           code:     'TRD_R0005',
