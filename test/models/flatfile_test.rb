@@ -58,6 +58,24 @@ class FlatfileTest < ActiveSupport::TestCase
     refute_match(/^ {12}PI /, output)
   end
 
+  test 'renders unidentified in COMMENT OS when the source organism is blank' do
+    record = build_record
+
+    entries = record.sequences.entries.map {|entry|
+      entry.with(
+        source_features: entry.source_features.map {|sf|
+          sf.with(source: sf.source.with(organism: ' '))
+        }
+      )
+    }
+
+    record = record.with(sequences: record.sequences.with(entries:))
+    output = Flatfile.render(record, record.sequences.entries).read
+
+    assert_includes output, "COMMENT     OS   unidentified\n"
+    refute_match(/^COMMENT {5}OS {3}$/, output)
+  end
+
   test 'renders flatfile from Data objects' do
     record = build_record
     output = Flatfile.render(record, record.sequences.entries).read

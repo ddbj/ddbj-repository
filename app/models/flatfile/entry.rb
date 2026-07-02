@@ -85,7 +85,7 @@ module Flatfile
     end
 
     def organism
-      raw_primary_source_feature&.source&.organism || 'unidentified'
+      raw_primary_source_feature&.source&.organism.presence || 'unidentified'
     end
 
     def primary_source_feature
