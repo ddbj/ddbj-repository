@@ -1,7 +1,4 @@
 import { LinkTo } from '@ember/routing';
-import { array } from '@ember/helper';
-
-import { or } from 'ember-truth-helpers';
 
 import type { TOC } from '@ember/component/template-only';
 

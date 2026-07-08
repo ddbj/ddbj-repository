@@ -1,7 +1,6 @@
 import { module, test } from 'qunit';
 import { setupRenderingTest } from 'repository/tests/helpers';
 import { render } from '@ember/test-helpers';
-import { array } from '@ember/helper';
 
 import Pagination from 'repository/components/pagination';
 
