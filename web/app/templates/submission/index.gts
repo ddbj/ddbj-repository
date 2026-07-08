@@ -1,5 +1,5 @@
 import { LinkTo } from '@ember/routing';
-import { array, concat, hash } from '@ember/helper';
+import { concat } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 import dbLabel from 'repository/helpers/db-label';

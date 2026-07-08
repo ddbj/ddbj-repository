@@ -1,5 +1,4 @@
 import { LinkTo } from '@ember/routing';
-import { array, hash } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 import dbLabel from 'repository/helpers/db-label';

@@ -1,7 +1,6 @@
 import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
 import { action } from '@ember/object';
-import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 
 import { pageTitle } from 'ember-page-title';

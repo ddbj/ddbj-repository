@@ -1,8 +1,7 @@
 import Component from '@glimmer/component';
 import { action } from '@ember/object';
-import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import { array, concat, hash, uniqueId } from '@ember/helper';
+import { concat, uniqueId } from '@ember/helper';
 
 import { DirectUpload } from '@rails/activestorage';
 

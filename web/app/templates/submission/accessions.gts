@@ -1,4 +1,4 @@
-import { array, concat, hash } from '@ember/helper';
+import { concat } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 import Pagination from 'repository/components/pagination';

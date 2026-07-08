@@ -1,11 +1,8 @@
 import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
 import { action } from '@ember/object';
-import { on } from '@ember/modifier';
 import { service } from '@ember/service';
-import { array, concat, hash } from '@ember/helper';
-
-import { eq } from 'ember-truth-helpers';
+import { concat } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 import StatusBadge from 'repository/components/status-badge';

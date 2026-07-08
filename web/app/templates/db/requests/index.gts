@@ -1,5 +1,4 @@
 import { LinkTo } from '@ember/routing';
-import { array, hash } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 import Pagination from 'repository/components/pagination';

@@ -1,8 +1,5 @@
 import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
-import { hash } from '@ember/helper';
-
-import { eq, gt } from 'ember-truth-helpers';
 
 interface Signature {
   Element: HTMLElement;
