@@ -4,13 +4,16 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  ember-cli-htmlbars: ^7.0.1
+
 importers:
 
   .:
     dependencies:
       '@sentry/ember':
         specifier: ^10.64.0
-        version: 10.64.0(@glint/template@1.7.8)(ember-cli@7.1.0(@babel/core@7.29.7)(@types/node@26.1.0)(ejs@3.1.10)(handlebars@4.7.9)(underscore@1.13.8))(webpack@5.102.1(postcss@8.5.16))
+        version: 10.64.0(@glint/template@1.7.8)(ember-cli@7.1.0(@babel/core@7.29.7)(@types/node@26.1.0)(ejs@3.1.10)(handlebars@4.7.9)(underscore@1.13.8))(ember-source@7.1.0(@glimmer/component@2.1.1))(webpack@5.102.1(postcss@8.5.16))
     devDependencies:
       '@babel/core':
         specifier: ^7.29.7
@@ -2943,10 +2946,6 @@ packages:
 
   ember-cli-get-component-path-option@1.0.0:
     resolution: {integrity: sha512-k47TDwcJ2zPideBCZE8sCiShSxQSpebY2BHcX2DdipMmBox5gsfyVrbKJWIHeSTTKyEUgmBIvQkqTOozEziCZA==}
-
-  ember-cli-htmlbars@6.3.0:
-    resolution: {integrity: sha512-N9Y80oZfcfWLsqickMfRd9YByVcTGyhYRnYQ2XVPVrp6jyUyOeRWmEAPh7ERSXpp8Ws4hr/JB9QVQrn/yZa+Ag==}
-    engines: {node: 12.* || 14.* || >= 16}
 
   ember-cli-htmlbars@7.0.1:
     resolution: {integrity: sha512-bNVAwTvBOmk7KjGCN0Vq81w8FAWQ1zXwCS1CUUHTeWdcFypRsv0qUEkTtwxho4H3BYaoqMCXPS45Js9WWtEXYw==}
@@ -7898,7 +7897,7 @@ snapshots:
     dependencies:
       '@sentry/conventions': 0.15.1
 
-  '@sentry/ember@10.64.0(@glint/template@1.7.8)(ember-cli@7.1.0(@babel/core@7.29.7)(@types/node@26.1.0)(ejs@3.1.10)(handlebars@4.7.9)(underscore@1.13.8))(webpack@5.102.1(postcss@8.5.16))':
+  '@sentry/ember@10.64.0(@glint/template@1.7.8)(ember-cli@7.1.0(@babel/core@7.29.7)(@types/node@26.1.0)(ejs@3.1.10)(handlebars@4.7.9)(underscore@1.13.8))(ember-source@7.1.0(@glimmer/component@2.1.1))(webpack@5.102.1(postcss@8.5.16))':
     dependencies:
       '@babel/core': 7.29.7
       '@embroider/macros': 1.20.5(@babel/core@7.29.7)(@glint/template@1.7.8)
@@ -7906,12 +7905,13 @@ snapshots:
       '@sentry/core': 10.64.0
       ember-auto-import: 2.13.1(@glint/template@1.7.8)(webpack@5.102.1(postcss@8.5.16))
       ember-cli-babel: 8.3.1(@babel/core@7.29.7)
-      ember-cli-htmlbars: 6.3.0
+      ember-cli-htmlbars: 7.0.1(@babel/core@7.29.7)(ember-source@7.1.0(@glimmer/component@2.1.1))
       ember-cli-typescript: 5.3.0
     optionalDependencies:
       ember-cli: 7.1.0(@babel/core@7.29.7)(@types/node@26.1.0)(ejs@3.1.10)(handlebars@4.7.9)(underscore@1.13.8)
     transitivePeerDependencies:
       - '@glint/template'
+      - ember-source
       - supports-color
       - webpack
 
@@ -9496,25 +9496,6 @@ snapshots:
       - supports-color
 
   ember-cli-get-component-path-option@1.0.0: {}
-
-  ember-cli-htmlbars@6.3.0:
-    dependencies:
-      '@ember/edition-utils': 1.2.0
-      babel-plugin-ember-template-compilation: 2.4.1
-      babel-plugin-htmlbars-inline-precompile: 5.3.1
-      broccoli-debug: 0.6.5
-      broccoli-persistent-filter: 3.1.3
-      broccoli-plugin: 4.0.7
-      ember-cli-version-checker: 5.1.2
-      fs-tree-diff: 2.0.1
-      hash-for-dep: 1.5.2
-      heimdalljs-logger: 0.1.10
-      js-string-escape: 1.0.1
-      semver: 7.8.5
-      silent-error: 1.1.1
-      walk-sync: 2.2.0
-    transitivePeerDependencies:
-      - supports-color
 
   ember-cli-htmlbars@7.0.1(@babel/core@7.29.7)(ember-source@7.1.0(@glimmer/component@2.1.1)):
     dependencies:

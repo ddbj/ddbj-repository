@@ -1,3 +1,7 @@
 allowBuilds:
   core-js: true
   msw: true
+overrides:
+  # @sentry/ember still declares ember-cli-htmlbars ^6.1.1, whose classic addon
+  # hook breaks under ember-cli 7. Force the 7.x line, which it works fine with.
+  ember-cli-htmlbars: ^7.0.1
