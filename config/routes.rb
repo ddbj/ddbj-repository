@@ -50,7 +50,13 @@ Rails.application.routes.draw do
     mount MissionControl::Jobs::Engine, at: '/jobs'
   end
 
-  get 'web/*paths', to: 'webs#show'
+  # The SPA is mounted at /web/ (Ember rootURL). Its shell is served by
+  # WebsController (not statically) so the runtime config can be injected on boot;
+  # see the Dockerfile. Both /web and /web/ serve the shell, matching the previous
+  # behaviour where the static server answered index.html for either.
+  get 'web(/*paths)', to: 'webs#show', constraints: ->(req) {
+    !req.xhr? && req.format.html?
+  }
 
   get 'up' => 'rails/health#show', as: :rails_health_check
 end

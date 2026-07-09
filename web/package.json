@@ -121,5 +121,8 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "dependencies": {
+    "@sentry/ember": "^10.64.0"
   }
 }

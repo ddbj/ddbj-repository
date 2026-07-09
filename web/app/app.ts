@@ -2,7 +2,26 @@ import Application from '@ember/application';
 import Resolver from 'ember-resolver';
 import loadInitializers from 'ember-load-initializers';
 import config from './config/environment';
-import { importSync, isDevelopingApp, macroCondition } from '@embroider/macros';
+import { importSync, isDevelopingApp, isTesting, macroCondition } from '@embroider/macros';
+
+if (macroCondition(isTesting())) {
+  // Don't import @sentry/ember in test environment to avoid
+  // "Cannot call .lookup('router:main') after the owner has been destroyed" errors
+} else {
+  const Sentry = importSync('@sentry/ember') as typeof import('@sentry/ember');
+
+  // The DSN and environment are injected at request time by the Rails backend
+  // (see WebsController), keeping the built assets environment-agnostic.
+  const dsn = document.querySelector('meta[name="sentry-dsn"]')?.getAttribute('content');
+
+  if (dsn) {
+    Sentry.init({
+      dsn,
+      environment: document.querySelector('meta[name="sentry-environment"]')?.getAttribute('content') ?? undefined,
+      sendDefaultPii: true,
+    });
+  }
+}
 
 if (macroCondition(isDevelopingApp())) {
   importSync('./deprecation-workflow');
