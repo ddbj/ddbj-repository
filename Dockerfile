@@ -75,6 +75,10 @@ COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
 COPY --from=web /web/dist /rails/public/web
 
+# WebsController serves the SPA shell with the runtime config injected, so it must
+# not be served statically from public/. Move it out of the way.
+RUN mv public/web/index.html app/views/webs/show.html
+
 COPY schema /schema
 
 # Run and own only the runtime files as a non-root user for security
