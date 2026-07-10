@@ -24,6 +24,7 @@ export default <template>
     <thead class="table-light">
       <tr>
         <th>ID</th>
+        <th>Source ID</th>
         <th>Created</th>
         <th>Updated</th>
       </tr>
@@ -38,6 +39,7 @@ export default <template>
             </LinkTo>
           </td>
 
+          <td>{{or submission.source_id "-"}}</td>
           <td>{{formatDatetime submission.created_at}}</td>
           <td>{{formatDatetime submission.updated_at}}</td>
         </tr>

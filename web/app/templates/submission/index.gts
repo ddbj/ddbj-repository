@@ -22,6 +22,9 @@ import type { components } from 'schema/openapi';
   <h1 class="display-6 mb-4">Submission-{{@model.id}}</h1>
 
   <dl class="horizontal">
+    <dt>Source ID</dt>
+    <dd>{{or @model.source_id "-"}}</dd>
+
     <dt>Created</dt>
     <dd>{{formatDatetime @model.created_at}}</dd>
 

@@ -684,6 +684,7 @@ components:
       required:
         - id
         - db
+        - source_id
         - created_at
         - updated_at
 
@@ -693,6 +694,11 @@ components:
 
         db:
           $ref: '#/components/schemas/Db'
+
+        source_id:
+          type:
+            - string
+            - 'null'
 
         created_at:
           type: string
@@ -708,6 +714,7 @@ components:
 
       required:
         - id
+        - source_id
         - created_at
         - updated_at
         - ddbj_record
@@ -717,6 +724,11 @@ components:
       properties:
         id:
           type: number
+
+        source_id:
+          type:
+            - string
+            - 'null'
 
         created_at:
           type: string

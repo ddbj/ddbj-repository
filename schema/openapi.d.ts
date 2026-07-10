@@ -586,6 +586,7 @@ export interface components {
         SubmissionSummary: {
             id: number;
             db: components["schemas"]["Db"];
+            source_id: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -593,6 +594,7 @@ export interface components {
         };
         Submission: {
             id: number;
+            source_id: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */

@@ -15,6 +15,7 @@ const now = '2025-01-01T00:00:00.000Z';
 // Minimal Submission shape the show route needs to render.
 const submission: components['schemas']['Submission'] = {
   id: 1,
+  source_id: null,
   created_at: now,
   updated_at: now,
   ddbj_record: { filename: 'original.json', url: 'http://example.com/original.json' },

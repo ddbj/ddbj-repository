@@ -112,6 +112,7 @@ module('Acceptance | submission request', function (hooks) {
 
           submission: {
             id: 10,
+            source_id: null,
             created_at: now,
             updated_at: now,
             ddbj_record: { filename: 'test.json', url: 'http://example.com/test.json' },
