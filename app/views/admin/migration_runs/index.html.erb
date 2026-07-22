@@ -11,7 +11,16 @@
   <%= link_to 'New run', new_admin_migration_run_path, class: 'btn btn-primary' %>
 </div>
 
-<%= render 'admin/shared/list_filter', url: admin_migration_runs_path, extra_fields: [] %>
+<%= form_with url: admin_migration_runs_path, method: :get, local: true, class: 'row g-2 mb-3' do |f| %>
+  <div class="col-sm-10">
+    <%= f.label :db, 'Database', class: 'form-label visually-hidden' %>
+    <%= f.select :db, db_options, {include_blank: 'All databases', selected: params[:db]}, class: 'form-select' %>
+  </div>
+
+  <div class="col-sm-2">
+    <%= f.submit 'Filter', class: 'btn btn-primary w-100' %>
+  </div>
+<% end %>
 
 <table class="table border">
   <thead class="table-light">
