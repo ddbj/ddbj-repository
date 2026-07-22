@@ -3,9 +3,16 @@ require 'test_helper'
 class BioSample::ImporterTest < ActiveSupport::TestCase
   SC = BioSample::StagingClient
 
+  # Staging Sample builder that defaults the D-way lifecycle dates
+  # (release_date / dist_date) so tests only spell them out when they
+  # assert on them.
+  def staging_sample(release_date: nil, dist_date: nil, **attrs)
+    SC::Sample.new(release_date:, dist_date:, **attrs)
+  end
+
   def build(samples_count: 2, ssub_id: 'SSUB-test', user_uid: 'migration-test', migration_run_id: SecureRandom.uuid)
     samples = (1..samples_count).map {|i|
-      SC::Sample.new(
+      staging_sample(
         smp_id:        i,
         accession:     "SAMD0009999#{i}",
         sample_name:   "DRS00000#{i}",
@@ -126,13 +133,13 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
       organization: 'Sample Organization', organization_url: nil,
       comment: '[2014] sample import', contacts: [],
       samples: [
-        SC::Sample.new(smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS000001', package: 'Generic',
+        staging_sample(smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS000001', package: 'Generic',
                        package_group: nil, env_package: nil, status_id: 5500, attributes: [
                          {'name' => 'organism',     'value' => 'human gut metagenome'},
                          {'name' => 'taxonomy_id',  'value' => '408170'},
                          {'name' => 'sample_title', 'value' => 'sample-1 BUMPED'}
                        ]),
-        SC::Sample.new(smp_id: 2, accession: 'SAMD00099992', sample_name: 'DRS000002', package: 'Generic',
+        staging_sample(smp_id: 2, accession: 'SAMD00099992', sample_name: 'DRS000002', package: 'Generic',
                        package_group: nil, env_package: nil, status_id: 5500, attributes: [
                          {'name' => 'organism',     'value' => 'human gut metagenome'},
                          {'name' => 'taxonomy_id',  'value' => '408170'},
@@ -205,8 +212,8 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
   test 'syncs samples by position, supporting nil-accession drafts' do
     drafts = [
-      SC::Sample.new(smp_id: 10, accession: nil, sample_name: 'DRS_DRAFT_A', package: 'Generic', package_group: nil, env_package: nil, status_id: 5400, attributes: []),
-      SC::Sample.new(smp_id: 11, accession: nil, sample_name: 'DRS_DRAFT_B', package: 'Generic', package_group: nil, env_package: nil, status_id: 5500, attributes: [])
+      staging_sample(smp_id: 10, accession: nil, sample_name: 'DRS_DRAFT_A', package: 'Generic', package_group: nil, env_package: nil, status_id: 5400, attributes: []),
+      staging_sample(smp_id: 11, accession: nil, sample_name: 'DRS_DRAFT_B', package: 'Generic', package_group: nil, env_package: nil, status_id: 5500, attributes: [])
     ]
     row = SC::Submission.new(
       ssub_id: 'SSUB-nil-acc', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil,
@@ -230,7 +237,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
     # Same psub_id but with only 2 samples now (third removed in D-way).
     smaller = (1..2).map {|i|
-      SC::Sample.new(
+      staging_sample(
         smp_id: i, accession: "SAMD0009999#{i}", sample_name: "DRS00000#{i}",
         package: 'Generic', package_group: nil, env_package: nil, status_id: 5500,
         attributes: [{'name' => 'organism', 'value' => 'sample organism'}]
@@ -280,7 +287,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
   test 'staging-only typed columns (package_group / env_package) backfill on re-run even when patch is byte-identical' do
     # Initial run: staging row has NULL package_group / env_package.
-    samples = [SC::Sample.new(
+    samples = [staging_sample(
       smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
       package: 'Generic', package_group: nil, env_package: nil,
       status_id: 5500, attributes: []
@@ -302,7 +309,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     row_updated = SC::Submission.new(
       ssub_id: 'SSUB-typed-backfill', submitter_id: 'u', organization: nil, organization_url: nil,
       comment: nil, contacts: [],
-      samples: [SC::Sample.new(
+      samples: [staging_sample(
         smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
         package: 'Generic', package_group: 'MIGS.ba', env_package: 'soil',
         status_id: 5500, attributes: []
@@ -316,8 +323,44 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal 'soil',    sample.env_package
   end
 
+  test 'syncs staging release_date / dist_date onto Sample typed columns and backfills on a byte-identical re-run' do
+    # First import: staging carries no lifecycle dates yet.
+    row = SC::Submission.new(
+      ssub_id: 'SSUB-dates', submitter_id: 'u', organization: nil, organization_url: nil,
+      comment: nil, contacts: [],
+      samples: [staging_sample(
+        smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
+        package: 'Generic', package_group: nil, env_package: nil, status_id: 5500, attributes: []
+      )]
+    )
+    BioSample::Importer.new(staging_submission: row, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
+
+    sample = Submission.find_by(source_id: 'SSUB-dates').samples.first
+    assert_nil sample.release_date
+    assert_nil sample.dist_date
+
+    # Re-run after D-way fills release_date / dist_date. These never reach
+    # the canonical patch, so the fast path returns :skipped — but
+    # sync_samples! must still backfill the typed columns.
+    row_dated = SC::Submission.new(
+      ssub_id: 'SSUB-dates', submitter_id: 'u', organization: nil, organization_url: nil,
+      comment: nil, contacts: [],
+      samples: [staging_sample(
+        smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
+        package: 'Generic', package_group: nil, env_package: nil, status_id: 5500,
+        release_date: '2020-01-15', dist_date: '2021-02-20', attributes: []
+      )]
+    )
+    result = BioSample::Importer.new(staging_submission: row_dated, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
+
+    assert_equal :skipped, result.outcome
+    sample.reload
+    assert_equal Date.new(2020, 1, 15), sample.release_date
+    assert_equal Date.new(2021, 2, 20), sample.dist_date
+  end
+
   test 'maps unknown status_id to :curating' do
-    samples = [SC::Sample.new(
+    samples = [staging_sample(
       smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
       package: 'Generic', package_group: nil, env_package: nil, status_id: 99_999, attributes: []
     )]
@@ -333,7 +376,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
   test 'lifts staging package_group + env_package into Sample typed columns' do
     samples = [
-      SC::Sample.new(
+      staging_sample(
         smp_id:        1,
         accession:     'SAMD00099991',
         sample_name:   'DRS001',
@@ -343,7 +386,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
         status_id:     5500,
         attributes:    []
       ),
-      SC::Sample.new(
+      staging_sample(
         smp_id:        2,
         accession:     'SAMD00099992',
         sample_name:   'DRS002',

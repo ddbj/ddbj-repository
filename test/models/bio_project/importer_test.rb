@@ -43,6 +43,24 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert replayed.key?('submission'),  'submission must be in the materialised replay'
   end
 
+  test 'syncs staging release_date / dist_date onto Project and backfills on a byte-identical re-run' do
+    # First import with no lifecycle dates yet.
+    project = build.call.submission.project
+    assert_nil project.release_date
+    assert_nil project.dist_date
+
+    # Re-run with the SAME XML but dates now populated in D-way. The XML
+    # is byte-identical so the importer takes the :skipped path — but
+    # release_date / dist_date are D-way facts outside the diffed chain
+    # (they feed the three-pole exchange XML) and must still backfill.
+    result = build(release_date: '2020-03-10', dist_date: '2021-04-05').call
+
+    assert_equal :skipped, result.outcome
+    project.reload
+    assert_equal Date.new(2020, 3, 10), project.release_date
+    assert_equal Date.new(2021, 4, 5),  project.dist_date
+  end
+
   test 'creates Submission + Project + baseline SubmissionUpdate on first run' do
     result = build.call
 

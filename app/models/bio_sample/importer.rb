@@ -12,10 +12,12 @@ module BioSample
   #     migration_run_id.
   #   - Sample typed-column sync (accession / sample_name / package /
   #     package_group / env_package / taxonomy_id / organism / status /
-  #     title): ALWAYS runs. Some of those columns (package_group,
-  #     env_package) live only on the staging row and never reach the
-  #     canonical patch, so gating sync on patch-difference would
-  #     permanently strand any staging-side updates to them. The trade-
+  #     title / release_date / dist_date): ALWAYS runs. Some of those
+  #     columns (package_group, env_package, release_date, dist_date) live
+  #     only on the staging row and never reach the canonical patch, so
+  #     gating sync on patch-difference would permanently strand any
+  #     staging-side updates to them. (release_date / dist_date feed the
+  #     public / three-pole exchange XML.) The trade-
   #     off is that curator edits to typed columns survive only until
   #     the next re-import — Phase 6 needs explicit curator-edit-vs-
   #     staging diff handling.
@@ -213,6 +215,8 @@ module BioSample
           # have an audit anchor when the derivation lands.
           package_group: staging.package_group,
           env_package:   staging.env_package,
+          release_date:  staging.release_date,
+          dist_date:     staging.dist_date,
           taxonomy_id:   v3.dig('organism', 'taxonomy_id'),
           organism:      v3.dig('organism', 'name')
         }

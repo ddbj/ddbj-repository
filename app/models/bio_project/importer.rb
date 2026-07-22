@@ -9,8 +9,12 @@ module BioProject
   # Idempotency contract:
   #   - Re-running with the same psub_id + identical XML is a true no-op:
   #     find_or_create_by! reuses the existing row and no further writes
-  #     happen. updated_at / migration_run_id / Project columns are
-  #     untouched on the :skipped path.
+  #     happen. updated_at / migration_run_id / most Project columns are
+  #     untouched on the :skipped path. The exception is release_date /
+  #     dist_date (D-way lifecycle facts consumed by the three-pole
+  #     exchange XML): they are non-curator, non-chain metadata and sync
+  #     on every run so a re-import backfills them onto already-imported
+  #     rows — see the sync just below ensure_migration_request!.
   #   - Re-running with a different user_uid against an existing Submission
   #     raises CrossUserError; we never silently re-attribute.
   #   - When a new patch IS appended (XML actually changed), Submission and
@@ -24,7 +28,7 @@ module BioProject
 
     Result = Data.define(:submission, :outcome) # outcome: :created | :updated | :skipped | :no_accession
 
-    def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, accession: nil, status: nil)
+    def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, accession: nil, status: nil, release_date: nil, dist_date: nil)
       @psub_id          = psub_id
       @xml              = xml
       @user_uid         = user_uid
@@ -32,6 +36,8 @@ module BioProject
       @accession        = accession
       @migration_run_id = migration_run_id
       @status           = status
+      @release_date     = release_date
+      @dist_date        = dist_date
     end
 
     def call
@@ -65,6 +71,16 @@ module BioProject
         end
 
         submission.ensure_migration_request!(migration_run_id: @migration_run_id)
+
+        # Project row + its D-way lifecycle dates. release_date (初回公開)
+        # and dist_date (再公開) feed the three-pole exchange XML's
+        # eAdded/eUpdated action. They are neither curator-edited nor part
+        # of the XML-diffed materialised chain, so — unlike status / title
+        # below — sync them on EVERY run, including the fast-skip path, or
+        # a re-import would never backfill an already-imported row. Ensured
+        # here (not on the change path) precisely so the skip path sees it.
+        project = submission.project || Project.create!(submission:, accession:, project_type: @project_type)
+        project.update_columns(release_date: @release_date, dist_date: @dist_date)
 
         # Fast :skipped path: if the SeaweedFS-stored snapshot from the
         # PREVIOUS importer run still hashes to what this run would
@@ -107,13 +123,12 @@ module BioProject
           updated_at:        Time.current
         )
 
-        project = submission.project ||
-                  Project.create!(submission:, accession:, project_type: @project_type)
-
-        # Project columns track the materialised record's snapshot; refreshed
-        # only on real updates so curator-edited fields survive byte-identical
-        # re-imports. Phase 6 needs explicit curator-edit-vs-import diff to
-        # handle the case where XML diverges AFTER a curator touched the row.
+        # Materialised-snapshot columns (status / title, plus accession /
+        # project_type re-affirmed): refreshed only on real updates so
+        # curator-edited fields survive byte-identical re-imports. Phase 6
+        # needs explicit curator-edit-vs-import diff to handle the case
+        # where XML diverges AFTER a curator touched the row. (release_date
+        # / dist_date are handled above, unconditionally, on purpose.)
         project.update!(
           accession:    accession,
           project_type: @project_type,

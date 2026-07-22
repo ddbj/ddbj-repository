@@ -16,7 +16,7 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     )
   end
 
-  def sample(smp_id: 1, accession: 'SAMD00099999', alias_name: 'DRS999999', package: 'Generic', package_group: nil, env_package: nil, status_id: 5500, attributes: [])
+  def sample(smp_id: 1, accession: 'SAMD00099999', alias_name: 'DRS999999', package: 'Generic', package_group: nil, env_package: nil, status_id: 5500, release_date: nil, dist_date: nil, attributes: [])
     SC::Sample.new(
       smp_id:        smp_id,
       accession:     accession,
@@ -25,6 +25,8 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
       package_group: package_group,
       env_package:   env_package,
       status_id:     status_id,
+      release_date:  release_date,
+      dist_date:     dist_date,
       attributes:    attributes
     )
   end
