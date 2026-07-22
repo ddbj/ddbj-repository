@@ -1,0 +1,32 @@
+class PublishBpExchangeXMLJob < ApplicationJob
+  # Same rationale as PublishBpXMLJob: the Exporter records the failure on
+  # the PublicXMLRun row, and the failure modes (bad data / missing output
+  # dir) don't heal on retry.
+  discard_on StandardError
+
+  FILENAME = 'exchange_package_set.xml'
+
+  def perform
+    # Soft concurrency guard against a mid-run duplicate (see PublishBpXMLJob).
+    return if PublicXMLRun.where(db: 'bioproject', kind: 'exchange', status: 'running').exists?
+
+    # Delta window: everything released / re-released since the previous
+    # public run counts as eAdded / eUpdated. `exec_date` is this run's
+    # cut-off. See PublicXMLRun's class comment for why we anchor on the
+    # public run's started_at.
+    last_run  = PublicXMLRun.previous_public_run(db: 'bioproject')&.started_at
+    exec_date = Time.current
+
+    output_dir = Rails.application.config_for(:app).public_xml_dir!
+
+    PublicXML::Exporter.new(
+      db:               'bioproject',
+      kind:             'exchange',
+      output_dir:       output_dir,
+      filename:         FILENAME,
+      renderer_class:   PublicXML::Bp::ExchangePackageRenderer,
+      renderer_options: {last_run:, exec_date:},
+      scope:            Project.status_public.includes(:submission).order(:id)
+    ).call
+  end
+end

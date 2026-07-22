@@ -16,17 +16,22 @@ module PublicXML
   # both `running` → `completed` and `running` → `failed` transitions.
   class Exporter
     # `db`: 'bioproject' | 'biosample'
-    # `kind`: 'public' (Phase A) — Phase B will extend with 'exchange'
+    # `kind`: 'public' | 'exchange' (exchange is BP-only)
     # `output_dir`, `filename`, `renderer_class`, `scope` are injected so
     # the per-DB job can supply its own concrete configuration without
     # forcing this class to know about BP vs BS specifics.
-    def initialize(db:, kind:, output_dir:, filename:, renderer_class:, scope:)
-      @db             = db
-      @kind           = kind
-      @output_dir     = Pathname.new(output_dir)
-      @filename       = filename
-      @renderer_class = renderer_class
-      @scope          = scope
+    # `renderer_options` are extra keyword args splatted into every
+    # `renderer_class.new` call — run-level context a renderer needs beyond
+    # the per-record record/row/cache (the exchange renderer uses it for
+    # the last_run / exec_date delta window). Empty for the public renderers.
+    def initialize(db:, kind:, output_dir:, filename:, renderer_class:, scope:, renderer_options: {})
+      @db               = db
+      @kind             = kind
+      @output_dir       = Pathname.new(output_dir)
+      @filename         = filename
+      @renderer_class   = renderer_class
+      @scope            = scope
+      @renderer_options = renderer_options
     end
 
     def call
@@ -57,7 +62,7 @@ module PublicXML
           v3 = v3_by_submission[record.submission_id] ||= record.submission.materialised_record
           next unless v3
 
-          node = @renderer_class.new(record: v3, row: record, cache: render_cache).call
+          node = @renderer_class.new(record: v3, row: record, cache: render_cache, **@renderer_options).call
           next unless node
 
           fragment = node.to_xml(indent: 1, indent_text: "\t")
