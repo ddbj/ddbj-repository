@@ -11,10 +11,11 @@ module BioProject
   #     find_or_create_by! reuses the existing row and no further writes
   #     happen. updated_at / migration_run_id / most Project columns are
   #     untouched on the :skipped path. The exception is release_date /
-  #     dist_date (D-way lifecycle facts consumed by the three-pole
-  #     exchange XML): they are non-curator, non-chain metadata and sync
-  #     on every run so a re-import backfills them onto already-imported
-  #     rows — see the sync just below ensure_migration_request!.
+  #     dist_date / modified_date (D-way lifecycle facts consumed by the
+  #     three-pole exchange XML and the livelist): they are non-curator,
+  #     non-chain metadata and sync on every run so a re-import backfills
+  #     them onto already-imported rows — see the sync just below
+  #     ensure_migration_request!.
   #   - Re-running with a different user_uid against an existing Submission
   #     raises CrossUserError; we never silently re-attribute.
   #   - When a new patch IS appended (XML actually changed), Submission and
@@ -28,7 +29,7 @@ module BioProject
 
     Result = Data.define(:submission, :outcome) # outcome: :created | :updated | :skipped | :no_accession
 
-    def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, accession: nil, status: nil, release_date: nil, dist_date: nil)
+    def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, accession: nil, status: nil, release_date: nil, dist_date: nil, modified_date: nil)
       @psub_id          = psub_id
       @xml              = xml
       @user_uid         = user_uid
@@ -38,6 +39,7 @@ module BioProject
       @status           = status
       @release_date     = release_date
       @dist_date        = dist_date
+      @modified_date    = modified_date
     end
 
     def call
@@ -74,13 +76,14 @@ module BioProject
 
         # Project row + its D-way lifecycle dates. release_date (初回公開)
         # and dist_date (再公開) feed the three-pole exchange XML's
-        # eAdded/eUpdated action. They are neither curator-edited nor part
-        # of the XML-diffed materialised chain, so — unlike status / title
-        # below — sync them on EVERY run, including the fast-skip path, or
-        # a re-import would never backfill an already-imported row. Ensured
+        # eAdded/eUpdated action; modified_date (最終更新日) is the livelist's
+        # `Updated` column. They are neither curator-edited nor part of the
+        # XML-diffed materialised chain, so — unlike status / title below —
+        # sync them on EVERY run, including the fast-skip path, or a
+        # re-import would never backfill an already-imported row. Ensured
         # here (not on the change path) precisely so the skip path sees it.
         project = submission.project || Project.create!(submission:, accession:, project_type: @project_type)
-        project.update_columns(release_date: @release_date, dist_date: @dist_date)
+        project.update_columns(release_date: @release_date, dist_date: @dist_date, modified_date: @modified_date)
 
         # Fast :skipped path: if the SeaweedFS-stored snapshot from the
         # PREVIOUS importer run still hashes to what this run would

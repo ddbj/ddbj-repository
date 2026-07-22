@@ -23,6 +23,7 @@ module DataMigration
         status:           row.status_id,
         release_date:     row.release_date,
         dist_date:        row.dist_date,
+        modified_date:    row.modified_date,
         migration_run_id: @run.uuid
       ).call.outcome
     rescue BioProject::Importer::CrossUserError => e

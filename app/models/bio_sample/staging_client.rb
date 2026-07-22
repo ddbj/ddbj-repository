@@ -20,7 +20,7 @@ module BioSample
     # mirror staging's value as a typed column. Once Sample carries a
     # `package_version` field and we cache the catalog, this slot can become
     # an audit-only artefact and the typed column on `samples` can be dropped.
-    Sample     = Data.define(:smp_id, :accession, :sample_name, :package, :package_group, :env_package, :status_id, :release_date, :dist_date, :attributes)
+    Sample     = Data.define(:smp_id, :accession, :sample_name, :package, :package_group, :env_package, :status_id, :release_date, :dist_date, :modified_date, :attributes)
     Contact    = Data.define(:email, :first, :last)
 
     def initialize(**overrides)
@@ -98,7 +98,7 @@ module BioSample
 
       sample_rows = @conn.exec_params(<<~SQL, [ssub_id]).to_a
         SELECT s.smp_id, a.accession_id, s.sample_name, s.package, s.package_group, s.env_package, s.status_id,
-               s.release_date::date AS release_date, s.dist_date::date AS dist_date
+               s.release_date::date AS release_date, s.dist_date::date AS dist_date, s.modified_date::date AS modified_date
         FROM   sample s
         LEFT JOIN accession a USING (smp_id)
         WHERE  s.submission_id = $1
@@ -136,6 +136,7 @@ module BioSample
             status_id:     s['status_id']&.to_i,
             release_date:  s['release_date'],
             dist_date:     s['dist_date'],
+            modified_date: s['modified_date'],
             attributes:    (attrs_by_smp[s['smp_id'].to_i] || []).map {|a|
               {'name' => a['attribute_name'], 'value' => a['attribute_value']}
             }

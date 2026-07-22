@@ -4,7 +4,7 @@ class DataMigration::SyncBpJobTest < ActiveJob::TestCase
   XML_FIXTURE = Rails.root.join('test/fixtures/files/data_migration/bio_project/PSUB000604.xml').freeze
 
   class FakeStagingClient
-    Submission = Struct.new(:psub_id, :submitter_id, :status_id, :accession, :project_type, :xml, :release_date, :dist_date, keyword_init: true)
+    Submission = Struct.new(:psub_id, :submitter_id, :status_id, :accession, :project_type, :xml, :release_date, :dist_date, :modified_date, keyword_init: true)
 
     def initialize(rows)
       @rows = rows.index_by(&:psub_id)

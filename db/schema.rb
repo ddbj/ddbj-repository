@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_21_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_23_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -100,6 +100,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000002) do
     t.date "dist_date"
     t.date "hold_date"
     t.date "issued_date"
+    t.date "modified_date"
     t.integer "project_type", null: false
     t.date "release_date"
     t.integer "status", default: 5100, null: false
@@ -169,6 +170,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_21_000002) do
     t.datetime "created_at", null: false
     t.date "dist_date"
     t.string "env_package"
+    t.date "modified_date"
     t.string "organism"
     t.string "package"
     t.string "package_group"
