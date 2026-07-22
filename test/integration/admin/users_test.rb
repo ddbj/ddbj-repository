@@ -128,9 +128,11 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  test 'proxy_login redirects to web with the proxy_login query parameter' do
+  test 'proxy_login redirects to the web login with the admin token and proxy target' do
     post admin_user_proxy_login_path(user_uid: 'alice')
 
-    assert_redirected_to %r{http://repository\.example\.com:4200/web/\?proxy_login=alice}
+    # The web client is JWT-only, so proxy-login hands it the admin's own
+    # token plus the proxy target; the web login route then acts as alice.
+    assert_redirected_to %r{http://repository\.example\.com:4200/web/login\?token=.+&proxy_login=alice}
   end
 end

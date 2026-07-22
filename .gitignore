@@ -29,8 +29,7 @@
 !/tmp/storage/.keep
 
 # Ignore master key for decrypting credentials and more.
-/config/credentials/production.key
-/config/credentials/staging.key
+/config/credentials/*.key
 /config/master.key
 
 # Ignore compiled SCSS output (built by dartsass-rails).

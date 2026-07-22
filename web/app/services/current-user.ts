@@ -2,7 +2,6 @@ import Service, { service } from '@ember/service';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
-import ENV from 'repository/config/environment';
 import User from 'repository/models/user';
 
 import type { RequestManager } from '@warp-drive/core';
@@ -78,11 +77,18 @@ export default class CurrentUserService extends Service {
     this.router.transitionTo('index');
   }
 
-  async login(token: string) {
+  async login(token: string, proxyUid?: string) {
     this.clear();
     localStorage.setItem('token', token);
 
     await this.restore();
+
+    // Proxy-login hands the admin's token plus a target uid in one hop
+    // (see Admin::ProxyLoginsController); start acting as the target here,
+    // after the token is in place.
+    if (proxyUid) {
+      this.startProxy(proxyUid);
+    }
 
     if (this.previousTransition) {
       this.previousTransition.retry();
@@ -92,20 +98,12 @@ export default class CurrentUserService extends Service {
     }
   }
 
-  async logout() {
+  logout() {
+    // The web session is just the JWT in localStorage (stateless, no
+    // server-side session to clear — that's the admin's cookie, which is
+    // now independent). Clearing local state is the whole logout.
     this.clear();
     localStorage.removeItem('token');
-
-    // /session is outside /api, so RequestManager's BaseURLHandler wouldn't
-    // route it; AuthHandler would also attach a stale bearer token.
-    const sessionUrl = `${ENV.appURL}/session`;
-
-    try {
-      // eslint-disable-next-line warp-drive/no-external-request-patterns
-      await fetch(sessionUrl, { method: 'DELETE', credentials: 'include' });
-    } catch {
-      // Network failures are non-fatal: local state is already cleared.
-    }
 
     this.router.transitionTo('index');
   }
