@@ -13,7 +13,7 @@ app/              Rails application
 web/              Ember.js frontend
 schema/           OpenAPI schema
 docker/           SeaweedFS configuration
-spec/             RSpec tests
+test/             Minitest tests
 data/             Qualifier/feature reference data
 ```
 
@@ -43,7 +43,7 @@ data/             Qualifier/feature reference data
 ```sh
 bin/setup          # Initial setup
 bin/dev            # Start all services (Rails, Ember, SeaweedFS, etc.)
-bundle exec rspec  # Run backend tests
+bin/rails test     # Run backend tests
 cd web && pnpm test  # Run frontend tests
 cd web && pnpm lint  # Run frontend linters
 ```
@@ -51,7 +51,7 @@ cd web && pnpm lint  # Run frontend linters
 ## CI
 
 Two workflows on push:
-- **API** (`api.yml`): `rspec`, `brakeman`, `rubocop`
+- **API** (`api.yml`): `bin/rails test`, `brakeman`, `rubocop`
 - **Web** (`web.yml`): `pnpm lint`, `pnpm test`
 
 ## Key Architecture
