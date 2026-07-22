@@ -11,6 +11,14 @@ production: &production
     class: PublishBsXMLJob
     schedule: at 2:30am every day
 
+  # BP three-pole (三極交換) exchange dump. Daily, like the public dumps —
+  # legacy bpbatch generated public + collab together in one nightly run.
+  # It anchors its delta on the previous exchange run, so it can sit in the
+  # same window as the public jobs without interfering.
+  publish_bp_exchange_xml:
+    class: PublishBpExchangeXMLJob
+    schedule: at 3am every day
+
 staging:
   <<: *production
 
