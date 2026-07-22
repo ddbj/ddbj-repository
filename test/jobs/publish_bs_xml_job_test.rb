@@ -2,11 +2,13 @@ require 'test_helper'
 
 class PublishBsXMLJobTest < ActiveSupport::TestCase
   setup do
-    @output_dir = Rails.application.config_for(:app).public_xml_bs_dir!.tap { Pathname.new(it).mkpath }
+    @output_dir = Rails.application.config_for(:app).public_xml_dir!.tap { Pathname.new(it).mkpath }
   end
 
   teardown do
-    Pathname.new(@output_dir).rmtree if Pathname.new(@output_dir).exist?
+    # The output dir is shared across DBs now, so remove only this job's
+    # file(s) (the final + any leftover .partial) rather than the dir.
+    Pathname.new(@output_dir).glob("#{PublishBsXMLJob::FILENAME}*").each(&:delete)
   end
 
   test 'runs end-to-end against the configured directory and records a PublicXMLRun' do

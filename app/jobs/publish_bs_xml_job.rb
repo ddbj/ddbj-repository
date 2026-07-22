@@ -6,7 +6,7 @@ class PublishBsXMLJob < ApplicationJob
   def perform
     return if PublicXMLRun.where(db: 'biosample', kind: 'public', status: 'running').exists?
 
-    output_dir = Rails.application.config_for(:app).public_xml_bs_dir!
+    output_dir = Rails.application.config_for(:app).public_xml_dir!
 
     PublicXML::Exporter.new(
       db:             'biosample',

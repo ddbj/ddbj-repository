@@ -15,7 +15,7 @@ class PublishBpXMLJob < ApplicationJob
     # without dragging Postgres locks in.
     return if PublicXMLRun.where(db: 'bioproject', kind: 'public', status: 'running').exists?
 
-    output_dir = Rails.application.config_for(:app).public_xml_bp_dir!
+    output_dir = Rails.application.config_for(:app).public_xml_dir!
 
     PublicXML::Exporter.new(
       db:             'bioproject',
