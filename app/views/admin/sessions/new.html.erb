@@ -7,7 +7,13 @@
         <h1 class="h3 mb-2">Sign in required</h1>
         <p class="text-body-secondary mb-4">Use your DDBJ Account to access the administration.</p>
 
-        <form action="/auth/keycloak" method="post">
+        <%# data-turbo="false": OmniAuth's request phase 302-redirects to %>
+        <%# Keycloak (a different origin). Left to Turbo, the form posts via %>
+        <%# fetch() which follows that redirect as a cross-origin request and %>
+        <%# is blocked by CORS. A native submission is a top-level navigation, %>
+        <%# which CORS does not apply to. Mirrors the Logout / "Back to %>
+        <%# repository" controls in the admin layout. %>
+        <form action="/auth/keycloak" method="post" data-turbo="false">
           <input type="hidden" name="origin" value="<%= @origin %>">
           <button type="submit" class="btn btn-primary btn-lg">Login with DDBJ Account</button>
         </form>
