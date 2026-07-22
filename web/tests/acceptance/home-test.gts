@@ -60,17 +60,17 @@ module('Acceptance | home', function (hooks) {
     assert.dom(`${firstRow} td:nth-child(1) .badge.text-bg-warning`).hasText('New message');
     assert.dom(`${firstRow} td:nth-child(2)`).hasText('BioSample');
     assert.dom(`${firstRow} td:nth-child(3) .badge`).hasText('applied');
-    assert.dom(`${firstRow} td:nth-child(4)`).includesText('SAMD00000001');
-    assert.dom(`${firstRow} td:nth-child(4)`).includesText('(3)'); // first + total count
-    assert.dom(`${firstRow} td:nth-child(5)`).hasText('SSUB000123');
+    assert.dom(`${firstRow} td:nth-child(4)`).hasText('SSUB000123'); // Source ID
+    assert.dom(`${firstRow} td:nth-child(5)`).includesText('SAMD00000001'); // Accession
+    assert.dom(`${firstRow} td:nth-child(5)`).includesText('(3)'); // first + total count
 
     const secondRow = 'tbody tr:nth-child(2)';
     assert.dom(`${secondRow} td:nth-child(1)`).hasText('#3');
     assert.dom(`${secondRow} td:nth-child(1) .badge.text-bg-warning`).doesNotExist();
     assert.dom(`${secondRow} td:nth-child(2)`).hasText('BioProject');
     assert.dom(`${secondRow} td:nth-child(3) .badge`).hasText('validating');
-    assert.dom(`${secondRow} td:nth-child(4)`).hasText('-'); // no accession
-    assert.dom(`${secondRow} td:nth-child(5)`).hasText('-'); // no source id
+    assert.dom(`${secondRow} td:nth-child(4)`).hasText('-'); // no source id
+    assert.dom(`${secondRow} td:nth-child(5)`).hasText('-'); // no accession
   });
 
   test('empty state links to /new', async function (assert) {
@@ -209,7 +209,7 @@ module('Acceptance | home', function (hooks) {
     await click('form button[type="submit"]');
 
     assert.dom('tbody tr').exists({ count: 1 });
-    assert.dom('tbody tr td:nth-child(4)').includesText('SAMD00000001');
+    assert.dom('tbody tr td:nth-child(5)').includesText('SAMD00000001');
   });
 
   test('Select all / Deselect all toggle a whole facet', async function (assert) {

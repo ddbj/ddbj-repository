@@ -160,8 +160,8 @@ export default class extends Component<Signature> {
                 <th>ID</th>
                 <th>Database</th>
                 <th>Status</th>
-                <th>Accession</th>
                 <th>Source ID</th>
+                <th>Accession</th>
                 <th>Created</th>
               </tr>
             </thead>
@@ -181,6 +181,7 @@ export default class extends Component<Signature> {
 
                   <td>{{dbLabel request.db}}</td>
                   <td><StatusBadge @status={{request.status}} /></td>
+                  <td>{{or request.source_id "-"}}</td>
                   <td>
                     {{#if request.accession_count}}
                       {{request.first_accession}}
@@ -191,7 +192,6 @@ export default class extends Component<Signature> {
                       -
                     {{/if}}
                   </td>
-                  <td>{{or request.source_id "-"}}</td>
                   <td>{{formatDatetime request.created_at}}</td>
                 </tr>
               {{/each}}
