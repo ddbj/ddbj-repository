@@ -34,7 +34,7 @@ class AdminSubmittersTest < ActionDispatch::IntegrationTest
                     organizations: {'0' => {name: 'NIG', role: 'owner', type: 'institution'}}}
           }}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     @submission.reload
     assert_equal chain_before + 1, @submission.updates.count
     assert_equal 'hanako@new.example',
@@ -48,7 +48,7 @@ class AdminSubmittersTest < ActionDispatch::IntegrationTest
                     organizations: {'0' => {name: 'NIG Updated', role: 'owner', type: 'institution', url: 'https://nig.ac.jp/'}}}
           }}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     org = @submission.reload.materialised_record.dig('submission', 'submitters', 0, 'organizations', 0)
     assert_equal 'NIG Updated',          org['name']
     assert_equal 'https://nig.ac.jp/',   org['url']
@@ -119,7 +119,7 @@ class AdminSubmittersTest < ActionDispatch::IntegrationTest
   end
 
   test 'show page renders the submitters form when materialised record is present' do
-    get admin_submission_path(@submission)
+    get admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match 'Submitters',                                  response.body

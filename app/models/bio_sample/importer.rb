@@ -57,6 +57,8 @@ module BioSample
                 "refusing to silently re-attribute to '#{@user_uid}'."
         end
 
+        submission.ensure_migration_request!(migration_run_id: @migration_run_id)
+
         # Sample typed columns ALWAYS sync — they include staging-only
         # fields (package_group, env_package) that never reach the
         # canonical patch, so the patch-difference skip below cannot

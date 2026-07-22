@@ -64,6 +64,8 @@ module BioProject
                 "refusing to silently re-attribute to '#{@user_uid}'."
         end
 
+        submission.ensure_migration_request!(migration_run_id: @migration_run_id)
+
         # Fast :skipped path: if the SeaweedFS-stored snapshot from the
         # PREVIOUS importer run still hashes to what this run would
         # emit, the source XML hasn't changed meaningfully and we

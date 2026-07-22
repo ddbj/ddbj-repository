@@ -1,11 +1,11 @@
-<%# Per-submission curator ↔ submitter thread. Submitter posts via the %>
+<%# Per-request curator ↔ submitter thread. Submitter posts via the %>
 <%# web UI; curator posts via the form at the bottom of this card. %>
 <section class="card mt-4">
   <div class="card-body">
     <h2 class="h5 card-title">Messages</h2>
 
     <p class="text-body-secondary small">
-      Conversation between the submitter (<code><%= submission.user.uid %></code>) and curators.
+      Conversation between the submitter (<code><%= request.user.uid %></code>) and curators.
       Notification emails fire on each post; replies happen here.
     </p>
 
@@ -20,7 +20,7 @@
                 </strong>
                 — <%= m.user.uid %>
               </span>
-              <span><%= m.created_at.iso8601 %></span>
+              <span><%= format_datetime(m.created_at) %></span>
             </div>
             <div class="mt-1" style="white-space: pre-wrap;"><%= m.body %></div>
           </li>
@@ -30,7 +30,7 @@
       <p class="text-body-secondary fst-italic">No messages yet.</p>
     <% end %>
 
-    <%= form_with url: admin_submission_messages_path(submission),
+    <%= form_with url: admin_submission_request_messages_path(request),
                   method: :post,
                   scope:  :submission_message,
                   local:  true do |f| %>

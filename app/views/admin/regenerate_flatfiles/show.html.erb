@@ -52,7 +52,7 @@
   </div>
 <% elsif @progress&.completed? %>
   <div class="alert alert-<%= @progress.failed.positive? ? 'warning' : 'success' %> mt-3 mb-0" role="alert">
-    Completed at <%= @progress.updated_at.to_fs(:db) %>:
+    Completed at <%= format_datetime(@progress.updated_at) %>:
     <%= @progress.processed %> succeeded<% if @progress.failed.positive? %>, <%= @progress.failed %> failed<% end %>.
     <% if @progress.failed.positive? %>
       See <%= link_to 'Jobs', admin_mission_control_jobs_path, class: 'alert-link' %> for failure details.

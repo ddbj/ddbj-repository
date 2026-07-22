@@ -71,7 +71,11 @@ paths:
 
   /submission_requests:
     get:
-      description: Get a list of submission requests. Omit `db` to span every database the user has access to.
+      description: |
+        Get a list of submission requests. `db` and `status` are multi-select
+        filters (repeat the key, e.g. `?db[]=st26&db[]=biosample`); omit a
+        filter to span every value. `source_id` is a case-insensitive prefix
+        match on the applied submission's source id.
 
       tags:
         - Submission Requests
@@ -81,7 +85,25 @@ paths:
           in: query
 
           schema:
-            $ref: '#/components/schemas/Db'
+            type: array
+
+            items:
+              $ref: '#/components/schemas/Db'
+
+        - name: status
+          in: query
+
+          schema:
+            type: array
+
+            items:
+              $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        - name: source_id
+          in: query
+
+          schema:
+            type: string
 
         - name: page
           in: query
@@ -357,9 +379,9 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /submissions/{submission_id}/messages:
+  /submission_requests/{submission_request_id}/messages:
     parameters:
-      - name: submission_id
+      - name: submission_request_id
         in: path
         required: true
 
@@ -367,10 +389,10 @@ paths:
           type: number
 
     get:
-      description: Get the curator ↔ submitter message thread for a submission. Marks any unread curator-authored messages as read.
+      description: Get the curator ↔ submitter message thread for a request. Marks any unread curator-authored messages as read.
 
       tags:
-        - Submissions
+        - Submission Requests
 
       responses:
         '200':
@@ -394,7 +416,7 @@ paths:
       description: Submitter posts a reply to the thread. Notifies curators by email.
 
       tags:
-        - Submissions
+        - Submission Requests
 
       requestBody:
         required: true
@@ -503,7 +525,9 @@ components:
         - status
         - created_at
         - submission_id
-        - has_accession
+        - source_id
+        - first_accession
+        - accession_count
         - has_unread_curator_message
 
       properties:
@@ -524,8 +548,18 @@ components:
           type: number
           nullable: true
 
-        has_accession:
-          type: boolean
+        source_id:
+          type:
+            - string
+            - 'null'
+
+        first_accession:
+          type:
+            - string
+            - 'null'
+
+        accession_count:
+          type: number
 
         has_unread_curator_message:
           type: boolean
@@ -561,6 +595,7 @@ components:
 
       required:
         - id
+        - db
         - status
         - error_message
         - created_at
@@ -572,6 +607,9 @@ components:
       properties:
         id:
           type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
 
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'

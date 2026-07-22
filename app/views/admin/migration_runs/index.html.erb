@@ -46,8 +46,8 @@
             </div>
           <% end %>
         </td>
-        <td><%= run.started_at&.to_fs(:db) %></td>
-        <td><%= run.finished_at&.to_fs(:db) %></td>
+        <td><%= format_datetime(run.started_at) %></td>
+        <td><%= format_datetime(run.finished_at) %></td>
       </tr>
     <% end %>
 

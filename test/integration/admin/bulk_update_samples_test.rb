@@ -13,7 +13,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     patch bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: 'curating'}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_match(/Bulk-updated 2 sample/, flash[:notice])
 
     assert_equal 'curating', @sample_a.reload.status
@@ -24,7 +24,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     patch bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {assignee_id: users(:bob).id.to_s}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_equal users(:bob), @sample_a.reload.assignee
     assert_equal users(:bob), @sample_b.reload.assignee
   end
@@ -33,7 +33,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     patch bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: 'public', assignee_id: users(:bob).id.to_s}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_equal 'public',    @sample_a.reload.status
     assert_equal users(:bob), @sample_a.assignee
     assert_equal 'public',    @sample_b.reload.status
@@ -47,7 +47,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     patch bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {assignee_id: '0'}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_nil @sample_a.reload.assignee
     assert_nil @sample_b.reload.assignee
   end
@@ -59,7 +59,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     patch bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: '', assignee_id: users(:bob).id.to_s}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_equal original_a, @sample_a.reload.status, 'blank status field must be leave-as-is'
     assert_equal original_b, @sample_b.reload.status
     assert_equal users(:bob), @sample_a.assignee, 'assignee still applied'
@@ -70,7 +70,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     patch bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: 'nope_not_a_status'}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_match(/Unknown status/, flash[:alert])
     assert_equal original_a, @sample_a.reload.status
   end
@@ -79,7 +79,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     patch bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {assignee_id: users(:alice).id.to_s}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_match(/must be an admin user/, flash[:alert])
     assert_nil @sample_a.reload.assignee
   end
@@ -88,7 +88,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     patch bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: '', assignee_id: ''}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_match(/No changes specified/, flash[:alert])
   end
 
@@ -108,7 +108,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
   end
 
   test 'show page renders the bulk-sample form for BS submissions with samples' do
-    get admin_submission_path(@submission)
+    get admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match 'Bulk update all samples',                                response.body

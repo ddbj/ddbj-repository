@@ -10,7 +10,7 @@ module('Integration | Component | pagination', function (hooks) {
   test('current=1, total=3', async function (assert) {
     await render(
       <template>
-        <Pagination @route="db.requests.index" @models={{array "st26"}} @current={{1}} @total={{3}} />
+        <Pagination @route="request.accessions" @models={{array "42"}} @current={{1}} @total={{3}} />
       </template>,
     );
 
@@ -21,57 +21,57 @@ module('Integration | Component | pagination', function (hooks) {
     assert.dom('[data-test-prev] a').hasAttribute('href', '#');
 
     assert.dom('[data-test-page="1"]').hasClass('active');
-    assert.dom('[data-test-page="1"] a').hasAttribute('href', '/web/st26/requests');
+    assert.dom('[data-test-page="1"] a').hasAttribute('href', '/web/requests/42/accessions');
 
     assert.dom('[data-test-page="2"]').doesNotHaveClass('active');
-    assert.dom('[data-test-page="2"] a').hasAttribute('href', '/web/st26/requests?page=2');
+    assert.dom('[data-test-page="2"] a').hasAttribute('href', '/web/requests/42/accessions?page=2');
 
     assert.dom('[data-test-page="3"]').doesNotHaveClass('active');
-    assert.dom('[data-test-page="3"] a').hasAttribute('href', '/web/st26/requests?page=3');
+    assert.dom('[data-test-page="3"] a').hasAttribute('href', '/web/requests/42/accessions?page=3');
 
     assert.dom('[data-test-next]').doesNotHaveClass('disabled');
-    assert.dom('[data-test-next] a').hasAttribute('href', '/web/st26/requests?page=2');
+    assert.dom('[data-test-next] a').hasAttribute('href', '/web/requests/42/accessions?page=2');
 
     assert.dom('[data-test-last]').doesNotHaveClass('disabled');
-    assert.dom('[data-test-last] a').hasAttribute('href', '/web/st26/requests?page=3');
+    assert.dom('[data-test-last] a').hasAttribute('href', '/web/requests/42/accessions?page=3');
   });
 
   test('current=2, total=3', async function (assert) {
     await render(
       <template>
-        <Pagination @route="db.requests.index" @models={{array "st26"}} @current={{2}} @total={{3}} />
+        <Pagination @route="request.accessions" @models={{array "42"}} @current={{2}} @total={{3}} />
       </template>,
     );
 
     assert.dom('[data-test-start]').doesNotHaveClass('disabled');
-    assert.dom('[data-test-start] a').hasAttribute('href', '/web/st26/requests');
+    assert.dom('[data-test-start] a').hasAttribute('href', '/web/requests/42/accessions');
 
     assert.dom('[data-test-prev]').doesNotHaveClass('disabled');
-    assert.dom('[data-test-prev] a').hasAttribute('href', '/web/st26/requests');
+    assert.dom('[data-test-prev] a').hasAttribute('href', '/web/requests/42/accessions');
 
     assert.dom('[data-test-page="1"]').doesNotHaveClass('active');
     assert.dom('[data-test-page="2"]').hasClass('active');
     assert.dom('[data-test-page="3"]').doesNotHaveClass('active');
 
     assert.dom('[data-test-next]').doesNotHaveClass('disabled');
-    assert.dom('[data-test-next] a').hasAttribute('href', '/web/st26/requests?page=3');
+    assert.dom('[data-test-next] a').hasAttribute('href', '/web/requests/42/accessions?page=3');
 
     assert.dom('[data-test-last]').doesNotHaveClass('disabled');
-    assert.dom('[data-test-last] a').hasAttribute('href', '/web/st26/requests?page=3');
+    assert.dom('[data-test-last] a').hasAttribute('href', '/web/requests/42/accessions?page=3');
   });
 
   test('current=3, total=3', async function (assert) {
     await render(
       <template>
-        <Pagination @route="db.requests.index" @models={{array "st26"}} @current={{3}} @total={{3}} />
+        <Pagination @route="request.accessions" @models={{array "42"}} @current={{3}} @total={{3}} />
       </template>,
     );
 
     assert.dom('[data-test-start]').doesNotHaveClass('disabled');
-    assert.dom('[data-test-start] a').hasAttribute('href', '/web/st26/requests');
+    assert.dom('[data-test-start] a').hasAttribute('href', '/web/requests/42/accessions');
 
     assert.dom('[data-test-prev]').doesNotHaveClass('disabled');
-    assert.dom('[data-test-prev] a').hasAttribute('href', '/web/st26/requests?page=2');
+    assert.dom('[data-test-prev] a').hasAttribute('href', '/web/requests/42/accessions?page=2');
 
     assert.dom('[data-test-page="1"]').doesNotHaveClass('active');
     assert.dom('[data-test-page="2"]').doesNotHaveClass('active');

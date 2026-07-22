@@ -19,17 +19,54 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_includes ids, submission_requests(:biosample).id
   end
 
-  test 'index filters by ?db=' do
-    get submission_requests_path(db: 'bioproject')
+  test 'index filters by multi-select ?db[]=' do
+    get submission_requests_path(db: %w[st26 biosample])
 
     assert_conform_schema 200
 
     body = response.parsed_body
     ids  = body.pluck('id')
 
-    assert_equal ['bioproject'], body.pluck('db').uniq
-    assert_includes     ids,     submission_requests(:bioproject).id
-    assert_not_includes ids,     submission_requests(:st26).id
+    assert_not_includes body.pluck('db'), 'bioproject'
+    assert_includes     ids, submission_requests(:st26).id
+    assert_includes     ids, submission_requests(:biosample).id
+    assert_not_includes ids, submission_requests(:bioproject).id
+  end
+
+  test 'index filters by multi-select ?status[]=' do
+    submission_requests(:bioproject).update_column(:status, SubmissionRequest.statuses.fetch('applied'))
+
+    get submission_requests_path(status: %w[applied])
+
+    assert_conform_schema 200
+
+    ids = response.parsed_body.pluck('id')
+
+    assert_includes     ids, submission_requests(:bioproject).id
+    assert_not_includes ids, submission_requests(:st26).id # still waiting_validation
+  end
+
+  test 'index filters by ?source_id= (case-insensitive prefix)' do
+    submissions(:bioproject).update_columns(source_id: 'PSUB000604')
+
+    get submission_requests_path(source_id: 'psub')
+
+    assert_conform_schema 200
+
+    ids = response.parsed_body.pluck('id')
+
+    assert_includes     ids, submission_requests(:bioproject).id
+    assert_not_includes ids, submission_requests(:biosample).id
+  end
+
+  test 'index ignores unknown facet values instead of raising on the enum' do
+    # Deliberately out-of-schema input (a crafted direct call) — assert only
+    # that the controller drops the values rather than 500-ing on the enum
+    # coercion; the response won't conform to the Db/status enums.
+    get submission_requests_path(db: %w[bogus], status: %w[nope])
+
+    assert_response :ok
+    assert_includes response.parsed_body.pluck('id'), submission_requests(:st26).id
   end
 
   test 'index includes db on each row' do
@@ -42,7 +79,7 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_equal 'biosample', row['db']
   end
 
-  test 'index reports has_accession when the submission has accessions' do
+  test 'index reports the first (lowest-id) accession and count' do
     get submission_requests_path
 
     assert_conform_schema 200
@@ -52,12 +89,14 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     row_with_accession    = body.find { it['id'] == submission_requests(:st26).id }
     row_without_accession = body.find { it['id'] == submission_requests(:bioproject).id }
 
-    assert row_with_accession['has_accession']
-    assert_not row_without_accession['has_accession']
+    assert_equal submissions(:st26).accessions.order(:id).first.number, row_with_accession['first_accession']
+    assert_equal 2,   row_with_accession['accession_count']
+    assert_nil        row_without_accession['first_accession']
+    assert_equal 0,   row_without_accession['accession_count']
   end
 
   test 'index reports has_unread_curator_message when an unread curator-authored message exists' do
-    submissions(:bioproject).messages.create!(
+    submission_requests(:bioproject).messages.create!(
       user:        users(:bob),
       author_role: :curator,
       body:        'curator note'

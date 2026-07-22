@@ -6,20 +6,20 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   end
 
   test 'index returns submissions across all DBs by default' do
-    get admin_submissions_path
+    get admin_submission_requests_path
 
     assert_response :ok
-    assert_match "Submission-#{submissions(:st26).id}",       response.body
-    assert_match "Submission-#{submissions(:bioproject).id}", response.body
-    assert_match "Submission-#{submissions(:biosample).id}",  response.body
+    assert_match admin_submission_request_path(submissions(:st26).request),       response.body
+    assert_match admin_submission_request_path(submissions(:bioproject).request), response.body
+    assert_match admin_submission_request_path(submissions(:biosample).request),  response.body
   end
 
   test 'index filters by db' do
-    get admin_submissions_path, params: {db: 'st26'}
+    get admin_submission_requests_path, params: {db: 'st26'}
 
     assert_response :ok
-    assert_match    "Submission-#{submissions(:st26).id}",       response.body
-    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+    assert_match    admin_submission_request_path(submissions(:st26).request),       response.body
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
   test 'index filters by user uid' do
@@ -31,21 +31,74 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     attach_submission_files(carol_submission)
     carol_submission.save!
 
-    get admin_submissions_path, params: {user: 'carol'}
+    get admin_submission_requests_path, params: {user: 'carol'}
 
     assert_response :ok
-    assert_match    "Submission-#{carol_submission.id}",     response.body
-    assert_no_match "Submission-#{submissions(:st26).id}",   response.body
+    assert_match    admin_submission_request_path(carol_submission.request),     response.body
+    assert_no_match admin_submission_request_path(submissions(:st26).request),   response.body
+  end
+
+  test 'index filters by request status (pipeline)' do
+    applied = SubmissionRequest.new(user: users(:alice), db: 'st26', status: :applied)
+    attach_ddbj_record(applied)
+    applied.save!
+
+    get admin_submission_requests_path, params: {request_status: 'applied'}
+
+    assert_response :ok
+    assert_match    admin_submission_request_path(applied),                    response.body
+    # Fixture requests default to waiting_validation, so they're excluded.
+    assert_no_match admin_submission_request_path(submission_requests(:st26)), response.body
+  end
+
+  test 'index multi-selects OR the values within a filter (db array)' do
+    get admin_submission_requests_path, params: {db: %w[st26 biosample]}
+
+    assert_response :ok
+    assert_match    admin_submission_request_path(submissions(:st26).request),       response.body
+    assert_match    admin_submission_request_path(submissions(:biosample).request),  response.body
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
+  end
+
+  test 'index assignee multi-select ORs "unassigned" and a specific user' do
+    # A second admin widens the assignee universe so {0, bob} is a proper
+    # subset — otherwise picking both would be "everything selected" and
+    # the filter would (correctly) skip.
+    User.create!(uid: 'dave', api_key: 'test_api_key_dave', admin: true)
+
+    projects(:primary).update!(assignee: users(:bob)) # bioproject project → bob
+    samples(:first).update!(assignee: nil)            # biosample → an unassigned sample
+    samples(:second).update!(assignee: nil)
+
+    get admin_submission_requests_path, params: {assignee: ['0', users(:bob).id.to_s]}
+
+    assert_response :ok
+    assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body # via bob
+    assert_match    admin_submission_request_path(submissions(:biosample).request),  response.body # via unassigned
+    assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
+  end
+
+  test 'index treats a fully-selected facet as no constraint (keeps pre-Apply requests)' do
+    pending = SubmissionRequest.new(user: users(:alice), db: 'st26', status: :waiting_validation)
+    attach_ddbj_record(pending)
+    pending.save! # no submission → pre-Apply
+
+    # Selecting EVERY curation status must not drop the pre-Apply request:
+    # its submission-based EXISTS would exclude it, so a full facet skips.
+    get admin_submission_requests_path, params: {status: Lifecycleable::STATUSES.keys}
+
+    assert_response :ok
+    assert_match admin_submission_request_path(pending), response.body
   end
 
   test 'index shows BP Project.status + assignee for bioproject rows' do
     project = projects(:primary)
     project.update!(status: 'curating', assignee: users(:bob))
 
-    get admin_submissions_path, params: {db: 'bioproject'}
+    get admin_submission_requests_path, params: {db: 'bioproject'}
 
     assert_response :ok
-    body = css_select("tr a[href='#{admin_submission_path(submissions(:bioproject))}']").first
+    body = css_select("tr a[href='#{admin_submission_request_path(submissions(:bioproject).request)}']").first
                                                                                        .ancestors('tr').first.to_s
     assert_match 'curating', body
     assert_match users(:bob).uid, body
@@ -55,10 +108,10 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     samples(:first).update!(status: 'public',   assignee: users(:bob))
     samples(:second).update!(status: 'public',  assignee: users(:bob))
 
-    get admin_submissions_path, params: {db: 'biosample'}
+    get admin_submission_requests_path, params: {db: 'biosample'}
 
     assert_response :ok
-    body = css_select("tr a[href='#{admin_submission_path(submissions(:biosample))}']").first
+    body = css_select("tr a[href='#{admin_submission_request_path(submissions(:biosample).request)}']").first
                                                                                       .ancestors('tr').first.to_s
     assert_match 'public', body
     assert_match users(:bob).uid, body
@@ -69,33 +122,52 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     samples(:first).update!(status: 'curating', assignee: users(:bob))
     samples(:second).update!(status: 'public',  assignee: users(:bob))
 
-    get admin_submissions_path, params: {db: 'biosample'}
+    get admin_submission_requests_path, params: {db: 'biosample'}
 
-    body = css_select("tr a[href='#{admin_submission_path(submissions(:biosample))}']").first
+    body = css_select("tr a[href='#{admin_submission_request_path(submissions(:biosample).request)}']").first
                                                                                       .ancestors('tr').first.to_s
     assert_match 'Mixed (2)', body
   end
 
   test 'index shows "—" for ST26 (no curator status / assignee yet)' do
-    get admin_submissions_path, params: {db: 'st26'}
+    get admin_submission_requests_path, params: {db: 'st26'}
 
-    body = css_select("tr a[href='#{admin_submission_path(submissions(:st26))}']").first
+    body = css_select("tr a[href='#{admin_submission_request_path(submissions(:st26).request)}']").first
                                                                                  .ancestors('tr').first.to_s
     assert_match '—', body
+  end
+
+  test 'index shows the accession summary per DB (BP project / BS samples / ST.26 accessions)' do
+    get admin_submission_requests_path
+
+    assert_response :ok
+
+    bp = css_select("tr a[href='#{admin_submission_request_path(submissions(:bioproject).request)}']").first
+                                                                                       .ancestors('tr').first.to_s
+    assert_match 'PRJDB000001', bp # from the Project
+
+    bs = css_select("tr a[href='#{admin_submission_request_path(submissions(:biosample).request)}']").first
+                                                                                      .ancestors('tr').first.to_s
+    assert_match 'SAMD00000001', bs # from the sample aggregate (one accessioned sample)
+
+    st26 = css_select("tr a[href='#{admin_submission_request_path(submissions(:st26).request)}']").first
+                                                                                 .ancestors('tr').first.to_s
+    assert_match submissions(:st26).accessions.order(:id).first.number, st26 # first (lowest-id)
+    assert_match '(2)', st26 # two accessions
   end
 
   test 'index filters by source_id prefix (case-insensitive)' do
     submissions(:bioproject).update_columns(source_id: 'PSUB000604')
     submissions(:biosample).update_columns(source_id: 'SSUB002065')
 
-    get admin_submissions_path, params: {source_id: 'psub'}
+    get admin_submission_requests_path, params: {source_id: 'psub'}
 
     assert_response :ok
     # Assert on the row href (id-based) so the test stays robust to
-    # display-label changes (submission_label uses source_id when present).
-    assert_match    admin_submission_path(submissions(:bioproject)), response.body
-    assert_no_match admin_submission_path(submissions(:biosample)),  response.body
-    assert_no_match admin_submission_path(submissions(:st26)),       response.body
+    # display-label changes.
+    assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body
+    assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
+    assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
   end
 
   test 'index filters by accession across projects (BP) / samples (BS) / accessions (ST26)' do
@@ -103,18 +175,18 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # samples(:first) has accession 'SAMD00000001' tied to submissions(:biosample)
     # accessions(:one) has number 'ACC_000001' tied to submissions(:st26)
 
-    get admin_submissions_path, params: {accession: 'PRJDB'}
-    assert_match    "Submission-#{submissions(:bioproject).id}", response.body
-    assert_no_match "Submission-#{submissions(:biosample).id}",  response.body
-    assert_no_match "Submission-#{submissions(:st26).id}",       response.body
+    get admin_submission_requests_path, params: {accession: 'PRJDB'}
+    assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body
+    assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
+    assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
 
-    get admin_submissions_path, params: {accession: 'SAMD'}
-    assert_match    "Submission-#{submissions(:biosample).id}",  response.body
-    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+    get admin_submission_requests_path, params: {accession: 'SAMD'}
+    assert_match    admin_submission_request_path(submissions(:biosample).request),  response.body
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
 
-    get admin_submissions_path, params: {accession: 'ACC_'}
-    assert_match    "Submission-#{submissions(:st26).id}",       response.body
-    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+    get admin_submission_requests_path, params: {accession: 'ACC_'}
+    assert_match    admin_submission_request_path(submissions(:st26).request),       response.body
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
   test 'index treats SQL LIKE metacharacters in filter input as literals' do
@@ -122,8 +194,8 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
     # If '%' were unescaped, this would match anything; sanitize_sql_like
     # should escape it so the literal '%' is required in source_id.
-    get admin_submissions_path, params: {source_id: '%PSUB'}
-    assert_no_match admin_submission_path(submissions(:bioproject)), response.body
+    get admin_submission_requests_path, params: {source_id: '%PSUB'}
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
   test 'index escapes _ (single-char LIKE wildcard) in accession filter' do
@@ -138,22 +210,22 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
       locus_date: Date.current
     )
 
-    get admin_submissions_path, params: {accession: 'ACC_'}
+    get admin_submission_requests_path, params: {accession: 'ACC_'}
 
     # accessions(:one) has number 'ACC_000001' (literal underscore) — must match
-    assert_match    "Submission-#{submissions(:st26).id}",       response.body
+    assert_match    admin_submission_request_path(submissions(:st26).request),       response.body
     # 'ACCX000001' must NOT match — proves '_' was treated as a literal
-    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
   test 'index ignores non-String filter values instead of crashing on sanitize' do
     # An Array / Hash params shape used to reach sanitize_sql_like and
     # raise NoMethodError: undefined method 'gsub' for an instance of Array,
     # 500-ing the index. Now silently treated as no filter.
-    get admin_submissions_path, params: {source_id: ['psub']}
+    get admin_submission_requests_path, params: {source_id: ['psub']}
     assert_response :ok
 
-    get admin_submissions_path, params: {accession: {nested: 'x'}}
+    get admin_submission_requests_path, params: {accession: {nested: 'x'}}
     assert_response :ok
   end
 
@@ -166,16 +238,16 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # after the leading 'PSUB'.
     long_value = 'PSUB' + ('A' * 70)
 
-    get admin_submissions_path, params: {source_id: long_value}
+    get admin_submission_requests_path, params: {source_id: long_value}
     assert_response :ok
-    assert_no_match "Submission-#{submissions(:bioproject).id}", response.body
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
   test 'index returns 403 for non-admin users' do
     sign_in_as users(:carol)
 
     with_exceptions_app do
-      get admin_submissions_path
+      get admin_submission_requests_path
     end
 
     assert_response :forbidden
@@ -185,10 +257,10 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'accession' => 'PRJDB502', 'title' => 'hello'}}, actor: 'test')
 
-    get admin_submission_path(submission)
+    get admin_submission_request_path(submission.request)
 
     assert_response :ok
-    assert_match "Submission-#{submission.id}",                          response.body
+    assert_match admin_submission_request_path(submission.request),                          response.body
     assert_match 'View as JSON',                                         response.body
     assert_match materialised_admin_submission_path(submission),         response.body
     # Materialised content itself is no longer inlined — the body must
@@ -199,7 +271,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   test 'show falls back gracefully when no updates have been applied' do
     submission = submissions(:bioproject)
 
-    get admin_submission_path(submission)
+    get admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match 'nothing to materialise', response.body
@@ -342,7 +414,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     big_value = 'x' * (2 * 1024 * 1024)
     submission.append_update!({'project' => {'title' => 'big', 'description' => big_value}}, actor: 'test')
 
-    get admin_submission_path(submission)
+    get admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match    'Skipped',                  response.body
@@ -354,7 +426,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'small'}}, actor: 'test')
 
-    get admin_submission_path(submission)
+    get admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match    'Canonical bytes',   response.body
@@ -369,7 +441,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # page 1 alongside the 2 fixtures, probe-018+ on page 2).
     30.times {|i| submission.samples.create!(sample_name: "probe-#{format('%03d', i)}", status: :public) }
 
-    get admin_submission_path(submission)
+    get admin_submission_request_path(submission.request)
     assert_response :ok
     assert_match    '<turbo-frame id="samples"',          response.body
     assert_match    'data-turbo-action="advance"',        response.body
@@ -378,7 +450,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match 'probe-025',                          response.body
 
     # Permalink — directly loading ?samples_page=2 lands on page 2.
-    get admin_submission_path(submission, samples_page: 2)
+    get admin_submission_request_path(submission.request, samples_page: 2)
     assert_response :ok
     assert_match    'probe-025',                          response.body
     assert_no_match 'probe-000',                          response.body
@@ -401,7 +473,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     )
     submission.append_update!({'samples' => [{'accession' => 'SAMD00099001'}]}, actor: 'test')
 
-    get admin_submission_path(submission)
+    get admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match 'Samples',         response.body
@@ -415,7 +487,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     samples(:first).update!(assignee: users(:bob))
     # samples(:second) intentionally left unassigned to pin the "—" case.
 
-    get admin_submission_path(submission)
+    get admin_submission_request_path(submission.request)
 
     assert_response :ok
     table_row_with_assignee = css_select('tbody tr').find {|tr| tr.css('td')[1]&.text == samples(:first).sample_name }
@@ -442,7 +514,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
       patch_canonical_version: 1
     )
 
-    get admin_submission_path(submission)
+    get admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match    'Replay failed',                                       response.body

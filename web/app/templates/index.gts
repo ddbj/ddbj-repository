@@ -1,6 +1,7 @@
 import Component from '@glimmer/component';
 import { LinkTo } from '@ember/routing';
-import { array } from '@ember/helper';
+import { fn } from '@ember/helper';
+import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { pageTitle } from 'ember-page-title';
 
@@ -9,6 +10,7 @@ import Pagination from 'repository/components/pagination';
 import StatusBadge from 'repository/components/status-badge';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
+import { DB_OPTIONS, STATUS_OPTIONS, isChecked } from 'repository/controllers/index';
 
 import type Controller from 'repository/controllers/index';
 import type CurrentUserService from 'repository/services/current-user';
@@ -39,49 +41,153 @@ export default class extends Component<Signature> {
         <LinkTo @route="new" class="btn btn-primary">New Submission</LinkTo>
       </div>
 
-      {{#if @model.requests.length}}
-        <table class="table border">
-          <thead class="table-light">
-            <tr>
-              <th>ID</th>
-              <th>Database</th>
-              <th>Status</th>
-              <th>Submission</th>
-              <th>Created</th>
-            </tr>
-          </thead>
+      {{#if (or @model.requests.length @controller.hasActiveFilters)}}
+        <form class="card mb-4" {{on "submit" @controller.applyFilters}}>
+          <div class="card-body">
+            <div class="row mb-2">
+              <div class="col-sm-2 fw-semibold">Database</div>
+              <div class="col-sm-10">
+                {{#each DB_OPTIONS as |opt|}}
+                  <div class="form-check form-check-inline">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      id="db-{{opt.value}}"
+                      name="db"
+                      value={{opt.value}}
+                      checked={{isChecked @controller.db opt.value}}
+                    />
+                    <label class="form-check-label" for="db-{{opt.value}}">{{opt.label}}</label>
+                  </div>
+                {{/each}}
 
-          <tbody>
-            {{#each @model.requests as |request|}}
+                <div class="small">
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 me-3"
+                    data-test-select="db"
+                    {{on "click" (fn @controller.setFacet "db" true)}}
+                  >Select all</button>
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0"
+                    data-test-deselect="db"
+                    {{on "click" (fn @controller.setFacet "db" false)}}
+                  >Deselect all</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-2">
+              <div class="col-sm-2 fw-semibold">Status</div>
+              <div class="col-sm-10">
+                {{#each STATUS_OPTIONS as |opt|}}
+                  <div class="form-check form-check-inline">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      id="status-{{opt.value}}"
+                      name="status"
+                      value={{opt.value}}
+                      checked={{isChecked @controller.status opt.value}}
+                    />
+                    <label class="form-check-label text-capitalize" for="status-{{opt.value}}">{{opt.label}}</label>
+                  </div>
+                {{/each}}
+
+                <div class="small">
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 me-3"
+                    data-test-select="status"
+                    {{on "click" (fn @controller.setFacet "status" true)}}
+                  >Select all</button>
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0"
+                    data-test-deselect="status"
+                    {{on "click" (fn @controller.setFacet "status" false)}}
+                  >Deselect all</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-2">
+              <label for="source-id-filter" class="col-sm-2 col-form-label fw-semibold">Source ID</label>
+              <div class="col-sm-10 col-md-5 col-lg-4">
+                <input
+                  id="source-id-filter"
+                  type="search"
+                  class="form-control form-control-sm"
+                  name="sourceId"
+                  placeholder="PSUB / SSUB ..."
+                  value={{@controller.sourceId}}
+                />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-sm-10 offset-sm-2">
+                <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                {{#if @controller.hasActiveFilters}}
+                  <button type="button" class="btn btn-link btn-sm" {{on "click" @controller.clearFilters}}>
+                    Clear filters
+                  </button>
+                {{/if}}
+              </div>
+            </div>
+          </div>
+        </form>
+
+        {{#if @model.requests.length}}
+          <table class="table border">
+            <thead class="table-light">
               <tr>
-                <td>
-                  <LinkTo @route="request" @models={{array request.db request.id}}>
-                    Request-{{request.id}}
-                  </LinkTo>
-                </td>
+                <th>ID</th>
+                <th>Database</th>
+                <th>Status</th>
+                <th>Accession</th>
+                <th>Source ID</th>
+                <th>Created</th>
+              </tr>
+            </thead>
 
-                <td>{{dbLabel request.db}}</td>
-                <td><StatusBadge @status={{request.status}} @hasAccession={{request.has_accession}} /></td>
-
-                <td>
-                  {{#if request.submission_id}}
-                    <LinkTo @route="submission" @models={{array request.db request.submission_id}}>
-                      Submission-{{request.submission_id}}
+            <tbody>
+              {{#each @model.requests as |request|}}
+                <tr>
+                  <td>
+                    <LinkTo @route="request" @model={{request.id}}>
+                      #{{request.id}}
                     </LinkTo>
 
                     {{#if request.has_unread_curator_message}}
                       <span class="badge text-bg-warning ms-2" title="Curator has posted a new message">New message</span>
                     {{/if}}
-                  {{/if}}
-                </td>
+                  </td>
 
-                <td>{{formatDatetime request.created_at}}</td>
-              </tr>
-            {{/each}}
-          </tbody>
-        </table>
+                  <td>{{dbLabel request.db}}</td>
+                  <td><StatusBadge @status={{request.status}} /></td>
+                  <td>
+                    {{#if request.accession_count}}
+                      {{request.first_accession}}
+                      {{#unless (eq request.accession_count 1)}}
+                        <span class="text-body-secondary ms-1">({{request.accession_count}})</span>
+                      {{/unless}}
+                    {{else}}
+                      -
+                    {{/if}}
+                  </td>
+                  <td>{{or request.source_id "-"}}</td>
+                  <td>{{formatDatetime request.created_at}}</td>
+                </tr>
+              {{/each}}
+            </tbody>
+          </table>
 
-        <Pagination @route="index" @current={{@controller.page}} @total={{@model.totalPages}} />
+          <Pagination @route="index" @current={{@controller.page}} @total={{@model.totalPages}} />
+        {{else}}
+          <p class="text-body-secondary">No submission requests match the current filters.</p>
+        {{/if}}
       {{else}}
         <p class="text-body-secondary">
           You have no submission requests yet.

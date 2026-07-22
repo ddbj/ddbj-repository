@@ -1,13 +1,6 @@
-<% content_for :title, submission_label(@submission) %>
-
-<%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Administration', path: admin_root_path},
-  {label: 'Submissions',    path: admin_submissions_path},
-  {label: submission_label(@submission)}
-] %>
-
-<h1 class="display-6 mb-4"><%= submission_label(@submission) %></h1>
-
+<%# Submission curator workbench, embedded in the request-keyed show %>
+<%# (admin/submission_requests#show). Reads the ivars loaded by %>
+<%# Admin::SubmissionDetail#load_submission_detail. %>
 <dl class="row">
   <dt class="col-sm-3">Database</dt>
   <dd class="col-sm-9"><%= db_label(@submission.db) %></dd>
@@ -29,9 +22,6 @@
     <dd class="col-sm-9"><%= "#{number_with_delimiter(@accessioned_sample_count)} / #{number_with_delimiter(@samples_pagy.count)} sample(s) issued" %></dd>
   <% end %>
 
-  <dt class="col-sm-3">User</dt>
-  <dd class="col-sm-9"><%= @submission.user.uid %></dd>
-
   <dt class="col-sm-3">Canonical version</dt>
   <dd class="col-sm-9">ddbj-canon/v<%= @submission.canonical_version %></dd>
 
@@ -39,7 +29,7 @@
   <dd class="col-sm-9"><%= @submission.converter_version || '—' %></dd>
 
   <dt class="col-sm-3">Created / Updated</dt>
-  <dd class="col-sm-9"><%= @submission.created_at.to_fs(:db) %> / <%= @submission.updated_at.to_fs(:db) %></dd>
+  <dd class="col-sm-9"><%= format_datetime(@submission.created_at) %> / <%= format_datetime(@submission.updated_at) %></dd>
 
   <% if @canonical_bytes %>
     <dt class="col-sm-3">Canonical bytes</dt>
@@ -47,11 +37,11 @@
 
     <dt class="col-sm-3">Canonical SHA-256</dt>
     <dd class="col-sm-9"><code><%= @sha256 %></code></dd>
-  <% elsif @materialised_size && @materialised_size > Admin::SubmissionsController::CANONICAL_DISPLAY_SIZE_LIMIT %>
+  <% elsif @materialised_size && @materialised_size > Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT %>
     <dt class="col-sm-3">Canonical bytes / SHA-256</dt>
     <dd class="col-sm-9 text-body-secondary">
       Skipped — materialised record is <%= number_to_human_size(@materialised_size) %>
-      (limit <%= number_to_human_size(Admin::SubmissionsController::CANONICAL_DISPLAY_SIZE_LIMIT) %>).
+      (limit <%= number_to_human_size(Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT) %>).
       Canonicalisation walks every subtree and costs ~20 s on 7 MB records;
       avoiding it keeps the page interactive.
     </dd>
@@ -165,9 +155,6 @@
 <%# so it stays editable even when the materialised record is broken. %>
 <%= render 'admin/curator_comments/curator_edit', submission: @submission %>
 
-<%# Submitter ↔ curator conversation. Independent of the patch chain. %>
-<%= render 'admin/messages/thread', submission: @submission, messages: @messages %>
-
 <h2 class="h4 mt-4">
   Patch chain
   <span class="badge text-bg-secondary"><%= @updates.size %></span>
@@ -192,7 +179,7 @@
         <% parsed = begin; update.parsed_patch; rescue StandardError => e; e; end %>
         <tr class="<%= 'table-info' if is_current %>">
           <td><code>#<%= update.id %></code></td>
-          <td><%= update.created_at.to_fs(:db) %></td>
+          <td><%= format_datetime(update.created_at) %></td>
           <td><%= update.actor || '—' %></td>
           <td><span class="badge text-bg-light"><%= update.source %></span></td>
           <td class="text-end">

@@ -12,15 +12,27 @@ type Message = components['schemas']['Message'];
 
 const now = '2025-01-01T00:00:00.000Z';
 
-// Minimal Submission shape the show route needs to render.
-const submission: components['schemas']['Submission'] = {
+// Minimal request shape the show route needs to render. The thread now
+// hangs off the request, so the submission may or may not be present.
+const request: components['schemas']['SubmissionRequest'] = {
   id: 1,
-  source_id: null,
+  db: 'st26',
+  status: 'applied',
+  error_message: null,
   created_at: now,
-  updated_at: now,
+  processing: false,
   ddbj_record: { filename: 'original.json', url: 'http://example.com/original.json' },
-  flatfile_na: null,
-  flatfile_aa: null,
+  validation: null,
+
+  submission: {
+    id: 10,
+    source_id: null,
+    created_at: now,
+    updated_at: now,
+    ddbj_record: { filename: 'original.json', url: 'http://example.com/original.json' },
+    flatfile_na: null,
+    flatfile_aa: null,
+  },
 };
 
 module('Acceptance | submission messages', function (hooks) {
@@ -49,20 +61,20 @@ module('Acceptance | submission messages', function (hooks) {
     };
 
     worker.use(
-      http.get('/submissions/{id}', ({ response }) => {
-        return response(200).json(submission);
+      http.get('/submission_requests/{id}', ({ response }) => {
+        return response(200).json(request);
       }),
 
-      http.get('/submissions/{submission_id}/messages', ({ response }) => {
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => {
         return response(200).json(initial);
       }),
 
-      http.post('/submissions/{submission_id}/messages', ({ response }) => {
+      http.post('/submission_requests/{submission_request_id}/messages', ({ response }) => {
         return response(201).json(posted);
       }),
     );
 
-    await visit('/st26/submissions/1');
+    await visit('/requests/1');
 
     // Existing curator message renders with the labelled author.
     assert.dom('section h2').includesText('Messages');

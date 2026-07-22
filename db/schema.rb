@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_30_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_21_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -203,12 +203,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_30_000000) do
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.datetime "read_at"
-    t.bigint "submission_id", null: false
+    t.bigint "submission_request_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.index ["submission_id", "author_role", "read_at"], name: "idx_on_submission_id_author_role_read_at_a092a1e630"
-    t.index ["submission_id", "created_at"], name: "index_submission_messages_on_submission_id_and_created_at"
-    t.index ["submission_id"], name: "index_submission_messages_on_submission_id"
+    t.index ["submission_request_id", "author_role", "read_at"], name: "idx_on_submission_request_id_author_role_read_at_0b8f32e48f"
+    t.index ["submission_request_id", "created_at"], name: "idx_on_submission_request_id_created_at_cf469d0ffd"
+    t.index ["submission_request_id"], name: "index_submission_messages_on_submission_request_id"
     t.index ["user_id"], name: "index_submission_messages_on_user_id"
   end
 
@@ -216,11 +216,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_30_000000) do
     t.datetime "created_at", null: false
     t.string "db", null: false
     t.string "error_message"
+    t.uuid "migration_run_id"
     t.integer "status", default: 0, null: false
     t.bigint "submission_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["db"], name: "index_submission_requests_on_db"
+    t.index ["migration_run_id"], name: "index_submission_requests_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
     t.index ["submission_id"], name: "index_submission_requests_on_submission_id"
     t.index ["user_id"], name: "index_submission_requests_on_user_id"
   end
@@ -307,7 +309,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_30_000000) do
   add_foreign_key "sample_tsv_imports", "submissions"
   add_foreign_key "samples", "submissions"
   add_foreign_key "samples", "users", column: "assignee_id"
-  add_foreign_key "submission_messages", "submissions"
+  add_foreign_key "submission_messages", "submission_requests"
   add_foreign_key "submission_messages", "users"
   add_foreign_key "submission_requests", "submissions"
   add_foreign_key "submission_requests", "users"

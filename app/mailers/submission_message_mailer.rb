@@ -8,13 +8,13 @@ class SubmissionMessageMailer < ApplicationMailer
   # `DDBJ Repository <repo@…>` (decision 3-iii) so a curator handover
   # doesn't leave the submitter replying to a stale personal mailbox.
   def notify_submitter
-    @message    = params[:message]
-    @submission = @message.submission
-    @curator    = @message.user
+    @message = params[:message]
+    @request = @message.submission_request
+    @curator = @message.user
 
     mail(
-      to:      user_email_or_placeholder(@submission.user),
-      subject: "[DDBJ Repository] New curator message on Submission-#{@submission.id}"
+      to:      user_email_or_placeholder(@request.user),
+      subject: "[DDBJ Repository] New curator message on ##{@request.id}"
     )
   end
 
@@ -24,15 +24,15 @@ class SubmissionMessageMailer < ApplicationMailer
   # gets the mail at their own address looked up via the same
   # placeholder fallback the submitter side uses.
   def notify_curators
-    @message    = params[:message]
-    @submission = @message.submission
+    @message = params[:message]
+    @request = @message.submission_request
 
     recipients = involved_curator_emails
     return if recipients.empty?
 
     mail(
       to:      recipients,
-      subject: "[DDBJ Repository] Submitter replied on Submission-#{@submission.id}"
+      subject: "[DDBJ Repository] Submitter replied on ##{@request.id}"
     )
   end
 
@@ -44,7 +44,7 @@ class SubmissionMessageMailer < ApplicationMailer
     # Ruby) 50 copies of Alice just because she posted 50 messages.
     # `reorder(nil)` strips the chronological scope's ORDER BY —
     # Postgres requires DISTINCT columns to appear in ORDER BY.
-    user_ids = @submission.messages.curator_role.reorder(nil).distinct.pluck(:user_id)
+    user_ids = @request.messages.curator_role.reorder(nil).distinct.pluck(:user_id)
     User.where(id: user_ids).map { user_email_or_placeholder(it) }
   end
 end

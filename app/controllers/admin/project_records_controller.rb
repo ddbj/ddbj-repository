@@ -34,9 +34,9 @@ module Admin
       message = result ? "Project record saved (chain length now #{submission.updates.count})." \
                        : 'Project record unchanged — no patch generated.'
 
-      redirect_to admin_submission_path(submission), notice: message
+      redirect_to admin_submission_request_path(submission.request), notice: message
     rescue Submission::MaterialisationFailed => e
-      redirect_to admin_submission_path(submission),
+      redirect_to admin_submission_request_path(submission.request),
                   alert: "Cannot edit: existing patch chain is unreadable (#{e.class}: #{e.message})."
     end
 

@@ -44,7 +44,7 @@
   </div>
 
   <div class="col-md-6">
-    <%= link_to admin_submissions_path(user: @user.uid), class: 'card text-decoration-none h-100' do %>
+    <%= link_to admin_submission_requests_path(user: @user.uid), class: 'card text-decoration-none h-100' do %>
       <div class="card-body">
         <h3 class="card-title h6">Submissions (<%= @counts[:submissions][@user.id] %>)</h3>
         <p class="card-text text-body-secondary mb-0">View this user's applied submissions.</p>

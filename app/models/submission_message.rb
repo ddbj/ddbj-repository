@@ -1,9 +1,11 @@
-# One message in the per-submission curator ↔ submitter thread.
+# One message in the per-request curator ↔ submitter thread.
 #
-# A submission carries a single chronological thread (per
-# [[project-submission-messaging-design]]'s "1 submission = 1 thread"
-# rule). `author_role` distinguishes who wrote it, NOT who can see it:
-# both curators and the submission's owner can read every message.
+# A request carries a single chronological thread (per
+# [[project-submission-messaging-design]]'s "1 thread" rule). The
+# thread hangs off the SubmissionRequest — not the Submission — so the
+# conversation can start before Apply, when no Submission exists yet.
+# `author_role` distinguishes who wrote it, NOT who can see it: both
+# curators and the request's owner can read every message.
 #
 # `read_at` is stamped when the OTHER party first observes the message
 # (a curator-authored message gets stamped when the submitter opens the
@@ -11,7 +13,7 @@
 # admin show page view). Used to drive the "unread" badge on the
 # submitter's home request list.
 class SubmissionMessage < ApplicationRecord
-  belongs_to :submission
+  belongs_to :submission_request
   belongs_to :user
 
   AUTHOR_ROLES = %w[curator submitter].freeze

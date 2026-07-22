@@ -53,16 +53,15 @@ export default class extends Component<Signature> {
       data: { submission_request: { db, ddbj_record: blob.signed_id } },
     });
 
-    this.router.transitionTo('request', db, content.id);
+    this.router.transitionTo('request', content.id);
   }
 
   <template>
     <Breadcrumb
       @items={{array
         (hash label="Home" route="index")
-        (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
-        (hash label="Requests" route="db.requests" models=(array @model.db))
-        (hash label="New")
+        (hash label="New Submission" route="new")
+        (hash label=(dbLabel @model.db))
       }}
     />
 

@@ -2,8 +2,8 @@
 
 <%= render 'admin/shared/breadcrumb', items: [
   {label: 'Administration', path: admin_root_path},
-  {label: 'Submissions',    path: admin_submissions_path},
-  {label: submission_label(@submission), path: admin_submission_path(@submission)},
+  {label: 'Submission requests', path: admin_submission_requests_path},
+  {label: "##{@submission.request.id}", path: admin_submission_request_path(@submission.request)},
   {label: "Sample TSV import ##{@import.id}"}
 ] %>
 
@@ -12,18 +12,18 @@
 <dl class="row">
   <dt class="col-sm-3">Submission</dt>
   <dd class="col-sm-9">
-    <%= link_to submission_label(@submission), admin_submission_path(@submission) %>
+    <%= link_to "##{@submission.request.id}", admin_submission_request_path(@submission.request) %>
   </dd>
 
   <dt class="col-sm-3">Triggered by</dt>
   <dd class="col-sm-9"><%= @import.actor %></dd>
 
   <dt class="col-sm-3">Started at</dt>
-  <dd class="col-sm-9"><%= @import.started_at.to_fs(:db) %></dd>
+  <dd class="col-sm-9"><%= format_datetime(@import.started_at) %></dd>
 
   <% if @import.finished_at %>
     <dt class="col-sm-3">Finished at</dt>
-    <dd class="col-sm-9"><%= @import.finished_at.to_fs(:db) %></dd>
+    <dd class="col-sm-9"><%= format_datetime(@import.finished_at) %></dd>
   <% end %>
 </dl>
 

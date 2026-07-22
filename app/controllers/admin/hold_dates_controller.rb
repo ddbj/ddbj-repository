@@ -12,7 +12,7 @@ module Admin
       hold_date = parse_iso_date(raw) if raw.present?
 
       if raw.present? && hold_date.nil?
-        return redirect_to admin_submission_path(submission),
+        return redirect_to admin_submission_request_path(submission.request),
                            alert: 'Hold date must be a valid YYYY-MM-DD date.'
       end
 
@@ -27,9 +27,9 @@ module Admin
       message = result ? "Hold date saved (chain length now #{submission.updates.count})." \
                        : 'Hold date unchanged — no patch generated.'
 
-      redirect_to admin_submission_path(submission), notice: message
+      redirect_to admin_submission_request_path(submission.request), notice: message
     rescue Submission::MaterialisationFailed => e
-      redirect_to admin_submission_path(submission),
+      redirect_to admin_submission_request_path(submission.request),
                   alert: "Cannot edit: existing patch chain is unreadable (#{e.class}: #{e.message})."
     end
 

@@ -19,10 +19,10 @@ module Admin
       rest  = result.accessions.size - 1
       label = rest.zero? ? first : "#{first} (+#{rest} more)"
 
-      redirect_to admin_submission_path(submission),
+      redirect_to admin_submission_request_path(submission.request),
                   notice: "Issued accession #{label}."
     rescue AccessionIssue::Refused => e
-      redirect_to admin_submission_path(submission),
+      redirect_to admin_submission_request_path(submission.request),
                   alert: "Cannot issue accession: #{e.message}"
     end
   end

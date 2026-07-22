@@ -62,6 +62,23 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal 1, submission.updates.count
   end
 
+  test 'mints a synthetic applied request wrapping the submission, idempotent across re-runs' do
+    submission = build.call.submission
+    request    = submission.request
+
+    assert_not_nil request, 'migration submission must carry a synthetic request'
+    assert request.applied?
+    assert request.migration_origin?
+    assert_equal submission.user, request.user
+    assert_equal submission.db,   request.db
+    assert_not request.ddbj_record.attached?, 'synthetic request carries no upload'
+    assert request.valid?, 'the ddbj_record attachment rule is waived for migration-origin requests'
+
+    # A re-run reuses the existing request rather than minting a duplicate.
+    build(migration_run_id: SecureRandom.uuid).call
+    assert_equal 1, SubmissionRequest.where(submission_id: submission.id).count
+  end
+
   test 'accession kwarg threads through Importer → Converter → Project (DB-column-wins end-to-end)' do
     # End-to-end seam test for the headline recovery contract:
     # data_migration.rake passes `accession: row.accession` from the

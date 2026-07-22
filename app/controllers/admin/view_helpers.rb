@@ -34,17 +34,37 @@ module Admin::ViewHelpers
     DB_LABELS.fetch(db.to_s, db.to_s)
   end
 
-  # Primary curator-facing identifier for a submission. Uses the staging
-  # source_id (PSUB.../SSUB...) when present so admin pages match how
-  # curators talk about records; falls back to the internal
-  # "Submission-#{id}" form for ST.26 (no source_id, since it comes from
-  # user uploads rather than D-way migration).
-  def submission_label(submission)
-    submission.source_id.presence || "Submission-#{submission.id}"
+  # Compact timestamp for admin tables / detail — minute precision (drops
+  # seconds), matching the web client's formatDatetime. Returns nil for a
+  # nil time so callers can chain `|| '—'`.
+  def format_datetime(time)
+    time&.strftime('%Y-%m-%d %H:%M')
   end
 
   def db_options
     DB_LABELS.map {|value, label| [label, value] }
+  end
+
+  # Inline checkbox group for a multi-select list filter. Emits `name[]`
+  # fields so the controller receives an array. `options` is a list of
+  # [label, value] pairs; `param_value` is the current request param.
+  #
+  # When the param is absent (a fresh visit, or a reset) every box is
+  # checked — the default is "all selected", which the controller reads
+  # as no constraint. Once the form is submitted the checked set is
+  # exactly what the user left ticked.
+  def filter_checkbox_group(name, options, param_value)
+    default_all = param_value.nil?
+    chosen      = Array(param_value).map(&:to_s)
+
+    safe_join(options.map {|label, value|
+      id = "#{name}_#{value}"
+
+      tag.div(class: 'form-check form-check-inline') do
+        check_box_tag("#{name}[]", value, default_all || chosen.include?(value.to_s), id:, class: 'form-check-input') +
+          label_tag(id, label, class: 'form-check-label')
+      end
+    })
   end
 
   def status_badge(status)
@@ -82,6 +102,23 @@ module Admin::ViewHelpers
       end
     else
       '—'
+    end
+  end
+
+  # Accession display for a Submission on the admin index — returns
+  # [first_accession, count], reading the right source per DB: BP → its
+  # Project, BS → the sample aggregate (MIN / COUNT), ST.26 → the
+  # accessions table. Count 0 means "not issued".
+  def accession_summary(submission, sample_aggregates)
+    if submission.bioproject_db?
+      accession = submission.project&.accession
+      [accession, accession ? 1 : 0]
+    elsif submission.biosample_db?
+      agg = sample_aggregates[submission.id]
+      [agg&.first_accession, agg&.accession_count || 0]
+    else
+      accessions = submission.accessions.to_a
+      [accessions.min_by(&:id)&.number, accessions.size]
     end
   end
 

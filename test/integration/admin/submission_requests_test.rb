@@ -9,17 +9,17 @@ class AdminSubmissionRequestsTest < ActionDispatch::IntegrationTest
     get admin_submission_requests_path
 
     assert_response :ok
-    assert_match "Request-#{submission_requests(:st26).id}",       response.body
-    assert_match "Request-#{submission_requests(:bioproject).id}", response.body
-    assert_match "Request-#{submission_requests(:biosample).id}",  response.body
+    assert_match "##{submission_requests(:st26).id}",       response.body
+    assert_match "##{submission_requests(:bioproject).id}", response.body
+    assert_match "##{submission_requests(:biosample).id}",  response.body
   end
 
   test 'index filters by db' do
     get admin_submission_requests_path, params: {db: 'st26'}
 
     assert_response :ok
-    assert_match    "Request-#{submission_requests(:st26).id}",       response.body
-    assert_no_match "Request-#{submission_requests(:bioproject).id}", response.body
+    assert_match    "##{submission_requests(:st26).id}",       response.body
+    assert_no_match "##{submission_requests(:bioproject).id}", response.body
   end
 
   test 'index filters by user uid' do
@@ -30,8 +30,8 @@ class AdminSubmissionRequestsTest < ActionDispatch::IntegrationTest
     get admin_submission_requests_path, params: {user: 'carol'}
 
     assert_response :ok
-    assert_match    "Request-#{carol_request.id}",                response.body
-    assert_no_match "Request-#{submission_requests(:st26).id}",   response.body
+    assert_match    "##{carol_request.id}",                response.body
+    assert_no_match "##{submission_requests(:st26).id}",   response.body
   end
 
   test 'index returns 403 for non-admin users' do

@@ -91,11 +91,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get a list of submission requests. Omit `db` to span every database the user has access to. */
+        /** @description Get a list of submission requests. `db` and `status` are multi-select
+         *     filters (repeat the key, e.g. `?db[]=st26&db[]=biosample`); omit a
+         *     filter to span every value. `source_id` is a case-insensitive prefix
+         *     match on the applied submission's source id.
+         *      */
         get: {
             parameters: {
                 query?: {
-                    db?: components["schemas"]["Db"];
+                    db?: components["schemas"]["Db"][];
+                    status?: components["schemas"]["SubmissionOperationStatus"][];
+                    source_id?: string;
                     page?: number;
                 };
                 header?: never;
@@ -410,22 +416,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submissions/{submission_id}/messages": {
+    "/submission_requests/{submission_request_id}/messages": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                submission_id: number;
+                submission_request_id: number;
             };
             cookie?: never;
         };
-        /** @description Get the curator ↔ submitter message thread for a submission. Marks any unread curator-authored messages as read. */
+        /** @description Get the curator ↔ submitter message thread for a request. Marks any unread curator-authored messages as read. */
         get: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    submission_id: number;
+                    submission_request_id: number;
                 };
                 cookie?: never;
             };
@@ -451,7 +457,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    submission_id: number;
+                    submission_request_id: number;
                 };
                 cookie?: never;
             };
@@ -545,7 +551,9 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             submission_id: number | null;
-            has_accession: boolean;
+            source_id: string | null;
+            first_accession: string | null;
+            accession_count: number;
             has_unread_curator_message: boolean;
         };
         SubmissionRequestStatus: {
@@ -556,6 +564,7 @@ export interface components {
         };
         SubmissionRequest: {
             id: number;
+            db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
             error_message: string | null;
             /** Format: date-time */

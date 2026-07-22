@@ -14,13 +14,12 @@ Router.map(function () {
   this.route('db', { path: ':db' }, function () {
     this.route('requests', function () {
       this.route('new');
-      this.route('request', { path: ':request_id', resetNamespace: true });
     });
+  });
 
-    this.route('submissions', function () {
-      this.route('submission', { path: ':submission_id', resetNamespace: true }, function () {
-        this.route('accessions');
-      });
-    });
+  // Requests are keyed by a globally-unique id (like the API), so the
+  // detail lives at a flat /requests/:id rather than nested under :db.
+  this.route('request', { path: 'requests/:request_id' }, function () {
+    this.route('accessions');
   });
 });

@@ -13,17 +13,18 @@ export default class IndexRoute extends Route {
   @service declare requestManager: RequestManager;
 
   queryParams = {
-    page: {
-      refreshModel: true,
-    },
+    db: { refreshModel: true },
+    status: { refreshModel: true },
+    sourceId: { refreshModel: true },
+    page: { refreshModel: true },
   };
 
-  async model({ page }: { page?: number }) {
+  async model({ db, status, sourceId, page }: { db?: string[]; status?: string[]; sourceId?: string; page?: number }) {
     if (!this.currentUser.isLoggedIn) return null;
 
     const { content, response } = await this.requestManager.request<SubmissionRequestSummaries>({
       url: '/submission_requests',
-      options: { params: { page } },
+      options: { params: { db, status, source_id: sourceId || undefined, page } },
     });
 
     return {

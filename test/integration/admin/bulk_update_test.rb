@@ -11,12 +11,12 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
     projects(:primary).update!(status: 'curating')
     samples(:first).update!(status: 'curating')
 
-    get admin_submissions_path, params: {status: 'curating'}
+    get admin_submission_requests_path, params: {status: 'curating'}
 
     assert_response :ok
-    assert_match    admin_submission_path(submissions(:bioproject)), response.body
-    assert_match    admin_submission_path(submissions(:biosample)),  response.body
-    assert_no_match admin_submission_path(submissions(:st26)),       response.body
+    assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body
+    assert_match    admin_submission_request_path(submissions(:biosample).request),  response.body
+    assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
   end
 
   test 'index filter by status hides submissions where no project/sample matches' do
@@ -24,45 +24,45 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
     samples(:first).update!(status: 'public')
     samples(:second).update!(status: 'public')
 
-    get admin_submissions_path, params: {status: 'curating'}
+    get admin_submission_requests_path, params: {status: 'curating'}
 
-    assert_no_match admin_submission_path(submissions(:bioproject)), response.body
-    assert_no_match admin_submission_path(submissions(:biosample)),  response.body
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
+    assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
   end
 
   test 'index filter by assignee=<id> matches submissions where any project/sample is assigned' do
     projects(:primary).update!(assignee: users(:bob))
 
-    get admin_submissions_path, params: {assignee: users(:bob).id.to_s}
+    get admin_submission_requests_path, params: {assignee: users(:bob).id.to_s}
 
-    assert_match    admin_submission_path(submissions(:bioproject)), response.body
-    assert_no_match admin_submission_path(submissions(:biosample)),  response.body
+    assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body
+    assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
   end
 
   test 'index filter by assignee=0 matches submissions with at least one unassigned project/sample' do
     projects(:primary).update!(assignee: users(:bob))
     # BS samples remain unassigned (default).
 
-    get admin_submissions_path, params: {assignee: '0'}
+    get admin_submission_requests_path, params: {assignee: '0'}
 
-    assert_match    admin_submission_path(submissions(:biosample)),  response.body
-    assert_no_match admin_submission_path(submissions(:bioproject)), response.body
+    assert_match    admin_submission_request_path(submissions(:biosample).request),  response.body
+    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
   test 'index filter ignores unknown status name (no error, no narrowing)' do
-    get admin_submissions_path, params: {status: 'no_such_status'}
+    get admin_submission_requests_path, params: {status: 'no_such_status'}
 
     assert_response :ok
     # All fixture submissions should still appear.
-    assert_match admin_submission_path(submissions(:bioproject)), response.body
-    assert_match admin_submission_path(submissions(:biosample)),  response.body
-    assert_match admin_submission_path(submissions(:st26)),       response.body
+    assert_match admin_submission_request_path(submissions(:bioproject).request), response.body
+    assert_match admin_submission_request_path(submissions(:biosample).request),  response.body
+    assert_match admin_submission_request_path(submissions(:st26).request),       response.body
   end
 
   # --- index UI ---
 
   test 'index renders a per-row checkbox and the apply-to-selected form' do
-    get admin_submissions_path
+    get admin_submission_requests_path
 
     assert_response :ok
     assert_match 'Apply to selected',                                response.body
@@ -81,7 +81,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
             status:         'public'
           }}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_equal 'public', projects(:primary).reload.status
     assert_equal 'public', samples(:first).reload.status
     assert_equal 'public', samples(:second).reload.status
@@ -94,7 +94,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
             assignee_id:    users(:bob).id.to_s
           }}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_equal users(:bob), projects(:primary).reload.assignee
     assert_equal users(:bob), samples(:first).reload.assignee
     assert_equal users(:bob), samples(:second).reload.assignee
@@ -110,7 +110,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
             assignee_id:    '0'
           }}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_nil projects(:primary).reload.assignee
     assert_nil samples(:first).reload.assignee
   end
@@ -118,7 +118,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
   test 'bulk_update with no submissions selected refuses' do
     patch bulk_update_admin_submissions_path, params: {bulk: {status: 'public'}}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_match(/No submissions selected/, flash[:alert])
   end
 
@@ -130,7 +130,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
             assignee_id:    ''
           }}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_match(/No changes specified/, flash[:alert])
   end
 
@@ -141,7 +141,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
             status:         'nope_not_a_status'
           }}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_match(/Unknown status/, flash[:alert])
   end
 
@@ -152,7 +152,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
             assignee_id:    users(:alice).id.to_s
           }}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_match(/must be an admin user/, flash[:alert])
   end
 
@@ -161,7 +161,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
           params: {db: 'bioproject', status: 'public',
                    bulk: {submission_ids: [submissions(:bioproject).id.to_s], status: 'curating'}}
 
-    assert_redirected_to admin_submissions_path(db: 'bioproject', status: 'public')
+    assert_redirected_to admin_submission_requests_path(db: 'bioproject', status: 'public')
   end
 
   test 'bulk_update requires admin auth' do

@@ -21,7 +21,7 @@ class AdminHoldDatesTest < ActionDispatch::IntegrationTest
     patch admin_submission_hold_date_path(@submission),
           params: {submission: {hold_date: '2026-12-31'}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_match(/Hold date saved/, flash[:notice])
     @submission.reload
     assert_equal chain_before + 1,  @submission.updates.count
@@ -38,7 +38,7 @@ class AdminHoldDatesTest < ActionDispatch::IntegrationTest
     patch admin_submission_hold_date_path(@submission),
           params: {submission: {hold_date: ''}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     refute @submission.reload.materialised_record.dig('submission')&.key?('hold_date'),
            'blank input must drop the hold_date key (not store an empty string)'
   end
@@ -63,7 +63,7 @@ class AdminHoldDatesTest < ActionDispatch::IntegrationTest
       patch admin_submission_hold_date_path(@submission),
             params: {submission: {hold_date: bad}}
 
-      assert_redirected_to admin_submission_path(@submission)
+      assert_redirected_to admin_submission_request_path(@submission.request)
       assert_match(/valid YYYY-MM-DD/, flash[:alert], "expected reject for #{bad.inspect}")
       assert_nil @submission.reload.materialised_record.dig('submission', 'hold_date'),
                  "must not fabricate hold_date from #{bad.inspect}"
@@ -71,7 +71,7 @@ class AdminHoldDatesTest < ActionDispatch::IntegrationTest
   end
 
   test 'show page renders the hold_date form' do
-    get admin_submission_path(@submission)
+    get admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match 'Hold date',                                   response.body
@@ -86,7 +86,7 @@ class AdminHoldDatesTest < ActionDispatch::IntegrationTest
       source: :manual
     )
 
-    get admin_submission_path(@submission)
+    get admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match(/value="2026-12-31"/, response.body)

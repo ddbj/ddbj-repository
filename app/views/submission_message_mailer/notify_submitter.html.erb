@@ -1,12 +1,12 @@
 <% web_url = Rails.application.config_for(:app).web_url! %>
-<% thread_url = File.join(web_url, @submission.db, 'submissions', @submission.id.to_s) %>
+<% thread_url = File.join(web_url, 'requests', @request.id.to_s) %>
 
 <p>Dear submitter,</p>
 
 <p>
   A DDBJ curator (<%= @curator.uid %>) has posted a message on your
-  <%= @submission.db.humanize %> submission
-  (<%= @submission.source_id.presence || "##{@submission.id}" %>):
+  <%= @request.db.humanize %> request
+  (<%= @request.submission&.source_id.presence || "##{@request.id}" %>):
 </p>
 
 <blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">

@@ -40,7 +40,7 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     get admin_regenerate_flatfiles_path
 
     assert_response :ok
-    assert_match "Completed at #{progress.updated_at.to_fs(:db)}",  response.body
+    assert_match "Completed at #{progress.updated_at.strftime('%Y-%m-%d %H:%M')}",  response.body
     assert_match '5 succeeded.',                                    response.body
     assert_no_match 'data-controller="auto-refresh"',               response.body
   end

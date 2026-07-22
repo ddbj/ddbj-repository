@@ -1,20 +1,23 @@
 class SubmissionRequestsController < ApplicationController
+  include SourceIdFilterable
+
   def index
     scope = current_user.submission_requests.includes(submission: :accessions)
-    scope = scope.where(db: params[:db]) if params[:db].present?
+    scope = filter_by_db(scope, params[:db])               if params[:db].present?
+    scope = filter_by_status(scope, params[:status])       if params[:status].present?
+    scope = filter_by_source_id(scope, params[:source_id]) if params[:source_id].present?
 
     pagy, @requests = pagy(scope.order(id: :desc))
 
-    # Pre-fetch the set of submissions with at least one unread curator
+    # Pre-fetch the set of requests with at least one unread curator
     # message so the view's `has_unread_curator_message` flag doesn't
     # N+1. One indexed query per page.
-    submission_ids = @requests.filter_map { it.submission&.id }
-    @unread_submission_ids =
+    @unread_request_ids =
       SubmissionMessage
         .curator_role.unread
-        .where(submission_id: submission_ids)
+        .where(submission_request_id: @requests.map(&:id))
         .distinct
-        .pluck(:submission_id)
+        .pluck(:submission_request_id)
         .to_set
 
     response.headers.merge! pagy.headers_hash
@@ -35,6 +38,20 @@ class SubmissionRequestsController < ApplicationController
   end
 
   private
+
+  # Multi-select list filters (db / status). The web client omits the
+  # param entirely when every box (or none) is checked, so a present
+  # param is always a proper subset. Unknown values are dropped so a
+  # crafted param can't raise on the enum coercion.
+  def filter_by_db(scope, raw)
+    values = Array(raw).map(&:to_s) & SubmissionRequest.dbs.keys
+    values.empty? ? scope : scope.where(db: values)
+  end
+
+  def filter_by_status(scope, raw)
+    values = Array(raw).map(&:to_s) & SubmissionRequest.statuses.keys
+    values.empty? ? scope : scope.where(status: values)
+  end
 
   def request_params
     params.expect(submission_request: %i[db ddbj_record])

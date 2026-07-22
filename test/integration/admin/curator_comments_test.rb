@@ -10,7 +10,7 @@ class AdminCuratorCommentsTest < ActionDispatch::IntegrationTest
     patch admin_submission_curator_comment_path(@submission),
           params: {submission_curator_comment: {body: "first note\nsecond note"}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_equal "first note\nsecond note", @submission.reload.curator_comment
   end
 
@@ -20,7 +20,7 @@ class AdminCuratorCommentsTest < ActionDispatch::IntegrationTest
     patch admin_submission_curator_comment_path(@submission),
           params: {submission_curator_comment: {body: ''}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_nil @submission.reload.curator_comment
   end
 
@@ -34,7 +34,7 @@ class AdminCuratorCommentsTest < ActionDispatch::IntegrationTest
   test 'show page renders the curator comment form even with no materialised record' do
     # curator_comment is a typed column, independent of the patch chain —
     # the form MUST stay editable when the v3 record can't be replayed.
-    get admin_submission_path(@submission)
+    get admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match 'Curator comment',                                  response.body

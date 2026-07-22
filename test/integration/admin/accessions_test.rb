@@ -14,7 +14,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
 
     post admin_submission_accession_path(submission)
 
-    assert_redirected_to admin_submission_path(submission)
+    assert_redirected_to admin_submission_request_path(submission.request)
     assert_match(/Issued accession PRJDB/, flash[:notice])
     assert projects(:primary).reload.accession.match?(/\APRJDB\d+\z/)
     assert_equal 'accession_issued', projects(:primary).reload.status
@@ -26,7 +26,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
 
     post admin_submission_accession_path(submission)
 
-    assert_redirected_to admin_submission_path(submission)
+    assert_redirected_to admin_submission_request_path(submission.request)
     assert_match(/Cannot issue/, flash[:alert])
     assert_equal 'PRJDB000001', projects(:primary).reload.accession
   end
@@ -40,7 +40,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
 
     post admin_submission_accession_path(submission)
 
-    assert_redirected_to admin_submission_path(submission)
+    assert_redirected_to admin_submission_request_path(submission.request)
     assert_match(/Issued accession SAMD\d+/, flash[:notice])
     assert samples(:first).reload.accession.match?(/\ASAMD/)
     assert samples(:second).reload.accession.match?(/\ASAMD/)
@@ -53,7 +53,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
 
     post admin_submission_accession_path(submission)
 
-    assert_redirected_to admin_submission_path(submission)
+    assert_redirected_to admin_submission_request_path(submission.request)
     assert_match(/Cannot issue/, flash[:alert])
   end
 
@@ -69,7 +69,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
   test 'BP show renders Issue PRJDB button when project has no accession' do
     projects(:primary).update!(accession: nil, status: 'curating')
 
-    get admin_submission_path(submissions(:bioproject))
+    get admin_submission_request_path(submissions(:bioproject).request)
 
     assert_response :ok
     assert_match 'Issue PRJDB accession',                                  response.body
@@ -79,7 +79,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
   test 'BP show hides Issue button when project already has accession' do
     projects(:primary).update!(accession: 'PRJDB000001', status: 'curating')
 
-    get admin_submission_path(submissions(:bioproject))
+    get admin_submission_request_path(submissions(:bioproject).request)
 
     assert_response :ok
     assert_no_match 'Issue PRJDB accession', response.body
@@ -95,7 +95,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     post bulk_issue_accessions_admin_submissions_path,
          params: {bulk: {submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s]}}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_match(/Issued 3 accession\(s\)/, flash[:notice])
 
     assert projects(:primary).reload.accession.match?(/\APRJDB/)
@@ -112,7 +112,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     post bulk_issue_accessions_admin_submissions_path,
          params: {bulk: {submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s]}}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_match(/1 refused/,                  flash[:notice])
     assert_match(/already has accession/,      flash[:alert].to_s)
 
@@ -123,7 +123,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
   test 'bulk_issue_accessions refuses empty selection' do
     post bulk_issue_accessions_admin_submissions_path, params: {bulk: {submission_ids: []}}
 
-    assert_redirected_to admin_submissions_path
+    assert_redirected_to admin_submission_requests_path
     assert_match(/No submissions selected/, flash[:alert])
   end
 
@@ -134,7 +134,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
          params: {db: 'bioproject', status: 'curating',
                   bulk: {submission_ids: [submissions(:bioproject).id.to_s]}}
 
-    assert_redirected_to admin_submissions_path(db: 'bioproject', status: 'curating')
+    assert_redirected_to admin_submission_requests_path(db: 'bioproject', status: 'curating')
   end
 
   test 'bulk_issue_accessions requires admin auth' do
@@ -154,7 +154,7 @@ class AdminSubmissionAccessionDisplayTest < ActionDispatch::IntegrationTest
   test 'BP show displays project.accession in the top dl when present' do
     projects(:primary).update!(accession: 'PRJDB000999')
 
-    get admin_submission_path(submissions(:bioproject))
+    get admin_submission_request_path(submissions(:bioproject).request)
 
     assert_response :ok
     assert_match 'PRJDB000999', response.body
@@ -163,7 +163,7 @@ class AdminSubmissionAccessionDisplayTest < ActionDispatch::IntegrationTest
   test 'BP show displays "— (not issued)" when project.accession is nil' do
     projects(:primary).update!(accession: nil)
 
-    get admin_submission_path(submissions(:bioproject))
+    get admin_submission_request_path(submissions(:bioproject).request)
 
     assert_response :ok
     assert_match '— (not issued)', response.body
@@ -173,7 +173,7 @@ class AdminSubmissionAccessionDisplayTest < ActionDispatch::IntegrationTest
     samples(:first).update!(accession: 'SAMD00000001')
     samples(:second).update!(accession: nil)
 
-    get admin_submission_path(submissions(:biosample))
+    get admin_submission_request_path(submissions(:biosample).request)
 
     assert_response :ok
     assert_match '1 / 2 sample(s) issued', response.body

@@ -1,0 +1,100 @@
+<% content_for :title, "##{@request.id}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration',      path: admin_root_path},
+  {label: 'Submission requests', path: admin_submission_requests_path},
+  {label: "##{@request.id}"}
+] %>
+
+<h1 class="display-6 mb-4">#<%= @request.id %></h1>
+
+<dl class="row">
+  <dt class="col-sm-3">Database</dt>
+  <dd class="col-sm-9"><%= db_label(@request.db) %></dd>
+
+  <dt class="col-sm-3">User</dt>
+  <dd class="col-sm-9"><%= @request.user.uid %></dd>
+
+  <dt class="col-sm-3">Status</dt>
+  <dd class="col-sm-9"><%= status_badge(@request.status) %></dd>
+
+  <% if @request.error_message.present? %>
+    <dt class="col-sm-3">Error</dt>
+    <dd class="col-sm-9 text-danger"><%= @request.error_message %></dd>
+  <% end %>
+
+  <dt class="col-sm-3">File</dt>
+  <dd class="col-sm-9">
+    <% if @request.ddbj_record.attached? %>
+      <%= link_to @request.ddbj_record.filename, rails_blob_path(@request.ddbj_record, disposition: 'attachment') %>
+    <% else %>
+      <span class="text-body-secondary">— (migration-sourced)</span>
+    <% end %>
+  </dd>
+
+  <dt class="col-sm-3">Created</dt>
+  <dd class="col-sm-9"><%= format_datetime(@request.created_at) %></dd>
+</dl>
+
+<% if @validation %>
+  <h2 class="h4 mt-4">Validation</h2>
+
+  <dl class="row">
+    <dt class="col-sm-3">Progress</dt>
+    <dd class="col-sm-9 text-capitalize"><%= @validation.progress %></dd>
+
+    <dt class="col-sm-3">Validity</dt>
+    <dd class="col-sm-9">
+      <% case @validation.validity %>
+      <% when 'valid' %>
+        <span class="badge text-bg-success">valid</span>
+      <% when 'invalid' %>
+        <span class="badge text-bg-danger">invalid</span>
+      <% else %>
+        <span class="text-body-secondary">—</span>
+      <% end %>
+    </dd>
+  </dl>
+
+  <% if @validation.details.any? %>
+    <details class="mb-3">
+      <summary class="text-body-secondary" role="button">Validation details (<%= @validation.details.size %>)</summary>
+
+      <table class="table border mt-2">
+        <thead class="table-light">
+          <tr>
+            <th>Entry ID</th>
+            <th>Code</th>
+            <th>Severity</th>
+            <th>Message</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @validation.details.each do |detail| %>
+            <tr>
+              <td><%= detail.entry_id %></td>
+              <td><%= detail.code %></td>
+              <td><%= detail.severity %></td>
+              <td><%= detail.message %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </details>
+  <% end %>
+<% end %>
+
+<%# Submitter ↔ curator conversation. Hangs off the request so it can %>
+<%# start before Apply, when no submission exists yet. %>
+<%= render 'admin/messages/thread', request: @request, messages: @messages %>
+
+<%# Submission workbench — present once the request has been applied. %>
+<hr class="my-4">
+
+<% if @submission %>
+  <%# Fixed heading — the Source ID is shown in the detail's dl right below. %>
+  <h2 class="h4 mb-3">Submission</h2>
+  <%= render 'admin/submissions/detail' %>
+<% else %>
+  <p class="text-body-secondary">No submission yet — this request has not been applied.</p>
+<% end %>

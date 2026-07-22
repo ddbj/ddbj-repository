@@ -23,7 +23,7 @@ class AdminProjectRecordsTest < ActionDispatch::IntegrationTest
     patch admin_submission_project_record_path(@submission),
           params: {project_record: {title: 'New title', description: 'New description.'}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     @submission.reload
     assert_equal chain_before + 1, @submission.updates.count
     assert_equal 'New title',       @submission.materialised_record.dig('project', 'title')
@@ -72,7 +72,7 @@ class AdminProjectRecordsTest < ActionDispatch::IntegrationTest
   end
 
   test 'show page renders the project-record form for BP submissions' do
-    get admin_submission_path(@submission)
+    get admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match 'Project details',                                       response.body
@@ -82,7 +82,7 @@ class AdminProjectRecordsTest < ActionDispatch::IntegrationTest
   end
 
   test 'show page does NOT render the project-record form for non-BP submissions' do
-    get admin_submission_path(submissions(:st26))
+    get admin_submission_request_path(submissions(:st26).request)
 
     assert_response :ok
     assert_no_match 'Project details', response.body

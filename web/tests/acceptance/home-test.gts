@@ -6,6 +6,8 @@ import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 import { http } from '../msw/http';
 import { worker } from '../msw/worker';
 
+import type { components } from 'schema/openapi';
+
 const now = '2025-01-01T00:00:00.000Z';
 
 module('Acceptance | home', function (hooks) {
@@ -23,7 +25,9 @@ module('Acceptance | home', function (hooks) {
               status: 'applied',
               created_at: now,
               submission_id: 42,
-              has_accession: true,
+              source_id: 'SSUB000123',
+              first_accession: 'SAMD00000001',
+              accession_count: 3,
               has_unread_curator_message: true,
             },
             {
@@ -32,7 +36,9 @@ module('Acceptance | home', function (hooks) {
               status: 'validating',
               created_at: now,
               submission_id: null,
-              has_accession: false,
+              source_id: null,
+              first_accession: null,
+              accession_count: 0,
               has_unread_curator_message: false,
             },
           ],
@@ -50,18 +56,21 @@ module('Acceptance | home', function (hooks) {
     assert.dom('tbody tr').exists({ count: 2 });
 
     const firstRow = 'tbody tr:nth-child(1)';
-    assert.dom(`${firstRow} td:nth-child(1)`).hasText('Request-7');
+    assert.dom(`${firstRow} td:nth-child(1)`).includesText('#7');
+    assert.dom(`${firstRow} td:nth-child(1) .badge.text-bg-warning`).hasText('New message');
     assert.dom(`${firstRow} td:nth-child(2)`).hasText('BioSample');
-    assert.dom(`${firstRow} td:nth-child(3) .badge`).hasText('Accessioned');
-    assert.dom(`${firstRow} td:nth-child(4) a`).hasText('Submission-42');
-    assert.dom(`${firstRow} td:nth-child(4) .badge.text-bg-warning`).hasText('New message');
+    assert.dom(`${firstRow} td:nth-child(3) .badge`).hasText('applied');
+    assert.dom(`${firstRow} td:nth-child(4)`).includesText('SAMD00000001');
+    assert.dom(`${firstRow} td:nth-child(4)`).includesText('(3)'); // first + total count
+    assert.dom(`${firstRow} td:nth-child(5)`).hasText('SSUB000123');
 
     const secondRow = 'tbody tr:nth-child(2)';
-    assert.dom(`${secondRow} td:nth-child(1)`).hasText('Request-3');
+    assert.dom(`${secondRow} td:nth-child(1)`).hasText('#3');
+    assert.dom(`${secondRow} td:nth-child(1) .badge.text-bg-warning`).doesNotExist();
     assert.dom(`${secondRow} td:nth-child(2)`).hasText('BioProject');
     assert.dom(`${secondRow} td:nth-child(3) .badge`).hasText('validating');
-    assert.dom(`${secondRow} td:nth-child(4) a`).doesNotExist();
-    assert.dom(`${secondRow} td:nth-child(4) .badge.text-bg-warning`).doesNotExist();
+    assert.dom(`${secondRow} td:nth-child(4)`).hasText('-'); // no accession
+    assert.dom(`${secondRow} td:nth-child(5)`).hasText('-'); // no source id
   });
 
   test('empty state links to /new', async function (assert) {
@@ -96,5 +105,103 @@ module('Acceptance | home', function (hooks) {
     assert.dom('a[href="/web/st26/requests/new"]').exists();
     assert.dom('a[href="/web/bioproject/requests/new"]').exists();
     assert.dom('a[href="/web/biosample/requests/new"]').exists();
+  });
+
+  test('unchecking a database facet and submitting narrows the list', async function (assert) {
+    const rows: components['schemas']['SubmissionRequestSummary'][] = [
+      {
+        id: 7,
+        db: 'biosample',
+        status: 'applied',
+        created_at: now,
+        submission_id: 42,
+        source_id: 'SSUB000123',
+        first_accession: 'SAMD00000001',
+        accession_count: 3,
+        has_unread_curator_message: false,
+      },
+      {
+        id: 3,
+        db: 'bioproject',
+        status: 'validating',
+        created_at: now,
+        submission_id: null,
+        source_id: null,
+        first_accession: null,
+        accession_count: 0,
+        has_unread_curator_message: false,
+      },
+    ];
+
+    worker.use(
+      http.get('/submission_requests', ({ request, response }) => {
+        const dbs = new URL(request.url).searchParams.getAll('db[]');
+        const filtered = dbs.length ? rows.filter((r) => dbs.includes(r.db)) : rows;
+
+        return response(200).json(filtered, { headers: { 'Total-Pages': '1' } });
+      }),
+    );
+
+    await visit('/');
+
+    // Default: all databases checked, both rows shown.
+    assert.dom('tbody tr').exists({ count: 2 });
+    assert.dom('#db-bioproject').isChecked();
+
+    // Unchecking is not applied until Filter is pressed (not live).
+    await click('#db-bioproject');
+    assert.dom('#db-bioproject').isNotChecked();
+    assert.dom('tbody tr').exists({ count: 2 });
+
+    // Submit → the facet becomes {st26, biosample}; the bioproject-only
+    // request drops out and the box stays unchecked.
+    await click('form button[type="submit"]');
+    assert.dom('#db-bioproject').isNotChecked();
+    assert.dom('tbody tr').exists({ count: 1 });
+    assert.dom('tbody tr td:nth-child(2)').hasText('BioSample');
+
+    // Clear filters restores the full list with every box checked again.
+    // (`:not(.p-0)` distinguishes it from the Select all / Deselect all links.)
+    await click('.btn-link:not(.p-0)');
+    assert.dom('#db-bioproject').isChecked();
+    assert.dom('tbody tr').exists({ count: 2 });
+  });
+
+  test('Select all / Deselect all toggle a whole facet', async function (assert) {
+    worker.use(
+      http.get('/submission_requests', ({ response }) => {
+        return response(200).json(
+          [
+            {
+              id: 1,
+              db: 'st26',
+              status: 'applied',
+              created_at: now,
+              submission_id: 1,
+              source_id: null,
+              first_accession: null,
+              accession_count: 0,
+              has_unread_curator_message: false,
+            },
+          ],
+          { headers: { 'Total-Pages': '1' } },
+        );
+      }),
+    );
+
+    await visit('/');
+
+    // Default: every database box checked.
+    assert.dom('#db-st26').isChecked();
+
+    await click('[data-test-deselect="db"]');
+    assert.dom('#db-st26').isNotChecked();
+    assert.dom('#db-bioproject').isNotChecked();
+    assert.dom('#db-biosample').isNotChecked();
+
+    await click('[data-test-select="db"]');
+    assert.dom('#db-st26').isChecked();
+    assert.dom('#db-bioproject').isChecked();
+    assert.dom('#db-biosample').isChecked();
   });
 });

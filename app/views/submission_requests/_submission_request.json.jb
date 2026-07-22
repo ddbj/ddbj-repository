@@ -1,6 +1,7 @@
 {
   **submission_request.slice(
     :id,
+    :db,
     :status,
     :error_message,
     :created_at

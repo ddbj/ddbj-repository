@@ -15,7 +15,7 @@ module Admin
       # and the curator_comment sync both use update_columns).
       submission.update_columns(curator_comment: params.dig(:submission_curator_comment, :body).presence)
 
-      redirect_to admin_submission_path(submission), notice: 'Curator comment saved.'
+      redirect_to admin_submission_request_path(submission.request), notice: 'Curator comment saved.'
     end
   end
 end

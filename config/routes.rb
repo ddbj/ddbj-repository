@@ -15,13 +15,13 @@ Rails.application.routes.draw do
     # — no /:db scope. `index` accepts an optional `?db=xxx` query to
     # filter; `create` reads the target database from the request body.
     resources :submission_requests, only: %i[index show create] do
-      resource :status,     only: :show
-      resource :submission, only: :create
+      resource  :status,     only: :show
+      resource  :submission, only: :create
+      resources :messages,   only: %i[index create]
     end
 
     resources :submissions, only: %i[index show] do
       resources :accessions, only: %i[index]
-      resources :messages,   only: %i[index create]
     end
 
     resources :accessions, only: %i[show], param: :number, constraints: {number: %r{[^/]+}}
@@ -34,12 +34,15 @@ Rails.application.routes.draw do
 
     resource :session, only: %i[new destroy]
 
-    resources :submission_requests, only: %i[index]
-    resources :submissions, only: %i[index show] do
+    resources :submission_requests, only: %i[index show] do
+      resources :messages, only: %i[create]
+    end
+
+    resources :submissions, only: %i[show] do
       collection do
         # Cross-submission bulk: apply (status, assignee) to all
-        # checkboxed rows on the index. BP submissions update their
-        # Project row; BS submissions update all their Samples.
+        # checkboxed rows on the request list. BP submissions update
+        # their Project row; BS submissions update all their Samples.
         patch :bulk_update
 
         # Cross-submission bulk accession issuance. Selected submissions
@@ -71,7 +74,6 @@ Rails.application.routes.draw do
       resource  :project_record,     only: %i[update]
       resource  :accession,          only: %i[create]
       resource  :sample_tsv_export,  only: %i[show]
-      resources :messages,           only: %i[create]
 
       # Per-submission BS sample-bag editing via TSV round-trip. The
       # export endpoint above streams the current state; this endpoint

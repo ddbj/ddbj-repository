@@ -15,8 +15,6 @@ class Submission < ApplicationRecord
   has_one  :project, dependent: :destroy
   has_many :samples, dependent: :destroy
 
-  has_many :messages, -> { chronological }, class_name: 'SubmissionMessage', dependent: :destroy
-
   has_many :sample_tsv_imports, -> { recent }, dependent: :destroy
 
   has_one_attached :ddbj_record
@@ -39,6 +37,20 @@ class Submission < ApplicationRecord
     base = Rails.application.config_for(:app).repository_dir!
 
     Pathname.new(base).join(user.uid, 'submissions', id.to_s)
+  end
+
+  # Ensure a migration-sourced submission carries a synthetic, already-
+  # applied SubmissionRequest so the request stays the single unit
+  # everywhere (request-first lists + one-page detail). Idempotent: a
+  # re-import finds the existing submission whose request is already
+  # present and does nothing. See [[project-submission-request-as-unit]].
+  def ensure_migration_request!(migration_run_id:)
+    request || create_request!(
+      user:             user,
+      db:               db,
+      status:           :applied,
+      migration_run_id: migration_run_id
+    )
   end
 
   class MaterialisationFailed < StandardError

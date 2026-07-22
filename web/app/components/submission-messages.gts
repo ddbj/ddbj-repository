@@ -11,16 +11,16 @@ import type { RequestManager } from '@warp-drive/core';
 import type { paths } from 'schema/openapi';
 
 type MessagesResponse =
-  paths['/submissions/{submission_id}/messages']['get']['responses']['200']['content']['application/json'];
+  paths['/submission_requests/{submission_request_id}/messages']['get']['responses']['200']['content']['application/json'];
 
 type CreateMessageResponse =
-  paths['/submissions/{submission_id}/messages']['post']['responses']['201']['content']['application/json'];
+  paths['/submission_requests/{submission_request_id}/messages']['post']['responses']['201']['content']['application/json'];
 
 type Message = MessagesResponse[number];
 
 interface Signature {
   Args: {
-    submissionId: number;
+    requestId: number;
   };
 }
 
@@ -39,7 +39,7 @@ export default class SubmissionMessages extends Component<Signature> {
 
   async load() {
     const { content } = await this.requestManager.request<MessagesResponse>({
-      url: `/submissions/${this.args.submissionId}/messages`,
+      url: `/submission_requests/${this.args.requestId}/messages`,
     });
 
     this.messages = content;
@@ -61,7 +61,7 @@ export default class SubmissionMessages extends Component<Signature> {
 
     try {
       const { content } = await this.requestManager.request<CreateMessageResponse>({
-        url: `/submissions/${this.args.submissionId}/messages`,
+        url: `/submission_requests/${this.args.requestId}/messages`,
         method: 'POST',
         data: { submission_message: { body } },
       });

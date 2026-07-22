@@ -21,16 +21,16 @@
       <dd class="col-sm-9"><code><%= @migration_run.uuid %></code></dd>
 
       <dt class="col-sm-3">Started</dt>
-      <dd class="col-sm-9"><%= @migration_run.started_at&.to_fs(:db) || '—' %></dd>
+      <dd class="col-sm-9"><%= format_datetime(@migration_run.started_at) || '—' %></dd>
 
       <dt class="col-sm-3">Finished</dt>
-      <dd class="col-sm-9"><%= @migration_run.finished_at&.to_fs(:db) || '—' %></dd>
+      <dd class="col-sm-9"><%= format_datetime(@migration_run.finished_at) || '—' %></dd>
 
       <dt class="col-sm-3">Submissions touched</dt>
       <dd class="col-sm-9">
         <% if @touched_count.positive? %>
           <%= link_to "#{number_with_delimiter(@touched_count)} submission(s)",
-                      admin_submissions_path(db: @migration_run.db) %>
+                      admin_submission_requests_path(db: @migration_run.db) %>
         <% else %>
           —
         <% end %>

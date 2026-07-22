@@ -17,20 +17,12 @@ module('Acceptance | submission request', function (hooks) {
   setupAuthentication(hooks);
 
   test('create and apply', async function (assert) {
-    // --- List page ---
+    // --- Database picker ---
 
-    worker.use(
-      http.get('/submission_requests', ({ response }) => {
-        return response(200).json([], {
-          headers: { 'Total-Pages': '1' },
-        });
-      }),
-    );
+    await visit('/new');
 
-    await visit('/st26/requests');
-
-    assert.strictEqual(currentURL(), '/st26/requests');
-    assert.dom('h1').hasText('Requests (ST.26)');
+    assert.strictEqual(currentURL(), '/new');
+    assert.dom('h1').hasText('New Submission');
 
     // --- Navigate to new request page ---
 
@@ -43,6 +35,7 @@ module('Acceptance | submission request', function (hooks) {
 
     const createdRequest: SubmissionRequest = {
       id: 42,
+      db: 'st26',
       status: 'waiting_validation',
       error_message: null,
       created_at: now,
@@ -77,16 +70,21 @@ module('Acceptance | submission request', function (hooks) {
           },
         });
       }),
+
+      // The request detail page renders the curator ↔ submitter thread.
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => {
+        return response(200).json([]);
+      }),
     );
 
     const file = new File(['{}'], 'test.json', { type: 'application/json' });
     await triggerEvent('input[type="file"]', 'change', { files: [file] });
 
     await click('button[type="submit"]');
-    await waitUntil(() => currentURL() === '/st26/requests/42');
+    await waitUntil(() => currentURL() === '/requests/42');
 
     // --- Request detail page (ready to apply) ---
-    assert.dom('h1').hasText('Request-42');
+    assert.dom('h1').hasText('#42');
     assert.dom('.badge').hasText('ready to apply');
 
     // --- Apply ---

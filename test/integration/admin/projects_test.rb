@@ -12,7 +12,7 @@ class AdminProjectsTest < ActionDispatch::IntegrationTest
     patch admin_submission_project_path(@submission),
           params: {project: {status: 'curating', assignee_id: users(:bob).id}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_equal 'curating', @project.reload.status
     assert_equal users(:bob), @project.assignee
   end
@@ -23,7 +23,7 @@ class AdminProjectsTest < ActionDispatch::IntegrationTest
     patch admin_submission_project_path(@submission),
           params: {project: {status: 'private', assignee_id: ''}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_nil @project.reload.assignee
   end
 
@@ -31,7 +31,7 @@ class AdminProjectsTest < ActionDispatch::IntegrationTest
     patch admin_submission_project_path(@submission),
           params: {project: {status: 'curating', assignee_id: users(:alice).id}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_match(/must be an admin user/, flash[:alert])
     assert_equal 'private', @project.reload.status, 'failed update must not mutate status either'
   end
@@ -40,7 +40,7 @@ class AdminProjectsTest < ActionDispatch::IntegrationTest
     patch admin_submission_project_path(@submission),
           params: {project: {status: 'no_such_status'}}
 
-    assert_redirected_to admin_submission_path(@submission)
+    assert_redirected_to admin_submission_request_path(@submission.request)
     assert_match(/Status/, flash[:alert]) # ActiveRecord validation error surfaces in alert
     assert_equal 'private', @project.reload.status, 'failed update must not mutate the row'
   end
@@ -64,7 +64,7 @@ class AdminProjectsTest < ActionDispatch::IntegrationTest
   end
 
   test 'show page renders the curator-edit form for BP submissions' do
-    get admin_submission_path(@submission)
+    get admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match 'Curator edit',                                response.body
@@ -74,7 +74,7 @@ class AdminProjectsTest < ActionDispatch::IntegrationTest
   end
 
   test 'show page does NOT render the curator-edit form for non-BP submissions' do
-    get admin_submission_path(submissions(:st26))
+    get admin_submission_request_path(submissions(:st26).request)
 
     assert_response :ok
     assert_no_match 'Curator edit', response.body

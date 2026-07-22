@@ -1,11 +1,14 @@
-# locals: (submission_request:, unread_submission_ids: Set.new)
+# locals: (submission_request:, unread_request_ids: Set.new)
 
-submission = submission_request.submission
+submission  = submission_request.submission
+accessions  = submission ? submission.accessions.to_a : []
 
 {
   **submission_request.slice(:id, :db, :status, :created_at),
 
   submission_id:              submission&.id,
-  has_accession:              submission&.accessions&.any? || false,
-  has_unread_curator_message: submission ? unread_submission_ids.include?(submission.id) : false
+  source_id:                  submission&.source_id,
+  first_accession:            accessions.min_by(&:id)&.number,
+  accession_count:            accessions.size,
+  has_unread_curator_message: unread_request_ids.include?(submission_request.id)
 }
