@@ -22,8 +22,8 @@ export default class extends Component {
   @service declare toast: ToastService;
 
   @action
-  async logout() {
-    await this.currentUser.logout();
+  logout() {
+    this.currentUser.logout();
 
     this.toast.show('Logged out.', 'success');
   }

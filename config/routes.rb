@@ -4,8 +4,6 @@ Rails.application.routes.draw do
   get 'auth/:provider/callback', to: 'sessions#create'
   get 'auth/failure',            to: 'sessions#failure'
 
-  resource :session, only: %i[destroy]
-
   scope :api, defaults: {format: :json} do
     resource :api_key, only: [] do
       post :regenerate
@@ -37,7 +35,7 @@ Rails.application.routes.draw do
   namespace :admin do
     root to: 'dashboard#show'
 
-    resource :session, only: %i[new]
+    resource :session, only: %i[new destroy]
 
     resources :submission_requests, only: %i[index]
     resources :submissions,         only: %i[index]

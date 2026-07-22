@@ -7,8 +7,10 @@ export default class LoginRoute extends Route {
   @service declare currentUser: CurrentUserService;
 
   async beforeModel() {
-    const token = new URL(location.href).searchParams.get('token')!;
+    const params = new URL(location.href).searchParams;
+    const token = params.get('token')!;
+    const proxyUid = params.get('proxy_login') ?? undefined;
 
-    await this.currentUser.login(token);
+    await this.currentUser.login(token, proxyUid);
   }
 }

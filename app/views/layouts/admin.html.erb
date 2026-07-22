@@ -27,7 +27,7 @@
                 <li><%= link_to 'Back to repository', '/web/', class: 'dropdown-item', data: {turbo: false} %></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
-                  <%= button_to 'Logout', session_path, method: :delete, class: 'dropdown-item', data: {turbo: false} %>
+                  <%= button_to 'Logout', admin_session_path, method: :delete, class: 'dropdown-item', data: {turbo: false} %>
                 </li>
               </ul>
             </li>

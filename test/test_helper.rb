@@ -77,7 +77,9 @@ class ActionDispatch::IntegrationTest
       }
     )
 
-    get '/auth/keycloak/callback'
+    # Drive the admin-origin branch so the callback mints the session
+    # cookie (the web branch is JWT-only and sets no session).
+    get '/auth/keycloak/callback', env: {'omniauth.origin' => '/admin'}
   end
 
   def stub_cloakman_lookup(profiles, uids: profiles.map { it[:uid] })
