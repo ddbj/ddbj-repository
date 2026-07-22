@@ -11,10 +11,11 @@ class PublishBpExchangeXMLJob < ApplicationJob
     return if PublicXMLRun.where(db: 'bioproject', kind: 'exchange', status: 'running').exists?
 
     # Delta window: everything released / re-released since the previous
-    # public run counts as eAdded / eUpdated. `exec_date` is this run's
-    # cut-off. See PublicXMLRun's class comment for why we anchor on the
-    # public run's started_at.
-    last_run  = PublicXMLRun.previous_public_run(db: 'bioproject')&.started_at
+    # EXCHANGE run counts as eAdded / eUpdated. `exec_date` is this run's
+    # cut-off. Anchoring on the previous exchange run (not the public run)
+    # mirrors legacy bpbatch's independent lastRun_Collab marker — see
+    # PublicXMLRun's class comment.
+    last_run  = PublicXMLRun.previous_run(db: 'bioproject', kind: 'exchange')&.started_at
     exec_date = Time.current
 
     output_dir = Rails.application.config_for(:app).public_xml_dir!

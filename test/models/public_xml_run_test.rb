@@ -35,17 +35,22 @@ class PublicXMLRunTest < ActiveSupport::TestCase
     assert run.running_status?
   end
 
-  test 'previous_public_run returns most recent completed public run for the db' do
+  test 'previous_run returns the most recent completed run of that db AND kind' do
     PublicXMLRun.create!(db: 'bioproject', kind: 'public',   status: 'completed', started_at: 3.days.ago, finished_at: 3.days.ago + 1.hour)
-    target = PublicXMLRun.create!(db: 'bioproject', kind: 'public', status: 'completed', started_at: 1.day.ago,  finished_at: 1.day.ago  + 1.hour)
+    target   = PublicXMLRun.create!(db: 'bioproject', kind: 'public',   status: 'completed', started_at: 1.day.ago, finished_at: 1.day.ago + 1.hour)
     PublicXMLRun.create!(db: 'bioproject', kind: 'public',   status: 'failed',    started_at: 1.hour.ago)
-    PublicXMLRun.create!(db: 'bioproject', kind: 'exchange', status: 'completed', started_at: 1.hour.ago, finished_at: Time.current)
+    exchange = PublicXMLRun.create!(db: 'bioproject', kind: 'exchange', status: 'completed', started_at: 2.hours.ago, finished_at: 1.hour.ago)
     PublicXMLRun.create!(db: 'biosample',  kind: 'public',   status: 'completed', started_at: 1.hour.ago, finished_at: Time.current)
 
-    assert_equal target, PublicXMLRun.previous_public_run(db: 'bioproject')
+    # The exchange run is more recent than `target`, but kind filters it
+    # out — public and exchange advance on independent markers.
+    assert_equal target,   PublicXMLRun.previous_run(db: 'bioproject', kind: 'public')
+    assert_equal exchange, PublicXMLRun.previous_run(db: 'bioproject', kind: 'exchange')
   end
 
-  test 'previous_public_run returns nil when no completed public run exists' do
-    assert_nil PublicXMLRun.previous_public_run(db: 'bioproject')
+  test 'previous_run returns nil when no completed run of that kind exists' do
+    PublicXMLRun.create!(db: 'bioproject', kind: 'public', status: 'completed', started_at: 1.hour.ago, finished_at: Time.current)
+
+    assert_nil PublicXMLRun.previous_run(db: 'bioproject', kind: 'exchange')
   end
 end

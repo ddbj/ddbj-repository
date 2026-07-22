@@ -14,9 +14,10 @@ class PublishBpExchangeXMLJobTest < ActiveSupport::TestCase
     submissions(:bioproject).append_update!({'project' => {'accession' => 'PRJDB000123', 'title' => 'Exchange job test'}}, actor: 'test')
     projects(:primary).update!(accession: 'PRJDB000123', status: 'public', release_date: Date.current)
 
-    # A completed public run in the past puts today's release inside the
-    # delta window → the record should come out as eAdded.
-    PublicXMLRun.create!(db: 'bioproject', kind: 'public', status: 'completed', started_at: 1.week.ago, finished_at: 1.week.ago)
+    # A completed EXCHANGE run in the past puts today's release inside the
+    # delta window → the record should come out as eAdded. (A public run
+    # here must NOT be used as the anchor — the two kinds are independent.)
+    PublicXMLRun.create!(db: 'bioproject', kind: 'exchange', status: 'completed', started_at: 1.week.ago, finished_at: 1.week.ago)
 
     assert_difference 'PublicXMLRun.where(db: "bioproject", kind: "exchange").count', 1 do
       PublishBpExchangeXMLJob.perform_now

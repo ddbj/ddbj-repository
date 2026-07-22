@@ -6,11 +6,14 @@
 # in the legacy bsbatch implementation, so we refuse it at the model
 # layer rather than silently producing an empty file.
 #
-# A subsequent Phase B exchange run reads the most recent finished
-# `public` run's `started_at` as `lastRun` for ADD/UPDATE/UNCHANGE
-# delta calculation. Storing `started_at` (rather than `finished_at`)
-# matches the legacy bpbatch contract: a record released *during* a
-# run still counts as eAdded next time around.
+# The exchange run computes its eAdded/eUpdated/eUnchanged delta against
+# the most recent finished run OF THE SAME KIND — i.e. the previous
+# `exchange` run, NOT the previous `public` run. This matches legacy
+# bpbatch, which keeps independent `lastRun_Public` / `lastRun_Collab`
+# markers so the public dump and the three-pole exchange advance on
+# their own cadences. Storing `started_at` (rather than `finished_at`)
+# also matches bpbatch: a record released *during* a run still counts as
+# eAdded next time around.
 class PublicXMLRun < ApplicationRecord
   DBS   = %w[bioproject biosample].freeze
   KINDS = %w[public exchange].freeze
@@ -28,8 +31,10 @@ class PublicXMLRun < ApplicationRecord
 
   scope :recent, -> { order(started_at: :desc) }
 
-  def self.previous_public_run(db:)
-    where(db:, kind: 'public', status: 'completed').recent.first
+  # Most recent completed run of a given kind — the delta anchor for the
+  # next run of that same kind (see the class comment).
+  def self.previous_run(db:, kind:)
+    where(db:, kind:, status: 'completed').recent.first
   end
 
   # Mirrors MigrationRun#append_error! — `error_log` is a `text` column,
