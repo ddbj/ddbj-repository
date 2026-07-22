@@ -59,6 +59,24 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_not_includes ids, submission_requests(:biosample).id
   end
 
+  test 'index filters by ?accession= across BP project / BS samples / ST.26 accessions' do
+    get submission_requests_path(accession: 'PRJDB') # BP Project
+    assert_conform_schema 200
+    ids = response.parsed_body.pluck('id')
+    assert_includes     ids, submission_requests(:bioproject).id
+    assert_not_includes ids, submission_requests(:biosample).id
+
+    get submission_requests_path(accession: 'SAMD') # BS Sample
+    ids = response.parsed_body.pluck('id')
+    assert_includes     ids, submission_requests(:biosample).id
+    assert_not_includes ids, submission_requests(:bioproject).id
+
+    get submission_requests_path(accession: 'ACC_') # ST.26 accessions table
+    ids = response.parsed_body.pluck('id')
+    assert_includes     ids, submission_requests(:st26).id
+    assert_not_includes ids, submission_requests(:bioproject).id
+  end
+
   test 'index ignores unknown facet values instead of raising on the enum' do
     # Deliberately out-of-schema input (a crafted direct call) — assert only
     # that the controller drops the values rather than 500-ing on the enum
@@ -79,20 +97,27 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_equal 'biosample', row['db']
   end
 
-  test 'index reports the first (lowest-id) accession and count' do
+  test 'index reports the accession summary per DB (BP project / BS samples / ST.26 accessions)' do
     get submission_requests_path
 
     assert_conform_schema 200
 
     body = response.parsed_body
+    st26 = body.find { it['id'] == submission_requests(:st26).id }
+    bp   = body.find { it['id'] == submission_requests(:bioproject).id }
+    bs   = body.find { it['id'] == submission_requests(:biosample).id }
 
-    row_with_accession    = body.find { it['id'] == submission_requests(:st26).id }
-    row_without_accession = body.find { it['id'] == submission_requests(:bioproject).id }
+    # ST.26: the accessions table (two rows) — first is the lowest id.
+    assert_equal submissions(:st26).accessions.order(:id).first.number, st26['first_accession']
+    assert_equal 2, st26['accession_count']
 
-    assert_equal submissions(:st26).accessions.order(:id).first.number, row_with_accession['first_accession']
-    assert_equal 2,   row_with_accession['accession_count']
-    assert_nil        row_without_accession['first_accession']
-    assert_equal 0,   row_without_accession['accession_count']
+    # BP: the Project's accession.
+    assert_equal projects(:primary).accession, bp['first_accession']
+    assert_equal 1, bp['accession_count']
+
+    # BS: the sample aggregate (one accessioned sample).
+    assert_equal samples(:first).accession, bs['first_accession']
+    assert_equal 1, bs['accession_count']
   end
 
   test 'index reports has_unread_curator_message when an unread curator-authored message exists' do

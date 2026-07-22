@@ -126,6 +126,20 @@ export default class extends Component<Signature> {
               </div>
             </div>
 
+            <div class="row mb-2">
+              <label for="accession-filter" class="col-sm-2 col-form-label fw-semibold">Accession</label>
+              <div class="col-sm-10 col-md-5 col-lg-4">
+                <input
+                  id="accession-filter"
+                  type="search"
+                  class="form-control form-control-sm"
+                  name="accession"
+                  placeholder="PRJDB / SAMD ..."
+                  value={{@controller.accession}}
+                />
+              </div>
+            </div>
+
             <div class="row">
               <div class="col-sm-10 offset-sm-2">
                 <button type="submit" class="btn btn-primary btn-sm">Filter</button>

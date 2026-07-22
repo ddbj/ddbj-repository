@@ -1,5 +1,5 @@
 import { module, test } from 'qunit';
-import { visit, click, currentURL } from '@ember/test-helpers';
+import { visit, click, fillIn, currentURL } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
@@ -165,6 +165,51 @@ module('Acceptance | home', function (hooks) {
     await click('.btn-link:not(.p-0)');
     assert.dom('#db-bioproject').isChecked();
     assert.dom('tbody tr').exists({ count: 2 });
+  });
+
+  test('the Accession search sends an accession param on submit', async function (assert) {
+    const rows: components['schemas']['SubmissionRequestSummary'][] = [
+      {
+        id: 7,
+        db: 'biosample',
+        status: 'applied',
+        created_at: now,
+        submission_id: 42,
+        source_id: null,
+        first_accession: 'SAMD00000001',
+        accession_count: 1,
+        has_unread_curator_message: false,
+      },
+      {
+        id: 3,
+        db: 'bioproject',
+        status: 'validating',
+        created_at: now,
+        submission_id: null,
+        source_id: null,
+        first_accession: null,
+        accession_count: 0,
+        has_unread_curator_message: false,
+      },
+    ];
+
+    worker.use(
+      http.get('/submission_requests', ({ request, response }) => {
+        const accession = new URL(request.url).searchParams.get('accession');
+        const filtered = accession ? rows.filter((r) => (r.first_accession ?? '').startsWith(accession)) : rows;
+
+        return response(200).json(filtered, { headers: { 'Total-Pages': '1' } });
+      }),
+    );
+
+    await visit('/');
+    assert.dom('tbody tr').exists({ count: 2 });
+
+    await fillIn('#accession-filter', 'SAMD');
+    await click('form button[type="submit"]');
+
+    assert.dom('tbody tr').exists({ count: 1 });
+    assert.dom('tbody tr td:nth-child(4)').includesText('SAMD00000001');
   });
 
   test('Select all / Deselect all toggle a whole facet', async function (assert) {

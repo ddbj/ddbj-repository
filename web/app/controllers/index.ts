@@ -26,7 +26,7 @@ export const STATUS_OPTIONS: FilterOption[] = [
 ].map((value) => ({ value, label: value.replace(/_/g, ' ') }));
 
 export default class extends Controller {
-  queryParams = ['db', 'status', 'sourceId', { page: { type: 'number' } as const }];
+  queryParams = ['db', 'status', 'sourceId', 'accession', { page: { type: 'number' } as const }];
 
   // The applied filter — the checked subset for each facet. An empty
   // array means "no constraint" (every value), so the param drops out of
@@ -35,6 +35,7 @@ export default class extends Controller {
   @tracked db: string[] = [];
   @tracked status: string[] = [];
   @tracked sourceId = '';
+  @tracked accession = '';
   @tracked page = 1;
 
   @action
@@ -52,6 +53,8 @@ export default class extends Controller {
     );
     const sourceId = data.get('sourceId');
     this.sourceId = typeof sourceId === 'string' ? sourceId.trim() : '';
+    const accession = data.get('accession');
+    this.accession = typeof accession === 'string' ? accession.trim() : '';
     this.page = 1;
   }
 
@@ -71,11 +74,12 @@ export default class extends Controller {
     this.db = [];
     this.status = [];
     this.sourceId = '';
+    this.accession = '';
     this.page = 1;
   }
 
   get hasActiveFilters(): boolean {
-    return this.db.length > 0 || this.status.length > 0 || this.sourceId.length > 0;
+    return this.db.length > 0 || this.status.length > 0 || this.sourceId.length > 0 || this.accession.length > 0;
   }
 }
 

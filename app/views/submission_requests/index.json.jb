@@ -2,5 +2,8 @@ render(
   partial:    'submission_request_summary',
   collection: @requests,
   as:         :submission_request,
-  locals:     {unread_request_ids: @unread_request_ids}
+  locals:     {
+    unread_request_ids:      @unread_request_ids,
+    bs_accession_summaries:  @bs_accession_summaries
+  }
 )

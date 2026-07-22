@@ -94,7 +94,9 @@ export interface paths {
         /** @description Get a list of submission requests. `db` and `status` are multi-select
          *     filters (repeat the key, e.g. `?db[]=st26&db[]=biosample`); omit a
          *     filter to span every value. `source_id` is a case-insensitive prefix
-         *     match on the applied submission's source id.
+         *     match on the applied submission's source id. `accession` is a
+         *     case-insensitive prefix match across the submission's accessions
+         *     (BP project / BS samples / ST.26 accessions).
          *      */
         get: {
             parameters: {
@@ -102,6 +104,7 @@ export interface paths {
                     db?: components["schemas"]["Db"][];
                     status?: components["schemas"]["SubmissionOperationStatus"][];
                     source_id?: string;
+                    accession?: string;
                     page?: number;
                 };
                 header?: never;

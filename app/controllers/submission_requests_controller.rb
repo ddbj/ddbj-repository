@@ -1,13 +1,19 @@
 class SubmissionRequestsController < ApplicationController
   include SourceIdFilterable
+  include AccessionFilterable
 
   def index
-    scope = current_user.submission_requests.includes(submission: :accessions)
+    scope = current_user.submission_requests.includes(submission: %i[project accessions])
     scope = filter_by_db(scope, params[:db])               if params[:db].present?
     scope = filter_by_status(scope, params[:status])       if params[:status].present?
     scope = filter_by_source_id(scope, params[:source_id]) if params[:source_id].present?
+    scope = filter_by_accession(scope, params[:accession]) if params[:accession].present?
 
     pagy, @requests = pagy(scope.order(id: :desc))
+
+    # Per-page BS accession aggregate ([first, count] keyed by submission
+    # id) so the summary's DB-aware accession column doesn't N+1.
+    @bs_accession_summaries = sample_accession_summaries(@requests.filter_map(&:submission))
 
     # Pre-fetch the set of requests with at least one unread curator
     # message so the view's `has_unread_curator_message` flag doesn't
@@ -51,6 +57,19 @@ class SubmissionRequestsController < ApplicationController
   def filter_by_status(scope, raw)
     values = Array(raw).map(&:to_s) & SubmissionRequest.statuses.keys
     values.empty? ? scope : scope.where(status: values)
+  end
+
+  # {submission_id => [first_accession, count]} for BS submissions, via one
+  # grouped MIN / COUNT over sample accessions.
+  def sample_accession_summaries(submissions)
+    bs_ids = submissions.select(&:biosample_db?).map(&:id)
+    return {} if bs_ids.empty?
+
+    Sample
+      .where(submission_id: bs_ids)
+      .group(:submission_id)
+      .pluck(:submission_id, Arel.sql('MIN(accession)'), Arel.sql('COUNT(accession)'))
+      .to_h {|sid, first, count| [sid, [first, count]] }
   end
 
   def request_params

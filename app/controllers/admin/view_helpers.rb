@@ -106,20 +106,12 @@ module Admin::ViewHelpers
   end
 
   # Accession display for a Submission on the admin index — returns
-  # [first_accession, count], reading the right source per DB: BP → its
-  # Project, BS → the sample aggregate (MIN / COUNT), ST.26 → the
-  # accessions table. Count 0 means "not issued".
+  # [first_accession, count]. The DB-specific branching lives on
+  # Submission#accession_summary; here we just hand it the BS aggregate
+  # ([first, count]) pulled from the page's one grouped sample query.
   def accession_summary(submission, sample_aggregates)
-    if submission.bioproject_db?
-      accession = submission.project&.accession
-      [accession, accession ? 1 : 0]
-    elsif submission.biosample_db?
-      agg = sample_aggregates[submission.id]
-      [agg&.first_accession, agg&.accession_count || 0]
-    else
-      accessions = submission.accessions.to_a
-      [accessions.min_by(&:id)&.number, accessions.size]
-    end
+    agg = sample_aggregates[submission.id]
+    submission.accession_summary(agg && [agg.first_accession, agg.accession_count])
   end
 
   # Assignee display for a Submission on the admin index.

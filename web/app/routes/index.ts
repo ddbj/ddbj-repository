@@ -16,15 +16,36 @@ export default class IndexRoute extends Route {
     db: { refreshModel: true },
     status: { refreshModel: true },
     sourceId: { refreshModel: true },
+    accession: { refreshModel: true },
     page: { refreshModel: true },
   };
 
-  async model({ db, status, sourceId, page }: { db?: string[]; status?: string[]; sourceId?: string; page?: number }) {
+  async model({
+    db,
+    status,
+    sourceId,
+    accession,
+    page,
+  }: {
+    db?: string[];
+    status?: string[];
+    sourceId?: string;
+    accession?: string;
+    page?: number;
+  }) {
     if (!this.currentUser.isLoggedIn) return null;
 
     const { content, response } = await this.requestManager.request<SubmissionRequestSummaries>({
       url: '/submission_requests',
-      options: { params: { db, status, source_id: sourceId || undefined, page } },
+      options: {
+        params: {
+          db,
+          status,
+          source_id: sourceId || undefined,
+          accession: accession || undefined,
+          page,
+        },
+      },
     });
 
     return {

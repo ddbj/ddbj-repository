@@ -75,7 +75,9 @@ paths:
         Get a list of submission requests. `db` and `status` are multi-select
         filters (repeat the key, e.g. `?db[]=st26&db[]=biosample`); omit a
         filter to span every value. `source_id` is a case-insensitive prefix
-        match on the applied submission's source id.
+        match on the applied submission's source id. `accession` is a
+        case-insensitive prefix match across the submission's accessions
+        (BP project / BS samples / ST.26 accessions).
 
       tags:
         - Submission Requests
@@ -100,6 +102,12 @@ paths:
               $ref: '#/components/schemas/SubmissionOperationStatus'
 
         - name: source_id
+          in: query
+
+          schema:
+            type: string
+
+        - name: accession
           in: query
 
           schema:

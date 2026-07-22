@@ -53,6 +53,24 @@ class Submission < ApplicationRecord
     )
   end
 
+  # [first_accession, count] for list display, reading the right source
+  # per DB: BP → its Project, BS → its Samples, ST.26 → the accessions
+  # table. For BS the caller passes the preloaded [first, count] aggregate
+  # as `bs_accession` (one grouped query for the whole page) to avoid an
+  # N+1; without it a BS submission reports "not loaded" (0) rather than
+  # silently firing per-row queries.
+  def accession_summary(bs_accession = nil)
+    if bioproject_db?
+      accession = project&.accession
+      [accession, accession ? 1 : 0]
+    elsif biosample_db?
+      bs_accession || [nil, 0]
+    else
+      records = accessions.to_a
+      [records.min_by(&:id)&.number, records.size]
+    end
+  end
+
   class MaterialisationFailed < StandardError
     attr_reader :update_id, :original
 

@@ -7,6 +7,7 @@ module Admin
   class SubmissionRequestsController < ApplicationController
     include SubmissionDetail
     include SourceIdFilterable
+    include AccessionFilterable
 
     def index
       scope = SubmissionRequest
@@ -71,21 +72,6 @@ module Admin
       }
     end
 
-    # Longer than any real PSUB/SSUB/PRJDB/SAMD/SAMN/etc. accession. Bounds
-    # both the SQL ILIKE cost and the request-log payload for crafted/fuzzed
-    # input.
-    MAX_FILTER_LENGTH = 64
-
-    def normalize_filter_value(raw)
-      return '' unless raw.is_a?(String)
-
-      raw.strip[0, MAX_FILTER_LENGTH] || ''
-    end
-
-    def sanitize_sql_like(value)
-      ActiveRecord::Base.sanitize_sql_like(value)
-    end
-
     # Multi-select filters treat "everything selected" the same as
     # "nothing selected" — a fully-checked group is no constraint. This
     # keeps the default all-checked view showing every request (including
@@ -111,19 +97,6 @@ module Admin
       return scope if full_or_empty?(selected, SubmissionRequest.statuses.size)
 
       scope.where(status: selected)
-    end
-
-    # Case-insensitive PREFIX match OR-ed across the three accession-bearing
-    # associations (projects for BP, samples for BS, accessions for ST26).
-    def filter_by_accession(scope, raw)
-      value = normalize_filter_value(raw)
-      return scope if value.empty?
-
-      scope.where(<<~SQL.squish, pattern: "#{sanitize_sql_like(value)}%")
-        EXISTS (SELECT 1 FROM projects   WHERE projects.submission_id   = submission_requests.submission_id AND projects.accession   ILIKE :pattern) OR
-        EXISTS (SELECT 1 FROM samples    WHERE samples.submission_id    = submission_requests.submission_id AND samples.accession    ILIKE :pattern) OR
-        EXISTS (SELECT 1 FROM accessions WHERE accessions.submission_id = submission_requests.submission_id AND accessions.number    ILIKE :pattern)
-      SQL
     end
 
     # Match iff the applied submission's BP project status OR any of its BS
