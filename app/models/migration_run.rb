@@ -2,9 +2,11 @@
 #
 # Owned by DataMigration::SyncJob (and its BP/BS subclasses). The job
 # resumes via ActiveJob::Continuation, so `status` / cursor / counters
-# are written by a single concurrent worker per `db` (enforced by
-# `limits_concurrency` on the job class) and don't need their own
-# concurrency story.
+# are written by a single worker per `db`. That single-writer property
+# is enforced at the call site: the admin controller and rake task
+# refuse to enqueue when a run for the same `db` is already queued or
+# running (limits_concurrency is deliberately avoided — it would
+# discard a Continuable retry; see DataMigration::SyncJob).
 #
 # `uuid` is the value passed to BioProject::Importer / BioSample::Importer
 # as `migration_run_id:`, so the admin show can pivot to the touched
@@ -38,8 +40,8 @@ class MigrationRun < ApplicationRecord
   end
 
   # Apply a batch of in-memory increments collected by the job. Single
-  # writer per (db) thanks to limits_concurrency, so a reload + merge +
-  # save is race-free.
+  # writer per (db) thanks to the enqueue-time precheck (see the class
+  # comment), so a reload + merge + save is race-free.
   def merge_counters!(increments)
     return if increments.empty?
 
