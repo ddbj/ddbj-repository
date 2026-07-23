@@ -16,6 +16,12 @@ export const handlers = [
     });
   }),
 
+  // The request detail page loads the reviewer-access state; default to
+  // disabled so tests that don't care about it don't have to stub it.
+  http.get('/submission_requests/{submission_request_id}/reviewer_access', ({ response }) => {
+    return response(200).json({ enabled: false });
+  }),
+
   mswHttp.post(directUploadURL, () => {
     return HttpResponse.json({
       id: 1,

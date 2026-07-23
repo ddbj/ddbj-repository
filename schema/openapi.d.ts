@@ -291,6 +291,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submission_requests/{submission_request_id}/reviewer_access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_request_id: number;
+            };
+            cookie?: never;
+        };
+        /** @description Get the reviewer-access link state for a request. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Whether reviewer access is enabled and, if so, its share URL and expiry. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewerAccess"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** @description Enable reviewer access, minting a fresh unguessable link. Any existing link is invalidated. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reviewer_access: {
+                            /** Format: date-time */
+                            expires_at: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Returns the newly-enabled reviewer access. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewerAccess"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        /** @description Disable reviewer access, invalidating the link. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reviewer access disabled. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reviews/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** @description Reviewer view of a submission request via its share token. No authentication; messages are deliberately not included. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the submission request. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionRequest"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submissions": {
         parameters: {
             query?: never;
@@ -558,6 +697,12 @@ export interface components {
             first_accession: string | null;
             accession_count: number;
             has_unread_curator_message: boolean;
+        };
+        ReviewerAccess: {
+            enabled: boolean;
+            url?: string;
+            /** Format: date-time */
+            expires_at?: string;
         };
         SubmissionRequestStatus: {
             id: number;

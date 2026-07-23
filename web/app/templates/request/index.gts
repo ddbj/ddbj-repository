@@ -8,6 +8,7 @@ import Breadcrumb from 'repository/components/breadcrumb';
 import StatusBadge from 'repository/components/status-badge';
 import ValidityBadge from 'repository/components/validity-badge';
 import SubmissionMessages from 'repository/components/submission-messages';
+import ReviewerAccess from 'repository/components/reviewer-access';
 import autoRefresh from 'repository/modifiers/auto-refresh';
 import formatDatetime from 'repository/helpers/format-datetime';
 
@@ -171,6 +172,8 @@ export default class extends Component<Signature> {
       {{/if}}
 
       <SubmissionMessages @requestId={{@model.id}} />
+
+      <ReviewerAccess @requestId={{@model.id}} />
     </div>
   </template>
 }

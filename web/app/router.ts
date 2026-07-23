@@ -22,4 +22,8 @@ Router.map(function () {
   this.route('request', { path: 'requests/:request_id' }, function () {
     this.route('accessions');
   });
+
+  // Unauthenticated reviewer view, reached via a share link. The request
+  // is fetched by its opaque token, not by id.
+  this.route('review', { path: 'reviews/:token' });
 });
