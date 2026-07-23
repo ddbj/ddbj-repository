@@ -29,6 +29,12 @@ production: &production
     class: PublishBsLiveListJob
     schedule: at 4:30am every day
 
+  # Release-notice mail for embargoed records whose hold_date is approaching
+  # (DistributionNotifier). 5:30 mirrors the legacy TSUNAMI batch.
+  distribution_notifier:
+    class: DistributionNotifierJob
+    schedule: at 5:30am every day
+
 staging:
   <<: *production
 

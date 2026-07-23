@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_23_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_23_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -98,6 +98,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_23_000002) do
     t.bigint "assignee_id"
     t.datetime "created_at", null: false
     t.date "dist_date"
+    t.datetime "distribution_notified_at"
     t.date "hold_date"
     t.date "issued_date"
     t.date "modified_date"

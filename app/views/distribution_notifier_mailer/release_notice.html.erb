@@ -1,0 +1,22 @@
+<p>Dear submitter,</p>
+
+<p>
+  Your specified hold date is approaching and the following data will be
+  released on the date shown. If you need to change a release date, please
+  open the submission and contact the DDBJ curator through its messages.
+</p>
+
+<ul>
+  <% @projects.each do |project| %>
+    <li>
+      <code><%= project.accession %></code>
+      &mdash; will be released on <%= project.hold_date.iso8601 %>
+      (<a href="<%= @request_urls[project.id] %>">view submission</a>)
+    </li>
+  <% end %>
+</ul>
+
+<p>
+  Regards,<br>
+  DDBJ Repository
+</p>
