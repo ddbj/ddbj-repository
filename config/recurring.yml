@@ -19,6 +19,16 @@ production: &production
     class: PublishBpExchangeXMLJob
     schedule: at 3am every day
 
+  # BP/BS livelists (public / suppressed / withdrawn status lists for NCBI).
+  # Daily, mirroring D-way's nightly generation.
+  publish_bp_livelist:
+    class: PublishBpLiveListJob
+    schedule: at 4am every day
+
+  publish_bs_livelist:
+    class: PublishBsLiveListJob
+    schedule: at 4:30am every day
+
 staging:
   <<: *production
 
