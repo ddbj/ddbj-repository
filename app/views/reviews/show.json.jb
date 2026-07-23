@@ -1,0 +1,4 @@
+# Reviewer-facing view of a submission request. Deliberately a separate
+# template from submission_requests/show so the two can diverge; for now
+# it renders the same request body (and, crucially, no messages).
+render(@request)

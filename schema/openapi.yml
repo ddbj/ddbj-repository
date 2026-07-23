@@ -272,6 +272,124 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
+  /submission_requests/{submission_request_id}/reviewer_access:
+    parameters:
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    get:
+      description: Get the reviewer-access link state for a request.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Whether reviewer access is enabled and, if so, its share URL and expiry.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewerAccess'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      description: Enable reviewer access, minting a fresh unguessable link. Any existing link is invalidated.
+
+      tags:
+        - Submission Requests
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reviewer_access]
+
+              properties:
+                reviewer_access:
+                  type: object
+                  additionalProperties: false
+                  required: [expires_at]
+
+                  properties:
+                    expires_at:
+                      type: string
+                      format: date-time
+
+      responses:
+        '201':
+          description: Returns the newly-enabled reviewer access.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewerAccess'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+    delete:
+      description: Disable reviewer access, invalidating the link.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '204':
+          description: Reviewer access disabled.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reviews/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+
+        schema:
+          type: string
+
+    get:
+      description: Reviewer view of a submission request via its share token. No authentication; messages are deliberately not included.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the submission request.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionRequest'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /submissions:
     get:
       description: Get a list of submissions. Omit `db` to span every database the user has access to.
@@ -571,6 +689,24 @@ components:
 
         has_unread_curator_message:
           type: boolean
+
+    ReviewerAccess:
+      type: object
+      additionalProperties: false
+
+      required:
+        - enabled
+
+      properties:
+        enabled:
+          type: boolean
+
+        url:
+          type: string
+
+        expires_at:
+          type: string
+          format: date-time
 
     SubmissionRequestStatus:
       type: object

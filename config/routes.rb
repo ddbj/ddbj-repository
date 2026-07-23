@@ -15,10 +15,16 @@ Rails.application.routes.draw do
     # — no /:db scope. `index` accepts an optional `?db=xxx` query to
     # filter; `create` reads the target database from the request body.
     resources :submission_requests, only: %i[index show create] do
-      resource  :status,     only: :show
-      resource  :submission, only: :create
-      resources :messages,   only: %i[index create]
+      resource  :status,          only: :show
+      resource  :submission,      only: :create
+      resources :messages,        only: %i[index create]
+      resource  :reviewer_access, only: %i[show create destroy]
     end
+
+    # Unauthenticated reviewer view — the request is looked up by its
+    # unguessable share token, never by the current user. Messages are
+    # deliberately NOT reachable from here.
+    get 'reviews/:token', to: 'reviews#show', as: :review
 
     resources :submissions, only: %i[index show] do
       resources :accessions, only: %i[index]

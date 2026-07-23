@@ -12,6 +12,8 @@ class SubmissionRequest < ApplicationRecord
 
   has_many :messages, -> { chronological }, class_name: 'SubmissionMessage', dependent: :destroy
 
+  has_one :reviewer_access, dependent: :destroy
+
   has_one_attached :ddbj_record
 
   # Interactive requests always carry the uploaded JSON. Synthetic
