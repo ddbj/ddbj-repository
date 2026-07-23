@@ -2,7 +2,7 @@ require 'test_helper'
 
 class PublishBpExchangeXMLJobTest < ActiveSupport::TestCase
   setup do
-    @output_dir = Rails.application.config_for(:app).public_xml_dir!.tap { Pathname.new(it).mkpath }
+    @output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('exchange').tap(&:mkpath)
   end
 
   teardown do

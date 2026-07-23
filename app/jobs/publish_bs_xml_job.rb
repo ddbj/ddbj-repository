@@ -1,12 +1,12 @@
 class PublishBsXMLJob < ApplicationJob
   discard_on StandardError
 
-  FILENAME = 'public_biosample_set.xml'
+  FILENAME = 'biosample.xml'
 
   def perform
     return if PublicXMLRun.where(db: 'biosample', kind: 'public', status: 'running').exists?
 
-    output_dir = Rails.application.config_for(:app).public_xml_dir!
+    output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('public')
 
     PublicXML::Exporter.new(
       db:             'biosample',

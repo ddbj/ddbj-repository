@@ -4,7 +4,7 @@ class PublishBpExchangeXMLJob < ApplicationJob
   # dir) don't heal on retry.
   discard_on StandardError
 
-  FILENAME = 'exchange_package_set.xml'
+  FILENAME = 'bioproject.xml'
 
   def perform
     # Soft concurrency guard against a mid-run duplicate (see PublishBpXMLJob).
@@ -18,7 +18,7 @@ class PublishBpExchangeXMLJob < ApplicationJob
     last_run  = PublicXMLRun.previous_run(db: 'bioproject', kind: 'exchange')&.started_at
     exec_date = Time.current
 
-    output_dir = Rails.application.config_for(:app).public_xml_dir!
+    output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('exchange')
 
     PublicXML::Exporter.new(
       db:               'bioproject',

@@ -5,7 +5,7 @@ class PublishBpXMLJob < ApplicationJob
   # data or a missing output directory, neither of which heals with time).
   discard_on StandardError
 
-  FILENAME = 'public_package_set.xml'
+  FILENAME = 'bioproject.xml'
 
   def perform
     # Soft concurrency guard — if an operator triggers `perform_now`
@@ -15,7 +15,7 @@ class PublishBpXMLJob < ApplicationJob
     # without dragging Postgres locks in.
     return if PublicXMLRun.where(db: 'bioproject', kind: 'public', status: 'running').exists?
 
-    output_dir = Rails.application.config_for(:app).public_xml_dir!
+    output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('public')
 
     PublicXML::Exporter.new(
       db:             'bioproject',

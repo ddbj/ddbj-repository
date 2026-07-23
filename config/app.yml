@@ -5,7 +5,10 @@ development:
   validator_url:          http://localhost:3001/api
   web_url:                <%= ENV.fetch('WEB_URL', 'http://localhost:4200') %>
 
-  public_xml_dir: <%= Rails.root.join('storage/public_xml') %>
+  # Base directory for generated release artifacts. Subdirectories are
+  # created underneath: public/ (public XML dumps), exchange/ (three-pole
+  # exchange XML), collab/ (BP/BS livelists).
+  output_dir: <%= Rails.root.join('storage/output') %>
 
 test:
   app_url:                http://repository.example.com:3000
@@ -14,7 +17,7 @@ test:
   validator_url:          http://validator.example.com/api
   web_url:                http://repository.example.com:4200
 
-  public_xml_dir: <%= Rails.root.join('tmp/storage/public_xml') %>
+  output_dir: <%= Rails.root.join('tmp/storage/output') %>
 
 production: &production
   app_url:                https://repository.ddbj.nig.ac.jp
@@ -24,7 +27,7 @@ production: &production
   validator_url:          http://repository-validator:3000/api
   web_url:                https://repository.ddbj.nig.ac.jp
 
-  public_xml_dir: <%= Rails.root.join('storage/public_xml') %>
+  output_dir: <%= Rails.root.join('storage/output') %>
 
 staging:
   <<: *production
