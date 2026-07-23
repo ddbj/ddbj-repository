@@ -941,6 +941,7 @@ components:
         - source_id
         - created_at
         - updated_at
+        - accessions_count
         - ddbj_record
         - flatfile_na
         - flatfile_aa
@@ -961,6 +962,9 @@ components:
         updated_at:
           type: string
           format: date-time
+
+        accessions_count:
+          type: number
 
         ddbj_record:
           $ref: '#/components/schemas/Attachment'

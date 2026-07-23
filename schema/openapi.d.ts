@@ -800,6 +800,7 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            accessions_count: number;
             ddbj_record: components["schemas"]["Attachment"];
             flatfile_na: components["schemas"]["Attachment"] | null;
             flatfile_aa: components["schemas"]["Attachment"] | null;

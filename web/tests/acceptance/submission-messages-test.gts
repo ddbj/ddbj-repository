@@ -32,6 +32,7 @@ const request: components['schemas']['SubmissionRequest'] = {
     ddbj_record: { filename: 'original.json', url: 'http://example.com/original.json' },
     flatfile_na: null,
     flatfile_aa: null,
+    accessions_count: 0,
   },
 };
 

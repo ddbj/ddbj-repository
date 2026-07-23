@@ -116,6 +116,7 @@ module('Acceptance | submission request', function (hooks) {
             ddbj_record: { filename: 'test.json', url: 'http://example.com/test.json' },
             flatfile_na: { filename: 'test-na.flat', url: 'http://example.com/test-na.flat' },
             flatfile_aa: null,
+            accessions_count: 0,
           },
         });
       }),

@@ -164,11 +164,13 @@ export default class extends Component<Signature> {
               -
             {{/if}}
           </dd>
-        </dl>
 
-        <div class="my-3">
-          <LinkTo @route="request.accessions" @model={{@model.id}}>Accessions</LinkTo>
-        </div>
+          <dt>Accessions</dt>
+
+          <dd>
+            <LinkTo @route="request.accessions" @model={{@model.id}}>{{@model.submission.accessions_count}}</LinkTo>
+          </dd>
+        </dl>
       {{/if}}
 
       <SubmissionMessages @requestId={{@model.id}} />

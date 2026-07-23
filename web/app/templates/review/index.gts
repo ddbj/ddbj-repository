@@ -126,11 +126,16 @@ export default <template>
           -
         {{/if}}
       </dd>
-    </dl>
 
-    <div class="my-3">
-      <LinkTo @route="review.accessions" @model={{@model.token}}>Accessions</LinkTo>
-    </div>
+      <dt>Accessions</dt>
+
+      <dd>
+        <LinkTo
+          @route="review.accessions"
+          @model={{@model.token}}
+        >{{@model.request.submission.accessions_count}}</LinkTo>
+      </dd>
+    </dl>
   {{/if}}
 </template> satisfies TOC<{
   Args: {

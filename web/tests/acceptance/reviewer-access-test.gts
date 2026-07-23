@@ -29,6 +29,7 @@ const request: SubmissionRequest = {
     ddbj_record: { filename: 'test.json', url: 'http://example.com/test.json' },
     flatfile_na: null,
     flatfile_aa: null,
+    accessions_count: 2,
   },
 };
 

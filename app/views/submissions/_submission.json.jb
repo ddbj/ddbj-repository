@@ -8,6 +8,8 @@
     :updated_at
   ),
 
+  accessions_count: submission.accessions.count,
+
   ddbj_record: render('attachment', attachment: submission.ddbj_record),
   flatfile_na: render('attachment', attachment: submission.flatfile_na),
   flatfile_aa: render('attachment', attachment: submission.flatfile_aa)
