@@ -42,4 +42,21 @@ class ReviewsTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
   end
+
+  test 'GET accessions returns the submission accessions' do
+    @submission_request.submission.accessions.create!(number: 'ACC_REVIEW1', entry_id: 'E|1', version: 1)
+
+    get review_accessions_path(@access.token)
+
+    assert_conform_schema 200
+    assert_includes response.parsed_body.pluck('number'), 'ACC_REVIEW1'
+  end
+
+  test 'accessions 404s for an expired token' do
+    @access.update_column(:expires_at, 1.hour.ago)
+
+    get review_accessions_path(@access.token)
+
+    assert_response :not_found
+  end
 end

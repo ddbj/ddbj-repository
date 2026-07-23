@@ -53,6 +53,26 @@ module('Acceptance | reviewer view (share link, no login)', function (hooks) {
     // No messaging surface for reviewers.
     assert.dom('textarea').doesNotExist();
     assert.dom('h2').doesNotIncludeText('Messages');
+
+    // ...but the accessions are reachable via the token-scoped route.
+    assert.dom('a[href="/web/reviews/secret-token/accessions"]').exists();
+  });
+
+  test('a reviewer can open the accessions via the share token', async function (assert) {
+    worker.use(
+      http.get('/reviews/{token}', ({ response }) => {
+        return response(200).json(request);
+      }),
+
+      http.get('/reviews/{token}/accessions', ({ response }) => {
+        return response(200).json([{ number: 'ACC_R1', entry_id: 'E1', version: 1, locus_date: '2025-01-01' }]);
+      }),
+    );
+
+    await visit('/reviews/secret-token/accessions');
+
+    assert.strictEqual(currentURL(), '/reviews/secret-token/accessions');
+    assert.dom('td').includesText('ACC_R1');
   });
 });
 

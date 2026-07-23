@@ -24,7 +24,8 @@ Rails.application.routes.draw do
     # Unauthenticated reviewer view — the request is looked up by its
     # unguessable share token, never by the current user. Messages are
     # deliberately NOT reachable from here.
-    get 'reviews/:token', to: 'reviews#show', as: :review
+    get 'reviews/:token',            to: 'reviews#show',       as: :review
+    get 'reviews/:token/accessions', to: 'reviews#accessions', as: :review_accessions
 
     resources :submissions, only: %i[index show] do
       resources :accessions, only: %i[index]
