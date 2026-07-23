@@ -98,6 +98,9 @@ Rails.application.routes.draw do
 
     resource :regenerate_flatfiles, only: %i[show create]
 
+    resources :distribution_notices,        only: %i[index create]
+    resource  :distribution_notice_template, only: %i[edit update], path: 'distribution_notices/template'
+
     resources :migration_runs, only: %i[index show new create]
 
     mount MissionControl::Jobs::Engine, at: '/jobs'

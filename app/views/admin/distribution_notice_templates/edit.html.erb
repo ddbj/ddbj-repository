@@ -1,0 +1,40 @@
+<% content_for :title, 'Release notice template' %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration',     path: admin_root_path},
+  {label: 'Distribution notices', path: admin_distribution_notices_path},
+  {label: 'Template'}
+] %>
+
+<h1 class="display-6 mb-4">Release notice template</h1>
+
+<p class="text-body-secondary">
+  The <code><%= DistributionNotifierTemplate::PLACEHOLDER %></code> placeholder is replaced with the list
+  of the submitter's accessions and release dates.
+</p>
+
+<%= form_with model: @template, url: admin_distribution_notice_template_path, method: :patch,
+              scope: :distribution_notifier_template do |f| %>
+  <% if @template.errors.any? %>
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        <% @template.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= f.label :subject, class: 'form-label' %>
+    <%= f.text_field :subject, class: 'form-control' %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :body, class: 'form-label' %>
+    <%= f.text_area :body, rows: 14, class: 'form-control font-monospace' %>
+  </div>
+
+  <%= f.submit 'Save', class: 'btn btn-primary' %>
+  <%= link_to 'Cancel', admin_distribution_notices_path, class: 'btn btn-link' %>
+<% end %>

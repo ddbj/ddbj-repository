@@ -1,21 +1,14 @@
 # Release-notice mail for the DistributionNotifier: one mail per submitter,
-# listing their embargoed projects whose hold_date is approaching.
+# listing their embargoed projects whose hold_date is approaching. Subject
+# and body come from the curator-editable DistributionNotifierTemplate.
 class DistributionNotifierMailer < ApplicationMailer
   def release_notice
     @user     = params[:user]
     @projects = Array(params[:projects])
 
-    # /web/requests/<id> per project — where the submitter can review the
-    # request and, if the hold date needs changing, contact the curator via
-    # its message thread.
-    web_url = Rails.application.config_for(:app).web_url!
-    @request_urls = @projects.to_h {|project|
-      [project.id, URI.join(web_url, "/web/requests/#{project.submission.request.id}").to_s]
-    }
+    template = DistributionNotifierTemplate.instance
+    @body    = template.render_body(projects: @projects, web_url: Rails.application.config_for(:app).web_url!)
 
-    mail(
-      to:      user_email_or_placeholder(@user),
-      subject: '[DDBJ Repository] Your data will be released soon'
-    )
+    mail(to: user_email_or_placeholder(@user), subject: template.subject)
   end
 end

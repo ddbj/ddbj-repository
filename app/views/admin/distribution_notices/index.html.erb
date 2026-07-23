@@ -1,0 +1,43 @@
+<% content_for :title, 'Distribution notices' %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Administration', path: admin_root_path},
+  {label: 'Distribution notices'}
+] %>
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <h1 class="display-6 mb-0">Distribution notices</h1>
+
+  <%= link_to 'Edit template', edit_admin_distribution_notice_template_path, class: 'btn btn-outline-secondary' %>
+</div>
+
+<p class="text-body-secondary">
+  Embargoed BioProjects whose hold date is within <%= DistributionNotifier::NOTICE_DAYS %> days and that
+  have not yet been notified. The release notice is also sent automatically every morning.
+</p>
+
+<% if @candidates_by_user.any? %>
+  <%= button_to 'Send all now', admin_distribution_notices_path, method: :post, class: 'btn btn-primary mb-3' %>
+
+  <% @candidates_by_user.each do |user, projects| %>
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong><%= user.uid %></strong> &mdash; <%= pluralize(projects.size, 'project') %></span>
+
+        <%= button_to 'Send', admin_distribution_notices_path, params: {user_id: user.id}, method: :post,
+                      class: 'btn btn-sm btn-outline-primary' %>
+      </div>
+
+      <ul class="list-group list-group-flush">
+        <% projects.each do |project| %>
+          <li class="list-group-item d-flex justify-content-between">
+            <code><%= project.accession %></code>
+            <span class="text-body-secondary">releases <%= project.hold_date.iso8601 %></span>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% else %>
+  <p class="text-body-secondary fst-italic">No submitters are currently due for a release notice.</p>
+<% end %>

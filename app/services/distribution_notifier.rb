@@ -23,8 +23,24 @@ class DistributionNotifier
   end
 
   def call
-    projects = candidates.to_a
-    by_user  = projects.group_by { it.submission.user }
+    notify(candidates.to_a)
+  end
+
+  # Embargoed (private), hold_date from today through the notice window, not
+  # yet notified. Ordered so a submitter's mail lists earliest releases
+  # first. Public so the admin list view can show who is due.
+  def candidates
+    Project
+      .status_private
+      .where(distribution_notified_at: nil, hold_date: Date.current..(Date.current + @notice_days.days))
+      .includes(submission: %i[user request])
+      .order(:hold_date, :id)
+  end
+
+  # Mail + mark a specific set of projects, one mail per submitter. Shared
+  # by the daily run and the admin "send now" (whole batch or one submitter).
+  def notify(projects)
+    by_user = projects.group_by { it.submission.user }
 
     by_user.each do |user, user_projects|
       DistributionNotifierMailer.with(user:, projects: user_projects).release_notice.deliver_later
@@ -33,17 +49,5 @@ class DistributionNotifier
     end
 
     Result.new(notified_project_count: projects.size, notified_user_count: by_user.size)
-  end
-
-  private
-
-  # Embargoed (private), hold_date from today through the notice window, not
-  # yet notified. Ordered so a submitter's mail lists earliest releases first.
-  def candidates
-    Project
-      .status_private
-      .where(distribution_notified_at: nil, hold_date: Date.current..(Date.current + @notice_days.days))
-      .includes(submission: %i[user request])
-      .order(:hold_date, :id)
   end
 end
