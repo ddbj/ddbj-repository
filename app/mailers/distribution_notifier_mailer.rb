@@ -3,12 +3,12 @@
 # and body come from the curator-editable DistributionNotifierTemplate.
 class DistributionNotifierMailer < ApplicationMailer
   def release_notice
-    @user     = params[:user]
-    @projects = Array(params[:projects])
+    user     = params[:user]
+    projects = Array(params[:projects])
 
-    template = DistributionNotifierTemplate.instance
-    @body    = template.render_body(projects: @projects, web_url: Rails.application.config_for(:app).web_url!)
+    @template = DistributionNotifierTemplate.instance
+    @notices  = projects.map { DistributionNotifierTemplate::Notice.for(it) }
 
-    mail(to: user_email_or_placeholder(@user), subject: template.subject)
+    mail(to: user_email_or_placeholder(user), subject: @template.subject)
   end
 end

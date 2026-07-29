@@ -1,4 +1,3 @@
-<% web_url = Rails.application.config_for(:app).web_url! -%>
 Dear submitter,
 
 A DDBJ curator (<%= @curator.uid %>) has posted a message on your <%= @request.db.humanize %> request (<%= @request.submission&.source_id.presence || "##{@request.id}" %>):
@@ -6,7 +5,7 @@ A DDBJ curator (<%= @curator.uid %>) has posted a message on your <%= @request.d
   <%= @message.body.lines.map { "  #{it}" }.join.chomp %>
 
 Open the thread on the web UI to reply:
-<%= File.join(web_url, 'requests', @request.id.to_s) %>
+<%= WebApp.url_for("/requests/#{@request.id}") %>
 
 Regards,
 DDBJ Repository

@@ -10,7 +10,8 @@
 
 <p class="text-body-secondary">
   The <code><%= DistributionNotifierTemplate::PLACEHOLDER %></code> placeholder is replaced with the list
-  of the submitter's accessions and release dates.
+  of the submitter's accessions and release dates, each linking to its submission — as plain text in the
+  text part of the mail, and as a clickable link in the HTML part.
 </p>
 
 <%= form_with model: @template, url: admin_distribution_notice_template_path, method: :patch,

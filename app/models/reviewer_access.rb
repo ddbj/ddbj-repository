@@ -18,7 +18,7 @@ class ReviewerAccess < ApplicationRecord
   # The shareable link the submitter hands to a reviewer. Points at the
   # Ember SPA route (/web/reviews/<token>), not the API.
   def share_url
-    URI.join(Rails.application.config_for(:app).web_url!, "/web/reviews/#{token}").to_s
+    WebApp.url_for("/reviews/#{token}")
   end
 
   private

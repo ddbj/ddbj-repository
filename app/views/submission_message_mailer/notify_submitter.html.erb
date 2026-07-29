@@ -1,5 +1,4 @@
-<% web_url = Rails.application.config_for(:app).web_url! %>
-<% thread_url = File.join(web_url, 'requests', @request.id.to_s) %>
+<% thread_url = WebApp.url_for("/requests/#{@request.id}") %>
 
 <p>Dear submitter,</p>
 
