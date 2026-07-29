@@ -59,6 +59,17 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_match 'Wonderland',    response.body
   end
 
+  # The request is the single curation unit, so the activity section offers
+  # exactly one destination — a second card pointing at the same list read
+  # as two different views.
+  test 'show offers a single link to the request list' do
+    stub_cloakman_lookup [ALICE_PROFILE]
+
+    get admin_user_path(uid: 'alice')
+
+    assert_select %(a[href="#{admin_submission_requests_path(user: 'alice')}"]), count: 1
+  end
+
   test 'show returns 404 when the user is not registered locally' do
     with_exceptions_app do
       get admin_user_path(uid: 'never-seen')

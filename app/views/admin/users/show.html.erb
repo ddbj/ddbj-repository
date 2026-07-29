@@ -33,21 +33,17 @@
 
 <h2 class="h5 mt-4">Activity</h2>
 
+<%# The request is the single curation unit, so there is one list to go to.
+    The applied count rides along as a caption rather than a second card
+    pointing at the same place. %>
 <div class="row g-3 mb-4">
   <div class="col-md-6">
     <%= link_to admin_submission_requests_path(user: @user.uid), class: 'card text-decoration-none h-100' do %>
       <div class="card-body">
         <h3 class="card-title h6">Submission requests (<%= @counts[:requests][@user.id] %>)</h3>
-        <p class="card-text text-body-secondary mb-0">View this user's submission requests.</p>
-      </div>
-    <% end %>
-  </div>
-
-  <div class="col-md-6">
-    <%= link_to admin_submission_requests_path(user: @user.uid), class: 'card text-decoration-none h-100' do %>
-      <div class="card-body">
-        <h3 class="card-title h6">Submissions (<%= @counts[:submissions][@user.id] %>)</h3>
-        <p class="card-text text-body-secondary mb-0">View this user's applied submissions.</p>
+        <p class="card-text text-body-secondary mb-0">
+          <%= @counts[:submissions][@user.id] %> of them carry an applied submission.
+        </p>
       </div>
     <% end %>
   </div>
