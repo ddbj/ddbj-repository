@@ -32,7 +32,7 @@
         Accession: <code><%= project.accession %></code> ·
         Project type: <%= project.project_type %>
       </p>
-    <% else %>
+    <% elsif AccessionIssue.issuable?(project) %>
       <hr>
       <p class="text-body-secondary small mb-2">
         No accession assigned yet. Issuing allocates the next PRJDB from the
@@ -44,6 +44,13 @@
                     method: :post,
                     class:  'btn btn-warning',
                     data:   {turbo_confirm: 'Issue a new PRJDB accession for this submission?'} %>
+    <% else %>
+      <hr>
+      <p class="text-body-secondary small mb-0">
+        No accession assigned yet. A PRJDB can only be issued while the status is
+        <code>submission_accepted</code> or <code>curating</code> — this project is
+        <code><%= project.status %></code>.
+      </p>
     <% end %>
   </div>
 </section>

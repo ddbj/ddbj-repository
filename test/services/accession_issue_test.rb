@@ -143,6 +143,36 @@ class AccessionIssueTest < ActiveSupport::TestCase
                  'sequence stays at the warmed value because the failed allocate! is rolled back'
   end
 
+  # --- issuable? / issuable ---
+
+  # The admin UI gates its buttons on these, so they must agree with what
+  # `call` actually accepts.
+  test 'issuable? mirrors the refusal rules' do
+    project = projects(:primary)
+
+    project.update!(accession: nil, status: 'curating')
+    assert AccessionIssue.issuable?(project)
+
+    project.update!(status: 'submission_accepted')
+    assert AccessionIssue.issuable?(project)
+
+    project.update!(status: 'public')
+    assert_not AccessionIssue.issuable?(project), 'status outside ISSUABLE_FROM is not issuable'
+
+    project.update!(accession: 'PRJDB000001', status: 'curating')
+    assert_not AccessionIssue.issuable?(project), 'an already-accessioned row is not issuable'
+  end
+
+  test 'issuable narrows a relation to the rows call would stamp' do
+    samples(:first).update!(accession: nil, status: 'curating')
+    samples(:second).update!(accession: nil, status: 'public')
+
+    issuable = AccessionIssue.issuable(submissions(:biosample).samples)
+
+    assert_includes issuable, samples(:first)
+    assert_not_includes issuable, samples(:second)
+  end
+
   # --- ST26 ---
 
   test 'refuses st26 submissions (no Project or Sample to stamp)' do

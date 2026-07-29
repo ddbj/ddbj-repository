@@ -85,6 +85,29 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     assert_no_match 'Issue PRJDB accession', response.body
   end
 
+  # Offering a button the service would refuse just turns into an error
+  # flash — say why up front instead.
+  test 'BP show explains itself instead of offering the button in a non-issuable status' do
+    projects(:primary).update!(accession: nil, status: 'public')
+
+    get admin_submission_request_path(submissions(:bioproject).request)
+
+    assert_response :ok
+    assert_no_match 'Issue PRJDB accession',       response.body
+    assert_match    'can only be issued while the', response.body
+  end
+
+  test 'BS show explains itself when un-accessioned samples are all in a non-issuable status' do
+    samples(:first).update!(accession: nil, status: 'public')
+    samples(:second).update!(accession: nil, status: 'public')
+
+    get admin_submission_request_path(submissions(:biosample).request)
+
+    assert_response :ok
+    assert_no_match 'Issue SAMD',            response.body
+    assert_match    'so no SAMD can be issued', response.body
+  end
+
   # --- cross-submission bulk_issue_accessions ---
 
   test 'bulk_issue_accessions issues accessions across selected submissions' do

@@ -38,12 +38,8 @@
       </div>
     <% end %>
 
-    <%
-      issuable_count = submission.samples
-                                 .where(accession: nil)
-                                 .where(status: AccessionIssue::ISSUABLE_FROM)
-                                 .count
-    %>
+    <% issuable_count = AccessionIssue.issuable(submission.samples).count %>
+
     <% if issuable_count.positive? %>
       <hr>
       <p class="text-body-secondary small mb-2">
@@ -57,6 +53,12 @@
                     method: :post,
                     class:  'btn btn-warning btn-sm',
                     data:   {turbo_confirm: "Issue SAMD accessions for #{number_with_delimiter(issuable_count)} sample(s)?"} %>
+    <% elsif submission.samples.where(accession: nil).exists? %>
+      <hr>
+      <p class="text-body-secondary small mb-0">
+        Samples without an accession remain, but none of them are
+        <code>submission_accepted</code> or <code>curating</code>, so no SAMD can be issued.
+      </p>
     <% end %>
   </div>
 </section>

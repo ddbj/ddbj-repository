@@ -34,6 +34,19 @@ class AccessionIssue
     new(submission:, actor:).call
   end
 
+  # The refusal rules as a predicate, so the admin UI offers the button
+  # only where it would succeed instead of re-deriving the rule and
+  # drifting from it. Takes a Project or a Sample — both carry
+  # `accession` + a Lifecycleable `status`.
+  def self.issuable?(row)
+    row.accession.blank? && ISSUABLE_FROM.include?(row.status)
+  end
+
+  # Relation form of `issuable?` for counting a submission's samples.
+  def self.issuable(relation)
+    relation.where(accession: nil, status: ISSUABLE_FROM)
+  end
+
   def initialize(submission:, actor:)
     @submission = submission
     @actor      = actor
@@ -71,11 +84,7 @@ class AccessionIssue
   end
 
   def issue_bs
-    targets = @submission.samples
-                         .where(accession: nil)
-                         .where(status: ISSUABLE_FROM)
-                         .order(:id)
-                         .to_a
+    targets = self.class.issuable(@submission.samples).order(:id).to_a
 
     raise Refused, 'No samples are eligible for accession issuance (all already issued or wrong status).' if targets.empty?
 
