@@ -28,6 +28,24 @@ class AdminHoldDatesTest < ActionDispatch::IntegrationTest
     assert_equal '2026-12-31',      @submission.materialised_record.dig('submission', 'hold_date')
   end
 
+  # DistributionNotifier filters on the projected column, so a curator edit
+  # that only reached the record would never turn into a release notice.
+  test 'PATCH update projects hold_date onto the Project row' do
+    patch admin_submission_hold_date_path(@submission),
+          params: {submission: {hold_date: '2026-12-31'}}
+
+    assert_equal Date.new(2026, 12, 31), @submission.project.reload.hold_date
+  end
+
+  test 'PATCH update with a blank value clears the projected column' do
+    projects(:primary).update!(hold_date: Date.new(2026, 12, 31))
+
+    patch admin_submission_hold_date_path(@submission),
+          params: {submission: {hold_date: ''}}
+
+    assert_nil @submission.project.reload.hold_date
+  end
+
   test 'PATCH update with blank value drops the hold_date key' do
     @submission.append_update!(
       {'schema_version' => 'v3', 'submission' => {'submitters' => [{'first_name' => 'Hanako'}], 'hold_date' => '2026-12-31'}},

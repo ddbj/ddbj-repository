@@ -24,6 +24,10 @@ module Admin
         source: :manual
       )
 
+      # Keep the SQL-filterable projection in step with the record, or the
+      # release notice never sees this edit (Submission#sync_hold_date!).
+      submission.sync_hold_date!(new_record)
+
       message = result ? "Hold date saved (chain length now #{submission.updates.count})." \
                        : 'Hold date unchanged — no patch generated.'
 

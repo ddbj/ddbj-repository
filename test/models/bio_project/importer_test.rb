@@ -64,6 +64,25 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal Date.new(2022, 5, 6),  project.modified_date
   end
 
+  # DistributionNotifier filters on projects.hold_date, so the record's
+  # submission.hold_date has to reach the column — including on the
+  # fast-skip path, which is how rows imported before the projection
+  # existed get backfilled.
+  test 'projects the record hold_date onto Project, on both the change and skip paths' do
+    result = build.call
+    assert_equal :created, result.outcome
+
+    submission = result.submission
+    expected   = Date.iso8601(submission.materialised_record.fetch('submission').fetch('hold_date'))
+
+    assert_equal expected, submission.project.hold_date
+
+    submission.project.update_column(:hold_date, nil) # simulate a pre-projection row
+
+    assert_equal :skipped, build.call.outcome
+    assert_equal expected, submission.project.reload.hold_date
+  end
+
   test 'creates Submission + Project + baseline SubmissionUpdate on first run' do
     result = build.call
 

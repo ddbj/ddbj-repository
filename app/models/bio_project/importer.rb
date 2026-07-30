@@ -85,6 +85,12 @@ module BioProject
         project = submission.project || Project.create!(submission:, accession:, project_type: @project_type)
         project.update_columns(release_date: @release_date, dist_date: @dist_date, modified_date: @modified_date)
 
+        # hold_date is a projection of the record we just built (see
+        # Submission#sync_hold_date!). Synced on every run for the same
+        # reason as the dates above: the fast-skip path must still backfill
+        # a row imported before the projection existed.
+        submission.sync_hold_date!(record)
+
         # Fast :skipped path: if the SeaweedFS-stored snapshot from the
         # PREVIOUS importer run still hashes to what this run would
         # emit, the source XML hasn't changed meaningfully and we
