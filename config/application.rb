@@ -42,7 +42,8 @@ module Repository
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-    config.time_zone = 'Asia/Tokyo'
+    config.active_storage.variant_processor = :disabled
+    config.time_zone                        = 'Asia/Tokyo'
 
     api_paths = %r{\A/api(/|\z)}
 
