@@ -14,7 +14,7 @@ class DistributionNotifier
   # still catches the record on the next one.
   NOTICE_DAYS = 10
 
-  Result = Data.define(:notified_project_count, :notified_user_count)
+  Result = Data.define(:notified_project_count, :notified_user_count, :skipped_user_count)
 
   def self.call(...) = new(...).call
 
@@ -40,14 +40,22 @@ class DistributionNotifier
   # Mail + mark a specific set of projects, one mail per submitter. Shared
   # by the daily run and the admin "send now" (whole batch or one submitter).
   def notify(projects)
-    by_user = projects.group_by { it.submission.user }
+    # Submitters we have no address for are left untouched — NOT marked as
+    # notified — so they stay on the admin list instead of silently
+    # vanishing, and the next run picks them up once the address arrives
+    # (login, or SyncUserEmailsJob).
+    mailable, skipped = projects.group_by { it.submission.user }.partition {|user, _| user.email.present? }
 
-    by_user.each do |user, user_projects|
+    mailable.each do |user, user_projects|
       DistributionNotifierMailer.with(user:, projects: user_projects).release_notice.deliver_later
 
       Project.where(id: user_projects.map(&:id)).update_all(distribution_notified_at: Time.current)
     end
 
-    Result.new(notified_project_count: projects.size, notified_user_count: by_user.size)
+    Result.new(
+      notified_project_count: mailable.sum {|_user, user_projects| user_projects.size },
+      notified_user_count:    mailable.size,
+      skipped_user_count:     skipped.size
+    )
   end
 end

@@ -22,10 +22,21 @@
   <% @candidates_by_user.each do |user, projects| %>
     <div class="card mb-3">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <span><strong><%= user.uid %></strong> &mdash; <%= pluralize(projects.size, 'project') %></span>
+        <span>
+          <strong><%= user.uid %></strong> &mdash; <%= pluralize(projects.size, 'project') %>
+
+          <%# Nothing is sent to a submitter we have no address for, and the %>
+          <%# row stays here until one turns up — say so rather than letting %>
+          <%# a Send click look like it worked. %>
+          <% if user.email.present? %>
+            <span class="text-body-secondary"><%= user.email %></span>
+          <% else %>
+            <span class="badge text-bg-warning">No address on file</span>
+          <% end %>
+        </span>
 
         <%= button_to 'Send', admin_distribution_notices_path, params: {user_id: user.id}, method: :post,
-                      class: 'btn btn-sm btn-outline-primary' %>
+                      class: 'btn btn-sm btn-outline-primary', disabled: user.email.blank? %>
       </div>
 
       <ul class="list-group list-group-flush">

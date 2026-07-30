@@ -13,11 +13,18 @@ class ApplicationMailer < ActionMailer::Base
 
   private
 
-  # Falls back to a uid placeholder when Cloakman lookup is not available
-  # (dev without cloakman setup; see [[project-dev-cloakman-setup]]).
-  # Production / staging will resolve to the real email via the
-  # admin/users CloakmanClient lookup once the integration is set up.
-  def user_email_or_placeholder(user)
-    user.try(:email).presence || "#{user.uid}@placeholder.invalid"
+  # `User#email` is our copy of the Cloakman address, refreshed at login and
+  # by SyncUserEmailsJob. Blank means the address is genuinely unknown (an
+  # account that has never logged in, with nothing in Cloakman either), and
+  # there is nothing useful to do with that: a synthesised `.invalid`
+  # recipient only converts the problem into a bounce. So callers return
+  # without calling `mail`, which makes the action a no-op — Rails hands
+  # back an empty Mail::Message and `deliver_later` does nothing.
+  def recipient_for(user)
+    return user.email if user.email.present?
+
+    Rails.logger.info "[mailer] no known address for #{user.uid} — skipping #{self.class.name}##{action_name}"
+
+    nil
   end
 end

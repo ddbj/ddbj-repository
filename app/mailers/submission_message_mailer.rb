@@ -12,17 +12,16 @@ class SubmissionMessageMailer < ApplicationMailer
     @request = @message.submission_request
     @curator = @message.user
 
-    mail(
-      to:      user_email_or_placeholder(@request.user),
-      subject: "[DDBJ Repository] New curator message on ##{@request.id}"
-    )
+    to = recipient_for(@request.user) or return
+
+    mail(to:, subject: "[DDBJ Repository] New curator message on ##{@request.id}")
   end
 
   # Submitter → curators. Notifies every curator who has previously
   # posted in this thread (the natural set of "involved" curators —
-  # avoids spamming the whole admin pool on every reply). Each curator
-  # gets the mail at their own address looked up via the same
-  # placeholder fallback the submitter side uses.
+  # avoids spamming the whole admin pool on every reply). Each curator gets
+  # the mail at their own address; curators we have no address for are
+  # dropped, and a thread where nobody is reachable sends nothing.
   def notify_curators
     @message = params[:message]
     @request = @message.submission_request
@@ -45,6 +44,6 @@ class SubmissionMessageMailer < ApplicationMailer
     # `reorder(nil)` strips the chronological scope's ORDER BY —
     # Postgres requires DISTINCT columns to appear in ORDER BY.
     user_ids = @request.messages.curator_role.reorder(nil).distinct.pluck(:user_id)
-    User.where(id: user_ids).map { user_email_or_placeholder(it) }
+    User.where(id: user_ids).filter_map { recipient_for(it) }
   end
 end

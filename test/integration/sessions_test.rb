@@ -1,10 +1,14 @@
 require 'test_helper'
 
 class SessionsTest < ActionDispatch::IntegrationTest
-  def mock_keycloak(user)
+  def mock_keycloak(user, email: nil)
     OmniAuth.config.mock_auth[:keycloak] = OmniAuth::AuthHash.new(
       'provider' => 'keycloak',
       'uid'      => user.uid,
+
+      'info' => {
+        'email' => email
+      },
 
       'extra' => {
         'raw_info' => {
@@ -31,6 +35,24 @@ class SessionsTest < ActionDispatch::IntegrationTest
 
     assert_match %r{/web/login\?token=}, response.location
     assert_nil session[:user_id] # a web login must not leak an admin session
+  end
+
+  # Mail delivery reads users.email, so login is the primary way it stays
+  # current (SyncUserEmailsJob covers accounts that never log in).
+  test 'login refreshes the stored email from the token' do
+    mock_keycloak(users(:alice), email: 'alice.new@example.com')
+
+    get '/auth/keycloak/callback'
+
+    assert_equal 'alice.new@example.com', users(:alice).reload.email
+  end
+
+  test 'a token without an email keeps the address we already know' do
+    mock_keycloak(users(:alice)) # no email claim
+
+    get '/auth/keycloak/callback'
+
+    assert_equal 'alice@example.com', users(:alice).reload.email
   end
 
   test 'admin logout clears the session and returns to the admin login' do

@@ -3,6 +3,13 @@ production: &production
     class: LoadTaxdumpJob
     schedule: at 6am every day
 
+  # Fill users.email for accounts that have never logged in (the D-way
+  # importer creates them from a uid alone). Runs before the mail-sending
+  # jobs below so a notice goes to a real address on its first attempt.
+  sync_user_emails:
+    class: SyncUserEmailsJob
+    schedule: at 1am every day
+
   publish_bp_xml:
     class: PublishBpXMLJob
     schedule: at 2am every day

@@ -11,13 +11,10 @@ class SubmissionMessageMailerTest < ActionMailer::TestCase
     message = @request.messages.create!(user: @curator, author_role: :curator, body: 'Please add organism details.')
     mail    = SubmissionMessageMailer.with(message:).notify_submitter
 
-    # Placeholder fallback when no Cloakman lookup is wired — same shape
-    # AccessionMailer falls back to in dev. Real prod resolves via
-    # Cloakman once integration lands.
-    assert_equal ["#{@submitter.uid}@placeholder.invalid"], mail.to
-    assert_match(/##{@request.id}/,                         mail.subject)
-    assert_match @curator.uid,                              mail.text_part.body.to_s
-    assert_match 'Please add organism details.',            mail.text_part.body.to_s
+    assert_equal ['alice@example.com'],           mail.to
+    assert_match(/##{@request.id}/,               mail.subject)
+    assert_match @curator.uid,                    mail.text_part.body.to_s
+    assert_match 'Please add organism details.',  mail.text_part.body.to_s
   end
 
   test 'notify_curators recipients are deduplicated unique curators who have posted' do
@@ -27,7 +24,27 @@ class SubmissionMessageMailerTest < ActionMailer::TestCase
 
     mail = SubmissionMessageMailer.with(message: submitter_msg).notify_curators
 
-    assert_equal ["#{users(:bob).uid}@placeholder.invalid"], mail.to
+    assert_equal ['bob@example.com'], mail.to
+  end
+
+  test 'notify_curators drops a curator with no known address' do
+    users(:bob).update!(email: nil)
+
+    @request.messages.create!(user: users(:bob), author_role: :curator, body: 'A')
+    submitter_msg = @request.messages.create!(user: @submitter, author_role: :submitter, body: 'reply')
+
+    mail = SubmissionMessageMailer.with(message: submitter_msg).notify_curators
+
+    assert_empty mail.to.to_a
+  end
+
+  test 'notify_submitter sends nothing when the submitter address is unknown' do
+    @submitter.update!(email: nil)
+
+    message = @request.messages.create!(user: @curator, author_role: :curator, body: 'anyone there?')
+    mail    = SubmissionMessageMailer.with(message:).notify_submitter
+
+    assert_empty mail.to.to_a
   end
 
   test 'notify_curators is a no-op (no recipients) when no curator has posted yet' do

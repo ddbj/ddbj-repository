@@ -4,10 +4,17 @@ class SessionsController < ApplicationController
   skip_before_action :authenticate!, only: %i[create]
 
   def create
-    uid  = request.env.dig('omniauth.auth', 'extra', 'raw_info', 'preferred_username')
+    auth = request.env['omniauth.auth']
+    uid  = auth.dig('extra', 'raw_info', 'preferred_username')
     user = User.find_or_initialize_by(uid:)
 
-    user.update! admin: request.env.dig('omniauth.auth', 'extra', 'raw_info', 'account_type_number') == ADMIN_ACCOUNT_TYPE
+    # The `email` scope is requested (config/initializers/omniauth.rb), so
+    # every login refreshes our copy of the address. Keep the existing one
+    # if this token carries none rather than blanking a known address.
+    user.update!(
+      admin: auth.dig('extra', 'raw_info', 'account_type_number') == ADMIN_ACCOUNT_TYPE,
+      email: auth.dig('info', 'email').presence || user.email
+    )
 
     origin = request.env['omniauth.origin']
 

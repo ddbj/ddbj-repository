@@ -67,6 +67,36 @@ class DistributionNotifierTest < ActiveSupport::TestCase
     end
   end
 
+  # A submitter with no address must stay a candidate: marking them
+  # notified would drop them off the list without a mail ever going out.
+  test 'skips submitters with no known address and leaves them pending' do
+    @project.submission.user.update!(email: nil)
+
+    result = nil
+
+    assert_no_enqueued_emails do
+      result = DistributionNotifier.call
+    end
+
+    assert_nil   @project.reload.distribution_notified_at
+    assert_equal 0, result.notified_user_count
+    assert_equal 1, result.skipped_user_count
+  end
+
+  test 'a skipped submitter does not hold back the others' do
+    bp_project(source_id: 'PSUB-c', accession: 'PRJDB900003', user: users(:bob))
+    @project.submission.user.update!(email: nil)
+
+    result = nil
+
+    assert_enqueued_emails 1 do
+      result = DistributionNotifier.call
+    end
+
+    assert_equal 1, result.notified_user_count
+    assert_equal 1, result.skipped_user_count
+  end
+
   test 'ignores projects with no hold_date' do
     @project.update!(hold_date: nil)
 

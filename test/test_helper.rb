@@ -49,6 +49,19 @@ class ActiveSupport::TestCase
       content_type: 'application/json'
     )
   end
+
+  # Cloakman is the system of record for contact details, so anything that
+  # resolves a recipient (User#email) or renders a profile goes through it.
+  # Pass an empty `profiles` with explicit `uids:` to model "no profile".
+  def stub_cloakman_lookup(profiles, uids: profiles.map { it[:uid] })
+    stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
+      .with(query: {uids:})
+      .to_return(
+        status:  200,
+        body:    profiles.to_json,
+        headers: {'Content-Type' => 'application/json'}
+      )
+  end
 end
 
 class ActionDispatch::IntegrationTest
@@ -105,15 +118,5 @@ class ActionDispatch::IntegrationTest
     # Drive the admin-origin branch so the callback mints the session
     # cookie (the web branch is JWT-only and sets no session).
     get '/auth/keycloak/callback', env: {'omniauth.origin' => '/admin'}
-  end
-
-  def stub_cloakman_lookup(profiles, uids: profiles.map { it[:uid] })
-    stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
-      .with(query: {uids:})
-      .to_return(
-        status:  200,
-        body:    profiles.to_json,
-        headers: {'Content-Type' => 'application/json'}
-      )
   end
 end

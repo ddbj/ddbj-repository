@@ -1,6 +1,12 @@
 require 'test_helper'
 
 class AccessionMailerTest < ActionMailer::TestCase
+  test 'issued — goes to the submitter address' do
+    mail = AccessionMailer.with(submission: submissions(:bioproject), accessions: ['PRJDB1']).issued
+
+    assert_equal ['alice@example.com'], mail.to
+  end
+
   test 'issued — BP, single accession, subject + body lists the value' do
     submission = submissions(:bioproject)
     mail = AccessionMailer.with(submission:, accessions: ['PRJDB123456']).issued
@@ -37,10 +43,16 @@ class AccessionMailerTest < ActionMailer::TestCase
     end
   end
 
-  test 'issued — falls back to placeholder when User.email is unavailable' do
+  # No address → no mail at all. A synthesised recipient would only turn
+  # the missing address into a bounce.
+  test 'issued — sends nothing when the address is unknown' do
     submission = submissions(:bioproject)
+    submission.user.update!(email: nil)
+
     mail = AccessionMailer.with(submission:, accessions: ['PRJDB1']).issued
 
-    assert_equal ["#{submission.user.uid}@placeholder.invalid"], mail.to
+    assert_empty mail.to.to_a
+
+    assert_no_emails { mail.deliver_now }
   end
 end

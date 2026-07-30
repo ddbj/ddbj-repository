@@ -14,8 +14,10 @@ module Admin
 
       result = DistributionNotifier.new.notify(projects)
 
-      redirect_to admin_distribution_notices_path,
-                  notice: "Sent #{result.notified_project_count} notice(s) to #{result.notified_user_count} submitter(s)."
+      notice = "Sent #{result.notified_project_count} notice(s) to #{result.notified_user_count} submitter(s)."
+      notice += " #{result.skipped_user_count} submitter(s) skipped: no address on file." if result.skipped_user_count.positive?
+
+      redirect_to admin_distribution_notices_path, notice:
     end
   end
 end

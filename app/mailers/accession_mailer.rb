@@ -11,10 +11,9 @@ class AccessionMailer < ApplicationMailer
     @submission = params[:submission]
     @accessions = Array(params[:accessions]).compact
 
-    mail(
-      to:      user_email_or_placeholder(@submission.user),
-      subject: subject_line(@submission, @accessions)
-    )
+    to = recipient_for(@submission.user) or return
+
+    mail(to:, subject: subject_line(@submission, @accessions))
   end
 
   private
