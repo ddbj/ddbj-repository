@@ -19,8 +19,8 @@ class SubmissionRequest < ApplicationRecord
   # A request is "assigned to" a curator when the curation rows behind it
   # — the BP Project, or any of the BS Samples — carry that assignee. A
   # request with no submission yet has no curation rows and is therefore
-  # never in anybody's queue, which is exactly right: it belongs to the
-  # "Not applied yet" bucket instead.
+  # never in anybody's queue, which is exactly right: before Apply there is
+  # nothing to curate.
   scope :curated_by, ->(user) {
     where(<<~SQL.squish, assignee_id: user.id)
       EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id AND projects.assignee_id = :assignee_id) OR

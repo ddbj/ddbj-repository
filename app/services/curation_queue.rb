@@ -1,9 +1,12 @@
-# What is not moving, sliced into buckets.
+# Everything waiting on a curator.
 #
-# Mostly that is work a curator owes somebody. `pending_apply` is the
-# exception and is included deliberately: `ready_to_apply` waits on the
-# submitter, not on us, but a request that sits there for a week is a
-# problem somebody has to notice, and nobody else is looking.
+# Strictly that: a request whose next move belongs to the submitter is not
+# in here, however long it has been sitting. `ready_to_apply` means
+# validation passed and the submitter can press Apply; `validation_failed`
+# means their file needs fixing. Both already show as "Action needed" on
+# the submitter's own screen, and putting them in a curator's red queue
+# would split one responsibility across two people, which usually means
+# neither takes it.
 #
 # The admin IA puts business tasks — not database types — at the first
 # level, so "Needs action" is the landing screen and its nav badge has to
@@ -13,11 +16,12 @@
 # into one scope for the badge, and decorated with `includes` only at the
 # point a bucket is actually rendered as a table.
 class CurationQueue
-  # Statuses where the pipeline stopped on an error the submitter cannot
-  # clear alone, and statuses where the request is waiting for somebody to
-  # press Apply. Both are "nothing is moving until a human looks".
-  FAILED_STATUSES  = %w[validation_failed application_failed].freeze
-  PENDING_STATUSES = %w[ready_to_apply waiting_application].freeze
+  # The pipeline stopped on OUR side: `application_failed` errored while
+  # applying, `waiting_application` was enqueued and never ran. Neither is
+  # retryable from the submitter's screen — the web client only offers
+  # Apply while the status is `ready_to_apply` — so if a curator does not
+  # look, nobody does.
+  STALLED_STATUSES = %w[waiting_application application_failed].freeze
 
   Bucket = Data.define(:key, :title, :description, :scope) do
     # `.count` on a bucket is a badge query — drop the ordering so
@@ -30,16 +34,10 @@ class CurationQueue
   def self.buckets
     [
       Bucket.new(
-        key:         :pending_apply,
-        title:       'Not applied yet',
-        description: 'Validated and waiting to be applied — no submission exists until somebody presses Apply.',
-        scope:       base.where(status: PENDING_STATUSES)
-      ),
-      Bucket.new(
-        key:         :failed,
-        title:       'Failed',
-        description: 'Validation or application ended in an error. The submitter cannot move these forward on their own.',
-        scope:       base.where(status: FAILED_STATUSES)
+        key:         :stalled,
+        title:       'Stuck in our pipeline',
+        description: 'Apply errored, or was enqueued and never ran. The submitter has no retry for either.',
+        scope:       base.where(status: STALLED_STATUSES)
       ),
       Bucket.new(
         key:         :unread_messages,

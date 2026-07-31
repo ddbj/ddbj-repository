@@ -11,9 +11,48 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
     get admin_root_path
 
     assert_response :ok
-    assert_match 'Needs action',     response.body
-    assert_match 'Not applied yet',  response.body
-    assert_match 'Unread messages',  response.body
+    assert_match 'Needs action',            response.body
+    assert_match 'Stuck in our pipeline',   response.body
+    assert_match 'Unread messages',         response.body
+    assert_match 'Awaiting accession',      response.body
+  end
+
+  # The queue is what a curator owes somebody. A request whose next move is
+  # the submitter's already says "Action needed" on their own screen, and
+  # splitting one responsibility across two people usually means neither
+  # takes it.
+  test 'requests waiting on the submitter stay out of the queue' do
+    ready  = build_request(status: :ready_to_apply)
+    broken = build_request(status: :validation_failed)
+
+    assert_equal 0, CurationQueue.count
+
+    get admin_root_path
+
+    assert_response :ok
+    assert_no_match(/##{ready.id}\b/,  response.body)
+    assert_no_match(/##{broken.id}\b/, response.body)
+  end
+
+  test 'a request our own pipeline dropped is in the queue' do
+    stuck = build_request(status: :application_failed)
+
+    get admin_root_path, params: {bucket: 'stalled'}
+
+    assert_response :ok
+    assert_match "##{stuck.id}", response.body
+    assert_equal 1, CurationQueue.count
+  end
+
+  # Enqueued and never run: normally transient, but nothing else is
+  # watching, and the submitter has no retry.
+  test 'a request enqueued for apply but never applied is in the queue' do
+    stuck = build_request(status: :waiting_application)
+
+    get admin_root_path, params: {bucket: 'stalled'}
+
+    assert_response :ok
+    assert_match "##{stuck.id}", response.body
   end
 
   test 'the unread-messages bucket lists requests whose submitter is waiting' do
@@ -37,7 +76,7 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
   end
 
   test 'a bucket with nothing in it says so' do
-    get admin_root_path, params: {bucket: 'failed'}
+    get admin_root_path, params: {bucket: 'stalled'}
 
     assert_response :ok
     assert_match 'no action needed', response.body
@@ -75,10 +114,10 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
   end
 
   test 'a bulk action started from Needs action returns to the same bucket' do
-    patch bulk_update_admin_submissions_path(bucket: 'failed'),
+    patch bulk_update_admin_submissions_path(bucket: 'stalled'),
           params: {bulk: {return_to: 'needs_action', submission_ids: [submissions(:bioproject).id.to_s], status: 'curating'}}
 
-    assert_redirected_to admin_root_path(bucket: 'failed')
+    assert_redirected_to admin_root_path(bucket: 'stalled')
   end
 
   test 'the queues require admin auth' do
@@ -89,5 +128,14 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :forbidden
+  end
+
+  private
+
+  def build_request(status:)
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26', status:)
+    attach_ddbj_record(request)
+    request.save!
+    request
   end
 end
