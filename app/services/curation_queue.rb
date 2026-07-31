@@ -16,48 +16,56 @@
 # into one scope for the badge, and decorated with `includes` only at the
 # point a bucket is actually rendered as a table.
 class CurationQueue
-  # The pipeline stopped on OUR side: `application_failed` errored while
-  # applying, `waiting_application` was enqueued and never ran. Neither is
-  # retryable from the submitter's screen — the web client only offers
-  # Apply while the status is `ready_to_apply` — so if a curator does not
-  # look, nobody does.
-  STALLED_STATUSES = %w[waiting_application application_failed].freeze
+  # Machine states. A request passes through them in milliseconds, so their
+  # presence says nothing; only their persistence does. Past the grace
+  # period they mean a background job should have finished by now — which
+  # is nobody's fault but ours, and nobody else is watching for it.
+  STUCK_STATUSES = %w[waiting_validation validating waiting_application applying].freeze
 
-  # `waiting_application` is where a request sits between "Apply pressed"
-  # and "job picked it up" — normally milliseconds. Counting it immediately
-  # would flash every ordinary Apply into the curator's red queue. What is
-  # worth surfacing is one that stayed there.
-  STALL_GRACE = 15.minutes
+  # Long enough that a healthy queue never shows up here, short enough that
+  # a dead job is noticed the same working day.
+  STUCK_GRACE = 15.minutes
 
-  Bucket = Data.define(:key, :title, :description, :scope) do
+  # The apply step errored. Unlike a validation failure — which the
+  # submitter fixes and resubmits — there is no retry on their screen.
+  FAILED_STATUSES = %w[application_failed].freeze
+
+  # How each bucket says "why this is here" and what the row offers to do
+  # about it. `action` is rendered by admin/needs_action/_row.
+  Bucket = Data.define(:key, :title, :criterion, :action, :scope) do
     # `.count` on a bucket is a badge query — drop the ordering so
     # PostgreSQL doesn't sort rows it is only going to count.
     def count = scope.reorder(nil).count
 
-    def requests = scope.includes(:user, submission: [{project: :assignee}, :accessions])
+    # Oldest first: a queue is a working order, not a newsfeed.
+    def requests
+      scope.reorder(updated_at: :asc).includes(:user, submission: [{project: :assignee}, :accessions])
+    end
   end
 
   def self.buckets
     [
       Bucket.new(
-        key:         :stalled,
-        title:       'Stuck in our pipeline',
-        description: "Apply errored, or was enqueued and has not run for #{STALL_GRACE.inspect}. " \
-                     'The submitter has no retry for either.',
-        scope:       base.where(status: 'application_failed')
-                         .or(base.where(status: 'waiting_application').where(updated_at: ..STALL_GRACE.ago))
+        key:       :stuck,
+        title:     'Stuck in the pipeline',
+        criterion: 'A background job should have finished by now — nobody is waiting on the submitter.',
+        action:    :check_job,
+        scope:     base.where(status: FAILED_STATUSES)
+                       .or(base.where(status: STUCK_STATUSES).where(updated_at: ..STUCK_GRACE.ago))
       ),
       Bucket.new(
-        key:         :unread_messages,
-        title:       'Unread messages',
-        description: 'The submitter has replied and no curator has opened the thread since.',
-        scope:       base.where(id: SubmissionMessage.submitter_role.unread.select(:submission_request_id))
+        key:       :unread_messages,
+        title:     'Unread submitter messages',
+        criterion: 'The submitter replied and no curator has opened the thread since.',
+        action:    :reply,
+        scope:     base.where(id: SubmissionMessage.submitter_role.unread.select(:submission_request_id))
       ),
       Bucket.new(
-        key:         :awaiting_accession,
-        title:       'Awaiting accession',
-        description: "Curation rows with no accession that #{AccessionIssue::ISSUABLE_FROM.join(' / ')} status makes issuable.",
-        scope:       base.where(<<~SQL.squish, sids: issuable_status_ids)
+        key:       :awaiting_accession,
+        title:     'Ready for accession issuance',
+        criterion: "Curation rows with no accession, in #{AccessionIssue::ISSUABLE_FROM.join(' or ')} status.",
+        action:    :issue,
+        scope:     base.where(<<~SQL.squish, sids: issuable_status_ids)
           EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id AND projects.accession IS NULL AND projects.status IN (:sids)) OR
           EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id AND samples.accession  IS NULL AND samples.status  IN (:sids))
         SQL
@@ -67,14 +75,14 @@ class CurationQueue
 
   # Every request in any bucket, de-duplicated — a request can sit in more
   # than one (an unread message on a submission that is also awaiting an
-  # accession). Backs the nav badge and the "everything" fallback list.
+  # accession). Backs the nav badge, which must not double-count.
   def self.scope
     buckets.map(&:scope).reduce(:or)
   end
 
   def self.count = scope.reorder(nil).count
 
-  def self.base = SubmissionRequest.order(id: :desc)
+  def self.base = SubmissionRequest.all
 
   def self.issuable_status_ids
     AccessionIssue::ISSUABLE_FROM.map { Lifecycleable::STATUSES.fetch(it) }

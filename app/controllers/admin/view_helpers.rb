@@ -65,6 +65,29 @@ module Admin::ViewHelpers
     admin/regenerate_flatfiles
   ].freeze
 
+  # Compact elapsed time for a queue: "9h", "4d". The question a queue
+  # answers is "has this been sitting?", which minute precision only
+  # obscures — and the row is sorted by it anyway.
+  def elapsed_label(time)
+    return '—' unless time
+
+    seconds = Time.current - time
+
+    case seconds
+    when ...60         then 'just now'
+    when ...1.hour     then "#{(seconds / 60).to_i}m"
+    when ...1.day      then "#{(seconds / 1.hour).to_i}h"
+    else                    "#{(seconds / 1.day).to_i}d"
+    end
+  end
+
+  # Long enough that a row deserves to be looked at rather than scrolled
+  # past. Colour is the only thing separating "moving" from "stalled" once
+  # everything in a queue is by definition waiting.
+  def stale?(time, threshold: 1.day)
+    time.present? && time < threshold.ago
+  end
+
   def workbench_tab_label(tab)
     WORKBENCH_TABS.fetch(tab)
   end

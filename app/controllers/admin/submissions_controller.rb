@@ -261,7 +261,7 @@ module Admin
     # beyond this whitelist.
     def bulk_return_path
       case params.dig(:bulk, :return_to)
-      when 'needs_action' then admin_root_path(params.permit(:bucket).to_h)
+      when 'needs_action' then admin_root_path(params.permit(:mine).to_h)
       when 'my_queue'     then admin_my_queue_path
       else                     admin_submission_requests_path(index_filter_params)
       end

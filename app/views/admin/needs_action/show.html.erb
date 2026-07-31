@@ -2,36 +2,55 @@
 
 <%= render 'admin/shared/breadcrumb', items: [{label: 'Needs action'}] %>
 
-<h1 class="display-6 mb-2">Needs action</h1>
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-1">
+  <h1 class="display-6 mb-0">Needs action</h1>
+
+  <%# A filter on the same queue, not a different screen — a curator can %>
+  <%# look up from their own work and back without losing their place. %>
+  <div class="btn-group btn-group-sm" role="group" aria-label="Queue scope">
+    <%= link_to 'Everyone', admin_root_path,
+                class: "btn btn-outline-secondary #{'active' if !@mine}",
+                'aria-current': ('true' if !@mine) %>
+    <%= link_to 'Mine only', admin_root_path(mine: 1),
+                class: "btn btn-outline-secondary #{'active' if @mine}",
+                'aria-current': ('true' if @mine) %>
+  </div>
+</div>
 
 <p class="text-body-secondary mb-4">
-  Requests that are waiting on a curator. A request can appear in more than one
-  bucket — the nav badge counts each request once.
+  <%= pluralize(@total, 'request') %>
+  <%= @total == 1 ? 'is' : 'are' %> waiting on a curator — not on submitters.
+  Oldest first.
 </p>
 
-<ul class="nav nav-tabs mb-4">
-  <% @buckets.each do |bucket| %>
-    <% count  = @counts.fetch(bucket.key) %>
-    <% active = bucket.key == @bucket.key %>
-    <li class="nav-item">
-      <%= link_to admin_root_path(bucket: bucket.key),
-                  class: "nav-link d-flex align-items-center gap-2 #{'active' if active}",
-                  'aria-current': ('page' if active) do %>
-        <%= bucket.title %>
-        <span class="badge <%= count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>">
-          <%= number_with_delimiter(count) %>
-        </span>
+<% @buckets.each do |listing| %>
+  <section class="mb-4">
+    <div class="d-flex align-items-baseline gap-2 flex-wrap mb-2">
+      <h2 class="h6 mb-0"><%= listing.bucket.title %></h2>
+      <span class="badge <%= listing.count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>">
+        <%= number_with_delimiter(listing.count) %>
+      </span>
+      <%# Why a request is in this bucket, written next to the bucket — so %>
+      <%# the queue's meaning is on screen rather than in a remembered %>
+      <%# filter combination. %>
+      <span class="small text-body-tertiary"><%= listing.bucket.criterion %></span>
+    </div>
+
+    <% if listing.requests.empty? %>
+      <p class="small text-body-secondary fst-italic mb-0">Nothing here.</p>
+    <% else %>
+      <div class="list-group">
+        <% listing.requests.each do |request| %>
+          <%= render 'row', request: request, action: listing.bucket.action %>
+        <% end %>
+      </div>
+
+      <% if listing.overflow.positive? %>
+        <p class="small text-body-secondary mt-2 mb-0">
+          <%= number_with_delimiter(listing.overflow) %> more —
+          <%= link_to 'open in All requests', admin_submission_requests_path %>.
+        </p>
       <% end %>
-    </li>
-  <% end %>
-</ul>
-
-<p class="text-body-secondary"><%= @bucket.description %></p>
-
-<%= render 'admin/submission_requests/request_list',
-           requests:          @requests,
-           sample_aggregates: @sample_aggregates,
-           pagy:              @pagy,
-           return_to:         'needs_action',
-           filter_params:     {bucket: @bucket.key},
-           empty_message:     'Nothing in this bucket — no action needed.' %>
+    <% end %>
+  </section>
+<% end %>
