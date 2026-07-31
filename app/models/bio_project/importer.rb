@@ -97,9 +97,16 @@ module BioProject
         # Deliberately "vs last import" rather than "vs current chain", so
         # curator edits made through the workbench survive an idempotent
         # re-run against an unchanged D-way source.
+        #
+        # The chain's canonical form depends on the canonicaliser as well
+        # as on the source, so an unchanged source is not on its own a
+        # reason to skip: a canon version bump has to rebuild the chain
+        # from a source that did not move. Without `legacy_chain?` here,
+        # the re-import that a bump requires sweeps the whole corpus,
+        # reports every record :skipped, and changes nothing.
         source_checksum = Digest::MD5.base64digest(Oj.dump(record, mode: :strict))
 
-        if submission.source_checksum == source_checksum
+        if submission.source_checksum == source_checksum && !submission.legacy_chain?
           return Result.new(submission:, outcome: :skipped)
         end
 

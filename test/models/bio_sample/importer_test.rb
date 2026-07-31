@@ -82,6 +82,23 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal 1,        second.submission.updates.count
   end
 
+  # An unchanged source is not on its own a reason to skip: the chain's
+  # canonical form depends on the canonicaliser too. Without this, the
+  # re-import that a canon version bump REQUIRES sweeps the whole corpus,
+  # reports every record :skipped, and changes nothing — and the corpus
+  # only carries checksums at all once one import has run, so the trap
+  # springs on the second bump, not the first.
+  test 'a canon version bump re-imports a source that did not change' do
+    submission = build.call.submission
+
+    assert_equal :skipped, build.call.outcome, 'unchanged source, current canon'
+
+    submission.update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER - 1)
+
+    assert_equal :updated, build.call.outcome, 'unchanged source, stale canon'
+    assert_equal DDBJRecord::Canonicalizer::NUMBER, submission.reload.canonical_version
+  end
+
   test 'first-import baseline is a single root `add` snapshot that carries volatile fields' do
     # Going through Canonicalizer.diff({}, record) would strip
     # /schema_version, /provenance and /**/accession from both sides
