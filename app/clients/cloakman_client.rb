@@ -22,10 +22,10 @@ class CloakmanClient
     'system_reference' => 'System reference'
   }.freeze
 
-  # What makes somebody staff in this system. Deliberately only `ddbj`:
-  # `administrator` is an account type whose purpose here is not settled,
-  # and quietly granting it curator access would be a change nobody asked
-  # for.
+  # What makes somebody a curator here. Exactly `ddbj` — `administrator`
+  # is a systems role in DDBJ Account, on a different axis entirely from
+  # who curates submissions, so it is not staff for our purposes however
+  # much its name suggests otherwise.
   STAFF_ACCOUNT_TYPE = 'ddbj'
 
   def self.account_type_name(raw)
