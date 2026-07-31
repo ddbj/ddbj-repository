@@ -45,11 +45,23 @@ export default class SubmissionMessages extends Component<Signature> {
     });
 
     this.messages = content;
+  }
 
-    // Fetching the thread is what marks the curator's messages read
-    // server-side. The banner is refreshed on navigation, which happens
-    // *before* this request lands, so without refreshing again here the
-    // notice would linger until the next transition.
+  // Reading is no longer what discharges the thread — see MessagesController.
+  // These two are, so both refresh the banner: it is rendered from a count
+  // the server keeps, and nothing else would go back for it.
+  get unanswered() {
+    return this.messages.some((m) => m.author_role === 'curator' && !m.read_at);
+  }
+
+  @action
+  async markRead() {
+    await this.requestManager.request({
+      url: `/submission_requests/${this.args.requestId}/messages/read`,
+      method: 'POST',
+    });
+
+    await this.load();
     void this.attention.refresh();
   }
 
@@ -74,10 +86,20 @@ export default class SubmissionMessages extends Component<Signature> {
         data: { submission_message: { body } },
       });
 
-      // Optimistically append the new message instead of re-fetching the
-      // whole thread — saves a round trip and keeps the form snappy.
-      this.messages = [...this.messages, content];
+      // Appended rather than re-fetched — saves a round trip and keeps
+      // the form snappy — but the curator's messages were just marked
+      // read server-side, so the copies held here have to learn that too
+      // or the button stays offering to do what replying already did.
+      this.messages = [
+        ...this.messages.map((m) =>
+          m.author_role === 'curator' && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m,
+        ),
+        content,
+      ];
+
       this.draft = '';
+
+      void this.attention.refresh();
     } finally {
       this.posting = false;
     }
@@ -85,7 +107,21 @@ export default class SubmissionMessages extends Component<Signature> {
 
   <template>
     <section class="mt-4" data-test-messages>
-      <h2 class="h5">Messages with the curator</h2>
+      <div class="d-flex align-items-baseline gap-3 flex-wrap">
+        <h2 class="h5">Messages with the curator</h2>
+
+        {{! The other way to deal with a thread. A curator's note that
+        needs no reply would otherwise sit in the queue for ever, which is
+        what the old mark-on-read was avoiding by discharging too much. }}
+        {{#if this.unanswered}}
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            data-test-mark-read
+            {{on "click" this.markRead}}
+          >Mark as read</button>
+        {{/if}}
+      </div>
 
       <p class="text-body-secondary small">
         New messages from the curator are also sent to you by email.

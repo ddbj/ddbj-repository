@@ -52,6 +52,47 @@ module('Acceptance | submission messages', function (hooks) {
   setupApplicationTest(hooks);
   setupAuthentication(hooks);
 
+  // "I have seen it" and "I have dealt with it" are different events.
+  // Discharging the second by rendering the first took away the only
+  // reminder a submitter had that they still owed an answer.
+  test('a note that needs no reply is dealt with explicitly', async function (assert) {
+    let read = false;
+
+    const question: Message[] = [
+      {
+        id: 1,
+        body: 'For your information — no reply needed.',
+        author_role: 'curator',
+        author_uid: 'alice',
+        created_at: now,
+        read_at: null,
+      },
+    ];
+
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) =>
+        response(200).json(read ? question.map((m) => ({ ...m, read_at: now })) : question),
+      ),
+
+      http.post('/submission_requests/{submission_request_id}/messages/read', ({ response }) => {
+        read = true;
+
+        return response(204).empty();
+      }),
+    );
+
+    await visit(`/requests/${request.id}`);
+
+    assert.dom('[data-test-mark-read]').exists('reading it is not what deals with it');
+
+    await click('[data-test-mark-read]');
+
+    assert.true(read);
+    assert.dom('[data-test-mark-read]').doesNotExist();
+  });
+
   test('renders the thread and posts a reply', async function (assert) {
     const initial: Message[] = [
       {

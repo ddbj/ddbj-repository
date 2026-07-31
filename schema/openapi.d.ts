@@ -763,6 +763,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submission_requests/{submission_request_id}/messages/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_request_id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Mark the curator's messages in this thread as read — "nothing to answer
+         *     here".
+         *
+         *     Reading the thread does not do this. "I have seen it" and "I have dealt
+         *     with it" are different events, and a submitter who opens a question
+         *     meaning to answer it later should keep the reminder. Replying discharges
+         *     the thread too; this is for the note that needs no reply.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The curator's messages are marked read. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submission_requests/{submission_request_id}/messages": {
         parameters: {
             query?: never;

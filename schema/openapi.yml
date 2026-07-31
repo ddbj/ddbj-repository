@@ -714,6 +714,38 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /submission_requests/{submission_request_id}/messages/read:
+    parameters:
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Mark the curator's messages in this thread as read — "nothing to answer
+        here".
+
+        Reading the thread does not do this. "I have seen it" and "I have dealt
+        with it" are different events, and a submitter who opens a question
+        meaning to answer it later should keep the reminder. Replying discharges
+        the thread too; this is for the note that needs no reply.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '204':
+          description: The curator's messages are marked read.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /submission_requests/{submission_request_id}/messages:
     parameters:
       - name: submission_request_id

@@ -21,13 +21,42 @@ class MessagesTest < ActionDispatch::IntegrationTest
     assert_equal [older.id, newer.id], response.parsed_body.pluck('id')
   end
 
-  test 'GET index marks unread curator messages as read by the submitter' do
+  # Reading is not dealing with it. Discharging the thread as a side
+  # effect of rendering it took away the only reminder a submitter had
+  # that they still owed an answer — and their curator saw nothing
+  # either, because that queue tracks unread SUBMITTER messages.
+  test 'GET index leaves the thread unread' do
     unread = @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'pending')
 
     get submission_request_messages_path(@submission_request)
 
     assert_response :ok
+    assert_nil unread.reload.read_at
+    assert_includes SubmissionRequest.needs_submitter_action, @submission_request
+  end
+
+  # The two things that do discharge it: answering, and saying there is
+  # nothing to answer.
+  test 'replying marks the question read' do
+    unread = @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'q')
+
+    post submission_request_messages_path(@submission_request),
+         params:  {submission_message: {body: 'here you go'}}.to_json,
+         headers: {'Content-Type' => 'application/json'}
+
+    assert_response :created
     assert_not_nil unread.reload.read_at
+    assert_not_includes SubmissionRequest.needs_submitter_action, @submission_request
+  end
+
+  test 'marking read discharges a note that needs no reply' do
+    unread = @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'FYI')
+
+    post read_submission_request_messages_path(@submission_request)
+
+    assert_response :no_content
+    assert_not_nil unread.reload.read_at
+    assert_not_includes SubmissionRequest.needs_submitter_action, @submission_request
   end
 
   test 'POST creates a submitter message and enqueues notify_curators' do

@@ -25,7 +25,10 @@ Rails.application.routes.draw do
     resources :submission_requests, only: %i[index show create] do
       resource  :status,          only: :show
       resource  :submission,      only: :create
-      resources :messages,        only: %i[index create]
+      resources :messages, only: %i[index create] do
+        # Reading the thread does not discharge it; saying so does.
+        post :read, on: :collection
+      end
       resource  :reviewer_access, only: %i[show create destroy]
 
       # A closure is a thing that exists or does not, so creating and
