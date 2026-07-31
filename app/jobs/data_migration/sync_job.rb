@@ -132,6 +132,21 @@ module DataMigration
       ActiveRecord::ConnectionNotEstablished
     ].freeze
 
+    # What an unreachable object store looks like from in here. When
+    # kamal-proxy has no container to route to it answers 404 for
+    # everything, and ActiveStorage surfaces that as NotFound — the same
+    # error a genuinely missing blob raises. Reading it the obvious way
+    # ("the blob is gone") is what cost two weeks in June 2026, so the
+    # log says which reading to try first.
+    #
+    # StorageHealthcheckJob is what should catch this before an importer
+    # does; this is for the run that started anyway.
+    STORAGE_ERRORS = [
+      Aws::S3::Errors::NotFound,
+      Aws::S3::Errors::NoSuchBucket,
+      Seahorse::Client::NetworkingError
+    ].freeze
+
     # Returns the outcome symbol (:created / :updated / :skipped /
     # :no_accession / :no_xml / :no_samples / :missing / :cross_user
     # / :failed). Row-level non-connection exceptions are absorbed so
@@ -141,8 +156,17 @@ module DataMigration
     rescue *CONNECTION_ERRORS
       raise
     rescue StandardError => e
-      @run.append_error!("[#{source_id}] #{e.class}: #{e.message}")
+      @run.append_error!("[#{source_id}] #{describe_failure(e)}")
       :failed
+    end
+
+    def describe_failure(error)
+      message = "#{error.class}: #{error.message}"
+
+      return message unless STORAGE_ERRORS.any? { error.is_a?(it) }
+
+      "#{message} — this usually means object storage is unreachable rather than that " \
+        'a blob is missing. Check the SeaweedFS accessory before the record.'
     end
 
     def staging_client_class

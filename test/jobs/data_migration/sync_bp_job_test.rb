@@ -105,6 +105,29 @@ class DataMigration::SyncBpJobTest < ActiveJob::TestCase
     assert_match(/\[PSUB001\] RuntimeError: boom/, run.error_log)
   end
 
+  # An unreachable object store answers 404 for everything, so
+  # ActiveStorage raises the same NotFound a genuinely missing blob does.
+  # Left to read as "the blob is gone", that cost two weeks in June 2026 —
+  # the log now says which reading to try first.
+  test 'a storage failure says storage, not missing blob' do
+    fake = FakeStagingClient.new([make_row('PSUB001')])
+
+    run = MigrationRun.create!(db: 'bioproject')
+
+    not_found = Aws::S3::Errors::NotFound.new(nil, 'Not Found')
+
+    BioProject::StagingClient.stub(:new, fake) do
+      BioProject::Importer.stub(:new, ->(**) { raise not_found }) do
+        DataMigration::SyncBpJob.perform_now(run.id)
+      end
+    end
+
+    run.reload
+
+    assert_match(/object storage is unreachable/, run.error_log)
+    assert_match(/SeaweedFS/, run.error_log)
+  end
+
   test 'already-completed run is a no-op on re-perform (no double-counting)' do
     rows = [make_row('PSUB001', accession: 'PRJDB901')]
     fake = FakeStagingClient.new(rows)

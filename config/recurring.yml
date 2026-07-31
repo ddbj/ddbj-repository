@@ -1,4 +1,12 @@
 production: &production
+  # Is the object store there? Nothing else asks unless it happens to
+  # need a blob, and the two times SeaweedFS died it was days or weeks
+  # before something did — see StorageHealthcheckJob. Hourly, because the
+  # cost of asking is one HEAD and the cost of not asking was a fortnight.
+  storage_healthcheck:
+    class: StorageHealthcheckJob
+    schedule: every hour
+
   load_taxdump:
     class: LoadTaxdumpJob
     schedule: at 6am every day
