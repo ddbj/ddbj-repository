@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_064737) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_071010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -310,7 +310,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_064737) do
     t.string "api_key", null: false
     t.datetime "created_at", null: false
     t.string "email"
+    t.datetime "last_signed_in_at"
     t.text "notes", default: "", null: false
+    t.datetime "notes_updated_at"
+    t.bigint "notes_updated_by_id"
     t.string "uid", null: false
     t.datetime "updated_at", null: false
     t.index ["api_key"], name: "index_users_on_api_key", unique: true
@@ -365,5 +368,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_064737) do
   add_foreign_key "submission_updates", "submissions"
   add_foreign_key "submissions", "submission_updates", column: "cached_at_update_id", on_delete: :nullify
   add_foreign_key "submissions", "users"
+  add_foreign_key "users", "users", column: "notes_updated_by_id"
   add_foreign_key "validation_details", "validations"
 end

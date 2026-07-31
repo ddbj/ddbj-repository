@@ -10,65 +10,120 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     sign_in_as users(:bob)
   end
 
-  test 'index lists active users with profile fetched from cloakman' do
+  # --- segments ------------------------------------------------------------
+
+  test 'index defaults to submitters who have submitted before' do
     stub_cloakman_lookup [ALICE_PROFILE]
 
     get admin_users_path
 
     assert_response :ok
-    assert_match 'alice',         response.body
-    assert_match 'Alice Liddell', response.body
+    assert_match    'alice',         response.body
+    assert_match    'Alice Liddell', response.body
+    assert_no_match(/\bbob\b/,       response.body[/<tbody>.*<\/tbody>/m].to_s, 'staff are their own segment')
   end
 
-  test 'index includes inactive users when include_inactive=1' do
-    stub_cloakman_lookup [ALICE_PROFILE, BOB_PROFILE, CAROL_PROFILE, DAVE_PROFILE]
+  test 'the staff segment answers "who is a curator" in one click' do
+    stub_cloakman_lookup [BOB_PROFILE, DAVE_PROFILE]
 
-    get admin_users_path, params: {include_inactive: '1'}
+    get admin_users_path, params: {segment: 'staff', submitted: ''}
+
+    assert_response :ok
+    assert_match    'Bob Builder', response.body
+    assert_no_match 'Alice Liddell', response.body
+  end
+
+  # The old `include_inactive` checkbox, put the way somebody would say it.
+  test 'unticking "has submitted before" widens the segment to every account' do
+    stub_cloakman_lookup [ALICE_PROFILE, CAROL_PROFILE]
+
+    get admin_users_path, params: {segment: 'submitters', submitted: ''}
 
     assert_response :ok
     assert_match 'Alice Liddell', response.body
-    assert_match 'Bob Builder',   response.body
-    assert_match 'Carol King',    response.body
+    assert_match 'Carol King',    response.body, 'carol has never submitted'
   end
 
-  test 'index filters cloakman search results to registered active users' do
+  # --- search --------------------------------------------------------------
+
+  test 'search matches a uid prefix without asking DDBJ Account' do
     stub_request(:get, 'http://cloakman.example.com/api/users')
       .with(query: {query: 'ali'})
+      .to_return(status: 200, body: [].to_json, headers: {'Content-Type' => 'application/json'})
+
+    stub_cloakman_lookup [ALICE_PROFILE]
+
+    get admin_users_path, params: {q: 'ali'}
+
+    assert_response :ok
+    assert_match 'Alice Liddell', response.body
+  end
+
+  test 'search widens to name and organization matches from DDBJ Account' do
+    stub_request(:get, 'http://cloakman.example.com/api/users')
+      .with(query: {query: 'Wonderland'})
       .to_return(
         status:  200,
         body:    [
           ALICE_PROFILE,
-          {uid: 'alicia', full_name: 'Alicia Keys', email: 'alicia@example.com', organization: 'Music', account_type_number: 'general'}
+          # Known to DDBJ Account but never registered here — it has no
+          # submissions and no page to open, so it is not a result.
+          {uid: 'alicia', full_name: 'Alicia Keys', email: 'alicia@example.com', organization: 'Wonderland', account_type_number: 'general'}
         ].to_json,
         headers: {'Content-Type' => 'application/json'}
       )
 
-    get admin_users_path, params: {query: 'ali'}
+    stub_cloakman_lookup [ALICE_PROFILE]
+
+    get admin_users_path, params: {q: 'Wonderland'}
 
     assert_response :ok
     assert_match    'Alice Liddell', response.body
     assert_no_match 'Alicia Keys',   response.body
   end
 
-  test 'show returns the user profile combined with the admin flag and counts' do
-    stub_cloakman_lookup [ALICE_PROFILE]
+  # The old code searched DDBJ Account and then intersected the result with
+  # the first 100 uids in alphabetical order, so anyone past that point was
+  # unfindable — and nothing on the screen said so.
+  test 'search finds an account that falls outside the first page' do
+    zed = User.create!(uid: 'zed', api_key: 'test_api_key_zed')
+    request = SubmissionRequest.new(user: zed, db: 'st26')
+    attach_ddbj_record(request)
+    request.save!
+
+    stub_request(:get, 'http://cloakman.example.com/api/users')
+      .with(query: {query: 'zed'})
+      .to_return(status: 200, body: [].to_json, headers: {'Content-Type' => 'application/json'})
+
+    stub_cloakman_lookup [], uids: %w[zed]
+
+    get admin_users_path, params: {q: 'zed'}
+
+    assert_response :ok
+    assert_match 'zed', response.body
+  end
+
+  # --- when DDBJ Account does not answer -----------------------------------
+
+  test 'a row whose profile cannot be fetched is shown, not dropped' do
+    stub_cloakman_lookup [], uids: %w[alice]
+
+    get admin_users_path
+
+    assert_response :ok
+    assert_match 'alice',                 response.body
+    assert_match 'Profile unavailable',   response.body
+    assert_match 'alice@example.com',     response.body, 'the local copy of the address still helps'
+    assert_match '(local copy)',          response.body
+  end
+
+  test 'show renders without a profile rather than 404-ing' do
+    stub_cloakman_lookup [], uids: %w[alice]
 
     get admin_user_path(uid: 'alice')
 
     assert_response :ok
-    assert_match 'Alice Liddell', response.body
-    assert_match 'Wonderland',    response.body
-  end
-
-  # The request is the single curation unit, so the activity section offers
-  # exactly one destination — a second card pointing at the same list read
-  # as two different views.
-  test 'show offers a single link to the request list' do
-    stub_cloakman_lookup [ALICE_PROFILE]
-
-    get admin_user_path(uid: 'alice')
-
-    assert_select %(a[href="#{admin_submission_requests_path(user: 'alice')}"]), count: 1
+    assert_match 'Profile unavailable', response.body
   end
 
   test 'show returns 404 when the user is not registered locally' do
@@ -78,6 +133,47 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
   end
+
+  # --- detail --------------------------------------------------------------
+
+  test 'show combines the profile with what this system knows' do
+    stub_cloakman_lookup [ALICE_PROFILE]
+
+    get admin_user_path(uid: 'alice')
+
+    assert_response :ok
+    assert_match 'Alice Liddell', response.body
+    assert_match 'Wonderland',    response.body
+    assert_match 'Submitter',     response.body
+    assert_match 'DDBJ Account',  response.body
+  end
+
+  # The card used to be a count pointing at the ledger, so "how is this
+  # person doing" always cost a detour.
+  test 'show lists the recent requests rather than only counting them' do
+    stub_cloakman_lookup [ALICE_PROFILE]
+
+    get admin_user_path(uid: 'alice')
+
+    assert_response :ok
+
+    users(:alice).submission_requests.each do |request|
+      assert_match admin_submission_request_path(request), response.body
+    end
+  end
+
+  test 'show explains what a proxy session does before offering it' do
+    stub_cloakman_lookup [ALICE_PROFILE]
+
+    get admin_user_path(uid: 'alice')
+
+    assert_response :ok
+    assert_match 'Start proxy session',            response.body
+    assert_match 'proxy action by you',            response.body
+    assert_match admin_user_proxy_login_path(user_uid: 'alice'), response.body
+  end
+
+  # --- notes ---------------------------------------------------------------
 
   test 'show includes the persisted notes' do
     users(:alice).update!(notes: 'Existing note')
@@ -90,15 +186,28 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_match 'Existing note', response.body
   end
 
-  test 'update persists notes and redirects with a flash message' do
+  # Several curators share the field, so an unattributed note is one
+  # nobody can act on.
+  test 'saving notes records who wrote them and when' do
     stub_cloakman_lookup [ALICE_PROFILE]
 
     patch admin_user_path(uid: 'alice'), params: {user: {notes: 'Be careful with this account.'}}
 
     assert_redirected_to admin_user_path(uid: 'alice')
-    assert_equal 'Notes saved.',                  flash[:notice]
-    assert_equal 'Be careful with this account.', users(:alice).reload.notes
+    assert_equal 'Notes saved.', flash[:notice]
+
+    alice = users(:alice).reload
+
+    assert_equal 'Be careful with this account.', alice.notes
+    assert_equal users(:bob),                     alice.notes_updated_by
+    assert_not_nil alice.notes_updated_at
+
+    get admin_user_path(uid: 'alice')
+
+    assert_match 'Last edited by bob', response.body
   end
+
+  # --- authorisation -------------------------------------------------------
 
   test 'update returns 403 for non-admin users' do
     sign_in_as users(:carol)
@@ -108,16 +217,6 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :forbidden
-  end
-
-  test 'show returns 404 when cloakman has no matching profile' do
-    stub_cloakman_lookup [], uids: %w[alice]
-
-    with_exceptions_app do
-      get admin_user_path(uid: 'alice')
-    end
-
-    assert_response :not_found
   end
 
   test 'index returns 403 for non-admin users' do

@@ -8,8 +8,24 @@ class User < ApplicationRecord
   has_many :submissions
   has_many :submission_updates, through: :submissions, source: :updates
 
+  belongs_to :notes_updated_by, class_name: 'User', optional: true
+
   scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }
   scope :staff,                    -> { where(admin: true) }
+  scope :submitters,               -> { where(admin: false) }
+
+  # Prefix on the uid — the identifier a curator is most often holding.
+  # Name and organization are not ours to search: DDBJ Account holds them,
+  # and CloakmanClient#search is what covers them.
+  scope :uid_matching, ->(prefix) {
+    where('uid ILIKE ?', "#{sanitize_sql_like(prefix)}%")
+  }
+
+  # Notes are shared between curators, so who wrote them last is part of
+  # the content. Written together for the same reason.
+  def update_notes!(body, by:)
+    update!(notes: body.to_s, notes_updated_by: by, notes_updated_at: Time.current)
+  end
 
   before_create do |user|
     user.api_key ||= self.class.generate_api_key

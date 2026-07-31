@@ -5,57 +5,158 @@
   {label: @user.uid}
 ] %>
 
-<h1 class="display-6 mb-4"><%= @user.uid %></h1>
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+  <div>
+    <h1 class="display-6 mb-1"><%= @user.uid %></h1>
 
-<dl class="row">
-  <dt class="col-sm-3">Name</dt>
-  <dd class="col-sm-9"><%= @profile['full_name'] %></dd>
-
-  <dt class="col-sm-3">Email</dt>
-  <dd class="col-sm-9"><%= @profile['email'] %></dd>
-
-  <dt class="col-sm-3">Organization</dt>
-  <dd class="col-sm-9"><%= @profile['organization'] %></dd>
-
-  <dt class="col-sm-3">Account type</dt>
-  <dd class="col-sm-9"><%= @profile['account_type_number'] %></dd>
-
-  <dt class="col-sm-3">Admin</dt>
-  <dd class="col-sm-9">
-    <% if @user.admin? %>
-      <span class="badge text-bg-success">Yes</span>
-    <% else %>
-      <span class="badge text-bg-secondary">No</span>
-    <% end %>
-  </dd>
-</dl>
-
-<h2 class="h5 mt-4">Activity</h2>
-
-<%# The request is the single curation unit, so there is one list to go to.
-    The applied count rides along as a caption rather than a second card
-    pointing at the same place. %>
-<div class="row g-3 mb-4">
-  <div class="col-md-6">
-    <%= link_to admin_submission_requests_path(user: @user.uid), class: 'card text-decoration-none h-100' do %>
-      <div class="card-body">
-        <h3 class="card-title h6">Submission requests (<%= @counts[:requests][@user.id] %>)</h3>
-        <p class="card-text text-body-secondary mb-0">
-          <%= @counts[:submissions][@user.id] %> of them carry an applied submission.
-        </p>
-      </div>
-    <% end %>
+    <p class="text-body-secondary mb-0">
+      <% if @profile %>
+        <%= [@profile['full_name'], @profile['organization'], @profile['email']].compact_blank.join(' · ') %>
+      <% else %>
+        <span class="fst-italic">Profile unavailable — DDBJ Account did not answer</span>
+        <% if @user.email.present? %>
+          · <%= @user.email %> <span class="small">(local copy)</span>
+        <% end %>
+      <% end %>
+    </p>
   </div>
+
+  <%= link_to "#{pluralize(@counts[:requests][@user.id], 'submission request')} →",
+              admin_submission_requests_path(q: @user.uid),
+              class: 'btn btn-outline-secondary' %>
 </div>
 
-<h2 class="h5 mt-4">Notes</h2>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <%# The old screen offered a card saying "Submission requests (14)" and %>
+    <%# nothing else, so answering "how is this person doing" always meant %>
+    <%# a detour through the ledger. Three rows answer it here. %>
+    <section class="card mb-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-baseline gap-2 flex-wrap mb-2">
+          <h2 class="h6 card-title mb-0">Recent requests</h2>
+          <span class="small text-body-secondary">
+            <%= @counts[:requests][@user.id] %> total ·
+            <%= @counts[:submissions][@user.id] %> applied ·
+            <%= link_to 'see all', admin_submission_requests_path(q: @user.uid) %>
+          </span>
+        </div>
+      </div>
 
-<%= form_with model: @user, url: admin_user_path(uid: @user.uid), method: :patch, local: true, class: 'mb-4' do |f| %>
-  <%= f.label :notes, class: 'visually-hidden' %>
-  <%= f.text_area :notes, rows: 6, class: 'form-control mb-2', placeholder: 'Share context with other administrators (e.g. past correspondence).' %>
-  <%= f.submit 'Save', class: 'btn btn-primary' %>
-<% end %>
+      <% if @recent.empty? %>
+        <div class="card-body border-top pt-3">
+          <p class="small text-body-secondary fst-italic mb-0">This account has never submitted.</p>
+        </div>
+      <% else %>
+        <div class="list-group list-group-flush border-top">
+          <% @recent.each do |request| %>
+            <% submission = request.submission %>
+            <div class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+              <%= link_to "##{request.id}", admin_submission_request_path(request), class: 'fw-semibold text-nowrap' %>
+              <span class="badge text-bg-light border"><%= db_label(request.db) %></span>
+              <code class="small text-body-secondary"><%= submission&.source_id || '—' %></code>
 
-<h2 class="h5 mt-4">Proxy login</h2>
+              <span class="flex-fill small">
+                <%= request_state_display(request, submission, @sample_aggregates) %>
+              </span>
 
-<%= button_to "Proxy login as #{@user.uid}", admin_user_proxy_login_path(user_uid: @user.uid), method: :post, class: 'btn btn-outline-primary', data: {turbo: false} %>
+              <span class="small text-body-secondary text-nowrap"><%= elapsed_label(request.updated_at) %> ago</span>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+
+    <section class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-baseline gap-2 flex-wrap mb-2">
+          <h2 class="h6 card-title mb-0">Internal notes</h2>
+          <span class="small text-body-tertiary">Visible to curators only · not to the submitter</span>
+        </div>
+
+        <p class="small text-body-secondary">
+          Context other curators should know — past correspondence, agreements,
+          quirks of this group's data.
+        </p>
+
+        <%= form_with model: @user, url: admin_user_path(uid: @user.uid), method: :patch, local: true do |f| %>
+          <%= f.label :notes, class: 'visually-hidden' %>
+          <%= f.text_area :notes, rows: 6, class: 'form-control mb-2' %>
+
+          <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <%# A field several curators write to is only worth trusting if %>
+            <%# it says who wrote it. One column's worth of provenance is %>
+            <%# the difference between a shared note and a rumour. %>
+            <span class="small text-body-secondary">
+              <% if @user.notes_updated_at %>
+                Last edited by <%= @user.notes_updated_by&.uid || 'unknown' %>
+                · <%= l @user.notes_updated_at.to_date %>
+              <% else %>
+                Never edited.
+              <% end %>
+            </span>
+
+            <%= f.submit 'Save notes', class: 'btn btn-primary btn-sm' %>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-5">
+    <%# Sourced, so it is obvious which of these a curator could change and %>
+    <%# which belong to DDBJ Account. They used to sit in one `dl` with the %>
+    <%# local admin flag, which made all of them look editable. %>
+    <section class="card mb-4">
+      <div class="card-body">
+        <h2 class="h6 card-title">Account</h2>
+
+        <dl class="row mb-2 small">
+          <dt class="col-5 fw-normal text-body-secondary">Role here</dt>
+          <dd class="col-7"><%= @user.admin? ? 'Curator' : 'Submitter' %></dd>
+
+          <dt class="col-5 fw-normal text-body-secondary">Account type</dt>
+          <dd class="col-7"><%= @profile&.dig('account_type_number')&.to_s&.humanize.presence || '—' %></dd>
+
+          <dt class="col-5 fw-normal text-body-secondary">Registered</dt>
+          <dd class="col-7"><%= l @user.created_at.to_date %></dd>
+
+          <dt class="col-5 fw-normal text-body-secondary">Last sign-in</dt>
+          <dd class="col-7">
+            <%= @user.last_signed_in_at ? l(@user.last_signed_in_at.to_date) : 'No sign-in recorded' %>
+          </dd>
+
+          <dt class="col-5 fw-normal text-body-secondary">Profile source</dt>
+          <dd class="col-7">DDBJ Account</dd>
+        </dl>
+
+        <p class="small text-body-tertiary mb-0">
+          Name, organization and account type are held by DDBJ Account and cannot be edited here.
+        </p>
+      </div>
+    </section>
+
+    <%# Not a button at the bottom of the page. Acting as somebody else %>
+    <%# writes to their record under their name, so what happens is said %>
+    <%# before it is offered, in the colour the proxy banner uses. %>
+    <section class="card border-warning-subtle">
+      <div class="card-body">
+        <span class="badge text-bg-warning mb-2">PROXY</span>
+
+        <h2 class="h6 card-title">Open the submitter view as this user</h2>
+
+        <p class="small text-body-secondary">
+          You see exactly what <%= @user.uid %> sees. Anything you do is recorded as a
+          proxy action by you, including messages. End the session from the banner at
+          the top.
+        </p>
+
+        <%= button_to 'Start proxy session',
+                      admin_user_proxy_login_path(user_uid: @user.uid),
+                      method: :post,
+                      class:  'btn btn-warning',
+                      data:   {turbo: false} %>
+      </div>
+    </section>
+  </div>
+</div>

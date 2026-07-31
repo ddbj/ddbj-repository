@@ -13,7 +13,12 @@ class SessionsController < ApplicationController
     # if this token carries none rather than blanking a known address.
     user.update!(
       admin: auth.dig('extra', 'raw_info', 'account_type_number') == ADMIN_ACCOUNT_TYPE,
-      email: auth.dig('info', 'email').presence || user.email
+      email: auth.dig('info', 'email').presence || user.email,
+
+      # Separates an account imported from D-way that nobody has ever used
+      # from one whose owner was here last week — which is what a curator
+      # is asking when they wonder whether an address is worth mailing.
+      last_signed_in_at: Time.current
     )
 
     origin = request.env['omniauth.origin']
