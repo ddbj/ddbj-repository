@@ -61,14 +61,12 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   end
 
   test 'index assignee multi-select ORs "unassigned" and a specific user' do
-    # A second admin widens the assignee universe so {0, bob} is a proper
-    # subset — otherwise picking both would be "everything selected" and
-    # the filter would (correctly) skip.
-    User.create!(uid: 'dave', api_key: 'test_api_key_dave', admin: true)
-
+    # users(:dave) is the second admin, so {0, bob} is a proper subset of
+    # the universe — otherwise picking both would be "everything selected"
+    # and the filter would (correctly) skip.
     submissions(:bioproject).request.assign!(users(:bob))
     submissions(:biosample).request.assign!(nil)
-    submissions(:st26).request.assign!(User.find_by(uid: 'dave'))
+    submissions(:st26).request.assign!(users(:dave))
 
     get admin_submission_requests_path, params: {assignee: ['0', users(:bob).id.to_s]}
 

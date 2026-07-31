@@ -22,19 +22,16 @@
 
         <% if current_user %>
           <ul class="navbar-nav me-auto">
-            <%= render 'layouts/admin_nav_item',
-                       label:  'Needs action',
-                       path:   admin_root_path,
-                       active: controller_path == 'admin/needs_action',
-                       badge:  needs_action_count,
-                       badge_class: needs_action_count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>
-
+            <%# Four items, one axis each: my work, the ledger, the %>
+            <%# migration, the tools. "Needs action" used to sit in front %>
+            <%# of My queue holding the same requests under a different %>
+            <%# question; the two are now one screen. %>
             <%= render 'layouts/admin_nav_item',
                        label:  'My queue',
                        path:   admin_my_queue_path,
                        active: controller_path == 'admin/my_queue',
                        badge:  my_queue_count,
-                       badge_class: 'text-bg-secondary' %>
+                       badge_class: my_queue_count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>
 
             <%= render 'layouts/admin_nav_item',
                        label:  'All requests',

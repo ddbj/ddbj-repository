@@ -4,6 +4,7 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
   ALICE_PROFILE = {uid: 'alice', full_name: 'Alice Liddell', email: 'alice@example.com', organization: 'Wonderland',   account_type_number: 'general'}.freeze
   BOB_PROFILE   = {uid: 'bob',   full_name: 'Bob Builder',   email: 'bob@example.com',   organization: 'Construction', account_type_number: 'general'}.freeze
   CAROL_PROFILE = {uid: 'carol', full_name: 'Carol King',    email: 'carol@example.com', organization: 'Music',        account_type_number: 'general'}.freeze
+  DAVE_PROFILE  = {uid: 'dave',  full_name: 'Dave Curator',  email: 'dave@example.com',  organization: 'DDBJ',         account_type_number: 'general'}.freeze
 
   setup do
     sign_in_as users(:bob)
@@ -20,7 +21,7 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
   end
 
   test 'index includes inactive users when include_inactive=1' do
-    stub_cloakman_lookup [ALICE_PROFILE, BOB_PROFILE, CAROL_PROFILE]
+    stub_cloakman_lookup [ALICE_PROFILE, BOB_PROFILE, CAROL_PROFILE, DAVE_PROFILE]
 
     get admin_users_path, params: {include_inactive: '1'}
 

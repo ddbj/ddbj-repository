@@ -47,7 +47,7 @@ Rails.application.routes.draw do
   namespace :admin do
     # The landing screen is the work queue, not a directory of features —
     # everything else in the nav is reachable from here.
-    root to: 'needs_action#show'
+    root to: 'my_queue#show'
 
     resource :my_queue, only: %i[show], controller: 'my_queue'
 

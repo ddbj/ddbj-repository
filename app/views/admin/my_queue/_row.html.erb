@@ -1,7 +1,8 @@
-<%# locals: (request:, action:) %>
-<%# One queue row. The middle column and the button both vary by bucket, %>
-<%# because "what you need to know" and "what you would do" are different %>
-<%# per reason — a message needs its text, an issuance needs its count. %>
+<%# locals: (row:, section:) %>
+<%# One queue row. Exactly one reason and exactly one button: the row %>
+<%# exists so a curator can act without first deciding what kind of thing %>
+<%# they are looking at. Which of the two it is comes from MyQueue::Row. %>
+<% request = row.request %>
 <div class="list-group-item d-flex align-items-center gap-3 flex-wrap">
   <%= link_to "##{request.id}", admin_submission_request_path(request), class: 'fw-semibold text-nowrap' %>
 
@@ -9,24 +10,17 @@
 
   <span class="small text-body-secondary text-nowrap">
     <code><%= request.submission&.source_id || '—' %></code> · <%= request.user.uid %>
-  </span>
-
-  <span class="flex-fill small text-body-secondary">
-    <% case action %>
-    <% when :check_job %>
-      <span class="text-warning-emphasis fw-semibold"><%= request.status.tr('_', ' ').capitalize %></span>
-    <% when :reply %>
-      <% if (message = @excerpts[request.id]) %>
-        <span class="fst-italic">“<%= truncate(message.body, length: 90) %>”</span>
-      <% end %>
-    <% when :issue %>
-      <% pending, total = @issuable[request.submission_id] %>
-      <% if pending %>
-        <%= "#{number_with_delimiter(pending)} of #{number_with_delimiter(total)} " \
-            "#{request.submission.curation_row_noun.pluralize(total)} pending" %>
-      <% end %>
+    <%# Who holds it, but only where that is the surprising part: in %>
+    <%# "I'm involved" the assignment is somebody else's, and in %>
+    <%# "Unclaimed" the absence of a submission is why nobody has it. %>
+    <% if section.key == :involved && request.assignee %>
+      · assignee <%= request.assignee.uid %>
+    <% elsif section.key == :unclaimed && request.submission.nil? %>
+      · not applied yet
     <% end %>
   </span>
+
+  <span class="flex-fill small text-body-secondary"><%= row.reason %></span>
 
   <%# Elapsed, not a timestamp: everything in a queue is waiting, so the %>
   <%# only question is how long — and a stale row has to be visible in a %>
@@ -35,17 +29,20 @@
     <%= elapsed_label(request.updated_at) %>
   </span>
 
-  <% case action %>
-  <% when :check_job %>
-    <%= link_to 'Check job', admin_mission_control_jobs_path, class: 'btn btn-outline-secondary btn-sm' %>
-  <% when :reply %>
+  <% if row.action == :reply %>
     <%= link_to 'Reply', messages_admin_submission_request_path(request), class: 'btn btn-outline-secondary btn-sm' %>
-  <% when :issue %>
+  <% else %>
     <%# Posts straight from the queue: work that can be finished without %>
     <%# opening the request should not require opening the request. %>
     <%= button_to 'Issue', admin_submission_accession_path(request.submission),
                   method: :post,
                   class:  'btn btn-outline-secondary btn-sm',
                   form:   {data: {turbo_confirm: "Issue accessions for ##{request.id}?"}} %>
+  <% end %>
+
+  <% if section.key == :unclaimed %>
+    <%= button_to 'Assign to me', admin_submission_request_assignment_path(request),
+                  method: :post,
+                  class:  'btn btn-primary btn-sm' %>
   <% end %>
 </div>

@@ -1,9 +1,8 @@
-<%# locals: (requests:, sample_aggregates:, pagy:, return_to:, filter_params: {}, empty_message: 'No requests found.') %>
-<%# The request table plus its cross-request bulk actions. Shared by All %>
-<%# requests, My queue and every Needs action bucket so a curator can act %>
-<%# on a queue without first navigating to the unfiltered list. %>
-<%# `return_to` names the screen the bulk POST should land back on — a %>
-<%# fixed key, resolved server-side, never a URL from the client. %>
+<%# locals: (requests:, sample_aggregates:, pagy:, filter_params: {}, empty_message: 'No requests found.') %>
+<%# The request table plus its cross-request bulk actions — the ledger's %>
+<%# working surface. My queue renders rows of its own instead: a queue %>
+<%# offers one action per row, which is a different thing from selecting %>
+<%# a set and acting on it. %>
 <%# POST, not PATCH: a PATCH form emits a hidden `_method` field, and %>
 <%# Rack::MethodOverride applies it to EVERY submit — including the %>
 <%# accession button's `formaction`, whose route is POST-only, which %>
@@ -13,8 +12,6 @@
               scope:  :bulk,
               local:  true,
               data:   {controller: 'bulk-select'} do |f| %>
-  <%= f.hidden_field :return_to, value: return_to %>
-
   <table class="table border align-middle">
     <thead class="table-light">
       <tr>

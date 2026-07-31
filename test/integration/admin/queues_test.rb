@@ -1,26 +1,28 @@
 require 'test_helper'
 
-# Needs action is a queue, not a filtered list: every bucket at once, each
-# carrying the rule that put a request in it, oldest first, with the next
-# move on the row.
+# My queue is the landing screen: everything waiting on a curator, split
+# by that curator's relationship to it, oldest first, with the next move
+# on the row.
 class AdminQueuesTest < ActionDispatch::IntegrationTest
   setup do
     sign_in_as users(:bob)
   end
 
-  test 'the admin root shows every bucket with its criterion' do
+  test 'the admin root shows every section with its criterion' do
     get admin_root_path
 
     assert_response :ok
-    assert_match 'Needs action',                  response.body
-    assert_match 'Stuck in the pipeline',         response.body
-    assert_match 'Unread submitter messages',     response.body
-    assert_match 'Ready for accession issuance',  response.body
+    assert_match 'My queue',         response.body
+    assert_match 'Assigned to me',   response.body
+    assert_match 'I&#39;m involved', response.body
+    assert_match 'Unclaimed',        response.body
 
-    # The rule, next to the bucket — so the queue's meaning is on screen
-    # rather than in a remembered filter combination.
-    assert_match 'A background job should have finished by now', response.body
-    assert_match 'no curator has opened the thread since',       response.body
+    # The rule, next to the section — the difference between "assigned"
+    # and "involved" is the whole design, so it is written down rather
+    # than left to be inferred.
+    assert_match 'assignment only changes when someone changes it', response.body
+    assert_match 'You replied or edited here',                      response.body
+    assert_match 'every curator sees this section identically',     response.body
   end
 
   # The queue is what a curator owes somebody. A request whose next move is
@@ -31,7 +33,7 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
     ready  = build_request(status: :ready_to_apply)
     broken = build_request(status: :validation_failed)
 
-    assert_equal 0, CurationQueue.count
+    assert_equal 0, MyQueue.new(users(:bob)).count
 
     get admin_root_path
 
@@ -40,123 +42,85 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
     assert_no_match(/##{broken.id}\b/, response.body)
   end
 
-  test 'a request our own pipeline dropped is in the queue' do
-    stuck = build_request(status: :application_failed)
+  # A dead background job is reported to Sentry and listed under
+  # /admin/jobs. A curator reading a queue cannot fix it, and having it
+  # here only taught them to scroll past a section.
+  test 'a request our own pipeline dropped is not in the curator queue' do
+    dropped = build_request(status: :application_failed)
 
     get admin_root_path
 
     assert_response :ok
-    assert_match "##{stuck.id}", response.body
-    assert_equal 1, CurationQueue.count
+    assert_no_match(/##{dropped.id}\b/, response.body)
   end
 
-  # A machine state says nothing by its presence, only by its persistence.
-  test 'a machine state counts only once it has stopped moving' do
-    stuck = build_request(status: :waiting_validation)
+  # --- the three sections -------------------------------------------------
 
-    assert_equal 0, CurationQueue.count, 'a request still in flight is not stuck'
-
-    stuck.update_column(:updated_at, (CurationQueue::STUCK_GRACE + 1.minute).ago)
-
-    assert_equal 1, CurationQueue.count
+  test 'a request assigned to me lands in Assigned to me with its reason' do
+    request = unread_request
+    request.assign!(users(:bob))
 
     get admin_root_path
 
     assert_response :ok
-    assert_match "##{stuck.id}", response.body
-    assert_match 'Check job',    response.body
+    assert_match(/##{request.id}\b/, response.body)
+    assert_match '1 unread message', response.body
+    assert_match messages_admin_submission_request_path(request), response.body
   end
 
-  test 'the unread-messages bucket quotes the submitter and offers a reply' do
-    waiting = submission_requests(:biosample)
-    waiting.messages.create!(user: users(:alice), author_role: 'submitter', body: 'still waiting on this')
+  # The point of participation: replying keeps a request in your queue
+  # without taking it away from whoever owns it.
+  test 'a request I replied on but someone else owns lands in I am involved' do
+    request = unread_request
+    request.assign!(users(:dave))
+    request.participate!(users(:bob))
 
     get admin_root_path
 
     assert_response :ok
-    assert_match "##{waiting.id}",                                response.body
-    assert_match 'still waiting on this',                         response.body
-    assert_match messages_admin_submission_request_path(waiting), response.body
+    assert_match(/##{request.id}\b/, response.body)
+    assert_match 'assignee dave',    response.body
   end
 
-  # Work that can be finished without opening the request should not
-  # require opening the request.
-  test 'the accession bucket counts what is pending and offers to issue it' do
-    projects(:primary).update!(accession: nil, status: 'curating')
+  test 'a request nobody owns or has touched lands in Unclaimed with a claim button' do
+    request = unread_request
 
     get admin_root_path
 
     assert_response :ok
-    assert_match "##{submission_requests(:bioproject).id}",                     response.body
-    assert_match '1 of 1 project pending',                                      response.body
-    assert_match admin_submission_accession_path(submissions(:bioproject)),     response.body
+    assert_match(/##{request.id}\b/, response.body)
+    assert_match admin_submission_request_assignment_path(request), response.body
   end
 
-  test 'an empty bucket says so rather than disappearing' do
+  # Somebody else's work is not this curator's queue.
+  test 'a request assigned to another curator I have not touched is in no section' do
+    request = unread_request
+    request.assign!(users(:dave))
+
     get admin_root_path
 
     assert_response :ok
-    assert_match 'Nothing here.', response.body
+    assert_no_match(/##{request.id}\b/, response.body)
   end
 
-  test 'the nav badge counts each request once across buckets' do
-    projects(:primary).update!(accession: nil, status: 'curating')
-    submission_requests(:bioproject).messages.create!(user: users(:alice), author_role: 'submitter', body: 'hi')
+  # --- the badge ----------------------------------------------------------
 
-    assert_equal 1, CurationQueue.count, 'a request in two buckets must be counted once'
+  test 'the nav badge counts each request once' do
+    request = unread_request
+    request.assign!(users(:bob))
+    request.participate!(users(:bob))
+
+    assert_equal 1, MyQueue.new(users(:bob)).count, 'assigned + involved must not double-count'
   end
 
-  # Mine only filters the same queue rather than opening a different
-  # screen, so a curator can look up from their own work and back.
-  test 'Mine only narrows the queue to the curator own rows' do
-    projects(:primary).update!(accession: nil, status: 'curating')
-    submission_requests(:bioproject).assign!(users(:bob))
-    samples(:first).update!(accession: nil, status: 'curating')
-    samples(:second).update!(accession: nil, status: 'curating')
-
+  test 'my queue says so when nothing is waiting' do
     get admin_root_path
 
-    assert_match "##{submission_requests(:biosample).id}", response.body
-
-    get admin_root_path(mine: 1)
-
     assert_response :ok
-    assert_match    "##{submission_requests(:bioproject).id}",                  response.body
-    assert_no_match(/##{submission_requests(:biosample).id}\b/,                 response.body)
+    assert_match 'Nothing is waiting on a curator right now.', response.body
   end
 
-  test 'my queue lists only requests assigned to me' do
-    submission_requests(:bioproject).assign!(users(:bob))
-
-    get admin_my_queue_path
-
-    assert_response :ok
-    assert_match    "##{submission_requests(:bioproject).id}", response.body
-    assert_no_match(/##{submission_requests(:biosample).id}\b/, response.body)
-  end
-
-  test 'my queue is empty when nothing is assigned' do
-    get admin_my_queue_path
-
-    assert_response :ok
-    assert_match 'Nothing is assigned to you.', response.body
-  end
-
-  test 'a bulk action started from a queue returns to that queue' do
-    post bulk_update_admin_submissions_path,
-         params: {bulk: {return_to: 'my_queue', submission_ids: [submissions(:bioproject).id.to_s], status: 'curating'}}
-
-    assert_redirected_to admin_my_queue_path
-  end
-
-  test 'a bulk action started from Needs action keeps the queue scope' do
-    post bulk_update_admin_submissions_path(mine: 1),
-         params: {bulk: {return_to: 'needs_action', submission_ids: [submissions(:bioproject).id.to_s], status: 'curating'}}
-
-    assert_redirected_to admin_root_path(mine: 1)
-  end
-
-  test 'the queues require admin auth' do
+  test 'the queue requires admin auth' do
     sign_in_as users(:carol)
 
     with_exceptions_app do
@@ -173,5 +137,13 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
     attach_ddbj_record(request)
     request.save!
     request
+  end
+
+  # A request with something a curator can actually do about it: the
+  # submitter has written and nobody has opened the thread.
+  def unread_request
+    submission_requests(:bioproject).tap {
+      it.messages.create!(user: users(:alice), author_role: 'submitter', body: 'still waiting on this')
+    }
   end
 end

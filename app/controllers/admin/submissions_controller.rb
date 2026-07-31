@@ -252,20 +252,15 @@ module Admin
     end
 
     def bulk_cross_params
-      params.expect(bulk: [:status, :assignee_id, :return_to, {submission_ids: []}])
+      params.expect(bulk: [:status, :assignee_id, {submission_ids: []}])
     end
 
-    # Where a cross-request bulk action lands once it has run. The shared
-    # request list posts a fixed `return_to` key — never a URL — so the
-    # curator comes back to the queue they acted from with its filter or
-    # bucket selection intact, and there is no redirect target to sanitise
-    # beyond this whitelist.
+    # Where a cross-request bulk action lands once it has run: back on the
+    # ledger with its filter intact. The filter is rebuilt from the posted
+    # params rather than from a client-supplied URL, so there is no
+    # redirect target to sanitise.
     def bulk_return_path
-      case params.dig(:bulk, :return_to)
-      when 'needs_action' then admin_root_path(params.permit(:mine).to_h)
-      when 'my_queue'     then admin_my_queue_path
-      else                     admin_submission_requests_path(index_filter_params)
-      end
+      admin_submission_requests_path(index_filter_params)
     end
 
     # Carry the current index filter selection across a bulk-update

@@ -10,7 +10,7 @@ module Admin
 
     before_action :authenticate_admin!
 
-    helper_method :needs_action_count, :my_queue_count
+    helper_method :my_queue_count
 
     private
 
@@ -27,14 +27,12 @@ module Admin
       request&.participate!(current_user)
     end
 
-    # Nav badge counts. Rendered on every admin page, so both are single
-    # aggregate queries with no eager loading, memoised for the request.
-    def needs_action_count
-      @needs_action_count ||= CurationQueue.count
-    end
-
+    # Nav badge. Rendered on every admin page, so it is three aggregate
+    # queries with no eager loading, memoised for the request — the same
+    # three the screen itself runs, and the sections are disjoint so they
+    # add up without double-counting.
     def my_queue_count
-      @my_queue_count ||= SubmissionRequest.assigned_to(current_user).count
+      @my_queue_count ||= MyQueue.new(current_user).count
     end
   end
 end
