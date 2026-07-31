@@ -138,13 +138,15 @@
 // is what stops a long paste pushing the submit button off the screen —
 // past it the field scrolls, as it always did.
 //
-// Qualified with `textarea` because Bootstrap sets
-// `textarea.form-control { min-height: ... }` — an element-plus-class
-// selector, which outranks a bare class. Without the element here the
-// min-height silently loses and an empty box collapses to one line,
-// which is worse than the `rows` this replaced.
-textarea.textarea-autogrow,
-textarea.textarea-autogrow-tall {
+// Qualified with BOTH the element and `.form-control` because Bootstrap
+// sets `textarea.form-control { min-height: ... }`. Matching its
+// specificity is not enough — which stylesheet lands last differs between
+// the two apps (compiled into this one, injected by a JS import in web),
+// so the rule has to out-specify it rather than out-order it. Get this
+// wrong and the min-height is silently lost: an empty box collapses to
+// one line, which is worse than the `rows` this replaced.
+textarea.form-control.textarea-autogrow,
+textarea.form-control.textarea-autogrow-tall {
   field-sizing: content;
   min-height: 4lh;
   max-height: 20lh;
@@ -152,6 +154,6 @@ textarea.textarea-autogrow-tall {
 
 // The notice template is written into rather than replied in, so it opens
 // at the size of the thing being edited rather than at a composer's.
-textarea.textarea-autogrow-tall {
+textarea.form-control.textarea-autogrow-tall {
   min-height: 14lh;
 }

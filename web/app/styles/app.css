@@ -80,11 +80,14 @@ dl.horizontal {
 /* Free-text fields that start small and grow as they are written in.
    `rows` is ignored once field-sizing is on, so min-height is what keeps
    room to write; max-height stops a long reply pushing the send button
-   off screen. Browsers without it fall back to `rows`. Qualified with
-   `textarea` because Bootstrap's own `textarea.form-control` min-height
-   outranks a bare class. See the admin stylesheet — same rule, same
-   reason. */
-textarea.textarea-autogrow {
+   off screen. Browsers without it fall back to `rows`.
+
+   Qualified with both the element and `.form-control` so it out-specifies
+   Bootstrap's own `textarea.form-control { min-height }` rather than
+   relying on landing after it — here Bootstrap arrives as an inline sheet
+   from a JS import and always lands last. See the admin stylesheet: same
+   rule, same reason. */
+textarea.form-control.textarea-autogrow {
   field-sizing: content;
   min-height: 4lh;
   max-height: 20lh;
