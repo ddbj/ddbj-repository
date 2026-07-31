@@ -162,7 +162,19 @@ module BioSample
     def safe_prior_materialised(submission)
       submission.materialised_record || {}
     rescue Submission::MaterialisationFailed => e
-      Rails.error.report e, context: {submission_id: submission.id, source_id: @row.ssub_id}
+      # A poisoned patch is a fact about THIS submission, and treating
+      # its prior state as empty is how the importer heals forward.
+      #
+      # An unreachable store is not that fact. It makes every chain read
+      # as empty, and "empty" here means "write a root snapshot built
+      # from D-way" — which silently discards every curator edit the
+      # chain was carrying. A store that flaps rather than stays down
+      # then lets the upload succeed, and the run reports :updated.
+      #
+      # So it goes back up, where SyncJob stops the sweep.
+      raise if StorageFailure === e
+
+      Rails.error.report e, context: {submission_id: submission.id, source_id: @row}
       {}
     end
 

@@ -113,6 +113,26 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
                  submission.materialise_at
   end
 
+  # The self-heal above is right for a poisoned patch — a fact about this
+  # submission. It is exactly wrong for an unreachable object store,
+  # which makes EVERY chain read as empty: the importer would then write
+  # a root snapshot built from D-way over a chain that was carrying
+  # curator edits, and report it as a successful update.
+  test 'an unreachable object store is not read as an empty history' do
+    submission = build.call.submission
+    submission.update_columns(cached_at_update_id: nil, source_checksum: nil)
+
+    refused = Seahorse::Client::NetworkingError.new(SocketError.new('Connection refused'))
+
+    # The blob read is where the store is actually touched.
+    error = Oj.stub(:load, ->(*, **) { raise refused }) {
+      assert_raises(Submission::MaterialisationFailed) { build.call }
+    }
+
+    assert StorageFailure === error, 'the sweep recognises it by the cause it carries'
+    assert_equal 1, submission.reload.updates.count, 'nothing may be written over a history we cannot read'
+  end
+
   # The fast path now asks "did the source change", which is a property of
   # the converter output alone — no canonicalisation, no chain replay.
   test 'the source checksum is recorded and short-circuits an unchanged re-run' do

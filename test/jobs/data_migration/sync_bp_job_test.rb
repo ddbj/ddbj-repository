@@ -137,6 +137,40 @@ class DataMigration::SyncBpJobTest < ActiveJob::TestCase
     assert_match(/SeaweedFS/, run.error_log)
   end
 
+  # The importer does not hand the sweep a bare S3 error — a read failure
+  # arrives wrapped in MaterialisationFailed. If the sweep recognised
+  # only the bare form, an unreachable store during a chain replay would
+  # be counted as one bad row and the flood would continue.
+  test 'a storage failure wrapped by the replay still stops the sweep' do
+    fake = FakeStagingClient.new([make_row('PSUB001'), make_row('PSUB002')])
+
+    run = MigrationRun.create!(db: 'bioproject')
+
+    wrapped = begin
+      begin
+        raise Seahorse::Client::NetworkingError, SocketError.new('Connection refused')
+      rescue StandardError => e
+        raise Submission::MaterialisationFailed.new(update_id: 1, original: e)
+      end
+    rescue Submission::MaterialisationFailed => e
+      e
+    end
+
+    seen = []
+
+    BioProject::StagingClient.stub(:new, fake) do
+      BioProject::Importer.stub(:new, ->(**kwargs) {
+        seen << kwargs[:psub_id]
+        raise wrapped
+      }) do
+        assert_raises(Submission::MaterialisationFailed) { DataMigration::SyncBpJob.perform_now(run.id) }
+      end
+    end
+
+    assert_equal 1, seen.size, 'the second row must never have been attempted'
+    assert_match(/STOPPED/, run.reload.error_log)
+  end
+
   test 'already-completed run is a no-op on re-perform (no double-counting)' do
     rows = [make_row('PSUB001', accession: 'PRJDB901')]
     fake = FakeStagingClient.new(rows)

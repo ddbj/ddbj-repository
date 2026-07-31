@@ -127,29 +127,14 @@ module DataMigration
     # cursor; if the resume_limit is hit the rescue_from above marks
     # the run :failed.
     #
-    # STORAGE_ERRORS below are the same shape of problem for a different
-    # backend, and are re-raised the same way. They are kept separate
-    # only because a Postgres failure may be the primary connection, and
+    # StorageFailure is the same shape of problem for a different
+    # backend, and is re-raised the same way. It is kept separate only
+    # because a Postgres failure may be the primary connection, and
     # writing to the run to say so would fail in turn.
     CONNECTION_ERRORS = [
       PG::ConnectionBad,
       PG::UnableToSend,
       ActiveRecord::ConnectionNotEstablished
-    ].freeze
-
-    # What an unreachable object store looks like from in here. When
-    # kamal-proxy has no container to route to it answers 404 for
-    # everything, and ActiveStorage surfaces that as NotFound — the same
-    # error a genuinely missing blob raises. Reading it the obvious way
-    # ("the blob is gone") is what cost two weeks in June 2026, so the
-    # log says which reading to try first.
-    #
-    # StorageHealthcheckJob is what should catch this before an importer
-    # does; this is for the run that started anyway.
-    STORAGE_ERRORS = [
-      Aws::S3::Errors::NotFound,
-      Aws::S3::Errors::NoSuchBucket,
-      Seahorse::Client::NetworkingError
     ].freeze
 
     # Returns the outcome symbol (:created / :updated / :skipped /
@@ -160,17 +145,20 @@ module DataMigration
       run_importer(source_id)
     rescue *CONNECTION_ERRORS
       raise
-    rescue *STORAGE_ERRORS => e
+    rescue StorageFailure => e
       # A backend failure, not a row failure: every row after this one
       # fails the same way. A June 2026 sweep absorbed 15,657 of these
       # one at a time and ran to the end to reach a conclusion the first
       # row already had — leaving an error log too long to read and a
       # corpus of rows marked failed that were never actually looked at.
       #
-      # Re-raised like a connection failure, so Continuable retries from
-      # the cursor: a store that comes back within the retry window
-      # resumes where it stopped, and one that does not marks the run
-      # failed. Logged first, because the run has to say where it got to.
+      # Re-raised like a connection failure. Continuable retries once,
+      # five seconds later, from the cursor — so the first row of the
+      # resumed pass is the one that just failed, and unless the store
+      # came back inside those five seconds it raises again without
+      # advancing and `rescue_from` marks the run failed. That is the
+      # intent: a sweep the store cannot serve should stop, not grind.
+      # Logged first, because the run has to say where it got to.
       @run.append_error!("[#{source_id}] STOPPED — #{describe_failure(e)}")
 
       raise
@@ -182,7 +170,7 @@ module DataMigration
     def describe_failure(error)
       message = "#{error.class}: #{error.message}"
 
-      return message unless STORAGE_ERRORS.any? { error.is_a?(it) }
+      return message unless StorageFailure === error
 
       "#{message} — this usually means object storage is unreachable rather than that " \
         'a blob is missing. Check the SeaweedFS accessory before the record.'

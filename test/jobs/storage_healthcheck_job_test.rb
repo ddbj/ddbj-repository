@@ -18,11 +18,35 @@ class StorageHealthcheckJobTest < ActiveJob::TestCase
     reports
   end
 
-  test 'an unreachable store is reported rather than swallowed' do
+  # A service whose client is configured but whose head_bucket answers
+  # with `error` — nil for a store that is simply there.
+  def storage_answering(error)
+    client = Class.new do
+      define_method(:initialize) {|raises| @raises = raises }
+      define_method(:head_bucket) {|**| raise @raises if @raises }
+      define_method(:config) { nil }
+    end.new(error)
+
+    Struct.new(:bucket).new(Struct.new(:client, :name).new(client, 'uploads'))
+  end
+
+  def perform_against(service, &)
+    StorageHealthcheckJob.stub(:probe_client, ->(_config) { service.bucket.client }) do
+      ActiveStorage::Blob.stub(:service, service, &)
+    end
+  end
+
+  # Reported AND failed. Swallowing it would leave SolidQueue recording a
+  # successful run, so Mission Control — the view the team actually opens
+  # — would show nothing, and development has no Sentry DSN at all.
+  test 'an unreachable store is reported and fails the job' do
     refused = Seahorse::Client::NetworkingError.new(SocketError.new('Connection refused'))
+    service = storage_answering(refused)
 
     reports = capture_error_reports {
-      ActiveStorage::Blob.stub(:service, storage_answering(refused)) { StorageHealthcheckJob.perform_now }
+      perform_against(service) do
+        assert_raises(Seahorse::Client::NetworkingError) { StorageHealthcheckJob.perform_now }
+      end
     }
 
     assert reports.any? { it.is_a?(Seahorse::Client::NetworkingError) },
@@ -33,9 +57,11 @@ class StorageHealthcheckJobTest < ActiveJob::TestCase
   # kamal-proxy, which answers 404 for everything when it has no
   # container to route to — so it is a fault, not an absence.
   test 'a missing bucket is reported too' do
+    service = storage_answering(Aws::S3::Errors::NotFound.new(nil, 'Not Found'))
+
     reports = capture_error_reports {
-      ActiveStorage::Blob.stub(:service, storage_answering(Aws::S3::Errors::NotFound.new(nil, 'Not Found'))) do
-        StorageHealthcheckJob.perform_now
+      perform_against(service) do
+        assert_raises(Aws::S3::Errors::NotFound) { StorageHealthcheckJob.perform_now }
       end
     }
 
@@ -43,9 +69,9 @@ class StorageHealthcheckJobTest < ActiveJob::TestCase
   end
 
   test 'a store that answers reports nothing' do
-    reports = capture_error_reports {
-      ActiveStorage::Blob.stub(:service, storage_answering(nil)) { StorageHealthcheckJob.perform_now }
-    }
+    service = storage_answering(nil)
+
+    reports = capture_error_reports { perform_against(service) { StorageHealthcheckJob.perform_now } }
 
     assert_empty reports
   end
@@ -58,18 +84,5 @@ class StorageHealthcheckJobTest < ActiveJob::TestCase
     }
 
     assert_empty reports
-  end
-
-  private
-
-  def storage_answering(error)
-    client = Class.new do
-      define_method(:initialize) {|raises| @raises = raises }
-      define_method(:head_bucket) {|**| raise @raises if @raises }
-    end.new(error)
-
-    bucket = Struct.new(:client, :name).new(client, 'uploads')
-
-    Struct.new(:bucket).new(bucket)
   end
 end
