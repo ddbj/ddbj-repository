@@ -102,6 +102,22 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     assert_match admin_submission_accession_path(submissions(:bioproject)), response.body
   end
 
+  # What to *say* is a priority question; what a curator is *allowed to do*
+  # is not. An unread message outranks issuance in the banner, and used to
+  # take the button with it — leaving a BP request with no way to issue.
+  test 'BP overview keeps the Issue button while an unread message outranks it' do
+    projects(:primary).update!(accession: nil, status: 'curating')
+    submission_requests(:bioproject).messages.create!(
+      user: users(:alice), author_role: 'submitter', body: 'a question'
+    )
+
+    get admin_submission_request_path(submission_requests(:bioproject))
+
+    assert_response :ok
+    assert_match 'waiting for a reply',       response.body, 'the banner still leads with the message'
+    assert_match 'Issue PRJDB for 1 project', response.body, 'but the action stays available'
+  end
+
   test 'BP overview hides the Issue button when the project already has an accession' do
     projects(:primary).update!(accession: 'PRJDB000001', status: 'curating')
 

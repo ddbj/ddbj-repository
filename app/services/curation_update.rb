@@ -27,14 +27,20 @@ class CurationUpdate
     @params     = params
   end
 
+  # One save, one outcome. Wrapped in a transaction because the pieces are
+  # applied in sequence and any of them can still refuse: an invalid hold
+  # date used to surface as "could not save" *after* the comment had
+  # already been written, so the flash and the database disagreed.
   def call
-    rows    = apply_rows            # {'status' => …, 'assignee' => …} — only what actually changed
-    comment = apply_curator_comment # true when the column moved
-    hold    = apply_hold_date       # rendered fragments; already a patch, so not an event
+    Submission.transaction do
+      rows    = apply_rows            # {'status' => …, 'assignee' => …} — only what actually changed
+      comment = apply_curator_comment # true when the column moved
+      hold    = apply_hold_date       # rendered fragments; already a patch, so not an event
 
-    record_event(rows, comment)
+      record_event(rows, comment)
 
-    Result.new(changes: describe(rows, comment) + hold)
+      Result.new(changes: describe(rows, comment) + hold)
+    end
   end
 
   private
@@ -130,9 +136,18 @@ class CurationUpdate
 
     raise Refused, 'Hold date must be a valid YYYY-MM-DD date.' if raw.present? && hold_date.nil?
 
-    record = patched_record(hold_date)
-    return [] if record.nil?
+    current = submission.materialised_record
+    return [] if current.nil?
 
+    # The form posts this field on every save, so a curator who only edited
+    # the comment would otherwise pay for `append_update!` — a full chain
+    # replay plus two canonicalisation passes, under a row lock — just to
+    # produce an empty patch. On a 100K-sample record that is tens of
+    # seconds per click. Comparing against the cached snapshot first costs
+    # one blob download.
+    return [] if current.dig('submission', 'hold_date') == hold_date
+
+    record = patched_record(current, hold_date)
     update = submission.append_update!(record, actor:, source: :manual)
     submission.sync_hold_date!(record)
 
@@ -150,10 +165,7 @@ class CurationUpdate
     nil
   end
 
-  def patched_record(hold_date)
-    current = submission.materialised_record
-    return nil if current.nil?
-
+  def patched_record(current, hold_date)
     record = current.deep_dup
     block  = record['submission'] ||= {}
 

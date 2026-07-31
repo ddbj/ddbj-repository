@@ -20,13 +20,36 @@ class ReviewsTest < ActionDispatch::IntegrationTest
     assert_equal @submission_request.id, response.parsed_body['id']
   end
 
-  test 'the reviewer view never exposes messages' do
+  # The endpoint is unauthenticated, so "no messages" has to mean the
+  # conversation is invisible — not merely that the bodies are withheld.
+  # An unread count or a last-posted timestamp still tells a link holder
+  # that a curator asked something, and roughly when.
+  test 'the reviewer view never exposes messages, nor that any exist' do
     @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'internal note')
 
     get review_path(@access.token)
 
     assert_response :ok
-    assert_not_includes response.parsed_body.keys, 'messages'
+
+    keys = response.parsed_body.keys
+
+    assert_not_includes keys, 'messages'
+    assert_not_includes keys, 'unread_curator_message_count'
+    assert_not_includes keys, 'last_message_at'
+    assert_not_includes response.body, 'internal note'
+  end
+
+  # The submitter's own view of the same request does carry them — the
+  # difference between the two schemas is the point.
+  test 'the submitter view of the same request does carry the conversation facts' do
+    @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'internal note')
+
+    default_headers['Authorization'] = "Bearer #{@submission_request.user.api_key}"
+    get submission_request_path(id: @submission_request.id)
+
+    assert_conform_schema 200
+    assert_equal 1, response.parsed_body.fetch('unread_curator_message_count')
+    assert_not_nil  response.parsed_body.fetch('last_message_at')
   end
 
   test 'an expired token 404s' do

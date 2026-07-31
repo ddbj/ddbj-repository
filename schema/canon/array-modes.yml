@@ -4,7 +4,14 @@
 # tmp/data-migration/canonical-json.md §3 / §4 / §6.
 #
 # DO NOT modify after first use. Changes require a canonical_version bump
-# and a migration re-canonicalising every stored record.
+# and a plan for records written under the previous version.
+#
+# For the v1 → v2 bump that plan is a full re-import rather than a
+# reconciling migration: replay is pure RFC 6902 so v1 chains still
+# materialise correctly, and the migrated corpus is rebuilt from D-way.
+# Until a record is re-imported its `submissions.canonical_version` stays
+# at 1 while new patches are stamped 2 — a mixed chain is readable, but
+# the admin Record tab will label the submission by its older version.
 canonical_version: ddbj-canon/v2
 
 # ----------------------------------------------------------------------

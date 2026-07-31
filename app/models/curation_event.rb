@@ -4,15 +4,16 @@
 # the patch chain can express becomes a SubmissionUpdate, and the chain
 # stays a pure record history. What is left over lands here.
 #
-# Two different reasons an action lands here:
-#   - It is not record content at all — status and assignee are typed
-#     columns on Project / Sample, and curator_comment is a Submission
-#     column the v3 record never carries.
-#   - It IS record content, but not diffable. `/**/accession` is a
-#     registered volatile path (schema/canon/array-modes.yml, "archive-
-#     assigned, not curator data"), so `Canonicalizer.diff` strips it from
-#     both sides and issuance produces an empty patch. The typed column is
-#     authoritative; see AccessionIssue.
+# What lands here is what the record does not carry: status and assignee
+# are typed columns on Project / Sample, and curator_comment is a
+# Submission column the v3 record never mentions. Before this table they
+# left nothing behind but a bumped `updated_at`, with no actor.
+#
+# Accession issuance is the one action that produces both. Since
+# ddbj-canon/v2 it patches the record like any other edit (the mechanical
+# truth), and also records an event saying what the change was in words,
+# linked to that patch via `submission_update` so the activity feed shows
+# one line rather than two.
 #
 # Append-only. Rows are written by the services that perform the action,
 # never edited afterwards.

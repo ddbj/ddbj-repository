@@ -210,6 +210,7 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
     end
   end
 
+
   # --- rendering / auth --------------------------------------------------
 
   test 'the rail renders every field on Overview' do

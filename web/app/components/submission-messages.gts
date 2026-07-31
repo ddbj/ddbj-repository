@@ -7,6 +7,7 @@ import { uniqueId } from '@ember/helper';
 
 import formatDatetime from 'repository/helpers/format-datetime';
 
+import type AttentionService from 'repository/services/attention';
 import type { RequestManager } from '@warp-drive/core';
 import type { paths } from 'schema/openapi';
 
@@ -25,6 +26,7 @@ interface Signature {
 }
 
 export default class SubmissionMessages extends Component<Signature> {
+  @service declare attention: AttentionService;
   @service declare requestManager: RequestManager;
 
   @tracked messages: Message[] = [];
@@ -43,6 +45,12 @@ export default class SubmissionMessages extends Component<Signature> {
     });
 
     this.messages = content;
+
+    // Fetching the thread is what marks the curator's messages read
+    // server-side. The banner is refreshed on navigation, which happens
+    // *before* this request lands, so without refreshing again here the
+    // notice would linger until the next transition.
+    void this.attention.refresh();
   }
 
   @action

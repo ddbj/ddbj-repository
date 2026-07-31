@@ -16,7 +16,7 @@ class AdminMessagesTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to admin_submission_request_path(@submission_request)
+    assert_redirected_to messages_admin_submission_request_path(@submission_request)
     msg = @submission_request.messages.last
     assert_equal 'Please clarify the strain.', msg.body
     assert_equal 'curator',                    msg.author_role
@@ -31,7 +31,7 @@ class AdminMessagesTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to admin_submission_request_path(@submission_request)
+    assert_redirected_to messages_admin_submission_request_path(@submission_request)
     assert_match(/cannot be blank/, flash[:alert])
   end
 

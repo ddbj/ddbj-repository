@@ -1,4 +1,9 @@
 # Reviewer-facing view of a submission request. Deliberately a separate
-# template from submission_requests/show so the two can diverge; for now
-# it renders the same request body (and, crucially, no messages).
-render(@request)
+# template from submission_requests/show so the two can diverge; this is
+# where they do. `conversation: false` withholds the messaging facts — a
+# share-link holder is not authenticated, and must not learn that a curator
+# asked something or when the thread was last touched.
+render(
+  partial: 'submission_requests/submission_request',
+  locals:  {submission_request: @request, conversation: false}
+)

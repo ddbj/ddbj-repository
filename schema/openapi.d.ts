@@ -465,7 +465,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SubmissionRequest"];
+                        "application/json": components["schemas"]["ReviewerSubmissionRequest"];
                     };
                 };
                 404: components["responses"]["NotFound"];
@@ -821,6 +821,28 @@ export interface components {
              * @description When the thread was last posted to, by either party.
              */
             last_message_at: string | null;
+        };
+        /**
+         * @description What a share-link holder may see. Identical to SubmissionRequest
+         *     minus the messaging facts: the endpoint is unauthenticated, so it
+         *     must not disclose that a curator ↔ submitter conversation exists.
+         *     Spelled out rather than derived from SubmissionRequest because
+         *     `additionalProperties: false` does not compose through `allOf` —
+         *     which also means a field added to the submitter view stays out of
+         *     this one until somebody decides it belongs here.
+         */
+        ReviewerSubmissionRequest: {
+            id: number;
+            db: components["schemas"]["Db"];
+            status: components["schemas"]["SubmissionOperationStatus"];
+            error_message: string | null;
+            /** Format: date-time */
+            created_at: string;
+            processing: boolean;
+            ddbj_record: components["schemas"]["Attachment"];
+            validation: components["schemas"]["Validation"] | null;
+            submission: components["schemas"]["Submission"] | null;
+            progress: components["schemas"]["Progress"];
         };
         /**
          * @description How far along the request is, in a vocabulary a submitter can read.

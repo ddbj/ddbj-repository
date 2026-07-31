@@ -431,7 +431,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubmissionRequest'
+                $ref: '#/components/schemas/ReviewerSubmissionRequest'
 
         '404':
           $ref: '#/components/responses/NotFound'
@@ -886,6 +886,68 @@ components:
             - string
             - 'null'
           format: date-time
+
+    ReviewerSubmissionRequest:
+      description: |
+        What a share-link holder may see. Identical to SubmissionRequest
+        minus the messaging facts: the endpoint is unauthenticated, so it
+        must not disclose that a curator ↔ submitter conversation exists.
+        Spelled out rather than derived from SubmissionRequest because
+        `additionalProperties: false` does not compose through `allOf` —
+        which also means a field added to the submitter view stays out of
+        this one until somebody decides it belongs here.
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - db
+        - status
+        - error_message
+        - created_at
+        - processing
+        - ddbj_record
+        - validation
+        - submission
+        - progress
+
+      properties:
+        id:
+          type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
+
+        status:
+          $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        created_at:
+          type: string
+          format: date-time
+
+        processing:
+          type: boolean
+
+        ddbj_record:
+          $ref: '#/components/schemas/Attachment'
+
+        validation:
+          anyOf:
+            - $ref: '#/components/schemas/Validation'
+            - type: 'null'
+
+        submission:
+          anyOf:
+            - $ref: '#/components/schemas/Submission'
+            - type: 'null'
+
+        progress:
+          $ref: '#/components/schemas/Progress'
 
     Progress:
       description: |

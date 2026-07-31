@@ -1,14 +1,15 @@
 class CreateCurationEvents < ActiveRecord::Migration[8.1]
-  # Audit trail for curator actions that cannot be reduced to a patch.
+  # Audit trail for curator actions the DDBJ Record does not carry, and
+  # which therefore have no patch to explain them.
   #
-  # The dividing line is reducibility: an action the chain can express
-  # becomes a SubmissionUpdate, so the patch chain stays a pure history of
-  # the record. Status, assignee and the internal comment are not record
-  # content at all. Accession IS a record field, but a volatile one —
-  # `Canonicalizer.diff` strips `/**/accession` from both sides, so
-  # issuance produces an empty patch and the typed column is authoritative
-  # (see AccessionIssue). Both kinds of action used to leave nothing behind
-  # but a bumped `updated_at`, with no actor.
+  # Status, assignee and the internal comment are operational state on
+  # typed columns; the v3 record never mentions them, so before this table
+  # they left nothing behind but a bumped `updated_at`, with no actor. The
+  # patch chain stays a pure history of the record.
+  #
+  # (Accession issuance also writes an event, but as a label for the patch
+  # it produces rather than in place of one — see the follow-up migration
+  # that links the two.)
   #
   # Append-only, hence `created_at` without `updated_at`: an event that
   # could be edited would not be an audit trail.

@@ -90,6 +90,16 @@ class CurationState
 
   def issuable? = issuable_count.positive?
 
+  # Label for the issuance button. Deliberately independent of
+  # `next_action`: what to *tell* the curator is a priority question, but
+  # what they are *allowed to do* is not. Gating the button on next_action
+  # meant an unread message hid the only PRJDB button a BP request has.
+  def issue_label
+    return nil unless issuable?
+
+    "Issue #{accession_prefix} for #{ActiveSupport::NumberHelper.number_to_delimited(issuable_count)} #{row_noun(issuable_count)}"
+  end
+
   # Only BP projects the record's hold date onto a filterable column
   # (Submission#sync_hold_date!). BS has nowhere to put it, and D-way
   # never used a BS hold date — so this is nil there rather than paying
@@ -163,10 +173,9 @@ class CurationState
         title:  "#{ActiveSupport::NumberHelper.number_to_delimited(issuable_count)} #{row_noun(issuable_count)} " \
                 "#{issuable_count == 1 ? 'is' : 'are'} eligible for accession issuance",
         detail: "No accession yet and status is #{AccessionIssue::ISSUABLE_FROM.join(' or ')}. " \
-                'Issuing allocates from the Sequence, stamps the typed column — which is the ' \
-                'authoritative one, since the record field is volatile and produces no patch — ' \
-                'and emails the submitter once.',
-        label:  "Issue #{accession_prefix} for #{ActiveSupport::NumberHelper.number_to_delimited(issuable_count)} #{row_noun(issuable_count)}"
+                'Issuing allocates from the Sequence, stamps the rows, appends the accession ' \
+                'to the record as a patch, and emails the submitter once.',
+        label:  issue_label
       )
     end
   end

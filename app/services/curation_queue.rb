@@ -1,4 +1,9 @@
-# The work a curator still owes somebody, sliced into buckets.
+# What is not moving, sliced into buckets.
+#
+# Mostly that is work a curator owes somebody. `pending_apply` is the
+# exception and is included deliberately: `ready_to_apply` waits on the
+# submitter, not on us, but a request that sits there for a week is a
+# problem somebody has to notice, and nobody else is looking.
 #
 # The admin IA puts business tasks — not database types — at the first
 # level, so "Needs action" is the landing screen and its nav badge has to

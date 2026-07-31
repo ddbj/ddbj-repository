@@ -44,12 +44,15 @@
                       class:  'btn btn-outline-secondary btn-sm' %>
       <% end %>
 
-      <% if (action = @state.next_action) && action.label %>
-        <%= button_to action.label,
+      <%# Gated on "would this succeed", not on whether issuance happens to %>
+      <%# be the most urgent thing to say — an unread message must not hide %>
+      <%# the only PRJDB button a BP request has. %>
+      <% if (label = @state.issue_label) %>
+        <%= button_to label,
                       admin_submission_accession_path(@submission),
                       method: :post,
                       class:  'btn btn-primary btn-sm',
-                      data:   {turbo_confirm: "#{action.label}?"} %>
+                      data:   {turbo_confirm: "#{label}?"} %>
       <% end %>
     </div>
   </div>
