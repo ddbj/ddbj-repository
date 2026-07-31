@@ -126,6 +126,11 @@ module DataMigration
     # subsequent row would fail too. Continuable retries from the
     # cursor; if the resume_limit is hit the rescue_from above marks
     # the run :failed.
+    #
+    # STORAGE_ERRORS below are the same shape of problem for a different
+    # backend, and are re-raised the same way. They are kept separate
+    # only because a Postgres failure may be the primary connection, and
+    # writing to the run to say so would fail in turn.
     CONNECTION_ERRORS = [
       PG::ConnectionBad,
       PG::UnableToSend,
@@ -149,11 +154,25 @@ module DataMigration
 
     # Returns the outcome symbol (:created / :updated / :skipped /
     # :no_accession / :no_xml / :no_samples / :missing / :cross_user
-    # / :failed). Row-level non-connection exceptions are absorbed so
-    # a single bad row doesn't halt the sweep.
+    # / :failed). A bad row is absorbed so it does not halt the sweep; a
+    # bad backend is not, because there is no sweep left to halt.
     def process_row(source_id)
       run_importer(source_id)
     rescue *CONNECTION_ERRORS
+      raise
+    rescue *STORAGE_ERRORS => e
+      # A backend failure, not a row failure: every row after this one
+      # fails the same way. A June 2026 sweep absorbed 15,657 of these
+      # one at a time and ran to the end to reach a conclusion the first
+      # row already had — leaving an error log too long to read and a
+      # corpus of rows marked failed that were never actually looked at.
+      #
+      # Re-raised like a connection failure, so Continuable retries from
+      # the cursor: a store that comes back within the retry window
+      # resumes where it stopped, and one that does not marks the run
+      # failed. Logged first, because the run has to say where it got to.
+      @run.append_error!("[#{source_id}] STOPPED — #{describe_failure(e)}")
+
       raise
     rescue StandardError => e
       @run.append_error!("[#{source_id}] #{describe_failure(e)}")

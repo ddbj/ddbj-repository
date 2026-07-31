@@ -105,25 +105,34 @@ class DataMigration::SyncBpJobTest < ActiveJob::TestCase
     assert_match(/\[PSUB001\] RuntimeError: boom/, run.error_log)
   end
 
-  # An unreachable object store answers 404 for everything, so
-  # ActiveStorage raises the same NotFound a genuinely missing blob does.
-  # Left to read as "the blob is gone", that cost two weeks in June 2026 —
-  # the log now says which reading to try first.
-  test 'a storage failure says storage, not missing blob' do
-    fake = FakeStagingClient.new([make_row('PSUB001')])
+  # One dead store is one fault, not one fault per row. The June 2026
+  # sweep absorbed 15,657 identical NotFound failures and ran to the end
+  # to reach the conclusion its first row already had.
+  #
+  # And it says storage: ActiveStorage raises the same NotFound for "the
+  # blob is gone" as for "there is nothing to ask", and taking the
+  # obvious reading is what made that fortnight a fortnight.
+  test 'a storage failure stops the sweep instead of failing every row' do
+    fake = FakeStagingClient.new([make_row('PSUB001'), make_row('PSUB002'), make_row('PSUB003')])
 
     run = MigrationRun.create!(db: 'bioproject')
-
-    not_found = Aws::S3::Errors::NotFound.new(nil, 'Not Found')
+    seen = []
 
     BioProject::StagingClient.stub(:new, fake) do
-      BioProject::Importer.stub(:new, ->(**) { raise not_found }) do
-        DataMigration::SyncBpJob.perform_now(run.id)
+      BioProject::Importer.stub(:new, ->(**kwargs) {
+        seen << kwargs[:psub_id]
+        raise Aws::S3::Errors::NotFound.new(nil, 'Not Found')
+      }) do
+        assert_raises(Aws::S3::Errors::NotFound) { DataMigration::SyncBpJob.perform_now(run.id) }
       end
     end
 
+    assert_equal 1, seen.size, 'the second row must never have been attempted'
+
     run.reload
 
+    assert_equal 0, run.counters.fetch('failed', 0), 'a dead backend is not a row outcome'
+    assert_match(/\[PSUB001\] STOPPED/, run.error_log)
     assert_match(/object storage is unreachable/, run.error_log)
     assert_match(/SeaweedFS/, run.error_log)
   end
