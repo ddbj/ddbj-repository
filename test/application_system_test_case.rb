@@ -2,6 +2,13 @@ require 'test_helper'
 require 'capybara/rails'
 require 'capybara/minitest'
 
+# Find controls by their accessible name, so `aria-label` counts as a
+# label. Several of these screens label icon-ish controls that way — a row
+# checkbox reading "Select #1482" — and a test that cannot see the
+# accessible name ends up matching on CSS, which is the same as not
+# testing the label at all.
+Capybara.enable_aria_label = true
+
 # Tests written from the outside: visit a page, read what is on it, press
 # what a curator would press.
 #
@@ -32,13 +39,6 @@ class ApplicationSystemTestCase < ActionDispatch::IntegrationTest
   # behaviour genuinely is JavaScript.
   DRIVER = :rack_test
 
-  # Find controls by their accessible name, so `aria-label` counts as a
-  # label. Several of these screens label icon-ish controls that way — a
-  # row checkbox reading "Select #1482" — and a test that cannot see the
-  # accessible name ends up matching on CSS, which is the same as not
-  # testing the label at all.
-  Capybara.enable_aria_label = true
-
   setup do
     Capybara.current_driver = self.class::DRIVER
     Capybara.app_host       = nil
@@ -55,20 +55,21 @@ class ApplicationSystemTestCase < ActionDispatch::IntegrationTest
   # very form whose hidden `origin` field is what brings you back, and
   # that field is exactly the sort of thing this file exists to cover.
   def sign_in_as(user, at: admin_root_path)
-    OmniAuth.config.mock_auth[:keycloak] = OmniAuth::AuthHash.new(
-      'provider' => 'keycloak',
-      'uid'      => user.uid,
-
-      'extra' => {
-        'raw_info' => {
-          'preferred_username'  => user.uid,
-          'account_type_number' => CloakmanClient::ACCOUNT_TYPES.key(user.admin? ? CloakmanClient::STAFF_ACCOUNT_TYPE : 'general')
-        }
-      }
-    )
+    mock_keycloak_auth(user)
 
     visit at
     click_button 'Log in with DDBJ Account'
+  end
+
+  # ActionDispatch::IntegrationTest's own verbs drive a session with its
+  # own cookie jar, entirely separate from Capybara's. Calling one after
+  # signing in through the other lands on the login screen with nothing
+  # in the failure pointing at why, so they are refused outright rather
+  # than left as a trap.
+  %i[get post patch put delete head].each do |verb|
+    define_method(verb) do |*, **|
+      raise NoMethodError, "`#{verb}` drives a different session from Capybara's — use `visit` / `click_*` instead."
+    end
   end
 end
 

@@ -70,10 +70,10 @@ class DistributionNoticesSystemTest < ApplicationSystemTestCase
   end
 
   test 'a blocked submitter is named at the top and links to their page' do
+    stub_cloakman_lookup [], uids: [@project.submission.user.uid]
+
     @project.submission.user.update!(email: nil)
     DistributionNotifier.call
-
-    stub_cloakman_lookup [], uids: [@project.submission.user.uid]
 
     visit admin_distribution_notices_path
 
@@ -101,7 +101,7 @@ class DistributionNoticesPreviewSystemTest < JavaScriptSystemTestCase
     fill_in 'Subject', with: 'Live subject'
     fill_in 'Body',    with: "Opening line.\n\n%{accessions}\n\nClosing line."
 
-    within '.card' do
+    within '[data-test-preview]' do
       assert_text 'Live subject'
       assert_text 'Opening line.'
       assert_text 'Closing line.'

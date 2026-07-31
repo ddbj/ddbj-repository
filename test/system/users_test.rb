@@ -1,9 +1,6 @@
 require 'application_system_test_case'
 
 class UsersSystemTest < ApplicationSystemTestCase
-  ALICE = {uid: 'alice', full_name: 'Alice Liddell', email: 'alice@example.com', organization: 'Wonderland', account_type_number: 'general'}.freeze
-  CAROL = {uid: 'carol', full_name: 'Carol King',    email: 'carol@example.com', organization: 'Music',      account_type_number: 'general'}.freeze
-
   setup do
     sign_in_as users(:bob)
   end
@@ -16,8 +13,8 @@ class UsersSystemTest < ApplicationSystemTestCase
   test 'the "has submitted before" filter can be turned off' do
     # The page's lookup covers exactly the rows it is about to render, so
     # each side of the toggle asks for a different set.
-    stub_cloakman_lookup [ALICE],        uids: %w[alice]
-    stub_cloakman_lookup [ALICE, CAROL], uids: %w[alice carol]
+    stub_cloakman_lookup [cloakman_profile(:alice)], uids: %w[alice]
+    stub_cloakman_lookup [cloakman_profile(:alice), cloakman_profile(:carol)], uids: %w[alice carol]
 
     visit admin_users_path
 
@@ -33,6 +30,7 @@ class UsersSystemTest < ApplicationSystemTestCase
     check 'Has submitted before'
     click_button 'Search'
 
+    assert_text 'Alice Liddell' # the list narrowed, rather than emptied
     assert_no_text 'Carol King'
   end
 
@@ -49,7 +47,7 @@ class UsersSystemTest < ApplicationSystemTestCase
   end
 
   test 'a row opens that account and comes back' do
-    stub_cloakman_lookup [ALICE]
+    stub_cloakman_lookup [cloakman_profile(:alice)]
 
     visit admin_users_path
     click_link 'alice'
@@ -65,7 +63,7 @@ class UsersSystemTest < ApplicationSystemTestCase
   end
 
   test 'notes are saved with the curator who wrote them' do
-    stub_cloakman_lookup [ALICE]
+    stub_cloakman_lookup [cloakman_profile(:alice)]
 
     visit admin_user_path(uid: 'alice')
 

@@ -62,6 +62,17 @@ that reached it was not.
   Stimulus (runs it in process via `capybara-simulated`, no browser).
 - `test/integration` — the JSON API, and server-side rules with no screen.
 
+The admin integration tests predate this split and still address screens
+directly; migrate them as those screens are touched rather than in one
+sweep. A system test that covers the same ground replaces the
+integration one — leaving both means two suites drifting, and the
+integration half keeps encoding requests no browser makes.
+
+Address controls by their accessible name (`aria-label` counts —
+`Capybara.enable_aria_label` is on) and sections by `data-test-*`. CSS
+classes are the framework's, not ours, and matching on them tests
+nothing a user can see.
+
 ## CI
 
 Two workflows on push:

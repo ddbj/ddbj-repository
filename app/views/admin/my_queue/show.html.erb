@@ -19,7 +19,10 @@
 </p>
 
 <% @sections.each do |listing| %>
-  <section class="mb-4">
+  <%# Named so a test can say "this row is in Unclaimed" rather than %>
+  <%# "this row is somewhere on the page" — which is the whole claim the %>
+  <%# three sections make. %>
+  <section class="mb-4" data-test-section="<%= listing.section.key %>">
     <div class="d-flex align-items-baseline gap-2 flex-wrap mb-2">
       <h2 class="h6 mb-0"><%= listing.section.title %></h2>
       <span class="badge <%= listing.count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>">

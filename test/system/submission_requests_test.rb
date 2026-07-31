@@ -5,8 +5,11 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     sign_in_as users(:bob)
 
     @submission = submissions(:bioproject)
-    @req    = @submission.request
+    @req        = @submission.request
 
+    # `update_columns`: Submission validates its uploaded record on save,
+    # and the fixture has none. Giving it one would say nothing about the
+    # ledger search this test is here for.
     @submission.update_columns(source_id: 'PSUB000604')
   end
 
@@ -49,17 +52,35 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
   end
 
   # Search leads and the facets fold away — but a filter that is on must
-  # never be invisible, so the panel opens itself when one is.
+  # never be invisible, so the panel announces itself as open when one is.
+  # Asserted through `aria-expanded`, which is the state assistive tech
+  # reads, rather than through whichever class Bootstrap toggles.
+  # The Samples screen carries the same two-buttons-one-form shape, and
+  # the same trap: a PATCH form would make Rack::MethodOverride rewrite
+  # the issuance button's POST into a PATCH the route does not accept.
+  test 'issuing accessions from the samples screen reaches the issuance route' do
+    submission = submissions(:biosample)
+    submission.samples.update_all(accession: nil, status: Lifecycleable::STATUSES.fetch('curating'))
+
+    visit samples_admin_submission_request_path(submission.request)
+
+    # The scope radio is what the bulk bar acts on; "selected" with
+    # nothing ticked is refused, which is its own correct behaviour.
+    choose 'All 2 matching the filter'
+    click_button 'Issue SAMD'
+
+    assert_text 'Issued'
+    assert_empty submission.samples.where(accession: nil)
+  end
+
   test 'the facet panel opens itself when a facet is already on' do
     visit admin_submission_requests_path
 
-    assert_selector '[data-bs-target="#more-filters"][aria-expanded="false"]'
-    assert_no_selector '#more-filters.show'
+    assert_selector 'button[aria-expanded="false"]', text: 'More filters'
 
     visit admin_submission_requests_path(db: %w[bioproject])
 
-    assert_selector '[data-bs-target="#more-filters"][aria-expanded="true"]'
-    assert_selector '#more-filters.show'
+    assert_selector 'button[aria-expanded="true"]', text: 'More filters'
   end
 end
 
@@ -71,16 +92,36 @@ class MyQueueSystemTest < ApplicationSystemTestCase
     @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'still waiting on this')
   end
 
+  # The sections are the design, so the claim under test is where the row
+  # ends up — not merely that a column changed.
   test 'claiming an unclaimed request moves it into the curator own section' do
     visit admin_root_path
 
-    within '.list-group' do
+    within '[data-test-section="unclaimed"]' do
       assert_text "##{@req.id}"
       click_button 'Assign to me'
     end
 
     assert_text "Assigned to #{users(:bob).uid}"
-    assert_equal users(:bob), @req.reload.assignee
+
+    visit admin_root_path
+
+    within('[data-test-section="assigned"]')  { assert_text "##{@req.id}" }
+    within('[data-test-section="unclaimed"]') { assert_no_text "##{@req.id}" }
+  end
+
+  # Replying is the other half of the model: it keeps the request in your
+  # queue without taking it away from whoever owns it.
+  test 'a request someone else owns that I replied on shows as involved' do
+    @req.assign!(users(:dave))
+    @req.participate!(users(:bob))
+
+    visit admin_root_path
+
+    within('[data-test-section="involved"]') do
+      assert_text "##{@req.id}"
+      assert_text 'assignee dave'
+    end
   end
 
   test 'a queue row leads to the thread it is about' do
