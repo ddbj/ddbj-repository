@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_103356) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_105431) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,17 +23,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_103356) do
     t.index ["user_id"], name: "index_accession_histories_on_user_id"
   end
 
+  create_table "accession_issuance_runs", force: :cascade do |t|
+    t.string "actor", null: false
+    t.datetime "created_at", null: false
+    t.string "origin", null: false
+    t.datetime "started_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "accession_issuances", force: :cascade do |t|
     t.jsonb "accessions", default: [], null: false
     t.string "actor", null: false
     t.datetime "created_at", null: false
     t.text "error_message"
     t.datetime "finished_at"
+    t.bigint "run_id"
     t.datetime "started_at", null: false
     t.string "status", default: "queued", null: false
     t.bigint "submission_id", null: false
     t.jsonb "targeting", default: {}, null: false
     t.datetime "updated_at", null: false
+    t.index ["run_id"], name: "index_accession_issuances_on_run_id"
     t.index ["submission_id", "started_at"], name: "index_accession_issuances_on_submission_id_and_started_at"
   end
 
@@ -374,6 +384,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_103356) do
 
   add_foreign_key "accession_histories", "accessions"
   add_foreign_key "accession_histories", "users"
+  add_foreign_key "accession_issuances", "accession_issuance_runs", column: "run_id"
   add_foreign_key "accession_issuances", "submissions"
   add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

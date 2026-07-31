@@ -19,6 +19,41 @@ module Admin
       @issuance   = @submission.accession_issuances.find(params[:id])
     end
 
+    # The confirmation. Same component the ledger's bulk uses — the
+    # content shrinks to one submission, the wording and the weight do
+    # not. "Only confirm when several are selected" would wave through
+    # the workbench's single button, which on a BioSample submission can
+    # be tens of thousands of samples.
+    def new
+      submission = Submission.find(params[:submission_id])
+
+      if empty_selection?
+        return redirect_to submission_return_path(submission), alert: 'No samples selected.'
+      end
+
+      @plan   = AccessionPlan.for([submission], targeting: targeting_for(submission))
+      @action = admin_submission_accessions_path(submission, filter_passthrough)
+      @cancel = submission_return_path(submission)
+
+      # The original params, re-emitted verbatim. Recomputing the
+      # targeting here and handing it to `create` as a new shape would
+      # add a second thing to trust; this way `create` reads exactly what
+      # it read before the confirmation existed.
+      @passthrough = params.slice(:bulk_sample).permit(bulk_sample: [:scope, {sample_ids: []}]).to_h
+    rescue SampleTargeting::UnknownScope => e
+      redirect_to submission_return_path(submission), alert: "Cannot issue accession: #{e.message}"
+    end
+
+    # Reached by POST from the Samples screen, whose checkbox selection
+    # has to travel in a form body. Same action, and it has to say so —
+    # an alias would leave Rails looking for a `confirm` template and
+    # answering 204.
+    def confirm
+      new
+
+      render :new unless performed?
+    end
+
     def create
       submission = Submission.find(params[:submission_id])
 
@@ -26,21 +61,33 @@ module Admin
         return redirect_to submission_return_path(submission), alert: 'No samples selected.'
       end
 
-      issuance = submission.accession_issuances.create!(
+      run = AccessionIssuanceRun.create!(
         actor:      "admin:#{current_user.uid}",
+        origin:     "##{submission.request&.id} (1 submission)",
+        started_at: Time.current
+      )
+
+      issuance = submission.accession_issuances.create!(
+        run:,
+        actor:      run.actor,
         targeting:  targeting_for(submission),
         started_at: Time.current
       )
 
       IssueAccessionsJob.perform_later(issuance_id: issuance.id)
 
-      redirect_to admin_submission_accession_path(submission, issuance),
-                  notice: 'Issuing accessions. This page updates itself.'
+      redirect_to admin_accession_issuance_run_path(run)
     rescue SampleTargeting::UnknownScope => e
       redirect_to submission_return_path(submission), alert: "Cannot issue accession: #{e.message}"
     end
 
     private
+
+    # The Samples screen's filter travels in the action URL, so it has to
+    # be put back on the one the confirmation posts to.
+    def filter_passthrough
+      params.permit(:q, :accession, status: []).to_h.compact_blank
+    end
 
     # What the curator asked for, in the form they expressed it. A
     # filtered scope is stored as its filter and re-derived when the job

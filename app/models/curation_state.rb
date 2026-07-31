@@ -133,7 +133,13 @@ class CurationState
   # `next_action`: what to *tell* the curator is a priority question, but
   # what they are *allowed to do* is not. Gating the button on next_action
   # meant an unread message hid the only PRJDB button a BP request has.
+  # Nil while an issuance is in flight, so the button is not offered a
+  # second time before the first has committed — a second press would
+  # allocate a second set of numbers, and SAMD cannot be handed back.
+  def issuing? = @issuing ||= submission && AccessionIssuance.in_flight.where(submission_id: submission.id).exists?
+
   def issue_label
+    return nil if issuing?
     return nil unless issuable?
 
     "Issue #{accession_prefix} for #{ActiveSupport::NumberHelper.number_to_delimited(issuable_count)} #{row_noun(issuable_count)}"

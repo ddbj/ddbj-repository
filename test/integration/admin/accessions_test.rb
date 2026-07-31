@@ -21,7 +21,10 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
 
     issuance = submission.accession_issuances.sole
 
-    assert_redirected_to admin_submission_accession_path(submission, issuance)
+    # To the run, not to the issuance: one press is one run, whether it
+    # covered one submission or ten, and that is the page the outcome
+    # stays on.
+    assert_redirected_to admin_accession_issuance_run_path(issuance.run)
     assert_equal 'admin:bob', issuance.actor
     assert issuance.queued_status?, 'running is what the job claims, not what the controller assumes'
   end
@@ -93,11 +96,11 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
            params: {bulk: {submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s]}}
     end
 
-    assert_redirected_to admin_submission_requests_path
-    assert_match(/Issuing accessions for 2 submission/, flash[:notice])
+    run = AccessionIssuanceRun.last
 
-    assert_equal 1, submissions(:bioproject).accession_issuances.count
-    assert_equal 1, submissions(:biosample).accession_issuances.count
+    assert_redirected_to admin_accession_issuance_run_path(run)
+    assert_equal 2, run.issuances.count
+    assert_equal 'All requests (2 submissions)', run.origin
   end
 
   test 'bulk_issue_accessions refuses empty selection' do
@@ -109,12 +112,37 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     assert_match(/No submissions selected/, flash[:alert])
   end
 
-  test 'bulk_issue_accessions preserves filter params in the redirect' do
-    post bulk_issue_accessions_admin_submissions_path,
+  # The confirmation is what carries the filter now; the run page is
+  # where the press lands, and it is not filtered by anything.
+  test 'the confirmation keeps the ledger filter on its own form' do
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    post confirm_issue_accessions_admin_submissions_path,
          params: {q: 'PRJDB', db: %w[bioproject], status: %w[curating],
                   bulk: {submission_ids: [submissions(:bioproject).id.to_s]}}
 
-    assert_redirected_to admin_submission_requests_path(q: 'PRJDB', db: %w[bioproject], status: %w[curating])
+    assert_response :ok
+    assert_match 'Accession numbers are permanent', response.body
+    assert_match CGI.escapeHTML(bulk_issue_accessions_admin_submissions_path(q: 'PRJDB', db: %w[bioproject], status: %w[curating])),
+                 response.body
+  end
+
+  # The counts are the promise the dialog makes, so a submission an
+  # earlier press is still working on has to be named as skipped rather
+  # than counted — the job would refuse it, and the curator would have
+  # confirmed a number that never got allocated.
+  test 'the confirmation skips a submission that is already issuing' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    submission.accession_issuances.create!(actor: 'admin:alice', started_at: Time.current)
+
+    post confirm_issue_accessions_admin_submissions_path,
+         params: {bulk: {submission_ids: [submission.id.to_s]}}
+
+    assert_response :ok
+    assert_match 'already issuing', response.body
+    assert_match 'Nothing to issue', response.body
   end
 
   test 'bulk_issue_accessions requires admin auth' do

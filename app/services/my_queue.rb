@@ -36,7 +36,7 @@ class MyQueue
   # One row as the screen renders it. `unread` and `issuable` are filled
   # from batched queries, never per row — this is the page every curator
   # loads first.
-  Row = Data.define(:request, :unread, :issuable, :total_rows) do
+  Row = Data.define(:request, :unread, :issuable, :total_rows, :issuing) do
     # Ordered by who is blocked: a submitter waiting for an answer comes
     # before an accession nobody is waiting on.
     #
@@ -48,12 +48,14 @@ class MyQueue
     # the landing page.
     def action
       return :reply if unread.positive?
-      return :issue if issuable.positive?
+      return :issue if issuable.positive? && !issuing
 
       nil
     end
 
     def reason
+      return "#{delimited(issuable)} #{noun} being issued" if issuing && unread.zero?
+
       case action
       when :reply then "#{unread} unread #{'message'.pluralize(unread)}"
       when :issue then "#{delimited(issuable)} of #{delimited(total_rows)} #{noun} to issue"

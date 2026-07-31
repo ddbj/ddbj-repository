@@ -1,0 +1,96 @@
+<% content_for :title, "Accession issuance ##{@run.id}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'All requests', path: admin_submission_requests_path},
+  {label: "Accession issuance ##{@run.id}"}
+] %>
+
+<h1 class="display-6 mb-1">Accession issuance #<%= @run.id %></h1>
+
+<p class="text-body-secondary mb-3">
+  started by <%= @run.actor_label %> · <%= format_datetime(@run.started_at) %> · from <%= @run.origin %>
+</p>
+
+<%# Unlike a TSV import, issuance is one transaction per submission — so %>
+<%# "2 of 3" is a real count rather than a guess, and a failure visibly %>
+<%# stops at the row it is on. %>
+<div class="alert alert-light border d-flex align-items-center gap-3 flex-wrap py-2
+            <%= 'auto-refresh' unless @run.finished? %>"
+     <%= 'data-controller=auto-refresh'.html_safe unless @run.finished? %>>
+  <span class="badge <%= @run.finished? ? 'text-bg-success' : 'text-bg-secondary' %>">
+    <%= @run.done %> of <%= @run.total %> done
+  </span>
+
+  <span class="small text-body-secondary">
+    Each submission is one transaction — a failure stops only that one.
+  </span>
+</div>
+
+<table class="table border align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Request</th>
+      <th>Database</th>
+      <th>Outcome</th>
+      <th>Accessions</th>
+      <th>Mail</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @issuances.each do |issuance| %>
+      <% request = issuance.submission.request %>
+      <tr>
+        <td>
+          <%= request ? link_to("##{request.id}", admin_submission_request_path(request)) : '—' %>
+        </td>
+
+        <td><%= db_label(issuance.submission.db) %></td>
+
+        <td>
+          <% case issuance.status %>
+          <% when 'completed' %>
+            <span class="badge text-bg-success">
+              Issued<%= " #{issuance.accessions.size}" if issuance.accessions.size > 1 %>
+            </span>
+          <% when 'refused' %>
+            <span class="badge text-bg-secondary">Skipped</span>
+          <% when 'failed' %>
+            <span class="badge text-bg-danger">Failed</span>
+          <% else %>
+            <span class="badge text-bg-warning">Issuing…</span>
+          <% end %>
+        </td>
+
+        <td>
+          <% if issuance.accession_range %>
+            <code class="small"><%= issuance.accession_range %></code>
+          <% elsif issuance.loading? %>
+            <span class="text-body-secondary small">allocating</span>
+          <% else %>
+            <span class="text-body-secondary small"><%= issuance.error_message %></span>
+          <% end %>
+        </td>
+
+        <%# The mail is enqueued after the transaction commits, so a row %>
+        <%# still running has not sent one — saying "after commit" beats %>
+        <%# a blank cell that could mean either. %>
+        <td class="text-nowrap text-body-secondary small">
+          <% if issuance.completed_status? %>
+            sent <%= format_datetime(issuance.finished_at) %>
+          <% elsif issuance.loading? %>
+            after commit
+          <% else %>
+            not sent
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<p class="text-body-secondary small">
+  Kept as a record — the same summary appears in each request's Activity.
+</p>
+
+<p><%= link_to 'Back to All requests', admin_submission_requests_path %></p>

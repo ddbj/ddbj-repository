@@ -7,11 +7,15 @@
 <%# Rack::MethodOverride applies it to EVERY submit — including the %>
 <%# accession button's `formaction`, whose route is POST-only, which %>
 <%# then 404s. One method across the whole form removes the conflict. %>
-<%= form_with url:    bulk_update_admin_submissions_path(filter_params),
-              method: :post,
-              scope:  :bulk,
-              local:  true,
-              data:   {controller: 'bulk-select'} do |f| %>
+<%# The session-wide token rather than the per-form one for the same %>
+<%# reason: a per-form token is bound to this form's own action, so the %>
+<%# accession button's `formaction` would be rejected as forged. %>
+<%= form_with url:                bulk_update_admin_submissions_path(filter_params),
+              method:             :post,
+              scope:              :bulk,
+              local:              true,
+              authenticity_token: form_authenticity_token,
+              data:               {controller: 'bulk-select'} do |f| %>
   <table class="table border align-middle">
     <thead class="table-light">
       <tr>
@@ -99,18 +103,26 @@
       <%= f.submit 'Apply', class: 'btn btn-outline-light btn-sm',
                    data: {turbo_confirm: 'Apply to the selected submissions?'} %>
 
+      <%# To the confirmation, not to the run: it names how many numbers %>
+      <%# this allocates and which of the selection will be skipped, so a %>
+      <%# wrong tick is fixable before it is permanent. %>
+      <%# %>
+      <%# turbo: false because this POST renders rather than redirects — %>
+      <%# it changes nothing, it only reads the ticked rows back as a %>
+      <%# page. Turbo discards a 200 from a form, so the press would %>
+      <%# silently do nothing. %>
       <%= f.button 'Issue accessions',
                    type:       :submit,
-                   formaction: bulk_issue_accessions_admin_submissions_path(filter_params),
+                   formaction: confirm_issue_accessions_admin_submissions_path(filter_params),
                    class:      'btn btn-warning btn-sm text-nowrap',
-                   data:       {turbo_confirm: 'Issue accessions for the selected submissions?'} %>
+                   data:       {turbo: false} %>
     </div>
 
     <p class="text-body-secondary small mt-2">
       Apply sets the assignee on each selected request, and the curation status on
-      its submission — the Project (BP) or every Sample (BS). Issue accessions gives
-      each one a PRJDB (BP) or a SAMD per un-accessioned sample (BS), and mails the
-      submitter. Requests with no submission yet are not selectable.
+      its submission — the Project (BP) or every Sample (BS). Issue accessions opens
+      a confirmation naming what would be allocated and what would be skipped.
+      Requests with no submission yet are not selectable.
     </p>
   <% end %>
 <% end %>

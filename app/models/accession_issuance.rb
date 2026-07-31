@@ -16,6 +16,7 @@ class AccessionIssuance < ApplicationRecord
   STALE_AFTER = 6.hours
 
   belongs_to :submission
+  belongs_to :run, class_name: 'AccessionIssuanceRun', optional: true
 
   # `refused` is separate from `failed` because they mean opposite things
   # to the reader: refused is the service declining for a reason it can
@@ -27,6 +28,17 @@ class AccessionIssuance < ApplicationRecord
   validates :actor, presence: true
 
   scope :recent, -> { order(started_at: :desc) }
+
+  # Queued or running. While one of these exists for a submission, no
+  # Issue button is offered anywhere — the ledger, the queue and the
+  # workbench all read this. Pressing again before the first run commits
+  # would allocate a second set of numbers, and SAMD cannot be handed
+  # back.
+  scope :in_flight, -> { where(status: %w[queued running], started_at: STALE_AFTER.ago..) }
+
+  def self.in_flight_submission_ids(submission_ids)
+    in_flight.where(submission_id: submission_ids).distinct.pluck(:submission_id).to_set
+  end
 
   # Only a row a job has actually picked up, and only recently enough to
   # believe. `queued` is not running: the controller creates the row
@@ -43,6 +55,21 @@ class AccessionIssuance < ApplicationRecord
   def completed? = !loading?
 
   def actor_label = actor.to_s.split(':', 2).last.presence || actor
+
+  # "SAMD00412919–936" — what a curator checks after the fact is that the
+  # numbers exist and which ones they are, and a range says that without
+  # eighteen lines of it.
+  def accession_range
+    return nil if accessions.empty?
+    return accessions.first if accessions.size == 1
+
+    first, last = accessions.minmax
+    shared      = first.chars.zip(last.chars).take_while { it.first == it.last }.size
+
+    # Trimmed to where they diverge, but never below three digits:
+    # "SAMD00412919–36" invites a misread, "–936" does not.
+    "#{first}–#{last[[shared, last.size - 3].min..]}"
+  end
 
   # The curator who pressed the button, for the things that need a User
   # rather than an audit string. Nil if the account has since gone.

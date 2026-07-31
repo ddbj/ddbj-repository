@@ -21,8 +21,8 @@ class OverviewSystemTest < ApplicationSystemTestCase
 
     visit admin_submission_request_path(@req)
 
-    assert_text   'eligible for accession issuance'
-    assert_button 'Issue PRJDB for 1 project'
+    assert_text 'eligible for accession issuance'
+    assert_link 'Issue PRJDB for 1 project'
   end
 
   # What to *say* is a priority question; what a curator is *allowed to
@@ -35,8 +35,8 @@ class OverviewSystemTest < ApplicationSystemTestCase
 
     visit admin_submission_request_path(@req)
 
-    assert_text   'waiting for a reply'
-    assert_button 'Issue PRJDB for 1 project'
+    assert_text 'waiting for a reply'
+    assert_link 'Issue PRJDB for 1 project'
   end
 
   test 'a project that already has an accession is not offered another' do
@@ -44,7 +44,7 @@ class OverviewSystemTest < ApplicationSystemTestCase
 
     visit admin_submission_request_path(@req)
 
-    assert_no_button 'Issue PRJDB for 1 project'
+    assert_no_link 'Issue PRJDB for 1 project'
     assert_text 'PRJDB000001'
   end
 
@@ -55,7 +55,7 @@ class OverviewSystemTest < ApplicationSystemTestCase
 
     visit admin_submission_request_path(@req)
 
-    assert_no_button 'Issue PRJDB for 1 project'
+    assert_no_link 'Issue PRJDB for 1 project'
     assert_text 'Nothing is waiting on a curator'
   end
 
@@ -64,7 +64,7 @@ class OverviewSystemTest < ApplicationSystemTestCase
 
     visit admin_submission_request_path(submission_requests(:biosample))
 
-    assert_no_button 'Issue SAMD for 2 samples'
+    assert_no_link 'Issue SAMD for 2 samples'
     assert_text 'Nothing is waiting on a curator'
   end
 

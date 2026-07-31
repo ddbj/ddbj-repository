@@ -36,12 +36,15 @@
   <% when :reply %>
     <%= link_to 'Reply', messages_admin_submission_request_path(request), class: 'btn btn-outline-secondary btn-sm' %>
   <% when :issue %>
-    <%# Posts straight from the queue: work that can be finished without %>
-    <%# opening the request should not require opening the request. %>
-    <%= button_to 'Issue', admin_submission_accessions_path(request.submission),
-                  method: :post,
-                  class:  'btn btn-outline-secondary btn-sm',
-                  form:   {data: {turbo_confirm: "Issue accessions for ##{request.id}?"}} %>
+    <%# Straight from the queue: work that can be finished without %>
+    <%# opening the request should not require opening the request — but %>
+    <%# through the same confirmation as everywhere else. %>
+    <%= link_to 'Issue', new_admin_submission_accession_path(request.submission),
+                class: 'btn btn-outline-secondary btn-sm' %>
+  <% end %>
+
+  <% if row.issuing %>
+    <span class="badge text-bg-warning">Issuing…</span>
   <% end %>
 
   <% if section.key == :unclaimed %>

@@ -60,12 +60,13 @@
       <%# Gated on "would this succeed", not on whether issuance happens to %>
       <%# be the most urgent thing to say — an unread message must not hide %>
       <%# the only PRJDB button a BP request has. %>
+      <%# Amber and a confirmation screen, not a primary button and a %>
+      <%# one-line turbo_confirm: the dialog names how many numbers this %>
+      <%# allocates, which is what makes "permanent" concrete. %>
       <% if (label = @state.issue_label) %>
-        <%= button_to label,
-                      admin_submission_accessions_path(@submission),
-                      method: :post,
-                      class:  'btn btn-primary btn-sm',
-                      data:   {turbo_confirm: "#{label}?"} %>
+        <%= link_to label, new_admin_submission_accession_path(@submission), class: 'btn btn-warning btn-sm' %>
+      <% elsif @state.issuing? %>
+        <span class="badge text-bg-warning">Issuing…</span>
       <% end %>
     </div>
   </div>

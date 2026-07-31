@@ -46,18 +46,24 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
   # That form is a POST carrying no `_method`, so the second button's
   # `formaction` reaches a POST-only route — an earlier PATCH form made
   # Rack::MethodOverride rewrite every submit, and this button 404'd.
-  test 'issuing accessions from the ledger reaches the issuance route' do
+  test 'issuing accessions from the ledger goes through the confirmation' do
     projects(:primary).update!(accession: nil, status: 'curating')
 
     visit admin_submission_requests_path
 
     check "Select ##{@req.id}"
+    click_button 'Issue accessions'
+
+    # The dialog names how many, which is what makes "permanent"
+    # concrete — and what one line of turbo_confirm never said.
+    assert_text 'Accession numbers are permanent'
+    assert_text 'PRJDB'
 
     assert_enqueued_jobs 1, only: IssueAccessionsJob do
-      click_button 'Issue accessions'
+      click_button 'Issue 1 accession'
     end
 
-    assert_text 'Issuing accessions for 1 submission'
+    assert_text '0 of 1 done'
   end
 
   # One column, and it changes hands at Apply: before it the pipeline
@@ -126,20 +132,23 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     # The scope radio is what the bulk bar acts on; "selected" with
     # nothing ticked is refused, which is its own correct behaviour.
     choose 'All 2 matching the filter'
+    click_button 'Issue SAMD'
+
+    assert_text 'Issue SAMD accessions'
+    assert_text 'Accession numbers are permanent'
 
     # The wait is inside the block: Capybara returns as soon as the click
     # is dispatched, and the block form only runs what was enqueued while
     # the flag was set — so landing on the next page has to happen first.
     perform_enqueued_jobs do
-      click_button 'Issue SAMD'
+      click_button 'Issue 2 accessions'
 
-      assert_text 'Issuing accessions'
+      assert_text 'of 1 done'
     end
 
-    # And once it has run, the same page names what came out.
     visit current_path
 
-    assert_text 'Issued 2 accessions'
+    assert_text 'Issued 2'
     assert_empty submission.samples.where(accession: nil)
   end
 

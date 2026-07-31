@@ -35,13 +35,19 @@ module Admin
     # first — and the counts are what the row is *for*, so they cannot be
     # deferred to the detail screen.
     def rows_for(requests)
-      unread   = unread_counts(requests)
-      issuable = issuable_counts(requests)
+      unread    = unread_counts(requests)
+      issuable  = issuable_counts(requests)
+
+      # One query for the page rather than one per row: while a run is in
+      # flight the row must not offer Issue again, and the queue is the
+      # easiest of the three places to press twice.
+      in_flight = AccessionIssuance.in_flight_submission_ids(requests.filter_map(&:submission_id))
 
       requests.map {|request|
         pending, total = issuable.fetch(request.submission_id, [0, 0])
 
-        MyQueue::Row.new(request:, unread: unread.fetch(request.id, 0), issuable: pending, total_rows: total)
+        MyQueue::Row.new(request:, unread: unread.fetch(request.id, 0), issuable: pending, total_rows: total,
+                         issuing: in_flight.include?(request.submission_id))
       }
     end
 

@@ -81,6 +81,9 @@ Rails.application.routes.draw do
         # Cross-submission bulk accession issuance. Selected submissions
         # are walked through AccessionIssue (BP → 1 PRJDB; BS → all
         # un-accessioned samples get a SAMD).
+        # Two steps: the confirmation names what would be allocated and
+        # what would be skipped; only the second post starts the run.
+        post :confirm_issue_accessions
         post :bulk_issue_accessions
       end
 
@@ -103,7 +106,12 @@ Rails.application.routes.draw do
       resource  :curation,           only: %i[update]
       resource  :submitters,         only: %i[update]
       resource  :project_record,     only: %i[update]
-      resources :accessions,         only: %i[show create], path: 'accession'
+      # `confirm` is `new` reached by POST, because the Samples screen's
+      # button rides inside a form whose checkbox selection has to come
+      # with it.
+      resources :accessions, only: %i[new show create], path: 'accession' do
+        collection { post :confirm }
+      end
       resource  :sample_tsv_export,  only: %i[show]
 
       # Per-submission BS sample-bag editing via TSV round-trip. The
@@ -131,6 +139,8 @@ Rails.application.routes.draw do
     resource :distribution_notice_template, only: %i[update], path: 'distribution_notices/template'
 
     resources :migration_runs, only: %i[index show new create]
+
+    resources :accession_issuance_runs, only: %i[show]
 
     mount MissionControl::Jobs::Engine, at: '/jobs'
   end

@@ -174,6 +174,21 @@ module Admin
       redirect_to bulk_return_path, notice: "#{summary} #{ids.size} submission(s)."
     end
 
+    # The confirmation for the ledger's bulk. Same component the single
+    # submission uses; only the content differs.
+    def confirm_issue_accessions
+      ids = selected_submission_ids
+
+      return redirect_to bulk_return_path, alert: 'No submissions selected.' if ids.empty?
+
+      @plan   = AccessionPlan.for(Submission.where(id: ids).includes(:request, :project).to_a)
+      @action = bulk_issue_accessions_admin_submissions_path(index_filter_params)
+      @cancel = bulk_return_path
+      @ids    = ids
+
+      render 'admin/accessions/new'
+    end
+
     # Cross-submission bulk accession issuance from the ledger: one job
     # per selected submission (BP → 1 PRJDB, BS → all un-accessioned
     # samples).
@@ -184,16 +199,29 @@ module Admin
     # its own AccessionIssuance row, and one refusal cannot stall the
     # rest because they no longer share a request.
     def bulk_issue_accessions
-      ids = Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
+      ids = selected_submission_ids
 
       if ids.empty?
         return redirect_to bulk_return_path,
                            alert: 'No submissions selected.'
       end
 
+      run = AccessionIssuanceRun.create!(
+        actor:      "admin:#{current_user.uid}",
+        origin:     "All requests (#{ids.size} #{'submission'.pluralize(ids.size)})",
+        started_at: Time.current
+      )
+
+      # Every selected submission gets a row, including the ones the
+      # confirmation already showed as skipped. The refusal is the job's
+      # to make — deciding it here from the preview would mean a
+      # submission that became issuable in between is turned away by a
+      # stale reading, and the run page would be missing the line that
+      # says what happened to it.
       Submission.where(id: ids).find_each do |submission|
         issuance = submission.accession_issuances.create!(
-          actor:      "admin:#{current_user.uid}",
+          run:,
+          actor:      run.actor,
           started_at: Time.current
         )
 
@@ -203,13 +231,14 @@ module Admin
       # Participation is recorded by the job, on the ones that actually
       # issued: ticking ten boxes should not subscribe a curator to ten
       # requests, three of which turn out to refuse.
-
-      redirect_to bulk_return_path,
-                  notice: "Issuing accessions for #{ids.size} submission(s). " \
-                          "Each reports on its own request's activity."
+      redirect_to admin_accession_issuance_run_path(run)
     end
 
     private
+
+    def selected_submission_ids
+      Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
+    end
 
     # Status and assignee never reach the DDBJ Record, so `update_all`
     # leaves no patch and no actor behind. The event is what makes a bulk
