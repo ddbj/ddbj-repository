@@ -144,6 +144,6 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
 
     # The web client is JWT-only, so proxy-login hands it the admin's own
     # token plus the proxy target; the web login route then acts as alice.
-    assert_redirected_to %r{http://repository\.example\.com:4200/web/login\?token=.+&proxy_login=alice}
+    assert_redirected_to %r{http://repository\.example\.com:4200/web/auth/callback\?token=.+&proxy_login=alice}
   end
 end

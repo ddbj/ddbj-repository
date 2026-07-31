@@ -26,7 +26,7 @@ class SessionsController < ApplicationController
       session[:user_id] = user.id
       redirect_to origin
     else
-      redirect_to_web '/login', token: user.token
+      redirect_to_web WebApp::AUTH_CALLBACK_PATH, token: user.token
     end
   end
 end

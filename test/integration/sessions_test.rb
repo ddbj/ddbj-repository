@@ -33,7 +33,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
 
     get '/auth/keycloak/callback' # no admin origin → web branch
 
-    assert_match %r{/web/login\?token=}, response.location
+    assert_match %r{/web/auth/callback\?token=}, response.location
     assert_nil session[:user_id] # a web login must not leak an admin session
   end
 
