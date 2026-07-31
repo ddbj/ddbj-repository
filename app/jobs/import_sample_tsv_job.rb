@@ -41,16 +41,38 @@ class ImportSampleTSVJob < ApplicationJob
     result = SampleTSV::Importer.new(
       submission: progress.submission,
       tsv_body:   tsv_body,
-      actor:      "admin:#{progress.actor}"
+      actor:      "admin:#{progress.actor}",
+      progress:   Reporter.new(progress)
     ).call
 
     progress.update!(
       status:       'completed',
+      phase:        nil,
       total:        result.total,
       processed:    result.processed,
       failed:       result.failed,
       error_report: result.error_report || result.fatal_error,
+      rejections:   result.rejections || [],
       finished_at:  Time.current
     )
+  end
+
+  # Writes the importer's two phases onto the row the screen polls.
+  #
+  # Checking counts rows because it can; applying says how many will be
+  # written and stops there, because the write is one transaction and a
+  # bar that implied otherwise would be describing work that does not
+  # happen in that shape.
+  class Reporter
+    def initialize(import) = @import = import
+
+    def checking(checked:, rejected:, total:)
+      @import.update_columns(phase: 'checking', total:, processed: checked, failed: rejected,
+                             updated_at: Time.current)
+    end
+
+    def applying(rows:)
+      @import.update_columns(phase: 'applying', processed: rows, updated_at: Time.current)
+    end
   end
 end

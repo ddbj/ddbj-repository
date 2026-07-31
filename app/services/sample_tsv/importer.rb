@@ -19,17 +19,32 @@ module SampleTSV
   # `result.error_report` (a TSV body with the original cells plus an
   # `error` column the curator can fix and re-upload).
   class Importer
-    Result = Struct.new(:total, :processed, :failed, :error_report, :fatal_error, keyword_init: true)
+    Result = Struct.new(:total, :processed, :failed, :error_report, :rejections, :fatal_error, keyword_init: true)
+
+    # One refused row, with everything needed to fix it: where it is, what
+    # it is, which cell was wrong and why. The screen shows the first few
+    # so the common case never needs the download.
+    Rejection = Data.define(:line, :sample_name, :column, :reason) do
+      def to_h = {'line' => line, 'sample_name' => sample_name, 'column' => column, 'reason' => reason}
+    end
+
+    # Reported to, not returned: checking is row-by-row and countable,
+    # applying is one write. A caller that does not care passes nothing.
+    class NullProgress
+      def checking(*, **) = nil
+      def applying(*, **) = nil
+    end
 
     # U+FEFF (UTF-8: EF BB BF). Written via the Unicode escape so the
     # source file isn't carrying invisible zero-width bytes that look
     # like an empty string to a reviewer.
     BOM = "\u{FEFF}"
 
-    def initialize(submission:, tsv_body:, actor:)
+    def initialize(submission:, tsv_body:, actor:, progress: NullProgress.new)
       @submission = submission
       @tsv_body   = tsv_body
       @actor      = actor
+      @progress   = progress
     end
 
     def call
@@ -46,6 +61,7 @@ module SampleTSV
           processed:    0,
           failed:       0,
           error_report: nil,
+          rejections:   [],
           fatal_error:  "TSV is missing the required `#{SampleTSV::IDENTIFIER_COL}` column."
         )
       end
@@ -54,13 +70,18 @@ module SampleTSV
 
       valid, errors = partition_rows(rows, attribute_cols, sample_by_name)
 
-      apply!(valid, attribute_cols) if valid.any?
+      if valid.any?
+        @progress.applying(rows: valid.size)
+
+        apply!(valid, attribute_cols)
+      end
 
       Result.new(
         total:        rows.size,
         processed:    valid.size,
         failed:       errors.size,
         error_report: errors.any? ? build_error_report(rows.headers, errors) : nil,
+        rejections:   errors.map { it.last.to_h },
         fatal_error:  nil
       )
     end
@@ -75,14 +96,28 @@ module SampleTSV
       body.start_with?(BOM) ? body.sub(BOM, '') : body
     end
 
+    # Row by row, and therefore countable — which is the half of the work
+    # a progress bar can honestly describe. Reported every
+    # PROGRESS_EVERY rows so a 100K file does not spend the import
+    # writing to the progress row.
+    PROGRESS_EVERY = 200
+
     def partition_rows(rows, attribute_cols, sample_by_name)
       valid  = []
       errors = []
 
-      rows.each do |row|
-        sample = sample_by_name[row[SampleTSV::IDENTIFIER_COL].to_s.strip.presence]
+      rows.each_with_index do |row, index|
+        # +2: the header is line 1, and a curator counts from 1.
+        line = index + 2
+
+        report_checking(index, rows.size, errors.size)
+
+        name   = row[SampleTSV::IDENTIFIER_COL].to_s.strip.presence
+        sample = sample_by_name[name]
+
         unless sample
-          errors << [row, "unknown #{SampleTSV::IDENTIFIER_COL}"]
+          errors << [row, Rejection.new(line:, sample_name: name, column: SampleTSV::IDENTIFIER_COL,
+                                        reason: 'No sample with this name in the submission')]
           next
         end
 
@@ -91,7 +126,8 @@ module SampleTSV
         # don't fail mid-apply.
         status = row['status']&.strip.presence
         if status && !Sample.statuses.key?(status)
-          errors << [row, "unknown status: #{status}"]
+          errors << [row, Rejection.new(line:, sample_name: name, column: 'status',
+                                        reason: "#{status.inspect} is not a known status")]
           next
         end
 
@@ -104,7 +140,15 @@ module SampleTSV
         }
       end
 
+      @progress.checking(checked: rows.size, rejected: errors.size, total: rows.size)
+
       [valid, errors]
+    end
+
+    def report_checking(index, total, rejected)
+      return unless (index % PROGRESS_EVERY).zero?
+
+      @progress.checking(checked: index, rejected:, total:)
     end
 
     def apply!(valid, attribute_cols)
@@ -210,8 +254,8 @@ module SampleTSV
     def build_error_report(headers, errors)
       CSV.generate(col_sep: "\t") {|csv|
         csv << (headers + [SampleTSV::ERROR_COL])
-        errors.each do |row, reason|
-          csv << (headers.map { row[it] } + [reason])
+        errors.each do |row, rejection|
+          csv << (headers.map { row[it] } + [rejection.reason])
         end
       }
     end

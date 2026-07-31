@@ -4,6 +4,9 @@ module Admin
   # curator polls #show until the SampleTSVImport row reaches a
   # terminal state.
   class SampleTSVImportsController < ApplicationController
+    # Enough to fix the common case without the download; past that the
+    # table stops being readable and the report is the better tool.
+    SHOWN_REJECTIONS = 10
     def show
       @submission = Submission.find(params[:submission_id])
       @import     = @submission.sample_tsv_imports.find(params[:id])

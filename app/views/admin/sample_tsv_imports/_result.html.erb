@@ -1,0 +1,115 @@
+<%# The three terminal readings, told apart in the first sentence. %>
+<%# "1,824 applied / 18 failed" is a pair of numbers a curator cannot act %>
+<%# on: it does not say whether the submission is half-changed, which is %>
+<%# the only thing they actually want to know. %>
+<% shown = Admin::SampleTSVImportsController::SHOWN_REJECTIONS %>
+<% elapsed = @import.finished_at && distance_of_time_in_words(@import.started_at, @import.finished_at) %>
+
+<% case @import.outcome %>
+<% when :failed %>
+  <div class="card border-danger-subtle mb-3">
+    <div class="card-body">
+      <h2 class="h6 card-title text-danger-emphasis">Import failed — nothing was applied</h2>
+
+      <p class="small text-body-secondary">
+        <%= format_datetime(@import.finished_at) %><%= " · after #{elapsed}" if elapsed %>
+      </p>
+
+      <p class="mb-3">
+        Valid rows are written in a single transaction, so the submission is exactly as it
+        was before the upload — there is no half-applied state to clean up. Re-upload the
+        same file once the cause is fixed.
+      </p>
+
+      <% if @import.error_report.present? %>
+        <pre class="bg-body-tertiary border rounded p-3 small mb-0"><%= @import.error_report %></pre>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap">
+    <%= render 'reupload' %>
+    <%= link_to 'View the job', admin_mission_control_jobs_path, class: 'btn btn-outline-secondary' %>
+  </div>
+<% else %>
+  <div class="card mb-3 <%= @import.outcome == :partial ? 'border-warning-subtle' : 'border-success-subtle' %>">
+    <div class="card-body">
+      <h2 class="h6 card-title">
+        <% if @import.outcome == :partial %>
+          Finished with <%= pluralize(@import.failed, 'rejected row') %>
+        <% else %>
+          Finished — every row applied
+        <% end %>
+      </h2>
+
+      <p class="small text-body-secondary">
+        <%= format_datetime(@import.finished_at) %><%= " · #{elapsed}" if elapsed %>
+      </p>
+
+      <p class="mb-0">
+        <strong><%= number_with_delimiter(@import.processed) %></strong> rows applied<%
+          %><% if @import.failed.positive? %>, <strong><%= number_with_delimiter(@import.failed) %></strong> rejected<% end %>
+        of <%= number_with_delimiter(@import.total) %> total.
+      </p>
+
+      <% if @import.outcome == :partial %>
+        <p class="mb-0 mt-2">
+          Applied rows are already live in the submission — rejected rows changed nothing.
+          Fix them in the error report below and upload it again; unchanged rows are
+          ignored on re-upload.
+        </p>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @import.rejections.any? %>
+    <%# The reason, next to the row, in the browser. Most of these are a %>
+    <%# typo in one cell, and downloading a file to find that out is a %>
+    <%# round trip the screen can simply not impose. %>
+    <table class="table border align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Row</th>
+          <th>sample_name</th>
+          <th>Column</th>
+          <th>Why it was rejected</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% @import.rejections.first(shown).each do |rejection| %>
+          <tr>
+            <td class="text-body-secondary"><%= rejection['line'] %></td>
+            <td><%= rejection['sample_name'].presence || '—' %></td>
+            <td><code class="small"><%= rejection['column'] %></code></td>
+            <td><%= rejection['reason'] %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <% if @import.rejections.size > shown %>
+      <p class="text-body-secondary small">
+        <%= pluralize(@import.rejections.size - shown, 'more rejected row') %> — the
+        error report has them all.
+      </p>
+    <% end %>
+  <% end %>
+
+  <%# Download and re-upload sit together: the round trip is the unit of %>
+  <%# work, so the screen closes on that unit rather than sending the %>
+  <%# curator back to the Samples tab to start again. %>
+  <div class="d-flex gap-2 flex-wrap">
+    <% if @import.error_report.present? %>
+      <%= link_to 'Download error report TSV',
+                  error_report_admin_submission_sample_tsv_import_path(@submission, @import),
+                  class: 'btn btn-outline-secondary' %>
+    <% end %>
+
+    <%= render 'reupload' %>
+
+    <%= link_to "Back to ##{@submission.request.id}",
+                samples_admin_submission_request_path(@submission.request),
+                class: 'btn btn-link' %>
+  </div>
+<% end %>

@@ -89,7 +89,7 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     assert_equal 2, result.total
     assert_equal 1, result.processed
     assert_equal 1, result.failed
-    assert_match 'unknown sample_name', result.error_report
+    assert_match 'No sample with this name', result.error_report
     assert_match 'sample-ZZZ',          result.error_report
   end
 
@@ -102,7 +102,7 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     result = run_importer(tsv)
     assert_equal 0, result.processed
     assert_equal 1, result.failed
-    assert_match 'unknown status', result.error_report
+    assert_match 'is not a known status', result.error_report
   end
 
   # A spreadsheet downloaded before assignment moved to the request still
@@ -149,6 +149,50 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     assert_equal 'Mus musculus', attrs['organism']
     assert_not attrs.key?('error'), 'the rejection reason must not become sample data'
     assert_equal 'public', @sample.reload.status
+  end
+
+  # The screen shows the first few refusals so the common case never
+  # needs the download: where the row is, what it is, which cell was
+  # wrong, and why.
+  test 'a rejection carries its line, column and reason' do
+    result = run_importer(<<~TSV)
+      sample_name\tstatus
+      sample-A\tbogus_status
+      sample-ZZZ\tpublic
+    TSV
+
+    assert_equal(
+      [
+        {'line' => 2, 'sample_name' => 'sample-A',   'column' => 'status',
+         'reason' => '"bogus_status" is not a known status'},
+        {'line' => 3, 'sample_name' => 'sample-ZZZ', 'column' => 'sample_name',
+         'reason' => 'No sample with this name in the submission'}
+      ],
+      result.rejections
+    )
+  end
+
+  # Checking is row-by-row and countable; applying is one write. The
+  # screen can only say something true about the first, and saying it
+  # about the second would mean splitting the chain entry that carries
+  # the whole intent.
+  test 'progress is reported as two phases, only one of which counts rows' do
+    reported = []
+
+    progress = Class.new do
+      def initialize(log) = @log = log
+      def checking(checked:, rejected:, total:) = @log << [:checking, checked, rejected, total]
+      def applying(rows:) = @log << [:applying, rows]
+    end.new(reported)
+
+    SampleTSV::Importer.new(submission: @submission, tsv_body: <<~TSV, actor: 'admin:bob', progress:).call
+      sample_name\torganism
+      sample-A\tMus musculus
+      sample-ZZZ\tunknown
+    TSV
+
+    assert_includes reported, [:checking, 2, 1, 2]
+    assert_includes reported, [:applying, 1]
   end
 
   test 'no SubmissionUpdate is created when every row fails' do

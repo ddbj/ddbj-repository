@@ -1,0 +1,10 @@
+<%# The corrected file goes back in from here rather than from the %>
+<%# Samples tab: fix-and-resubmit is one action, and making the curator %>
+<%# navigate away to finish it is what turns a round trip into two. %>
+<%= form_with url: admin_submission_sample_tsv_imports_path(@submission), method: :post,
+              local: true, class: 'd-inline-flex align-items-center gap-2' do %>
+  <label for="reupload-file" class="visually-hidden">Corrected TSV</label>
+  <%= file_field_tag :file, id: 'reupload-file', required: true, accept: '.tsv,text/tab-separated-values',
+                     class: 'form-control form-control-sm', style: 'max-width: 20rem;' %>
+  <%= submit_tag 'Upload a corrected file', class: 'btn btn-primary text-nowrap' %>
+<% end %>

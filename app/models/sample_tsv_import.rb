@@ -27,4 +27,24 @@ class SampleTSVImport < ApplicationRecord
   def completed?
     !running_status?
   end
+
+  # Which half of the work is running. Checking is row by row and
+  # countable; applying is a single transaction, so it reports what it is
+  # about to write and nothing more — see the migration.
+  def checking? = phase == 'checking'
+
+  def applying? = phase == 'applying'
+
+  # Three terminal readings, and the difference between them is the
+  # question a curator actually has: is my submission half-changed?
+  #
+  #   completed, no rejections — everything landed
+  #   completed, some rejected — the rest landed, and are live
+  #   failed                   — nothing landed; one transaction, so
+  #                              there is no half-applied state
+  def outcome
+    return :failed if failed_status?
+
+    failed.positive? ? :partial : :clean
+  end
 end
