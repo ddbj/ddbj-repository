@@ -15,9 +15,10 @@ module Admin
     def index
       @tab = TABS.include?(params[:tab]) ? params[:tab] : 'due'
 
-      # The tab badge is on screen whichever tab is open, so the count is
-      # its own query rather than a by-product of loading the due list.
-      @due_count = DistributionNotifier.new.candidates.select(:submission_id).count
+      # Submitters, not projects: one mail goes to each, so that is the
+      # size of the work. The badge is on screen whichever tab is open, so
+      # it is its own query rather than a by-product of loading the list.
+      @due_count = DistributionNotifier.new.candidates.joins(:submission).distinct.count('submissions.user_id')
 
       case @tab
       when 'due'      then load_due

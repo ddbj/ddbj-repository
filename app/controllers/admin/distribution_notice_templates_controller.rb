@@ -16,7 +16,7 @@ module Admin
         @template  = template
         @preview   = DistributionNoticePreview.new(template, [])
         @tab       = 'template'
-        @due_count = DistributionNotifier.new.candidates.select(:submission_id).count
+        @due_count = DistributionNotifier.new.candidates.joins(:submission).distinct.count('submissions.user_id')
 
         render 'admin/distribution_notices/index', status: :unprocessable_content
       end

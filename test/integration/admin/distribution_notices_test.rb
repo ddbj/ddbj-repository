@@ -25,6 +25,22 @@ class Admin::DistributionNoticesTest < ActionDispatch::IntegrationTest
     assert_match 'Soil metagenome survey', response.body
   end
 
+  # One mail per submitter, so the badge counts submitters — two projects
+  # for the same person is one thing to do, not two.
+  test 'the due badge counts submitters rather than projects' do
+    # A second project for the same submitter — one submission each, since
+    # a submission carries at most one BP project.
+    second = Submission.create!(db: :bioproject, source_id: 'PSUB-second', user: @project.submission.user)
+
+    Project.create!(submission: second, project_type: :primary, status: :private,
+                    accession: 'PRJDB900009', hold_date: Date.current + 5)
+
+    get admin_distribution_notices_path
+
+    assert_response :ok
+    assert_select 'a.nav-link.active .badge', text: '1'
+  end
+
   test 'Send all now mails the pending submitters and marks them notified' do
     assert_enqueued_emails 1 do
       post admin_distribution_notices_path
