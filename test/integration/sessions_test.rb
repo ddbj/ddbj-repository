@@ -13,7 +13,7 @@ class SessionsTest < ActionDispatch::IntegrationTest
       'extra' => {
         'raw_info' => {
           'preferred_username'  => user.uid,
-          'account_type_number' => user.admin? ? SessionsController::ADMIN_ACCOUNT_TYPE : 1
+          'account_type_number' => CloakmanClient::ACCOUNT_TYPES.key(user.admin? ? CloakmanClient::STAFF_ACCOUNT_TYPE : 'general')
         }
       }
     )

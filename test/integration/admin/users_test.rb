@@ -148,6 +148,27 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_match 'DDBJ Account',  response.body
   end
 
+  # The account type arrives as a name from the REST profile and as an
+  # integer from the id token. Both read the same on screen, and both
+  # carry the code so the question can be taken to DDBJ Account.
+  test 'show names the account type and keeps its code' do
+    stub_cloakman_lookup [ALICE_PROFILE.merge(account_type_number: 'nbdc')]
+
+    get admin_user_path(uid: 'alice')
+
+    assert_response :ok
+    assert_match 'NBDC (type 2)', response.body
+  end
+
+  test 'show names an account type that arrived as an integer' do
+    stub_cloakman_lookup [ALICE_PROFILE.merge(account_type_number: 3)]
+
+    get admin_user_path(uid: 'alice')
+
+    assert_response :ok
+    assert_match 'DDBJ (type 3)', response.body
+  end
+
   # The card used to be a count pointing at the ledger, so "how is this
   # person doing" always cost a detour.
   test 'show lists the recent requests rather than only counting them' do

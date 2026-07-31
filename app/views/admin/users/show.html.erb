@@ -116,7 +116,7 @@
           <dd class="col-7"><%= @user.admin? ? 'Curator' : 'Submitter' %></dd>
 
           <dt class="col-5 fw-normal text-body-secondary">Account type</dt>
-          <dd class="col-7"><%= @profile&.dig('account_type_number')&.to_s&.humanize.presence || '—' %></dd>
+          <dd class="col-7"><%= account_type_label(@profile&.dig('account_type_number')) %></dd>
 
           <dt class="col-5 fw-normal text-body-secondary">Registered</dt>
           <dd class="col-7"><%= l @user.created_at.to_date %></dd>

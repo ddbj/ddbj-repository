@@ -1,6 +1,4 @@
 class SessionsController < ApplicationController
-  ADMIN_ACCOUNT_TYPE = 3
-
   skip_before_action :authenticate!, only: %i[create]
 
   def create
@@ -12,7 +10,7 @@ class SessionsController < ApplicationController
     # every login refreshes our copy of the address. Keep the existing one
     # if this token carries none rather than blanking a known address.
     user.update!(
-      admin: auth.dig('extra', 'raw_info', 'account_type_number') == ADMIN_ACCOUNT_TYPE,
+      admin: staff?(auth),
       email: auth.dig('info', 'email').presence || user.email,
 
       # Separates an account imported from D-way that nobody has ever used
@@ -33,5 +31,16 @@ class SessionsController < ApplicationController
     else
       redirect_to_web WebApp::AUTH_CALLBACK_PATH, token: user.token
     end
+  end
+
+  private
+
+  # The id token carries `account_type_number` as an integer; the REST
+  # profile carries it as a name. CloakmanClient owns that translation so
+  # neither shape has to be remembered here.
+  def staff?(auth)
+    type = auth.dig('extra', 'raw_info', 'account_type_number')
+
+    CloakmanClient.account_type_name(type) == CloakmanClient::STAFF_ACCOUNT_TYPE
   end
 end

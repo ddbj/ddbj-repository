@@ -110,6 +110,20 @@ module Admin::ViewHelpers
     WORKBENCH_TABS.fetch(tab)
   end
 
+  # DDBJ Account's account type, in words plus the code it is stored
+  # under — the name is what a curator reads, the number is what they
+  # quote when they take the question to DDBJ Account. An unknown value is
+  # shown as it arrived rather than swallowed.
+  def account_type_label(raw)
+    name = CloakmanClient.account_type_name(raw)
+    return '—' if name.blank?
+
+    label  = CloakmanClient::ACCOUNT_TYPE_LABELS.fetch(name, name.humanize)
+    number = CloakmanClient::ACCOUNT_TYPES.key(name)
+
+    number ? "#{label} (type #{number})" : label
+  end
+
   def admin_tools_section?
     controller_path.in?(TOOLS_CONTROLLERS) || controller_path.start_with?('mission_control/')
   end
