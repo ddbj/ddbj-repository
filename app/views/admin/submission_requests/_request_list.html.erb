@@ -100,8 +100,13 @@
                    {include_blank: 'Assignee — leave as-is'},
                    class: 'form-select form-select-sm w-auto' %>
 
-      <%= f.submit 'Apply', class: 'btn btn-outline-light btn-sm',
-                   data: {turbo_confirm: 'Apply to the selected submissions?'} %>
+      <%# No confirmation. Friction belongs on the operation that cannot %>
+      <%# be taken back, and this one can: the ledger below shows the new %>
+      <%# state, and the notice says what moved and what was already %>
+      <%# there — so a wrong press is visible and fixable by pressing %>
+      <%# again. `turbo_confirm` is a native window.confirm, which blocks %>
+      <%# the whole renderer to ask about something reversible. %>
+      <%= f.submit 'Apply', class: 'btn btn-outline-light btn-sm' %>
 
       <%# To the confirmation, not to the run: it names how many numbers %>
       <%# this allocates and which of the selection will be skipped, so a %>

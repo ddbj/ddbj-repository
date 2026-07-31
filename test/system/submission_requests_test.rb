@@ -37,9 +37,36 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     select 'Curating', from: 'bulk[status]'
     click_button 'Apply'
 
-    assert_text 'Bulk-updated'
+    assert_text 'Set 1 project to curating'
     assert_field 'Search requests', with: 'PSUB000604'
     assert_equal 'curating', projects(:primary).reload.status
+  end
+
+  # `update_all` reports rows matched, so a submission already at the
+  # target status counted as work done. The count a curator checks
+  # against what they ticked has to separate the two.
+  test 'the notice separates what moved from what was already there' do
+    projects(:primary).update!(status: 'curating')
+
+    visit admin_submission_requests_path
+
+    check "Select ##{@req.id}"
+    select 'Curating', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Nothing to set — 1 row was already curating.'
+  end
+
+  test 'assigning says who it went to, and who was already there' do
+    @req.update_column(:assignee_id, users(:bob).id)
+
+    visit admin_submission_requests_path
+
+    check "Select ##{@req.id}"
+    select 'bob', from: 'bulk[assignee_id]'
+    click_button 'Apply'
+
+    assert_text 'No assignee to change — 1 request already had bob.'
   end
 
   # Both buttons live in one form, because a nested form would be dropped.

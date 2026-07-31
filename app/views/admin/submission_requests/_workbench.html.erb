@@ -60,9 +60,9 @@
       <%# Gated on "would this succeed", not on whether issuance happens to %>
       <%# be the most urgent thing to say — an unread message must not hide %>
       <%# the only PRJDB button a BP request has. %>
-      <%# Amber and a confirmation screen, not a primary button and a %>
-      <%# one-line turbo_confirm: the dialog names how many numbers this %>
-      <%# allocates, which is what makes "permanent" concrete. %>
+      <%# Amber and a confirmation, where the reversible bulk actions have %>
+      <%# none: the dialog names how many numbers this allocates, which is %>
+      <%# what makes "permanent" concrete. %>
       <% if (label = @state.issue_label) %>
         <%= link_to label, new_admin_submission_accession_path(@submission),
                     class: 'btn btn-warning btn-sm',

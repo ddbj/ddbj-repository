@@ -145,33 +145,30 @@ module Admin
       bp_ids = subs.where(db: 'bioproject').pluck(:id)
       bs_ids = subs.where(db: 'biosample').pluck(:id)
 
-      bp_affected = 0
-      bs_affected = 0
+      projects = Applied.none
+      samples  = Applied.none
+      assigned = Applied.none
 
       if attrs.any?
         attrs[:updated_at] = Time.current
 
-        bp_affected = bp_ids.any? ? Project.where(submission_id: bp_ids).update_all(attrs) : 0
-        bs_affected = bs_ids.any? ? Sample.where(submission_id: bs_ids).update_all(attrs) : 0
+        projects = apply_status(Project.where(submission_id: bp_ids), attrs)
+        samples  = apply_status(Sample.where(submission_id: bs_ids), attrs)
       end
 
       if assign
         assignee_id = raw[:assignee_id] == '0' ? nil : raw[:assignee_id].to_i
+        scope       = SubmissionRequest.where(submission_id: ids)
+        already     = scope.where(assignee_id:).count
 
-        SubmissionRequest.where(submission_id: ids).update_all(assignee_id:, updated_at: Time.current)
+        matched = scope.update_all(assignee_id:, updated_at: Time.current)
+        assigned = Applied.new(changed: matched - already, unchanged: already)
       end
 
       record_cross_submission_events(subs, bp_ids, bs_ids, raw)
       SubmissionRequest.where(submission_id: ids).find_each { participate!(it) }
 
-      rows = [
-        ("#{helpers.number_with_delimiter(bp_affected)} project(s)" if bp_affected.positive?),
-        ("#{helpers.number_with_delimiter(bs_affected)} sample(s)"  if bs_affected.positive?)
-      ].compact
-
-      summary = rows.any? ? "Bulk-updated #{rows.join(' + ')} across" : 'Updated'
-
-      redirect_to bulk_return_path, notice: "#{summary} #{ids.size} submission(s)."
+      redirect_to bulk_return_path, notice: bulk_notice(projects:, samples:, assigned:, raw:)
     end
 
     # The confirmation for the ledger's bulk. Same component the single
@@ -258,6 +255,74 @@ module Admin
     # One event per submission rather than one for the batch: the activity
     # feed is read per request, and "1,842 samples" has to be that
     # submission's count, not the batch total.
+    # What a bulk write actually did, told apart from what it merely
+    # covered. `update_all` reports rows MATCHED, so a row already at the
+    # target status counted the same as one that moved — and "Bulk-updated
+    # 10 project(s)" is not something a curator can check against what
+    # they ticked.
+    #
+    # A record for this would be heavier than the operation deserves: Apply
+    # is reversible and synchronous, and the ledger below the notice
+    # already shows the new state. What was missing was only the honest
+    # count.
+    Applied = Data.define(:changed, :unchanged) do
+      def self.none = new(changed: 0, unchanged: 0)
+
+      def any? = changed.positive? || unchanged.positive?
+    end
+
+    # Counted before the write, because afterwards the two are
+    # indistinguishable. Still writes the whole scope, so `updated_at`
+    # moves exactly where it did before.
+    def apply_status(scope, attrs)
+      already = scope.where(status: attrs[:status]).count
+      matched = scope.update_all(attrs)
+
+      Applied.new(changed: matched - already, unchanged: already)
+    end
+
+    # Two sentences, each carrying its own pair. Joining them with
+    # `to_sentence` produced "Nothing to set and 1 row already curating",
+    # which is a list of fragments rather than a statement of what
+    # happened.
+    def bulk_notice(projects:, samples:, assigned:, raw:)
+      [status_notice(projects, samples, raw), assignee_notice(assigned, raw)].compact.join(' ')
+    end
+
+    def status_notice(projects, samples, raw)
+      return nil unless projects.any? || samples.any?
+
+      status = raw[:status]
+      moved  = [
+        (helpers.pluralize(projects.changed, 'project') if projects.changed.positive?),
+        (helpers.pluralize(samples.changed, 'sample')   if samples.changed.positive?)
+      ].compact
+
+      already = projects.unchanged + samples.unchanged
+      tail    = " #{helpers.pluralize(already, 'row')} #{already == 1 ? 'was' : 'were'} already #{status}." if already.positive?
+
+      if moved.any?
+        "Set #{moved.to_sentence} to #{status}.#{tail}"
+      else
+        "Nothing to set —#{tail&.chomp('.')}."
+      end
+    end
+
+    def assignee_notice(assigned, raw)
+      return nil unless assigned.any?
+
+      who  = assignee_label(raw[:assignee_id])
+      tail = " #{helpers.pluralize(assigned.unchanged, 'request')} already #{who == 'unassigned' ? 'had none' : "had #{who}"}." if assigned.unchanged.positive?
+
+      if assigned.changed.zero?
+        "No assignee to change —#{tail&.chomp('.')}."
+      elsif who == 'unassigned'
+        "Unassigned #{helpers.pluralize(assigned.changed, 'request')}.#{tail}"
+      else
+        "Assigned #{helpers.pluralize(assigned.changed, 'request')} to #{who}.#{tail}"
+      end
+    end
+
     def record_cross_submission_events(submissions, bp_ids, bs_ids, raw)
       counts = Project.where(submission_id: bp_ids).group(:submission_id).count
                       .merge(Sample.where(submission_id: bs_ids).group(:submission_id).count)
