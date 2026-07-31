@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= [content_for(:title).presence, 'DDBJ Repository'].compact.join(' — ') %></title>
+    <%= csrf_meta_tags %>
+    <%= stylesheet_link_tag 'admin' %>
+  </head>
+  <body class="bg-body-tertiary">
+    <%# Deliberately without the admin nav: a login failure can arrive from %>
+    <%# either side, and a submitter should not be shown curator navigation %>
+    <%# on their way back from a failed sign-in. %>
+    <nav class="navbar navbar-dark bg-dark mb-4">
+      <div class="container">
+        <span class="navbar-brand mb-0">DDBJ Repository</span>
+      </div>
+    </nav>
+
+    <main class="container pb-5">
+      <%= yield %>
+    </main>
+  </body>
+</html>

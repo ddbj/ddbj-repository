@@ -11,7 +11,11 @@ class WebsController < ActionController::Base
     html = Rails.root.join('app/views/webs/show.html').read
     meta = helpers.safe_join([
       helpers.tag.meta(name: 'sentry-dsn',         content: Rails.application.config_for(:app).sentry_dsn),
-      helpers.tag.meta(name: 'sentry-environment', content: Rails.env)
+      helpers.tag.meta(name: 'sentry-environment', content: Rails.env),
+
+      # The sign-in page names where the login button leaves for. The host
+      # differs per environment, so it cannot be baked into the build.
+      helpers.tag.meta(name: 'identity-provider',  content: Rails.application.config_for(:keycloak).url)
     ])
 
     render html: html.sub('</head>') { "#{meta}</head>" }.html_safe

@@ -8,6 +8,10 @@ export default class Router extends EmberRouter {
 
 Router.map(function () {
   this.route('login');
+
+  // Where the OAuth round trip lands with a freshly minted token —
+  // distinct from `login`, which is the page a person arrives at.
+  this.route('auth-callback', { path: 'auth/callback' });
   this.route('account');
   this.route('new');
 

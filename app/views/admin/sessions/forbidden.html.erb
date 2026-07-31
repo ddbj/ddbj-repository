@@ -1,0 +1,29 @@
+<% content_for :title, 'No curator access' %>
+
+<%# The primary action is deliberately NOT "log in again": the account is
+    fine, it simply is not a staff account, and repeating the login would
+    land right back here. %>
+<div class="row justify-content-center py-4">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card">
+      <div class="card-body p-4">
+        <h1 class="h4">Your account has no curator access</h1>
+
+        <p class="mb-3">
+          You are signed in as <code><%= current_user.uid %></code>, which is not a
+          DDBJ staff account. Your own submissions are in the submitter view.
+        </p>
+
+        <div class="d-flex gap-2 flex-wrap">
+          <%= link_to 'Go to my submissions', WebApp.url_for, class: 'btn btn-primary', data: {turbo: false} %>
+          <%= button_to 'Log in as another account', admin_session_path, method: :delete,
+                        class: 'btn btn-outline-secondary', data: {turbo: false} %>
+        </div>
+
+        <p class="text-body-secondary small mb-0 mt-3">
+          Curator access is granted per account — ask a DDBJ administrator to enable it.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

@@ -71,3 +71,8 @@ dl.horizontal {
 .prose {
   max-width: 74ch;
 }
+
+/* Small-caps section label on the sign-in page. */
+.eyebrow {
+  letter-spacing: 0.08em;
+}

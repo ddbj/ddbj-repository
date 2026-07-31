@@ -3,6 +3,7 @@ import { service } from '@ember/service';
 
 import type CurrentUser from 'repository/services/current-user';
 import type { RequestManager } from '@warp-drive/core';
+import type Transition from '@ember/routing/transition';
 import type { paths } from 'schema/openapi';
 
 type SubmissionRequestSummaries =
@@ -20,6 +21,13 @@ export default class IndexRoute extends Route {
     page: { refreshModel: true },
   };
 
+  // The unauthenticated case is its own screen now, so this route can
+  // assume a session instead of returning null and letting the
+  // template branch.
+  beforeModel(transition: Transition) {
+    this.currentUser.ensureLogin(transition);
+  }
+
   async model({
     db,
     status,
@@ -33,8 +41,6 @@ export default class IndexRoute extends Route {
     accession?: string;
     page?: number;
   }) {
-    if (!this.currentUser.isLoggedIn) return null;
-
     const { content, response } = await this.requestManager.request<SubmissionRequestSummaries>({
       url: '/submission_requests',
       options: {

@@ -2,7 +2,10 @@ Rails.application.routes.draw do
   root to: redirect('/web/')
 
   get 'auth/:provider/callback', to: 'sessions#create'
-  get 'auth/failure',            to: 'sessions#failure'
+
+  # HTML, and outside SessionsController: a failed login has no session to
+  # authenticate against, and the person reading it may be a submitter.
+  get 'auth/failure', to: 'auth_failures#show'
 
   scope :api, defaults: {format: :json} do
     resource :api_key, only: [] do

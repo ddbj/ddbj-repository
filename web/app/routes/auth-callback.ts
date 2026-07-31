@@ -3,7 +3,10 @@ import { service } from '@ember/service';
 
 import type CurrentUserService from 'repository/services/current-user';
 
-export default class LoginRoute extends Route {
+// Not a page: the OAuth callback hands a freshly minted token over in a
+// query param, which this exchanges for a session and then gets out of
+// the way.
+export default class AuthCallbackRoute extends Route {
   @service declare currentUser: CurrentUserService;
 
   async beforeModel() {
