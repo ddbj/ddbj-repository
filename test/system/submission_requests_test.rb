@@ -1,5 +1,10 @@
 require 'application_system_test_case'
 
+# The ledger and the Samples tab as a curator reads them. The facet
+# semantics underneath (multi-select OR, a fully-checked facet meaning no
+# constraint), the adversarial search inputs and the materialised JSON
+# endpoint stay in test/integration/admin/submissions_test.rb — none of
+# them is anything a person does.
 class SubmissionRequestsSystemTest < ApplicationSystemTestCase
   setup do
     sign_in_as users(:bob)
@@ -51,6 +56,54 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     assert_not_nil projects(:primary).reload.accession
   end
 
+  # One column, and it changes hands at Apply: before it the pipeline
+  # status is the state, after it the curation status is. A BS submission
+  # whose samples disagree has no single state to show, and "Mixed (2)"
+  # reads as neutral rather than as one.
+  test 'each row states where its request is, in one column' do
+    projects(:primary).update!(status: 'curating')
+    @submission.request.assign!(users(:bob))
+
+    visit admin_submission_requests_path
+
+    within row_for(@req) do
+      assert_text 'curating'
+      assert_text users(:bob).uid
+      assert_text 'PRJDB000001'
+    end
+
+    samples(:first).update!(status: 'curating')
+    samples(:second).update!(status: 'public')
+
+    visit admin_submission_requests_path
+
+    within row_for(submission_requests(:biosample)) do
+      assert_text 'Mixed (2)'
+      assert_text 'SAMD00000001'
+    end
+
+    # ST.26 is never curated through this UI, so it keeps showing the
+    # pipeline status for its whole life rather than an empty cell.
+    within row_for(submission_requests(:st26)) do
+      assert_text 'waiting validation' # the badge is text-capitalize, so the text is lower case
+      assert_text '—' # no assignee
+    end
+  end
+
+  # One box over everything somebody might be holding — the identifier is
+  # what they have, and which kind it is should not be their problem.
+  test 'the search box takes an id, a source id or an accession' do
+    visit admin_submission_requests_path
+
+    {@req.id.to_s => @req, 'psub000604' => @req, 'PRJDB000001' => @req}.each do |query, expected|
+      fill_in 'Search requests', with: query
+      click_button 'Search'
+
+      assert_selector row_for(expected), text: "##{expected.id}"
+      assert_no_selector row_for(submission_requests(:biosample))
+    end
+  end
+
   # Search leads and the facets fold away — but a filter that is on must
   # never be invisible, so the panel announces itself as open when one is.
   # Asserted through `aria-expanded`, which is the state assistive tech
@@ -81,6 +134,13 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     visit admin_submission_requests_path(db: %w[bioproject])
 
     assert_selector 'button[aria-expanded="true"]', text: 'More filters'
+  end
+
+  private
+
+  # A row addressed by the request it is about, rather than by position.
+  def row_for(request)
+    "tr:has(a[href='#{admin_submission_request_path(request)}'])"
   end
 end
 

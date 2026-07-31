@@ -68,6 +68,30 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_text    'fixture-sample-2'
   end
 
+  # A submission can carry 100K samples, so the tab pages — and the page
+  # links have to carry the filter, or clicking page 2 silently widens
+  # the set back to everything.
+  test 'the samples tab pages, and paging keeps the filter' do
+    60.times {|i| @req.submission.samples.create!(sample_name: "probe-#{format('%03d', i)}", status: :curating) }
+
+    visit samples_admin_submission_request_path(@req)
+
+    assert_selector 'tbody tr', count: 50
+    assert_text '62 of 62 shown'
+
+    select 'Curating', from: 'Status'
+    click_button 'Filter'
+
+    assert_text '60 of 62 shown'
+
+    within '.pagination' do
+      click_link '2'
+    end
+
+    assert_text '60 of 62 shown' # not 62 — the filter survived the page
+    assert_selector 'tbody tr', count: 10
+  end
+
   # A BP request has one project, not a bag of samples — the tab would
   # have nothing to show, so it hands the curator back to Overview.
   test 'the samples tab sends a BioProject request back to overview' do

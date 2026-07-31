@@ -1,5 +1,9 @@
 require 'test_helper'
 
+# What the ledger's params mean and what the materialised endpoint
+# returns — neither of which is anything a person does. How the ledger
+# reads, and what its rows say, is test/system/submission_requests_test.rb;
+# the Samples tab is test/system/workbench_test.rb.
 class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   setup do
     sign_in_as users(:bob)
@@ -89,117 +93,8 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match admin_submission_request_path(pending), response.body
   end
 
-  test 'index shows BP Project.status and the request assignee for bioproject rows' do
-    projects(:primary).update!(status: 'curating')
-    submissions(:bioproject).request.assign!(users(:bob))
-
-    get admin_submission_requests_path, params: {db: 'bioproject'}
-
-    assert_response :ok
-    body = css_select("tr a[href='#{admin_submission_request_path(submissions(:bioproject).request)}']").first
-                                                                                       .ancestors('tr').first.to_s
-    assert_match 'curating', body
-    assert_match users(:bob).uid, body
-  end
-
-  test 'index shows the BS Sample aggregate — a uniform status surfaces directly' do
-    samples(:first).update!(status: 'public')
-    samples(:second).update!(status: 'public')
-    submissions(:biosample).request.assign!(users(:bob))
-
-    get admin_submission_requests_path, params: {db: 'biosample'}
-
-    assert_response :ok
-    body = css_select("tr a[href='#{admin_submission_request_path(submissions(:biosample).request)}']").first
-                                                                                      .ancestors('tr').first.to_s
-    assert_match 'public', body
-    assert_match users(:bob).uid, body
-    refute_match(/Mixed/, body, 'uniform values must not be reported as Mixed')
-  end
-
-  test 'index shows BS Sample aggregate — mixed status surfaces as "Mixed (N)"' do
-    samples(:first).update!(status: 'curating')
-    samples(:second).update!(status: 'public')
-
-    get admin_submission_requests_path, params: {db: 'biosample'}
-
-    body = css_select("tr a[href='#{admin_submission_request_path(submissions(:biosample).request)}']").first
-                                                                                      .ancestors('tr').first.to_s
-    assert_match 'Mixed (2)', body
-  end
-
-  test 'index shows "—" for ST26 (no curator status / assignee yet)' do
-    get admin_submission_requests_path, params: {db: 'st26'}
-
-    body = css_select("tr a[href='#{admin_submission_request_path(submissions(:st26).request)}']").first
-                                                                                 .ancestors('tr').first.to_s
-    assert_match '—', body
-  end
-
-  test 'index shows the accession summary per DB (BP project / BS samples / ST.26 accessions)' do
-    get admin_submission_requests_path
-
-    assert_response :ok
-
-    bp = css_select("tr a[href='#{admin_submission_request_path(submissions(:bioproject).request)}']").first
-                                                                                       .ancestors('tr').first.to_s
-    assert_match 'PRJDB000001', bp # from the Project
-
-    bs = css_select("tr a[href='#{admin_submission_request_path(submissions(:biosample).request)}']").first
-                                                                                      .ancestors('tr').first.to_s
-    assert_match 'SAMD00000001', bs # from the sample aggregate (one accessioned sample)
-
-    st26 = css_select("tr a[href='#{admin_submission_request_path(submissions(:st26).request)}']").first
-                                                                                 .ancestors('tr').first.to_s
-    assert_match submissions(:st26).accessions.order(:id).first.number, st26 # first (lowest-id)
-    assert_match '(2)', st26 # two accessions
-  end
-
-  test 'search matches a source_id prefix (case-insensitive)' do
-    submissions(:bioproject).update_columns(source_id: 'PSUB000604')
-    submissions(:biosample).update_columns(source_id: 'SSUB002065')
-
-    get admin_submission_requests_path, params: {q: 'psub'}
-
-    assert_response :ok
-    # Assert on the row href (id-based) so the test stays robust to
-    # display-label changes.
-    assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body
-    assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
-    assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
-  end
-
-  test 'search matches an accession across projects (BP) / samples (BS) / accessions (ST26)' do
-    # projects(:primary) has accession 'PRJDB000001' tied to submissions(:bioproject)
-    # samples(:first) has accession 'SAMD00000001' tied to submissions(:biosample)
-    # accessions(:one) has number 'ACC_000001' tied to submissions(:st26)
-
-    get admin_submission_requests_path, params: {q: 'PRJDB'}
-    assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body
-    assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
-    assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
-
-    get admin_submission_requests_path, params: {q: 'SAMD'}
-    assert_match    admin_submission_request_path(submissions(:biosample).request),  response.body
-    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
-
-    get admin_submission_requests_path, params: {q: 'ACC_'}
-    assert_match    admin_submission_request_path(submissions(:st26).request),       response.body
-    assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
-  end
-
   # The identifier a curator has in hand is as often "#19537" from a mail
   # subject as it is an accession, so a bare number is a request id.
-  test 'search matches a bare request id' do
-    target = submissions(:bioproject).request
-
-    get admin_submission_requests_path, params: {q: target.id.to_s}
-
-    assert_response :ok
-    assert_match    admin_submission_request_path(target),                       response.body
-    assert_no_match admin_submission_request_path(submissions(:st26).request),   response.body
-  end
-
   test 'search treats SQL LIKE metacharacters as literals' do
     submissions(:bioproject).update_columns(source_id: 'PSUB000604')
 
@@ -458,62 +353,8 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match 'Skipped',           response.body
   end
 
-  test 'the samples tab paginates and supports the ?samples_page= permalink' do
-    submission = submissions(:biosample)
-    # 60 fresh probes; combined with the 2 fixture samples that's 62 —
-    # enough to cross the 50-per-page boundary with a short second page.
-    60.times {|i| submission.samples.create!(sample_name: "probe-#{format('%03d', i)}", status: :public) }
-
-    get samples_admin_submission_request_path(submission.request)
-    assert_response :ok
-    assert_equal 50, css_select('tbody tr').size
-    assert_match '62 of 62 shown', response.body
-
-    # Permalink — directly loading ?samples_page=2 lands on page 2.
-    get samples_admin_submission_request_path(submission.request, samples_page: 2)
-    assert_response :ok
-    assert_equal 12, css_select('tbody tr').size
-
-    # pagy links use the namespaced param so they don't collide with
-    # a future paginator that might want plain ?page=.
-    assert_match(/samples_page=/,  response.body)
-    assert_no_match(/[?&]page=\d/, response.body)
-  end
-
   # Pagination has to carry the filter, or clicking page 2 silently widens
   # the set the curator thought they were working through.
-  test 'the samples tab keeps the filter across pages' do
-    submission = submissions(:biosample)
-    60.times {|i| submission.samples.create!(sample_name: "probe-#{format('%03d', i)}", status: :curating) }
-
-    get samples_admin_submission_request_path(submission.request), params: {status: 'curating'}
-
-    assert_response :ok
-    assert_match '60 of 62 shown', response.body
-    assert_match(/samples_page=2[^"]*status=curating|status=curating[^"]*samples_page=2/, response.body)
-  end
-
-  test 'the samples tab renders the samples table' do
-    submission = submissions(:biosample)
-    submission.samples.create!(
-      accession:   'SAMD00099001',
-      sample_name: 'DRS999001',
-      package:     'Generic',
-      status:      :public,
-      organism:    'sample organism',
-      taxonomy_id: 408170
-    )
-    submission.append_update!({'samples' => [{'accession' => 'SAMD00099001'}]}, actor: 'test')
-
-    get samples_admin_submission_request_path(submission.request)
-
-    assert_response :ok
-    assert_match 'Samples',         response.body
-    assert_match 'SAMD00099001',    response.body
-    assert_match 'sample organism', response.body
-    assert_match 'DRS999001',       response.body
-  end
-
   test 'the record tab survives a single poisoned patch — the chain renders and names the bad row' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
