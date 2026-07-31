@@ -209,7 +209,7 @@ module SampleTSV
 
     def build_error_report(headers, errors)
       CSV.generate(col_sep: "\t") {|csv|
-        csv << (headers + ['error'])
+        csv << (headers + [SampleTSV::ERROR_COL])
         errors.each do |row, reason|
           csv << (headers.map { row[it] } + [reason])
         end

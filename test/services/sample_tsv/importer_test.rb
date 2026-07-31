@@ -125,6 +125,32 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     assert_not attrs.key?('assignee_uid'), 'a retired column must not become sample data'
   end
 
+  # Fix the file and upload it again is the documented loop, and the
+  # error report is the file. Its `error` column is an unrecognised
+  # header, so without stripping it the stale reason would be written
+  # into the record as an attribute of every row it explains.
+  test 'the error report can be corrected and re-uploaded without writing the reason into the record' do
+    first = run_importer(<<~TSV)
+      sample_name	status	organism
+      sample-A	bogus	Mus musculus
+    TSV
+
+    assert_equal 1, first.failed
+
+    corrected = first.error_report.sub("\tbogus\t", "\tpublic\t")
+    result    = run_importer(corrected)
+
+    assert_equal 1, result.processed
+
+    attrs = @submission.reload.materialised_record['samples']
+                       .find { it['alias'] == 'sample-A' }['attributes']
+                       .to_h { [it['name'], it['value']] }
+
+    assert_equal 'Mus musculus', attrs['organism']
+    assert_not attrs.key?('error'), 'the rejection reason must not become sample data'
+    assert_equal 'public', @sample.reload.status
+  end
+
   test 'no SubmissionUpdate is created when every row fails' do
     chain_before = @submission.updates.count
 
