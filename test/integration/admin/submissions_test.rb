@@ -22,7 +22,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
-  test 'index filters by user uid' do
+  test 'search matches a submitter uid on a submission-bearing request' do
     carol_request = SubmissionRequest.new(user: users(:carol), db: 'st26')
     attach_ddbj_record(carol_request)
     carol_request.save!
@@ -31,7 +31,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     attach_submission_files(carol_submission)
     carol_submission.save!
 
-    get admin_submission_requests_path, params: {user: 'carol'}
+    get admin_submission_requests_path, params: {q: 'carol'}
 
     assert_response :ok
     assert_match    admin_submission_request_path(carol_submission.request),     response.body
@@ -156,11 +156,11 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match '(2)', st26 # two accessions
   end
 
-  test 'index filters by source_id prefix (case-insensitive)' do
+  test 'search matches a source_id prefix (case-insensitive)' do
     submissions(:bioproject).update_columns(source_id: 'PSUB000604')
     submissions(:biosample).update_columns(source_id: 'SSUB002065')
 
-    get admin_submission_requests_path, params: {source_id: 'psub'}
+    get admin_submission_requests_path, params: {q: 'psub'}
 
     assert_response :ok
     # Assert on the row href (id-based) so the test stays robust to
@@ -170,35 +170,47 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
   end
 
-  test 'index filters by accession across projects (BP) / samples (BS) / accessions (ST26)' do
+  test 'search matches an accession across projects (BP) / samples (BS) / accessions (ST26)' do
     # projects(:primary) has accession 'PRJDB000001' tied to submissions(:bioproject)
     # samples(:first) has accession 'SAMD00000001' tied to submissions(:biosample)
     # accessions(:one) has number 'ACC_000001' tied to submissions(:st26)
 
-    get admin_submission_requests_path, params: {accession: 'PRJDB'}
+    get admin_submission_requests_path, params: {q: 'PRJDB'}
     assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body
     assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
     assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
 
-    get admin_submission_requests_path, params: {accession: 'SAMD'}
+    get admin_submission_requests_path, params: {q: 'SAMD'}
     assert_match    admin_submission_request_path(submissions(:biosample).request),  response.body
     assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
 
-    get admin_submission_requests_path, params: {accession: 'ACC_'}
+    get admin_submission_requests_path, params: {q: 'ACC_'}
     assert_match    admin_submission_request_path(submissions(:st26).request),       response.body
     assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
-  test 'index treats SQL LIKE metacharacters in filter input as literals' do
+  # The identifier a curator has in hand is as often "#19537" from a mail
+  # subject as it is an accession, so a bare number is a request id.
+  test 'search matches a bare request id' do
+    target = submissions(:bioproject).request
+
+    get admin_submission_requests_path, params: {q: target.id.to_s}
+
+    assert_response :ok
+    assert_match    admin_submission_request_path(target),                       response.body
+    assert_no_match admin_submission_request_path(submissions(:st26).request),   response.body
+  end
+
+  test 'search treats SQL LIKE metacharacters as literals' do
     submissions(:bioproject).update_columns(source_id: 'PSUB000604')
 
     # If '%' were unescaped, this would match anything; sanitize_sql_like
     # should escape it so the literal '%' is required in source_id.
-    get admin_submission_requests_path, params: {source_id: '%PSUB'}
+    get admin_submission_requests_path, params: {q: '%PSUB'}
     assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
-  test 'index escapes _ (single-char LIKE wildcard) in accession filter' do
+  test 'search escapes _ (single-char LIKE wildcard)' do
     # Without sanitize_sql_like, `_` would match ANY single char, so the
     # filter 'ACC_' would also match this synthetic 'ACCX000001' on the
     # bioproject submission, leaking unrelated submissions into the list.
@@ -210,7 +222,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
       locus_date: Date.current
     )
 
-    get admin_submission_requests_path, params: {accession: 'ACC_'}
+    get admin_submission_requests_path, params: {q: 'ACC_'}
 
     # accessions(:one) has number 'ACC_000001' (literal underscore) — must match
     assert_match    admin_submission_request_path(submissions(:st26).request),       response.body
@@ -218,27 +230,27 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end
 
-  test 'index ignores non-String filter values instead of crashing on sanitize' do
+  test 'search ignores non-String values instead of crashing on sanitize' do
     # An Array / Hash params shape used to reach sanitize_sql_like and
     # raise NoMethodError: undefined method 'gsub' for an instance of Array,
     # 500-ing the index. Now silently treated as no filter.
-    get admin_submission_requests_path, params: {source_id: ['psub']}
+    get admin_submission_requests_path, params: {q: ['psub']}
     assert_response :ok
 
-    get admin_submission_requests_path, params: {accession: {nested: 'x'}}
+    get admin_submission_requests_path, params: {q: {nested: 'x'}}
     assert_response :ok
   end
 
-  test 'index caps filter input length to bound ILIKE cost / log payload' do
+  test 'search caps input length to bound ILIKE cost / log payload' do
     submissions(:bioproject).update_columns(source_id: 'PSUB000604')
 
-    # 70 chars > MAX_FILTER_LENGTH (64). The cap truncates input to the
+    # 70 chars > MAX_QUERY_LENGTH (64). The cap truncates input to the
     # 'PSUB' prefix (4 chars + 60 'A's truncated to 64 total) — still does
     # NOT match 'PSUB000604' because the truncated value contains 'A's
     # after the leading 'PSUB'.
     long_value = 'PSUB' + ('A' * 70)
 
-    get admin_submission_requests_path, params: {source_id: long_value}
+    get admin_submission_requests_path, params: {q: long_value}
     assert_response :ok
     assert_no_match admin_submission_request_path(submissions(:bioproject).request), response.body
   end

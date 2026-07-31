@@ -7,19 +7,21 @@ module Admin
   class SubmissionRequestsController < ApplicationController
     include RequestListing
     include SubmissionDetail
-    include SourceIdFilterable
-    include AccessionFilterable
+    include RequestSearch
 
     before_action :load_workbench, only: %i[show samples messages record]
 
+    # Ordered by last touched, not by id. On a ledger the question is
+    # almost always "what moved", and creation order answers that only for
+    # a corpus nobody has come back to — which this is not.
     def index
-      scope = SubmissionRequest.order(id: :desc)
+      scope = SubmissionRequest.order(updated_at: :desc)
 
+      @total = scope.reorder(nil).count
+
+      scope = filter_by_query(scope, params[:q])                       if params[:q].present?
       scope = filter_by_db(scope, params[:db])                         if params[:db].present?
-      scope = scope.where(user: User.where(uid: params[:user]))        if params[:user].present?
       scope = filter_by_request_status(scope, params[:request_status]) if params[:request_status].present?
-      scope = filter_by_source_id(scope, params[:source_id])           if params[:source_id].present?
-      scope = filter_by_accession(scope, params[:accession])           if params[:accession].present?
       scope = filter_by_status(scope, params[:status])                 if params[:status].present?
       scope = filter_by_assignee(scope, params[:assignee])             if params[:assignee].present?
 

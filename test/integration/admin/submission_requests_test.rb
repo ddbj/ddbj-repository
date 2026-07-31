@@ -22,12 +22,12 @@ class AdminSubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_no_match "##{submission_requests(:bioproject).id}", response.body
   end
 
-  test 'index filters by user uid' do
+  test 'search matches a submitter uid' do
     carol_request = SubmissionRequest.new(user: users(:carol), db: 'st26')
     attach_ddbj_record(carol_request)
     carol_request.save!
 
-    get admin_submission_requests_path, params: {user: 'carol'}
+    get admin_submission_requests_path, params: {q: 'carol'}
 
     assert_response :ok
     assert_match    "##{carol_request.id}",                response.body

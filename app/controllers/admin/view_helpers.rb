@@ -65,6 +65,24 @@ module Admin::ViewHelpers
     admin/regenerate_flatfiles
   ].freeze
 
+  # The facets a ledger view actually has on, summarised so the row stays
+  # one line: a multi-select reads as "Curation: Curating +1" rather than
+  # spelling out every checked value.
+  REQUEST_FILTER_LABELS = {db: 'Database', request_status: 'Pipeline', status: 'Curation', assignee: 'Assignee'}.freeze
+
+  def active_request_filters(params)
+    REQUEST_FILTER_LABELS.filter_map {|key, label|
+      values = Array(params[key]).reject(&:blank?)
+      next if values.empty?
+
+      "#{label}: #{values.first.to_s.tr('_', ' ').capitalize}#{" +#{values.size - 1}" if values.size > 1}"
+    }
+  end
+
+  def request_filters_active?(params)
+    REQUEST_FILTER_LABELS.keys.any? { Array(params[it]).reject(&:blank?).any? }
+  end
+
   # Compact elapsed time for a queue: "9h", "4d". The question a queue
   # answers is "has this been sitting?", which minute precision only
   # obscures — and the row is sorted by it anyway.
@@ -170,16 +188,27 @@ module Admin::ViewHelpers
     tag.span run.status, class: "badge text-bg-#{color} text-capitalize"
   end
 
-  # Status display for a Submission on the admin index.
-  #   - BP: the Project's Lifecycleable status, or "—" if absent.
-  #   - BS: aggregate over Samples — "—" / "<status>" if uniform / "Mixed (N)" if not.
-  #   - ST26: "—" (not yet curated through this UI).
+  # The ledger's one state column. A request's meaningful state changes
+  # hands at Apply: before it the pipeline status IS the state, after it
+  # the curation status is. ST.26 is never curated through this UI, so it
+  # keeps showing the pipeline status for its whole life — which is why
+  # this falls back rather than printing a dash.
+  def request_state_display(request, submission, sample_aggregates)
+    curation = submission && submission_status_display(submission, sample_aggregates)
+
+    curation || status_badge(request.status)
+  end
+
+  # Curation status of a Submission, or nil when it has none.
+  #   - BP: the Project's Lifecycleable status.
+  #   - BS: aggregate over Samples — "<status>" if uniform, "Mixed (N)" if not.
+  #   - ST26: nil (not curated through this UI).
   def submission_status_display(submission, sample_aggregates)
     if submission.bioproject_db?
-      submission.project&.status&.tr('_', ' ') || '—'
+      submission.project&.status&.tr('_', ' ')
     elsif submission.biosample_db?
       agg = sample_aggregates[submission.id]
-      return '—' unless agg
+      return nil unless agg
 
       if agg.statuses.size == 1
         # `Sample.statuses` is {'public' => 5500, ...} so invert is keyed by integer.
@@ -187,8 +216,6 @@ module Admin::ViewHelpers
       else
         "Mixed (#{agg.statuses.size})"
       end
-    else
-      '—'
     end
   end
 

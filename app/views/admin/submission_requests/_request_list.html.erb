@@ -23,13 +23,12 @@
         </th>
         <th>ID</th>
         <th>Database</th>
-        <th>User</th>
-        <th>Status</th>
+        <th>Submitter</th>
         <th>Source ID</th>
         <th>Accession</th>
         <th>Curation</th>
         <th>Assignee</th>
-        <th>Created</th>
+        <th>Updated ↓</th>
       </tr>
     </thead>
 
@@ -47,7 +46,6 @@
           <td><%= link_to "##{request.id}", admin_submission_request_path(request) %></td>
           <td><%= db_label(request.db) %></td>
           <td><%= request.user.uid %></td>
-          <td><%= status_badge(request.status) %></td>
           <td><%= submission&.source_id || '—' %></td>
           <td>
             <% first_accession, accession_count = submission ? accession_summary(submission, sample_aggregates) : [nil, 0] %>
@@ -60,15 +58,17 @@
               —
             <% end %>
           </td>
-          <td><%= submission ? submission_status_display(submission, sample_aggregates) : '—' %></td>
+          <%# One column, not two: two meant reading both and working out %>
+          <%# which of them currently applied (see request_state_display). %>
+          <td><%= request_state_display(request, submission, sample_aggregates) %></td>
           <td><%= submission ? submission_assignee_display(submission, sample_aggregates) : '—' %></td>
-          <td><%= format_datetime(request.created_at) %></td>
+          <td class="text-nowrap"><%= elapsed_label(request.updated_at) %> ago</td>
         </tr>
       <% end %>
 
       <% if requests.empty? %>
         <tr>
-          <td colspan="10" class="text-center text-body-secondary py-4"><%= empty_message %></td>
+          <td colspan="9" class="text-center text-body-secondary py-4"><%= empty_message %></td>
         </tr>
       <% end %>
     </tbody>
@@ -76,57 +76,44 @@
 
   <%= render 'admin/shared/pagy_nav', pagy: pagy %>
 
+  <%# Same sticky bar as the Samples screen, so "tick rows, act on them" %>
+  <%# looks and works the same wherever a curator does it. Unlike Samples %>
+  <%# there is no "all matching the filter" scope: a ledger filter can %>
+  <%# span the whole corpus, and issuing accessions for it by accident is %>
+  <%# not undoable. Selection stays what is visibly ticked. %>
   <% if requests.any? %>
-    <section class="card mt-3">
-      <div class="card-body">
-        <h2 class="h6 card-title">
-          Apply to selected
-          <span class="badge text-bg-secondary" data-bulk-select-target="counter">0</span>
-        </h2>
+    <div class="bulk-bar bg-dark text-white rounded-3 p-3 d-flex align-items-center gap-3 flex-wrap">
+      <span class="text-nowrap">
+        <span data-bulk-select-target="counter">0</span> selected on this page
+      </span>
 
-        <p class="text-body-secondary small">
-          Sets curation status / assignee on selected requests' submissions — the
-          Project (BP) and every Sample (BS). Leave a field blank to keep its
-          current value. Selection is per-page; requests with no submission yet
-          are not selectable.
-        </p>
+      <span class="flex-fill"></span>
 
-        <div class="row g-2 align-items-end">
-          <div class="col-md-4">
-            <%= f.label :status, 'Curation status', class: 'form-label form-label-sm' %>
-            <%= f.select :status,
-                         Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
-                         {include_blank: '— Leave as-is —'},
-                         class: 'form-select form-select-sm' %>
-          </div>
+      <%= f.select :status,
+                   Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                   {include_blank: 'Curation status — leave as-is'},
+                   class: 'form-select form-select-sm w-auto' %>
 
-          <div class="col-md-5">
-            <%= f.label :assignee_id, 'Assignee', class: 'form-label form-label-sm' %>
-            <%= f.select :assignee_id,
-                         [['— Unassigned —', '0']] + User.staff.order(:uid).pluck(:uid, :id),
-                         {include_blank: '— Leave as-is —'},
-                         class: 'form-select form-select-sm' %>
-          </div>
+      <%= f.select :assignee_id,
+                   [['— Unassigned —', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                   {include_blank: 'Assignee — leave as-is'},
+                   class: 'form-select form-select-sm w-auto' %>
 
-          <div class="col-md-3">
-            <%= f.submit 'Apply to selected', class: 'btn btn-warning btn-sm w-100',
-                        data: {turbo_confirm: 'Apply to the selected submissions?'} %>
-          </div>
-        </div>
+      <%= f.submit 'Apply', class: 'btn btn-outline-light btn-sm',
+                   data: {turbo_confirm: 'Apply to the selected submissions?'} %>
 
-        <hr>
+      <%= f.button 'Issue accessions',
+                   type:       :submit,
+                   formaction: bulk_issue_accessions_admin_submissions_path(filter_params),
+                   class:      'btn btn-warning btn-sm text-nowrap',
+                   data:       {turbo_confirm: 'Issue accessions for the selected submissions?'} %>
+    </div>
 
-        <p class="text-body-secondary small mb-2">
-          Issue accessions for selected submissions (BP: 1 PRJDB each, BS: SAMD for every
-          un-accessioned sample). One mail per submission.
-        </p>
-
-        <%= f.button 'Issue accessions for selected',
-                     type:      :submit,
-                     formaction: bulk_issue_accessions_admin_submissions_path(filter_params),
-                     class:     'btn btn-warning btn-sm',
-                     data:      {turbo_confirm: 'Issue accessions for the selected submissions?'} %>
-      </div>
-    </section>
+    <p class="text-body-secondary small mt-2">
+      Apply sets curation status / assignee on each selected request's submission —
+      the Project (BP) or every Sample (BS). Issue accessions gives each one a PRJDB
+      (BP) or a SAMD per un-accessioned sample (BS), and mails the submitter.
+      Requests with no submission yet are not selectable.
+    </p>
   <% end %>
 <% end %>

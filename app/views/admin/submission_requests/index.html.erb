@@ -2,61 +2,69 @@
 
 <%= render 'admin/shared/breadcrumb', items: [{label: 'All requests'}] %>
 
-<h1 class="display-6 mb-4">All requests</h1>
+<h1 class="display-6 mb-1">All requests</h1>
 
-<%# Filter (GET). Status matches the request's own pipeline status and %>
-<%# applies to every request. Curation / Assignee / Source ID / Accession %>
-<%# match the request's applied submission (BP project OR BS samples via %>
-<%# OR-EXISTS), so a pre-Apply request is excluded when any of those are %>
-<%# set. Database / Status / Curation / Assignee are multi-select (values %>
-<%# within a filter are OR-ed). Database is a filter here rather than a %>
-<%# navigation axis — the curator's task, not the DB, picks the screen. %>
-<%= form_with url: admin_submission_requests_path, method: :get, local: true, class: 'mb-4' do %>
-  <%= render 'checkbox_filter', label: 'Database', name: :db, options: db_options, param: params[:db] %>
+<p class="text-body-secondary mb-3">
+  <%= pluralize(@total, 'request') %><%
+    %><% if @pagy.count != @total %> · <%= number_with_delimiter(@pagy.count) %> matching the current filter<% end %>
+</p>
 
-  <div class="row mb-2">
-    <%= label_tag :user, 'User', class: 'col-sm-2 col-form-label' %>
-    <div class="col-sm-10">
-      <%= search_field_tag :user, params[:user], class: 'form-control form-control-sm', placeholder: 'User uid' %>
+<%# Search first. Six stacked checkbox facets used to fill the screen %>
+<%# above the table, so arriving here showed filters rather than requests %>
+<%# — and most lookups are not a facet combination at all, they are %>
+<%# somebody holding an identifier. The facets fold in behind it. %>
+<%= form_with url: admin_submission_requests_path, method: :get, local: true, class: 'mb-3' do %>
+  <div class="row g-2 align-items-center mb-2">
+    <div class="col-md-6 col-lg-5">
+      <%= search_field_tag :q, params[:q], class: 'form-control',
+                           placeholder: 'ID, source ID, accession, submitter…',
+                           'aria-label': 'Search requests' %>
+    </div>
+
+    <div class="col-auto">
+      <%= submit_tag 'Search', class: 'btn btn-primary' %>
+    </div>
+
+    <div class="col-auto">
+      <%# Summarises what is on rather than restating every facet: a %>
+      <%# multi-select reads as "Curating +1" so the row stays one line. %>
+      <% active_request_filters(params).each do |label| %>
+        <span class="badge text-bg-light border me-1"><%= label %></span>
+      <% end %>
+
+      <button class="btn btn-link btn-sm text-decoration-none" type="button"
+              data-bs-toggle="collapse" data-bs-target="#more-filters"
+              aria-expanded="<%= request_filters_active?(params) %>" aria-controls="more-filters">
+        More filters
+      </button>
+
+      <% if request_filters_active?(params) || params[:q].present? %>
+        <%= link_to 'Clear', admin_submission_requests_path, class: 'btn btn-link btn-sm' %>
+      <% end %>
     </div>
   </div>
 
-  <%= render 'checkbox_filter',
-             label:   'Status',
-             name:    :request_status,
-             options: SubmissionRequest.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
-             param:   params[:request_status] %>
+  <div class="collapse <%= 'show' if request_filters_active?(params) %>" id="more-filters">
+    <div class="card card-body bg-body-tertiary">
+      <%= render 'checkbox_filter', label: 'Database', name: :db, options: db_options, param: params[:db] %>
 
-  <div class="row mb-2">
-    <%= label_tag :source_id, 'Source ID', class: 'col-sm-2 col-form-label' %>
-    <div class="col-sm-10">
-      <%= search_field_tag :source_id, params[:source_id], class: 'form-control form-control-sm', placeholder: 'PSUB / SSUB ...' %>
-    </div>
-  </div>
+      <%= render 'checkbox_filter',
+                 label:   'Pipeline',
+                 name:    :request_status,
+                 options: SubmissionRequest.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                 param:   params[:request_status] %>
 
-  <div class="row mb-2">
-    <%= label_tag :accession, 'Accession', class: 'col-sm-2 col-form-label' %>
-    <div class="col-sm-10">
-      <%= search_field_tag :accession, params[:accession], class: 'form-control form-control-sm', placeholder: 'PRJDB / SAMD ...' %>
-    </div>
-  </div>
+      <%= render 'checkbox_filter',
+                 label:   'Curation',
+                 name:    :status,
+                 options: Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                 param:   params[:status] %>
 
-  <%= render 'checkbox_filter',
-             label:   'Curation',
-             name:    :status,
-             options: Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
-             param:   params[:status] %>
-
-  <%= render 'checkbox_filter',
-             label:   'Assignee',
-             name:    :assignee,
-             options: [['Unassigned', '0']] + User.staff.order(:uid).pluck(:uid, :id),
-             param:   params[:assignee] %>
-
-  <div class="row">
-    <div class="col-sm-10 offset-sm-2">
-      <%= submit_tag 'Filter', class: 'btn btn-primary btn-sm' %>
-      <%= link_to 'Reset', admin_submission_requests_path, class: 'btn btn-link btn-sm' %>
+      <%= render 'checkbox_filter',
+                 label:   'Assignee',
+                 name:    :assignee,
+                 options: [['Unassigned', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                 param:   params[:assignee] %>
     </div>
   </div>
 <% end %>
@@ -66,4 +74,4 @@
            sample_aggregates: @sample_aggregates,
            pagy:              @pagy,
            return_to:         'requests',
-           filter_params:     params.permit(:user, :source_id, :accession, db: [], request_status: [], status: [], assignee: []) %>
+           filter_params:     params.permit(:q, db: [], request_status: [], status: [], assignee: []) %>

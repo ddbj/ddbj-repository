@@ -61,11 +61,11 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
 
   # --- index UI ---
 
-  test 'index renders a per-row checkbox and the apply-to-selected form' do
+  test 'index renders a per-row checkbox and the bulk bar' do
     get admin_submission_requests_path
 
     assert_response :ok
-    assert_match 'Apply to selected',                                response.body
+    assert_match 'selected on this page',                            response.body
     assert_match bulk_update_admin_submissions_path,                 response.body
     assert_match 'name="bulk[submission_ids][]"',                    response.body
     assert_match 'name="bulk[status]"',                              response.body
