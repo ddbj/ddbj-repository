@@ -21,16 +21,6 @@ class ImportSampleTSVJob < ApplicationJob
     )
   end
 
-  # Best-effort accessor for a keyword argument off the job, tolerant
-  # of ActiveJob's symbol-key serialization quirks and any future
-  # adapter that round-trips kwargs as string-keyed hashes.
-  def self.job_kwarg(job, name)
-    arg = job.arguments.first
-    return nil unless arg.is_a?(Hash)
-
-    arg[name] || arg[name.to_s]
-  end
-
   def perform(import_id:, tsv_body:)
     progress = SampleTSVImport.find(import_id)
 

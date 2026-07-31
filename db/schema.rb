@@ -30,7 +30,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_100116) do
     t.text "error_message"
     t.datetime "finished_at"
     t.datetime "started_at", null: false
-    t.string "status", default: "running", null: false
+    t.string "status", default: "queued", null: false
     t.bigint "submission_id", null: false
     t.jsonb "targeting", default: {}, null: false
     t.datetime "updated_at", null: false

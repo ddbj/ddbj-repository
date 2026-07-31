@@ -28,7 +28,8 @@ class ActivityFeed
   # carry a long chain and the Overview only wants the recent past — the
   # full chain lives on Record & history.
   def entries(limit: 12)
-    (request_entries + message_entries + update_entries + tsv_entries + event_entries).max_by(limit, &:at)
+    (request_entries + message_entries + update_entries + tsv_entries + issuance_entries + event_entries)
+      .max_by(limit, &:at)
   end
 
   private
@@ -108,6 +109,32 @@ class ActivityFeed
         update_id: nil
       )
     }
+  end
+
+  # A successful issuance already speaks through its CurationEvent. A
+  # refused or failed one leaves no event at all — the service raises
+  # before recording — so without this the only trace is a row whose page
+  # nothing links to. The bulk action's "each reports on its own request"
+  # is only true because of these lines.
+  def issuance_entries
+    return [] unless submission
+
+    submission.accession_issuances.reject(&:completed_status?).first(20).map {|issuance|
+      Entry.new(
+        at:        issuance.finished_at || issuance.started_at,
+        actor:     issuance.actor_label,
+        summary:   issuance_summary(issuance),
+        update_id: nil
+      )
+    }
+  end
+
+  def issuance_summary(issuance)
+    case issuance.status
+    when 'running' then 'started issuing accessions'
+    when 'refused' then "could not issue accessions — #{issuance.error_message}"
+    else                "failed to issue accessions — #{issuance.error_message}"
+    end
   end
 
   def tsv_summary(import)

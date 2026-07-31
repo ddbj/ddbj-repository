@@ -5,6 +5,8 @@ require 'application_system_test_case'
 # them. What those actions then do to the database is
 # test/integration/admin/{accessions,curations}_test.rb.
 class OverviewSystemTest < ApplicationSystemTestCase
+  include ActiveJob::TestHelper
+
   setup do
     sign_in_as users(:bob)
 
@@ -64,6 +66,24 @@ class OverviewSystemTest < ApplicationSystemTestCase
 
     assert_no_button 'Issue SAMD for 2 samples'
     assert_text 'Nothing is waiting on a curator'
+  end
+
+  # A refused issuance writes no CurationEvent — the service raises before
+  # recording one — so without the activity feed carrying it, the only
+  # trace would be a row whose page nothing links to. The bulk action's
+  # "each reports on its own request" depends on this being here.
+  test 'a refused issuance is readable on the request it was about' do
+    projects(:primary).update!(accession: 'PRJDB000001', status: 'curating')
+
+    perform_enqueued_jobs do
+      @submission.accession_issuances.create!(actor: 'admin:bob', started_at: Time.current)
+                 .then { IssueAccessionsJob.perform_later(issuance_id: it.id) }
+    end
+
+    visit admin_submission_request_path(@req)
+
+    assert_text 'could not issue accessions'
+    assert_text 'already has accession'
   end
 
   # --- what the summary says -----------------------------------------------

@@ -127,11 +127,14 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     # nothing ticked is refused, which is its own correct behaviour.
     choose 'All 2 matching the filter'
 
+    # The wait is inside the block: Capybara returns as soon as the click
+    # is dispatched, and the block form only runs what was enqueued while
+    # the flag was set — so landing on the next page has to happen first.
     perform_enqueued_jobs do
       click_button 'Issue SAMD'
-    end
 
-    assert_text 'Issuing accessions'
+      assert_text 'Issuing accessions'
+    end
 
     # And once it has run, the same page names what came out.
     visit current_path

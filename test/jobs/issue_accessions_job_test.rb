@@ -86,11 +86,11 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
     assert_empty issuance.accessions
   end
 
-  test 'a second issuance on the same submission is refused while the first runs' do
+  test 'a second issuance is refused while another is actually running' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
 
-    issuance_for(submission) # left running
+    issuance_for(submission).update!(status: 'running')
     second = issuance_for(submission)
 
     IssueAccessionsJob.perform_now(issuance_id: second.id)
@@ -98,6 +98,72 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
     assert second.reload.refused_status?
     assert_match(/already running/, second.error_message)
     assert_nil projects(:primary).reload.accession, 'nothing was issued'
+  end
+
+  # A double-click makes two rows before either job starts. Counting a
+  # queued row as running would have each see the other and refuse, so
+  # nothing would be issued and both pages would blame the other.
+  test 'a double-click issues once rather than deadlocking into two refusals' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    first  = issuance_for(submission)
+    second = issuance_for(submission)
+
+    IssueAccessionsJob.perform_now(issuance_id: first.id)
+    IssueAccessionsJob.perform_now(issuance_id: second.id)
+
+    assert first.reload.completed_status?
+    assert second.reload.refused_status?
+    assert_not_nil projects(:primary).reload.accession
+  end
+
+  # A worker killed mid-issuance leaves a `running` row nothing clears.
+  # Without a bound it would latch the submission shut for good.
+  test 'a running row older than the bound no longer blocks' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    issuance_for(submission).update!(status: 'running', started_at: (AccessionIssuance::STALE_AFTER + 1.hour).ago)
+
+    IssueAccessionsJob.perform_now(issuance_id: issuance_for(submission).id)
+
+    assert_not_nil projects(:primary).reload.accession
+  end
+
+  # Widening a handful of checked rows into all 100K is the irreversible
+  # direction once the Sequence has moved. A targeting nothing recognises
+  # is a fault, not a refusal — it means something wrote a shape we do
+  # not understand — so it lands as `failed` and is reported.
+  test 'an unrecognised targeting fails rather than targeting everything' do
+    submission = submissions(:biosample)
+    submission.samples.update_all(accession: nil, status: Lifecycleable::STATUSES.fetch('curating'))
+
+    issuance = issuance_for(submission, targeting: {scope: 'everything'})
+
+    IssueAccessionsJob.perform_now(issuance_id: issuance.id)
+
+    assert issuance.reload.failed_status?
+    assert_match(/Unknown target/, issuance.error_message)
+    assert_equal 2, submission.samples.where(accession: nil).count, 'nothing was issued'
+  end
+
+  # Issuing is editing, so it puts the curator in the request's
+  # participants — but only once it has actually happened.
+  test 'a completed issuance makes the curator a participant, a refused one does not' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    IssueAccessionsJob.perform_now(issuance_id: issuance_for(submission).id)
+
+    assert_equal [users(:bob)], submission.request.reload.participants
+
+    projects(:primary).update!(accession: 'PRJDB000001')
+    submission.request.participations.destroy_all
+
+    IssueAccessionsJob.perform_now(issuance_id: issuance_for(submission).id)
+
+    assert_empty submission.request.reload.participants
   end
 
   # `/**/accession` is ordinary record content since ddbj-canon/v2, so

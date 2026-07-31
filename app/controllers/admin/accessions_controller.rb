@@ -34,8 +34,6 @@ module Admin
 
       IssueAccessionsJob.perform_later(issuance_id: issuance.id)
 
-      participate!(submission.request)
-
       redirect_to admin_submission_accession_path(submission, issuance),
                   notice: 'Issuing accessions. This page updates itself.'
     rescue SampleTargeting::UnknownScope => e

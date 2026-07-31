@@ -198,13 +198,15 @@ module Admin
         )
 
         IssueAccessionsJob.perform_later(issuance_id: issuance.id)
-
-        participate!(submission.request)
       end
+
+      # Participation is recorded by the job, on the ones that actually
+      # issued: ticking ten boxes should not subscribe a curator to ten
+      # requests, three of which turn out to refuse.
 
       redirect_to bulk_return_path,
                   notice: "Issuing accessions for #{ids.size} submission(s). " \
-                          'Each reports on its own request; refusals show there too.'
+                          "Each reports on its own request's activity."
     end
 
     private

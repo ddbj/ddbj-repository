@@ -6,6 +6,11 @@
   {label: 'Accession issuance'}
 ] %>
 
+<%# Back to where the curator pressed the button. One started from the %>
+<%# Samples screen came with a filter, and dropping them on Overview %>
+<%# means finding it again. %>
+<% back = @issuance.targeting['scope'] ? samples_admin_submission_request_path(@submission.request, @issuance.targeting.fetch('filter', {})) : admin_submission_request_path(@submission.request) %>
+
 <h1 class="display-6 mb-4">Accession issuance</h1>
 
 <dl class="row">
@@ -66,5 +71,5 @@
 <% end %>
 
 <p class="mt-3">
-  <%= link_to 'Back to the request', admin_submission_request_path(@submission.request) %>
+  <%= link_to 'Back to the request', back %>
 </p>

@@ -23,7 +23,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_submission_accession_path(submission, issuance)
     assert_equal 'admin:bob', issuance.actor
-    assert issuance.running_status?
+    assert issuance.queued_status?, 'running is what the job claims, not what the controller assumes'
   end
 
   # Which samples were asked for is stored as the curator expressed it —

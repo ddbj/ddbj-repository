@@ -24,7 +24,7 @@ class CreateAccessionIssuances < ActiveRecord::Migration[8.1]
       t.references :submission, null: false, foreign_key: true, index: false
 
       t.string   :actor,  null: false
-      t.string   :status, null: false, default: 'running'
+      t.string   :status, null: false, default: 'queued'
       t.jsonb    :targeting,  null: false, default: {}
       t.jsonb    :accessions, null: false, default: []
       t.text     :error_message
