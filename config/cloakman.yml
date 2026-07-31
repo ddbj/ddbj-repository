@@ -1,5 +1,7 @@
 development:
-  url:       <%= ENV.fetch('CLOAKMAN_URL', 'http://localhost:3001') %>
+  # Served by Caddy over a UNIX socket, so there is no port to collide
+  # with — the old default shared 3001 with the validator.
+  url:       <%= ENV.fetch('CLOAKMAN_URL', 'https://cloakman.localhost') %>
   api_token: <%= ENV['CLOAKMAN_API_TOKEN'] %>
 
 test:

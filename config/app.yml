@@ -3,7 +3,7 @@ development:
   mass_dir_path_template: <%= Rails.root.join('storage/mass/{user}') %>
   repository_dir:         <%= Rails.root.join('storage/repository') %>
   validator_url:          http://localhost:3001/api
-  account_url:            https://accounts-staging.ddbj.nig.ac.jp/
+  account_url:            https://cloakman.localhost
   web_url:                <%= ENV.fetch('WEB_URL', 'http://localhost:4200') %>
 
   # Base directory for generated release artifacts. Subdirectories are
