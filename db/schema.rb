@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_071010) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_082306) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -75,6 +75,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_071010) do
     t.index ["submission_id", "created_at"], name: "index_curation_events_on_submission_id_and_created_at"
     t.index ["submission_id"], name: "index_curation_events_on_submission_id"
     t.index ["submission_update_id"], name: "index_curation_events_on_submission_update_id"
+  end
+
+  create_table "distribution_notices", force: :cascade do |t|
+    t.jsonb "accessions", default: [], null: false
+    t.string "actor"
+    t.string "result", null: false
+    t.datetime "sent_at", null: false
+    t.string "skip_reason"
+    t.string "trigger", null: false
+    t.bigint "user_id", null: false
+    t.index ["sent_at"], name: "index_distribution_notices_on_sent_at", order: :desc
+    t.index ["user_id", "sent_at"], name: "index_distribution_notices_on_user_id_and_sent_at"
   end
 
   create_table "distribution_notifier_templates", force: :cascade do |t|
@@ -351,6 +363,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_071010) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "curation_events", "submission_updates", on_delete: :nullify
   add_foreign_key "curation_events", "submissions"
+  add_foreign_key "distribution_notices", "users"
   add_foreign_key "project_links", "projects", column: "child_project_id"
   add_foreign_key "project_links", "projects", column: "parent_project_id"
   add_foreign_key "projects", "submissions"

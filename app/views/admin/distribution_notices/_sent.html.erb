@@ -1,0 +1,66 @@
+<%# The tab that did not exist. "Was this submitter told, and when?" is %>
+<%# what people arrive at this screen holding, and until now the only %>
+<%# evidence was a timestamp column on the project. %>
+<%= form_with url: admin_distribution_notices_path, method: :get, local: true, class: 'row g-2 align-items-center mb-3' do %>
+  <%= hidden_field_tag :tab, 'sent' %>
+
+  <div class="col-md-5">
+    <label for="sent-query" class="visually-hidden">Search sent notices</label>
+    <%= search_field_tag :q, params[:q], id: 'sent-query', class: 'form-control',
+                         placeholder: 'Submitter or accession…' %>
+  </div>
+
+  <div class="col-auto">
+    <%= submit_tag 'Search', class: 'btn btn-primary' %>
+  </div>
+
+  <div class="col-auto text-body-secondary small">
+    <%= pluralize(@sent_total, 'notice') %> in the last <%= Admin::DistributionNoticesController::SENT_WINDOW.inspect %>
+  </div>
+<% end %>
+
+<table class="table border align-middle">
+  <thead class="table-light">
+    <tr>
+      <th>Sent</th>
+      <th>Submitter</th>
+      <th>Projects</th>
+      <th>Trigger</th>
+      <th>Result</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @notices.each do |notice| %>
+      <tr>
+        <td class="text-nowrap"><%= format_datetime(notice.sent_at) %></td>
+        <td><%= link_to notice.user.uid, admin_user_path(uid: notice.user.uid) %></td>
+
+        <%# The accessions as they were at send time, not as the project %>
+        <%# reads today — this is a record of what the submitter was told. %>
+        <td><code class="small"><%= notice.accessions.join(', ') %></code></td>
+
+        <td class="text-nowrap"><%= notice.trigger_label %></td>
+
+        <td>
+          <% if notice.delivered_result? %>
+            <span class="badge text-bg-success">Delivered</span>
+          <% else %>
+            <span class="badge text-bg-warning">Skipped</span>
+            <span class="small text-body-secondary"><%= notice.skip_reason&.tr('_', ' ') %></span>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+
+    <% if @notices.empty? %>
+      <tr>
+        <td colspan="5" class="text-center text-body-secondary py-4">
+          <%= params[:q].present? ? 'No notices match this search.' : 'No notices have been sent yet.' %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<%= render 'admin/shared/pagy_nav', pagy: @pagy %>

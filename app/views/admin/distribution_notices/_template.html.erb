@@ -1,0 +1,80 @@
+<div class="row g-4">
+  <div class="col-lg-6">
+    <%= form_with model: @template, url: admin_distribution_notice_template_path, method: :patch,
+                  scope: :distribution_notifier_template do |f| %>
+      <% if @template.errors.any? %>
+        <div class="alert alert-danger">
+          <ul class="mb-0">
+            <% @template.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <div class="mb-3">
+        <%= f.label :subject, class: 'form-label' %>
+        <%= f.text_field :subject, class: 'form-control' %>
+      </div>
+
+      <div class="mb-3">
+        <%= f.label :body, class: 'form-label' %>
+        <%= f.text_area :body, rows: 14, class: 'form-control font-monospace' %>
+      </div>
+
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <%= f.submit 'Save', class: 'btn btn-primary' %>
+
+        <%# Saving is publishing: the next run sends this to everybody. A %>
+        <%# copy addressed to yourself first is the difference between %>
+        <%# checking and finding out. %>
+        <%= button_to 'Send a test to me', test_delivery_admin_distribution_notices_path,
+                      method: :post, class: 'btn btn-outline-secondary' %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-lg-6">
+    <%# The placeholder used to be explained in a paragraph. A worked %>
+    <%# example of the same thing says it better, and catches the case %>
+    <%# prose cannot: a body that reads fine and expands wrong. %>
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-baseline gap-2 flex-wrap">
+        <span class="fw-semibold">Preview</span>
+
+        <% if @preview.available? %>
+          <span class="small text-body-secondary">as sent to <%= @preview.user.uid %></span>
+        <% end %>
+      </div>
+
+      <div class="card-body">
+        <% if @preview.available? %>
+          <dl class="row small mb-3">
+            <dt class="col-2 fw-normal text-body-secondary">To</dt>
+            <dd class="col-10"><%= @preview.to %></dd>
+
+            <dt class="col-2 fw-normal text-body-secondary">Subject</dt>
+            <dd class="col-10"><%= @preview.subject %></dd>
+          </dl>
+
+          <div class="border-top pt-3 small" style="white-space: pre-wrap;"><%= @preview.before %>
+
+<span class="d-inline-block bg-warning-subtle rounded px-2 py-1"><% @preview.notices.each do |notice| %><%= notice.to_line %>
+<% end %></span>
+
+<%= @preview.after %></div>
+
+          <p class="small text-body-tertiary mt-3 mb-0">
+            The highlighted block is where <code><%= DistributionNotifierTemplate::PLACEHOLDER %></code>
+            expands — plain text in the text part, links in the HTML part.
+          </p>
+        <% else %>
+          <p class="small text-body-secondary fst-italic mb-0">
+            Nothing is due, so there is no real notice to render. The preview shows an actual
+            candidate rather than a specimen, so it appears once somebody is due.
+          </p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

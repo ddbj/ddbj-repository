@@ -8,17 +8,25 @@ class DistributionNotifierTemplate < ApplicationRecord
   # link to the submission where the submitter can reach a curator. The
   # curator writes the prose around it; we own the list itself so both mail
   # parts can render it (plain text / linked markup).
+  #
+  # `url` is nil when the submission has no request behind it. That should
+  # not happen — every submission gets one, synthetic if it came from the
+  # importer — but the link is a convenience and the release date is the
+  # message. Raising here would fail the whole mail inside a job, so a
+  # submitter would simply never be told their data is about to go public.
   Notice = Data.define(:accession, :hold_date, :url) do
     def self.for(project)
+      request = project.submission&.request
+
       new(
         accession: project.accession,
         hold_date: project.hold_date,
-        url:       WebApp.url_for("/requests/#{project.submission.request.id}")
+        url:       request && WebApp.url_for("/requests/#{request.id}")
       )
     end
 
     def to_line
-      "- #{accession} will be released on #{hold_date.iso8601}\n  #{url}"
+      ["- #{accession} will be released on #{hold_date.iso8601}", ("  #{url}" if url)].compact.join("\n")
     end
   end
 

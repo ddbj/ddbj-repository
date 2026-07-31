@@ -104,4 +104,71 @@ class DistributionNotifierTest < ActiveSupport::TestCase
       DistributionNotifier.call
     end
   end
+
+  # --- the send log --------------------------------------------------------
+
+  test 'a delivered notice records what was sent and on whose say-so' do
+    DistributionNotifier.call
+
+    notice = DistributionNotice.sole
+
+    assert_equal @project.submission.user, notice.user
+    assert notice.delivered_result?
+    assert notice.scheduled_trigger?
+    assert_nil notice.actor
+    assert_equal [@project.accession], notice.accessions
+  end
+
+  test 'a manual send names the curator who pressed it' do
+    DistributionNotifier.new.notify(DistributionNotifier.new.candidates.to_a, trigger: :manual, actor: 'admin:bob')
+
+    notice = DistributionNotice.sole
+
+    assert notice.manual_trigger?
+    assert_equal 'Manual · bob', notice.trigger_label
+  end
+
+  # Without this the due list cannot explain why a row is still there.
+  test 'a skip is recorded too, with its reason' do
+    @project.submission.user.update!(email: nil)
+
+    DistributionNotifier.call
+
+    notice = DistributionNotice.sole
+
+    assert notice.skipped_result?
+    assert_equal DistributionNotice::NO_ADDRESS, notice.skip_reason
+    assert_equal [@project.accession],           notice.accessions
+  end
+
+  # The strip reports the schedule, so a curator's manual send in between
+  # must not be mistaken for the last automatic run.
+  test 'the last scheduled run is the batch of rows sharing its timestamp' do
+    bp_project(source_id: 'PSUB-d', accession: 'PRJDB900004', user: users(:bob))
+
+    DistributionNotifier.call
+
+    assert_equal 2, DistributionNotice.last_scheduled_run.count
+
+    Project.update_all(distribution_notified_at: nil)
+    DistributionNotifier.new.notify(DistributionNotifier.new.candidates.to_a, trigger: :manual, actor: 'admin:bob')
+
+    assert_equal 2, DistributionNotice.last_scheduled_run.count, 'a manual send is not a run of the schedule'
+  end
+
+  test 'blocked_since reports when a submitter first could not be reached' do
+    user = @project.submission.user
+    user.update!(email: nil)
+
+    # `notify` directly, not `call`: the candidate window is relative to
+    # "now", so travelling would move the window out from under the
+    # fixture's hold date and the past run would find nothing.
+    travel_to 3.days.ago do
+      DistributionNotifier.new.notify([@project])
+    end
+
+    DistributionNotifier.new.notify([@project])
+
+    assert_in_delta 3.days.ago, DistributionNotice.blocked_since([user.id]).fetch(user.id), 5
+  end
 end

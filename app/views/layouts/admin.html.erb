@@ -22,10 +22,14 @@
 
         <% if current_user %>
           <ul class="navbar-nav me-auto">
-            <%# Four items, one axis each: my work, the ledger, the %>
-            <%# migration, the tools. "Needs action" used to sit in front %>
-            <%# of My queue holding the same requests under a different %>
-            <%# question; the two are now one screen. %>
+            <%# One axis each, ordered by how often a curator is on it: %>
+            <%# my work, the ledger, the people, the outgoing mail, then %>
+            <%# the things you visit when something is wrong. %>
+            <%# %>
+            <%# Users and Distribution notices are out of the Tools %>
+            <%# dropdown: both are places curators work, and a dropdown %>
+            <%# labelled "Tools" reads as a place for machinery. What is %>
+            <%# left in there is machinery. %>
             <%= render 'layouts/admin_nav_item',
                        label:  'My queue',
                        path:   admin_my_queue_path,
@@ -39,9 +43,14 @@
                        active: controller_path == 'admin/submission_requests' %>
 
             <%= render 'layouts/admin_nav_item',
-                       label:  'Data migration',
-                       path:   admin_migration_runs_path,
-                       active: controller_path == 'admin/migration_runs' %>
+                       label:  'Users',
+                       path:   admin_users_path,
+                       active: controller_path == 'admin/users' %>
+
+            <%= render 'layouts/admin_nav_item',
+                       label:  'Distribution notices',
+                       path:   admin_distribution_notices_path,
+                       active: controller_path.in?(%w[admin/distribution_notices admin/distribution_notice_templates]) %>
 
             <li class="nav-item dropdown">
               <button type="button" class="nav-link dropdown-toggle <%= 'active' if admin_tools_section? %>" data-bs-toggle="dropdown" aria-expanded="false">
@@ -49,8 +58,7 @@
               </button>
 
               <ul class="dropdown-menu">
-                <li><%= link_to 'Users',                admin_users_path,                class: 'dropdown-item' %></li>
-                <li><%= link_to 'Distribution notices', admin_distribution_notices_path, class: 'dropdown-item' %></li>
+                <li><%= link_to 'Data migration',       admin_migration_runs_path,       class: 'dropdown-item' %></li>
                 <li><%= link_to 'Regenerate flatfiles', admin_regenerate_flatfiles_path, class: 'dropdown-item' %></li>
                 <li><%= link_to 'Jobs',                 admin_mission_control_jobs_path, class: 'dropdown-item' %></li>
               </ul>

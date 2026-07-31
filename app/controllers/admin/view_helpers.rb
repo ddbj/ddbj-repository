@@ -59,9 +59,7 @@ module Admin::ViewHelpers
   # dropdown lights up while the curator is inside one of them, the same
   # way a top-level nav item does.
   TOOLS_CONTROLLERS = %w[
-    admin/users
-    admin/distribution_notices
-    admin/distribution_notice_templates
+    admin/migration_runs
     admin/regenerate_flatfiles
   ].freeze
 

@@ -18,6 +18,16 @@ class DistributionNotifier
 
   def self.call(...) = new(...).call
 
+  # How the daily run is configured, read from the same file SolidQueue
+  # reads — so the screen cannot claim a schedule that was changed out
+  # from under it. Nil where the environment has no recurring entry at
+  # all, which is the truth in local development.
+  def self.schedule
+    Rails.application.config_for(:recurring)&.dig(:distribution_notifier, :schedule)
+  rescue StandardError
+    nil
+  end
+
   def initialize(notice_days: NOTICE_DAYS)
     @notice_days = notice_days
   end
@@ -39,23 +49,48 @@ class DistributionNotifier
 
   # Mail + mark a specific set of projects, one mail per submitter. Shared
   # by the daily run and the admin "send now" (whole batch or one submitter).
-  def notify(projects)
+  #
+  # `trigger` / `actor` are what the audit log records: the daily job is
+  # nobody's decision, a manual send is somebody's.
+  #
+  # Every submitter gets a log row, mailed or not. One `sent_at` for the
+  # whole call, so "the last run" is a group of rows sharing a timestamp
+  # rather than a fuzzy window.
+  def notify(projects, trigger: :scheduled, actor: nil)
     # Submitters we have no address for are left untouched — NOT marked as
     # notified — so they stay on the admin list instead of silently
     # vanishing, and the next run picks them up once the address arrives
     # (login, or SyncUserEmailsJob).
     mailable, skipped = projects.group_by { it.submission.user }.partition {|user, _| user.email.present? }
 
+    sent_at = Time.current
+
     mailable.each do |user, user_projects|
       DistributionNotifierMailer.with(user:, projects: user_projects).release_notice.deliver_later
 
-      Project.where(id: user_projects.map(&:id)).update_all(distribution_notified_at: Time.current)
+      Project.where(id: user_projects.map(&:id)).update_all(distribution_notified_at: sent_at)
+
+      record(user, user_projects, sent_at:, trigger:, actor:, result: :delivered)
+    end
+
+    skipped.each do |user, user_projects|
+      record(user, user_projects, sent_at:, trigger:, actor:,
+             result: :skipped, skip_reason: DistributionNotice::NO_ADDRESS)
     end
 
     Result.new(
       notified_project_count: mailable.sum {|_user, user_projects| user_projects.size },
       notified_user_count:    mailable.size,
       skipped_user_count:     skipped.size
+    )
+  end
+
+  private
+
+  def record(user, projects, sent_at:, trigger:, actor:, result:, skip_reason: nil)
+    DistributionNotice.create!(
+      user:, sent_at:, trigger:, actor:, result:, skip_reason:,
+      accessions: projects.map(&:accession)
     )
   end
 end

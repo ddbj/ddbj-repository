@@ -5,8 +5,9 @@
 <ul>
   <% @notices.each do |notice| %>
     <li>
-      <%= notice.accession %> will be released on <%= notice.hold_date.iso8601 %> —
-      <a href="<%= notice.url %>">open the submission</a>
+      <%= notice.accession %> will be released on <%= notice.hold_date.iso8601 %><% if notice.url %> —
+        <a href="<%= notice.url %>">open the submission</a>
+      <% end %>
     </li>
   <% end %>
 </ul>

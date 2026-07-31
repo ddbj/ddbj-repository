@@ -1,0 +1,83 @@
+<% if @projects.empty? %>
+  <p class="text-body-secondary fst-italic">No submitters are currently due for a release notice.</p>
+<% else %>
+  <%# What is stuck, at the top, once. A submitter with no address used to %>
+  <%# appear as a disabled button buried in their own card — visible only %>
+  <%# if you scrolled to it, and silent about how long it had been that %>
+  <%# way, which is the part that decides whether anyone chases it. %>
+  <% if @blocked.any? %>
+    <div class="alert alert-warning d-flex align-items-center gap-3 flex-wrap py-2">
+      <span class="badge text-bg-warning">BLOCKED</span>
+
+      <span class="small">
+        <%= pluralize(@blocked.size, 'submitter') %>
+        <%= @blocked.size == 1 ? 'has' : 'have' %> no address on file.
+        Nothing is sent and the row stays here until an address turns up.
+      </span>
+
+      <span class="flex-fill"></span>
+
+      <%= link_to 'Review in Users', admin_users_path(q: @blocked.first.uid), class: 'small' %>
+    </div>
+  <% end %>
+
+  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+    <span class="text-body-secondary">
+      <%= pluralize(@by_user.size, 'submitter') %> ·
+      <%= pluralize(@projects.size, 'project') %> ·
+      nearest release <%= @projects.first.hold_date.iso8601 %>
+    </span>
+
+    <%# Weaker than it was. The daily job is what sends these; a curator %>
+    <%# pressing this is the exception, and a primary button invited it to %>
+    <%# be read as the normal way. %>
+    <%= button_to 'Send all now', admin_distribution_notices_path, method: :post,
+                  class: 'btn btn-outline-secondary btn-sm',
+                  form:  {data: {turbo_confirm: 'Send every due notice now?'}} %>
+  </div>
+
+  <% @by_user.each do |user, projects| %>
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span>
+          <strong><%= user.uid %></strong>
+
+          <% if user.email.present? %>
+            <span class="text-body-secondary"><%= user.email %></span>
+          <% else %>
+            <span class="badge text-bg-warning">No address on file</span>
+          <% end %>
+
+          <span class="text-body-secondary">
+            · <%= pluralize(projects.size, 'project') %>
+
+            <%# How long this has been stuck. Without it a blocked row is %>
+            <%# indistinguishable from one that arrived this morning. %>
+            <% if (since = @blocked_since[user.id]) %>
+              · blocked since <%= since.to_date.iso8601 %>
+            <% end %>
+          </span>
+        </span>
+
+        <%= button_to 'Send now', admin_distribution_notices_path, params: {user_id: user.id}, method: :post,
+                      class: 'btn btn-sm btn-outline-secondary', disabled: user.email.blank? %>
+      </div>
+
+      <ul class="list-group list-group-flush">
+        <% projects.each do |project| %>
+          <li class="list-group-item d-flex justify-content-between align-items-baseline gap-3">
+            <span>
+              <code><%= project.accession %></code>
+
+              <%# The accession alone does not tell a curator what is about %>
+              <%# to become public. The title does. %>
+              <span class="ms-2"><%= project.title.presence || '(untitled)' %></span>
+            </span>
+
+            <span class="text-body-secondary text-nowrap">releases <%= project.hold_date.iso8601 %></span>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>
