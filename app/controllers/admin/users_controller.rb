@@ -67,7 +67,12 @@ module Admin
 
     def filtered(scope)
       scope = by_segment(scope)
-      scope = scope.with_submission_requests if @submitted
+
+      # Not on Staff. "Curators who have submitted something" is a
+      # coherent query and almost never the one being asked — and with
+      # the filter defaulting to on, clicking Staff showed an empty list
+      # next to a badge counting every one of them.
+      scope = scope.with_submission_requests if @submitted && @segment != 'staff'
       scope = search(scope)                  if @query.present?
 
       scope

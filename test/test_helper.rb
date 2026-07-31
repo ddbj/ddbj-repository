@@ -103,6 +103,18 @@ class ActiveSupport::TestCase
 
   def cloakman_profile(name) = CLOAKMAN_PROFILES.fetch(name)
 
+  # Cloakman's free-text search, which the Users screen widens its uid
+  # match with.
+  def stub_cloakman_search(query, profiles)
+    stub_request(:get, 'http://cloakman.example.com/api/users')
+      .with(query: {query:})
+      .to_return(
+        status:  200,
+        body:    profiles.to_json,
+        headers: {'Content-Type' => 'application/json'}
+      )
+  end
+
   def stub_cloakman_lookup(profiles, uids: profiles.map { it[:uid] })
     stub_request(:get, 'http://cloakman.example.com/api/users/lookup')
       .with(query: {uids:})
