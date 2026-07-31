@@ -71,9 +71,8 @@ class AccessionIssueTest < ActiveSupport::TestCase
   # `materialised_record` can be served from the cache while the chain
   # behind it is unreplayable — the importers create exactly that state
   # (safe_prior_materialised swallows the failure, then re-primes). The
-  # read then succeeds and the append raises, escaping as
-  # MaterialisationFailed past every rescue in the controllers.
-  test 'BP: refuses when the chain is broken behind a warm cache' do
+  # read then succeeds and the append raises.
+  test 'BP: reports a broken chain behind a warm cache, without stamping' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
     submission.append_update!({'project' => {'title' => 'seed'}}, actor: 'test-seed')
@@ -87,13 +86,15 @@ class AccessionIssueTest < ActiveSupport::TestCase
     submission.prime_cache!(bytes: Oj.dump({'project' => {'title' => 'seed'}}, mode: :strict),
                             update_id: poisoned.id)
 
-    assert_raises(AccessionIssue::Refused) { AccessionIssue.call(submission:, actor: 'test') }
-    assert_nil projects(:primary).reload.accession, 'the refusal must roll the allocation back'
+    assert_raises(AccessionIssue::ChainBroken) { AccessionIssue.call(submission:, actor: 'test') }
+    assert_nil projects(:primary).reload.accession, 'the raise must roll the allocation back'
   end
 
   # Stamping an accession into a record that cannot be replayed would
-  # record something the chain can never show.
-  test 'BP: refuses when the patch chain is unreadable' do
+  # record something the chain can never show. Not a refusal: nothing
+  # about this submission is ineligible, it is broken — and the two reach
+  # the curator as different words and different colours.
+  test 'BP: raises ChainBroken when the patch chain is unreadable' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
 
@@ -102,10 +103,11 @@ class AccessionIssueTest < ActiveSupport::TestCase
       actor: 'test', source: :manual, patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
     )
 
-    error = assert_raises(AccessionIssue::Refused) { AccessionIssue.call(submission:, actor: 'test') }
+    error = assert_raises(AccessionIssue::ChainBroken) { AccessionIssue.call(submission:, actor: 'test') }
 
     assert_match(/patch chain is unreadable/, error.message)
-    assert_nil projects(:primary).reload.accession, 'a refused issuance must not stamp the column'
+    assert_nil projects(:primary).reload.accession, 'a failed issuance must not stamp the column'
+    assert_not_kind_of AccessionIssue::Refused, error, 'a broken chain must not read as a refusal'
   end
 
   test 'BP: refuses when project already has accession' do

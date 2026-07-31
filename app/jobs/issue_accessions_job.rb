@@ -37,6 +37,11 @@ class IssueAccessionsJob < ApplicationJob
     # participants — but only now that it has happened. Pressing a button
     # that turned out to be refused is not work on the request.
     issuance.submission.request&.participate!(issuance.curator)
+  # Only a refusal is caught here. A broken chain (AccessionIssue::
+  # ChainBroken) deliberately falls through to `discard_on`, so it is
+  # recorded as failed and reported — a submission whose history cannot
+  # be replayed is not an ineligible submission, and the grey Skipped
+  # badge it used to get told nobody anything.
   rescue AccessionIssue::Refused => e
     issuance.update!(status: 'refused', finished_at: Time.current, error_message: e.message)
   end

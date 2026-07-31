@@ -37,7 +37,17 @@
 # Returns a Result with the list of newly-issued accessions, or raises
 # AccessionIssue::Refused with a human-readable reason.
 class AccessionIssue
+  # A rule declined. Reaches the curator as "Skipped", with the reason.
   class Refused < StandardError; end
+
+  # Nothing declined — the submission is broken. Kept apart from Refused
+  # because they are different sentences to whoever reads the run page:
+  # "this was not eligible" is an answer, "this cannot be replayed" is a
+  # defect that somebody has to fix, and grouping them meant a corrupt
+  # chain sat in a grey Skipped badge indefinitely with nobody told.
+  #
+  # Not rescued by the job, so it lands as `failed` and is reported.
+  class ChainBroken < StandardError; end
 
   Result = Data.define(:submission, :accessions)
 
@@ -152,11 +162,16 @@ class AccessionIssue
   # record` can be served from the cache while the chain behind it is
   # unreplayable — the importers create exactly that state on purpose
   # (`safe_prior_materialised` swallows the failure, then re-primes the
-  # cache) — and `append_update!` replays from scratch. Reading it here and
-  # letting the append raise would 500 the single case and abort the bulk
-  # loop with accessions already committed and mail already enqueued.
+  # cache) — and `append_update!` replays from scratch.
   #
-  # Refused rolls the whole transaction back, so nothing is burned.
+  # It used to come back as Refused, because issuance ran inline over a
+  # loop of submissions and a raise would have abandoned the rest with
+  # accessions already committed. Each submission is now its own job and
+  # its own transaction, so a raise costs only this one — and calling a
+  # broken chain a refusal told the curator the submission was ineligible
+  # when what it actually needs is somebody to repair it.
+  #
+  # Either way the raise leaves the transaction, so nothing is burned.
   def stamp_record!
     record = @submission.materialised_record
     return nil if record.nil?
@@ -166,7 +181,7 @@ class AccessionIssue
 
     @submission.append_update!(updated, actor: @actor, source: :manual)
   rescue Submission::MaterialisationFailed => e
-    raise Refused, "Cannot record the accession: the patch chain is unreadable (#{e.message})."
+    raise ChainBroken, "Cannot record the accession: the patch chain is unreadable (#{e.message})."
   end
 
   # The chain entry above says "the record changed"; this says what the

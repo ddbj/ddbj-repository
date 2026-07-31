@@ -86,6 +86,51 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
     assert_empty issuance.accessions
   end
 
+  # The distinction the run page reads: Skipped is grey and means a rule
+  # said no; Failed is red and means somebody has to look. A chain that
+  # cannot replay used to arrive as the first, so a corrupt submission
+  # sat in the queue looking merely ineligible and nobody was told.
+  # Subscribed for the block and taken off again: Rails.error's
+  # subscribers are global, and one left behind keeps collecting for
+  # every test after this one.
+  def capture_error_reports
+    reports    = []
+    subscriber = Class.new { define_method(:report) {|error, **| reports << error } }.new
+
+    Rails.error.subscribe(subscriber)
+
+    begin
+      yield
+    ensure
+      Rails.error.unsubscribe(subscriber)
+    end
+
+    reports
+  end
+
+  test 'a broken chain fails and is reported, rather than reading as skipped' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    SubmissionUpdate.create_with_patch!(
+      submission:, patch_json: 'not-json', db: 'bioproject', status: :applied,
+      actor: 'test', source: :manual, patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+
+    issuance = issuance_for(submission)
+    reports  = capture_error_reports { IssueAccessionsJob.perform_now(issuance_id: issuance.id) }
+
+    issuance.reload
+
+    assert     issuance.failed_status?
+    assert_not issuance.refused_status?
+    assert_match(/patch chain is unreadable/, issuance.error_message)
+    assert_nil projects(:primary).reload.accession, 'nothing was issued'
+
+    assert reports.any? { it.is_a?(AccessionIssue::ChainBroken) },
+           'a broken chain has to reach whoever can repair it'
+  end
+
   test 'a second issuance is refused while another is actually running' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
