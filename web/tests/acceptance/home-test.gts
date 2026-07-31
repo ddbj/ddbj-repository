@@ -85,7 +85,11 @@ module('Acceptance | home', function (hooks) {
     await visit('/');
 
     assert.dom('table').doesNotExist();
-    assert.dom('a[href="/web/new"]').exists({ count: 3 });
+
+    // The nav button and the empty state's sentence. Deliberately not a
+    // third one beside the heading — two identical controls a few pixels
+    // apart only make the reader pick between them.
+    assert.dom('a[href="/web/new"]').exists({ count: 2 });
   });
 
   test('"New Submission" navigates to /new with database picker', async function (assert) {
@@ -98,7 +102,9 @@ module('Acceptance | home', function (hooks) {
     );
 
     await visit('/');
-    await click('.btn-primary');
+    // The nav button — the one control that is present on every screen,
+    // rather than whichever `.btn-primary` happens to come first.
+    await click('nav a[href="/web/new"]');
 
     assert.strictEqual(currentURL(), '/new');
     assert.dom('h1').hasText('New Submission');

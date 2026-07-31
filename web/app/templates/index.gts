@@ -34,10 +34,12 @@ export default class extends Component<Signature> {
 
     {{! The route redirects to `login` when there is no session, so this
     template can be about one thing. }}
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="display-6 mb-0">My submissions</h1>
-      <LinkTo @route="new" class="btn btn-primary">New Submission</LinkTo>
-    </div>
+    {{! No "New submission" button here: it lives in the nav, where it is
+    reachable from every screen, and two of them a few pixels apart just
+    made the reader choose between identical options. The empty state below
+    still offers it, because there it is the whole point of the screen
+    rather than a second copy of a control already on it. }}
+    <h1 class="display-6 mb-4">My submissions</h1>
 
     {{#if (or @model.requests.length @controller.hasActiveFilters)}}
       <form class="card mb-4" {{on "submit" @controller.applyFilters}}>
