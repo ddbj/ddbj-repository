@@ -100,7 +100,20 @@ class DistributionNoticesSystemTest < ApplicationSystemTestCase
     assert_text 'Last run'
     assert_text '1 notice'
     assert_text '1 submitter'
-    assert_link 'View the run in Jobs'
+  end
+
+  # Mission Control is where developers debug. Sending a curator there
+  # for "what did the daily send do" makes their work depend on a screen
+  # that is not for them — and this screen already has the answer.
+  test 'the strip points at Sent, not at Jobs' do
+    DistributionNotifier.call
+
+    visit admin_distribution_notices_path
+
+    click_link "See today's run in Sent"
+
+    assert_text 'Delivered'
+    assert_text 'PRJDB000001'
   end
 
   # The confirmation names what leaves the building. "Send every due

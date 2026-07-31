@@ -63,7 +63,7 @@ class SampleTSVImportSystemTest < ApplicationSystemTestCase
   # nothing behind.
   test 'a failed import says nothing was applied' do
     record = import(status: 'failed', total: 3, processed: 0, failed: 0,
-                    error_report: 'PG::ProgramLimitExceeded: row is too big')
+                    error_report: "#{SampleTSVImport::ABORT_PREFIX}PG::ProgramLimitExceeded: row is too big")
 
     visit admin_submission_sample_tsv_import_path(@submission, record)
 
@@ -71,6 +71,44 @@ class SampleTSVImportSystemTest < ApplicationSystemTestCase
     assert_text 'no half-applied state to clean up'
     assert_text 'PG::ProgramLimitExceeded'
     assert_button 'Upload a corrected file'
+  end
+
+  # Mission Control is a developer surface, so the screen hands over the
+  # lines a curator would be asked to quote instead of sending them
+  # there. It also does not offer to "view the job" for a crash they can
+  # do nothing with.
+  test 'a failed import offers the details to copy rather than a trip to Jobs' do
+    record = import(status: 'failed', total: 3, processed: 0, failed: 0,
+                    error_report: "#{SampleTSVImport::ABORT_PREFIX}PG::ProgramLimitExceeded: row is too big")
+
+    visit admin_submission_sample_tsv_import_path(@submission, record)
+
+    # Scoped to the page: Tools > Jobs stays in the nav, because that is
+    # where a developer goes deliberately.
+    within 'main' do
+      assert_button  'Copy error details'
+      assert_no_link 'View the job'
+      assert_no_link 'Jobs'
+    end
+  end
+
+  # Only said when it is true. A crash is reported to Sentry by the job;
+  # a file the importer simply could not read is the curator's to fix,
+  # and telling them developers are on it would be a lie that stops them
+  # fixing it.
+  test 'a crash says developers know, and a bad file does not' do
+    crash = import(status: 'failed', total: 0, processed: 0, failed: 0,
+                   error_report: "#{SampleTSVImport::ABORT_PREFIX}PG::ProgramLimitExceeded: row is too big")
+
+    visit admin_submission_sample_tsv_import_path(@submission, crash)
+    assert_text 'Developers were notified automatically'
+
+    unreadable = import(status: 'failed', total: 0, processed: 0, failed: 0,
+                        error_report: 'TSV is missing the required `sample_name` column.')
+
+    visit admin_submission_sample_tsv_import_path(@submission, unreadable)
+    assert_text    'Fix the file and upload it again.'
+    assert_no_text 'Developers were notified'
   end
 
   # Checking counts rows because it can. Applying does not, because the

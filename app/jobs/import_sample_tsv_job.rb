@@ -17,8 +17,13 @@ class ImportSampleTSVJob < ApplicationJob
     progress&.update!(
       status:       'failed',
       finished_at:  Time.current,
-      error_report: "Job aborted: #{error.class}: #{error.message}"
+      error_report: "#{SampleTSVImport::ABORT_PREFIX}#{error.class}: #{error.message}"
     )
+
+    # Discarding handles the job; it does not handle the bug. Without
+    # this the exception reaches nobody — and the result screen tells the
+    # curator developers were notified, which has to be true.
+    Rails.error.report(error, handled: true, source: 'import_sample_tsv_job')
   end
 
   def perform(import_id:, tsv_body:)

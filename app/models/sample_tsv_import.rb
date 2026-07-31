@@ -35,6 +35,17 @@ class SampleTSVImport < ApplicationRecord
 
   def applying? = phase == 'applying'
 
+  # How the job marks a failure that was a crash rather than something
+  # wrong with the file. Owned here because two readers depend on it: the
+  # job writes it, and the result screen decides from it whether to say
+  # developers already know.
+  ABORT_PREFIX = 'Job aborted: '.freeze
+
+  # A crash we reported, as opposed to a file the curator can fix. The
+  # screen promises a notification only for the first, and only because
+  # ImportSampleTSVJob actually sends one.
+  def reported? = failed_status? && error_report.to_s.start_with?(ABORT_PREFIX)
+
   # Three terminal readings, and the difference between them is the
   # question a curator actually has: is my submission half-changed?
   #

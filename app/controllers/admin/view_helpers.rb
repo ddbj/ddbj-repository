@@ -130,6 +130,21 @@ module Admin::ViewHelpers
     DB_LABELS.fetch(db.to_s, db.to_s)
   end
 
+  # Everything a curator would otherwise be asked for in a support
+  # thread, in one paste: which import, which submission, when, and what
+  # went wrong. Assembled here rather than in the template so the shape
+  # stays one thing.
+  def support_details(import)
+    [
+      "Sample TSV import ##{import.id}",
+      "Submission: #{import.submission.source_id} (##{import.submission.request&.id})",
+      "Uploaded by: #{import.actor}",
+      "Finished: #{format_datetime(import.finished_at)}",
+      '',
+      import.error_report
+    ].join("\n")
+  end
+
   # "#1482", linked. A submission imported before requests existed can
   # still be issued against, so the id is not guaranteed to be there —
   # and an em dash beats a broken link.

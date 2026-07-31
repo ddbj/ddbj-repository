@@ -17,8 +17,15 @@
 
       <p class="mb-3">
         Valid rows are written in a single transaction, so the submission is exactly as it
-        was before the upload — there is no half-applied state to clean up. Re-upload the
-        same file once the cause is fixed.
+        was before the upload — there is no half-applied state to clean up.
+        <%# Said only when it is true: the job reports a crash to Sentry, %>
+        <%# and does not report a file it simply could not read. %>
+        <% if @import.reported? %>
+          Developers were notified automatically;
+          re-upload the same file once the cause is fixed.
+        <% else %>
+          Fix the file and upload it again.
+        <% end %>
       </p>
 
       <% if @import.error_report.present? %>
@@ -27,9 +34,21 @@
     </div>
   </div>
 
+  <%# Not "view the job". Mission Control is where developers debug, and %>
+  <%# sending a curator there makes their work depend on a screen that is %>
+  <%# not for them — so the few lines they would need to quote in a %>
+  <%# support request are handed over from here instead. %>
   <div class="d-flex gap-2 flex-wrap">
     <%= render 'reupload' %>
-    <%= link_to 'View the job', admin_mission_control_jobs_path, class: 'btn btn-outline-secondary' %>
+
+    <% if @import.error_report.present? %>
+      <button type="button" class="btn btn-outline-secondary"
+              data-controller="clipboard"
+              data-action="clipboard#copy"
+              data-clipboard-text-value="<%= support_details(@import) %>">
+        Copy error details
+      </button>
+    <% end %>
   </div>
 <% else %>
   <div class="card mb-3 <%= @import.outcome == :partial ? 'border-warning-subtle' : 'border-success-subtle' %>">
