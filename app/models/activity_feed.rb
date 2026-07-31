@@ -41,8 +41,11 @@ class ActivityFeed
     [Entry.new(at: request.created_at, actor: request.user.uid, summary: verb, update_id: nil)]
   end
 
+  # Bounded and eager-loaded for the same reason as update_entries: a long
+  # thread would otherwise be loaded whole and then dereference `user` once
+  # per row.
   def message_entries
-    request.messages.map {|message|
+    request.messages.includes(:user).last(20).map {|message|
       Entry.new(
         at:        message.created_at,
         actor:     message.user.uid,
@@ -97,7 +100,7 @@ class ActivityFeed
   def tsv_entries
     return [] unless submission
 
-    submission.sample_tsv_imports.map {|import|
+    submission.sample_tsv_imports.limit(20).map {|import|
       Entry.new(
         at:      import.finished_at || import.started_at,
         actor:   actor_label(import.actor),

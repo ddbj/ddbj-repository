@@ -79,6 +79,18 @@
   background: var(--bs-danger);
 }
 
+// Withdrawn / canceled / suppressed: the record stopped here rather than
+// being worked on here, so it reads as terminal, not as in-progress.
+.workbench-progress-step.is-closed {
+  color: var(--bs-secondary-color);
+}
+
+.workbench-progress-step.is-closed .workbench-progress-marker,
+.workbench-progress-line.is-closed {
+  border-color: var(--bs-secondary-color);
+  background: var(--bs-secondary-color);
+}
+
 // The Samples screen's selection bar. Docked to the bottom so a selection
 // made at row 1 is still actionable at row 50 without scrolling back.
 .bulk-bar {

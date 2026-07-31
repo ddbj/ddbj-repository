@@ -24,6 +24,7 @@ const request: SubmissionRequest = {
   progress: {
     step: 'curating',
     failed: false,
+    closed: false,
     row_count: 1,
     accessioned_count: 0,
     hold_date: null,

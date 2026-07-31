@@ -40,11 +40,17 @@
         </div>
       <% end %>
 
+      <%# BioProject only. `submission.hold_date` is a v3 field for any DB, %>
+      <%# but nothing outside BP acts on it: the projection column lives on %>
+      <%# Project, Submission#sync_hold_date! is a no-op elsewhere, and %>
+      <%# DistributionNotifier is BP-only. Offering it here would let a %>
+      <%# curator set a date, be told it saved, and have nothing honour it. %>
+      <%# %>
       <%# Omitted entirely — not merely disabled — when the chain cannot %>
       <%# be replayed: CurationUpdate reads an absent key as "leave alone", %>
       <%# so a broken record can never be silently rewritten from a form %>
       <%# that could not show its current value. %>
-      <% if materialised && error.nil? %>
+      <% if submission.bioproject_db? && materialised && error.nil? %>
         <div class="mb-3">
           <%= f.label :hold_date, 'Hold date', class: 'form-label form-label-sm' %>
           <%= f.date_field :hold_date,
@@ -52,7 +58,7 @@
                            class: 'form-control form-control-sm' %>
           <div class="form-text">Blank clears it. Saving appends a patch to the chain.</div>
         </div>
-      <% elsif error %>
+      <% elsif submission.bioproject_db? && error %>
         <div class="mb-3 small text-danger">
           Hold date is not editable — the patch chain failed to replay.
           See <%= link_to 'Record & history', record_admin_submission_request_path(submission.request) %>.

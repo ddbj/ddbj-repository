@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -131,6 +131,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000002) do
     t.index ["accession"], name: "index_projects_on_accession", unique: true, where: "(accession IS NOT NULL)"
     t.index ["assignee_id"], name: "index_projects_on_assignee_id"
     t.index ["status"], name: "index_projects_on_status"
+    t.index ["submission_id", "status"], name: "index_projects_awaiting_accession", where: "(accession IS NULL)"
     t.index ["submission_id"], name: "index_projects_on_submission_id", unique: true
   end
 
@@ -219,6 +220,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000002) do
     t.index ["package_group"], name: "index_samples_on_package_group"
     t.index ["sample_name"], name: "index_samples_on_sample_name"
     t.index ["status"], name: "index_samples_on_status"
+    t.index ["submission_id", "status"], name: "index_samples_awaiting_accession", where: "(accession IS NULL)"
     t.index ["submission_id"], name: "index_samples_on_submission_id"
   end
 

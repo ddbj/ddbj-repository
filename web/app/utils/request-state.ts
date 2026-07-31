@@ -40,6 +40,18 @@ export function requestState(request: SubmissionRequest): RequestState {
     };
   }
 
+  // Withdrawn / canceled / suppressed. Checked before the quiet states
+  // below, which would otherwise tell the submitter a curator is reviewing
+  // a record that has left the pipeline entirely.
+  if (request.progress.closed) {
+    return {
+      tone: 'waiting',
+      badge: 'Closed',
+      heading: 'This submission is no longer in progress',
+      body: 'It has been withdrawn, canceled or suppressed. Contact the DDBJ curator if that is unexpected.',
+    };
+  }
+
   if (request.processing) {
     return {
       tone: 'waiting',

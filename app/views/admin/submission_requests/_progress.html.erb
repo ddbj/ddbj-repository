@@ -9,8 +9,16 @@
       <li class="workbench-progress-line flex-fill <%= "is-#{status}" %>" aria-hidden="true"></li>
     <% end %>
     <li class="workbench-progress-step <%= "is-#{status}" %>">
-      <span class="workbench-progress-marker"><%= '✓' if status == :done %><%= '!' if status == :failed %></span>
-      <span class="small"><%= label %></span>
+      <span class="workbench-progress-marker">
+        <%= '✓' if status == :done %><%= '!' if status == :failed %><%= '×' if status == :closed %>
+      </span>
+      <span class="small">
+        <%= label %>
+        <%# A closed record stopped here rather than being busy here. %>
+        <% if status == :closed %>
+          <span class="text-body-tertiary">(<%= state.status_label %>)</span>
+        <% end %>
+      </span>
     </li>
   <% end %>
 </ol>

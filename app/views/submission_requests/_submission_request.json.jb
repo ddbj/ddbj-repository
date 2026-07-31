@@ -24,6 +24,7 @@ payload = {
   progress: {
     step:              CurationState::STEP_KEYS[state.current_step_index].to_s,
     failed:            state.failed?,
+    closed:            state.closed?,
     row_count:         state.row_count,
     accessioned_count: state.accessioned_count,
     hold_date:         state.hold_date&.iso8601

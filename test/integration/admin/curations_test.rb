@@ -226,6 +226,23 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
     assert_match 'name="curation[curator_comment]"',          response.body
   end
 
+  # `submission.hold_date` is a v3 field for any DB, but only BioProject
+  # projects it onto a column, syncs it, or notifies on it. Offering the
+  # field elsewhere would report "saved" for something nothing honours.
+  test 'the rail offers the hold date only for BioProject' do
+    submission = submissions(:biosample)
+    submission.append_update!(
+      {'schema_version' => 'v3', 'submission' => {'hold_date' => '2026-12-31'}},
+      actor: 'test-seed', source: :manual
+    )
+
+    get admin_submission_request_path(submission.request)
+
+    assert_response :ok
+    assert_match    'name="curation[curator_comment]"', response.body
+    assert_no_match(/name="curation\[hold_date\]"/,     response.body)
+  end
+
   # The comment is a typed column, independent of the chain, so it stays
   # editable when the record cannot be replayed — but the hold-date input
   # must disappear rather than offer to overwrite a value it cannot show.

@@ -854,6 +854,12 @@ export interface components {
             step: "submitted" | "validated" | "applied" | "curating" | "accession_issued" | "public";
             /** @description The pipeline stopped at the step after `step`. */
             failed: boolean;
+            /**
+             * @description The record left the pipeline — withdrawn, canceled or
+             *     permanently suppressed. `step` is then where it stopped, not
+             *     where work is in progress.
+             */
+            closed: boolean;
             /** @description Curation rows behind the request — 1 project (BP), N samples (BS), 0 otherwise. */
             row_count: number;
             accessioned_count: number;

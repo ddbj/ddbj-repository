@@ -53,6 +53,26 @@ class CurationStateTest < ActiveSupport::TestCase
     assert_equal :failed, state.step_state(:validated)
   end
 
+  # A withdrawn record left the pipeline. Rendering the step it stopped on
+  # as "current" claims work is in progress, and the submitter's screen
+  # would say a curator is reviewing it.
+  test 'a closed record marks its last step as closed, not current' do
+    projects(:primary).update!(accession: nil, status: 'withdrawn')
+
+    state = CurationState.new(submission_requests(:bioproject))
+
+    assert state.closed?
+    assert_equal :closed, state.step_state(:curating)
+    assert_equal :done,   state.step_state(:applied)
+    assert_equal :todo,   state.step_state(:public)
+  end
+
+  test 'a partly-withdrawn BS submission is not closed' do
+    samples(:first).update!(status: 'withdrawn')
+
+    refute CurationState.new(submission_requests(:biosample)).closed?
+  end
+
   # --- aggregate labels --------------------------------------------------
 
   test 'a mixed BS submission reports the mixture rather than one status' do

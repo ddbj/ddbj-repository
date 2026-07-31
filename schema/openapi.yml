@@ -960,6 +960,7 @@ components:
       required:
         - step
         - failed
+        - closed
         - row_count
         - accessioned_count
         - hold_date
@@ -977,6 +978,13 @@ components:
 
         failed:
           description: The pipeline stopped at the step after `step`.
+          type: boolean
+
+        closed:
+          description: |
+            The record left the pipeline — withdrawn, canceled or
+            permanently suppressed. `step` is then where it stopped, not
+            where work is in progress.
           type: boolean
 
         row_count:

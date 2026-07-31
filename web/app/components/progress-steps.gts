@@ -30,6 +30,9 @@ export default class ProgressSteps extends Component<Signature> {
 
     return STEPS.map((step, i) => {
       const failed = progress.failed && i === current + 1;
+      // A closed record stopped at `current`; it is not busy there, so the
+      // step reads as terminal rather than in-progress.
+      const closed = progress.closed && i === current;
 
       return {
         label: step.label,
@@ -38,16 +41,20 @@ export default class ProgressSteps extends Component<Signature> {
           ? 'bg-danger'
           : i < current
             ? 'bg-success'
-            : i === current
-              ? 'bg-warning'
-              : 'bg-secondary-subtle',
+            : closed
+              ? 'bg-secondary'
+              : i === current
+                ? 'bg-warning'
+                : 'bg-secondary-subtle',
         labelClass: failed
           ? 'text-danger-emphasis fw-semibold'
           : i < current
             ? 'text-success-emphasis'
-            : i === current
-              ? 'text-warning-emphasis fw-semibold'
-              : 'text-body-tertiary',
+            : closed
+              ? 'text-body-secondary fw-semibold'
+              : i === current
+                ? 'text-warning-emphasis fw-semibold'
+                : 'text-body-tertiary',
       };
     });
   }
@@ -61,7 +68,10 @@ export default class ProgressSteps extends Component<Signature> {
       return `hold until ${progress.hold_date}`;
     }
 
-    if (key === 'accession_issued' && progress.row_count > 0) {
+    // Only once the step is reached. Otherwise a freshly-applied request
+    // shows "Accessions issued / 0 of 1 issued" under a greyed-out step,
+    // which reads as stalled rather than as not started.
+    if (key === 'accession_issued' && progress.row_count > 0 && index <= current) {
       return `${progress.accessioned_count} of ${progress.row_count} issued`;
     }
 

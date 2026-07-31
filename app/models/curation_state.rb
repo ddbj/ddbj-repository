@@ -120,6 +120,10 @@ class CurationState
 
   def failed? = request.status.in?(%w[validation_failed application_failed])
 
+  # Withdrawn / canceled / permanently suppressed: the record has left the
+  # pipeline, so the step it stopped on is where it ended, not where work
+  # is in progress. Without this a withdrawn BP reads as "Curating" in
+  # amber and the submitter is told a curator is reviewing it.
   def closed? = curated? && (statuses - CLOSED_STATUSES).empty?
 
   # Index into STEPS of the furthest point this request has reached.
@@ -135,12 +139,14 @@ class CurationState
   end
 
   # :done for steps already passed, :current for where it sits now,
-  # :failed when the pipeline stopped there, :todo for the rest.
+  # :failed when the pipeline stopped there, :closed when the record left
+  # the pipeline altogether, :todo for the rest.
   def step_state(step)
     index = STEP_KEYS.index(step) or raise ArgumentError, "unknown step #{step.inspect}"
 
     return :failed  if failed? && index == current_step_index + 1
     return :done    if index < current_step_index
+    return :closed  if closed? && index == current_step_index
     return :current if index == current_step_index
 
     :todo
