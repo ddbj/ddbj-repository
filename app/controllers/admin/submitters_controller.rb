@@ -20,6 +20,8 @@ module Admin
         source: :manual
       )
 
+      participate!(submission.request) if result
+
       message = result ? "Submitters saved (chain length now #{submission.updates.count})." \
                        : 'Submitters unchanged — no patch generated.'
 

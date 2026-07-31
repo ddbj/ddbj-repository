@@ -34,6 +34,53 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     assert_equal users(:bob), request.reload.assignee
   end
 
+  # --- participation ------------------------------------------------------
+
+  test 'participate! is idempotent' do
+    request = submission_requests(:st26)
+
+    3.times { request.participate!(users(:bob)) }
+
+    assert_equal [users(:bob)], request.reload.participants
+  end
+
+  # Participation is written from the success path of actions that must
+  # not fail because of it, and the submitter acting on their own request
+  # is not a curator working on it.
+  test 'participate! ignores a non-admin and a nil' do
+    request = submission_requests(:st26)
+
+    request.participate!(users(:alice))
+    request.participate!(nil)
+
+    assert_empty request.reload.participants
+  end
+
+  test 'involving finds requests a curator has worked on but does not own' do
+    request = submission_requests(:st26)
+    request.participate!(users(:bob))
+
+    assert_includes     SubmissionRequest.involving(users(:bob)),   request
+    assert_not_includes SubmissionRequest.assigned_to(users(:bob)), request
+  end
+
+  # Nobody owns it and nobody has been near it — the one section every
+  # curator sees identically.
+  test 'unclaimed excludes anything assigned or participated in' do
+    assigned    = submission_requests(:bioproject)
+    involved    = submission_requests(:biosample)
+    untouched   = submission_requests(:st26)
+
+    assigned.assign!(users(:bob))
+    involved.participate!(users(:bob))
+
+    unclaimed = SubmissionRequest.unclaimed
+
+    assert_includes     unclaimed, untouched
+    assert_not_includes unclaimed, assigned
+    assert_not_includes unclaimed, involved
+  end
+
   # --- needs_submitter_action --------------------------------------------
 
   test 'a validated file waiting to be applied is the submitter move' do

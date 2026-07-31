@@ -24,6 +24,8 @@ module Admin
       # the actual Postgres bytea ceiling we'll move to ActiveStorage.
       ImportSampleTSVJob.perform_later(import_id: import.id, tsv_body: uploaded.read)
 
+      participate!(submission.request)
+
       redirect_to admin_submission_sample_tsv_import_path(submission, import),
                   notice: 'TSV upload accepted. The import is running in the background.'
     end

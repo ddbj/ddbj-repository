@@ -13,6 +13,8 @@ module Admin
         params: curation_params
       ).call
 
+      participate!(submission.request) if result.any?
+
       notice = result.any? ? "Saved #{result.to_sentence}." : 'Nothing changed.'
 
       redirect_to admin_submission_request_path(submission.request), notice:

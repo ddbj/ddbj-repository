@@ -26,6 +26,8 @@ module Admin
         samples: target_samples(submission)
       )
 
+      participate!(submission.request)
+
       first = result.accessions.first
       rest  = result.accessions.size - 1
       label = rest.zero? ? first : "#{first} (+#{rest} more)"

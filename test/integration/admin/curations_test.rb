@@ -282,6 +282,39 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  # --- participation ------------------------------------------------------
+  # Working on a request puts you in it. Nothing about who owns it moves,
+  # which is what makes it safe to do without asking.
+
+  test 'saving the curation rail makes the curator a participant' do
+    patch admin_submission_curation_path(@submission), params: {curation: {status: 'curating'}}
+
+    assert_equal [users(:bob)], @req.reload.participants
+    assert_nil   @req.assignee, 'participation must not claim the request'
+  end
+
+  test 'replying to the submitter makes the curator a participant' do
+    post admin_submission_request_messages_path(@req),
+         params: {submission_message: {body: 'a question'}}
+
+    assert_equal [users(:bob)], @req.reload.participants
+  end
+
+  test 'a save that changed nothing does not make anyone a participant' do
+    patch admin_submission_curation_path(@submission), params: {curation: {status: ''}}
+
+    assert_empty @req.reload.participants
+  end
+
+  # Claiming is the other axis: it says who owns this, and saying so is
+  # not the same as having worked on it.
+  test 'Assign to me does not add a participant' do
+    post admin_submission_request_assignment_path(@req)
+
+    assert_equal users(:bob), @req.reload.assignee
+    assert_empty @req.participants
+  end
+
   # --- assign to me ------------------------------------------------------
 
   test 'POST assignment claims the request for the current curator' do

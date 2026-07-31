@@ -20,12 +20,29 @@ class SubmissionRequest < ApplicationRecord
 
   has_many :messages, -> { chronological }, class_name: 'SubmissionMessage', dependent: :destroy
 
+  # Curators who have worked on this — see SubmissionRequestParticipant
+  # for why this is separate from `assignee`.
+  has_many :participations, class_name: 'SubmissionRequestParticipant', dependent: :destroy
+  has_many :participants, through: :participations, source: :user
+
   has_one :reviewer_access, dependent: :destroy
 
   has_one_attached :ddbj_record
 
   scope :assigned_to, ->(user) { where(assignee_id: user.id) }
   scope :unassigned,  -> { where(assignee_id: nil) }
+
+  scope :involving, ->(user) {
+    where(id: SubmissionRequestParticipant.where(user_id: user.id).select(:submission_request_id))
+  }
+
+  # Nobody owns it and nobody has been near it. Shown to every curator
+  # identically, because a request in this state is not anyone's to
+  # notice — if the section is never empty, that is a staffing signal
+  # rather than an individual's backlog.
+  scope :unclaimed, -> {
+    unassigned.where.not(id: SubmissionRequestParticipant.select(:submission_request_id))
+  }
 
   # What is on the submitter rather than on us: a file that failed
   # validation, a validated file waiting for them to press Apply, or a
@@ -97,6 +114,19 @@ class SubmissionRequest < ApplicationRecord
     raise ArgumentError, 'Assignee must be an admin user.' unless user.nil? || user.admin?
 
     update_columns(assignee_id: user&.id, updated_at: Time.current)
+  end
+
+  # Called as a side effect of a curator doing something here, so it must
+  # never fail the action it hangs off: already-a-participant is a no-op
+  # (ON CONFLICT DO NOTHING), and a submitter acting on their own request
+  # is simply not a participant.
+  def participate!(user)
+    return unless user&.admin?
+
+    SubmissionRequestParticipant.insert_all(
+      [{submission_request_id: id, user_id: user.id, created_at: Time.current}],
+      unique_by: %i[submission_request_id user_id]
+    )
   end
 
   private

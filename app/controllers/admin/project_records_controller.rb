@@ -31,6 +31,8 @@ module Admin
       # side).
       project.update!(title: raw['title'].to_s.strip.presence) if result && raw.key?('title')
 
+      participate!(submission.request) if result
+
       message = result ? "Project record saved (chain length now #{submission.updates.count})." \
                        : 'Project record unchanged — no patch generated.'
 

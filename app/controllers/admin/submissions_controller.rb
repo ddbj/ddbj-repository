@@ -97,6 +97,7 @@ module Admin
       affected = (target_samples(submission) || submission.samples).update_all(attrs)
 
       record_curation_event(submission, affected, raw)
+      participate!(submission.request)
 
       redirect_to back, notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} sample(s)."
     rescue SampleTargeting::UnknownScope => e
@@ -161,6 +162,7 @@ module Admin
       end
 
       record_cross_submission_events(subs, bp_ids, bs_ids, raw)
+      SubmissionRequest.where(submission_id: ids).find_each { participate!(it) }
 
       rows = [
         ("#{helpers.number_with_delimiter(bp_affected)} project(s)" if bp_affected.positive?),
@@ -192,6 +194,8 @@ module Admin
       Submission.where(id: ids).find_each do |submission|
         result = AccessionIssue.call(submission:, actor: "admin:#{current_user.uid}")
         issued += result.accessions.size
+
+        participate!(submission.request)
       rescue AccessionIssue::Refused => e
         refused << [submission.source_id.presence || "##{submission.id}", e.message]
       end

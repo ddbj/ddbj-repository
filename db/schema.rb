@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_062832) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_064737) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -243,6 +243,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_062832) do
     t.index ["user_id"], name: "index_submission_messages_on_user_id"
   end
 
+  create_table "submission_request_participants", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "submission_request_id", null: false
+    t.bigint "user_id", null: false
+    t.index ["submission_request_id", "user_id"], name: "index_participants_on_request_and_user", unique: true
+    t.index ["user_id"], name: "index_submission_request_participants_on_user_id"
+  end
+
   create_table "submission_requests", force: :cascade do |t|
     t.bigint "assignee_id"
     t.datetime "created_at", null: false
@@ -349,6 +357,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_062832) do
   add_foreign_key "samples", "submissions"
   add_foreign_key "submission_messages", "submission_requests"
   add_foreign_key "submission_messages", "users"
+  add_foreign_key "submission_request_participants", "submission_requests"
+  add_foreign_key "submission_request_participants", "users"
   add_foreign_key "submission_requests", "submissions"
   add_foreign_key "submission_requests", "users"
   add_foreign_key "submission_requests", "users", column: "assignee_id"

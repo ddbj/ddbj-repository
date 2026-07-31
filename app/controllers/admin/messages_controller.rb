@@ -22,6 +22,8 @@ module Admin
 
       SubmissionMessageMailer.with(message:).notify_submitter.deliver_later
 
+      participate!(request)
+
       redirect_to messages_admin_submission_request_path(request), notice: 'Message sent to submitter.'
     end
   end

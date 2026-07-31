@@ -33,10 +33,17 @@
         <% end %>
       </div>
 
+      <%# Who is on this, in one line. Participants sit next to the %>
+      <%# assignee because the difference between them is the whole point: %>
+      <%# replying here puts you in the second list and keeps the request %>
+      <%# in your queue, without moving the first. %>
       <div class="d-flex align-items-center gap-2 mt-2 small">
         <%= curation_status_badge(@state) %>
         <span class="text-body-secondary">
           assignee <strong><%= @state.assignee_label %></strong>
+          <% if (participants = @request.participants.order(:uid)).any? %>
+            · participants <strong><%= participants.map(&:uid).to_sentence %></strong>
+          <% end %>
           · updated <%= format_datetime(@submission&.updated_at || @request.updated_at) %>
         </span>
       </div>
