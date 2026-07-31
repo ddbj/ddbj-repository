@@ -13,5 +13,16 @@ module Admin
                        .includes(submission: %i[request project])
                        .order(:id)
     end
+
+    # Puts the ledger's summary away. Scoped to the curator's own runs:
+    # the summary is "what the thing I just did did", so dismissing it is
+    # not something to be able to do to somebody else's.
+    def dismiss
+      run = AccessionIssuanceRun.undismissed_for(current_actor).find(params[:id])
+
+      run.dismiss!
+
+      redirect_back fallback_location: admin_submission_requests_path
+    end
   end
 end

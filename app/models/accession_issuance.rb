@@ -56,20 +56,7 @@ class AccessionIssuance < ApplicationRecord
 
   def actor_label = actor.to_s.split(':', 2).last.presence || actor
 
-  # "SAMD00412919–936" — what a curator checks after the fact is that the
-  # numbers exist and which ones they are, and a range says that without
-  # eighteen lines of it.
-  def accession_range
-    return nil if accessions.empty?
-    return accessions.first if accessions.size == 1
-
-    first, last = accessions.minmax
-    shared      = first.chars.zip(last.chars).take_while { it.first == it.last }.size
-
-    # Trimmed to where they diverge, but never below three digits:
-    # "SAMD00412919–36" invites a misread, "–936" does not.
-    "#{first}–#{last[[shared, last.size - 3].min..]}"
-  end
+  def accession_range = AccessionRange.format(accessions)
 
   # The curator who pressed the button, for the things that need a User
   # rather than an audit string. Nil if the account has since gone.

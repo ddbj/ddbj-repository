@@ -1,0 +1,90 @@
+<%# locals: (run:) %>
+<%# The result of the last press, on the screen it was pressed from. %>
+<%# %>
+<%# A flash said "Sent 19 accession(s)" and was gone on the next click, %>
+<%# which is the click a curator makes to check. Two things it could %>
+<%# never say: which of the ticked submissions did nothing, and what the %>
+<%# numbers actually were. Both are here, and both stay until dismissed. %>
+<%# %>
+<%# The run page is the record; this is its summary. %>
+<div class="card border-success-subtle mb-3" data-test-issuance-summary>
+  <div class="card-body">
+    <div class="d-flex align-items-baseline gap-2 flex-wrap mb-3">
+      <h2 class="h6 mb-0">
+        <% if run.finished? %>
+          <%= pluralize(run.accession_count, 'accession') %> issued
+        <% else %>
+          Issuing <%= pluralize(run.accession_count, 'accession') %>… <%= run.done %> of <%= run.total %> done
+        <% end %>
+      </h2>
+
+      <span class="small text-body-secondary">
+        <%= format_datetime(run.started_at) %> · by <%= run.actor_label %>
+      </span>
+
+      <span class="flex-fill"></span>
+
+      <%= link_to "Run ##{run.id}", admin_accession_issuance_run_path(run), class: 'btn btn-link btn-sm' %>
+
+      <%= button_to 'Dismiss', dismiss_admin_accession_issuance_run_path(run, return_to: request.fullpath),
+                    method: :patch, class: 'btn btn-outline-secondary btn-sm' %>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6">
+        <h3 class="text-uppercase small fw-semibold text-body-secondary">Changed</h3>
+
+        <ul class="list-unstyled mb-0 small">
+          <% run.changed.each do |issuance| %>
+            <li class="mb-1">
+              <%= issuance_request_link(issuance) %> —
+              <%# One number reads as itself; many read as a count and a %>
+              <%# range, which is what makes "were they really allocated" %>
+              <%# answerable without opening anything. %>
+              <% if issuance.accessions.one? %>
+                <code><%= issuance.accessions.first %></code> issued
+              <% else %>
+                <%= pluralize(issuance.accessions.size, issuance.submission.curation_row_noun) %>
+                now <code>accession_issued</code>
+                (<code><%= issuance.accession_range %></code>)
+              <% end %>
+            </li>
+          <% end %>
+
+          <% if run.mailed.positive? %>
+            <li class="text-body-secondary">
+              <%= pluralize(run.mailed, 'notification mail') %> sent
+            </li>
+          <% end %>
+
+          <% if run.changed.empty? %>
+            <li class="text-body-secondary">Nothing yet.</li>
+          <% end %>
+        </ul>
+      </div>
+
+      <div class="col-md-6">
+        <h3 class="text-uppercase small fw-semibold text-body-secondary">Unchanged</h3>
+
+        <ul class="list-unstyled mb-0 small">
+          <% run.unchanged.each do |issuance| %>
+            <li class="mb-1">
+              <%= issuance_request_link(issuance) %> —
+              <%= issuance.failed_status? ? 'failed' : 'skipped' %>,
+              <span class="text-body-secondary"><%= issuance.error_message %></span>
+            </li>
+          <% end %>
+
+          <% if run.unchanged.any? %>
+            <li class="text-body-secondary fst-italic">
+              No mail was sent for
+              <%= run.unchanged.one? ? 'this submission' : 'these submissions' %>.
+            </li>
+          <% else %>
+            <li class="text-body-secondary">Everything selected was issued.</li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

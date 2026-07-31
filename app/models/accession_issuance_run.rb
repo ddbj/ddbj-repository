@@ -13,6 +13,11 @@ class AccessionIssuanceRun < ApplicationRecord
 
   scope :recent, -> { order(started_at: :desc) }
 
+  # What the ledger puts above the table after a press. One per curator:
+  # the summary answers "what did the thing I just did actually do", so a
+  # colleague's run is not it.
+  scope :undismissed_for, ->(actor) { where(actor:, dismissed_at: nil).recent }
+
   def actor_label = actor.to_s.split(':', 2).last.presence || actor
 
   def total = issuances.size
@@ -22,4 +27,26 @@ class AccessionIssuanceRun < ApplicationRecord
   def finished? = done == total
 
   def accession_count = issuances.sum { it.accessions.size }
+
+  # Changed and unchanged, as a pair. "19 accessions issued" alone cannot
+  # be checked against what was ticked — the submission that quietly did
+  # nothing is the one worth naming, and it is the one a count hides.
+  def changed = issuances.select { it.accessions.any? }
+
+  def unchanged = issuances.reject {|issuance| issuance.loading? || issuance.accessions.any? }
+
+  # The mail leaves the building, so it is counted apart from the rows.
+  def mailed = changed.size
+
+  def dismissed? = dismissed_at?
+
+  # Clears the slot, not just this row. The ledger shows one summary at a
+  # time, so dismissing only this one would pop the previous press into
+  # view — an older answer to a question already asked, and one the
+  # curator has to dismiss again to get rid of.
+  def dismiss!
+    self.class
+        .where(actor:, dismissed_at: nil, started_at: ..started_at)
+        .update_all(dismissed_at: Time.current, updated_at: Time.current)
+  end
 end

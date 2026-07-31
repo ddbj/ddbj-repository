@@ -140,7 +140,11 @@ Rails.application.routes.draw do
 
     resources :migration_runs, only: %i[index show new create]
 
-    resources :accession_issuance_runs, only: %i[show]
+    resources :accession_issuance_runs, only: %i[show] do
+      member do
+        patch :dismiss
+      end
+    end
 
     mount MissionControl::Jobs::Engine, at: '/jobs'
   end

@@ -182,7 +182,7 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
 
     assert_equal 'accession_issued',         event.action
     assert_equal 'admin:bob',                event.actor
-    assert_equal 'issued 1 PRJDB accession', event.summary
+    assert_equal 'issued 1 PRJDB accession (PRJDB1)', event.summary
     assert_not_nil event.submission_update
   end
 

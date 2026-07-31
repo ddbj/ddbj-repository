@@ -25,6 +25,14 @@ module Admin
       scope = filter_by_status(scope, params[:status])                 if params[:status].present?
       scope = filter_by_assignee(scope, params[:assignee])             if params[:assignee].present?
 
+      # The last press this curator made, until they put it away. The
+      # ledger is where the bulk happened, so it is where "what did that
+      # actually do" belongs — see accession_issuance_runs/_summary.
+      @issuance_run = AccessionIssuanceRun
+                      .undismissed_for(current_actor)
+                      .includes(issuances: {submission: :request})
+                      .first
+
       load_requests(scope)
     end
 

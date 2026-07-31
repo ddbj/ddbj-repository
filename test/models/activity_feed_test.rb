@@ -72,7 +72,7 @@ class ActivityFeedTest < ActiveSupport::TestCase
 
     AccessionIssue.call(submission: submissions(:bioproject), actor: 'admin:tanaka')
 
-    assert_includes entries.map(&:summary), 'issued 1 PRJDB accession'
+    assert_includes entries.map(&:summary), 'issued 1 PRJDB accession (PRJDB1)'
   end
 
   test 'entries are newest first and bounded' do

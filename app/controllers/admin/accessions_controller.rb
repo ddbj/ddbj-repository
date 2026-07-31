@@ -62,7 +62,7 @@ module Admin
       end
 
       run = AccessionIssuanceRun.create!(
-        actor:      "admin:#{current_user.uid}",
+        actor:      current_actor,
         origin:     "##{submission.request&.id} (1 submission)",
         started_at: Time.current
       )

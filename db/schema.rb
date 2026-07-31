@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_105431) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_112811) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -26,9 +26,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_105431) do
   create_table "accession_issuance_runs", force: :cascade do |t|
     t.string "actor", null: false
     t.datetime "created_at", null: false
+    t.datetime "dismissed_at"
     t.string "origin", null: false
     t.datetime "started_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["actor", "started_at"], name: "index_accession_issuance_runs_undismissed", where: "(dismissed_at IS NULL)"
   end
 
   create_table "accession_issuances", force: :cascade do |t|

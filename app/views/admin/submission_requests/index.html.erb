@@ -9,6 +9,10 @@
     %><% if @pagy.count != @total %> · <%= number_with_delimiter(@pagy.count) %> matching the current filter<% end %>
 </p>
 
+<% if @issuance_run %>
+  <%= render 'admin/accession_issuance_runs/summary', run: @issuance_run %>
+<% end %>
+
 <%# Search first. Six stacked checkbox facets used to fill the screen %>
 <%# above the table, so arriving here showed filters rather than requests %>
 <%# — and most lookups are not a facet combination at all, they are %>

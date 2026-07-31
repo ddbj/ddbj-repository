@@ -9,7 +9,7 @@ module Admin
 
       result = CurationUpdate.new(
         submission:,
-        actor:  "admin:#{current_user.uid}",
+        actor:  current_actor,
         params: curation_params
       ).call
 

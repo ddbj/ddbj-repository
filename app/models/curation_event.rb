@@ -75,11 +75,15 @@ class CurationEvent < ApplicationRecord
     parts.any? ? parts.to_sentence : "updated #{subject}"
   end
 
+  # Named, not just counted. "issued 18 SAMD accessions" leaves the one
+  # question a curator actually has — which numbers — to a detail page,
+  # and events recorded before ranges were stored simply have none.
   def accession_summary
     count  = ActiveSupport::NumberHelper.number_to_delimited(row_count)
     prefix = details['prefix'].presence
+    range  = details['range'].presence
 
-    "issued #{count} #{"#{prefix} " if prefix}#{'accession'.pluralize(row_count)}"
+    "issued #{count} #{"#{prefix} " if prefix}#{'accession'.pluralize(row_count)}#{" (#{range})" if range}"
   end
 
   def subject

@@ -39,11 +39,8 @@
 
   <tbody>
     <% @issuances.each do |issuance| %>
-      <% request = issuance.submission.request %>
       <tr>
-        <td>
-          <%= request ? link_to("##{request.id}", admin_submission_request_path(request)) : '—' %>
-        </td>
+        <td><%= issuance_request_link(issuance) %></td>
 
         <td><%= db_label(issuance.submission.db) %></td>
 

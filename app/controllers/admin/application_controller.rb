@@ -14,6 +14,11 @@ module Admin
 
     private
 
+    # Who did it, as the audit trail spells it. Every actor string in the
+    # admin is this shape, and writing it out at each call site meant a
+    # future change of shape would be eight edits and a grep.
+    def current_actor = "admin:#{current_user.uid}"
+
     # Record that the current curator has worked on a request, as a side
     # effect of whatever they came here to do. Called from the success
     # path of each mutating action rather than from a blanket

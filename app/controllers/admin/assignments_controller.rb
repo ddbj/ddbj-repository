@@ -19,7 +19,7 @@ module Admin
       if request.submission
         CurationEvent.record!(
           submission: request.submission,
-          actor:      "admin:#{current_user.uid}",
+          actor:      current_actor,
           action:     :curation_updated,
           assignee:   current_user.uid
         )

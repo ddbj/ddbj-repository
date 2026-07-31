@@ -37,7 +37,7 @@ module Admin
       projects = DistributionNotifier.new.candidates.to_a
       projects = projects.select { it.submission.user_id == params[:user_id].to_i } if params[:user_id].present?
 
-      result = DistributionNotifier.new.notify(projects, trigger: :manual, actor: "admin:#{current_user.uid}")
+      result = DistributionNotifier.new.notify(projects, trigger: :manual, actor: current_actor)
 
       notice = "Sent #{result.notified_project_count} notice(s) to #{result.notified_user_count} submitter(s)."
       notice += " #{result.skipped_user_count} submitter(s) skipped: no address on file." if result.skipped_user_count.positive?

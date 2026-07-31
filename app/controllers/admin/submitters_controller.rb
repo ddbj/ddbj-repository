@@ -16,7 +16,7 @@ module Admin
 
       result = submission.append_update!(
         new_record,
-        actor:  "admin:#{current_user.uid}",
+        actor:  current_actor,
         source: :manual
       )
 

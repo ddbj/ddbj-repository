@@ -130,6 +130,15 @@ module Admin::ViewHelpers
     DB_LABELS.fetch(db.to_s, db.to_s)
   end
 
+  # "#1482", linked. A submission imported before requests existed can
+  # still be issued against, so the id is not guaranteed to be there —
+  # and an em dash beats a broken link.
+  def issuance_request_link(issuance)
+    request = issuance.submission.request
+
+    request ? link_to("##{request.id}", admin_submission_request_path(request)) : '—'
+  end
+
   # Compact timestamp for admin tables / detail — minute precision (drops
   # seconds), matching the web client's formatDatetime. Returns nil for a
   # nil time so callers can chain `|| '—'`.

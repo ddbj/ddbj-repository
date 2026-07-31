@@ -93,7 +93,7 @@ class AccessionIssue
       project.update!(accession: acc, status: :accession_issued)
 
       update = stamp_record! {|record| (record['project'] ||= {})['accession'] = acc }
-      record_event(1, 'PRJDB', update)
+      record_event([acc], 'PRJDB', update)
 
       acc
     end
@@ -126,7 +126,7 @@ class AccessionIssue
         end
       }
 
-      record_event(targets.size, 'SAMD', update)
+      record_event(acc_list, 'SAMD', update)
 
       acc_list
     end
@@ -173,14 +173,19 @@ class AccessionIssue
   # change was, in words, and points at that entry so the activity feed
   # shows one line rather than two. Status / assignee events carry no
   # update because they are not record content at all — see CurationEvent.
-  def record_event(count, prefix, update)
+  # The range travels with the event rather than being re-derived: the
+  # feed reads this months later, by which time the rows it came from may
+  # have been suppressed, renumbered upstream, or split across
+  # submissions. What was issued that day does not change afterwards.
+  def record_event(accessions, prefix, update)
     CurationEvent.record!(
       submission:        @submission,
       actor:             @actor,
       action:            :accession_issued,
-      row_count:         count,
+      row_count:         accessions.size,
       submission_update: update,
-      prefix:            prefix
+      prefix:            prefix,
+      range:             AccessionRange.format(accessions)
     )
   end
 

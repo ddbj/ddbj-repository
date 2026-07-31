@@ -207,7 +207,7 @@ module Admin
       end
 
       run = AccessionIssuanceRun.create!(
-        actor:      "admin:#{current_user.uid}",
+        actor:      current_actor,
         origin:     "All requests (#{ids.size} #{'submission'.pluralize(ids.size)})",
         started_at: Time.current
       )
@@ -246,7 +246,7 @@ module Admin
     def record_curation_event(submission, row_count, raw)
       CurationEvent.record!(
         submission:,
-        actor:     "admin:#{current_user.uid}",
+        actor:     current_actor,
         action:    :curation_updated,
         row_count:,
         noun:      submission.curation_row_noun,
