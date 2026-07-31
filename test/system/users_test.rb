@@ -168,6 +168,16 @@ class UsersSystemTest < ApplicationSystemTestCase
     assert_text 'cannot be edited here'
   end
 
+  # The two channels disagree on shape: the REST profile sends the name,
+  # the OIDC id token sends the integer. Both have to read the same.
+  test 'an account type that arrived as an integer reads the same' do
+    stub_cloakman_lookup [cloakman_profile(:alice).merge(account_type_number: 3)]
+
+    visit admin_user_path(uid: 'alice')
+
+    assert_text 'DDBJ (type 3)'
+  end
+
   # Acting as somebody else writes to their record under their name, so
   # what happens is said before it is offered.
   test 'proxy login explains itself before offering the button' do

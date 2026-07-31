@@ -8,12 +8,16 @@
 # submitter, or issue accessions. Two kinds of work did not need a screen
 # of their own alongside "my work"; they needed to BE it.
 #
-# What is deliberately still absent: a request whose next move belongs to
-# the submitter. `ready_to_apply` means they can press Apply,
-# `validation_failed` means their file needs fixing. Both already say
-# "Action needed" on the submitter's own screen, and putting them in a
-# curator's queue too would split one responsibility across two people,
-# which usually means neither takes it.
+# A status is never a reason to be here. `ready_to_apply` means the
+# submitter can press Apply and `validation_failed` means their file
+# needs fixing; both already say "Action needed" on their own screen, and
+# queueing them for a curator as well would split one responsibility
+# across two people, which usually means neither takes it.
+#
+# An unread message still counts, whatever the status says. Somebody who
+# asks a question while their file sits unapplied is waiting on an
+# answer, and refusing to queue that would be the same failure from the
+# other direction.
 class MyQueue
   # Why a request is in the queue at all, and what the row offers to do
   # about it. A request can qualify on both counts; `Row#reason` picks the

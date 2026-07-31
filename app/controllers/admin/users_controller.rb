@@ -29,9 +29,15 @@ module Admin
     before_action :load_user_detail, only: %i[show update]
 
     def index
-      @segment     = SEGMENTS.key?(params[:segment]) ? params[:segment] : 'submitters'
-      @query       = params[:q].to_s.strip
-      @submitted   = params.key?(:submitted) ? params[:submitted].present? : true
+      @segment = SEGMENTS.key?(params[:segment]) ? params[:segment] : 'submitters'
+      @query   = params[:q].to_s.strip
+
+      # "Curators who have submitted something" is a coherent query and
+      # almost never the one being asked — and with the filter defaulting
+      # to on, clicking Staff showed an empty list directly beneath a
+      # badge counting every one of them. Off there, and the control is
+      # hidden rather than left ticked over a list ignoring it.
+      @submitted   = @segment != 'staff' && (params.key?(:submitted) ? params[:submitted].present? : true)
       @staff_count = User.staff.count
 
       scope   = filtered(User.all)
@@ -68,11 +74,7 @@ module Admin
     def filtered(scope)
       scope = by_segment(scope)
 
-      # Not on Staff. "Curators who have submitted something" is a
-      # coherent query and almost never the one being asked — and with
-      # the filter defaulting to on, clicking Staff showed an empty list
-      # next to a badge counting every one of them.
-      scope = scope.with_submission_requests if @submitted && @segment != 'staff'
+      scope = scope.with_submission_requests if @submitted
       scope = search(scope)                  if @query.present?
 
       scope

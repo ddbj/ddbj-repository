@@ -43,8 +43,12 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     visit admin_submission_request_path(request)
 
     assert_text "##{request.id}"
-    assert_no_button 'Save curation'
-    assert_no_selector "form[action='#{admin_submission_curation_path(request.id)}']"
+
+    # Addressed by what the rail actually is, not by a path built from an
+    # id that could never be a submission's — that selector could not
+    # have matched whatever the page rendered.
+    assert_no_button 'Save changes'
+    assert_no_selector "form[action$='/curation']"
   end
 
   test 'the samples tab narrows to the group being worked on' do
@@ -52,6 +56,14 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
 
     assert_text 'fixture-sample-1'
     assert_text 'fixture-sample-2'
+
+    # What the curator is deciding from: the accession, what it is, and
+    # where it is — not just the identifier.
+    within 'tbody tr', text: 'fixture-sample-1' do
+      assert_text 'SAMD00000001'
+      assert_text 'Generic.1.0'  # package
+      assert_text 'private'      # status
+    end
 
     fill_in 'Search', with: 'sample-1'
     click_button 'Filter'
@@ -83,6 +95,12 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     click_button 'Filter'
 
     assert_text '60 of 62 shown'
+
+    # The page param is namespaced so it cannot collide with a future
+    # paginator wanting plain `?page=`. pagy silently ignores a wrong
+    # `page_key` shape, so the only evidence is in the links themselves.
+    assert_selector "a[href*='samples_page=']"
+    assert_no_selector "a[href*='?page=']"
 
     within '.pagination' do
       click_link '2'

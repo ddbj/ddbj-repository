@@ -42,7 +42,11 @@
     <%# The old wording was "include users without submission requests", %>
     <%# which asks the reader to negate a negative. Same filter, put the %>
     <%# way somebody would actually say it. %>
-    <div class="col-auto">
+    <%# %>
+    <%# Absent on Staff, where it does not apply: a ticked box above a %>
+    <%# list that ignores it is worse than no box, because unticking it %>
+    <%# changes nothing and the reader is left wondering what did. %>
+    <div class="col-auto" <%= 'hidden' if @segment == 'staff' %>>
       <div class="form-check">
         <%# The hidden partner is what makes unticking expressible: an %>
         <%# unchecked box sends nothing at all, and "absent" has to mean %>

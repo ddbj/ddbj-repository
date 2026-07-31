@@ -108,8 +108,8 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match admin_submission_request_path(pending), response.body
   end
 
-  # The identifier a curator has in hand is as often "#19537" from a mail
-  # subject as it is an accession, so a bare number is a request id.
+  # Requests no browser makes, which is why they are posted directly: a
+  # crafted param must not widen the search or crash the sanitiser.
   test 'search treats SQL LIKE metacharacters as literals' do
     submissions(:bioproject).update_columns(source_id: 'PSUB000604')
 
@@ -368,8 +368,8 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match 'Skipped',           response.body
   end
 
-  # Pagination has to carry the filter, or clicking page 2 silently widens
-  # the set the curator thought they were working through.
+  # One unreadable patch must not take the whole tab down — the chain is
+  # what a curator reads to find out that something is wrong.
   test 'the record tab survives a single poisoned patch — the chain renders and names the bad row' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')

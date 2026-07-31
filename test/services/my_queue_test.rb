@@ -20,25 +20,25 @@ class MyQueueTest < ActiveSupport::TestCase
     MyQueue.new(user).sections.find { it.key == key }
   end
 
-  # The queue is what a curator owes somebody. A request whose next move
-  # is the submitter's already says "Action needed" on their own screen,
-  # and splitting one responsibility across two people usually means
-  # neither takes it.
-  test 'requests waiting on the submitter are not waiting on a curator' do
-    %i[ready_to_apply validation_failed].each do |status|
-      @req.update_columns(status: SubmissionRequest.statuses.fetch(status.to_s))
+  # A status is never a reason to be here — not the submitter's move
+  # (`ready_to_apply`, `validation_failed`), and not ours to fix from a
+  # queue either (`application_failed` is a dead job, reported to Sentry
+  # and listed under /admin/jobs).
+  #
+  # But a question is a reason whatever the status says: somebody asking
+  # while their file sits unapplied is waiting on an answer, and that is
+  # the same failure from the other direction.
+  test 'a status is never a reason to be queued, and a question always is' do
+    %w[ready_to_apply validation_failed application_failed].each do |status|
+      @req.update_columns(status: SubmissionRequest.statuses.fetch(status))
 
-      assert_equal 0, MyQueue.new(users(:bob)).count, "#{status} is the submitter's move"
+      assert_equal 0, MyQueue.new(users(:bob)).count, "#{status} alone is not curator work"
     end
-  end
 
-  # A dead background job is reported to Sentry and listed under
-  # /admin/jobs. A curator reading a queue cannot fix it, and having it
-  # here only taught them to scroll past a section.
-  test 'a request our own pipeline dropped is not in the curator queue' do
-    @req.update_columns(status: SubmissionRequest.statuses.fetch('application_failed'))
+    unread_request
 
-    assert_equal 0, MyQueue.new(users(:bob)).count
+    assert_equal 1, MyQueue.new(users(:bob)).count,
+                 'a submitter who asks while their file waits still needs an answer'
   end
 
   test 'an assigned request is in Assigned to me' do
