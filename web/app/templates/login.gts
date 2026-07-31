@@ -27,9 +27,19 @@ export default <template>
         curators, and receive your accession numbers — all in one place.
       </p>
 
-      <form action={{authURL}} method="POST">
-        <button type="submit" class="btn btn-primary btn-lg">Log in with DDBJ Account</button>
-      </form>
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <form action={{authURL}} method="POST">
+          <button type="submit" class="btn btn-primary btn-lg">Log in with DDBJ Account</button>
+        </form>
+
+        {{! The account service's front page rather than a deep link to its
+        registration form: somebody who does not have an account yet is
+        better served by the place that also handles the cases they might
+        actually be in, like having one already under another address. }}
+        {{#if (accountURL)}}
+          <a href={{accountURL}} class="fw-semibold">Create an account →</a>
+        {{/if}}
+      </div>
 
       {{! Naming the destination up front: the button leaves for a different
       domain, and an unexplained hop to an unfamiliar host is where people
@@ -70,11 +80,19 @@ export default <template>
   </div>
 </template> satisfies TOC<object>;
 
-// Injected per environment by WebsController; absent in tests and in a
-// bare build, in which case the line is simply not shown rather than
-// naming a host we are not sure about.
+// Both injected per environment by WebsController, and both absent in a
+// bare build — in which case the line and the link are simply not shown
+// rather than naming a host we are not sure about.
+function meta(name: string): string | undefined {
+  return document.querySelector(`meta[name="${name}"]`)?.getAttribute('content') || undefined;
+}
+
+function accountURL(): string | undefined {
+  return meta('account-url');
+}
+
 function identityProviderHost(): string | undefined {
-  const url = document.querySelector('meta[name="identity-provider"]')?.getAttribute('content');
+  const url = meta('identity-provider');
   if (!url) return undefined;
 
   try {
