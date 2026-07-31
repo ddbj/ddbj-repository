@@ -71,23 +71,6 @@ class AdminProjectRecordsTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test 'the record tab renders the project-record form for BP submissions' do
-    get record_admin_submission_request_path(@submission.request)
-
-    assert_response :ok
-    assert_match 'Project details',                                       response.body
-    assert_match admin_submission_project_record_path(@submission),       response.body
-    assert_match 'name="project_record[title]"',                          response.body
-    assert_match 'name="project_record[description]"',                    response.body
-  end
-
-  test 'the record tab does NOT render the project-record form for non-BP submissions' do
-    get record_admin_submission_request_path(submissions(:st26).request)
-
-    assert_response :ok
-    assert_no_match 'Project details', response.body
-  end
-
   test 'PATCH update requires admin auth' do
     sign_in_as users(:carol)
     patch admin_submission_project_record_path(@submission),

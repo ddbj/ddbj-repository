@@ -1,5 +1,8 @@
 require 'test_helper'
 
+# What issuance does: allocates, stamps, refuses, and leaves an event
+# behind. Whether the button is offered at all, and what the summary bar
+# then says, is test/system/overview_test.rb.
 class AdminAccessionsTest < ActionDispatch::IntegrationTest
   setup do
     sign_in_as users(:bob)
@@ -90,66 +93,6 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     end
   end
 
-  # --- the summary bar offers the action only when it would succeed ---
-
-  test 'BP overview promotes Issue PRJDB to the summary bar when the project has no accession' do
-    projects(:primary).update!(accession: nil, status: 'curating')
-
-    get admin_submission_request_path(submissions(:bioproject).request)
-
-    assert_response :ok
-    assert_match 'Issue PRJDB for 1 project',                               response.body
-    assert_match admin_submission_accession_path(submissions(:bioproject)), response.body
-  end
-
-  # What to *say* is a priority question; what a curator is *allowed to do*
-  # is not. An unread message outranks issuance in the banner, and used to
-  # take the button with it — leaving a BP request with no way to issue.
-  test 'BP overview keeps the Issue button while an unread message outranks it' do
-    projects(:primary).update!(accession: nil, status: 'curating')
-    submission_requests(:bioproject).messages.create!(
-      user: users(:alice), author_role: 'submitter', body: 'a question'
-    )
-
-    get admin_submission_request_path(submission_requests(:bioproject))
-
-    assert_response :ok
-    assert_match 'waiting for a reply',       response.body, 'the banner still leads with the message'
-    assert_match 'Issue PRJDB for 1 project', response.body, 'but the action stays available'
-  end
-
-  test 'BP overview hides the Issue button when the project already has an accession' do
-    projects(:primary).update!(accession: 'PRJDB000001', status: 'curating')
-
-    get admin_submission_request_path(submissions(:bioproject).request)
-
-    assert_response :ok
-    assert_no_match 'Issue PRJDB for', response.body
-  end
-
-  # Offering a button the service would refuse just turns into an error
-  # flash — say nothing is pending instead.
-  test 'BP overview offers no action in a non-issuable status' do
-    projects(:primary).update!(accession: nil, status: 'public')
-
-    get admin_submission_request_path(submissions(:bioproject).request)
-
-    assert_response :ok
-    assert_no_match 'Issue PRJDB for',                 response.body
-    assert_match    'Nothing is waiting on a curator', response.body
-  end
-
-  test 'BS overview offers no action when un-accessioned samples are all in a non-issuable status' do
-    samples(:first).update!(accession: nil, status: 'public')
-    samples(:second).update!(accession: nil, status: 'public')
-
-    get admin_submission_request_path(submissions(:biosample).request)
-
-    assert_response :ok
-    assert_no_match 'Issue SAMD for',                  response.body
-    assert_match    'Nothing is waiting on a curator', response.body
-  end
-
   # --- cross-submission bulk_issue_accessions ---
 
   test 'bulk_issue_accessions issues accessions across selected submissions' do
@@ -208,40 +151,5 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
          params: {bulk: {submission_ids: [submissions(:bioproject).id.to_s]}}
 
     assert_response :forbidden
-  end
-end
-
-class AdminSubmissionAccessionDisplayTest < ActionDispatch::IntegrationTest
-  setup do
-    sign_in_as users(:bob)
-  end
-
-  test 'BP show displays project.accession in the top dl when present' do
-    projects(:primary).update!(accession: 'PRJDB000999')
-
-    get admin_submission_request_path(submissions(:bioproject).request)
-
-    assert_response :ok
-    assert_match 'PRJDB000999', response.body
-  end
-
-  test 'BP show displays "— (not issued)" when project.accession is nil' do
-    projects(:primary).update!(accession: nil)
-
-    get admin_submission_request_path(submissions(:bioproject).request)
-
-    assert_response :ok
-    assert_match '— (not issued)', response.body
-  end
-
-  test 'BS overview names the first accession and counts the rest' do
-    samples(:first).update!(accession: 'SAMD00000001')
-    samples(:second).update!(accession: 'SAMD00000002')
-
-    get admin_submission_request_path(submissions(:biosample).request)
-
-    assert_response :ok
-    assert_match 'SAMD00000001', response.body
-    assert_match '+1 more',      response.body
   end
 end

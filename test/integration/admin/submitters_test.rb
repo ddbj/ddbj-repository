@@ -118,16 +118,6 @@ class AdminSubmittersTest < ActionDispatch::IntegrationTest
     assert_equal chain_before, @submission.reload.updates.count
   end
 
-  test 'the record tab renders the submitters form when a materialised record is present' do
-    get record_admin_submission_request_path(@submission.request)
-
-    assert_response :ok
-    assert_match 'Submitters',                                  response.body
-    assert_match admin_submission_submitters_path(@submission), response.body
-    assert_match 'name="submitters[0][email]"',                 response.body
-    assert_match 'name="submitters[0][organizations][0][name]"', response.body
-  end
-
   test 'PATCH update requires admin auth' do
     sign_in_as users(:carol)
     patch admin_submission_submitters_path(@submission),

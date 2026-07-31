@@ -42,6 +42,21 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match admin_submission_request_path(submissions(:st26).request),   response.body
   end
 
+  # The uid half of the search joins to users, so it works on a request
+  # that has no submission yet — where every other search input, which
+  # correlates on submission_id, cannot match.
+  test 'search matches a submitter uid on a request with no submission' do
+    carol_request = SubmissionRequest.new(user: users(:carol), db: 'st26')
+    attach_ddbj_record(carol_request)
+    carol_request.save!
+
+    get admin_submission_requests_path, params: {q: 'carol'}
+
+    assert_response :ok
+    assert_match    admin_submission_request_path(carol_request),              response.body
+    assert_no_match admin_submission_request_path(submissions(:st26).request), response.body
+  end
+
   test 'index filters by request status (pipeline)' do
     applied = SubmissionRequest.new(user: users(:alice), db: 'st26', status: :applied)
     attach_ddbj_record(applied)

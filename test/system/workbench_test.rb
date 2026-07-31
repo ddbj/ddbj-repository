@@ -117,6 +117,29 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_text 'Please advise'
     assert_not_nil message.reload.read_at
   end
+  # The Record tab is where a curator edits the parts of the record this
+  # UI exposes — and only the parts that exist for that database.
+  test 'the record tab offers the forms the database actually has' do
+    bp = submissions(:bioproject)
+    bp.append_update!(
+      {'schema_version' => 'v3',
+       'project'    => {'title' => 'A project'},
+       'submission' => {'submitters' => [{'first_name' => 'Hanako', 'organizations' => [{'name' => 'NIG'}]}]}},
+      actor: 'test-seed', source: :manual
+    )
+
+    visit record_admin_submission_request_path(bp.request)
+
+    assert_text  'Project details'
+    assert_field 'Title'
+    assert_text  'Submitters'
+    assert_field 'submitters[0][email]'
+
+    # ST.26 has no Project row, so there is nothing for that form to edit.
+    visit record_admin_submission_request_path(submission_requests(:st26))
+
+    assert_no_text 'Project details'
+  end
 end
 
 # Its own class: the shared setup signs a curator in, and "a submitter

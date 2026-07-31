@@ -61,19 +61,6 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
 
   # --- index UI ---
 
-  test 'index renders a per-row checkbox and the bulk bar' do
-    get admin_submission_requests_path
-
-    assert_response :ok
-    assert_match 'selected on this page',                            response.body
-    assert_match bulk_update_admin_submissions_path,                 response.body
-    assert_match 'name="bulk[submission_ids][]"',                    response.body
-    assert_match 'name="bulk[status]"',                              response.body
-    assert_match 'name="bulk[assignee_id]"',                         response.body
-  end
-
-  # --- bulk_update ---
-
   test 'bulk_update applies status to BP project AND every BS sample of selected submissions' do
     post bulk_update_admin_submissions_path,
           params: {bulk: {
