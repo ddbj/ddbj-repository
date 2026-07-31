@@ -12,13 +12,17 @@ module Admin
 
     SENT_WINDOW = 90.days
 
-    def index
-      @tab = TABS.include?(params[:tab]) ? params[:tab] : 'due'
+    # Submitters, not projects: one mail goes to each, so that is the size
+    # of the work. On screen whichever tab is open, hence its own query
+    # rather than a by-product of loading the due list — and a class
+    # method because the template controller re-renders this screen too.
+    def self.due_count
+      DistributionNotifier.new.candidates.joins(:submission).distinct.count('submissions.user_id')
+    end
 
-      # Submitters, not projects: one mail goes to each, so that is the
-      # size of the work. The badge is on screen whichever tab is open, so
-      # it is its own query rather than a by-product of loading the list.
-      @due_count = DistributionNotifier.new.candidates.joins(:submission).distinct.count('submissions.user_id')
+    def index
+      @tab       = TABS.include?(params[:tab]) ? params[:tab] : 'due'
+      @due_count = self.class.due_count
 
       case @tab
       when 'due'      then load_due
@@ -41,33 +45,6 @@ module Admin
       redirect_to admin_distribution_notices_path, notice:
     end
 
-    # Mail the current template to the curator editing it, rendered from a
-    # real candidate. Saving a template is publishing it — every submitter
-    # gets the next one — so being able to look at the actual mail first
-    # is the difference between editing and gambling.
-    #
-    # Deliberately not `DistributionNotifier#notify`: nothing is marked
-    # notified, nobody else is written to, and it leaves no send-log row.
-    # A test is not a notice.
-    def test_delivery
-      unless current_user.email.present?
-        return redirect_to admin_distribution_notices_path(tab: 'template'),
-                           alert: 'Your own account has no address on file, so there is nowhere to send a test.'
-      end
-
-      projects = preview_projects
-
-      if projects.empty?
-        return redirect_to admin_distribution_notices_path(tab: 'template'),
-                           alert: 'Nothing is due, so there is no real notice to render.'
-      end
-
-      DistributionNotifierMailer.with(user: current_user, projects:).release_notice.deliver_later
-
-      redirect_to admin_distribution_notices_path(tab: 'template'),
-                  notice: "Test notice sent to #{current_user.email}."
-    end
-
     private
 
     def load_due
@@ -80,36 +57,29 @@ module Admin
     end
 
     def load_sent
-      scope = DistributionNotice.since(SENT_WINDOW.ago).includes(:user)
-      scope = filter_sent(scope, params[:q])
+      window = DistributionNotice.since(SENT_WINDOW.ago)
 
-      @pagy, @notices = pagy(scope.recent, limit: 50)
-      @sent_total     = DistributionNotice.since(SENT_WINDOW.ago).count
+      @pagy, @notices = pagy(filter_sent(window.includes(:user), params[:q]).recent, limit: 50)
+      @sent_total     = window.count
     end
 
     # One box over the two things somebody arrives holding: a submitter or
-    # an accession. Accessions live in a jsonb array, so the containment
-    # operator does the work the LIKE would otherwise fake.
+    # an accession. Both halves behave the same way — case-insensitive
+    # prefix — because a box that takes either must not silently fail on
+    # the one typed in the wrong case.
     def filter_sent(scope, raw)
       value = raw.to_s.strip
       return scope if value.blank?
 
-      scope.where(<<~SQL.squish, uid: "#{ActiveRecord::Base.sanitize_sql_like(value)}%", accession: [value].to_json)
-        EXISTS (SELECT 1 FROM users WHERE users.id = distribution_notices.user_id AND users.uid ILIKE :uid) OR
-        distribution_notices.accessions @> :accession::jsonb
+      scope.where(<<~SQL.squish, pattern: "#{ActiveRecord::Base.sanitize_sql_like(value)}%")
+        EXISTS (SELECT 1 FROM users WHERE users.id = distribution_notices.user_id AND users.uid ILIKE :pattern) OR
+        EXISTS (SELECT 1 FROM jsonb_array_elements_text(distribution_notices.accessions) accession WHERE accession ILIKE :pattern)
       SQL
     end
 
     def load_template
       @template = DistributionNotifierTemplate.instance
-      @preview  = DistributionNoticePreview.new(@template, preview_projects)
-    end
-
-    # A real candidate, so the preview shows what will actually be sent
-    # rather than a specimen nobody recognises. First by nearest release,
-    # matching the order the due list is read in.
-    def preview_projects
-      DistributionNotifier.new.candidates.to_a.group_by { it.submission.user }.values.first.to_a
+      @preview  = DistributionNoticePreview.for(@template)
     end
   end
 end

@@ -31,19 +31,49 @@ class DistributionNotice < ApplicationRecord
     scheduled_trigger.where(sent_at: at)
   }
 
-  # A submitter with no address stays in the due list indefinitely, so the
-  # useful number is how long it has been that way. Taken from the first
-  # skip rather than from the project, because the block starts when we
-  # first tried and could not.
   scope :blocked, -> { skipped_result.where(skip_reason: NO_ADDRESS) }
 
+  # A submitter with no address stays in the due list indefinitely, so the
+  # useful number is how long it has been that way — measured from the
+  # start of the CURRENT block, not from the first one ever. Somebody who
+  # was unreachable last year, gave us an address, and has gone quiet
+  # again has been blocked for a week, not for a year.
   def self.blocked_since(user_ids)
-    blocked.where(user_id: user_ids).group(:user_id).minimum(:sent_at)
+    return {} if user_ids.empty?
+
+    blocked
+      .where(user_id: user_ids)
+      .where(<<~SQL.squish)
+        distribution_notices.sent_at > COALESCE(
+          (SELECT MAX(delivered.sent_at)
+           FROM   distribution_notices delivered
+           WHERE  delivered.user_id = distribution_notices.user_id
+             AND  delivered.result  = 'delivered'),
+          '-infinity'
+        )
+      SQL
+      .group(:user_id)
+      .minimum(:sent_at)
+  end
+
+  # Already known to be unreachable, and nothing has got through since.
+  # The daily run would otherwise write an identical skip every morning
+  # for as long as the hold date stays in the window, filling the history
+  # that exists to answer "was this submitter told?" with the same answer
+  # ten times.
+  def self.currently_blocked_user_ids(user_ids)
+    blocked_since(user_ids).keys.to_set
   end
 
   # Who to credit. `scheduled` has no actor by design: nobody pressed
-  # anything, and naming a curator would misattribute it.
+  # anything, and naming a curator would misattribute it. A manual send
+  # with no actor recorded says just "Manual" rather than trailing a
+  # separator with nothing after it.
   def trigger_label
-    manual_trigger? ? "Manual · #{actor.to_s.split(':', 2).last}" : 'Scheduled'
+    return 'Scheduled' unless manual_trigger?
+
+    who = actor.to_s.split(':', 2).last.presence
+
+    who ? "Manual · #{who}" : 'Manual'
   end
 end

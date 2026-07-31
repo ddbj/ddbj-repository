@@ -73,7 +73,15 @@ class DistributionNotifier
       record(user, user_projects, sent_at:, trigger:, actor:, result: :delivered)
     end
 
+    # One skip row per block, not one per attempt. A blocked submitter is
+    # a candidate every day until their hold date passes, so recording
+    # each run would bury the history under repeats of the same fact —
+    # and "blocked since" would still read from the first of them anyway.
+    already = DistributionNotice.currently_blocked_user_ids(skipped.map {|user, _| user.id })
+
     skipped.each do |user, user_projects|
+      next if already.include?(user.id)
+
       record(user, user_projects, sent_at:, trigger:, actor:,
              result: :skipped, skip_reason: DistributionNotice::NO_ADDRESS)
     end

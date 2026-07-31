@@ -13,11 +13,13 @@
         <%= pluralize(@blocked.size, 'submitter') %>
         <%= @blocked.size == 1 ? 'has' : 'have' %> no address on file.
         Nothing is sent and the row stays here until an address turns up.
+
+        <%# Every one of them, by name. A single "Review in Users" link %>
+        <%# could only point at one, and the rest were findable solely by %>
+        <%# scrolling the cards below and noticing the badge. %>
+        <% @blocked.each_with_index do |user, i| %><%= ' ·' if i.positive? %>
+          <%= link_to user.uid, admin_user_path(uid: user.uid) %><% end %>
       </span>
-
-      <span class="flex-fill"></span>
-
-      <%= link_to 'Review in Users', admin_users_path(q: @blocked.first.uid), class: 'small' %>
     </div>
   <% end %>
 

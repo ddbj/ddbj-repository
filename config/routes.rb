@@ -126,11 +126,7 @@ Rails.application.routes.draw do
     # sent?" and "what does it say?" are not separate destinations. The
     # template still has its own endpoint because it is a different
     # resource being written — it just renders inside the same screen.
-    resources :distribution_notices, only: %i[index create] do
-      collection do
-        post :test_delivery
-      end
-    end
+    resources :distribution_notices, only: %i[index create]
 
     resource :distribution_notice_template, only: %i[update], path: 'distribution_notices/template'
 

@@ -77,7 +77,9 @@ class Admin::DistributionNoticesTest < ActionDispatch::IntegrationTest
     assert_match 'BLOCKED',                     response.body
     assert_match 'no address on file',          response.body
     assert_match 4.days.ago.to_date.iso8601,    response.body
-    assert_match admin_users_path(q: @project.submission.user.uid), response.body
+    # Named, not summarised: a single "Review in Users" link could only
+    # point at one of them.
+    assert_match admin_user_path(uid: @project.submission.user.uid), response.body
   end
 
   # --- the automation strip ------------------------------------------------
@@ -184,7 +186,8 @@ class Admin::DistributionNoticesTest < ActionDispatch::IntegrationTest
   # addressed to yourself is the only way to look before that happens.
   test 'a test send goes to the curator and marks nothing as notified' do
     assert_enqueued_emails 1 do
-      post test_delivery_admin_distribution_notices_path
+      patch admin_distribution_notice_template_path,
+            params: {commit: 'test', distribution_notifier_template: default_template_params}
     end
 
     assert_redirected_to admin_distribution_notices_path(tab: 'template')
@@ -192,11 +195,28 @@ class Admin::DistributionNoticesTest < ActionDispatch::IntegrationTest
     assert_equal 0, DistributionNotice.count, 'a test leaves no send-log row'
   end
 
+  # The whole point of a test send: it must show the edit, not the text
+  # the edit replaces. Rendering the saved template would test nothing.
+  test 'a test send renders the unsaved edit and does not publish it' do
+    perform_enqueued_jobs do
+      patch admin_distribution_notice_template_path,
+            params: {commit: 'test',
+                     distribution_notifier_template: {subject: 'Draft subject', body: "Draft body\n\n%{accessions}"}}
+    end
+
+    mail = ActionMailer::Base.deliveries.last
+
+    assert_equal 'Draft subject', mail.subject
+    assert_equal [users(:bob).email], mail.to
+    assert_not_equal 'Draft subject', DistributionNotifierTemplate.instance.subject, 'a test must not save'
+  end
+
   test 'a test send refuses when there is nothing real to render' do
     @project.update!(hold_date: nil)
 
     assert_no_enqueued_emails do
-      post test_delivery_admin_distribution_notices_path
+      patch admin_distribution_notice_template_path,
+            params: {commit: 'test', distribution_notifier_template: default_template_params}
     end
 
     assert_match(/Nothing is due/, flash[:alert])
@@ -212,5 +232,11 @@ class Admin::DistributionNoticesTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :forbidden
+  end
+
+  private
+
+  def default_template_params
+    {subject: DistributionNotifierTemplate::DEFAULT_SUBJECT, body: DistributionNotifierTemplate::DEFAULT_BODY}
   end
 end

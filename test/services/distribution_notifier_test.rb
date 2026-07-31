@@ -156,6 +156,40 @@ class DistributionNotifierTest < ActiveSupport::TestCase
     assert_equal 2, DistributionNotice.last_scheduled_run.count, 'a manual send is not a run of the schedule'
   end
 
+  # A blocked submitter is a candidate again every morning until their
+  # hold date passes, so recording each attempt would bury the history
+  # under ten copies of the same fact.
+  test 'a continuing block is recorded once, not once per run' do
+    @project.submission.user.update!(email: nil)
+
+    3.times { DistributionNotifier.new.notify([@project]) }
+
+    assert_equal 1, DistributionNotice.blocked.count
+  end
+
+  # A new block is a new fact. Somebody who was unreachable, gave us an
+  # address, and has gone quiet again has been blocked since the second
+  # time — not since the first.
+  test 'a block that was resolved and returned is recorded again' do
+    user = @project.submission.user
+
+    travel_to 30.days.ago do
+      user.update!(email: nil)
+      DistributionNotifier.new.notify([@project])
+    end
+
+    travel_to 20.days.ago do
+      user.update!(email: 'back@example.com')
+      DistributionNotifier.new.notify([@project])
+    end
+
+    user.update!(email: nil)
+    DistributionNotifier.new.notify([@project])
+
+    assert_equal 2, DistributionNotice.blocked.count
+    assert_in_delta Time.current, DistributionNotice.blocked_since([user.id]).fetch(user.id), 5
+  end
+
   test 'blocked_since reports when a submitter first could not be reached' do
     user = @project.submission.user
     user.update!(email: nil)

@@ -14,8 +14,15 @@
     <%= submit_tag 'Search', class: 'btn btn-primary' %>
   </div>
 
+  <%# The window total AND what the search narrowed it to — one number %>
+  <%# alone reads as a lie next to a table showing something else. %>
   <div class="col-auto text-body-secondary small">
-    <%= pluralize(@sent_total, 'notice') %> in the last <%= Admin::DistributionNoticesController::SENT_WINDOW.inspect %>
+    <% if params[:q].present? %>
+      <%= pluralize(@pagy.count, 'notice') %> of <%= @sent_total %>
+    <% else %>
+      <%= pluralize(@sent_total, 'notice') %>
+    <% end %>
+    in the last <%= Admin::DistributionNoticesController::SENT_WINDOW.inspect %>
   </div>
 <% end %>
 
