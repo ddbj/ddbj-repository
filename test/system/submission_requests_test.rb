@@ -84,12 +84,45 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
   end
 end
 
+# What the queue screen says. Which requests belong in which section is
+# MyQueue's rule and is tested at test/services/my_queue_test.rb.
 class MyQueueSystemTest < ApplicationSystemTestCase
   setup do
     sign_in_as users(:bob)
 
     @req = submission_requests(:bioproject)
     @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'still waiting on this')
+  end
+
+  test 'each section carries the rule that put a request in it' do
+    visit admin_root_path
+
+    assert_text 'Assigned to me'
+    assert_text 'assignment only changes when someone changes it'
+
+    assert_text "I'm involved"
+    assert_text 'You replied or edited here'
+
+    assert_text 'Unclaimed'
+    assert_text 'every curator sees this section identically'
+  end
+
+  test 'the row says why it is here and offers the one thing to do about it' do
+    visit admin_root_path
+
+    within '[data-test-section="unclaimed"]' do
+      assert_text '1 unread message'
+      assert_link 'Reply'
+      assert_no_button 'Issue'
+    end
+  end
+
+  test 'an empty queue says so rather than showing three empty boxes' do
+    @req.messages.destroy_all
+
+    visit admin_root_path
+
+    assert_text 'Nothing is waiting on a curator right now.'
   end
 
   # The sections are the design, so the claim under test is where the row
