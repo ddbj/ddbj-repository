@@ -1,7 +1,6 @@
 <% content_for :title, "Migration run ##{@migration_run.id}" %>
 
 <%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Administration',  path: admin_root_path},
   {label: 'Migration runs',  path: admin_migration_runs_path},
   {label: "##{@migration_run.id}"}
 ] %>

@@ -1,0 +1,64 @@
+<%# locals: (request:, submission:, state:, materialised: nil) %>
+<%# The handful of facts a curator actually cites in a conversation. %>
+<%# Canonical bytes, digests and converter versions are engineering %>
+<%# provenance and live one tab over. %>
+<section class="card mb-4">
+  <div class="card-body pb-0 d-flex justify-content-between align-items-center">
+    <h2 class="h6 card-title mb-0">Submission facts</h2>
+    <%= link_to 'Record & history →', record_admin_submission_request_path(request), class: 'small' %>
+  </div>
+
+  <div class="card-body">
+    <dl class="row row-cols-1 row-cols-md-2 mb-0">
+      <div class="col">
+        <dt class="small text-body-secondary fw-normal">Submitter</dt>
+        <dd><%= request.user.uid %></dd>
+      </div>
+
+      <div class="col">
+        <dt class="small text-body-secondary fw-normal">Source ID</dt>
+        <dd><code><%= submission&.source_id || '—' %></code></dd>
+      </div>
+
+      <div class="col">
+        <dt class="small text-body-secondary fw-normal">Created</dt>
+        <dd><%= format_datetime(request.created_at) %></dd>
+      </div>
+
+      <div class="col">
+        <dt class="small text-body-secondary fw-normal">Origin</dt>
+        <dd>
+          <% if (run = migration_run_for(request, submission)) %>
+            <%= link_to "Migration run ##{run.id}", admin_migration_run_path(run) %>
+            <span class="text-body-secondary">(D-way)</span>
+          <% elsif request.migration_origin? %>
+            <span class="text-body-secondary">D-way migration</span>
+          <% else %>
+            Submitted through the API
+          <% end %>
+        </dd>
+      </div>
+
+      <div class="col">
+        <dt class="small text-body-secondary fw-normal">Accessions</dt>
+        <dd>
+          <% if state.accessioned_count.positive? %>
+            <code><%= state.first_accession %></code>
+            <% if state.accessioned_count > 1 %>
+              <span class="text-body-secondary">
+                +<%= number_with_delimiter(state.accessioned_count - 1) %> more
+              </span>
+            <% end %>
+          <% else %>
+            <span class="text-body-secondary">— (not issued)</span>
+          <% end %>
+        </dd>
+      </div>
+
+      <div class="col">
+        <dt class="small text-body-secondary fw-normal">Hold date</dt>
+        <dd><%= materialised&.dig('submission', 'hold_date') || '—' %></dd>
+      </div>
+    </dl>
+  </div>
+</section>

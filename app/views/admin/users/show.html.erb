@@ -1,7 +1,6 @@
 <% content_for :title, @user.uid %>
 
 <%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Administration', path: admin_root_path},
   {label: 'Users', path: admin_users_path},
   {label: @user.uid}
 ] %>

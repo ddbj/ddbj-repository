@@ -118,8 +118,8 @@ class AdminSubmittersTest < ActionDispatch::IntegrationTest
     assert_equal chain_before, @submission.reload.updates.count
   end
 
-  test 'show page renders the submitters form when materialised record is present' do
-    get admin_submission_request_path(@submission.request)
+  test 'the record tab renders the submitters form when a materialised record is present' do
+    get record_admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match 'Submitters',                                  response.body

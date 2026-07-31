@@ -1,0 +1,9 @@
+{
+  requests: @requests.map {|request|
+    {
+      id:        request.id,
+      db:        request.db,
+      source_id: request.submission&.source_id
+    }
+  }
+}

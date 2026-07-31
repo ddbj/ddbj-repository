@@ -1,0 +1,23 @@
+<%# locals: (state:) %>
+<%# Why this request is on somebody's desk, in one sentence, above %>
+<%# everything else. The matching button lives in the summary bar — this %>
+<%# explains it rather than repeating it. %>
+<% action = state.next_action %>
+
+<% if action %>
+  <div class="alert <%= state.failed? ? 'alert-danger' : 'alert-warning' %> d-flex gap-3" role="alert">
+    <div>
+      <div class="fw-semibold">Next: <%= action.title %></div>
+      <div class="small mb-0"><%= action.detail %></div>
+    </div>
+  </div>
+<% else %>
+  <div class="alert alert-light border d-flex gap-3" role="status">
+    <div>
+      <div class="fw-semibold">Nothing is waiting on a curator</div>
+      <div class="small text-body-secondary mb-0">
+        No unread messages, no failed step, and nothing eligible for accession issuance.
+      </div>
+    </div>
+  </div>
+<% end %>

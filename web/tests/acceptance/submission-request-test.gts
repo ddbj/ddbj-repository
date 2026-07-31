@@ -48,6 +48,17 @@ module('Acceptance | submission request', function (hooks) {
 
       validation: null,
       submission: null,
+
+      progress: {
+        step: 'submitted',
+        failed: false,
+        row_count: 0,
+        accessioned_count: 0,
+        hold_date: null,
+      },
+
+      unread_curator_message_count: 0,
+      last_message_at: null,
     };
 
     worker.use(
@@ -84,8 +95,11 @@ module('Acceptance | submission request', function (hooks) {
     await waitUntil(() => currentURL() === '/requests/42');
 
     // --- Request detail page (ready to apply) ---
+    // The detail leads with what the submitter should do, not with the
+    // raw status enum.
     assert.dom('h1').hasText('#42');
-    assert.dom('.badge').hasText('ready to apply');
+    assert.dom('[data-test-state] .badge').hasText('Action needed');
+    assert.dom('[data-test-state] h2').hasText('Your file passed validation and is ready to submit');
 
     // --- Apply ---
 
@@ -98,6 +112,14 @@ module('Acceptance | submission request', function (hooks) {
         return response(200).json({
           ...createdRequest,
           status: 'applied',
+
+          progress: {
+            step: 'curating',
+            failed: false,
+            row_count: 1,
+            accessioned_count: 0,
+            hold_date: null,
+          },
 
           validation: {
             id: 1,
@@ -122,9 +144,9 @@ module('Acceptance | submission request', function (hooks) {
       }),
     );
 
-    await click('button.btn-primary');
-    await waitUntil(() => document.querySelector('.badge')?.textContent?.trim() === 'applied');
+    await click('[data-test-state] button.btn-primary');
+    await waitUntil(() => document.querySelector('[data-test-state] .badge')?.textContent?.trim() === 'With DDBJ');
 
-    assert.dom('.badge').hasText('applied');
+    assert.dom('[data-test-state] h2').hasText('A curator is reviewing your submission');
   });
 });

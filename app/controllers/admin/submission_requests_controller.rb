@@ -5,14 +5,15 @@ module Admin
   # detail that embeds the submission workbench underneath the request
   # metadata, validation, and the submitter ↔ curator thread.
   class SubmissionRequestsController < ApplicationController
+    include RequestListing
     include SubmissionDetail
     include SourceIdFilterable
     include AccessionFilterable
 
+    before_action :load_workbench, only: %i[show samples messages record]
+
     def index
-      scope = SubmissionRequest
-        .includes(:user, submission: [{project: :assignee}, :accessions])
-        .order(id: :desc)
+      scope = SubmissionRequest.order(id: :desc)
 
       scope = filter_by_db(scope, params[:db])                         if params[:db].present?
       scope = scope.where(user: User.where(uid: params[:user]))        if params[:user].present?
@@ -22,55 +23,61 @@ module Admin
       scope = filter_by_status(scope, params[:status])                 if params[:status].present?
       scope = filter_by_assignee(scope, params[:assignee])             if params[:assignee].present?
 
-      @pagy, @requests   = pagy(scope)
-      @sample_aggregates = sample_aggregates_for(@requests.filter_map(&:submission))
+      load_requests(scope)
     end
 
+    # --- workbench tabs -------------------------------------------------
+    # Overview answers "what state is this in and what is the next move",
+    # Samples is the bulk-edit workbench, Messages is the conversation and
+    # Record & history is the provenance. Each loads only what it renders.
+
     def show
-      @request    = SubmissionRequest.includes(:user).find(params[:id])
-      @submission = @request.submission
-      @validation = @request.validation_with_validity
-      @messages   = @request.messages.includes(:user).to_a
+      @validation = @state.validation
+      @activity   = ActivityFeed.new(@request).entries
+
+      load_materialised(@submission) if @submission
+    end
+
+    def samples
+      return redirect_to admin_submission_request_path(@request) unless @submission&.biosample_db?
+
+      @search = SampleSearch.new(@submission.samples, params)
+      scope   = @search.scope
+
+      # `page_key: 'samples_page'` namespaces the URL param. (pagy v43:
+      # the option is `page_key`, not `page_param`, and the value must be
+      # a String not a Symbol; the wrong shape is silently ignored.)
+      @samples_pagy, @samples = pagy(scope.includes(:assignee).order(:id), page_key: 'samples_page', limit: 50)
+      @matching_count         = @samples_pagy.count
+    end
+
+    def messages
+      @messages = @request.messages.includes(:user).to_a
 
       # Mark unread submitter messages as read by virtue of any curator
-      # opening this page — keeps the "返信待ち" indicator semantically
-      # "any curator has looked".
+      # opening the thread — keeps the "返信待ち" indicator semantically
+      # "any curator has looked". Stamped here rather than on Overview so
+      # the Needs action bucket only clears once somebody actually read it.
       @request.messages.submitter_role.unread.update_all(read_at: Time.current)
+    end
 
-      load_submission_detail(@submission) if @submission
+    def record
+      load_record_detail(@submission) if @submission
     end
 
     private
+
+    def load_workbench
+      @request    = SubmissionRequest.includes(:user).find(params[:id])
+      @submission = @request.submission
+      @state      = CurationState.new(@request)
+    end
 
     # The submission-based filters (source_id / accession / status /
     # assignee) correlate on `submission_requests.submission_id`, which
     # IS the submission's primary key. A request with no submission
     # (pre-Apply) matches none of them, so those filters implicitly
     # restrict to applied requests — exactly the curation cohort.
-
-    # Per-BS-submission aggregate of (status, assignee) across samples,
-    # so the index can show "Uniform: public / kodama" vs "Mixed (3)"
-    # without hauling every Sample row over the wire. One SQL for the
-    # whole page — no N+1, no per-row distinct() calls.
-    SampleAggregate = Data.define(:statuses, :assignee_ids, :first_accession, :accession_count)
-
-    def sample_aggregates_for(submissions)
-      bs_ids = submissions.select(&:biosample_db?).map(&:id)
-      return {} if bs_ids.empty?
-
-      rows = Sample
-        .where(submission_id: bs_ids)
-        .group(:submission_id)
-        .pluck(:submission_id,
-               Arel.sql('ARRAY_AGG(DISTINCT status) AS statuses'),
-               Arel.sql('ARRAY_AGG(DISTINCT assignee_id) AS assignee_ids'),
-               Arel.sql('MIN(accession) AS first_accession'),
-               Arel.sql('COUNT(accession) AS accession_count'))
-
-      rows.to_h {|sid, statuses, assignees, first_accession, accession_count|
-        [sid, SampleAggregate.new(statuses:, assignee_ids: assignees, first_accession:, accession_count:)]
-      }
-    end
 
     # Multi-select filters treat "everything selected" the same as
     # "nothing selected" — a fully-checked group is no constraint. This

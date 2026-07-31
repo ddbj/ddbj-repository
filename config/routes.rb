@@ -11,6 +11,11 @@ Rails.application.routes.draw do
 
     resource :me, only: %i[show]
 
+    # Cross-request "you need to do something" summary, so the web client
+    # can show it on every screen rather than only where the row happens
+    # to be listed.
+    resource :attention, only: %i[show]
+
     # Submission identifiers are globally unique, so the routes are flat
     # — no /:db scope. `index` accepts an optional `?db=xxx` query to
     # filter; `create` reads the target database from the request body.
@@ -37,12 +42,25 @@ Rails.application.routes.draw do
   end
 
   namespace :admin do
-    root to: 'dashboard#show'
+    # The landing screen is the work queue, not a directory of features —
+    # everything else in the nav is reachable from here.
+    root to: 'needs_action#show'
+
+    resource :my_queue, only: %i[show], controller: 'my_queue'
 
     resource :session, only: %i[new destroy]
 
+    # The request detail is a four-tab workbench: one screen answers one
+    # question (state / bulk edits / conversation / provenance) instead of
+    # stacking every block on `show`.
     resources :submission_requests, only: %i[index show] do
       resources :messages, only: %i[create]
+
+      member do
+        get :samples
+        get :messages
+        get :record
+      end
     end
 
     resources :submissions, only: %i[show] do
@@ -61,23 +79,22 @@ Rails.application.routes.draw do
       member do
         get :materialised
 
-        # Bulk-apply a (status, assignee) tuple to every Sample in a BS
-        # submission. Per-sample editing is intentionally NOT exposed:
-        # a submission can carry 20K samples and the typical curator
-        # workflow advances them together (all curating → all
-        # accession_issued → all public). Per-sample diversity is rare
-        # enough to defer to a later UI.
+        # Bulk-apply a (status, assignee) tuple to a BS submission's
+        # samples. The target set is whatever the Samples screen has in
+        # hand — the checkboxed rows, or every row matching the current
+        # filter. Per-sample forms are still not offered: a submission can
+        # carry 100K samples and content edits go through the TSV
+        # round-trip.
         patch :bulk_update_samples
       end
 
-      # Per-submission curator edits. BP submissions have one Project; the
-      # singular nested resource is the natural URL for "edit THIS BP's
-      # project metadata". BS / ST26 don't have a Project — the controller
-      # 404s in those cases.
-      resource  :project,            only: %i[update]
-      resource  :curator_comment,    only: %i[update]
+      # One curation state per submission — status, assignee, hold date and
+      # the internal comment save together. They were four independent
+      # forms with four save buttons; a curator changes them as one
+      # decision, so they post as one.
+      resource  :curation,           only: %i[update]
+      resource  :assignment,         only: %i[create]
       resource  :submitters,         only: %i[update]
-      resource  :hold_date,          only: %i[update]
       resource  :project_record,     only: %i[update]
       resource  :accession,          only: %i[create]
       resource  :sample_tsv_export,  only: %i[show]

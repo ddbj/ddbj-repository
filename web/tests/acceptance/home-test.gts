@@ -52,7 +52,7 @@ module('Acceptance | home', function (hooks) {
     await visit('/');
 
     assert.strictEqual(currentURL(), '/');
-    assert.dom('h1').hasText('Submission Requests');
+    assert.dom('h1').hasText('My submissions');
     assert.dom('tbody tr').exists({ count: 2 });
 
     const firstRow = 'tbody tr:nth-child(1)';
@@ -85,7 +85,7 @@ module('Acceptance | home', function (hooks) {
     await visit('/');
 
     assert.dom('table').doesNotExist();
-    assert.dom('a[href="/web/new"]').exists({ count: 2 });
+    assert.dom('a[href="/web/new"]').exists({ count: 3 });
   });
 
   test('"New Submission" navigates to /new with database picker', async function (assert) {

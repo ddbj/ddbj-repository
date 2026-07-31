@@ -21,6 +21,15 @@ const request: SubmissionRequest = {
   processing: false,
   ddbj_record: { filename: 'test.json', url: 'http://example.com/test.json' },
   validation: null,
+  progress: {
+    step: 'curating',
+    failed: false,
+    row_count: 1,
+    accessioned_count: 0,
+    hold_date: null,
+  },
+  unread_curator_message_count: 0,
+  last_message_at: null,
   submission: {
     id: 10,
     source_id: 'PSUB000042',

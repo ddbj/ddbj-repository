@@ -1,0 +1,98 @@
+require 'test_helper'
+
+class CurationStateTest < ActiveSupport::TestCase
+  # --- progress ----------------------------------------------------------
+
+  test 'a request with no submission has not got past Submitted' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+    attach_ddbj_record(request)
+    request.save!
+
+    state = CurationState.new(request)
+
+    assert_equal :current, state.step_state(:submitted)
+    assert_equal :todo,    state.step_state(:applied)
+    refute state.curated?
+  end
+
+  test 'an applied submission with curation rows sits on Curating' do
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    state = CurationState.new(submission_requests(:bioproject))
+
+    assert_equal :done,    state.step_state(:applied)
+    assert_equal :current, state.step_state(:curating)
+    assert_equal :todo,    state.step_state(:accession_issued)
+  end
+
+  test 'every row accessioned advances to Accession issued' do
+    submissions(:biosample).samples.update_all(accession: nil, status: Lifecycleable::STATUSES.fetch('curating'))
+    samples(:first).update!(accession: 'SAMD00000001', status: 'accession_issued')
+    samples(:second).update!(accession: 'SAMD00000002', status: 'accession_issued')
+
+    state = CurationState.new(submission_requests(:biosample))
+
+    assert_equal :current, state.step_state(:accession_issued)
+    assert_equal :todo,    state.step_state(:public)
+  end
+
+  test 'every row public reaches the last step' do
+    submissions(:biosample).samples.update_all(status: Lifecycleable::STATUSES.fetch('public'))
+
+    assert_equal :current, CurationState.new(submission_requests(:biosample)).step_state(:public)
+  end
+
+  test 'a failed request marks the step it could not reach' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26', status: :validation_failed)
+    attach_ddbj_record(request)
+    request.save!
+
+    state = CurationState.new(request)
+
+    assert state.failed?
+    assert_equal :failed, state.step_state(:validated)
+  end
+
+  # --- aggregate labels --------------------------------------------------
+
+  test 'a mixed BS submission reports the mixture rather than one status' do
+    state = CurationState.new(submission_requests(:biosample))
+
+    assert_nil state.uniform_status
+    assert_equal 'Mixed (2)', state.status_label
+  end
+
+  test 'a uniform BS submission reports the single status' do
+    submissions(:biosample).samples.update_all(status: Lifecycleable::STATUSES.fetch('curating'))
+
+    assert_equal 'curating', CurationState.new(submission_requests(:biosample)).status_label
+  end
+
+  test 'row_noun names what is being acted on per database' do
+    assert_equal 'project', CurationState.new(submission_requests(:bioproject)).row_noun
+    assert_equal 'samples', CurationState.new(submission_requests(:biosample)).row_noun
+  end
+
+  # --- next action -------------------------------------------------------
+
+  test 'an unread submitter message outranks a pending accession' do
+    projects(:primary).update!(accession: nil, status: 'curating')
+    request = submission_requests(:bioproject)
+    request.messages.create!(user: users(:alice), author_role: 'submitter', body: 'question')
+
+    assert_match(/waiting for a reply/, CurationState.new(request).next_action.title)
+  end
+
+  test 'issuable rows become the next action once the thread is clear' do
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    action = CurationState.new(submission_requests(:bioproject)).next_action
+
+    assert_match(/eligible for accession issuance/, action.title)
+    assert_equal 'Issue PRJDB for 1 project', action.label
+  end
+
+  test 'nothing pending yields no next action' do
+    assert_nil CurationState.new(submission_requests(:bioproject)).next_action
+  end
+end

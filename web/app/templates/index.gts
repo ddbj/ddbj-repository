@@ -37,7 +37,7 @@ export default class extends Component<Signature> {
 
     {{#if this.currentUser.isLoggedIn}}
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="display-6 mb-0">Submission Requests</h1>
+        <h1 class="display-6 mb-0">My submissions</h1>
         <LinkTo @route="new" class="btn btn-primary">New Submission</LinkTo>
       </div>
 

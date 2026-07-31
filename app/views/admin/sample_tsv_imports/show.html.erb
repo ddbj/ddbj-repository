@@ -1,7 +1,6 @@
 <% content_for :title, "Sample TSV import ##{@import.id}" %>
 
 <%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Administration', path: admin_root_path},
   {label: 'Submission requests', path: admin_submission_requests_path},
   {label: "##{@submission.request.id}", path: admin_submission_request_path(@submission.request)},
   {label: "Sample TSV import ##{@import.id}"}

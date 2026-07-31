@@ -35,13 +35,13 @@ class AdminMessagesTest < ActionDispatch::IntegrationTest
     assert_match(/cannot be blank/, flash[:alert])
   end
 
-  test 'GET show marks unread submitter messages as read' do
+  test 'GET the messages tab marks unread submitter messages as read' do
     unread = @submission_request.messages.create!(user: users(:alice), author_role: :submitter, body: 'help')
 
-    get admin_submission_request_path(@submission_request)
+    get messages_admin_submission_request_path(@submission_request)
     assert_response :ok
 
-    assert_not_nil unread.reload.read_at, 'curator viewing show must stamp submitter messages as read'
+    assert_not_nil unread.reload.read_at, 'a curator opening the thread must stamp submitter messages as read'
   end
 
   test 'POST requires admin auth' do

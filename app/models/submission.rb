@@ -17,6 +17,10 @@ class Submission < ApplicationRecord
 
   has_many :sample_tsv_imports, -> { recent }, dependent: :destroy
 
+  # Curator actions that produce no patch — see CurationEvent for where
+  # the line between the two histories falls.
+  has_many :curation_events, -> { recent }, dependent: :destroy
+
   has_one_attached :ddbj_record
   has_one_attached :current_record
   has_one_attached :flatfile_na
@@ -69,6 +73,25 @@ class Submission < ApplicationRecord
       records = accessions.to_a
       [records.min_by(&:id)&.number, records.size]
     end
+  end
+
+  # The rows that carry curation state (status / assignee / accession) for
+  # this submission: the single BP Project, or every BS Sample. ST.26 has
+  # none — it is not curated through the workbench. Returned as a relation
+  # in both cases so callers can aggregate, filter and `update_all`
+  # without branching on the database, which matters at 100K samples.
+  def curation_rows
+    if bioproject_db?
+      project && Project.where(id: project.id)
+    elsif biosample_db?
+      samples
+    end
+  end
+
+  # What a curation row is called here: BP reads "1 project", BS "1,842
+  # samples". Used wherever a message has to name the thing being acted on.
+  def curation_row_noun
+    bioproject_db? ? 'project' : 'sample'
   end
 
   class MaterialisationFailed < StandardError

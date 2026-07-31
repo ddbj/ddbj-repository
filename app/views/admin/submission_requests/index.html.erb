@@ -1,18 +1,16 @@
-<% content_for :title, 'Submission requests' %>
+<% content_for :title, 'All requests' %>
 
-<%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Administration', path: admin_root_path},
-  {label: 'Submission requests'}
-] %>
+<%= render 'admin/shared/breadcrumb', items: [{label: 'All requests'}] %>
 
-<h1 class="display-6 mb-4">Submission requests</h1>
+<h1 class="display-6 mb-4">All requests</h1>
 
 <%# Filter (GET). Status matches the request's own pipeline status and %>
 <%# applies to every request. Curation / Assignee / Source ID / Accession %>
 <%# match the request's applied submission (BP project OR BS samples via %>
 <%# OR-EXISTS), so a pre-Apply request is excluded when any of those are %>
 <%# set. Database / Status / Curation / Assignee are multi-select (values %>
-<%# within a filter are OR-ed). %>
+<%# within a filter are OR-ed). Database is a filter here rather than a %>
+<%# navigation axis — the curator's task, not the DB, picks the screen. %>
 <%= form_with url: admin_submission_requests_path, method: :get, local: true, class: 'mb-4' do %>
   <%= render 'checkbox_filter', label: 'Database', name: :db, options: db_options, param: params[:db] %>
 
@@ -63,128 +61,9 @@
   </div>
 <% end %>
 
-<%# Bulk action form (PATCH). Checkboxes carry the request's submission id; %>
-<%# the cross-submission actions operate on those submissions. The action %>
-<%# URL carries the current filter params so the post-update redirect lands %>
-<%# back on the same filtered view. %>
-<%= form_with url: bulk_update_admin_submissions_path(params.permit(:user, :source_id, :accession, db: [], request_status: [], status: [], assignee: [])),
-              method: :patch,
-              scope:  :bulk,
-              local:  true,
-              data:   {controller: 'bulk-select'} do |f| %>
-  <table class="table border align-middle">
-    <thead class="table-light">
-      <tr>
-        <th style="width: 1rem;">
-          <input type="checkbox" class="form-check-input" data-bulk-select-target="toggle" aria-label="Select all on this page">
-        </th>
-        <th>ID</th>
-        <th>Database</th>
-        <th>User</th>
-        <th>Status</th>
-        <th>Source ID</th>
-        <th>Accession</th>
-        <th>Curation</th>
-        <th>Assignee</th>
-        <th>Created</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      <% @requests.each do |request| %>
-        <% submission = request.submission %>
-        <tr>
-          <td>
-            <% if submission %>
-              <%= f.check_box :submission_ids,
-                              {multiple: true, class: 'form-check-input', data: {bulk_select_target: 'row'}, 'aria-label': "Select ##{request.id}"},
-                              submission.id, nil %>
-            <% end %>
-          </td>
-          <td><%= link_to "##{request.id}", admin_submission_request_path(request) %></td>
-          <td><%= db_label(request.db) %></td>
-          <td><%= request.user.uid %></td>
-          <td><%= status_badge(request.status) %></td>
-          <td><%= submission&.source_id || '—' %></td>
-          <td>
-            <% first_accession, accession_count = submission ? accession_summary(submission, @sample_aggregates) : [nil, 0] %>
-            <% if accession_count.positive? %>
-              <code><%= first_accession %></code>
-              <% if accession_count > 1 %>
-                <span class="text-body-secondary">(<%= accession_count %>)</span>
-              <% end %>
-            <% else %>
-              —
-            <% end %>
-          </td>
-          <td><%= submission ? submission_status_display(submission, @sample_aggregates) : '—' %></td>
-          <td><%= submission ? submission_assignee_display(submission, @sample_aggregates) : '—' %></td>
-          <td><%= format_datetime(request.created_at) %></td>
-        </tr>
-      <% end %>
-
-      <% if @requests.empty? %>
-        <tr>
-          <td colspan="10" class="text-center text-body-secondary py-4">No requests found.</td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-
-  <%= render 'admin/shared/pagy_nav', pagy: @pagy %>
-
-  <% if @requests.any? %>
-    <section class="card mt-3">
-      <div class="card-body">
-        <h2 class="h6 card-title">
-          Apply to selected
-          <span class="badge text-bg-secondary" data-bulk-select-target="counter">0</span>
-        </h2>
-
-        <p class="text-body-secondary small">
-          Sets curation status / assignee on selected requests' submissions — the
-          Project (BP) and every Sample (BS). Leave a field blank to keep its
-          current value. Selection is per-page; requests with no submission yet
-          are not selectable.
-        </p>
-
-        <div class="row g-2 align-items-end">
-          <div class="col-md-4">
-            <%= f.label :status, 'Curation status', class: 'form-label form-label-sm' %>
-            <%= f.select :status,
-                         Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
-                         {include_blank: '— Leave as-is —'},
-                         class: 'form-select form-select-sm' %>
-          </div>
-
-          <div class="col-md-5">
-            <%= f.label :assignee_id, 'Assignee', class: 'form-label form-label-sm' %>
-            <%= f.select :assignee_id,
-                         [['— Unassigned —', '0']] + User.staff.order(:uid).pluck(:uid, :id),
-                         {include_blank: '— Leave as-is —'},
-                         class: 'form-select form-select-sm' %>
-          </div>
-
-          <div class="col-md-3">
-            <%= f.submit 'Apply to selected', class: 'btn btn-warning btn-sm w-100',
-                        data: {turbo_confirm: 'Apply to the selected submissions?'} %>
-          </div>
-        </div>
-
-        <hr>
-
-        <p class="text-body-secondary small mb-2">
-          Issue accessions for selected submissions (BP: 1 PRJDB each, BS: SAMD for every
-          un-accessioned sample). One mail per submission.
-        </p>
-
-        <%= f.button 'Issue accessions for selected',
-                     type:      :submit,
-                     formaction: bulk_issue_accessions_admin_submissions_path(params.permit(:user, :source_id, :accession, db: [], request_status: [], status: [], assignee: [])),
-                     formmethod: :post,
-                     class:     'btn btn-warning btn-sm',
-                     data:      {turbo_confirm: 'Issue accessions for the selected submissions?'} %>
-      </div>
-    </section>
-  <% end %>
-<% end %>
+<%= render 'request_list',
+           requests:          @requests,
+           sample_aggregates: @sample_aggregates,
+           pagy:              @pagy,
+           return_to:         'requests',
+           filter_params:     params.permit(:user, :source_id, :accession, db: [], request_status: [], status: [], assignee: []) %>

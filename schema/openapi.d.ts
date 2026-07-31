@@ -84,6 +84,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/attention": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get the requests that are waiting on the current user — currently,
+         *     those with an unread curator message. Used for a global banner, so
+         *     the notice is visible from any screen rather than only where the
+         *     request happens to be listed.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the requests needing attention, newest first. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            requests: {
+                                id: number;
+                                db: components["schemas"]["Db"];
+                                source_id: string | null;
+                            }[];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submission_requests": {
         parameters: {
             query?: never;
@@ -91,13 +139,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get a list of submission requests. `db` and `status` are multi-select
+        /**
+         * @description Get a list of submission requests. `db` and `status` are multi-select
          *     filters (repeat the key, e.g. `?db[]=st26&db[]=biosample`); omit a
          *     filter to span every value. `source_id` is a case-insensitive prefix
          *     match on the applied submission's source id. `accession` is a
          *     case-insensitive prefix match across the submission's accessions
          *     (BP project / BS samples / ST.26 accessions).
-         *      */
+         */
         get: {
             parameters: {
                 query?: {
@@ -765,6 +814,32 @@ export interface components {
             ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;
             submission: components["schemas"]["Submission"] | null;
+            progress: components["schemas"]["Progress"];
+            unread_curator_message_count: number;
+            /**
+             * Format: date-time
+             * @description When the thread was last posted to, by either party.
+             */
+            last_message_at: string | null;
+        };
+        /**
+         * @description How far along the request is, in a vocabulary a submitter can read.
+         *     Derived server-side from the ingest status and the curation rows —
+         *     neither of the underlying enums is a progress scale on its own.
+         */
+        Progress: {
+            /** @enum {string} */
+            step: "submitted" | "validated" | "applied" | "curating" | "accession_issued" | "public";
+            /** @description The pipeline stopped at the step after `step`. */
+            failed: boolean;
+            /** @description Curation rows behind the request — 1 project (BP), N samples (BS), 0 otherwise. */
+            row_count: number;
+            accessioned_count: number;
+            /**
+             * Format: date
+             * @description Scheduled release date. Only BioProject carries one.
+             */
+            hold_date: string | null;
         };
         Validation: {
             id: number;

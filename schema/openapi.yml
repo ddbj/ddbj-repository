@@ -69,6 +69,52 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /attention:
+    get:
+      description: |
+        Get the requests that are waiting on the current user — currently,
+        those with an unread curator message. Used for a global banner, so
+        the notice is visible from any screen rather than only where the
+        request happens to be listed.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the requests needing attention, newest first.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [requests]
+
+                properties:
+                  requests:
+                    type: array
+
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, db, source_id]
+
+                      properties:
+                        id:
+                          type: number
+
+                        db:
+                          $ref: '#/components/schemas/Db'
+
+                        source_id:
+                          type:
+                            - string
+                            - 'null'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /submission_requests:
     get:
       description: |
@@ -789,6 +835,9 @@ components:
         - ddbj_record
         - validation
         - submission
+        - progress
+        - unread_curator_message_count
+        - last_message_at
 
       properties:
         id:
@@ -824,6 +873,63 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Submission'
             - type: 'null'
+
+        progress:
+          $ref: '#/components/schemas/Progress'
+
+        unread_curator_message_count:
+          type: number
+
+        last_message_at:
+          description: When the thread was last posted to, by either party.
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+    Progress:
+      description: |
+        How far along the request is, in a vocabulary a submitter can read.
+        Derived server-side from the ingest status and the curation rows —
+        neither of the underlying enums is a progress scale on its own.
+      type: object
+      additionalProperties: false
+
+      required:
+        - step
+        - failed
+        - row_count
+        - accessioned_count
+        - hold_date
+
+      properties:
+        step:
+          type: string
+          enum:
+            - submitted
+            - validated
+            - applied
+            - curating
+            - accession_issued
+            - public
+
+        failed:
+          description: The pipeline stopped at the step after `step`.
+          type: boolean
+
+        row_count:
+          description: Curation rows behind the request — 1 project (BP), N samples (BS), 0 otherwise.
+          type: number
+
+        accessioned_count:
+          type: number
+
+        hold_date:
+          description: Scheduled release date. Only BioProject carries one.
+          type:
+            - string
+            - 'null'
+          format: date
 
     Validation:
       type: object

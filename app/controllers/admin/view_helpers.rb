@@ -17,6 +17,31 @@ module Admin::ViewHelpers
     'no_change'           => 'light'
   }.freeze
 
+  # One workbench tab per question: what state is this in / what needs
+  # bulk editing / what is being discussed / where did the record come
+  # from. Ordered as rendered.
+  WORKBENCH_TABS = {
+    overview: 'Overview',
+    samples:  'Samples',
+    messages: 'Messages',
+    record:   'Record & history'
+  }.freeze
+
+  # Curation status is the nine-state Lifecycleable enum. Colour by what
+  # the state means for the curator: amber = in hand, green = done and
+  # out, grey/dark = parked or terminated.
+  CURATION_STATUS_COLORS = {
+    'submission_accepted'    => 'secondary',
+    'curating'               => 'warning',
+    'accession_issued'       => 'info',
+    'private'                => 'secondary',
+    'public'                 => 'success',
+    'withdrawn'              => 'danger',
+    'canceled'               => 'danger',
+    'permanently_suppressed' => 'dark',
+    'temporarily_suppressed' => 'dark'
+  }.freeze
+
   FLASH_CLASSES = {
     'notice' => 'success',
     'alert'  => 'danger',
@@ -29,6 +54,24 @@ module Admin::ViewHelpers
     'completed' => 'success',
     'failed'    => 'danger'
   }.freeze
+
+  # Everything reachable from the nav's Tools dropdown. Listed here so the
+  # dropdown lights up while the curator is inside one of them, the same
+  # way a top-level nav item does.
+  TOOLS_CONTROLLERS = %w[
+    admin/users
+    admin/distribution_notices
+    admin/distribution_notice_templates
+    admin/regenerate_flatfiles
+  ].freeze
+
+  def workbench_tab_label(tab)
+    WORKBENCH_TABS.fetch(tab)
+  end
+
+  def admin_tools_section?
+    controller_path.in?(TOOLS_CONTROLLERS) || controller_path.start_with?('mission_control/')
+  end
 
   def db_label(db)
     DB_LABELS.fetch(db.to_s, db.to_s)
@@ -71,6 +114,27 @@ module Admin::ViewHelpers
     color = STATUS_COLORS.fetch(status.to_s, 'secondary')
 
     tag.span status.to_s.tr('_', ' '), class: "badge text-bg-#{color} text-capitalize"
+  end
+
+  # Curation status of a whole request. A BS submission's samples can
+  # disagree, in which case there is no one colour to show — "Mixed (3)"
+  # reads as neutral rather than as a state.
+  def curation_status_badge(state)
+    status = state.uniform_status
+    color  = status ? CURATION_STATUS_COLORS.fetch(status, 'secondary') : 'light border'
+
+    tag.span state.status_label, class: "badge text-bg-#{color} text-capitalize"
+  end
+
+  # The migration run that produced a migrated request, so the Overview
+  # can link to it instead of explaining an empty File field with
+  # "(migration-sourced)". Returns nil for interactively-submitted
+  # requests and for runs whose row has since been deleted.
+  def migration_run_for(request, submission)
+    uuid = request.migration_run_id || submission&.migration_run_id
+    return nil if uuid.blank?
+
+    MigrationRun.find_by(uuid:)
   end
 
   def flash_bootstrap_class(level)

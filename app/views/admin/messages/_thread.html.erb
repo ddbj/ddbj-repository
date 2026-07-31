@@ -1,45 +1,49 @@
-<%# Per-request curator ↔ submitter thread. Submitter posts via the %>
-<%# web UI; curator posts via the form at the bottom of this card. %>
-<section class="card mt-4">
-  <div class="card-body">
-    <h2 class="h5 card-title">Messages</h2>
+<%# Per-request curator ↔ submitter thread. Submitter posts via the web %>
+<%# UI; curator posts via the form at the bottom. Speakers are told apart %>
+<%# by side and colour rather than by a label the eye has to read. %>
+<section>
+  <div class="d-flex justify-content-between align-items-baseline mb-1">
+    <h2 class="h5 mb-0">Messages</h2>
+    <span class="text-body-secondary small">Submitter: <code><%= request.user.uid %></code></span>
+  </div>
 
-    <p class="text-body-secondary small">
-      Conversation between the submitter (<code><%= request.user.uid %></code>) and curators.
-      Notification emails fire on each post; replies happen here.
-    </p>
+  <p class="text-body-secondary small">
+    Every post emails the other party. Opening this tab marks the submitter's
+    messages as read for all curators.
+  </p>
 
-    <% if messages.any? %>
-      <ul class="list-unstyled mb-3">
-        <% messages.each do |m| %>
-          <li class="border rounded p-2 mb-2 <%= 'bg-light' if m.curator_role? %>">
-            <div class="d-flex justify-content-between small text-body-secondary">
-              <span>
-                <strong>
-                  <%= m.curator_role? ? 'Curator' : 'Submitter' %>
-                </strong>
-                — <%= m.user.uid %>
-              </span>
+  <% if messages.any? %>
+    <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
+      <% messages.each do |m| %>
+        <li class="d-flex gap-3 <%= 'ps-5' unless m.curator_role? %>">
+          <% if m.curator_role? %>
+            <span class="badge rounded-circle text-bg-dark d-flex align-items-center justify-content-center"
+                  style="width: 2rem; height: 2rem;" aria-hidden="true">DC</span>
+          <% end %>
+
+          <div class="flex-fill border rounded p-3 <%= m.curator_role? ? 'bg-body-tertiary' : 'bg-primary-subtle border-primary-subtle' %>">
+            <div class="d-flex justify-content-between small text-body-secondary mb-1">
+              <strong class="text-body"><%= m.curator_role? ? 'DDBJ curator' : m.user.uid %></strong>
               <span><%= format_datetime(m.created_at) %></span>
             </div>
-            <div class="mt-1" style="white-space: pre-wrap;"><%= m.body %></div>
-          </li>
-        <% end %>
-      </ul>
-    <% else %>
-      <p class="text-body-secondary fst-italic">No messages yet.</p>
-    <% end %>
+            <div style="white-space: pre-wrap;"><%= m.body %></div>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-body-secondary fst-italic">No messages yet.</p>
+  <% end %>
 
-    <%= form_with url: admin_submission_request_messages_path(request),
-                  method: :post,
-                  scope:  :submission_message,
-                  local:  true do |f| %>
-      <div class="mb-3">
-        <%= f.label :body, 'New message to submitter', class: 'form-label' %>
-        <%= f.text_area :body, rows: 4, class: 'form-control font-monospace small', required: true %>
-      </div>
+  <%= form_with url: admin_submission_request_messages_path(request),
+                method: :post,
+                scope:  :submission_message,
+                local:  true do |f| %>
+    <div class="mb-3">
+      <%= f.label :body, 'New message to submitter', class: 'form-label' %>
+      <%= f.text_area :body, rows: 4, class: 'form-control', required: true %>
+    </div>
 
-      <%= f.submit 'Send message', class: 'btn btn-primary' %>
-    <% end %>
-  </div>
+    <%= f.submit 'Send message', class: 'btn btn-primary' %>
+  <% end %>
 </section>

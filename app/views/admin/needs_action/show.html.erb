@@ -1,0 +1,37 @@
+<% content_for :title, 'Needs action' %>
+
+<%= render 'admin/shared/breadcrumb', items: [{label: 'Needs action'}] %>
+
+<h1 class="display-6 mb-2">Needs action</h1>
+
+<p class="text-body-secondary mb-4">
+  Requests that are waiting on a curator. A request can appear in more than one
+  bucket — the nav badge counts each request once.
+</p>
+
+<ul class="nav nav-tabs mb-4">
+  <% @buckets.each do |bucket| %>
+    <% count  = @counts.fetch(bucket.key) %>
+    <% active = bucket.key == @bucket.key %>
+    <li class="nav-item">
+      <%= link_to admin_root_path(bucket: bucket.key),
+                  class: "nav-link d-flex align-items-center gap-2 #{'active' if active}",
+                  'aria-current': ('page' if active) do %>
+        <%= bucket.title %>
+        <span class="badge <%= count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>">
+          <%= number_with_delimiter(count) %>
+        </span>
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+
+<p class="text-body-secondary"><%= @bucket.description %></p>
+
+<%= render 'admin/submission_requests/request_list',
+           requests:          @requests,
+           sample_aggregates: @sample_aggregates,
+           pagy:              @pagy,
+           return_to:         'needs_action',
+           filter_params:     {bucket: @bucket.key},
+           empty_message:     'Nothing in this bucket — no action needed.' %>

@@ -1,0 +1,16 @@
+<%# locals: (state:) %>
+<%# Six steps a submitter and a curator can both name, derived from the %>
+<%# request's pipeline status and its curation rows — neither enum is %>
+<%# shown raw. See CurationState::STEPS. %>
+<ol class="workbench-progress list-unstyled d-flex align-items-center my-3">
+  <% CurationState::STEPS.each_with_index do |(step, label), i| %>
+    <% status = state.step_state(step) %>
+    <% if i.positive? %>
+      <li class="workbench-progress-line flex-fill <%= "is-#{status}" %>" aria-hidden="true"></li>
+    <% end %>
+    <li class="workbench-progress-step <%= "is-#{status}" %>">
+      <span class="workbench-progress-marker"><%= '✓' if status == :done %><%= '!' if status == :failed %></span>
+      <span class="small"><%= label %></span>
+    </li>
+  <% end %>
+</ol>

@@ -150,6 +150,46 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_conform_schema 200
   end
 
+  # The detail leads with progress and the conversation, so both are
+  # derived server-side rather than left for the client to infer from the
+  # ingest status enum.
+  test 'show carries the derived progress and the conversation facts' do
+    request = submission_requests(:bioproject)
+
+    attach_ddbj_record request
+    attach_submission_files request.submission
+
+    get submission_request_path(id: request.id)
+
+    assert_conform_schema 200
+
+    body = response.parsed_body
+
+    assert_equal 'accession_issued', body.dig('progress', 'step'), 'the fixture project carries an accession'
+    assert_equal false,              body.dig('progress', 'failed')
+    assert_equal 1,                  body.dig('progress', 'row_count')
+    assert_equal 0,                  body['unread_curator_message_count']
+    assert_nil                       body['last_message_at']
+  end
+
+  test 'show counts unread curator messages and dates the thread' do
+    request = submission_requests(:bioproject)
+
+    attach_ddbj_record request
+    attach_submission_files request.submission
+
+    message = request.messages.create!(user: users(:bob), author_role: 'curator', body: 'a question')
+
+    get submission_request_path(id: request.id)
+
+    assert_conform_schema 200
+
+    body = response.parsed_body
+
+    assert_equal 1, body['unread_curator_message_count']
+    assert_equal message.created_at.iso8601, body['last_message_at']
+  end
+
   test 'create' do
     blob = ActiveStorage::Blob.create_and_upload!(
       io:           file_fixture('ddbj_record/example.json').open,

@@ -5,6 +5,8 @@ module Admin
   # UI lives on SubmissionRequestsController (the request is the unit);
   # a bare submission link redirects there.
   class SubmissionsController < ApplicationController
+    include SampleTargeting
+
     # The submission detail is now rendered inside the request-keyed show
     # (admin/submission_requests#show), so the request stays the single
     # unit. A direct submission link redirects there. Every submission
@@ -61,8 +63,11 @@ module Admin
              status: :unprocessable_entity
     end
 
-    # Bulk-apply (status, assignee) to every Sample in a BS submission.
-    # Uses `update_all` (1 SQL) so the 20K-sample case stays interactive,
+    # Bulk-apply (status, assignee) to the samples the Samples screen
+    # targeted — the checkboxed rows, or every row matching the current
+    # filter (see SampleTargeting).
+    #
+    # Uses `update_all` (1 SQL) so the 100K-sample case stays interactive,
     # which bypasses ActiveRecord validations + callbacks — we validate
     # both fields manually upfront.
     #
@@ -73,12 +78,15 @@ module Admin
       submission = Submission.find(params[:id])
       return head :not_found unless submission.biosample_db?
 
+      back    = submission_return_path(submission)
       attrs   = {}
       raw     = bulk_sample_params
 
+      return redirect_to back, alert: 'No samples selected.' if empty_selection?
+
       if raw[:status].present?
         unless Sample.statuses.key?(raw[:status])
-          return redirect_to admin_submission_request_path(submission.request), alert: "Unknown status: #{raw[:status].inspect}."
+          return redirect_to back, alert: "Unknown status: #{raw[:status].inspect}."
         end
 
         attrs[:status] = Sample.statuses.fetch(raw[:status])
@@ -89,24 +97,20 @@ module Admin
           attrs[:assignee_id] = nil
         else
           assignee = User.find_by(id: raw[:assignee_id])
-          unless assignee&.admin?
-            return redirect_to admin_submission_request_path(submission.request), alert: 'Assignee must be an admin user.'
-          end
+          return redirect_to back, alert: 'Assignee must be an admin user.' unless assignee&.admin?
 
           attrs[:assignee_id] = assignee.id
         end
       end
 
-      if attrs.empty?
-        return redirect_to admin_submission_request_path(submission.request),
-                           alert: 'No changes specified (both fields left as-is).'
-      end
+      return redirect_to back, alert: 'No changes specified (both fields left as-is).' if attrs.empty?
 
       attrs[:updated_at] = Time.current
-      affected = submission.samples.update_all(attrs)
+      affected = (target_samples(submission) || submission.samples).update_all(attrs)
 
-      redirect_to admin_submission_request_path(submission.request),
-                  notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} sample(s)."
+      record_curation_event(submission, affected, raw)
+
+      redirect_to back, notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} sample(s)."
     end
 
     # Cross-submission bulk: apply (status, assignee) to many submissions
@@ -117,7 +121,7 @@ module Admin
       ids = Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
 
       if ids.empty?
-        return redirect_to admin_submission_requests_path(index_filter_params),
+        return redirect_to bulk_return_path,
                            alert: 'No submissions selected.'
       end
 
@@ -126,7 +130,7 @@ module Admin
 
       if raw[:status].present?
         unless Lifecycleable::STATUSES.key?(raw[:status])
-          return redirect_to admin_submission_requests_path(index_filter_params),
+          return redirect_to bulk_return_path,
                              alert: "Unknown status: #{raw[:status].inspect}."
         end
 
@@ -139,7 +143,7 @@ module Admin
         else
           assignee = User.find_by(id: raw[:assignee_id])
           unless assignee&.admin?
-            return redirect_to admin_submission_requests_path(index_filter_params),
+            return redirect_to bulk_return_path,
                                alert: 'Assignee must be an admin user.'
           end
 
@@ -148,7 +152,7 @@ module Admin
       end
 
       if attrs.empty?
-        return redirect_to admin_submission_requests_path(index_filter_params),
+        return redirect_to bulk_return_path,
                            alert: 'No changes specified (both fields left as-is).'
       end
 
@@ -161,7 +165,9 @@ module Admin
       bp_affected = bp_ids.any? ? Project.where(submission_id: bp_ids).update_all(attrs) : 0
       bs_affected = bs_ids.any? ? Sample.where(submission_id: bs_ids).update_all(attrs) : 0
 
-      redirect_to admin_submission_requests_path(index_filter_params),
+      record_cross_submission_events(subs, bp_ids, bs_ids, raw)
+
+      redirect_to bulk_return_path,
                   notice: "Bulk-updated #{helpers.number_with_delimiter(bp_affected)} project(s) " \
                           "+ #{helpers.number_with_delimiter(bs_affected)} sample(s) " \
                           "across #{ids.size} submission(s)."
@@ -177,7 +183,7 @@ module Admin
       ids = Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
 
       if ids.empty?
-        return redirect_to admin_submission_requests_path(index_filter_params),
+        return redirect_to bulk_return_path,
                            alert: 'No submissions selected.'
       end
 
@@ -197,17 +203,66 @@ module Admin
       flash[:notice] = notice
       flash[:alert]  = refused.map {|sid, msg| "#{sid}: #{msg}" }.join("\n") if refused.any?
 
-      redirect_to admin_submission_requests_path(index_filter_params)
+      redirect_to bulk_return_path
     end
 
     private
 
+    # Status and assignee never reach the DDBJ Record, so `update_all`
+    # leaves no patch and no actor behind. The event is what makes a bulk
+    # edit answerable later — see CurationEvent.
+    def record_curation_event(submission, row_count, raw)
+      CurationEvent.record!(
+        submission:,
+        actor:     "admin:#{current_user.uid}",
+        action:    :curation_updated,
+        row_count:,
+        noun:      submission.curation_row_noun,
+        status:    raw[:status].presence,
+        assignee:  assignee_label(raw[:assignee_id])
+      )
+    end
+
+    # One event per submission rather than one for the batch: the activity
+    # feed is read per request, and "1,842 samples" has to be that
+    # submission's count, not the batch total.
+    def record_cross_submission_events(submissions, bp_ids, bs_ids, raw)
+      counts = Project.where(submission_id: bp_ids).group(:submission_id).count
+                      .merge(Sample.where(submission_id: bs_ids).group(:submission_id).count)
+
+      submissions.each do |submission|
+        count = counts[submission.id] or next
+
+        record_curation_event(submission, count, raw)
+      end
+    end
+
+    def assignee_label(raw)
+      return nil if raw.blank?
+      return 'unassigned' if raw == '0'
+
+      User.find_by(id: raw)&.uid
+    end
+
     def bulk_sample_params
-      params.expect(bulk_sample: %i[status assignee_id])
+      params.expect(bulk_sample: [:status, :assignee_id, :scope, {sample_ids: []}])
     end
 
     def bulk_cross_params
-      params.expect(bulk: [:status, :assignee_id, {submission_ids: []}])
+      params.expect(bulk: [:status, :assignee_id, :return_to, {submission_ids: []}])
+    end
+
+    # Where a cross-request bulk action lands once it has run. The shared
+    # request list posts a fixed `return_to` key — never a URL — so the
+    # curator comes back to the queue they acted from with its filter or
+    # bucket selection intact, and there is no redirect target to sanitise
+    # beyond this whitelist.
+    def bulk_return_path
+      case params.dig(:bulk, :return_to)
+      when 'needs_action' then admin_root_path(params.permit(:bucket).to_h)
+      when 'my_queue'     then admin_my_queue_path
+      else                     admin_submission_requests_path(index_filter_params)
+      end
     end
 
     # Carry the current index filter selection across a bulk-update

@@ -30,8 +30,8 @@ class AccessionIssue
 
   ISSUABLE_FROM = %w[submission_accepted curating].freeze
 
-  def self.call(submission:, actor:)
-    new(submission:, actor:).call
+  def self.call(submission:, actor:, samples: nil)
+    new(submission:, actor:, samples:).call
   end
 
   # The refusal rules as a predicate, so the admin UI offers the button
@@ -47,9 +47,14 @@ class AccessionIssue
     relation.where(accession: nil, status: ISSUABLE_FROM)
   end
 
-  def initialize(submission:, actor:)
+  # `samples` narrows BS issuance to a subset — the rows a curator picked
+  # or filtered to on the Samples screen. nil means "every sample in the
+  # submission", which is what the cross-submission bulk action wants.
+  # Ignored for BP, which has exactly one Project either way.
+  def initialize(submission:, actor:, samples: nil)
     @submission = submission
     @actor      = actor
+    @samples    = samples
   end
 
   def call
@@ -74,6 +79,7 @@ class AccessionIssue
 
       project.update!(accession: acc, status: :accession_issued)
       invalidate_cache!(@submission)
+      record_event(1, 'PRJDB')
 
       acc
     end
@@ -84,7 +90,7 @@ class AccessionIssue
   end
 
   def issue_bs
-    targets = self.class.issuable(@submission.samples).order(:id).to_a
+    targets = self.class.issuable(@samples || @submission.samples).order(:id).to_a
 
     raise Refused, 'No samples are eligible for accession issuance (all already issued or wrong status).' if targets.empty?
 
@@ -95,6 +101,7 @@ class AccessionIssue
         sample.update!(accession: acc, status: :accession_issued)
       end
       invalidate_cache!(@submission)
+      record_event(targets.size, 'SAMD')
 
       acc_list
     end
@@ -116,6 +123,22 @@ class AccessionIssue
   #
   # Goes through `update_all` to skip the model's update callbacks
   # (we don't want a recursive cache write).
+  # Accession is a record field that produces no patch: `/**/accession` is
+  # registered volatile, so `Canonicalizer.diff` strips it from both sides
+  # and the chain never sees the change. Without an event, issuance would
+  # be invisible in the history even though it is the most consequential
+  # thing a curator does. Written inside the transaction so a rollback
+  # un-records it too.
+  def record_event(count, prefix)
+    CurationEvent.record!(
+      submission: @submission,
+      actor:      @actor,
+      action:     :accession_issued,
+      row_count:  count,
+      prefix:     prefix
+    )
+  end
+
   def invalidate_cache!(submission)
     Submission.where(id: submission.id).update_all(cached_at_update_id: nil)
   end

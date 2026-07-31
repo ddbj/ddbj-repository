@@ -5,12 +5,14 @@ import { service } from '@ember/service';
 import { concat } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
-import StatusBadge from 'repository/components/status-badge';
+import ProgressSteps from 'repository/components/progress-steps';
 import ValidityBadge from 'repository/components/validity-badge';
 import SubmissionMessages from 'repository/components/submission-messages';
 import ReviewerAccess from 'repository/components/reviewer-access';
 import autoRefresh from 'repository/modifiers/auto-refresh';
+import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
+import { requestState, toneClasses } from 'repository/utils/request-state';
 
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
@@ -22,9 +24,21 @@ interface Signature {
   };
 }
 
+// Answers "am I waiting, or is this on me?" before anything else, then
+// how far along it is, then the conversation. The flat metadata list that
+// used to open the page is folded away at the bottom — it is reference,
+// not the reason anyone opens this screen.
 export default class extends Component<Signature> {
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
+
+  get state() {
+    return requestState(this.args.model);
+  }
+
+  get tone() {
+    return toneClasses(this.state.tone);
+  }
 
   @action
   async apply() {
@@ -40,142 +54,170 @@ export default class extends Component<Signature> {
 
   <template>
     <div {{autoRefresh while=@model.processing interval=1000}}>
-      <Breadcrumb @items={{array (hash label="Home" route="index") (hash label=(concat "#" @model.id))}} />
+      <Breadcrumb @items={{array (hash label="My submissions" route="index") (hash label=(concat "#" @model.id))}} />
 
-      <h1 class="display-6 mb-4">#{{@model.id}}</h1>
+      <div class="d-flex align-items-baseline gap-2 flex-wrap mb-4">
+        <h1 class="display-6 mb-0">#{{@model.id}}</h1>
+        <span class="badge text-bg-light border">{{dbLabel @model.db}}</span>
 
-      <dl class="horizontal">
-        <dt>Created</dt>
-        <dd>{{formatDatetime @model.created_at}}</dd>
-
-        <dt>File</dt>
-
-        <dd>
-          <a
-            href={{@model.ddbj_record.url}}
-            target="_blank"
-            rel="noopener noreferrer"
-          >{{@model.ddbj_record.filename}}</a>
-        </dd>
-
-        <dt>Status</dt>
-        <dd><StatusBadge @status={{@model.status}} /></dd>
-
-        {{#if @model.error_message}}
-          <dt>Error</dt>
-          <dd>{{@model.error_message}}</dd>
+        {{#if @model.submission.source_id}}
+          <code class="text-body-secondary">{{@model.submission.source_id}}</code>
         {{/if}}
-      </dl>
 
-      {{#if @model.validation}}
-        <h2>Validation</h2>
+        {{#if @model.progress.row_count}}
+          <span class="text-body-secondary">·
+            {{@model.progress.row_count}}
+            {{if (eq @model.progress.row_count 1) "record" "records"}}</span>
+        {{/if}}
 
-        <dl class="horizontal">
-          <dt>Progress</dt>
-          <dd class="text-capitalize">{{@model.validation.progress}}</dd>
+        <span class="text-body-secondary">· submitted {{formatDatetime @model.created_at}}</span>
+      </div>
 
-          <dt>Started</dt>
-          <dd>{{formatDatetime @model.validation.created_at}}</dd>
+      <section class="border rounded-3 p-4 mb-4 {{this.tone.border}}" data-test-state>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge rounded-pill {{this.tone.badge}}">{{this.state.badge}}</span>
 
-          <dt>Finished</dt>
-
-          <dd>{{formatDatetime @model.validation.finished_at}}</dd>
-
-          <dt>Validity</dt>
-          <dd><ValidityBadge @validity={{@model.validation.validity}} /></dd>
-        </dl>
-
-        <details class="my-3">
-          <summary>Details</summary>
-
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Entry ID</th>
-                <th>Code</th>
-                <th>Severity</th>
-                <th>Message</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {{#each @model.validation.details as |detail|}}
-                <tr>
-                  <td>{{detail.entry_id}}</td>
-                  <td>{{detail.code}}</td>
-                  <td>{{detail.severity}}</td>
-                  <td>{{detail.message}}</td>
-                </tr>
-              {{/each}}
-            </tbody>
-          </table>
-        </details>
-      {{/if}}
-
-      {{#if (eq @model.status "ready_to_apply")}}
-        <div class="my-3">
-          <button type="button" class="btn btn-primary" {{on "click" this.apply}}>
-            Apply
-          </button>
+          {{! When the thread was last touched — a fact. How long a reply
+          takes is not something this system knows, so it does not say. }}
+          {{#if @model.last_message_at}}
+            <span class="small text-body-secondary">
+              last message
+              {{formatDatetime @model.last_message_at}}
+            </span>
+          {{/if}}
         </div>
-      {{/if}}
 
-      {{#if @model.submission}}
-        <h2 class="mt-4">Submission</h2>
+        <h2 class="h4">{{this.state.heading}}</h2>
+        <p class="prose mb-3">{{this.state.body}}</p>
 
-        <dl class="horizontal">
-          <dt>Source ID</dt>
-          <dd>{{or @model.submission.source_id "-"}}</dd>
+        {{#if (eq @model.status "ready_to_apply")}}
+          <button type="button" class="btn btn-primary" {{on "click" this.apply}}>Apply</button>
+        {{/if}}
+      </section>
 
-          <dt>Created</dt>
-          <dd>{{formatDatetime @model.submission.created_at}}</dd>
-
-          <dt>Updated</dt>
-          <dd>{{formatDatetime @model.submission.updated_at}}</dd>
-
-          <dt>DDBJ Record</dt>
-
-          <dd>
-            <a href={{@model.submission.ddbj_record.url}} target="_blank" rel="noopener noreferrer">
-              {{@model.submission.ddbj_record.filename}}
-            </a>
-          </dd>
-
-          <dt>Flatfile (NA)</dt>
-
-          <dd>
-            {{#if @model.submission.flatfile_na}}
-              <a href={{@model.submission.flatfile_na.url}} target="_blank" rel="noopener noreferrer">
-                {{@model.submission.flatfile_na.filename}}
-              </a>
-            {{else}}
-              -
-            {{/if}}
-          </dd>
-
-          <dt>Flatfile (AA)</dt>
-
-          <dd>
-            {{#if @model.submission.flatfile_aa}}
-              <a href={{@model.submission.flatfile_aa.url}} target="_blank" rel="noopener noreferrer">
-                {{@model.submission.flatfile_aa.filename}}
-              </a>
-            {{else}}
-              -
-            {{/if}}
-          </dd>
-
-          <dt>Accessions</dt>
-
-          <dd>
-            <LinkTo @route="request.accessions" @model={{@model.id}}>{{@model.submission.accessions_count}}</LinkTo>
-          </dd>
-        </dl>
-      {{/if}}
+      <ProgressSteps @progress={{@model.progress}} />
 
       <SubmissionMessages @requestId={{@model.id}} />
 
-      <ReviewerAccess @requestId={{@model.id}} />
+      {{! Reference material. Present, but not in the way of the answer. }}
+      {{! no-nested-interactive treats <details> as interactive and so
+      rejects any link inside it. Links in disclosure *content* (as opposed
+      to inside <summary>) are valid HTML and reachable by keyboard once
+      the disclosure is open, which is exactly what these are. }}
+      {{! template-lint-disable no-nested-interactive }}
+      <div class="mt-4 border-top">
+        {{#if @model.validation}}
+          <details class="py-3 border-bottom">
+            <summary>
+              Validation report
+              <span class="text-body-secondary ms-2">
+                <ValidityBadge @validity={{@model.validation.validity}} />
+                {{#if @model.validation.details.length}}
+                  {{@model.validation.details.length}}
+                  findings
+                {{/if}}
+              </span>
+            </summary>
+
+            <table class="table mt-3">
+              <thead>
+                <tr>
+                  <th>Entry ID</th>
+                  <th>Code</th>
+                  <th>Severity</th>
+                  <th>Message</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {{#each @model.validation.details as |detail|}}
+                  <tr>
+                    <td>{{detail.entry_id}}</td>
+                    <td>{{detail.code}}</td>
+                    <td>{{detail.severity}}</td>
+                    <td>{{detail.message}}</td>
+                  </tr>
+                {{/each}}
+              </tbody>
+            </table>
+          </details>
+        {{/if}}
+
+        {{#if @model.submission}}
+          <details class="py-3 border-bottom">
+            <summary>
+              Accessions
+              <span class="text-body-secondary ms-2">{{@model.submission.accessions_count}}</span>
+            </summary>
+
+            <p class="mt-3 mb-0">
+              <LinkTo @route="request.accessions" @model={{@model.id}}>View all accessions</LinkTo>
+            </p>
+          </details>
+        {{/if}}
+
+        <details class="py-3 border-bottom">
+          <summary>Files &amp; downloads</summary>
+
+          <dl class="horizontal mt-3">
+            <dt>Uploaded file</dt>
+
+            <dd>
+              <a
+                href={{@model.ddbj_record.url}}
+                target="_blank"
+                rel="noopener noreferrer"
+              >{{@model.ddbj_record.filename}}</a>
+            </dd>
+
+            {{#if @model.submission}}
+              <dt>DDBJ Record</dt>
+
+              <dd>
+                <a
+                  href={{@model.submission.ddbj_record.url}}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >{{@model.submission.ddbj_record.filename}}</a>
+              </dd>
+
+              <dt>Flatfile (NA)</dt>
+
+              <dd>
+                {{#if @model.submission.flatfile_na}}
+                  <a
+                    href={{@model.submission.flatfile_na.url}}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >{{@model.submission.flatfile_na.filename}}</a>
+                {{else}}
+                  <span class="text-body-secondary">Not applicable</span>
+                {{/if}}
+              </dd>
+
+              <dt>Flatfile (AA)</dt>
+
+              <dd>
+                {{#if @model.submission.flatfile_aa}}
+                  <a
+                    href={{@model.submission.flatfile_aa.url}}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >{{@model.submission.flatfile_aa.filename}}</a>
+                {{else}}
+                  <span class="text-body-secondary">Not applicable</span>
+                {{/if}}
+              </dd>
+            {{/if}}
+          </dl>
+        </details>
+
+        <details class="py-3">
+          <summary>Share with a reviewer</summary>
+
+          <ReviewerAccess @requestId={{@model.id}} />
+        </details>
+      </div>
     </div>
   </template>
 }

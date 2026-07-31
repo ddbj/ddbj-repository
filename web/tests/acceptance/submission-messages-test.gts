@@ -24,6 +24,15 @@ const request: components['schemas']['SubmissionRequest'] = {
   ddbj_record: { filename: 'original.json', url: 'http://example.com/original.json' },
   validation: null,
 
+  progress: {
+    step: 'curating',
+    failed: false,
+    row_count: 1,
+    accessioned_count: 0,
+    hold_date: null,
+  },
+  unread_curator_message_count: 0,
+  last_message_at: '2025-01-02T09:30:00.000Z',
   submission: {
     id: 10,
     source_id: null,
@@ -77,19 +86,23 @@ module('Acceptance | submission messages', function (hooks) {
 
     await visit('/requests/1');
 
+    // The status card dates the conversation without promising a reply time.
+    assert.dom('[data-test-state]').includesText('last message 2025-01-02');
+    assert.dom('[data-test-state]').doesNotIncludeText('business days');
+
     // Existing curator message renders with the labelled author.
-    assert.dom('section h2').includesText('Messages');
-    assert.dom('section li').exists({ count: 1 });
-    assert.dom('section li strong').hasText('Curator');
-    assert.dom('section li').includesText('Please add an organism description.');
+    assert.dom('[data-test-messages] h2').includesText('Messages with the curator');
+    assert.dom('[data-test-messages] li').exists({ count: 1 });
+    assert.dom('[data-test-messages] li strong').hasText('DDBJ curator');
+    assert.dom('[data-test-messages] li').includesText('Please add an organism description.');
 
     // Submit a reply and verify the optimistic append.
     await fillIn('section textarea', 'Updated, please review.');
     await click('section button[type="submit"]');
 
-    assert.dom('section li').exists({ count: 2 });
-    assert.dom('section li:nth-of-type(2) strong').hasText('You');
-    assert.dom('section li:nth-of-type(2)').includesText('Updated, please review.');
+    assert.dom('[data-test-messages] li').exists({ count: 2 });
+    assert.dom('[data-test-messages] li:nth-of-type(2) strong').hasText('You');
+    assert.dom('[data-test-messages] li:nth-of-type(2)').includesText('Updated, please review.');
     // Textarea is cleared after a successful post.
     assert.dom('section textarea').hasValue('');
   });

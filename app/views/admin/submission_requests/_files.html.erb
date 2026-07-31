@@ -1,0 +1,43 @@
+<%# locals: (request:, submission:) %>
+<%# Everything downloadable, in one place, including what a migrated %>
+<%# request legitimately does not have. %>
+<section class="card">
+  <div class="card-body">
+    <h2 class="h6 card-title">Files</h2>
+
+    <ul class="list-unstyled small mb-0 d-flex flex-column gap-2">
+      <li>
+        <% if request.ddbj_record.attached? %>
+          <%= link_to request.ddbj_record.filename, rails_blob_path(request.ddbj_record, disposition: 'attachment') %>
+          <span class="text-body-tertiary">upload</span>
+        <% else %>
+          <span class="text-body-secondary">No upload — imported from D-way</span>
+        <% end %>
+      </li>
+
+      <% if submission&.biosample_db? %>
+        <li>
+          <%= link_to 'samples.tsv', admin_submission_sample_tsv_export_path(submission) %>
+          <span class="text-body-tertiary">export</span>
+        </li>
+      <% end %>
+
+      <% if submission %>
+        <li>
+          <%= link_to 'Materialised record (JSON)', materialised_admin_submission_path(submission) %>
+        </li>
+
+        <% [['Flatfile (NA)', submission.flatfile_na], ['Flatfile (AA)', submission.flatfile_aa]].each do |label, file| %>
+          <li>
+            <% if file.attached? %>
+              <%= link_to file.filename, rails_blob_path(file, disposition: 'attachment') %>
+              <span class="text-body-tertiary"><%= label %></span>
+            <% else %>
+              <span class="text-body-tertiary"><%= label %> — not applicable</span>
+            <% end %>
+          </li>
+        <% end %>
+      <% end %>
+    </ul>
+  </div>
+</section>

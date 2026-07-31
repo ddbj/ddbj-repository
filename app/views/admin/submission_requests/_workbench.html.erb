@@ -1,0 +1,87 @@
+<%# locals: (tab:) %>
+<%# Layout partial for the four workbench tabs. %>
+<%# Identity, state and the primary action stay put while the curator %>
+<%# moves between tabs, so "where am I and what do I do next" never %>
+<%# scrolls away. %>
+<% overview = tab == :overview %>
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'All requests', path: admin_submission_requests_path},
+  {label: "##{@request.id}", path: (admin_submission_request_path(@request) unless overview)},
+  *(overview ? [] : [{label: workbench_tab_label(tab)}])
+] %>
+
+<div class="workbench-summary bg-body border rounded-top-3 px-4 pt-3">
+  <div class="d-flex justify-content-between align-items-start gap-4 flex-wrap">
+    <div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h1 class="h3 mb-0">#<%= @request.id %></h1>
+        <span class="badge text-bg-light border"><%= db_label(@request.db) %></span>
+        <code class="text-body-secondary"><%= @submission&.source_id || '—' %></code>
+        <span class="text-body-tertiary">·</span>
+        <span class="text-body-secondary"><%= @request.user.uid %></span>
+        <% if @state.curated? %>
+          <span class="text-body-tertiary">·</span>
+          <span class="text-body-secondary">
+            <%= number_with_delimiter(@state.row_count) %> <%= @state.row_noun %>
+          </span>
+        <% end %>
+      </div>
+
+      <div class="d-flex align-items-center gap-2 mt-2 small">
+        <%= curation_status_badge(@state) %>
+        <span class="text-body-secondary">
+          assignee <strong><%= @state.assignee_label %></strong>
+          · updated <%= format_datetime(@submission&.updated_at || @request.updated_at) %>
+        </span>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <% if @submission && @state.curated? && !@state.assigned_to?(current_user) %>
+        <%= button_to 'Assign to me',
+                      admin_submission_assignment_path(@submission),
+                      method: :post,
+                      class:  'btn btn-outline-secondary btn-sm' %>
+      <% end %>
+
+      <% if (action = @state.next_action) && action.label %>
+        <%= button_to action.label,
+                      admin_submission_accession_path(@submission),
+                      method: :post,
+                      class:  'btn btn-primary btn-sm',
+                      data:   {turbo_confirm: "#{action.label}?"} %>
+      <% end %>
+    </div>
+  </div>
+
+  <%= render 'progress', state: @state %>
+
+  <ul class="nav nav-tabs">
+    <%= render 'tab', label: workbench_tab_label(:overview),
+                      path:  admin_submission_request_path(@request),
+                      active: overview %>
+
+    <%# BP has a single Project and ST.26 has no curation rows at all, so %>
+    <%# there is no sample workbench to offer — and no count to imply one. %>
+    <% biosample = @submission&.biosample_db? %>
+    <%= render 'tab', label: workbench_tab_label(:samples),
+                      path:  samples_admin_submission_request_path(@request),
+                      active: tab == :samples,
+                      count: (@state.row_count if biosample),
+                      disabled: !biosample %>
+
+    <%= render 'tab', label: workbench_tab_label(:messages),
+                      path:  messages_admin_submission_request_path(@request),
+                      active: tab == :messages,
+                      count: @state.unread_message_count,
+                      count_class: 'text-bg-danger' %>
+
+    <%= render 'tab', label: workbench_tab_label(:record),
+                      path:  record_admin_submission_request_path(@request),
+                      active: tab == :record %>
+  </ul>
+</div>
+
+<div class="bg-body border border-top-0 rounded-bottom-3 p-4 mb-4">
+  <%= yield %>
+</div>

@@ -55,3 +55,19 @@ dl.horizontal {
     transform: scaleX(1);
   }
 }
+
+/* Submitter progress bar — six fixed-width segments (ProgressSteps). */
+.progress-step-bar {
+  height: 4px;
+}
+
+/* Round avatar for the curator side of a message thread. */
+.message-avatar {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Keep body copy at a comfortable measure without a utility class per use. */
+.prose {
+  max-width: 74ch;
+}

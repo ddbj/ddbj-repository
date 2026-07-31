@@ -76,26 +76,37 @@ export default class SubmissionMessages extends Component<Signature> {
   }
 
   <template>
-    <section class="mt-4">
-      <h2 class="h4">Messages</h2>
+    <section class="mt-4" data-test-messages>
+      <h2 class="h5">Messages with the curator</h2>
 
       <p class="text-body-secondary small">
-        Conversation with the DDBJ curator. New messages from the curator are sent to you by email.
+        New messages from the curator are also sent to you by email.
       </p>
 
+      {{! Speaker is carried by side and colour rather than by a label the
+      eye has to read: the curator sits left with an avatar, you sit
+      indented and tinted. }}
       {{#if this.messages.length}}
-        <ul class="list-unstyled mb-3">
+        <ul class="list-unstyled mb-3 d-flex flex-column gap-3">
           {{#each this.messages as |m|}}
-            <li class="border rounded p-2 mb-2 {{if (isCurator m) 'bg-light'}}">
-              <div class="d-flex justify-content-between small text-body-secondary">
-                <span>
-                  <strong>{{if (isCurator m) "Curator" "You"}}</strong>
-                  &mdash;
-                  {{m.author_uid}}
-                </span>
-                <span>{{formatDatetime m.created_at}}</span>
+            <li class="d-flex gap-3 {{unless (isCurator m) 'ps-5'}}">
+              {{#if (isCurator m)}}
+                <span
+                  class="message-avatar badge rounded-circle text-bg-dark d-flex align-items-center justify-content-center"
+                  aria-hidden="true"
+                >DC</span>
+              {{/if}}
+
+              <div
+                class="flex-fill border rounded p-3
+                  {{if (isCurator m) 'bg-body-tertiary' 'bg-primary-subtle border-primary-subtle'}}"
+              >
+                <div class="d-flex justify-content-between small text-body-secondary mb-1">
+                  <strong class="text-body">{{if (isCurator m) "DDBJ curator" "You"}}</strong>
+                  <span>{{formatDatetime m.created_at}}</span>
+                </div>
+                <div class="text-pre-wrap">{{m.body}}</div>
               </div>
-              <div class="mt-1 text-pre-wrap">{{m.body}}</div>
             </li>
           {{/each}}
         </ul>

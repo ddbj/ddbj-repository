@@ -25,6 +25,14 @@ class ActiveSupport::TestCase
 
   fixtures :all
 
+  def attach_ddbj_record(record)
+    record.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+  end
+
   # PathClassifier holds process-global memoised caches + structural-key
   # safety flags. Registry.stub blocks (and any other test-time rule
   # mutation) leave stale entries behind that would leak into subsequent
@@ -73,14 +81,6 @@ class ActionDispatch::IntegrationTest
   end
 
   private
-
-  def attach_ddbj_record(record)
-    record.ddbj_record.attach(
-      io:           file_fixture('ddbj_record/example.json').open,
-      filename:     'example.json',
-      content_type: 'application/json'
-    )
-  end
 
   def attach_submission_files(submission)
     submission.ddbj_record.attach(

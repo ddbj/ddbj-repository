@@ -6,6 +6,7 @@ import { service } from '@ember/service';
 import { pageTitle } from 'ember-page-title';
 
 import ENV from 'repository/config/environment';
+import AttentionBanner from 'repository/components/attention-banner';
 import ErrorMessage from 'repository/components/error-message';
 
 import type CurrentUserService from 'repository/services/current-user';
@@ -38,6 +39,10 @@ export default class extends Component {
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           {{#if this.currentUser.isLoggedIn}}
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+              <li class="nav-item">
+                <LinkTo @route="index" class="nav-link">My submissions</LinkTo>
+              </li>
+
               {{#if this.currentUser.user.isAdmin}}
                 <li class="nav-item">
                   <a href={{adminURL}} class="nav-link">Administration</a>
@@ -45,7 +50,11 @@ export default class extends Component {
               {{/if}}
             </ul>
 
-            <ul class="navbar-nav">
+            <ul class="navbar-nav align-items-lg-center">
+              <li class="nav-item me-lg-3">
+                <LinkTo @route="new" class="btn btn-outline-light btn-sm">New submission</LinkTo>
+              </li>
+
               <li class="nav-item dropdown">
                 <button type="button" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                   {{#if this.currentUser.proxyUid}}
@@ -73,6 +82,8 @@ export default class extends Component {
         </div>
       </div>
     </nav>
+
+    <AttentionBanner />
 
     {{#if this.loading.isLoading}}
       <div class="loading-bar" aria-busy="true">

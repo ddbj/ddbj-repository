@@ -16,6 +16,13 @@ export const handlers = [
     });
   }),
 
+  // The attention banner refreshes on every navigation, so every
+  // application test hits this; default to "nothing waiting" and let the
+  // tests that care override it.
+  http.get('/attention', ({ response }) => {
+    return response(200).json({ requests: [] });
+  }),
+
   // The request detail page loads the reviewer-access state; default to
   // disabled so tests that don't care about it don't have to stub it.
   http.get('/submission_requests/{submission_request_id}/reviewer_access', ({ response }) => {

@@ -87,6 +87,24 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
     assert_equal 'public', samples(:second).reload.status
   end
 
+  # One event per submission, not one for the batch: the activity feed is
+  # read per request, so "N rows" has to be that submission's count.
+  test 'bulk_update records one event per submission with its own row count' do
+    assert_difference 'CurationEvent.count', 2 do
+      patch bulk_update_admin_submissions_path,
+            params: {bulk: {
+              submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s],
+              status:         'public'
+            }}
+    end
+
+    by_submission = CurationEvent.all.index_by(&:submission_id)
+
+    assert_equal 1, by_submission.fetch(submissions(:bioproject).id).row_count
+    assert_equal 2, by_submission.fetch(submissions(:biosample).id).row_count
+    assert_equal 'set 2 samples to public', by_submission.fetch(submissions(:biosample).id).summary
+  end
+
   test 'bulk_update applies assignee across BP project AND BS samples' do
     patch bulk_update_admin_submissions_path,
           params: {bulk: {

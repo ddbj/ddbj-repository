@@ -1,0 +1,5 @@
+<% content_for :title, "##{@request.id} — Messages" %>
+
+<%= render layout: 'workbench', locals: {tab: :messages} do %>
+  <%= render 'admin/messages/thread', request: @request, messages: @messages %>
+<% end %>

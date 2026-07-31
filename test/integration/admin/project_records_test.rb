@@ -71,8 +71,8 @@ class AdminProjectRecordsTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test 'show page renders the project-record form for BP submissions' do
-    get admin_submission_request_path(@submission.request)
+  test 'the record tab renders the project-record form for BP submissions' do
+    get record_admin_submission_request_path(@submission.request)
 
     assert_response :ok
     assert_match 'Project details',                                       response.body
@@ -81,8 +81,8 @@ class AdminProjectRecordsTest < ActionDispatch::IntegrationTest
     assert_match 'name="project_record[description]"',                    response.body
   end
 
-  test 'show page does NOT render the project-record form for non-BP submissions' do
-    get admin_submission_request_path(submissions(:st26).request)
+  test 'the record tab does NOT render the project-record form for non-BP submissions' do
+    get record_admin_submission_request_path(submissions(:st26).request)
 
     assert_response :ok
     assert_no_match 'Project details', response.body

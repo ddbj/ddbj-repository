@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_30_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -62,6 +62,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_30_000001) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "curation_events", force: :cascade do |t|
+    t.string "action", null: false
+    t.string "actor", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "details", default: {}, null: false
+    t.integer "row_count", default: 0, null: false
+    t.bigint "submission_id", null: false
+    t.index ["submission_id", "created_at"], name: "index_curation_events_on_submission_id_and_created_at"
+    t.index ["submission_id"], name: "index_curation_events_on_submission_id"
   end
 
   create_table "distribution_notifier_templates", force: :cascade do |t|
@@ -322,6 +333,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_30_000001) do
   add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "curation_events", "submissions"
   add_foreign_key "project_links", "projects", column: "child_project_id"
   add_foreign_key "project_links", "projects", column: "parent_project_id"
   add_foreign_key "projects", "submissions"

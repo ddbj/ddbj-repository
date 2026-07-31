@@ -253,11 +253,11 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  test 'show links to the materialised JSON endpoint and surfaces orientation metadata' do
+  test 'the record tab links to the materialised JSON endpoint and surfaces orientation metadata' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'accession' => 'PRJDB502', 'title' => 'hello'}}, actor: 'test')
 
-    get admin_submission_request_path(submission.request)
+    get record_admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match admin_submission_request_path(submission.request),                          response.body
@@ -268,10 +268,10 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match 'PRJDB502',                                          response.body
   end
 
-  test 'show falls back gracefully when no updates have been applied' do
+  test 'the record tab falls back gracefully when no updates have been applied' do
     submission = submissions(:bioproject)
 
-    get admin_submission_request_path(submission.request)
+    get record_admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match 'nothing to materialise', response.body
@@ -406,7 +406,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match(/parse/i,         body['message'])
   end
 
-  test 'show skips canonical bytes / sha for records over the size limit (avoids 20s canonicalise)' do
+  test 'the record tab skips canonical bytes / sha over the size limit (avoids 20s canonicalise)' do
     submission = submissions(:bioproject)
     # Synthesise a payload whose Oj.dump exceeds the 1 MB display limit.
     # A 2 MB string is plenty; Canonicalizer.canonicalize on this would
@@ -414,7 +414,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     big_value = 'x' * (2 * 1024 * 1024)
     submission.append_update!({'project' => {'title' => 'big', 'description' => big_value}}, actor: 'test')
 
-    get admin_submission_request_path(submission.request)
+    get record_admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match    'Skipped',                  response.body
@@ -422,11 +422,11 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match 'Canonical SHA-256',        response.body
   end
 
-  test 'show computes canonical bytes / sha for records under the size limit' do
+  test 'the record tab computes canonical bytes / sha for records under the size limit' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'small'}}, actor: 'test')
 
-    get admin_submission_request_path(submission.request)
+    get record_admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match    'Canonical bytes',   response.body
@@ -434,34 +434,42 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_no_match 'Skipped',           response.body
   end
 
-  test 'show paginates samples inside a turbo-frame and supports ?samples_page= permalink' do
+  test 'the samples tab paginates and supports the ?samples_page= permalink' do
     submission = submissions(:biosample)
-    # 30 fresh probes; combined with the 2 fixture samples that's 32
-    # total — enough to cross the 20-per-page boundary (probe-017 ends
-    # page 1 alongside the 2 fixtures, probe-018+ on page 2).
-    30.times {|i| submission.samples.create!(sample_name: "probe-#{format('%03d', i)}", status: :public) }
+    # 60 fresh probes; combined with the 2 fixture samples that's 62 —
+    # enough to cross the 50-per-page boundary with a short second page.
+    60.times {|i| submission.samples.create!(sample_name: "probe-#{format('%03d', i)}", status: :public) }
 
-    get admin_submission_request_path(submission.request)
+    get samples_admin_submission_request_path(submission.request)
     assert_response :ok
-    assert_match    '<turbo-frame id="samples"',          response.body
-    assert_match    'data-turbo-action="advance"',        response.body
-    assert_match    'data-controller="frame-scroll-top"', response.body
-    assert_match    'probe-000',                          response.body
-    assert_no_match 'probe-025',                          response.body
+    assert_equal 50, css_select('tbody tr').size
+    assert_match '62 of 62 shown', response.body
 
     # Permalink — directly loading ?samples_page=2 lands on page 2.
-    get admin_submission_request_path(submission.request, samples_page: 2)
+    get samples_admin_submission_request_path(submission.request, samples_page: 2)
     assert_response :ok
-    assert_match    'probe-025',                          response.body
-    assert_no_match 'probe-000',                          response.body
+    assert_equal 12, css_select('tbody tr').size
 
     # pagy links use the namespaced param so they don't collide with
     # a future paginator that might want plain ?page=.
-    assert_match    'samples_page=',                      response.body
-    assert_no_match(/[?&]page=\d/,                        response.body)
+    assert_match(/samples_page=/,  response.body)
+    assert_no_match(/[?&]page=\d/, response.body)
   end
 
-  test 'show renders the Samples table for a biosample submission' do
+  # Pagination has to carry the filter, or clicking page 2 silently widens
+  # the set the curator thought they were working through.
+  test 'the samples tab keeps the filter across pages' do
+    submission = submissions(:biosample)
+    60.times {|i| submission.samples.create!(sample_name: "probe-#{format('%03d', i)}", status: :curating) }
+
+    get samples_admin_submission_request_path(submission.request), params: {status: 'curating'}
+
+    assert_response :ok
+    assert_match '60 of 62 shown', response.body
+    assert_match(/samples_page=2[^"]*status=curating|status=curating[^"]*samples_page=2/, response.body)
+  end
+
+  test 'the samples tab renders the samples table' do
     submission = submissions(:biosample)
     submission.samples.create!(
       accession:   'SAMD00099001',
@@ -473,7 +481,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     )
     submission.append_update!({'samples' => [{'accession' => 'SAMD00099001'}]}, actor: 'test')
 
-    get admin_submission_request_path(submission.request)
+    get samples_admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match 'Samples',         response.body
@@ -482,26 +490,27 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match 'DRS999001',       response.body
   end
 
-  test 'show samples table renders Assignee column with per-sample uid' do
+  test 'the samples table renders the Assignee column with per-sample uid' do
     submission = submissions(:biosample)
     samples(:first).update!(assignee: users(:bob))
     # samples(:second) intentionally left unassigned to pin the "—" case.
 
-    get admin_submission_request_path(submission.request)
+    get samples_admin_submission_request_path(submission.request)
 
     assert_response :ok
-    table_row_with_assignee = css_select('tbody tr').find {|tr| tr.css('td')[1]&.text == samples(:first).sample_name }
-    assert_match users(:bob).uid, table_row_with_assignee.to_s,
-                 'assigned sample row must show the assignee uid'
+    # Cells: [select, accession, sample name, package, organism, tax id,
+    # status, assignee] — the leading checkbox is what the bulk bar acts on.
+    rows = css_select('tbody tr')
 
-    # Assignee is the 7th cell (0-indexed: 6) — last cell is the Edit-link
-    # button column added by PR 8.
-    table_row_without_assignee = css_select('tbody tr').find {|tr| tr.css('td')[1]&.text == samples(:second).sample_name }
-    assert_equal '—', table_row_without_assignee.css('td')[6].text.strip,
+    assigned = rows.find {|tr| tr.css('td')[2]&.text&.strip == samples(:first).sample_name }
+    assert_match users(:bob).uid, assigned.to_s, 'assigned sample row must show the assignee uid'
+
+    unassigned = rows.find {|tr| tr.css('td')[2]&.text&.strip == samples(:second).sample_name }
+    assert_equal '—', unassigned.css('td')[7].text.strip,
                  'unassigned sample row must show — in the Assignee cell'
   end
 
-  test 'show survives a single poisoned patch — timeline renders, materialised pane reports the bad row' do
+  test 'the record tab survives a single poisoned patch — the chain renders and names the bad row' do
     submission = submissions(:bioproject)
     submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
     poisoned = SubmissionUpdate.create_with_patch!(
@@ -514,7 +523,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
       patch_canonical_version: 1
     )
 
-    get admin_submission_request_path(submission.request)
+    get record_admin_submission_request_path(submission.request)
 
     assert_response :ok
     assert_match    'Replay failed',                                       response.body
