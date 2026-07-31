@@ -35,7 +35,9 @@
 #   - status is not in {curating, submission_accepted}
 #
 # Returns a Result with the list of newly-issued accessions, or raises
-# AccessionIssue::Refused with a human-readable reason.
+# one of two errors that mean opposite things — see Refused and
+# ChainBroken below. A caller that rescues only Refused will crash on a
+# corrupt chain, which is the mistake this contract most invites.
 class AccessionIssue
   # A rule declined. Reaches the curator as "Skipped", with the reason.
   class Refused < StandardError; end
@@ -49,7 +51,11 @@ class AccessionIssue
   # Not rescued by the job, so it lands as `failed` and is reported.
   class ChainBroken < StandardError; end
 
-  Result = Data.define(:submission, :accessions)
+  # `mail_error` is set when the accessions were committed but the
+  # notification could not be enqueued. It is not an alternative to
+  # `accessions` — the numbers exist either way, and a record that
+  # forgets them because the mailer hiccupped is the worse failure.
+  Result = Data.define(:submission, :accessions, :mail_error)
 
   ISSUABLE_FROM = %w[submission_accepted curating].freeze
 
@@ -108,9 +114,8 @@ class AccessionIssue
       acc
     end
 
-    enqueue_mail(@submission, [accession])
-
-    Result.new(submission: @submission, accessions: [accession])
+    Result.new(submission: @submission, accessions: [accession],
+               mail_error: enqueue_mail(@submission, [accession]))
   end
 
   def issue_bs
@@ -141,9 +146,8 @@ class AccessionIssue
       acc_list
     end
 
-    enqueue_mail(@submission, accessions)
-
-    Result.new(submission: @submission, accessions:)
+    Result.new(submission: @submission, accessions:,
+               mail_error: enqueue_mail(@submission, accessions))
   end
 
   # Write the freshly-issued accessions into the record as a patch.
@@ -204,7 +208,17 @@ class AccessionIssue
     )
   end
 
+  # Runs after the transaction has committed, so a failure here cannot
+  # take the accessions back — and must not take the *record* of them
+  # back either. Returns the reason instead of raising, so the caller
+  # writes down what was issued and what did not go out.
   def enqueue_mail(submission, accessions)
     AccessionMailer.with(submission:, accessions:).issued.deliver_later
+
+    nil
+  rescue StandardError => e
+    Rails.error.report(e, handled: true, source: 'accession_issue.mail')
+
+    "#{e.class}: #{e.message}"
   end
 end

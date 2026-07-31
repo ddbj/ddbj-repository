@@ -59,6 +59,13 @@
                 now <code>accession_issued</code>
                 (<code><%= issuance.accession_range %></code>)
               <% end %>
+
+              <%# Issued, but nobody was told — which is work left over %>
+              <%# rather than a completed row, so it says so where the %>
+              <%# row is read. %>
+              <% if issuance.error_message.present? %>
+                <span class="text-danger-emphasis">— submitter not emailed</span>
+              <% end %>
             </li>
           <% end %>
 

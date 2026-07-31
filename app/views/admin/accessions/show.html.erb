@@ -43,9 +43,23 @@
     </div>
   </div>
 <% elsif @issuance.completed_status? %>
-  <div class="alert alert-success">
-    Issued <%= pluralize(@issuance.accessions.size, 'accession') %>. The submitter has been emailed.
-  </div>
+  <%# "The submitter has been emailed" is a claim, not a decoration. The %>
+  <%# mail is enqueued after the transaction commits, so it can fail on %>
+  <%# its own — and a curator who believes it was sent will not send it. %>
+  <% if @issuance.error_message.present? %>
+    <div class="alert alert-warning">
+      <strong>Issued <%= pluralize(@issuance.accessions.size, 'accession') %>, but the submitter was not emailed.</strong>
+      <p class="mb-0">
+        The numbers below are allocated and recorded. The notification could not be queued —
+        developers were notified, and the submitter still has to be told.
+      </p>
+      <p class="mb-0 small text-body-secondary"><%= @issuance.error_message %></p>
+    </div>
+  <% else %>
+    <div class="alert alert-success">
+      Issued <%= pluralize(@issuance.accessions.size, 'accession') %>. The submitter has been emailed.
+    </div>
+  <% end %>
 
   <ul class="list-group">
     <% @issuance.accessions.first(50).each do |accession| %>

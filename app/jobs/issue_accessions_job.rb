@@ -14,8 +14,20 @@ class IssueAccessionsJob < ApplicationJob
   discard_on StandardError do |job, error|
     issuance = AccessionIssuance.find_by(id: job_kwarg(job, :issuance_id))
 
-    issuance&.update!(status: 'failed', finished_at: Time.current,
-                      error_message: "#{error.class}: #{error.message}")
+    # Never over an outcome that already committed. Everything after the
+    # completion write — participation, and anything a future step adds —
+    # runs with accessions already allocated, and recording "failed,
+    # nothing issued" over them would make the run page deny numbers that
+    # exist and cannot be handed back.
+    unless issuance.nil? || issuance.completed_status?
+      # AccessionIssue's own errors carry a sentence written for a
+      # curator; anything else is a crash, where the class is the most
+      # useful part. Both land in the same table cell, so the deliberate
+      # one should not arrive led by a Ruby constant.
+      message = error.is_a?(AccessionIssue::ChainBroken) ? error.message : "#{error.class}: #{error.message}"
+
+      issuance.update!(status: 'failed', finished_at: Time.current, error_message: message)
+    end
 
     Rails.error.report(error, handled: true, source: 'issue_accessions_job')
   end
@@ -31,7 +43,11 @@ class IssueAccessionsJob < ApplicationJob
       samples:    issuance.target_samples
     )
 
-    issuance.update!(status: 'completed', accessions: result.accessions, finished_at: Time.current)
+    # `mail_error` on a completed row means "issued, but the submitter
+    # was not told" — the accessions are the outcome, the notification is
+    # a consequence of it, and one failing does not undo the other.
+    issuance.update!(status: 'completed', accessions: result.accessions,
+                     finished_at: Time.current, error_message: result.mail_error)
 
     # Issuing is editing, so it puts the curator in the request's
     # participants — but only now that it has happened. Pressing a button

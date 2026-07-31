@@ -131,6 +131,52 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
            'a broken chain has to reach whoever can repair it'
   end
 
+  # The mail is enqueued after the transaction commits, so it can fail on
+  # its own — and losing the accessions from the record because of it
+  # would have the run page deny numbers that exist and cannot be handed
+  # back. The numbers are the outcome; the notification is a consequence.
+  test 'a mail that cannot be queued does not erase the accessions it was about' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    issuance = issuance_for(submission)
+    reports  = capture_error_reports {
+      AccessionMailer.stub(:with, ->(**) { raise ActiveRecord::ConnectionNotEstablished, 'queue is down' }) do
+        IssueAccessionsJob.perform_now(issuance_id: issuance.id)
+      end
+    }
+
+    issuance.reload
+
+    assert     issuance.completed_status?, 'the accessions committed, so the row has to say so'
+    assert_not issuance.accessions.empty?, 'the numbers must survive the notification'
+    assert_equal projects(:primary).reload.accession, issuance.accessions.sole
+    assert_match(/queue is down/, issuance.error_message)
+
+    assert reports.any? { it.is_a?(ActiveRecord::ConnectionNotEstablished) },
+           'a submitter nobody could tell has to reach somebody'
+  end
+
+  # The other half: nothing that runs after the commit may overwrite the
+  # outcome. participate! touches a FK, and a curator deleted mid-run
+  # would otherwise turn a successful issuance into "failed, nothing
+  # issued".
+  test 'a failure after the completion write leaves the outcome alone' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    issuance = issuance_for(submission)
+
+    SubmissionRequestParticipant.stub(:insert_all, ->(*, **) { raise 'boom' }) do
+      IssueAccessionsJob.perform_now(issuance_id: issuance.id)
+    end
+
+    issuance.reload
+
+    assert     issuance.completed_status?
+    assert_not issuance.accessions.empty?
+  end
+
   test 'a second issuance is refused while another is actually running' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
