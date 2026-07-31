@@ -252,3 +252,56 @@ class MyQueueSystemTest < ApplicationSystemTestCase
     assert_text 'still waiting on this'
   end
 end
+
+# The confirmation opens over the queue rather than replacing it.
+#
+# Every Issue button in the admin goes through the same dialog, single
+# submission included: "how many" is not a proxy for how much this
+# matters — one BioSample submission can be tens of thousands of SAMDs,
+# while three ticked BioProjects are three numbers. Gating the
+# confirmation on the size of the selection would wave through the
+# biggest single press in the app.
+#
+# Opening it in place is what keeps that affordable: a cancelled
+# confirmation costs nothing, because the queue never went away.
+class MyQueueIssueDialogSystemTest < JavaScriptSystemTestCase
+  setup do
+    sign_in_as users(:bob)
+
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    @req = submission_requests(:bioproject)
+    @req.update_column(:assignee_id, users(:bob).id)
+  end
+
+  test 'Issue opens the confirmation without leaving the queue' do
+    visit admin_root_path
+
+    click_link 'Issue'
+
+    assert_selector 'dialog[open]'
+    assert_current_path admin_root_path
+
+    within 'dialog' do
+      assert_text   'Accession numbers are permanent'
+      assert_button 'Issue 1 accession'
+    end
+  end
+
+  # Nothing is allocated by opening it, and the queue is still there
+  # underneath — which is the whole argument for a confirmation on a
+  # single row.
+  test 'cancelling leaves the queue and the submission untouched' do
+    visit admin_root_path
+
+    click_link 'Issue'
+    within('dialog') { click_link 'Cancel' }
+
+    assert_no_selector 'dialog[open]'
+    assert_current_path admin_root_path
+    assert_text 'Assigned to me'
+
+    assert_nil projects(:primary).reload.accession
+    assert_empty AccessionIssuance.all
+  end
+end

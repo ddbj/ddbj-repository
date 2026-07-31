@@ -104,3 +104,24 @@
   position: sticky;
   top: 14rem;
 }
+
+// Confirmations that open over the page they were pressed on. Native
+// <dialog>, so Esc, the backdrop and the focus trap are the browser's
+// rather than ours — the card inside brings its own padding.
+.app-dialog {
+  padding: 0;
+  border: 0;
+  max-width: min(42rem, 92vw);
+  border-radius: var(--bs-border-radius-xl);
+  box-shadow: var(--bs-box-shadow-lg);
+
+  &::backdrop {
+    background: rgb(0 0 0 / 40%);
+  }
+}
+
+// The confirmation's own width, so the same markup is a readable column
+// on a bare page and fills the dialog when it is opened in one.
+.accession-confirm {
+  max-width: 42rem;
+}

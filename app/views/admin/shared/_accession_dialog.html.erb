@@ -1,0 +1,9 @@
+<%# The empty shell the Issue buttons load their confirmation into. %>
+<%# %>
+<%# Rendered next to the buttons rather than in the layout because the %>
+<%# frame id has to be unique on the page, and the confirmation itself %>
+<%# is served inside a frame of the same id — a layout-wide copy would %>
+<%# collide with it on a direct visit to the confirmation URL. %>
+<dialog class="app-dialog" data-controller="dialog">
+  <turbo-frame id="accession_confirm" data-dialog-target="frame"></turbo-frame>
+</dialog>

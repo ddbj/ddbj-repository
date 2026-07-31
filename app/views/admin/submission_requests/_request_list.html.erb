@@ -107,15 +107,14 @@
       <%# this allocates and which of the selection will be skipped, so a %>
       <%# wrong tick is fixable before it is permanent. %>
       <%# %>
-      <%# turbo: false because this POST renders rather than redirects — %>
-      <%# it changes nothing, it only reads the ticked rows back as a %>
-      <%# page. Turbo discards a 200 from a form, so the press would %>
-      <%# silently do nothing. %>
+      <%# Into the frame, which is also what makes the POST work at all: %>
+      <%# this one renders rather than redirects, and Turbo discards a %>
+      <%# 200 from a form unless it has a frame to put it in. %>
       <%= f.button 'Issue accessions',
                    type:       :submit,
                    formaction: confirm_issue_accessions_admin_submissions_path(filter_params),
                    class:      'btn btn-warning btn-sm text-nowrap',
-                   data:       {turbo: false} %>
+                   data:       {turbo_frame: 'accession_confirm'} %>
     </div>
 
     <p class="text-body-secondary small mt-2">
@@ -126,3 +125,5 @@
     </p>
   <% end %>
 <% end %>
+
+<%= render 'admin/shared/accession_dialog' %>

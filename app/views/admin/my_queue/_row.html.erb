@@ -38,9 +38,11 @@
   <% when :issue %>
     <%# Straight from the queue: work that can be finished without %>
     <%# opening the request should not require opening the request — but %>
-    <%# through the same confirmation as everywhere else. %>
+    <%# through the same confirmation as everywhere else, opened over the %>
+    <%# queue so a cancelled one costs no place in it. %>
     <%= link_to 'Issue', new_admin_submission_accession_path(request.submission),
-                class: 'btn btn-outline-secondary btn-sm' %>
+                class: 'btn btn-outline-secondary btn-sm',
+                data:  {turbo_frame: 'accession_confirm'} %>
   <% end %>
 
   <% if row.issuing %>

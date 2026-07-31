@@ -4,95 +4,108 @@
 <%# "this cannot be undone" concrete — 19 is a different decision from %>
 <%# 1 — and naming the skips here is what lets a curator fix a wrong %>
 <%# selection instead of discovering it in the flash afterwards. %>
-<div class="row justify-content-center py-3">
-  <div class="col-12 col-lg-8">
-    <div class="card">
-      <div class="card-body p-4">
-        <h1 class="h4 mb-2">
-          <% if @plan.items.one? %>
-            Issue <%= @plan.items.first.prefix %> accessions for #<%= @plan.items.first.request&.id %>?
-          <% else %>
-            Issue accessions for <%= pluralize(@plan.items.size, 'selected submission') %>?
-          <% end %>
-        </h1>
+<%# %>
+<%# In a frame, so all three open it in place: leaving the queue to read %>
+<%# a confirmation and coming back is the friction that makes people %>
+<%# want the confirmation gone. The same markup is a plain page when the %>
+<%# URL is visited directly. %>
+<%= turbo_frame_tag 'accession_confirm' do %>
+  <div class="card border-0 accession-confirm mx-auto my-3">
+    <div class="card-body p-4">
+      <h1 class="h4 mb-2">
+        <% if @plan.items.one? %>
+          Issue <%= @plan.items.first.prefix %> accessions for #<%= @plan.items.first.request&.id %>?
+        <% else %>
+          Issue accessions for <%= pluralize(@plan.items.size, 'selected submission') %>?
+        <% end %>
+      </h1>
 
-        <p class="text-body-secondary">
-          Accession numbers are permanent. They cannot be renumbered or withdrawn here.
-        </p>
+      <p class="text-body-secondary">
+        Accession numbers are permanent. They cannot be renumbered or withdrawn here.
+      </p>
 
-        <table class="table border align-middle my-4">
-          <tbody>
-            <% @plan.by_prefix.each do |prefix, count| %>
-              <tr>
-                <td>
-                  <span class="badge text-bg-warning me-1"><%= prefix %></span>
-                  to <%= prefix == 'PRJDB' ? 'projects' : 'samples with no accession' %>
-                </td>
-                <td class="text-end fw-semibold"><%= number_with_delimiter(count) %></td>
-              </tr>
-            <% end %>
-
-            <%# Named with its reason. "Skipped: 1" would tell a curator %>
-            <%# that something was wrong without telling them what. %>
-            <% @plan.skipped.each do |item| %>
-              <tr class="text-body-secondary">
-                <td>
-                  Skipped — <%= item.skip_reason %>
-                  <% if item.request %>(#<%= item.request.id %>)<% end %>
-                </td>
-                <td class="text-end fw-semibold">1</td>
-              </tr>
-            <% end %>
-
-            <% if @plan.mail_count.positive? %>
-              <tr>
-                <td>Notification <%= 'mail'.pluralize(@plan.mail_count) %> to submitters (one per submission)</td>
-                <td class="text-end fw-semibold"><%= @plan.mail_count %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-
-        <p>
-          <% if !@plan.any? %>
-            <%# Nothing to confirm. A disabled "Issue 0 accessions" is a %>
-            <%# dead control asking to be clicked; the way out of this %>
-            <%# screen is back to the selection. %>
-            <strong>Nothing to issue.</strong> Every row above was skipped for the reason
-            given — go back and change the selection.
-          <% elsif (item = @plan.issuing.first) && @plan.issuing.one? && item.total > item.issuable %>
-            Those <%= number_with_delimiter(item.issuable) %> <%= item.submission.curation_row_noun.pluralize(item.issuable) %>
-            move to <code>accession_issued</code>. The other
-            <%= number_with_delimiter(item.total - item.issuable) %> stay as they are.
-          <% else %>
-            Statuses move to <code>accession_issued</code>.
-          <% end %>
-        </p>
-
-        <%= form_with url: @action, method: :post, local: true, class: 'd-flex gap-2 align-items-center' do |f| %>
-          <% @ids&.each do |id| %>
-            <%= hidden_field_tag 'bulk[submission_ids][]', id %>
+      <table class="table border align-middle my-4">
+        <tbody>
+          <% @plan.by_prefix.each do |prefix, count| %>
+            <tr>
+              <td>
+                <span class="badge text-bg-warning me-1"><%= prefix %></span>
+                to <%= prefix == 'PRJDB' ? 'projects' : 'samples with no accession' %>
+              </td>
+              <td class="text-end fw-semibold"><%= number_with_delimiter(count) %></td>
+            </tr>
           <% end %>
 
-          <% @passthrough&.dig('bulk_sample')&.each do |key, value| %>
-            <% Array(value).each do |v| %>
-              <%= hidden_field_tag "bulk_sample[#{key}]#{'[]' if value.is_a?(Array)}", v %>
-            <% end %>
+          <%# Named with its reason. "Skipped: 1" would tell a curator %>
+          <%# that something was wrong without telling them what. %>
+          <% @plan.skipped.each do |item| %>
+            <tr class="text-body-secondary">
+              <td>
+                Skipped — <%= item.skip_reason %>
+                <% if item.request %>(#<%= item.request.id %>)<% end %>
+              </td>
+              <td class="text-end fw-semibold">1</td>
+            </tr>
           <% end %>
 
-          <%= link_to (@plan.any? ? 'Cancel' : 'Back'), @cancel, class: 'btn btn-link' %>
+          <% if @plan.mail_count.positive? %>
+            <tr>
+              <td>Notification <%= 'mail'.pluralize(@plan.mail_count) %> to submitters (one per submission)</td>
+              <td class="text-end fw-semibold"><%= @plan.mail_count %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
 
-          <% if @plan.any? %>
-            <%# Amber, not primary: this is "careful", not "proceed". %>
-            <%# Autofocused so Enter confirms — working through a queue %>
-            <%# should cost one keystroke per request, which is how the %>
-            <%# friction stays where it belongs (on the decision) rather %>
-            <%# than on the hand. %>
-            <%= f.submit "Issue #{number_with_delimiter(@plan.accession_count)} #{'accession'.pluralize(@plan.accession_count)}",
-                         class: 'btn btn-warning', autofocus: true %>
+      <p>
+        <% if !@plan.any? %>
+          <%# Nothing to confirm. A disabled "Issue 0 accessions" is a %>
+          <%# dead control asking to be clicked; the way out of this %>
+          <%# screen is back to the selection. %>
+          <strong>Nothing to issue.</strong> Every row above was skipped for the reason
+          given — go back and change the selection.
+        <% elsif (item = @plan.issuing.first) && @plan.issuing.one? && item.total > item.issuable %>
+          Those <%= number_with_delimiter(item.issuable) %> <%= item.submission.curation_row_noun.pluralize(item.issuable) %>
+          move to <code>accession_issued</code>. The other
+          <%= number_with_delimiter(item.total - item.issuable) %> stay as they are.
+        <% else %>
+          Statuses move to <code>accession_issued</code>.
+        <% end %>
+      </p>
+
+      <%# _top: confirming leaves the dialog for the run page, which %>
+      <%# is a whole-window move. Only the confirmation itself lives %>
+      <%# in the frame. %>
+      <%= form_with url: @action, method: :post, local: true,
+                    class: 'd-flex gap-2 align-items-center',
+                    data:  {turbo_frame: '_top'} do |f| %>
+        <% @ids&.each do |id| %>
+          <%= hidden_field_tag 'bulk[submission_ids][]', id %>
+        <% end %>
+
+        <% @passthrough&.dig('bulk_sample')&.each do |key, value| %>
+          <% Array(value).each do |v| %>
+            <%= hidden_field_tag "bulk_sample[#{key}]#{'[]' if value.is_a?(Array)}", v %>
           <% end %>
         <% end %>
-      </div>
+
+        <%# Closes the dialog when there is one; when the URL was %>
+        <%# visited directly there is no controller to catch it and %>
+        <%# it navigates, which is the same intent either way. %>
+        <%= link_to (@plan.any? ? 'Cancel' : 'Back'), @cancel,
+                    class: 'btn btn-link',
+                    data:  {action: 'dialog#cancel', turbo_frame: '_top'} %>
+
+        <% if @plan.any? %>
+          <%# Amber, not primary: this is "careful", not "proceed". %>
+          <%# Autofocused so Enter confirms — working through a queue %>
+          <%# should cost one keystroke per request, which is how the %>
+          <%# friction stays where it belongs (on the decision) rather %>
+          <%# than on the hand. %>
+          <%= f.submit "Issue #{number_with_delimiter(@plan.accession_count)} #{'accession'.pluralize(@plan.accession_count)}",
+                       class: 'btn btn-warning', autofocus: true %>
+        <% end %>
+      <% end %>
     </div>
   </div>
-</div>
+<% end %>
