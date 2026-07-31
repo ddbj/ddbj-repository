@@ -22,7 +22,7 @@ class SubmissionRequestsController < ApplicationController
     scope = filter_by_accession(scope, params[:accession]) if params[:accession].present?
     scope = scope.needs_submitter_action                   if params[:needs_action].present?
 
-    ordered = scope.order(Arel.sql("(#{SubmissionRequest.needs_submitter_action_sql}) DESC"), id: :desc)
+    ordered = scope.order(SubmissionRequest.needs_submitter_action_order, id: :desc)
 
     pagy, @requests = pagy(ordered)
 

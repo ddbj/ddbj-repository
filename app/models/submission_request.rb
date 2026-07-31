@@ -55,16 +55,32 @@ class SubmissionRequest < ApplicationRecord
   # whichever page you happen to be on.
   ACTION_STATUSES = %w[validation_failed ready_to_apply].freeze
 
+  # The predicate itself, as a constant rather than built inside each
+  # reader: the ORDER BY wraps it in `(...) DESC`, and interpolating a
+  # method's return value into SQL is indistinguishable — to Brakeman and
+  # to a reader — from interpolating a parameter. A constant is neither.
+  NEEDS_SUBMITTER_ACTION = <<~SQL.squish
+    submission_requests.status IN (:statuses) OR
+    EXISTS (
+      SELECT 1 FROM submission_messages
+      WHERE submission_messages.submission_request_id = submission_requests.id
+        AND submission_messages.author_role = :role
+        AND submission_messages.read_at IS NULL
+    )
+  SQL
+
+  def self.needs_submitter_action_binds
+    {statuses: ACTION_STATUSES.map { statuses.fetch(it) }, role: 'curator'}
+  end
+
   def self.needs_submitter_action_sql
-    sanitize_sql_array([<<~SQL.squish, statuses: ACTION_STATUSES.map { statuses.fetch(it) }, role: 'curator'])
-      submission_requests.status IN (:statuses) OR
-      EXISTS (
-        SELECT 1 FROM submission_messages
-        WHERE submission_messages.submission_request_id = submission_requests.id
-          AND submission_messages.author_role = :role
-          AND submission_messages.read_at IS NULL
-      )
-    SQL
+    sanitize_sql_array([NEEDS_SUBMITTER_ACTION, needs_submitter_action_binds])
+  end
+
+  # "Needs you" floats to the top of the whole list, not just of whichever
+  # page you are on, so the sort has to happen in SQL.
+  def self.needs_submitter_action_order
+    Arel.sql(sanitize_sql_array(["(#{NEEDS_SUBMITTER_ACTION}) DESC", needs_submitter_action_binds]))
   end
 
   # "Nothing further will happen here": every curation row has reached a
