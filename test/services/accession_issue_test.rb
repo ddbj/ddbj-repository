@@ -52,7 +52,7 @@ class AccessionIssueTest < ActiveSupport::TestCase
     event = CurationEvent.last
 
     assert_equal submission.updates.order(:id).last.id, event.submission_update_id
-    assert_equal 'issued 1 PRJDB accession (PRJDB1)',            event.summary
+    assert_equal 'issued 1 PRJDB accession (PRJDB1)', event.summary
   end
 
   # A submission that has never been applied has no record to patch. The

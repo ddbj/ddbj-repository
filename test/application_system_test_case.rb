@@ -71,6 +71,18 @@ class ApplicationSystemTestCase < ActionDispatch::IntegrationTest
       raise NoMethodError, "`#{verb}` drives a different session from Capybara's — use `visit` / `click_*` instead."
     end
   end
+
+  # The test environment turns forgery protection off, which hides a
+  # whole class of bug: a form whose token does not match the action it
+  # posts to is only rejected when the check is running. Wrap the few
+  # presses where that is the point.
+  def with_forgery_protection
+    ActionController::Base.allow_forgery_protection = true
+
+    yield
+  ensure
+    ActionController::Base.allow_forgery_protection = false
+  end
 end
 
 # For screens whose behaviour is JavaScript — a preview that follows the

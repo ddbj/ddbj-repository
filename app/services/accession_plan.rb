@@ -85,14 +85,21 @@ class AccessionPlan
   # who picked a released submission by mistake can see that from here
   # and fix the selection rather than the flash afterwards.
   def skip_reason_for(rows)
-    statuses = rows.distinct.pluck(:status)
+    pending = rows.where(accession: nil)
 
-    if rows.where(accession: nil).none?
-      'every row already has an accession'
-    else
-      "status is #{statuses.map { it.to_s.tr('_', ' ') }.to_sentence} — not " \
-        "#{AccessionIssue::ISSUABLE_FROM.map { it.tr('_', ' ') }.join(' or ')}"
-    end
+    # An empty target set is not "all done": a stale sample_ids list from
+    # a page rendered before somebody else moved the rows resolves to
+    # nothing, and reporting that as already-accessioned is a different
+    # claim entirely.
+    return 'nothing matched this selection' if rows.empty?
+    return 'every row already has an accession' if pending.none?
+
+    # Only the rows that still need one. Listing every status would put
+    # `accession_issued` in the reason for rows that are not the obstacle.
+    statuses = pending.distinct.pluck(:status)
+
+    "status is #{statuses.map { it.to_s.tr('_', ' ') }.to_sentence} — not " \
+      "#{AccessionIssue::ISSUABLE_FROM.map { it.tr('_', ' ') }.join(' or ')}"
   end
 
   def prefix_for(submission) = submission.bioproject_db? ? 'PRJDB' : 'SAMD'

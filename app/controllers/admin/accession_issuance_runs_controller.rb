@@ -17,10 +17,13 @@ module Admin
     # Puts the ledger's summary away. Scoped to the curator's own runs:
     # the summary is "what the thing I just did did", so dismissing it is
     # not something to be able to do to somebody else's.
+    # Idempotent: Back-then-Dismiss-again, or a double submit, is a
+    # curator repeating something already true, not an error worth a 404
+    # page. Ownership is still enforced — someone else's run is not found.
     def dismiss
-      run = AccessionIssuanceRun.undismissed_for(current_actor).find(params[:id])
+      run = AccessionIssuanceRun.where(actor: current_actor).find(params[:id])
 
-      run.dismiss!
+      run.dismiss! unless run.dismissed?
 
       redirect_back fallback_location: admin_submission_requests_path
     end

@@ -44,6 +44,32 @@ class AdminAccessionIssuanceRunsTest < ActionDispatch::IntegrationTest
     assert_not_predicate newer.reload, :dismissed?
   end
 
+  # Back, then Dismiss again — a curator repeating something already
+  # true. A 404 error page for that reads as the app breaking.
+  test 'dismissing twice is not an error' do
+    sign_in_as users(:bob)
+
+    2.times { patch dismiss_admin_accession_issuance_run_path(@run) }
+
+    assert_redirected_to admin_submission_requests_path
+    assert_predicate @run.reload, :dismissed?
+  end
+
+  # A worker killed mid-run leaves its row `running` for good. Without a
+  # bound, the run page polls every three seconds forever and the ledger
+  # summary sits at "0 of 1 done" until dismissed by hand.
+  test 'a run whose worker died stops counting as in flight' do
+    stalled = AccessionIssuanceRun.create!(actor: 'admin:bob', origin: 'x',
+                                           started_at: AccessionIssuance::STALE_AFTER.ago - 1.hour)
+
+    stalled.issuances.create!(submission: submissions(:biosample), actor: stalled.actor,
+                              status: 'running',
+                              started_at: AccessionIssuance::STALE_AFTER.ago - 1.hour)
+
+    assert_predicate stalled, :finished?
+    assert_not_predicate @run.class.find(@run.id), :dismissed?
+  end
+
   test 'another curator cannot dismiss my summary' do
     sign_in_as users(:dave)
 

@@ -45,6 +45,21 @@ class ImportSampleTSVJobTest < ActiveSupport::TestCase
     assert_match 'unknown',   @import.error_report
   end
 
+  # An import that never got past the header wrote nothing, and recording
+  # it as completed made the result screen say "Finished — every row
+  # applied" over 0 of 0 rows. The reason was only reachable behind the
+  # error-report download.
+  test 'a file the importer cannot read at all is recorded as failed' do
+    tsv = "name\torganism\nsample-A\tMus musculus\n"
+
+    ImportSampleTSVJob.perform_now(import_id: @import.id, tsv_body: tsv)
+
+    @import.reload
+    assert_equal 'failed', @import.status
+    assert_equal :failed,  @import.outcome
+    assert_match 'sample_name', @import.error_report
+  end
+
   test 'concurrency guard refuses a second running import on the same submission' do
     @submission.sample_tsv_imports.create!(
       actor:      'someone-else',

@@ -24,7 +24,12 @@ class AccessionIssuanceRun < ApplicationRecord
 
   def done = issuances.count(&:completed?)
 
-  def finished? = done == total
+  # A row a worker died holding is believed for STALE_AFTER and no longer
+  # — the same bound `AccessionIssuance.in_flight` uses to stop one
+  # latching a submission shut. Without it here, the run page polls every
+  # three seconds for good and the ledger's summary reads "0 of 1 done"
+  # until somebody dismisses it by hand.
+  def finished? = issuances.none? { it.loading? && it.started_at > AccessionIssuance::STALE_AFTER.ago }
 
   def accession_count = issuances.sum { it.accessions.size }
 

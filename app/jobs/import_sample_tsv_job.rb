@@ -45,8 +45,12 @@ class ImportSampleTSVJob < ApplicationJob
       progress:   Reporter.new(progress)
     ).call
 
+    # A fatal result parsed nothing and wrote nothing, so it is a failure
+    # however few rows it managed to look at. Recording it as `completed`
+    # with 0 rejections made the screen read "Finished — every row
+    # applied" over an import that never got past the header.
     progress.update!(
-      status:       'completed',
+      status:       result.fatal_error ? 'failed' : 'completed',
       phase:        nil,
       total:        result.total,
       processed:    result.processed,

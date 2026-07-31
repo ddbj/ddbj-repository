@@ -35,7 +35,9 @@
 
       <%= link_to "Run ##{run.id}", admin_accession_issuance_run_path(run), class: 'btn btn-link btn-sm' %>
 
-      <%= button_to 'Dismiss', dismiss_admin_accession_issuance_run_path(run, return_to: request.fullpath),
+      <%# Lands back where it was pressed via the Referer, so there is no %>
+      <%# return_to to carry — and none to validate. %>
+      <%= button_to 'Dismiss', dismiss_admin_accession_issuance_run_path(run),
                     method: :patch, class: 'btn btn-outline-secondary btn-sm' %>
     </div>
 

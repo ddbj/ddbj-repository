@@ -29,7 +29,13 @@ export default class extends Controller {
   // previous one stays in the frame, and on a slow link the dialog opens
   // showing another request's count — the one thing a screen that exists
   // to state the count must never do.
-  clear = () => {
+  clear = (event) => {
+    // Only the frame's own fetch. The event bubbles, and the confirmation
+    // form inside targets _top — so submitting it used to empty the
+    // dialog the curator is still looking at, leaving a blank box for the
+    // length of the POST and its redirect.
+    if (event.target !== this.frameTarget) return;
+
     this.frameTarget.innerHTML = '';
   };
 

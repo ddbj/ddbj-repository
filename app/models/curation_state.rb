@@ -136,7 +136,13 @@ class CurationState
   # Nil while an issuance is in flight, so the button is not offered a
   # second time before the first has committed — a second press would
   # allocate a second set of numbers, and SAMD cannot be handed back.
-  def issuing? = @issuing ||= submission && AccessionIssuance.in_flight.where(submission_id: submission.id).exists?
+  # `defined?` rather than `||=`: the answer is usually false, and `||=`
+  # re-runs the EXISTS on every call — the workbench asks twice per render.
+  def issuing?
+    return @issuing if defined?(@issuing)
+
+    @issuing = submission.present? && AccessionIssuance.in_flight.where(submission_id: submission.id).exists?
+  end
 
   def issue_label
     return nil if issuing?
@@ -217,6 +223,16 @@ class CurationState
       NextAction.new(
         title:  'The submitter is waiting for a reply',
         detail: "#{unread_message_count} unread #{'message'.pluralize(unread_message_count)} in the thread.",
+        label:  nil
+      )
+    elsif issuing?
+      # Announcing eligibility while a run is in flight put "these are
+      # eligible — issuing allocates from the Sequence" directly above a
+      # bar that had replaced the button with an Issuing… badge.
+      NextAction.new(
+        title:  'Accessions are being issued',
+        detail: 'A run is in flight. The button is gone until it commits, because a second ' \
+                'press would allocate a second set of numbers.',
         label:  nil
       )
     elsif issuable?

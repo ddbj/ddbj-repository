@@ -69,6 +69,42 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     assert_text 'No assignee to change — 1 request already had bob.'
   end
 
+  # ST.26 carries neither a Project nor Samples, so a curation status has
+  # nothing to set. The notice used to come out empty, rendering a green
+  # alert box with no text in it.
+  test 'a selection with no curation rows says so instead of flashing blank' do
+    visit admin_submission_requests_path
+
+    check "Select ##{submission_requests(:st26).id}"
+    select 'Curating', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Nothing to update — the selection has no curation rows.'
+  end
+
+  # Both bulk buttons post from one form, and Issue overrides the action
+  # with `formaction`. A per-form CSRF token is bound to the form's OWN
+  # action, so the ledger's token was rejected as forged the moment the
+  # override was used — invisible with forgery protection off, which is
+  # every other test in this file.
+  test 'the Issue button is not rejected as forged' do
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    with_forgery_protection do
+      visit admin_submission_requests_path
+
+      check "Select ##{@req.id}"
+      click_button 'Issue accessions'
+
+      # Status first, and not only because it is the point. Rails' error
+      # page renders "Extracted source" of the failing frame — which is
+      # THIS file — so any assert_text whose needle appears in the test's
+      # own source passes against a 422. This one did.
+      assert_equal 200, page.status_code
+      assert_text 'Accession numbers are permanent'
+    end
+  end
+
   # Both buttons live in one form, because a nested form would be dropped.
   # That form is a POST carrying no `_method`, so the second button's
   # `formaction` reaches a POST-only route — an earlier PATCH form made

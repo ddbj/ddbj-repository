@@ -286,7 +286,15 @@ module Admin
     # which is a list of fragments rather than a statement of what
     # happened.
     def bulk_notice(projects:, samples:, assigned:, raw:)
-      [status_notice(projects, samples, raw), assignee_notice(assigned, raw)].compact.join(' ')
+      parts = [status_notice(projects, samples, raw), assignee_notice(assigned, raw)].compact
+
+      # A selection with nothing to act on: ST.26 requests carry neither a
+      # Project nor Samples, so a curation status finds no rows to set.
+      # An empty string still renders an empty green alert, which is worse
+      # than the old vague sentence it replaced.
+      return 'Nothing to update — the selection has no curation rows.' if parts.empty?
+
+      parts.join(' ')
     end
 
     def status_notice(projects, samples, raw)
