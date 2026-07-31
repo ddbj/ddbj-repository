@@ -8,6 +8,7 @@ import type { paths } from 'schema/openapi';
 type Attention = paths['/attention']['get']['responses']['200']['content']['application/json'];
 
 export type AttentionRequest = Attention['requests'][number];
+export type AttentionReason = AttentionRequest['reason'];
 
 // What is waiting on the submitter, across every request they own.
 //

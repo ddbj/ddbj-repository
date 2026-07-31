@@ -1,11 +1,20 @@
 import type { components } from 'schema/openapi';
 
 type SubmissionRequest = components['schemas']['SubmissionRequest'];
+type SubmissionRequestSummary = components['schemas']['SubmissionRequestSummary'];
+
+// The list row and the detail answer the same question from the same
+// facts — the summary simply carries fewer of them. Typing the input as
+// what both have in common is what keeps a row and the page it opens
+// from ever disagreeing.
+type StatefulRequest = SubmissionRequest | SubmissionRequestSummary;
 
 export type Tone = 'action' | 'waiting' | 'done' | 'failed';
 
 export interface RequestState {
   tone: Tone;
+  // Short enough for a table cell: "Ready for you to submit".
+  label: string;
   badge: string;
   heading: string;
   body: string;
@@ -30,13 +39,16 @@ export function toneClasses(tone: Tone) {
 //
 // Ordered by urgency: a broken pipeline first, then a step only the
 // submitter can take, then a curator's question, then the quiet states.
-export function requestState(request: SubmissionRequest): RequestState {
+export function requestState(request: StatefulRequest): RequestState {
   if (request.progress.failed) {
     return {
       tone: 'failed',
+      label: 'Could not be processed',
       badge: 'Action needed',
       heading: 'This submission could not be processed',
-      body: request.error_message ?? 'Check the validation report below, correct the file and submit it again.',
+      body:
+        ('error_message' in request ? request.error_message : null) ??
+        'Check the validation report below, correct the file and submit it again.',
     };
   }
 
@@ -46,6 +58,7 @@ export function requestState(request: SubmissionRequest): RequestState {
   if (request.progress.closed) {
     return {
       tone: 'waiting',
+      label: 'Closed',
       badge: 'Closed',
       heading: 'This submission is no longer in progress',
       body: 'It has been withdrawn, canceled or suppressed. Contact the DDBJ curator if that is unexpected.',
@@ -55,6 +68,7 @@ export function requestState(request: SubmissionRequest): RequestState {
   if (request.processing) {
     return {
       tone: 'waiting',
+      label: 'Being checked',
       badge: 'In progress',
       heading: 'We are checking your file',
       body: 'This page updates itself — nothing to do while it runs.',
@@ -64,6 +78,7 @@ export function requestState(request: SubmissionRequest): RequestState {
   if (request.status === 'ready_to_apply') {
     return {
       tone: 'action',
+      label: 'Ready for you to submit',
       badge: 'Action needed',
       heading: 'Your file passed validation and is ready to submit',
       body: 'Review the validation report below, then press Apply to hand it to DDBJ.',
@@ -75,6 +90,7 @@ export function requestState(request: SubmissionRequest): RequestState {
 
     return {
       tone: 'action',
+      label: n === 1 ? 'A curator has a question' : `A curator has ${n} questions`,
       badge: 'Action needed',
       heading: n === 1 ? 'A curator has a question' : `A curator has ${n} questions`,
       body:
@@ -87,6 +103,7 @@ export function requestState(request: SubmissionRequest): RequestState {
     case 'public':
       return {
         tone: 'done',
+        label: 'Public',
         badge: 'Released',
         heading: 'This submission is public',
         body: 'Nothing further is required.',
@@ -95,6 +112,7 @@ export function requestState(request: SubmissionRequest): RequestState {
     case 'accession_issued':
       return {
         tone: 'done',
+        label: 'Accessions issued',
         badge: 'Accessions issued',
         heading: 'Accessions have been issued',
         body: request.progress.hold_date
@@ -105,6 +123,7 @@ export function requestState(request: SubmissionRequest): RequestState {
     default:
       return {
         tone: 'waiting',
+        label: 'With DDBJ',
         badge: 'With DDBJ',
         heading: 'A curator is reviewing your submission',
         body: 'Nothing is needed from you. We will email you if a curator has a question.',

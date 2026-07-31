@@ -13,7 +13,9 @@ module('Acceptance | attention banner', function (hooks) {
   hooks.beforeEach(function () {
     worker.use(
       http.get('/submission_requests', ({ response }) => {
-        return response(200).json([], { headers: { 'Total-Pages': '1' } });
+        return response(200).json([], {
+          headers: { 'Total-Pages': '1', 'Unfinished-Count': '0', 'Finished-Count': '0' },
+        });
       }),
     );
   });
@@ -25,14 +27,16 @@ module('Acceptance | attention banner', function (hooks) {
   });
 
   // The point of the banner is that it is visible from anywhere — a row
-  // badge on page 1 of a long list is not.
-  test('names the waiting requests and links to them', async function (assert) {
+  // badge on page 1 of a long list is not. And it says WHY: the two
+  // halves of "3 need you" are acted on in completely different places.
+  test('breaks the count down by what each request is waiting for', async function (assert) {
     worker.use(
       http.get('/attention', ({ response }) => {
         return response(200).json({
           requests: [
-            { id: 42, db: 'biosample', source_id: 'SSUB000123' },
-            { id: 7, db: 'bioproject', source_id: null },
+            { id: 42, db: 'biosample', source_id: 'SSUB000123', reason: 'unread_message' },
+            { id: 7, db: 'bioproject', source_id: null, reason: 'ready_to_apply' },
+            { id: 5, db: 'st26', source_id: null, reason: 'ready_to_apply' },
           ],
         });
       }),
@@ -40,21 +44,24 @@ module('Acceptance | attention banner', function (hooks) {
 
     await visit('/');
 
-    assert.dom('[role="status"].alert').includesText('2 submissions need your reply.');
-    assert.dom('[role="status"].alert').includesText('SSUB000123');
-    assert.dom('[role="status"].alert a[href="/web/requests/42"]').exists();
+    assert.dom('[role="status"].alert').includesText('3 submissions need you.');
+    assert.dom('[role="status"].alert').includesText('2 ready to submit · 1 curator question');
+    assert.dom('[role="status"].alert a[href="/web/?needsAction=true&phase=all"]').exists();
   });
 
   test('uses the singular for one request', async function (assert) {
     worker.use(
       http.get('/attention', ({ response }) => {
-        return response(200).json({ requests: [{ id: 42, db: 'st26', source_id: null }] });
+        return response(200).json({
+          requests: [{ id: 42, db: 'st26', source_id: null, reason: 'validation_failed' }],
+        });
       }),
     );
 
     await visit('/');
 
-    assert.dom('[role="status"].alert').includesText('1 submission needs your reply.');
+    assert.dom('[role="status"].alert').includesText('1 submission needs you.');
+    assert.dom('[role="status"].alert').includesText('1 needs fixing');
   });
 
   // Replying should clear the notice without a reload, so the banner is
@@ -65,7 +72,7 @@ module('Acceptance | attention banner', function (hooks) {
     worker.use(
       http.get('/attention', ({ response }) => {
         return response(200).json({
-          requests: answered ? [] : [{ id: 42, db: 'st26', source_id: null }],
+          requests: answered ? [] : [{ id: 42, db: 'st26', source_id: null, reason: 'unread_message' }],
         });
       }),
     );

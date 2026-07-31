@@ -3,7 +3,8 @@ render(
   collection: @requests,
   as:         :submission_request,
   locals:     {
-    unread_request_ids:      @unread_request_ids,
-    bs_accession_summaries:  @bs_accession_summaries
+    unread_counts:          @unread_counts,
+    bs_accession_summaries: @bs_accession_summaries,
+    states:                 @states
   }
 )

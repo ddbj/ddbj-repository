@@ -16,19 +16,7 @@ payload = {
   validation:  submission_request.validation_with_validity&.then { render(it) },
   submission:  submission_request.submission&.then { render(it) },
 
-  # The submitter-facing answer to "how far along is this": a six-step
-  # vocabulary derived from the ingest status AND the curation rows, so
-  # the client never has to interpret either enum itself. Neither
-  # `SubmissionRequest.status` nor the nine Lifecycleable states are a
-  # progress scale on their own. See CurationState::STEPS.
-  progress: {
-    step:              CurationState::STEP_KEYS[state.current_step_index].to_s,
-    failed:            state.failed?,
-    closed:            state.closed?,
-    row_count:         state.row_count,
-    accessioned_count: state.accessioned_count,
-    hold_date:         state.hold_date&.iso8601
-  }
+  progress: render('submission_requests/progress', state: state)
 }
 
 # The reviewer view renders this same body through an unauthenticated share

@@ -8,46 +8,71 @@ import { worker } from '../msw/worker';
 
 import type { components } from 'schema/openapi';
 
+type Summary = components['schemas']['SubmissionRequestSummary'];
+
 const now = '2025-01-01T00:00:00.000Z';
+
+// A row is mostly uninteresting to a given test — spelling out ten fields
+// each time buries the one or two that the assertion is actually about.
+function summary(attrs: Partial<Summary> & Pick<Summary, 'id' | 'db'>): Summary {
+  return {
+    status: 'applied',
+    created_at: now,
+    submission_id: null,
+    source_id: null,
+    first_accession: null,
+    accession_count: 0,
+    processing: false,
+    unread_curator_message_count: 0,
+    progress: {
+      step: 'applied',
+      failed: false,
+      closed: false,
+      row_count: 0,
+      accessioned_count: 0,
+      hold_date: null,
+    },
+    ...attrs,
+  };
+}
+
+function list(rows: Summary[], counts: { unfinished?: number; finished?: number } = {}) {
+  return {
+    headers: {
+      'Total-Pages': '1',
+      'Unfinished-Count': String(counts.unfinished ?? rows.length),
+      'Finished-Count': String(counts.finished ?? 0),
+    },
+  };
+}
 
 module('Acceptance | home', function (hooks) {
   setupApplicationTest(hooks);
   setupAuthentication(hooks);
 
   test('lists submission requests across databases', async function (assert) {
-    worker.use(
-      http.get('/submission_requests', ({ response }) => {
-        return response(200).json(
-          [
-            {
-              id: 7,
-              db: 'biosample',
-              status: 'applied',
-              created_at: now,
-              submission_id: 42,
-              source_id: 'SSUB000123',
-              first_accession: 'SAMD00000001',
-              accession_count: 3,
-              has_unread_curator_message: true,
-            },
-            {
-              id: 3,
-              db: 'bioproject',
-              status: 'validating',
-              created_at: now,
-              submission_id: null,
-              source_id: null,
-              first_accession: null,
-              accession_count: 0,
-              has_unread_curator_message: false,
-            },
-          ],
-          {
-            headers: { 'Total-Pages': '1' },
-          },
-        );
+    const rows = [
+      summary({
+        id: 7,
+        db: 'biosample',
+        submission_id: 42,
+        source_id: 'SSUB000123',
+        first_accession: 'SAMD00000001',
+        accession_count: 3,
+        unread_curator_message_count: 1,
+        progress: {
+          step: 'curating',
+          failed: false,
+          closed: false,
+          row_count: 3,
+          accessioned_count: 3,
+          hold_date: null,
+        },
       }),
-    );
+      summary({ id: 3, db: 'bioproject', status: 'validating', processing: true }),
+    ];
+
+    worker.use(http.get('/submission_requests', ({ response }) => response(200).json(rows, list(rows))));
 
     await visit('/');
 
@@ -57,30 +82,77 @@ module('Acceptance | home', function (hooks) {
 
     const firstRow = 'tbody tr:nth-child(1)';
     assert.dom(`${firstRow} td:nth-child(1)`).includesText('#7');
-    assert.dom(`${firstRow} td:nth-child(1) .badge.text-bg-warning`).hasText('New message');
     assert.dom(`${firstRow} td:nth-child(2)`).hasText('BioSample');
-    assert.dom(`${firstRow} td:nth-child(3) .badge`).hasText('applied');
-    assert.dom(`${firstRow} td:nth-child(4)`).hasText('SSUB000123'); // Source ID
-    assert.dom(`${firstRow} td:nth-child(5)`).includesText('SAMD00000001'); // Accession
-    assert.dom(`${firstRow} td:nth-child(5)`).includesText('(3)'); // first + total count
+    // Where it is now, in the submitter's words rather than the enum's.
+    assert.dom(`${firstRow} td:nth-child(3) .badge`).hasText('A curator has a question');
+    assert.dom(`${firstRow} td:nth-child(4)`).hasText('SSUB000123');
+    assert.dom(`${firstRow} td:nth-child(5)`).includesText('SAMD00000001');
+    assert.dom(`${firstRow} td:nth-child(5)`).includesText('(3)');
 
     const secondRow = 'tbody tr:nth-child(2)';
     assert.dom(`${secondRow} td:nth-child(1)`).hasText('#3');
-    assert.dom(`${secondRow} td:nth-child(1) .badge.text-bg-warning`).doesNotExist();
     assert.dom(`${secondRow} td:nth-child(2)`).hasText('BioProject');
-    assert.dom(`${secondRow} td:nth-child(3) .badge`).hasText('validating');
-    assert.dom(`${secondRow} td:nth-child(4)`).hasText('-'); // no source id
-    assert.dom(`${secondRow} td:nth-child(5)`).hasText('-'); // no accession
+    assert.dom(`${secondRow} td:nth-child(3) .badge`).hasText('Being checked');
+    assert.dom(`${secondRow} td:nth-child(4)`).hasText('-');
+    assert.dom(`${secondRow} td:nth-child(5)`).hasText('-');
+  });
+
+  // The point of the split: released records must not push the moving
+  // ones off the screen.
+  test('the phase tabs carry both counts and switch which half is listed', async function (assert) {
+    const moving = [summary({ id: 7, db: 'biosample', status: 'ready_to_apply' })];
+    const done = [summary({ id: 1, db: 'st26' })];
+
+    worker.use(
+      http.get('/submission_requests', ({ request, response }) => {
+        const phase = new URL(request.url).searchParams.get('phase');
+        const rows = phase === 'finished' ? done : moving;
+
+        return response(200).json(rows, list(rows, { unfinished: 1, finished: 1 }));
+      }),
+    );
+
+    await visit('/');
+
+    assert.dom('[data-test-phase="unfinished"]').hasClass('active').includesText('1');
+    assert.dom('[data-test-phase="finished"]').includesText('1');
+    assert.dom('tbody tr td:nth-child(1)').includesText('#7');
+
+    await click('[data-test-phase="finished"]');
+
+    assert.strictEqual(currentURL(), '/?phase=finished');
+    assert.dom('tbody tr td:nth-child(1)').includesText('#1');
+  });
+
+  test('the attention band narrows the list to what is waiting on the submitter', async function (assert) {
+    const all = [summary({ id: 7, db: 'biosample', status: 'ready_to_apply' }), summary({ id: 3, db: 'st26' })];
+
+    worker.use(
+      http.get('/attention', ({ response }) =>
+        response(200).json({ requests: [{ id: 7, db: 'biosample', source_id: null, reason: 'ready_to_apply' }] }),
+      ),
+
+      http.get('/submission_requests', ({ request, response }) => {
+        const params = new URL(request.url).searchParams;
+        const rows = params.get('needs_action') ? all.slice(0, 1) : all;
+
+        return response(200).json(rows, list(all, { unfinished: 2 }));
+      }),
+    );
+
+    await visit('/');
+
+    assert.dom('.alert').includesText('1 ready to submit');
+    assert.dom('tbody tr').exists({ count: 2 });
+
+    await click('.alert a');
+
+    assert.strictEqual(currentURL(), '/?needsAction=true&phase=all');
+    assert.dom('tbody tr').exists({ count: 1 });
   });
 
   test('empty state links to /new', async function (assert) {
-    worker.use(
-      http.get('/submission_requests', ({ response }) => {
-        return response(200).json([], {
-          headers: { 'Total-Pages': '1' },
-        });
-      }),
-    );
+    worker.use(http.get('/submission_requests', ({ response }) => response(200).json([], list([]))));
 
     await visit('/');
 
@@ -93,13 +165,7 @@ module('Acceptance | home', function (hooks) {
   });
 
   test('"New Submission" navigates to /new with database picker', async function (assert) {
-    worker.use(
-      http.get('/submission_requests', ({ response }) => {
-        return response(200).json([], {
-          headers: { 'Total-Pages': '1' },
-        });
-      }),
-    );
+    worker.use(http.get('/submission_requests', ({ response }) => response(200).json([], list([]))));
 
     await visit('/');
     // The nav button — the one control that is present on every screen,
@@ -114,29 +180,9 @@ module('Acceptance | home', function (hooks) {
   });
 
   test('unchecking a database facet and submitting narrows the list', async function (assert) {
-    const rows: components['schemas']['SubmissionRequestSummary'][] = [
-      {
-        id: 7,
-        db: 'biosample',
-        status: 'applied',
-        created_at: now,
-        submission_id: 42,
-        source_id: 'SSUB000123',
-        first_accession: 'SAMD00000001',
-        accession_count: 3,
-        has_unread_curator_message: false,
-      },
-      {
-        id: 3,
-        db: 'bioproject',
-        status: 'validating',
-        created_at: now,
-        submission_id: null,
-        source_id: null,
-        first_accession: null,
-        accession_count: 0,
-        has_unread_curator_message: false,
-      },
+    const rows = [
+      summary({ id: 7, db: 'biosample', submission_id: 42, source_id: 'SSUB000123' }),
+      summary({ id: 3, db: 'bioproject', status: 'validating' }),
     ];
 
     worker.use(
@@ -144,11 +190,12 @@ module('Acceptance | home', function (hooks) {
         const dbs = new URL(request.url).searchParams.getAll('db[]');
         const filtered = dbs.length ? rows.filter((r) => dbs.includes(r.db)) : rows;
 
-        return response(200).json(filtered, { headers: { 'Total-Pages': '1' } });
+        return response(200).json(filtered, list(rows));
       }),
     );
 
     await visit('/');
+    await click('.btn-link.p-0'); // reveal the folded-away facets
 
     // Default: all databases checked, both rows shown.
     assert.dom('tbody tr').exists({ count: 2 });
@@ -168,35 +215,15 @@ module('Acceptance | home', function (hooks) {
 
     // Clear filters restores the full list with every box checked again.
     // (`:not(.p-0)` distinguishes it from the Select all / Deselect all links.)
-    await click('.btn-link:not(.p-0)');
+    await click('form .btn-link:not(.p-0)');
     assert.dom('#db-bioproject').isChecked();
     assert.dom('tbody tr').exists({ count: 2 });
   });
 
   test('the Accession search sends an accession param on submit', async function (assert) {
-    const rows: components['schemas']['SubmissionRequestSummary'][] = [
-      {
-        id: 7,
-        db: 'biosample',
-        status: 'applied',
-        created_at: now,
-        submission_id: 42,
-        source_id: null,
-        first_accession: 'SAMD00000001',
-        accession_count: 1,
-        has_unread_curator_message: false,
-      },
-      {
-        id: 3,
-        db: 'bioproject',
-        status: 'validating',
-        created_at: now,
-        submission_id: null,
-        source_id: null,
-        first_accession: null,
-        accession_count: 0,
-        has_unread_curator_message: false,
-      },
+    const rows = [
+      summary({ id: 7, db: 'biosample', submission_id: 42, first_accession: 'SAMD00000001', accession_count: 1 }),
+      summary({ id: 3, db: 'bioproject', status: 'validating' }),
     ];
 
     worker.use(
@@ -204,11 +231,12 @@ module('Acceptance | home', function (hooks) {
         const accession = new URL(request.url).searchParams.get('accession');
         const filtered = accession ? rows.filter((r) => (r.first_accession ?? '').startsWith(accession)) : rows;
 
-        return response(200).json(filtered, { headers: { 'Total-Pages': '1' } });
+        return response(200).json(filtered, list(rows));
       }),
     );
 
     await visit('/');
+    await click('.btn-link.p-0');
     assert.dom('tbody tr').exists({ count: 2 });
 
     await fillIn('#accession-filter', 'SAMD');
@@ -219,28 +247,12 @@ module('Acceptance | home', function (hooks) {
   });
 
   test('Select all / Deselect all toggle a whole facet', async function (assert) {
-    worker.use(
-      http.get('/submission_requests', ({ response }) => {
-        return response(200).json(
-          [
-            {
-              id: 1,
-              db: 'st26',
-              status: 'applied',
-              created_at: now,
-              submission_id: 1,
-              source_id: null,
-              first_accession: null,
-              accession_count: 0,
-              has_unread_curator_message: false,
-            },
-          ],
-          { headers: { 'Total-Pages': '1' } },
-        );
-      }),
-    );
+    const rows = [summary({ id: 1, db: 'st26', submission_id: 1 })];
+
+    worker.use(http.get('/submission_requests', ({ response }) => response(200).json(rows, list(rows))));
 
     await visit('/');
+    await click('.btn-link.p-0');
 
     // Default: every database box checked.
     assert.dom('#db-st26').isChecked();

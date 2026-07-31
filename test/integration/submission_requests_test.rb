@@ -120,12 +120,14 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_equal 1, bs['accession_count']
   end
 
-  test 'index reports has_unread_curator_message when an unread curator-authored message exists' do
-    submission_requests(:bioproject).messages.create!(
-      user:        users(:bob),
-      author_role: :curator,
-      body:        'curator note'
-    )
+  test 'index counts unread curator-authored messages per request' do
+    2.times do |i|
+      submission_requests(:bioproject).messages.create!(
+        user:        users(:bob),
+        author_role: :curator,
+        body:        "curator note #{i}"
+      )
+    end
 
     get submission_requests_path
 
@@ -135,8 +137,51 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     bp   = body.find { it['id'] == submission_requests(:bioproject).id }
     st26 = body.find { it['id'] == submission_requests(:st26).id }
 
-    assert bp['has_unread_curator_message']
-    assert_not st26['has_unread_curator_message']
+    assert_equal 2, bp['unread_curator_message_count']
+    assert_equal 0, st26['unread_curator_message_count']
+  end
+
+  # The whole point of the split: a submitter with a long tail of released
+  # records still has to be able to see the ones that are moving.
+  test 'index defaults to the unfinished half and reports both counts' do
+    projects(:primary).update!(status: :public)
+
+    get submission_requests_path
+
+    assert_conform_schema 200
+    assert_equal '1', response.headers['Finished-Count']
+
+    ids = response.parsed_body.map { it['id'] }
+    assert_not_includes ids, submission_requests(:bioproject).id
+
+    get submission_requests_path, params: {phase: 'finished'}
+
+    assert_equal [submission_requests(:bioproject).id], response.parsed_body.map { it['id'] }
+
+    get submission_requests_path, params: {phase: 'all'}
+
+    assert_includes response.parsed_body.map { it['id'] }, submission_requests(:bioproject).id
+  end
+
+  # Sorted across the whole list, not within a page: a request waiting on
+  # the submitter is useless on page 4.
+  test 'index floats requests that need the submitter above the rest' do
+    older = submission_requests(:st26)
+    older.update_columns(status: SubmissionRequest.statuses.fetch('ready_to_apply'))
+
+    get submission_requests_path, params: {phase: 'all'}
+
+    assert_conform_schema 200
+    assert_equal older.id, response.parsed_body.first['id']
+  end
+
+  test 'index narrows to the requests waiting on the submitter' do
+    submission_requests(:st26).update_columns(status: SubmissionRequest.statuses.fetch('ready_to_apply'))
+
+    get submission_requests_path, params: {phase: 'all', needs_action: 'true'}
+
+    assert_conform_schema 200
+    assert_equal [submission_requests(:st26).id], response.parsed_body.map { it['id'] }
   end
 
   test 'show' do

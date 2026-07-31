@@ -92,10 +92,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Get the requests that are waiting on the current user — currently,
-         *     those with an unread curator message. Used for a global banner, so
-         *     the notice is visible from any screen rather than only where the
-         *     request happens to be listed.
+         * @description Get the requests that are waiting on the current user: a file that
+         *     stopped on a validation error, one that passed validation and is
+         *     waiting to be applied, or an unanswered curator question. Used for
+         *     a global banner, so the notice is visible from any screen rather
+         *     than only where the request happens to be listed.
+         *
+         *     A failed *application* is deliberately not here — that one is
+         *     DDBJ's to fix, and asking the submitter to act on it only makes
+         *     them resubmit a file that was fine.
          */
         get: {
             parameters: {
@@ -117,6 +122,12 @@ export interface paths {
                                 id: number;
                                 db: components["schemas"]["Db"];
                                 source_id: string | null;
+                                /**
+                                 * @description Why this request is waiting on the submitter,
+                                 *     most-blocking first when it is more than one.
+                                 * @enum {string}
+                                 */
+                                reason: "validation_failed" | "ready_to_apply" | "unread_message";
                             }[];
                         };
                     };
@@ -146,6 +157,12 @@ export interface paths {
          *     match on the applied submission's source id. `accession` is a
          *     case-insensitive prefix match across the submission's accessions
          *     (BP project / BS samples / ST.26 accessions).
+         *
+         *     `phase` splits the live submissions from the finished ones and
+         *     defaults to `unfinished`; `needs_action` narrows to the ones
+         *     waiting on the submitter (the same set `/attention` returns).
+         *     `Unfinished-Count` and `Finished-Count` report both halves
+         *     regardless of which one is being listed.
          */
         get: {
             parameters: {
@@ -154,6 +171,8 @@ export interface paths {
                     status?: components["schemas"]["SubmissionOperationStatus"][];
                     source_id?: string;
                     accession?: string;
+                    phase?: "unfinished" | "finished" | "all";
+                    needs_action?: boolean;
                     page?: number;
                 };
                 header?: never;
@@ -166,6 +185,8 @@ export interface paths {
                 200: {
                     headers: {
                         "Total-Pages"?: string;
+                        "Unfinished-Count"?: string;
+                        "Finished-Count"?: string;
                         [name: string]: unknown;
                     };
                     content: {
@@ -789,7 +810,10 @@ export interface components {
             source_id: string | null;
             first_accession: string | null;
             accession_count: number;
-            has_unread_curator_message: boolean;
+            /** @description Validation or application is running right now. */
+            processing: boolean;
+            unread_curator_message_count: number;
+            progress: components["schemas"]["Progress"];
         };
         ReviewerAccess: {
             enabled: boolean;

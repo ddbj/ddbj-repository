@@ -6,11 +6,15 @@
 # hides it completely. The web client polls this once per navigation and
 # renders a global band, matching the wording of the notification email so
 # the two do not describe the same thing differently.
+#
+# Each entry carries WHY it is here. "3 submissions need you" with no
+# breakdown is a nag; "2 ready to submit · 1 curator question" is a to-do
+# list, and its two halves are acted on in completely different places.
 class AttentionsController < ApplicationController
   def show
     @requests = current_user
       .submission_requests
-      .where(id: SubmissionMessage.curator_role.unread.select(:submission_request_id))
+      .needs_submitter_action
       .includes(:submission)
       .order(id: :desc)
   end

@@ -115,4 +115,46 @@ class CurationStateTest < ActiveSupport::TestCase
   test 'nothing pending yields no next action' do
     assert_nil CurationState.new(submission_requests(:bioproject)).next_action
   end
+
+  # --- batch -------------------------------------------------------------
+
+  test 'batch answers the same questions as a per-request state' do
+    requests = [submission_requests(:bioproject), submission_requests(:biosample), submission_requests(:st26)]
+    batched  = CurationState.batch(requests)
+
+    requests.each do |request|
+      single = CurationState.new(request)
+      state  = batched.fetch(request.id)
+
+      assert_equal single.row_count,          state.row_count,          "row_count for ##{request.id}"
+      assert_equal single.statuses.sort,      state.statuses.sort,      "statuses for ##{request.id}"
+      assert_equal single.accessioned_count,  state.accessioned_count,  "accessioned_count for ##{request.id}"
+      assert_equal single.current_step_index, state.current_step_index, "step for ##{request.id}"
+    end
+  end
+
+  # The reason for batch existing at all: a list must not pay per row.
+  test 'batch reads the curation rows once per model, not once per request' do
+    requests = SubmissionRequest.includes(:submission).to_a
+
+    row_queries = count_queries(/FROM "(projects|samples)"/) { CurationState.batch(requests) }
+
+    assert_equal 2, row_queries
+  end
+
+  private
+
+  def count_queries(pattern)
+    count = 0
+
+    subscriber = ActiveSupport::Notifications.subscribe('sql.active_record') {|*, payload|
+      count += 1 if payload[:sql].match?(pattern)
+    }
+
+    yield
+
+    count
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber)
+  end
 end

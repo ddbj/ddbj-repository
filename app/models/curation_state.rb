@@ -29,9 +29,54 @@ class CurationState
 
   NextAction = Data.define(:title, :detail, :label)
 
-  def initialize(request)
-    @request    = request
-    @submission = request.submission
+  # The row aggregates a list screen needs, for a whole page at once. A
+  # list asks every row the same "where is this" question, and answering
+  # it one CurationState at a time is three aggregate queries per row —
+  # so `batch` asks once per model and hands each state its own slice.
+  RowSummary = Data.define(:count, :statuses, :accessioned_count)
+
+  EMPTY_ROW_SUMMARY = RowSummary.new(count: 0, statuses: [], accessioned_count: 0)
+
+  def self.batch(requests)
+    summaries = row_summaries(requests.filter_map(&:submission))
+
+    requests.to_h {|request|
+      summary = request.submission && summaries.fetch(request.submission.id, EMPTY_ROW_SUMMARY)
+
+      [request.id, new(request, row_summary: summary)]
+    }
+  end
+
+  # {submission_id => RowSummary} over the BP Projects and BS Samples of
+  # the given submissions — one grouped query per model. Submissions with
+  # no rows are absent, which `batch` reads as EMPTY_ROW_SUMMARY.
+  def self.row_summaries(submissions)
+    names = Lifecycleable::STATUSES.invert
+
+    [[Project, submissions.select(&:bioproject_db?)], [Sample, submissions.select(&:biosample_db?)]]
+      .flat_map {|model, subs|
+        next [] if subs.empty?
+
+        model
+          .where(submission_id: subs.map(&:id))
+          .group(:submission_id)
+          .pluck(:submission_id,
+                 Arel.sql('COUNT(*) AS row_count'),
+                 Arel.sql('ARRAY_AGG(DISTINCT status) AS statuses'),
+                 Arel.sql('COUNT(accession) AS accessioned_count'))
+      }
+      # ARRAY_AGG bypasses the enum's type cast, so the statuses come back
+      # as the raw integers the column stores; the rest of this class
+      # compares them by name.
+      .to_h {|sid, count, statuses, accessioned_count|
+        [sid, RowSummary.new(count:, statuses: statuses.compact.map { names.fetch(it, it) }, accessioned_count:)]
+      }
+  end
+
+  def initialize(request, row_summary: nil)
+    @request     = request
+    @submission  = request.submission
+    @row_summary = row_summary
   end
 
   attr_reader :request, :submission
@@ -43,7 +88,7 @@ class CurationState
   # `nil` for a request that has not been applied yet, and for ST.26.
   def rows = @rows ||= submission&.curation_rows
 
-  def row_count = @row_count ||= rows&.count.to_i
+  def row_count = @row_count ||= @row_summary&.count || rows&.count.to_i
 
   def curated? = row_count.positive?
 
@@ -53,7 +98,7 @@ class CurationState
     submission.curation_row_noun.pluralize(count)
   end
 
-  def statuses = @statuses ||= rows ? rows.distinct.pluck(:status).compact : []
+  def statuses = @statuses ||= @row_summary&.statuses || (rows ? rows.distinct.pluck(:status).compact : [])
 
   def uniform_status = statuses.size == 1 ? statuses.first : nil
 
@@ -80,7 +125,9 @@ class CurationState
 
   def assigned_to?(user) = assignee_ids == [user.id]
 
-  def accessioned_count = @accessioned_count ||= rows ? rows.where.not(accession: nil).count : 0
+  def accessioned_count
+    @accessioned_count ||= @row_summary&.accessioned_count || (rows ? rows.where.not(accession: nil).count : 0)
+  end
 
   def first_accession
     @first_accession ||= rows && rows.where.not(accession: nil).minimum(:accession)

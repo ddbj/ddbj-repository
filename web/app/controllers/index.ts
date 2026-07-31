@@ -25,8 +25,32 @@ export const STATUS_OPTIONS: FilterOption[] = [
   'no_change',
 ].map((value) => ({ value, label: value.replace(/_/g, ' ') }));
 
+export type Phase = 'unfinished' | 'finished' | 'all';
+
+export const PHASE_TABS: { value: Phase; label: string }[] = [
+  { value: 'unfinished', label: 'In progress' },
+  { value: 'finished', label: 'Completed' },
+  { value: 'all', label: 'All' },
+];
+
 export default class extends Controller {
-  queryParams = ['db', 'status', 'sourceId', 'accession', { page: { type: 'number' } as const }];
+  queryParams = [
+    'db',
+    'status',
+    'sourceId',
+    'accession',
+    'phase',
+    { needsAction: { type: 'boolean' }, page: { type: 'number' } } as const,
+  ];
+
+  // Which half of the list is on screen. Finished submissions never stop
+  // accumulating, so a lab with 500 released records cannot find the
+  // three that are still moving unless the two are separated.
+  @tracked phase: Phase = 'unfinished';
+
+  // Set by the attention band's "Show only these": narrows to what is
+  // waiting on the submitter, across both halves.
+  @tracked needsAction = false;
 
   // The applied filter — the checked subset for each facet. An empty
   // array means "no constraint" (every value), so the param drops out of
@@ -75,11 +99,24 @@ export default class extends Controller {
     this.status = [];
     this.sourceId = '';
     this.accession = '';
+    this.needsAction = false;
+    this.page = 1;
+  }
+
+  @action
+  selectPhase(phase: Phase) {
+    this.phase = phase;
     this.page = 1;
   }
 
   get hasActiveFilters(): boolean {
-    return this.db.length > 0 || this.status.length > 0 || this.sourceId.length > 0 || this.accession.length > 0;
+    return (
+      this.db.length > 0 ||
+      this.status.length > 0 ||
+      this.sourceId.length > 0 ||
+      this.accession.length > 0 ||
+      this.needsAction
+    );
   }
 }
 

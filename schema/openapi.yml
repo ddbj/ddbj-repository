@@ -72,10 +72,15 @@ paths:
   /attention:
     get:
       description: |
-        Get the requests that are waiting on the current user — currently,
-        those with an unread curator message. Used for a global banner, so
-        the notice is visible from any screen rather than only where the
-        request happens to be listed.
+        Get the requests that are waiting on the current user: a file that
+        stopped on a validation error, one that passed validation and is
+        waiting to be applied, or an unanswered curator question. Used for
+        a global banner, so the notice is visible from any screen rather
+        than only where the request happens to be listed.
+
+        A failed *application* is deliberately not here — that one is
+        DDBJ's to fix, and asking the submitter to act on it only makes
+        them resubmit a file that was fine.
 
       tags:
         - Submission Requests
@@ -98,7 +103,7 @@ paths:
                     items:
                       type: object
                       additionalProperties: false
-                      required: [id, db, source_id]
+                      required: [id, db, source_id, reason]
 
                       properties:
                         id:
@@ -112,6 +117,16 @@ paths:
                             - string
                             - 'null'
 
+                        reason:
+                          description: |
+                            Why this request is waiting on the submitter,
+                            most-blocking first when it is more than one.
+                          type: string
+                          enum:
+                            - validation_failed
+                            - ready_to_apply
+                            - unread_message
+
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -124,6 +139,12 @@ paths:
         match on the applied submission's source id. `accession` is a
         case-insensitive prefix match across the submission's accessions
         (BP project / BS samples / ST.26 accessions).
+
+        `phase` splits the live submissions from the finished ones and
+        defaults to `unfinished`; `needs_action` narrows to the ones
+        waiting on the submitter (the same set `/attention` returns).
+        `Unfinished-Count` and `Finished-Count` report both halves
+        regardless of which one is being listed.
 
       tags:
         - Submission Requests
@@ -159,6 +180,19 @@ paths:
           schema:
             type: string
 
+        - name: phase
+          in: query
+
+          schema:
+            type: string
+            enum: [unfinished, finished, all]
+
+        - name: needs_action
+          in: query
+
+          schema:
+            type: boolean
+
         - name: page
           in: query
 
@@ -171,6 +205,14 @@ paths:
 
           headers:
             Total-Pages:
+              schema:
+                type: string
+
+            Unfinished-Count:
+              schema:
+                type: string
+
+            Finished-Count:
               schema:
                 type: string
 
@@ -742,7 +784,9 @@ components:
         - source_id
         - first_accession
         - accession_count
-        - has_unread_curator_message
+        - processing
+        - unread_curator_message_count
+        - progress
 
       properties:
         id:
@@ -775,8 +819,15 @@ components:
         accession_count:
           type: number
 
-        has_unread_curator_message:
+        processing:
+          description: Validation or application is running right now.
           type: boolean
+
+        unread_curator_message_count:
+          type: number
+
+        progress:
+          $ref: '#/components/schemas/Progress'
 
     ReviewerAccess:
       type: object

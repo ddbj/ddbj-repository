@@ -1,9 +1,22 @@
+# Why a request is on this list, most-blocking first: a file that stopped
+# on an error, then one waiting for the submitter to press Apply, then an
+# unanswered curator question. A request can be more than one of these
+# (a curator can write while a file sits unapplied); the band names the
+# reason the submitter has to deal with first.
 {
   requests: @requests.map {|request|
+    reason =
+      case request.status
+      when 'validation_failed' then 'validation_failed'
+      when 'ready_to_apply'    then 'ready_to_apply'
+      else                          'unread_message'
+      end
+
     {
       id:        request.id,
       db:        request.db,
-      source_id: request.submission&.source_id
+      source_id: request.submission&.source_id,
+      reason:    reason
     }
   }
 }

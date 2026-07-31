@@ -2,6 +2,7 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
 import type CurrentUser from 'repository/services/current-user';
+import type { Phase } from 'repository/controllers/index';
 import type { RequestManager } from '@warp-drive/core';
 import type Transition from '@ember/routing/transition';
 import type { paths } from 'schema/openapi';
@@ -18,6 +19,8 @@ export default class IndexRoute extends Route {
     status: { refreshModel: true },
     sourceId: { refreshModel: true },
     accession: { refreshModel: true },
+    phase: { refreshModel: true },
+    needsAction: { refreshModel: true },
     page: { refreshModel: true },
   };
 
@@ -33,12 +36,16 @@ export default class IndexRoute extends Route {
     status,
     sourceId,
     accession,
+    phase,
+    needsAction,
     page,
   }: {
     db?: string[];
     status?: string[];
     sourceId?: string;
     accession?: string;
+    phase?: Phase;
+    needsAction?: boolean;
     page?: number;
   }) {
     const { content, response } = await this.requestManager.request<SubmissionRequestSummaries>({
@@ -49,14 +56,20 @@ export default class IndexRoute extends Route {
           status,
           source_id: sourceId || undefined,
           accession: accession || undefined,
+          phase,
+          needs_action: needsAction || undefined,
           page,
         },
       },
     });
 
+    // Both halves are reported whichever one is being listed, so the tabs
+    // can carry their counts without a second round trip.
     return {
       requests: content,
       totalPages: Number(response?.headers?.get('Total-Pages')) || 1,
+      unfinishedCount: Number(response?.headers?.get('Unfinished-Count')) || 0,
+      finishedCount: Number(response?.headers?.get('Finished-Count')) || 0,
     };
   }
 }
