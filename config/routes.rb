@@ -138,7 +138,11 @@ Rails.application.routes.draw do
 
     resource :distribution_notice_template, only: %i[update], path: 'distribution_notices/template'
 
-    resources :migration_runs, only: %i[index show new create]
+    resources :migration_runs, only: %i[index show new create] do
+      member do
+        patch :abandon
+      end
+    end
 
     resources :accession_issuance_runs, only: %i[show] do
       member do

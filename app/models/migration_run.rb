@@ -23,6 +23,19 @@ class MigrationRun < ApplicationRecord
 
   validates :db, presence: true, inclusion: {in: DBS}
 
+  # How long a run with no progress is still believed to be running.
+  #
+  # The job writes counters every CHECKPOINT_EVERY rows, so `updated_at`
+  # moves every few minutes even on BioSample, where a single 7 MB record
+  # costs seconds to canonicalise. An hour of silence is a worker that is
+  # gone — and without a bound, one such row blocks every future import
+  # of that database with no way out of the UI.
+  STALE_AFTER = 1.hour
+
+  # What the enqueue precheck honours: a run that is still moving, or
+  # recent enough that it might be.
+  scope :in_flight, -> { where(status: %w[queued running], updated_at: STALE_AFTER.ago..) }
+
   before_validation { self.uuid ||= SecureRandom.uuid }
 
   scope :recent, -> { order(created_at: :desc) }
@@ -49,6 +62,18 @@ class MigrationRun < ApplicationRecord
     merged = counters.dup
     increments.each {|outcome, n| merged[outcome.to_s] = merged.fetch(outcome.to_s, 0) + n }
     update!(counters: merged)
+  end
+
+  # Queued or running, and no longer moving. A curator may abandon one of
+  # these; a run that is still progressing they may not, because a second
+  # worker on the same database would then write over the first.
+  def stale? = (queued_status? || running_status?) && updated_at < STALE_AFTER.ago
+
+  # Give up on a run whose worker is gone, and say so in the log rather
+  # than leaving a `failed` with no reason in it.
+  def abandon!(reason)
+    update!(status: :failed, finished_at: Time.current)
+    append_error!("ABANDONED: #{reason}")
   end
 
   def append_error!(message)

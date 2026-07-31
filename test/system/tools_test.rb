@@ -27,6 +27,54 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
     assert_text    "##{bs.id}"
     assert_no_text "##{bp.id}"
   end
+
+  # A run whose worker died keeps its status for ever, and the enqueue
+  # precheck then blocks every future import of that database — the same
+  # dead end the precheck exists to prevent, reached from the other side.
+  # A BioSample run left running on 22 July did exactly this.
+  test 'a run whose worker is gone can be abandoned from the screen' do
+    run = MigrationRun.create!(db: 'biosample', status: :running, started_at: 9.days.ago)
+    run.update_columns(updated_at: 9.days.ago)
+
+    visit admin_migration_run_path(run)
+
+    assert_text 'last progress 9d ago'
+
+    click_button 'Abandon this run'
+
+    assert_text 'abandoned'
+    assert_predicate run.reload, :failed_status?
+    assert_match(/ABANDONED/, run.error_log)
+  end
+
+  # Abandoning a live run would put a second worker on the same database,
+  # and the two would write over each other. "It looks stuck" is not
+  # enough — it has to have stopped.
+  test 'a run that is still moving cannot be abandoned' do
+    run = MigrationRun.create!(db: 'biosample', status: :running, started_at: 2.minutes.ago)
+
+    visit admin_migration_run_path(run)
+
+    assert_text      'Still progressing'
+    assert_no_button 'Abandon this run'
+  end
+
+  # Belt and braces for the run nobody thought to abandon: starting a new
+  # one closes out the abandoned predecessor rather than being refused by
+  # it, and says so in that run's log.
+  test 'starting a new run supersedes a dead one instead of being blocked by it' do
+    dead = MigrationRun.create!(db: 'biosample', status: :running, started_at: 9.days.ago)
+    dead.update_columns(updated_at: 9.days.ago)
+
+    visit new_admin_migration_run_path
+
+    choose 'BioSample'
+    click_button 'Enqueue'
+
+    assert_predicate dead.reload, :failed_status?
+    assert_match(/superseded/, dead.error_log)
+    assert_equal 2, MigrationRun.where(db: 'biosample').count
+  end
 end
 
 class RegenerateFlatfilesSystemTest < ApplicationSystemTestCase
