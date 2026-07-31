@@ -94,6 +94,19 @@ class Submission < ApplicationRecord
     bioproject_db? ? 'project' : 'sample'
   end
 
+  # True while this chain still holds a root snapshot written before
+  # `ddbj-canon/v2`, i.e. in raw converter order. `diff` emits indices into
+  # the canonical order, so a positional patch appended to such a chain
+  # names the wrong element of a keyed array — silently, and only where the
+  # two orders happen to differ.
+  #
+  # Every writer of the chain has to check this, not just append_update!:
+  # the importers write far more of it, and they are the ones holding the
+  # v1 corpus. Cleared by whichever writer heals the chain first.
+  def legacy_chain?
+    canonical_version < DDBJRecord::Canonicalizer::NUMBER
+  end
+
   class MaterialisationFailed < StandardError
     attr_reader :update_id, :original
 
@@ -177,7 +190,7 @@ class Submission < ApplicationRecord
   def append_update!(new_record, actor:, source: :manual)
     with_lock do
       latest_id = updates.maximum(:id)
-      base      = latest_id ? materialise_at(update_id: latest_id) : {}
+      base      = latest_id ? base_state(latest_id) : {}
 
       # Try a minimal semantic diff. If it lands inside a bag-mode array
       # (or any other Canonicalizer::Error — NumberGuard, ControlChar,
@@ -187,7 +200,7 @@ class Submission < ApplicationRecord
       # organizations) replayable. Mirrors the same fallback used by
       # BP/BS Importer's `compute_patch_ops`.
       patch =
-        if legacy_chain?(base)
+        if heal_chain?(base)
           [{'op' => 'replace', 'path' => '', 'value' => snapshot_value(new_record)}]
         else
           begin
@@ -289,8 +302,24 @@ class Submission < ApplicationRecord
   #
   # A chain that has never been written to is trivially canonical, so the
   # empty base is exempt.
-  def legacy_chain?(base)
-    !base.empty? && canonical_version < DDBJRecord::Canonicalizer::NUMBER
+  def heal_chain?(base)
+    !base.empty? && legacy_chain?
+  end
+
+  # The state to diff against: always a real replay, never the cache.
+  #
+  # Reading the cache here would be faster — and was tried, to shorten the
+  # window AccessionIssue holds the Sequence row locked for. It is wrong.
+  # The cache can be current-looking while the chain behind it cannot
+  # replay at all: the importers prime it after `safe_prior_materialised`
+  # has swallowed a MaterialisationFailed, so `cached_at_update_id` names
+  # the newest update while an older patch in the same chain is still
+  # poisoned. Diffing against the cache would build the next patch on a
+  # base the chain never produces, quietly widening the divergence instead
+  # of surfacing it — and "replaying the chain reproduces the record" is
+  # the property the chain exists for.
+  def base_state(latest_id)
+    materialise_at(update_id: latest_id)
   end
 
   # Root snapshots define the stored state every later diff indexes into,

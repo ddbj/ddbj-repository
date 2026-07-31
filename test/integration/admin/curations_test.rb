@@ -190,6 +190,21 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
     assert_nil @project.reload.hold_date
   end
 
+  # The rail hides the field outside BioProject because nothing there acts
+  # on it. A template is not a guard: a replayed POST would otherwise
+  # append a real patch setting a date nothing will ever honour.
+  test 'PATCH update refuses a hold date on a non-BioProject submission' do
+    submission = submissions(:biosample)
+    submission.append_update!({'schema_version' => 'v3'}, actor: 'test-seed', source: :manual)
+
+    assert_no_difference 'submission.updates.count' do
+      patch admin_submission_curation_path(submission),
+            params: {curation: {hold_date: '2026-12-31'}}
+    end
+
+    assert_match(/BioProject submissions only/, flash[:alert])
+  end
+
   test 'PATCH update rejects month-name / non-ISO hold dates strictly' do
     seed_chain
 

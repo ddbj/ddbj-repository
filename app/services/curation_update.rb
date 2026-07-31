@@ -131,6 +131,16 @@ class CurationUpdate
   def apply_hold_date
     return [] unless params.key?(:hold_date)
 
+    # The rail only renders this field for BioProject, because nothing
+    # outside BP acts on it — `sync_hold_date!` is a no-op there and
+    # DistributionNotifier never looks. Enforced here too: a template is
+    # not a guard, and a replayed POST would otherwise append a real patch
+    # setting a date that nothing will ever honour, which is exactly the
+    # trap the field was hidden to avoid.
+    unless submission.bioproject_db?
+      raise Refused, 'Hold date applies to BioProject submissions only.'
+    end
+
     raw       = params[:hold_date].to_s.strip
     hold_date = parse_iso_date(raw) if raw.present?
 

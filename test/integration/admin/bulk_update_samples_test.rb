@@ -143,6 +143,39 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_equal 1, CurationEvent.last.row_count
   end
 
+  # An unrecognised scope used to fall through to "the whole submission",
+  # so a stale form or a garbled POST widened a handful of checked rows
+  # into all of them — and for issuance that cannot be taken back.
+  test 'an unrecognised scope is refused, not treated as everything' do
+    post bulk_update_samples_admin_submission_path(@submission),
+         params: {bulk_sample: {scope: 'all', status: 'curating'}}
+
+    assert_match(/Unknown target/, flash[:alert])
+    assert_equal 'private', @sample_a.reload.status
+    assert_equal 'public',  @sample_b.reload.status
+  end
+
+  test 'an unrecognised scope is refused for accession issuance too' do
+    @sample_a.update!(accession: nil, status: 'curating')
+    @sample_b.update!(accession: nil, status: 'curating')
+
+    assert_no_difference 'Sample.where.not(accession: nil).count' do
+      post admin_submission_accession_path(@submission),
+           params: {bulk_sample: {scope: 'all'}}
+    end
+
+    assert_match(/Unknown target/, flash[:alert])
+  end
+
+  # Absent entirely is still "the whole submission" — that is the workbench
+  # summary bar's button, which posts no scope at all.
+  test 'no scope at all still means the whole submission' do
+    post bulk_update_samples_admin_submission_path(@submission),
+         params: {bulk_sample: {status: 'curating'}}
+
+    assert_match(/Bulk-updated 2 sample/, flash[:notice])
+  end
+
   test 'scope=selected with nothing ticked is refused rather than reported as a no-op success' do
     post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {scope: 'selected', status: 'curating'}}

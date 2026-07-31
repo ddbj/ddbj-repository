@@ -13,16 +13,26 @@ module Admin
 
     private
 
+    SCOPES = %w[selected filtered].freeze
+
+    class UnknownScope < StandardError; end
+
     # nil = "the whole submission", which is what callers outside the
-    # Samples screen (the cross-request bulk actions) want.
+    # Samples screen want — the workbench's own Issue button posts no
+    # `bulk_sample` at all.
+    #
+    # A scope that is present but unrecognised is NOT that: a stale
+    # bookmarked form or a garbled POST would otherwise widen a handful of
+    # checked rows into all 100K, and an accession issuance cannot be taken
+    # back once the Sequence has moved.
     def target_samples(submission)
       return nil unless submission.biosample_db?
 
-      case params.dig(:bulk_sample, :scope)
-      when 'selected'
-        submission.samples.where(id: selected_sample_ids)
-      when 'filtered'
-        SampleSearch.new(submission.samples, params).scope
+      case scope = params.dig(:bulk_sample, :scope).presence
+      when nil        then nil
+      when 'selected' then submission.samples.where(id: selected_sample_ids)
+      when 'filtered' then SampleSearch.new(submission.samples, params).scope
+      else                 raise UnknownScope, "Unknown target: #{scope.inspect}."
       end
     end
 

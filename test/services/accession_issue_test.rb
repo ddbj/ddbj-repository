@@ -68,6 +68,29 @@ class AccessionIssueTest < ActiveSupport::TestCase
     assert_nil      CurationEvent.last.submission_update_id
   end
 
+  # `materialised_record` can be served from the cache while the chain
+  # behind it is unreplayable — the importers create exactly that state
+  # (safe_prior_materialised swallows the failure, then re-primes). The
+  # read then succeeds and the append raises, escaping as
+  # MaterialisationFailed past every rescue in the controllers.
+  test 'BP: refuses when the chain is broken behind a warm cache' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+    submission.append_update!({'project' => {'title' => 'seed'}}, actor: 'test-seed')
+
+    poisoned = SubmissionUpdate.create_with_patch!(
+      submission:, patch_json: 'not-json', db: 'bioproject', status: :applied,
+      actor: 'test', source: :manual, patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+
+    # A cache that claims to be current even though the replay cannot run.
+    submission.prime_cache!(bytes: Oj.dump({'project' => {'title' => 'seed'}}, mode: :strict),
+                            update_id: poisoned.id)
+
+    assert_raises(AccessionIssue::Refused) { AccessionIssue.call(submission:, actor: 'test') }
+    assert_nil projects(:primary).reload.accession, 'the refusal must roll the allocation back'
+  end
+
   # Stamping an accession into a record that cannot be replayed would
   # record something the chain can never show.
   test 'BP: refuses when the patch chain is unreadable' do

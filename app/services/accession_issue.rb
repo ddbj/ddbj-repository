@@ -135,21 +135,23 @@ class AccessionIssue
   # a submission with no chain yet has nowhere to put it, and the typed
   # column still carries it. Appending also nils the cache stamp via
   # SubmissionUpdate#after_create, so no separate invalidation is needed.
+  # The rescue wraps the append too, not just the read. `materialised_
+  # record` can be served from the cache while the chain behind it is
+  # unreplayable — the importers create exactly that state on purpose
+  # (`safe_prior_materialised` swallows the failure, then re-primes the
+  # cache) — and `append_update!` replays from scratch. Reading it here and
+  # letting the append raise would 500 the single case and abort the bulk
+  # loop with accessions already committed and mail already enqueued.
+  #
+  # Refused rolls the whole transaction back, so nothing is burned.
   def stamp_record!
-    record = materialised_or_refuse
+    record = @submission.materialised_record
     return nil if record.nil?
 
     updated = record.deep_dup
     yield updated
 
     @submission.append_update!(updated, actor: @actor, source: :manual)
-  end
-
-  # Issuing into a submission whose chain cannot be replayed would stamp an
-  # accession the record can never reflect. Refuse instead — the same call
-  # the curation rail makes when it hides the hold-date field.
-  def materialised_or_refuse
-    @submission.materialised_record
   rescue Submission::MaterialisationFailed => e
     raise Refused, "Cannot record the accession: the patch chain is unreadable (#{e.message})."
   end

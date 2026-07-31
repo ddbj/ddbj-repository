@@ -53,6 +53,44 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
                  submission.materialised_record
   end
 
+  # The importers are what hold the pre-v2 corpus, so the heal has to live
+  # here too — a re-import is exactly the operation that would otherwise
+  # diff canonical indices against a raw-order baseline and land the ops on
+  # the wrong array elements.
+  test 'a pre-v2 chain is healed rather than diffed against' do
+    submission = build.call.submission
+
+    # Put it back the way v1 left it: raw-order baseline, version 1.
+    submission.update_columns(canonical_version: 1, source_checksum: nil)
+
+    result = build.call
+
+    assert_equal :updated, result.outcome
+
+    patch = submission.updates.order(:id).last.parsed_patch
+
+    assert_equal 1,  patch.size, 'a legacy chain must be replaced wholesale, not patched positionally'
+    assert_equal '', patch.first.fetch('path')
+    assert_equal DDBJRecord::Canonicalizer::NUMBER, submission.reload.canonical_version
+  end
+
+  test 'a v2 chain still gets a minimal diff' do
+    submission = build.call.submission
+    submission.update_columns(source_checksum: nil) # force the diff path
+
+    edited = File.read(XML_FIXTURE).sub('Chromosome Mycobacterium avium sequencing',
+                                        'Chromosome Mycobacterium avium sequencing v2')
+
+    BioProject::Importer.new(
+      psub_id: 'PSUB000604', xml: edited, user_uid: 'migration-test',
+      project_type: 'primary', accession: 'PRJDB502', migration_run_id: SecureRandom.uuid
+    ).call
+
+    patch = submission.updates.order(:id).last.parsed_patch
+
+    refute_equal '', patch.first.fetch('path'), 'a healthy chain must not be replaced wholesale'
+  end
+
   # The fast path now asks "did the source change", which is a property of
   # the converter output alone — no canonicalisation, no chain replay.
   test 'the source checksum is recorded and short-circuits an unchanged re-run' do

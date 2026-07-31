@@ -110,7 +110,7 @@ module BioProject
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
-        patch_ops    = compute_patch_ops(prior_record, record)
+        patch_ops    = compute_patch_ops(prior_record, record, legacy: submission.legacy_chain?)
 
         if patch_ops.empty?
           # Nothing to record, but remember what we just compared against
@@ -204,8 +204,15 @@ module BioProject
     # converter order leaves every later patch pointing at the wrong
     # element of a keyed array — silently, and only where the two orders
     # happen to differ. See Canonicalizer#canonical_tree.
-    def compute_patch_ops(prior, current)
+    def compute_patch_ops(prior, current, legacy: false)
       return [{'op' => 'add', 'path' => '', 'value' => canonical(current)}] if prior.empty?
+
+      # A pre-v2 chain stored its baseline in raw converter order, so a
+      # positional diff against it would name the wrong element of a keyed
+      # array. Replace the record wholesale instead — the same heal
+      # Submission#append_update! performs, and needed here more: the
+      # importers hold the v1 corpus, and a re-import is what runs over it.
+      return [{'op' => 'replace', 'path' => '', 'value' => canonical(current)}] if legacy
 
       DDBJRecord::Canonicalizer.diff(prior, current)
     rescue DDBJRecord::Canonicalizer::Error

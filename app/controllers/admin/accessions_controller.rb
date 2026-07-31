@@ -31,7 +31,7 @@ module Admin
       label = rest.zero? ? first : "#{first} (+#{rest} more)"
 
       redirect_to submission_return_path(submission), notice: "Issued accession #{label}."
-    rescue AccessionIssue::Refused => e
+    rescue AccessionIssue::Refused, SampleTargeting::UnknownScope => e
       redirect_to submission_return_path(submission), alert: "Cannot issue accession: #{e.message}"
     end
   end

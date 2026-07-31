@@ -111,6 +111,8 @@ module Admin
       record_curation_event(submission, affected, raw)
 
       redirect_to back, notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} sample(s)."
+    rescue SampleTargeting::UnknownScope => e
+      redirect_to admin_submission_request_path(submission.request), alert: "Cannot apply: #{e.message}"
     end
 
     # Cross-submission bulk: apply (status, assignee) to many submissions
