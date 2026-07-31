@@ -111,6 +111,20 @@ class SampleTSVImportSystemTest < ApplicationSystemTestCase
     assert_no_text 'Developers were notified'
   end
 
+  # A third reading, and the one the two-way split got wrong: the file
+  # is fine, the curator's move is to wait, and "fix the file and upload
+  # it again" sends them to look for a fault that is not there.
+  test 'a conflicting import does not blame the file' do
+    record = import(status: 'failed', total: 0, processed: 0, failed: 0,
+                    error_report: SampleTSVImport::CONFLICT_MESSAGE)
+
+    visit admin_submission_sample_tsv_import_path(@submission, record)
+
+    assert_text    'Nothing is wrong with the file'
+    assert_no_text 'Fix the file'
+    assert_no_text 'Developers were notified'
+  end
+
   # Checking counts rows because it can. Applying does not, because the
   # write is one transaction — and splitting it to produce a bar would
   # cost the chain entry that carries the whole intent.

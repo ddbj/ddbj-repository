@@ -41,10 +41,19 @@ class SampleTSVImport < ApplicationRecord
   # developers already know.
   ABORT_PREFIX = 'Job aborted: '.freeze
 
+  # The other way an import fails without the file being at fault. Owned
+  # here for the same reason as ABORT_PREFIX: the job writes it and the
+  # screen reads it, and "fix the file" is the wrong instruction for a
+  # curator whose file is fine and whose move is to wait.
+  CONFLICT_MESSAGE = 'Another sample TSV import is already running for this submission. ' \
+                     'Try again once it finishes.'.freeze
+
   # A crash we reported, as opposed to a file the curator can fix. The
   # screen promises a notification only for the first, and only because
   # ImportSampleTSVJob actually sends one.
   def reported? = failed_status? && error_report.to_s.start_with?(ABORT_PREFIX)
+
+  def conflicted? = failed_status? && error_report == CONFLICT_MESSAGE
 
   # Three terminal readings, and the difference between them is the
   # question a curator actually has: is my submission half-changed?

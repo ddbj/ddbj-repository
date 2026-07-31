@@ -18,11 +18,16 @@
       <p class="mb-3">
         Valid rows are written in a single transaction, so the submission is exactly as it
         was before the upload — there is no half-applied state to clean up.
-        <%# Said only when it is true: the job reports a crash to Sentry, %>
-        <%# and does not report a file it simply could not read. %>
+        <%# Said only when it is true, and only the true one of three: a %>
+        <%# crash is reported to Sentry, a conflict is nobody's mistake, %>
+        <%# and a file the importer could not read is the curator's to %>
+        <%# fix. "Fix the file" is actively wrong for the middle one. %>
         <% if @import.reported? %>
           Developers were notified automatically;
           re-upload the same file once the cause is fixed.
+        <% elsif @import.conflicted? %>
+          Nothing is wrong with the file — wait for the other import to finish,
+          then upload it again.
         <% else %>
           Fix the file and upload it again.
         <% end %>

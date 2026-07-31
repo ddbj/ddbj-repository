@@ -9,6 +9,15 @@ export default class extends Controller {
   static values = { text: String, label: String };
 
   copy() {
+    // navigator.clipboard is undefined outside a secure context, so
+    // reaching straight for writeText throws before there is a promise
+    // to catch — leaving the button silently dead on any non-TLS host,
+    // which is exactly where the fallback message is needed.
+    if (!navigator.clipboard) {
+      this.#flash('Copy failed — select the text above');
+      return;
+    }
+
     // Restored on the next render; a button that stays "Copied" is
     // lying by the time the curator looks back at it.
     navigator.clipboard

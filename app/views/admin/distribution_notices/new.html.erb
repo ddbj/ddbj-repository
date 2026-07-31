@@ -63,8 +63,14 @@
           <%= @plan.mail_count == 1 ? 'appears' : 'appear' %> under Sent.
           The daily job will not tell them again.
         <% else %>
-          <strong>Nothing to send.</strong> Everything here was skipped for the reason
-          given — an address has to turn up first.
+          <% if @plan.skipped.any? %>
+            <strong>Nothing to send.</strong> Everything here was skipped for the reason
+            given — an address has to turn up first.
+          <% else %>
+            <%# The queue emptied between the page rendering and the %>
+            <%# press: the daily job ran, or another curator sent. %>
+            <strong>Nothing to send.</strong> These notices have already gone out.
+          <% end %>
         <% end %>
       </p>
 

@@ -38,7 +38,7 @@ class ImportSampleTSVJob < ApplicationJob
       progress.update!(
         status:       'failed',
         finished_at:  Time.current,
-        error_report: 'Another sample TSV import is already running for this submission. Try again once it finishes.'
+        error_report: SampleTSVImport::CONFLICT_MESSAGE
       )
       return
     end

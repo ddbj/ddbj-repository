@@ -137,7 +137,11 @@ module Admin::ViewHelpers
   def support_details(import)
     [
       "Sample TSV import ##{import.id}",
-      "Submission: #{import.submission.source_id} (##{import.submission.request&.id})",
+      # No bare "(#)": a submission from before requests existed has no
+      # id to quote, and an empty parenthetical is the one line a support
+      # thread would have to ask back about.
+      ["Submission: #{import.submission.source_id}",
+       ("(##{import.submission.request.id})" if import.submission.request)].compact.join(' '),
       "Uploaded by: #{import.actor}",
       "Finished: #{format_datetime(import.finished_at)}",
       '',

@@ -32,8 +32,13 @@
   <%# this screen's own record, and pointing away from it made a curator %>
   <%# depend on a page that is not for them. %>
   <%# %>
-  <%# Only when there is a run to see, and only from the other tabs. %>
-  <% if run.any? && @tab != 'sent' %>
+  <%# Only when there is a run Sent can actually show. The job writes %>
+  <%# nothing on a day with no candidates, so after a quiet spell the %>
+  <%# last run can be older than the 90 days that tab covers — and a %>
+  <%# link onto an empty list is worse than no link. %>
+  <% within_sent = run.any? && run.first.sent_at >= Admin::DistributionNoticesController::SENT_WINDOW.ago %>
+
+  <% if within_sent && @tab != 'sent' %>
     <%= link_to "See #{run.first.sent_at.to_date == Date.current ? "today's" : 'that'} run in Sent",
                 admin_distribution_notices_path(tab: 'sent'), class: 'small' %>
   <% end %>

@@ -116,6 +116,21 @@ class DistributionNoticesSystemTest < ApplicationSystemTestCase
     assert_text 'PRJDB000001'
   end
 
+  # The strip's own record only reaches back 90 days, but the job writes
+  # nothing on a day with no candidates — so after a quiet spell the last
+  # run is older than the tab that would have to show it, and a link onto
+  # an empty list is worse than no link at all.
+  test 'the strip does not point at a run Sent can no longer show' do
+    DistributionNotifier.call
+    DistributionNotice.update_all(sent_at: 100.days.ago)
+
+    visit admin_distribution_notices_path
+
+    assert_text    'Last run'
+    assert_no_link "See today's run in Sent"
+    assert_no_link 'See that run in Sent'
+  end
+
   # The confirmation names what leaves the building. "Send every due
   # notice now?" in a window.confirm said neither how many submitters
   # hear from us nor which of them will be skipped — and mail is the one
@@ -161,7 +176,7 @@ class DistributionNoticesSystemTest < ApplicationSystemTestCase
   test 'the per-submitter button goes through the same confirmation' do
     visit admin_distribution_notices_path
 
-    within '.card-header' do
+    within %([data-test-submitter="#{@project.submission.user.uid}"]) do
       click_link 'Send now'
     end
 
@@ -170,6 +185,22 @@ class DistributionNoticesSystemTest < ApplicationSystemTestCase
     assert_emails 1 do
       click_button 'Send 1 notice'
     end
+  end
+
+  # An empty plan has two causes and they need different sentences: one
+  # is "nobody is reachable", the other is "somebody already sent these
+  # while this page was open".
+  test 'a queue that emptied under the curator says so, not that all were skipped' do
+    visit admin_distribution_notices_path
+
+    # The daily job runs, or another curator presses Send, between the
+    # page rendering and this press.
+    DistributionNotifier.call
+
+    click_link 'Send all now'
+
+    assert_text    'These notices have already gone out.'
+    assert_no_text 'an address has to turn up first'
   end
 
   # A submitter with no address is named before the press, not explained
