@@ -26,7 +26,8 @@
 
       <div class="mb-3">
         <%= f.label :description, class: 'form-label form-label-sm' %>
-        <%= f.text_area :description, value: description, rows: 5, class: 'form-control form-control-sm font-monospace' %>
+        <%= f.text_area :description, value: description,
+                        class: 'form-control form-control-sm font-monospace textarea-autogrow' %>
       </div>
 
       <%= f.submit 'Save project details', class: 'btn btn-primary btn-sm' %>

@@ -81,7 +81,7 @@
 
         <%= form_with model: @user, url: admin_user_path(uid: @user.uid), method: :patch, local: true do |f| %>
           <%= f.label :notes, class: 'visually-hidden' %>
-          <%= f.text_area :notes, rows: 6, class: 'form-control mb-2' %>
+          <%= f.text_area :notes, class: 'form-control textarea-autogrow mb-2' %>
 
           <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <%# A field several curators write to is only worth trusting if %>

@@ -125,3 +125,33 @@
 .confirm-card {
   max-width: 42rem;
 }
+
+// Free-text fields that start small and grow as they are written in.
+//
+// `field-sizing: content` makes the box track its contents, which is what
+// a comment box should do — three empty rows of grey is a poor use of a
+// screen, and a reply that outgrows its box is worse. Browsers without it
+// fall back to `rows`, i.e. to exactly what these fields did before.
+//
+// The bounds are not optional. `rows` is ignored once this is on, so
+// `min-height` is what keeps room to write in an empty box; `max-height`
+// is what stops a long paste pushing the submit button off the screen —
+// past it the field scrolls, as it always did.
+//
+// Qualified with `textarea` because Bootstrap sets
+// `textarea.form-control { min-height: ... }` — an element-plus-class
+// selector, which outranks a bare class. Without the element here the
+// min-height silently loses and an empty box collapses to one line,
+// which is worse than the `rows` this replaced.
+textarea.textarea-autogrow,
+textarea.textarea-autogrow-tall {
+  field-sizing: content;
+  min-height: 4lh;
+  max-height: 20lh;
+}
+
+// The notice template is written into rather than replied in, so it opens
+// at the size of the thing being edited rather than at a composer's.
+textarea.textarea-autogrow-tall {
+  min-height: 14lh;
+}

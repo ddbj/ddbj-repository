@@ -71,7 +71,8 @@
         <%= f.label :curator_comment, class: 'form-label form-label-sm' do %>
           Curator comment <span class="fw-normal text-body-secondary">(internal)</span>
         <% end %>
-        <%= f.text_area :curator_comment, value: submission.curator_comment, rows: 3, class: 'form-control form-control-sm' %>
+        <%= f.text_area :curator_comment, value: submission.curator_comment,
+                        class: 'form-control form-control-sm textarea-autogrow' %>
         <div class="form-text">Visible only to curators. Never part of the DDBJ Record.</div>
       </div>
 

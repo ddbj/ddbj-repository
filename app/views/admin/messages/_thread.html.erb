@@ -41,7 +41,7 @@
                 local:  true do |f| %>
     <div class="mb-3">
       <%= f.label :body, 'New message to submitter', class: 'form-label' %>
-      <%= f.text_area :body, rows: 4, class: 'form-control', required: true %>
+      <%= f.text_area :body, class: 'form-control textarea-autogrow', required: true %>
     </div>
 
     <%= f.submit 'Send message', class: 'btn btn-primary' %>

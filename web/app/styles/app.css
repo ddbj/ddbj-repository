@@ -76,3 +76,16 @@ dl.horizontal {
 .eyebrow {
   letter-spacing: 0.08em;
 }
+
+/* Free-text fields that start small and grow as they are written in.
+   `rows` is ignored once field-sizing is on, so min-height is what keeps
+   room to write; max-height stops a long reply pushing the send button
+   off screen. Browsers without it fall back to `rows`. Qualified with
+   `textarea` because Bootstrap's own `textarea.form-control` min-height
+   outranks a bare class. See the admin stylesheet — same rule, same
+   reason. */
+textarea.textarea-autogrow {
+  field-sizing: content;
+  min-height: 4lh;
+  max-height: 20lh;
+}

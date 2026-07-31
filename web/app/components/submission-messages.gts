@@ -128,8 +128,7 @@ export default class SubmissionMessages extends Component<Signature> {
             <label for={{id}} class="form-label">Reply to the curator</label>
             <textarea
               id={{id}}
-              class="form-control font-monospace small"
-              rows="4"
+              class="form-control font-monospace small textarea-autogrow"
               value={{this.draft}}
               required
               {{on "input" this.updateDraft}}
