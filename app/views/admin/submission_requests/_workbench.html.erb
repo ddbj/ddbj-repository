@@ -10,8 +10,14 @@
   *(overview ? [] : [{label: workbench_tab_label(tab)}])
 ] %>
 
-<div class="workbench-summary bg-body border rounded-top-3 px-4 pt-3">
-  <div class="d-flex justify-content-between align-items-start gap-4 flex-wrap">
+<%# The horizontal padding sits on an inner wrapper, not on the box, so %>
+<%# the tab strip reaches both edges and its own bottom border can be the %>
+<%# single seam between this box and the panel below — hence %>
+<%# `border-bottom-0` here and `border-top-0` there. With padding on the %>
+<%# box the two borders stacked, giving a line that was 2px in the middle %>
+<%# and 1px at the ends. %>
+<div class="workbench-summary bg-body border border-bottom-0 rounded-top-3 pt-3">
+  <div class="px-4 d-flex justify-content-between align-items-start gap-4 flex-wrap">
     <div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
         <h1 class="h3 mb-0">#<%= @request.id %></h1>
@@ -57,9 +63,13 @@
     </div>
   </div>
 
-  <%= render 'progress', state: @state %>
+  <div class="px-4">
+    <%= render 'progress', state: @state %>
+  </div>
 
-  <ul class="nav nav-tabs">
+  <%# Full-bleed: the ul spans the box so its border-bottom lands exactly %>
+  <%# on the seam, which is what lets the active tab punch through it. %>
+  <ul class="nav nav-tabs px-4">
     <%= render 'tab', label: workbench_tab_label(:overview),
                       path:  admin_submission_request_path(@request),
                       active: overview %>
