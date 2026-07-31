@@ -16,7 +16,6 @@ export default class IndexRoute extends Route {
 
   queryParams = {
     db: { refreshModel: true },
-    status: { refreshModel: true },
     sourceId: { refreshModel: true },
     accession: { refreshModel: true },
     phase: { refreshModel: true },
@@ -33,7 +32,6 @@ export default class IndexRoute extends Route {
 
   async model({
     db,
-    status,
     sourceId,
     accession,
     phase,
@@ -41,7 +39,6 @@ export default class IndexRoute extends Route {
     page,
   }: {
     db?: string[];
-    status?: string[];
     sourceId?: string;
     accession?: string;
     phase?: Phase;
@@ -53,7 +50,6 @@ export default class IndexRoute extends Route {
       options: {
         params: {
           db,
-          status,
           source_id: sourceId || undefined,
           accession: accession || undefined,
           phase,

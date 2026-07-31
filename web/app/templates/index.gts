@@ -10,7 +10,7 @@ import { pageTitle } from 'ember-page-title';
 import Pagination from 'repository/components/pagination';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
-import { DB_OPTIONS, PHASE_TABS, STATUS_OPTIONS, isChecked } from 'repository/controllers/index';
+import { DB_OPTIONS, PHASE_TABS, isChecked } from 'repository/controllers/index';
 import { requestState, toneClasses } from 'repository/utils/request-state';
 
 import type Controller from 'repository/controllers/index';
@@ -158,40 +158,6 @@ export default class extends Component<Signature> {
                     class="btn btn-link btn-sm p-0"
                     data-test-deselect="db"
                     {{on "click" (fn @controller.setFacet "db" false)}}
-                  >Deselect all</button>
-                </div>
-              </div>
-            </div>
-
-            <div class="row mb-2">
-              <div class="col-sm-2 fw-semibold">Status</div>
-              <div class="col-sm-10">
-                {{#each STATUS_OPTIONS as |opt|}}
-                  <div class="form-check form-check-inline">
-                    <input
-                      type="checkbox"
-                      class="form-check-input"
-                      id="status-{{opt.value}}"
-                      name="status"
-                      value={{opt.value}}
-                      checked={{isChecked @controller.status opt.value}}
-                    />
-                    <label class="form-check-label text-capitalize" for="status-{{opt.value}}">{{opt.label}}</label>
-                  </div>
-                {{/each}}
-
-                <div class="small">
-                  <button
-                    type="button"
-                    class="btn btn-link btn-sm p-0 me-3"
-                    data-test-select="status"
-                    {{on "click" (fn @controller.setFacet "status" true)}}
-                  >Select all</button>
-                  <button
-                    type="button"
-                    class="btn btn-link btn-sm p-0"
-                    data-test-deselect="status"
-                    {{on "click" (fn @controller.setFacet "status" false)}}
                   >Deselect all</button>
                 </div>
               </div>

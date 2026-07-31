@@ -13,18 +13,6 @@ export const DB_OPTIONS: FilterOption[] = [
   { value: 'biosample', label: 'BioSample' },
 ];
 
-export const STATUS_OPTIONS: FilterOption[] = [
-  'waiting_validation',
-  'validating',
-  'validation_failed',
-  'ready_to_apply',
-  'waiting_application',
-  'applying',
-  'applied',
-  'application_failed',
-  'no_change',
-].map((value) => ({ value, label: value.replace(/_/g, ' ') }));
-
 export type Phase = 'unfinished' | 'finished' | 'all';
 
 export const PHASE_TABS: { value: Phase; label: string }[] = [
@@ -36,7 +24,6 @@ export const PHASE_TABS: { value: Phase; label: string }[] = [
 export default class extends Controller {
   queryParams = [
     'db',
-    'status',
     'sourceId',
     'accession',
     'phase',
@@ -57,7 +44,6 @@ export default class extends Controller {
   // the URL. The checkboxes are only read on submit, so editing them
   // never re-queries or resets mid-edit.
   @tracked db: string[] = [];
-  @tracked status: string[] = [];
   @tracked sourceId = '';
   @tracked accession = '';
   @tracked page = 1;
@@ -70,10 +56,6 @@ export default class extends Controller {
     this.db = normalize(
       data.getAll('db') as string[],
       DB_OPTIONS.map((o) => o.value),
-    );
-    this.status = normalize(
-      data.getAll('status') as string[],
-      STATUS_OPTIONS.map((o) => o.value),
     );
     const sourceId = data.get('sourceId');
     this.sourceId = typeof sourceId === 'string' ? sourceId.trim() : '';
@@ -96,7 +78,6 @@ export default class extends Controller {
   @action
   clearFilters() {
     this.db = [];
-    this.status = [];
     this.sourceId = '';
     this.accession = '';
     this.needsAction = false;
@@ -110,13 +91,7 @@ export default class extends Controller {
   }
 
   get hasActiveFilters(): boolean {
-    return (
-      this.db.length > 0 ||
-      this.status.length > 0 ||
-      this.sourceId.length > 0 ||
-      this.accession.length > 0 ||
-      this.needsAction
-    );
+    return this.db.length > 0 || this.sourceId.length > 0 || this.accession.length > 0 || this.needsAction;
   }
 }
 
