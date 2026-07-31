@@ -38,7 +38,7 @@ module SampleTSV
       # need a single up-front pass to discover the header set, which
       # `headers: true` gives us via the first parsed row.
       rows           = CSV.parse(strip_bom(@tsv_body), col_sep: "\t", headers: true)
-      attribute_cols = rows.headers.to_a.reject {|h| h.nil? || SampleTSV::COLUMNS.include?(h) }
+      attribute_cols = rows.headers.to_a.reject {|h| h.nil? || SampleTSV::RESERVED_COLS.include?(h) }
 
       unless rows.headers.include?(SampleTSV::IDENTIFIER_COL)
         return Result.new(

@@ -8,4 +8,16 @@ module SampleTSV
   READ_ONLY_COLS  = %w[accession].freeze
   TYPED_COLS      = %w[status].freeze
   COLUMNS         = ([IDENTIFIER_COL] + READ_ONLY_COLS + TYPED_COLS).freeze
+
+  # Columns this file format used to emit. The importer treats an
+  # unrecognised header as a v3 attribute name, so a column that is merely
+  # deleted from COLUMNS does not go away — it comes back as sample data.
+  # A spreadsheet downloaded before assignment moved to the request would
+  # otherwise write `assignee_uid` into every sample's attribute bag and
+  # commit that to the patch chain, which is a corrupted record produced
+  # by following the documented download-edit-upload loop.
+  RETIRED_COLS = %w[assignee_uid].freeze
+
+  # Header names that are never sample attributes, whatever they are.
+  RESERVED_COLS = (COLUMNS + RETIRED_COLS).freeze
 end

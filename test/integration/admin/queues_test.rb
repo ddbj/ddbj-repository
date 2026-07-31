@@ -82,6 +82,23 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
     assert_match 'assignee dave',    response.body
   end
 
+  # The gap the three sections have to cover between them: a request
+  # nobody has claimed that this curator has already replied to. It is not
+  # assigned, and it is not unclaimed either — and SQL's `!=` quietly
+  # excludes NULL, so it used to fall out of all three.
+  test 'a request I replied on that nobody owns is still in my queue' do
+    request = unread_request
+    request.participate!(users(:bob))
+
+    assert_nil request.assignee_id
+    assert_equal 1, MyQueue.new(users(:bob)).count
+
+    get admin_root_path
+
+    assert_response :ok
+    assert_match(/##{request.id}\b/, response.body)
+  end
+
   test 'a request nobody owns or has touched lands in Unclaimed with a claim button' do
     request = unread_request
 

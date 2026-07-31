@@ -264,9 +264,13 @@ module Admin
     end
 
     # Carry the current index filter selection across a bulk-update
-    # redirect so the curator lands back on the same filtered view.
+    # redirect so the curator lands back on the same filtered view. Must
+    # stay in step with what the ledger's form actually puts in the URL —
+    # this listed three params the ledger no longer has and missed `q`,
+    # so a curator who searched, ticked rows and pressed Apply came back
+    # to the unfiltered list with their search gone.
     def index_filter_params
-      params.slice(:db, :user, :request_status, :source_id, :accession, :status, :assignee).permit!.to_h
+      params.permit(:q, db: [], request_status: [], status: [], assignee: []).to_h
     end
 
     # Strict positive-integer parser. Returns nil for anything other than

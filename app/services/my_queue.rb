@@ -35,18 +35,30 @@ class MyQueue
   Row = Data.define(:request, :unread, :issuable, :total_rows) do
     # Ordered by who is blocked: a submitter waiting for an answer comes
     # before an accession nobody is waiting on.
+    #
+    # Both can be zero. The scope and the per-row counts are separate
+    # queries, so another curator opening the thread in between — which
+    # marks it read — leaves a row that qualified for neither reason by
+    # the time it renders. Saying nothing is right; guessing "issue" and
+    # rendering a button for a submission that may not exist is a 500 on
+    # the landing page.
+    def action
+      return :reply if unread.positive?
+      return :issue if issuable.positive?
+
+      nil
+    end
+
     def reason
-      if unread.positive?
-        "#{unread} unread #{'message'.pluralize(unread)}"
-      elsif issuable.positive?
-        "#{ActiveSupport::NumberHelper.number_to_delimited(issuable)} of " \
-          "#{ActiveSupport::NumberHelper.number_to_delimited(total_rows)} #{noun} to issue"
+      case action
+      when :reply then "#{unread} unread #{'message'.pluralize(unread)}"
+      when :issue then "#{delimited(issuable)} of #{delimited(total_rows)} #{noun} to issue"
       end
     end
 
-    def action = unread.positive? ? :reply : :issue
-
     private
+
+    def delimited(count) = ActiveSupport::NumberHelper.number_to_delimited(count)
 
     def noun = request.submission&.curation_row_noun&.pluralize(total_rows) || 'rows'
   end
@@ -69,11 +81,16 @@ class MyQueue
         criterion: 'You took these on — assignment only changes when someone changes it.',
         scope:     needing_curator.assigned_to(user)
       ),
+      # IS DISTINCT FROM, not `!=`: SQL inequality is NULL for an
+      # unassigned row, so `where.not(assignee_id: id)` silently drops
+      # exactly the requests that are involved-but-unowned — and since
+      # `unclaimed` excludes anything with a participant, replying to a
+      # submitter made the request vanish from every curator's queue.
       Section.new(
         key:       :involved,
         title:     "I'm involved",
         criterion: 'You replied or edited here — someone else holds the assignment.',
-        scope:     needing_curator.involving(user).where.not(assignee_id: user.id)
+        scope:     needing_curator.involving(user).where('submission_requests.assignee_id IS DISTINCT FROM ?', user.id)
       ),
       Section.new(
         key:       :unclaimed,

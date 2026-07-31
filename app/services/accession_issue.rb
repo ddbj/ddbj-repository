@@ -9,6 +9,22 @@
 #     inside `Submission.transaction`. A failure anywhere rolls back; the
 #     Sequence row's `next` rewinds with the rest, so no accession is
 #     burned without being persisted.
+#
+#     The cost of that guarantee: `Sequence.allocate!` takes a row lock
+#     that only releases when this outer transaction commits, and since
+#     ddbj-canon/v2 the chain append inside it is a full replay plus two
+#     canonicalisation passes plus a blob upload. On a 100K-sample BS
+#     record that is tens of seconds during which no other submission in
+#     the same scope can be issued an accession — and the cross-submission
+#     bulk action does it once per submission, in series.
+#
+#     Deliberately left as is for now. Committing the allocation on its
+#     own would bound the lock, but it would also burn accession numbers
+#     whenever the stamp afterwards fails, and a gap in an externally
+#     published identifier space is not a trade to make silently. The
+#     answer is to move issuance off the request cycle entirely (a job,
+#     like the TSV import), at which point the lock duration stops being
+#     a user-visible property.
 #   - The mailer is enqueued AFTER `commit` via `transaction do ... end`
 #     return value — we don't want to deliver a "your accession is X"
 #     mail if the transaction rolls back.

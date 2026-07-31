@@ -105,6 +105,26 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     assert_match 'unknown status', result.error_report
   end
 
+  # A spreadsheet downloaded before assignment moved to the request still
+  # carries an `assignee_uid` column. An unrecognised header is read as a
+  # v3 attribute name, so merely dropping the column from the format would
+  # have turned every re-upload of an old export into a record with a
+  # bogus attribute on every sample — committed to the chain, by way of
+  # the documented download-edit-upload loop.
+  test 'a column this format used to emit is ignored, not read as an attribute' do
+    result = run_importer(<<~TSV)
+      sample_name\tassignee_uid\torganism
+      sample-A\tbob\tMus musculus
+    TSV
+
+    assert_equal 1, result.processed
+
+    attrs = @submission.reload.materialised_record['samples'].first['attributes'].to_h { [it['name'], it['value']] }
+
+    assert_equal 'Mus musculus', attrs['organism']
+    assert_not attrs.key?('assignee_uid'), 'a retired column must not become sample data'
+  end
+
   test 'no SubmissionUpdate is created when every row fails' do
     chain_before = @submission.updates.count
 

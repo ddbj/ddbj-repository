@@ -196,10 +196,10 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     projects(:primary).update!(accession: nil, status: 'curating')
 
     post bulk_issue_accessions_admin_submissions_path,
-         params: {db: 'bioproject', status: 'curating',
+         params: {q: 'PRJDB', db: %w[bioproject], status: %w[curating],
                   bulk: {submission_ids: [submissions(:bioproject).id.to_s]}}
 
-    assert_redirected_to admin_submission_requests_path(db: 'bioproject', status: 'curating')
+    assert_redirected_to admin_submission_requests_path(q: 'PRJDB', db: %w[bioproject], status: %w[curating])
   end
 
   test 'bulk_issue_accessions requires admin auth' do

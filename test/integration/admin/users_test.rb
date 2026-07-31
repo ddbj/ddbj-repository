@@ -44,6 +44,17 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_match 'Carol King',    response.body, 'carol has never submitted'
   end
 
+  # An unchecked box submits nothing, and "nothing" has to mean "first
+  # visit, default on" — so without a hidden partner the filter is
+  # one-way and every never-submitted account is unreachable.
+  test 'the filter can actually be turned off from the form' do
+    stub_cloakman_lookup [ALICE_PROFILE]
+
+    get admin_users_path
+
+    assert_select %(input[type="hidden"][name="submitted"][value=""]), count: 1
+  end
+
   # --- search --------------------------------------------------------------
 
   test 'search matches a uid prefix without asking DDBJ Account' do

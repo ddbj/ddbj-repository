@@ -175,12 +175,16 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
     assert_match(/must be an admin user/, flash[:alert])
   end
 
-  test 'bulk_update preserves filter params in the redirect' do
+  # The ledger's form posts to a URL carrying its own filter, and the
+  # redirect is rebuilt from those params — so the set here has to match
+  # what the ledger actually has. Search is the one people notice: losing
+  # it means re-typing an accession after every bulk action.
+  test 'bulk_update preserves the search and facets in the redirect' do
     post bulk_update_admin_submissions_path,
-          params: {db: 'bioproject', status: 'public',
+          params: {q: 'PRJDB', db: %w[bioproject], status: %w[public],
                    bulk: {submission_ids: [submissions(:bioproject).id.to_s], status: 'curating'}}
 
-    assert_redirected_to admin_submission_requests_path(db: 'bioproject', status: 'public')
+    assert_redirected_to admin_submission_requests_path(q: 'PRJDB', db: %w[bioproject], status: %w[public])
   end
 
   test 'bulk_update requires admin auth' do

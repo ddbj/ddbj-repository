@@ -62,7 +62,7 @@ module SampleTSV
     # as a reserved col.
     def collect_attribute_keys(v3_samples)
       keys = v3_samples.flat_map {|s| Array(s['attributes']).map { it['name'] } }.compact.uniq
-      (keys - SampleTSV::COLUMNS).sort
+      (keys - SampleTSV::RESERVED_COLS).sort
     end
 
     # Tab/newline are the TSV field/record separators. Smashing them

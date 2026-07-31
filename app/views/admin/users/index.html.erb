@@ -44,6 +44,11 @@
     <%# way somebody would actually say it. %>
     <div class="col-auto">
       <div class="form-check">
+        <%# The hidden partner is what makes unticking expressible: an %>
+        <%# unchecked box sends nothing at all, and "absent" has to mean %>
+        <%# "first visit, default on" — so without this the filter could be %>
+        <%# turned on and never off again. %>
+        <%= hidden_field_tag :submitted, '', id: nil %>
         <%= check_box_tag :submitted, '1', @submitted, id: 'users-submitted', class: 'form-check-input',
                           onchange: 'this.form.requestSubmit()' %>
         <label for="users-submitted" class="form-check-label">Has submitted before</label>
