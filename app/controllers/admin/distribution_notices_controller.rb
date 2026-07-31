@@ -31,6 +31,17 @@ module Admin
       end
     end
 
+    # The confirmation, for both Send buttons. Mail cannot be recalled,
+    # and the queue-wide one used to ask with a line of window.confirm
+    # while the per-submitter one asked nothing at all — the same
+    # outward-facing action with less friction on the version that is
+    # pressed more often.
+    def new
+      @plan   = DistributionPlan.for(DistributionNotifier.new.candidates.to_a, user: confirmed_user)
+      @action = admin_distribution_notices_path
+      @cancel = admin_distribution_notices_path
+    end
+
     # "Send now" — all pending, or just one submitter's when user_id is
     # given. Recorded as a manual send so the history can say who.
     def create
@@ -39,13 +50,19 @@ module Admin
 
       result = DistributionNotifier.new.notify(projects, trigger: :manual, actor: current_actor)
 
-      notice = "Sent #{result.notified_project_count} notice(s) to #{result.notified_user_count} submitter(s)."
-      notice += " #{result.skipped_user_count} submitter(s) skipped: no address on file." if result.skipped_user_count.positive?
+      notice = "Sent #{helpers.pluralize(result.notified_project_count, 'notice')} " \
+               "to #{helpers.pluralize(result.notified_user_count, 'submitter')}."
+
+      if result.skipped_user_count.positive?
+        notice += " #{helpers.pluralize(result.skipped_user_count, 'submitter')} skipped: no address on file."
+      end
 
       redirect_to admin_distribution_notices_path, notice:
     end
 
     private
+
+    def confirmed_user = params[:user_id].presence && User.find(params[:user_id])
 
     def load_due
       candidates = DistributionNotifier.new.candidates.to_a

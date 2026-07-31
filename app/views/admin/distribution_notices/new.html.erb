@@ -1,0 +1,92 @@
+<% content_for :title, 'Send release notices' %>
+
+<%# The same dialog as accession issuance, shrunk to what this operation %>
+<%# is: what leaves the building, to whom, and who is skipped. The daily %>
+<%# job is what normally sends these, so a curator pressing the button is %>
+<%# the exception — and the exception is the one worth naming out loud. %>
+<%= turbo_frame_tag 'confirm_dialog' do %>
+  <div class="card border-0 confirm-card mx-auto my-3" data-test-confirm>
+    <div class="card-body p-4">
+      <%# The queue-wide title does not carry a count. "Send release %>
+      <%# notices to 3 submitters?" over a button reading "Send 2 %>
+      <%# notices" — the third being skipped — is the dialog arguing with %>
+      <%# itself. The table says who, the button says how many. %>
+      <h1 class="h4 mb-2">
+        <% if @plan.user %>
+          Send the release notice to <%= @plan.user.uid %>?
+        <% else %>
+          Send every release notice that is due?
+        <% end %>
+      </h1>
+
+      <p class="text-body-secondary">
+        Mail cannot be recalled. Each submitter is told which of their projects becomes
+        public, and on what date.
+      </p>
+
+      <table class="table border align-middle my-4">
+        <tbody>
+          <% if @plan.any? %>
+            <tr>
+              <td>Release <%= 'notice'.pluralize(@plan.mail_count) %> to submitters (one each)</td>
+              <td class="text-end fw-semibold"><%= number_with_delimiter(@plan.mail_count) %></td>
+            </tr>
+
+            <%# The accessions are what the mail is about, so the count of %>
+            <%# them is part of the decision — one submitter can be told %>
+            <%# about twenty projects in a single message. %>
+            <tr>
+              <td>Projects named in <%= @plan.mail_count == 1 ? 'it' : 'them' %></td>
+              <td class="text-end fw-semibold"><%= number_with_delimiter(@plan.project_count) %></td>
+            </tr>
+          <% end %>
+
+          <%# Named with the reason, like every other skip: a submitter %>
+          <%# with no address stays in the queue, and knowing that now %>
+          <%# beats discovering it in the flash afterwards. %>
+          <% @plan.skipped.each do |item| %>
+            <tr class="text-body-secondary">
+              <td>Skipped — <%= item.skip_reason %> (<%= item.user.uid %>)</td>
+              <td class="text-end fw-semibold"><%= item.projects.size %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <p>
+        <% if @plan.any? %>
+          <%# Named, not "those": with a skipped submitter in the table %>
+          <%# above, "those submitters" is the one thing on this screen %>
+          <%# that could be read either way. %>
+          <%= pluralize(@plan.mail_count, 'submitter') %>
+          <%= @plan.mail_count == 1 ? 'leaves' : 'leave' %> the Due queue and
+          <%= @plan.mail_count == 1 ? 'appears' : 'appear' %> under Sent.
+          The daily job will not tell them again.
+        <% else %>
+          <strong>Nothing to send.</strong> Everything here was skipped for the reason
+          given — an address has to turn up first.
+        <% end %>
+      </p>
+
+      <%# _top: sending leaves the dialog for the screen behind it, which %>
+      <%# is a whole-window move. Only the confirmation lives in the frame. %>
+      <%= form_with url: @action, method: :post, local: true,
+                    class: 'd-flex gap-2 align-items-center',
+                    data:  {turbo_frame: '_top'} do |f| %>
+        <% if @plan.user %>
+          <%= hidden_field_tag :user_id, @plan.user.id %>
+        <% end %>
+
+        <%= link_to (@plan.any? ? 'Cancel' : 'Back'), @cancel,
+                    class: 'btn btn-link',
+                    data:  {action: 'dialog#cancel', turbo_frame: '_top'} %>
+
+        <% if @plan.any? %>
+          <%# Amber, like Issue: careful, not proceed. %>
+          <%= f.submit "Send #{pluralize(@plan.mail_count, 'notice')}",
+                       class: 'btn btn-warning', autofocus: true %>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+<% end %>

@@ -42,7 +42,7 @@
     <%# queue so a cancelled one costs no place in it. %>
     <%= link_to 'Issue', new_admin_submission_accession_path(request.submission),
                 class: 'btn btn-outline-secondary btn-sm',
-                data:  {turbo_frame: 'accession_confirm'} %>
+                data:  {turbo_frame: 'confirm_dialog'} %>
   <% end %>
 
   <% if row.issuing %>

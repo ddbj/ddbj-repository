@@ -9,8 +9,8 @@
 <%# a confirmation and coming back is the friction that makes people %>
 <%# want the confirmation gone. The same markup is a plain page when the %>
 <%# URL is visited directly. %>
-<%= turbo_frame_tag 'accession_confirm' do %>
-  <div class="card border-0 accession-confirm mx-auto my-3">
+<%= turbo_frame_tag 'confirm_dialog' do %>
+  <div class="card border-0 confirm-card mx-auto my-3" data-test-confirm>
     <div class="card-body p-4">
       <h1 class="h4 mb-2">
         <% if @plan.items.one? %>

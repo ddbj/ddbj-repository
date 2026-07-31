@@ -66,7 +66,7 @@
       <% if (label = @state.issue_label) %>
         <%= link_to label, new_admin_submission_accession_path(@submission),
                     class: 'btn btn-warning btn-sm',
-                    data:  {turbo_frame: 'accession_confirm'} %>
+                    data:  {turbo_frame: 'confirm_dialog'} %>
       <% elsif @state.issuing? %>
         <span class="badge text-bg-warning">Issuing…</span>
       <% end %>
@@ -109,4 +109,4 @@
   <%= yield %>
 </div>
 
-<%= render 'admin/shared/accession_dialog' %>
+<%= render 'admin/shared/confirm_dialog' %>

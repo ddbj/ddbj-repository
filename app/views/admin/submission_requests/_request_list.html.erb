@@ -119,7 +119,7 @@
                    type:       :submit,
                    formaction: confirm_issue_accessions_admin_submissions_path(filter_params),
                    class:      'btn btn-warning btn-sm text-nowrap',
-                   data:       {turbo_frame: 'accession_confirm'} %>
+                   data:       {turbo_frame: 'confirm_dialog'} %>
     </div>
 
     <p class="text-body-secondary small mt-2">
@@ -131,4 +131,4 @@
   <% end %>
 <% end %>
 
-<%= render 'admin/shared/accession_dialog' %>
+<%= render 'admin/shared/confirm_dialog' %>

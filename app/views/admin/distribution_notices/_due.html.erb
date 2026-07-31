@@ -33,9 +33,13 @@
     <%# Weaker than it was. The daily job is what sends these; a curator %>
     <%# pressing this is the exception, and a primary button invited it to %>
     <%# be read as the normal way. %>
-    <%= button_to 'Send all now', admin_distribution_notices_path, method: :post,
-                  class: 'btn btn-outline-secondary btn-sm',
-                  form:  {data: {turbo_confirm: 'Send every due notice now?'}} %>
+    <%# %>
+    <%# Through the confirmation, like every Issue: it names how many %>
+    <%# submitters hear from us and who is skipped, which one line of %>
+    <%# window.confirm never did. %>
+    <%= link_to 'Send all now', new_admin_distribution_notice_path,
+                class: 'btn btn-outline-secondary btn-sm',
+                data:  {turbo_frame: 'confirm_dialog'} %>
   </div>
 
   <% @by_user.each do |user, projects| %>
@@ -61,8 +65,20 @@
           </span>
         </span>
 
-        <%= button_to 'Send now', admin_distribution_notices_path, params: {user_id: user.id}, method: :post,
-                      class: 'btn btn-sm btn-outline-secondary', disabled: user.email.blank? %>
+        <%# The same dialog, shrunk to one submitter. This button used to %>
+        <%# send with no confirmation at all — the friction was on the %>
+        <%# rarer press and absent from the common one. %>
+        <% if user.email.present? %>
+          <%= link_to 'Send now', new_admin_distribution_notice_path(user_id: user.id),
+                      class: 'btn btn-sm btn-outline-secondary',
+                      data:  {turbo_frame: 'confirm_dialog'} %>
+        <% else %>
+          <%# Kept rather than hidden: it says where sending happens once %>
+          <%# an address turns up. tabindex, because a disabled anchor is %>
+          <%# only inert if the keyboard cannot reach it either. %>
+          <%= link_to 'Send now', '#', class: 'btn btn-sm btn-outline-secondary disabled',
+                      tabindex: -1, aria: {disabled: true} %>
+        <% end %>
       </div>
 
       <ul class="list-group list-group-flush">
@@ -83,3 +99,5 @@
     </div>
   <% end %>
 <% end %>
+
+<%= render 'admin/shared/confirm_dialog' %>

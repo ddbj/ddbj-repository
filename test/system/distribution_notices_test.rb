@@ -58,7 +58,12 @@ class DistributionNoticesSystemTest < ApplicationSystemTestCase
 
     assert_text 'Soil metagenome survey'
 
-    click_button 'Send all now'
+    # Through the confirmation now: mail cannot be recalled, so this
+    # button asks what it is about to do before doing it.
+    click_link 'Send all now'
+
+    assert_text 'Mail cannot be recalled'
+    click_button 'Send 1 notice'
 
     assert_text 'Sent 1 notice'
     assert_text 'No submitters are currently due'
@@ -98,11 +103,81 @@ class DistributionNoticesSystemTest < ApplicationSystemTestCase
     assert_link 'View the run in Jobs'
   end
 
+  # The confirmation names what leaves the building. "Send every due
+  # notice now?" in a window.confirm said neither how many submitters
+  # hear from us nor which of them will be skipped — and mail is the one
+  # thing on this screen that cannot be taken back.
+  test 'the confirmation counts the mail and the projects it names' do
+    visit admin_distribution_notices_path
+    click_link 'Send all now'
+
+    within '[data-test-confirm]' do
+      assert_text 'Send every release notice that is due?'
+      assert_text 'Mail cannot be recalled'
+      assert_text 'Release notice to submitters (one each)'
+      assert_button 'Send 1 notice'
+    end
+  end
+
+  # The count in the title used to be everything in the queue while the
+  # button sent only what was mailable, so the dialog argued with itself
+  # the moment one submitter had no address.
+  test 'the confirmation never promises more mail than the button sends' do
+    other = users(:dave)
+    other.update!(email: nil)
+
+    # A second due project belonging to a submitter we cannot reach.
+    projects(:umbrella).update!(status: :private, accession: 'PRJDB000002',
+                                hold_date: Date.current + 5, distribution_notified_at: nil)
+    projects(:umbrella).submission.update_columns(user_id: other.id)
+
+    visit admin_distribution_notices_path
+    click_link 'Send all now'
+
+    within '[data-test-confirm]' do
+      assert_text    'Skipped — no address on file'
+      assert_button  'Send 1 notice'
+      assert_no_text '2 submitters'
+    end
+
+    assert_no_emails { click_link 'Cancel' }
+  end
+
+  # This one used to send with no confirmation at all — the friction sat
+  # on the rarer queue-wide press and was absent from the common one.
+  test 'the per-submitter button goes through the same confirmation' do
+    visit admin_distribution_notices_path
+
+    within '.card-header' do
+      click_link 'Send now'
+    end
+
+    assert_text "Send the release notice to #{@project.submission.user.uid}?"
+
+    assert_emails 1 do
+      click_button 'Send 1 notice'
+    end
+  end
+
+  # A submitter with no address is named before the press, not explained
+  # in the flash afterwards.
+  test 'a submitter with no address is named as skipped in the confirmation' do
+    @project.submission.user.update!(email: nil)
+
+    visit admin_distribution_notices_path
+    click_link 'Send all now'
+
+    assert_text 'Skipped — no address on file'
+    assert_text 'Nothing to send.'
+    assert_no_button 'Send 1 notice'
+  end
+
   # The strip is about the schedule, so a curator's manual send in
   # between must not be mistaken for it having run.
   test 'a manual send is not reported as a run of the schedule' do
     visit admin_distribution_notices_path
-    click_button 'Send all now'
+    click_link 'Send all now'
+    click_button 'Send 1 notice'
 
     assert_text 'It has not run yet.'
   end
