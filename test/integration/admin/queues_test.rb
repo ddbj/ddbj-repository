@@ -48,11 +48,20 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
   # watching, and the submitter has no retry.
   test 'a request enqueued for apply but never applied is in the queue' do
     stuck = build_request(status: :waiting_application)
+    stuck.update_column(:updated_at, (CurationQueue::STALL_GRACE + 1.minute).ago)
 
     get admin_root_path, params: {bucket: 'stalled'}
 
     assert_response :ok
     assert_match "##{stuck.id}", response.body
+  end
+
+  # Every ordinary Apply passes through waiting_application. Counting it on
+  # arrival would flash each one into the curator's red badge.
+  test 'a request that has just been enqueued is not yet stuck' do
+    build_request(status: :waiting_application)
+
+    assert_equal 0, CurationQueue.count
   end
 
   test 'the unread-messages bucket lists requests whose submitter is waiting' do
@@ -107,14 +116,14 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
   end
 
   test 'a bulk action started from a queue returns to that queue' do
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {bulk: {return_to: 'my_queue', submission_ids: [submissions(:bioproject).id.to_s], status: 'curating'}}
 
     assert_redirected_to admin_my_queue_path
   end
 
   test 'a bulk action started from Needs action returns to the same bucket' do
-    patch bulk_update_admin_submissions_path(bucket: 'stalled'),
+    post bulk_update_admin_submissions_path(bucket: 'stalled'),
           params: {bulk: {return_to: 'needs_action', submission_ids: [submissions(:bioproject).id.to_s], status: 'curating'}}
 
     assert_redirected_to admin_root_path(bucket: 'stalled')

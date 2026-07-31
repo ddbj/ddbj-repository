@@ -9,8 +9,8 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     @sample_b   = samples(:second)
   end
 
-  test 'PATCH bulk_update_samples sets status on every sample in one SQL' do
-    patch bulk_update_samples_admin_submission_path(@submission),
+  test 'bulk_update_samples sets status on every sample in one SQL' do
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: 'curating'}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
@@ -20,8 +20,8 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_equal 'curating', @sample_b.reload.status
   end
 
-  test 'PATCH bulk_update_samples sets assignee on every sample' do
-    patch bulk_update_samples_admin_submission_path(@submission),
+  test 'bulk_update_samples sets assignee on every sample' do
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {assignee_id: users(:bob).id.to_s}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
@@ -29,8 +29,8 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_equal users(:bob), @sample_b.reload.assignee
   end
 
-  test 'PATCH bulk_update_samples sets both status AND assignee in one go' do
-    patch bulk_update_samples_admin_submission_path(@submission),
+  test 'bulk_update_samples sets both status AND assignee in one go' do
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: 'public', assignee_id: users(:bob).id.to_s}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
@@ -40,11 +40,11 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_equal users(:bob), @sample_b.assignee
   end
 
-  test 'PATCH bulk_update_samples assignee_id="0" explicitly unassigns' do
+  test 'bulk_update_samples assignee_id="0" explicitly unassigns' do
     @sample_a.update!(assignee: users(:bob))
     @sample_b.update!(assignee: users(:bob))
 
-    patch bulk_update_samples_admin_submission_path(@submission),
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {assignee_id: '0'}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
@@ -52,11 +52,11 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_nil @sample_b.reload.assignee
   end
 
-  test 'PATCH bulk_update_samples empty status keeps existing status (leave-as-is)' do
+  test 'bulk_update_samples empty status keeps existing status (leave-as-is)' do
     original_a = @sample_a.status
     original_b = @sample_b.status
 
-    patch bulk_update_samples_admin_submission_path(@submission),
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: '', assignee_id: users(:bob).id.to_s}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
@@ -65,9 +65,9 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_equal users(:bob), @sample_a.assignee, 'assignee still applied'
   end
 
-  test 'PATCH bulk_update_samples rejects unknown status (manual cast guard)' do
+  test 'bulk_update_samples rejects unknown status (manual cast guard)' do
     original_a = @sample_a.status
-    patch bulk_update_samples_admin_submission_path(@submission),
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: 'nope_not_a_status'}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
@@ -75,8 +75,8 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_equal original_a, @sample_a.reload.status
   end
 
-  test 'PATCH bulk_update_samples rejects non-admin assignee (manual guard)' do
-    patch bulk_update_samples_admin_submission_path(@submission),
+  test 'bulk_update_samples rejects non-admin assignee (manual guard)' do
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {assignee_id: users(:alice).id.to_s}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
@@ -84,24 +84,24 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_nil @sample_a.reload.assignee
   end
 
-  test 'PATCH bulk_update_samples with both fields blank refuses the no-op' do
-    patch bulk_update_samples_admin_submission_path(@submission),
+  test 'bulk_update_samples with both fields blank refuses the no-op' do
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: '', assignee_id: ''}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
     assert_match(/No changes specified/, flash[:alert])
   end
 
-  test 'PATCH bulk_update_samples 404s for non-BS submissions' do
-    patch bulk_update_samples_admin_submission_path(submissions(:bioproject)),
+  test 'bulk_update_samples 404s for non-BS submissions' do
+    post bulk_update_samples_admin_submission_path(submissions(:bioproject)),
           params: {bulk_sample: {status: 'public'}}
 
     assert_response :not_found
   end
 
-  test 'PATCH bulk_update_samples requires admin auth' do
+  test 'bulk_update_samples requires admin auth' do
     sign_in_as users(:carol)
-    patch bulk_update_samples_admin_submission_path(@submission),
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {status: 'public'}}
 
     assert_response :forbidden
@@ -113,7 +113,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
   # filter (which can be far more rows than the browser ever rendered).
 
   test 'scope=selected only touches the checkboxed samples' do
-    patch bulk_update_samples_admin_submission_path(@submission),
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {scope: 'selected', sample_ids: [@sample_a.id.to_s], status: 'curating'}}
 
     assert_match(/Bulk-updated 1 sample/, flash[:notice])
@@ -121,13 +121,11 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_equal 'public',   @sample_b.reload.status
   end
 
-  # The filtered set is re-derived server-side from the filter params, not
-  # from a posted id list — otherwise "all 100K matching" could not work.
   # A sample bulk edit reaches no record field, so it leaves no patch —
   # the event is the only place the actor and the count survive.
   test 'a bulk edit records an event carrying the actor and the row count' do
     assert_difference 'CurationEvent.count', 1 do
-      patch bulk_update_samples_admin_submission_path(@submission),
+      post bulk_update_samples_admin_submission_path(@submission),
             params: {bulk_sample: {status: 'curating', assignee_id: users(:bob).id.to_s}}
     end
 
@@ -139,22 +137,24 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
   end
 
   test 'the recorded count follows the chosen scope, not the whole submission' do
-    patch bulk_update_samples_admin_submission_path(@submission),
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {scope: 'selected', sample_ids: [@sample_a.id.to_s], status: 'curating'}}
 
     assert_equal 1, CurationEvent.last.row_count
   end
 
   test 'scope=selected with nothing ticked is refused rather than reported as a no-op success' do
-    patch bulk_update_samples_admin_submission_path(@submission),
+    post bulk_update_samples_admin_submission_path(@submission),
           params: {bulk_sample: {scope: 'selected', status: 'curating'}}
 
     assert_match(/No samples selected/, flash[:alert])
     assert_equal 'private', @sample_a.reload.status
   end
 
+  # The filtered set is re-derived server-side from the filter params, not
+  # from a posted id list — otherwise "all 100K matching" could not work.
   test 'scope=filtered re-derives the target set from the filter params' do
-    patch bulk_update_samples_admin_submission_path(@submission, q: 'sample-2'),
+    post bulk_update_samples_admin_submission_path(@submission, q: 'sample-2'),
           params: {bulk_sample: {scope: 'filtered', sample_ids: [@sample_a.id.to_s], status: 'curating'}}
 
     assert_match(/Bulk-updated 1 sample/, flash[:notice])
@@ -163,7 +163,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
   end
 
   test 'the redirect keeps the filter so the curator lands back on the same view' do
-    patch bulk_update_samples_admin_submission_path(@submission, q: 'sample-2'),
+    post bulk_update_samples_admin_submission_path(@submission, q: 'sample-2'),
           params: {bulk_sample: {scope: 'filtered', status: 'curating'}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request, q: 'sample-2')

@@ -79,8 +79,9 @@
   <%# Issue SAMD walks the same target set through AccessionIssue. The %>
   <%# current filter rides in the action URL so "all matching" is %>
   <%# re-derived server-side rather than trusted from a posted id list. %>
+  <%# POST, not PATCH — see admin/submission_requests/_request_list. %>
   <%= form_with url:    bulk_update_samples_admin_submission_path(@submission, @search.to_params),
-                method: :patch,
+                method: :post,
                 scope:  :bulk_sample,
                 local:  true,
                 data:   {controller: 'bulk-select'} do |f| %>
@@ -166,7 +167,6 @@
         <%= f.button "Issue #{@state.accession_prefix}",
                      type:       :submit,
                      formaction: admin_submission_accession_path(@submission, @search.to_params),
-                     formmethod: :post,
                      class:      'btn btn-warning btn-sm text-nowrap',
                      data:       {turbo_confirm: 'Issue accessions for the chosen samples?'} %>
       </div>

@@ -23,6 +23,12 @@ class CurationQueue
   # look, nobody does.
   STALLED_STATUSES = %w[waiting_application application_failed].freeze
 
+  # `waiting_application` is where a request sits between "Apply pressed"
+  # and "job picked it up" — normally milliseconds. Counting it immediately
+  # would flash every ordinary Apply into the curator's red queue. What is
+  # worth surfacing is one that stayed there.
+  STALL_GRACE = 15.minutes
+
   Bucket = Data.define(:key, :title, :description, :scope) do
     # `.count` on a bucket is a badge query — drop the ordering so
     # PostgreSQL doesn't sort rows it is only going to count.
@@ -36,8 +42,10 @@ class CurationQueue
       Bucket.new(
         key:         :stalled,
         title:       'Stuck in our pipeline',
-        description: 'Apply errored, or was enqueued and never ran. The submitter has no retry for either.',
-        scope:       base.where(status: STALLED_STATUSES)
+        description: "Apply errored, or was enqueued and has not run for #{STALL_GRACE.inspect}. " \
+                     'The submitter has no retry for either.',
+        scope:       base.where(status: 'application_failed')
+                         .or(base.where(status: 'waiting_application').where(updated_at: ..STALL_GRACE.ago))
       ),
       Bucket.new(
         key:         :unread_messages,

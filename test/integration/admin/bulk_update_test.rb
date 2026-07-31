@@ -75,7 +75,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
   # --- bulk_update ---
 
   test 'bulk_update applies status to BP project AND every BS sample of selected submissions' do
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {bulk: {
             submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s],
             status:         'public'
@@ -91,7 +91,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
   # read per request, so "N rows" has to be that submission's count.
   test 'bulk_update records one event per submission with its own row count' do
     assert_difference 'CurationEvent.count', 2 do
-      patch bulk_update_admin_submissions_path,
+      post bulk_update_admin_submissions_path,
             params: {bulk: {
               submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s],
               status:         'public'
@@ -106,7 +106,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
   end
 
   test 'bulk_update applies assignee across BP project AND BS samples' do
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {bulk: {
             submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s],
             assignee_id:    users(:bob).id.to_s
@@ -122,7 +122,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
     projects(:primary).update!(assignee: users(:bob))
     samples(:first).update!(assignee:    users(:bob))
 
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {bulk: {
             submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s],
             assignee_id:    '0'
@@ -134,14 +134,14 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
   end
 
   test 'bulk_update with no submissions selected refuses' do
-    patch bulk_update_admin_submissions_path, params: {bulk: {status: 'public'}}
+    post bulk_update_admin_submissions_path, params: {bulk: {status: 'public'}}
 
     assert_redirected_to admin_submission_requests_path
     assert_match(/No submissions selected/, flash[:alert])
   end
 
   test 'bulk_update with both fields blank refuses' do
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {bulk: {
             submission_ids: [submissions(:bioproject).id.to_s],
             status:         '',
@@ -153,7 +153,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
   end
 
   test 'bulk_update rejects unknown status' do
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {bulk: {
             submission_ids: [submissions(:bioproject).id.to_s],
             status:         'nope_not_a_status'
@@ -164,7 +164,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
   end
 
   test 'bulk_update rejects non-admin assignee' do
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {bulk: {
             submission_ids: [submissions(:bioproject).id.to_s],
             assignee_id:    users(:alice).id.to_s
@@ -175,7 +175,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
   end
 
   test 'bulk_update preserves filter params in the redirect' do
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {db: 'bioproject', status: 'public',
                    bulk: {submission_ids: [submissions(:bioproject).id.to_s], status: 'curating'}}
 
@@ -184,7 +184,7 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
 
   test 'bulk_update requires admin auth' do
     sign_in_as users(:carol)
-    patch bulk_update_admin_submissions_path,
+    post bulk_update_admin_submissions_path,
           params: {bulk: {submission_ids: [submissions(:bioproject).id.to_s], status: 'public'}}
 
     assert_response :forbidden

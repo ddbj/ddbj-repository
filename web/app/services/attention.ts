@@ -22,11 +22,19 @@ export default class AttentionService extends Service {
 
   @tracked requests: AttentionRequest[] = [];
 
+  // Two refreshes race on every visit to a request: one on navigation, one
+  // after the thread fetch that marks its messages read. Whichever was
+  // issued last is the one that saw the newest state, so an older response
+  // landing late must not overwrite it.
+  #generation = 0;
+
   get count() {
     return this.requests.length;
   }
 
   async refresh() {
+    const generation = ++this.#generation;
+
     if (!this.currentUser.isLoggedIn) {
       this.requests = [];
       return;
@@ -35,11 +43,11 @@ export default class AttentionService extends Service {
     try {
       const { content } = await this.requestManager.request<Attention>({ url: '/attention' });
 
-      this.requests = content.requests;
+      if (generation === this.#generation) this.requests = content.requests;
     } catch {
       // A banner is an aid, not the task. Losing it must never take the
       // page down with it.
-      this.requests = [];
+      if (generation === this.#generation) this.requests = [];
     }
   }
 }

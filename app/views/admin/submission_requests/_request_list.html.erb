@@ -4,8 +4,12 @@
 <%# on a queue without first navigating to the unfiltered list. %>
 <%# `return_to` names the screen the bulk POST should land back on — a %>
 <%# fixed key, resolved server-side, never a URL from the client. %>
+<%# POST, not PATCH: a PATCH form emits a hidden `_method` field, and %>
+<%# Rack::MethodOverride applies it to EVERY submit — including the %>
+<%# accession button's `formaction`, whose route is POST-only, which %>
+<%# then 404s. One method across the whole form removes the conflict. %>
 <%= form_with url:    bulk_update_admin_submissions_path(filter_params),
-              method: :patch,
+              method: :post,
               scope:  :bulk,
               local:  true,
               data:   {controller: 'bulk-select'} do |f| %>
@@ -120,7 +124,6 @@
         <%= f.button 'Issue accessions for selected',
                      type:      :submit,
                      formaction: bulk_issue_accessions_admin_submissions_path(filter_params),
-                     formmethod: :post,
                      class:     'btn btn-warning btn-sm',
                      data:      {turbo_confirm: 'Issue accessions for the selected submissions?'} %>
       </div>

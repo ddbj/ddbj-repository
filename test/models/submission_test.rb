@@ -1,6 +1,72 @@
 require 'test_helper'
 
 class SubmissionTest < ActiveSupport::TestCase
+  # --- ddbj-canon/v1 chains ---------------------------------------------
+  # v1 stored root snapshots in raw converter order; v2 diffs index into
+  # canonical order. Appending a positional patch to a v1 chain would name
+  # the wrong element of a keyed array — silently.
+
+  def seed_v1_chain(submission, record)
+    SubmissionUpdate.create_with_patch!(
+      submission:, patch_json: Oj.dump([{'op' => 'add', 'path' => '', 'value' => record}], mode: :strict),
+      db: submission.db, status: :applied, actor: 'legacy', source: :migration,
+      patch_canonical_version: 1
+    )
+    submission.update_columns(canonical_version: 1)
+  end
+
+  test 'a v1 chain is healed rather than extended with a positional patch' do
+    submission = submissions(:biosample)
+    # Not in key order — this is what makes the mis-indexing observable.
+    seed_v1_chain(submission, {'schema_version' => 'v3',
+                               'samples' => [{'alias' => 'zz'}, {'alias' => 'aa'}]})
+
+    wanted = submission.materialised_record.deep_dup
+    wanted['samples'].find { it['alias'] == 'aa' }['accession'] = 'SAMD1'
+
+    submission.append_update!(wanted, actor: 'admin:tanaka')
+
+    by_alias = submission.reload.materialised_record.fetch('samples').index_by { it['alias'] }
+
+    assert_equal 'SAMD1', by_alias.fetch('aa')['accession'], 'the edit must land on the sample it named'
+    assert_nil            by_alias.fetch('zz')['accession']
+  end
+
+  test 'healing stamps the chain so the next edit can diff normally' do
+    submission = submissions(:biosample)
+    seed_v1_chain(submission, {'schema_version' => 'v3', 'samples' => [{'alias' => 'zz'}, {'alias' => 'aa'}]})
+
+    submission.append_update!(
+      submission.materialised_record.deep_dup.tap { it['samples'].first['title'] = 'T' },
+      actor: 'admin:tanaka'
+    )
+
+    assert_equal DDBJRecord::Canonicalizer::NUMBER, submission.reload.canonical_version
+
+    # Now an ordinary minimal diff, not another whole-record snapshot.
+    update = submission.append_update!(
+      submission.materialised_record.deep_dup.tap { it['samples'].last['title'] = 'U' },
+      actor: 'admin:tanaka'
+    )
+
+    assert_equal 1,  update.parsed_patch.size
+    refute_equal '', update.parsed_patch.first.fetch('path')
+  end
+
+  # Inputs canonicalisation rejects have no canonical form; the fallback
+  # must still store something rather than re-raising the error it caught.
+  test 'a record canonicalisation rejects still falls back to a snapshot' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'schema_version' => 'v3', 'project' => {'title' => 'seed'}}, actor: 'test')
+
+    # A float where the registry allows none — canonicalize raises, so the
+    # diff path and the canonical snapshot path both fail.
+    weird = submission.materialised_record.deep_dup.tap { it['project']['weight'] = 1.5 }
+
+    assert_nothing_raised { submission.append_update!(weird, actor: 'admin:tanaka') }
+    assert_equal 1.5, submission.reload.materialised_record.dig('project', 'weight')
+  end
+
   test '#materialised_record returns nil before any update is appended' do
     submission = submissions(:bioproject)
 

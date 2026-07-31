@@ -141,7 +141,10 @@ export default <template>
   Args: {
     model: {
       token: string;
-      request: components['schemas']['SubmissionRequest'];
+      // Deliberately narrower than the submitter's payload: the reviewer
+      // endpoint omits the messaging facts, so declaring the wider schema
+      // here would promise fields this response does not carry.
+      request: components['schemas']['ReviewerSubmissionRequest'];
     };
   };
 }>;

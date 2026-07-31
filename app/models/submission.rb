@@ -186,17 +186,20 @@ class Submission < ApplicationRecord
       # curator edits on bag-internal fields (e.g. submitter
       # organizations) replayable. Mirrors the same fallback used by
       # BP/BS Importer's `compute_patch_ops`.
-      patch = begin
-        DDBJRecord::Canonicalizer.diff(base, new_record)
-      rescue DDBJRecord::Canonicalizer::Error
-        op = base.empty? ? 'add' : 'replace'
-        # Canonical, not raw: a root snapshot defines the stored state that
-        # every later diff will index into. See Canonicalizer#canonical_tree.
-        [{'op' => op, 'path' => '', 'value' => DDBJRecord::Canonicalizer.canonical_tree(new_record)}]
-      end
+      patch =
+        if legacy_chain?(base)
+          [{'op' => 'replace', 'path' => '', 'value' => snapshot_value(new_record)}]
+        else
+          begin
+            DDBJRecord::Canonicalizer.diff(base, new_record)
+          rescue DDBJRecord::Canonicalizer::Error
+            [{'op' => (base.empty? ? 'add' : 'replace'), 'path' => '', 'value' => snapshot_value(new_record)}]
+          end
+        end
+
       return nil if patch.empty?
 
-      SubmissionUpdate.create_with_patch!(
+      update = SubmissionUpdate.create_with_patch!(
         submission:              self,
         patch_json:              Oj.dump(patch, mode: :strict),
         db:                      db,
@@ -205,6 +208,12 @@ class Submission < ApplicationRecord
         source:                  source,
         patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
       )
+
+      # The chain is canonical from here on, whether it already was or was
+      # just healed above.
+      update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER)
+
+      update
       # Cache invalidates via SubmissionUpdate#after_create (inside this
       # transaction) — no explicit clear here. Deliberately bypassing the
       # cached read (using materialise_at directly) because we are about
@@ -270,6 +279,29 @@ class Submission < ApplicationRecord
   end
 
   private
+
+  # A chain written before `ddbj-canon/v2` stored its root snapshot in raw
+  # converter order, while `diff` emits indices into the canonical order —
+  # so a positional patch appended to one would name the wrong element of a
+  # keyed array. Rather than refuse (or corrupt), the next write to such a
+  # chain replaces the whole record: one big patch, once, after which the
+  # stored state is canonical and ordinary diffs are safe again.
+  #
+  # A chain that has never been written to is trivially canonical, so the
+  # empty base is exempt.
+  def legacy_chain?(base)
+    !base.empty? && canonical_version < DDBJRecord::Canonicalizer::NUMBER
+  end
+
+  # Root snapshots define the stored state every later diff indexes into,
+  # so they are stored canonical. Inputs that canonicalisation itself
+  # rejects have no canonical form — the raw tree is then all we can keep,
+  # and is what the caller already expected to store.
+  def snapshot_value(record)
+    DDBJRecord::Canonicalizer.canonical_tree(record)
+  rescue DDBJRecord::Canonicalizer::Error
+    record
+  end
 
   def write_through_cache(record, update_id)
     prime_cache!(bytes: Oj.dump(record, mode: :strict), update_id: update_id)

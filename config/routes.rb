@@ -68,7 +68,7 @@ Rails.application.routes.draw do
         # Cross-submission bulk: apply (status, assignee) to all
         # checkboxed rows on the request list. BP submissions update
         # their Project row; BS submissions update all their Samples.
-        patch :bulk_update
+        post :bulk_update
 
         # Cross-submission bulk accession issuance. Selected submissions
         # are walked through AccessionIssue (BP → 1 PRJDB; BS → all
@@ -85,7 +85,7 @@ Rails.application.routes.draw do
         # filter. Per-sample forms are still not offered: a submission can
         # carry 100K samples and content edits go through the TSV
         # round-trip.
-        patch :bulk_update_samples
+        post :bulk_update_samples
       end
 
       # One curation state per submission — status, assignee, hold date and

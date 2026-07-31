@@ -9,9 +9,15 @@
 # For the v1 → v2 bump that plan is a full re-import rather than a
 # reconciling migration: replay is pure RFC 6902 so v1 chains still
 # materialise correctly, and the migrated corpus is rebuilt from D-way.
-# Until a record is re-imported its `submissions.canonical_version` stays
-# at 1 while new patches are stamped 2 — a mixed chain is readable, but
-# the admin Record tab will label the submission by its older version.
+#
+# A v1 chain must NOT be extended with a v2 patch, though: v1 stored root
+# snapshots in raw converter order while v2 diffs index into canonical
+# order, so a positional op would name the wrong element of a keyed array.
+# Submission#append_update! detects this (`submissions.canonical_version`
+# below the current one) and replaces the whole record instead of diffing,
+# healing the chain in one step. Re-import is still the cheaper route for
+# the migrated corpus; the heal is what keeps an untouched record from
+# being corrupted by a curator edit in the meantime.
 canonical_version: ddbj-canon/v2
 
 # ----------------------------------------------------------------------
