@@ -260,12 +260,25 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     get record_admin_submission_request_path(submission.request)
 
     assert_response :ok
-    assert_match admin_submission_request_path(submission.request),                          response.body
-    assert_match 'View as JSON',                                         response.body
-    assert_match materialised_admin_submission_path(submission),         response.body
-    # Materialised content itself is no longer inlined — the body must
-    # NOT contain the project payload.
-    assert_no_match 'PRJDB502',                                          response.body
+    assert_match admin_submission_request_path(submission.request), response.body
+    assert_match 'View as JSON',                                    response.body
+    assert_match materialised_admin_submission_path(submission),    response.body
+
+    # The materialised record is linked, not inlined — the size and digest
+    # orient the curator, the JSON itself is one click away.
+    assert_match 'Canonical SHA-256', response.body
+    assert_no_match(/View as JSON.*\{/m, response.body)
+  end
+
+  # Under ddbj-canon/v1 an accession was stripped from both sides of every
+  # diff, so this patch would have carried only the title.
+  test 'the chain records an accession like any other record field' do
+    submission = submissions(:bioproject)
+    update     = submission.append_update!({'project' => {'accession' => 'PRJDB502', 'title' => 'hello'}}, actor: 'test')
+
+    assert_equal 'PRJDB502', submission.materialised_record.dig('project', 'accession')
+    assert_includes Oj.dump(update.parsed_patch, mode: :strict), 'PRJDB502',
+                    'the accession must reach the patch, whatever shape the diff takes'
   end
 
   test 'the record tab falls back gracefully when no updates have been applied' do

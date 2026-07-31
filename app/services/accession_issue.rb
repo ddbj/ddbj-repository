@@ -78,8 +78,9 @@ class AccessionIssue
       acc = Sequence.allocate!(:bp, 1).first
 
       project.update!(accession: acc, status: :accession_issued)
-      invalidate_cache!(@submission)
-      record_event(1, 'PRJDB')
+
+      update = stamp_record! {|record| (record['project'] ||= {})['accession'] = acc }
+      record_event(1, 'PRJDB', update)
 
       acc
     end
@@ -100,8 +101,19 @@ class AccessionIssue
       targets.zip(acc_list).each do |sample, acc|
         sample.update!(accession: acc, status: :accession_issued)
       end
-      invalidate_cache!(@submission)
-      record_event(targets.size, 'SAMD')
+
+      # `samples` is a keyed array on `alias` (== sample_name), which is
+      # curator input and stable; a sample the record does not carry is
+      # skipped rather than invented.
+      update = stamp_record! {|record|
+        by_alias = Array(record['samples']).index_by { it['alias'] }
+
+        targets.zip(acc_list).each do |sample, acc|
+          by_alias[sample.sample_name]&.[]=('accession', acc)
+        end
+      }
+
+      record_event(targets.size, 'SAMD', update)
 
       acc_list
     end
@@ -111,36 +123,50 @@ class AccessionIssue
     Result.new(submission: @submission, accessions:)
   end
 
-  # `/**/accession` is registered as a volatile path in array-modes.yml
-  # so `Canonicalizer.diff` strips it from BOTH sides — accession-only
-  # edits produce an empty patch and don't generate a SubmissionUpdate
-  # entry. The canonical record for accession is the typed column
-  # (Project.accession / Sample.accession), not the materialised_record;
-  # we just have to null the cache stamp so the next read recomputes
-  # from the chain + the current typed-column value. The orphaned blob
-  # is displaced on the next prime_cache! (read-side cache fill or
-  # importer re-run).
+  # Write the freshly-issued accessions into the record as a patch.
   #
-  # Goes through `update_all` to skip the model's update callbacks
-  # (we don't want a recursive cache write).
-  # Accession is a record field that produces no patch: `/**/accession` is
-  # registered volatile, so `Canonicalizer.diff` strips it from both sides
-  # and the chain never sees the change. Without an event, issuance would
-  # be invisible in the history even though it is the most consequential
-  # thing a curator does. Written inside the transaction so a rollback
-  # un-records it too.
-  def record_event(count, prefix)
-    CurationEvent.record!(
-      submission: @submission,
-      actor:      @actor,
-      action:     :accession_issued,
-      row_count:  count,
-      prefix:     prefix
-    )
+  # Accession is ordinary record content (canonical-json.md §4.4, v2), so
+  # issuance appends a chain entry like any other edit. Under v1 it was a
+  # volatile path stripped from both sides of every diff, which meant the
+  # single most consequential curator action produced an empty patch and
+  # the stored record could disagree with the typed column indefinitely.
+  #
+  # Returns the SubmissionUpdate, or nil when there is nothing to patch —
+  # a submission with no chain yet has nowhere to put it, and the typed
+  # column still carries it. Appending also nils the cache stamp via
+  # SubmissionUpdate#after_create, so no separate invalidation is needed.
+  def stamp_record!
+    record = materialised_or_refuse
+    return nil if record.nil?
+
+    updated = record.deep_dup
+    yield updated
+
+    @submission.append_update!(updated, actor: @actor, source: :manual)
   end
 
-  def invalidate_cache!(submission)
-    Submission.where(id: submission.id).update_all(cached_at_update_id: nil)
+  # Issuing into a submission whose chain cannot be replayed would stamp an
+  # accession the record can never reflect. Refuse instead — the same call
+  # the curation rail makes when it hides the hold-date field.
+  def materialised_or_refuse
+    @submission.materialised_record
+  rescue Submission::MaterialisationFailed => e
+    raise Refused, "Cannot record the accession: the patch chain is unreadable (#{e.message})."
+  end
+
+  # The chain entry above says "the record changed"; this says what the
+  # change was, in words, and points at that entry so the activity feed
+  # shows one line rather than two. Status / assignee events carry no
+  # update because they are not record content at all — see CurationEvent.
+  def record_event(count, prefix, update)
+    CurationEvent.record!(
+      submission:        @submission,
+      actor:             @actor,
+      action:            :accession_issued,
+      row_count:         count,
+      submission_update: update,
+      prefix:            prefix
+    )
   end
 
   def enqueue_mail(submission, accessions)

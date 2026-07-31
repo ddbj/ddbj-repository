@@ -5,12 +5,17 @@ require 'hana'
 require 'json-diff'
 
 # DDBJ Record JSON canonicalization. See tmp/data-migration/canonical-json.md.
-# The wire-format identifier (VERSION) stays `ddbj-canon/v1` per spec; the
-# Ruby namespace is rooted under DDBJRecord because canonicalization is a
+# The Ruby namespace is rooted under DDBJRecord because canonicalization is a
 # property of the DDBJ Record format, not of any organisation.
 module DDBJRecord
   module Canonicalizer
-    VERSION = 'ddbj-canon/v1'.freeze
+    VERSION = 'ddbj-canon/v2'.freeze
+
+    # The integer stored in `submissions.canonical_version` and
+    # `submission_updates.patch_canonical_version` — the N in
+    # `ddbj-canon/vN`. Derived so the column and the wire identifier cannot
+    # drift apart; a test pins both against the registry.
+    NUMBER = VERSION[%r{/v(\d+)\z}, 1].to_i
 
     class Error < StandardError; end
 

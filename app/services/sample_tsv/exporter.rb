@@ -9,8 +9,9 @@ module SampleTSV
   #
   # Column layout:
   #   1. sample_name  — identifier (= v3 samples[*].alias). Read-only.
-  #   2. accession    — AR Sample#accession; not in v3 (volatile-stripped).
-  #                      Read-only — Importer ignores it.
+  #   2. accession    — AR Sample#accession. Read-only context; the
+  #                      Importer ignores it (an accession is issued, not
+  #                      typed into a spreadsheet).
   #   3. status       — AR Sample#status enum value.
   #   4. assignee_uid — User#uid of the assignee, blank if unassigned.
   #   5..N. attribute names (column union sorted across all samples'

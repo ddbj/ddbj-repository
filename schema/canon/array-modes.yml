@@ -1,11 +1,11 @@
-# DDBJ Record Canonical JSON v1 — array mode + string class + volatile path registry.
+# DDBJ Record Canonical JSON v2 — array mode + string class + volatile path registry.
 #
 # Derived from ddbj-record-specifications @ bdcdb8d8 (2026-04-13) and
 # tmp/data-migration/canonical-json.md §3 / §4 / §6.
 #
-# DO NOT modify after first use. Changes require canonical_version bump
-# (ddbj-canon/v2) and a migration re-canonicalising every stored record.
-canonical_version: ddbj-canon/v1
+# DO NOT modify after first use. Changes require a canonical_version bump
+# and a migration re-canonicalising every stored record.
+canonical_version: ddbj-canon/v2
 
 # ----------------------------------------------------------------------
 # Arrays: ordered (preserve input order) / keyed (sort by tuple) / bag
@@ -70,11 +70,15 @@ arrays:
 
 # ----------------------------------------------------------------------
 # Volatile sub-trees stripped before diff (for_diff: true).
+#
+# Membership rule (canonical-json.md §4.1): would regenerating this record
+# from the same source produce a different value? Authorship is NOT the
+# test — `accession` is archive-assigned but stable, so it stays in the
+# diff and issuance shows up as a patch (v2; stripped in v1).
 # ----------------------------------------------------------------------
 volatile_paths:
   - '/provenance'           # whole sub-tree
   - '/schema_version'
-  - '/**/accession'         # archive-assigned, not curator data
   - '/**/last_update'
   - '/**/access'
   - '/**/publication_date'

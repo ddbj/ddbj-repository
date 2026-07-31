@@ -50,9 +50,10 @@ module PublicXML
       # the XML's timestamps weren't normalised. We honour the same
       # invariant — dist_date may be nil for a sample that's been
       # published but never re-released, in which case last_update
-      # falls back to release_date. `accession` itself is in the
-      # canonicalizer's volatile-paths set so the AR column is the
-      # only reliable source.
+      # falls back to release_date. `accession` comes from the AR column
+      # because it is already loaded and indexed — since ddbj-canon/v2 the
+      # record carries it too, and the two agree (AccessionIssue patches
+      # both), so this is a cost choice rather than a correctness one.
       def biosample_attrs
         {
           accession:        @sample.accession.to_s,
@@ -61,9 +62,10 @@ module PublicXML
         }.compact
       end
 
-      # Match on `alias` (== sample_name) — `accession` would not survive
-      # the canonicalizer's volatile strip, so we can't join on it. The
-      # `alias` field is curator-input and stable across diffs.
+      # Match on `alias` (== sample_name). ddbj-canon/v2 would also allow
+      # joining on `accession`, but `alias` is present from the moment the
+      # record exists whereas an accession appears only once issued — and
+      # this renderer runs over records at every stage.
       #
       # The index is keyed by the v3 hash's object_id, which is stable
       # for the duration of the Exporter run because the Exporter

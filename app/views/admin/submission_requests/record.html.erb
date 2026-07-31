@@ -121,8 +121,8 @@
         <dd class="col-sm-9">
           <%= link_to 'View as JSON', materialised_admin_submission_path(@submission) %>
           <%# Labelled "JSON:" to distinguish from "Canonical bytes" above — %>
-          <%# they're structurally different sizes (canonical strips volatile %>
-          <%# fields + sorts keys + normalises). %>
+          <%# they're structurally different sizes (canonical sorts keys and %>
+          <%# normalises strings). %>
           <span class="text-body-secondary ms-2">JSON: <%= number_to_human_size(@materialised_size) %></span>
         </dd>
       <% end %>

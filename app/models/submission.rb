@@ -180,11 +180,12 @@ class Submission < ApplicationRecord
   # against the same stale base and produce a divergent chain.
   #
   # NOTE on volatile fields (canonical-json.md §4.2 asymmetry): diff
-  # strips `/provenance` / `/**/accession` / etc. on BOTH sides, while
+  # strips `/provenance` / `/schema_version` / etc. on BOTH sides, while
   # apply is pure RFC 6902 and leaves them intact during replay. The
   # combination means volatile keys introduced by a migration-source
   # baseline stick around — there is no append_update! path that can
-  # remove them.
+  # remove them. `accession` is deliberately NOT in that set (v2): it is
+  # durable state, so issuing one produces a patch like any other edit.
   def append_update!(new_record, actor:, source: :manual)
     with_lock do
       latest_id = updates.maximum(:id)
@@ -212,7 +213,7 @@ class Submission < ApplicationRecord
         status:                  :applied,
         actor:                   actor,
         source:                  source,
-        patch_canonical_version: 1
+        patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
       )
       # Cache invalidates via SubmissionUpdate#after_create (inside this
       # transaction) — no explicit clear here. Deliberately bypassing the

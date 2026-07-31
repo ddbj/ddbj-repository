@@ -128,7 +128,7 @@ module BioSample
         end
 
         submission.update_columns(
-          canonical_version: 1,
+          canonical_version: DDBJRecord::Canonicalizer::NUMBER,
           converter_version: "bs_v3/#{Converter::SOURCE_FORMAT}",
           migration_run_id:  @migration_run_id,
           updated_at:        Time.current
@@ -141,7 +141,7 @@ module BioSample
           status:                  :applied,
           actor:                   "migration:#{@user_uid}",
           source:                  :migration,
-          patch_canonical_version: 1
+          patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
         )
 
         # Re-populate the cache that SubmissionUpdate#after_create
@@ -166,8 +166,8 @@ module BioSample
     end
 
     # First import (empty prior) → single `add /` root snapshot, so
-    # volatile fields (/schema_version, /provenance, /**/accession,
-    # ...) reach the chain. Subsequent semantic-diff updates preserve
+    # volatile fields (/schema_version, /provenance, ...) reach the
+    # chain. Subsequent semantic-diff updates preserve
     # them via the diff-strips-but-apply-keeps asymmetry documented
     # on Submission#append_update!. Going through Canonicalizer.diff
     # for the empty-prior case would strip volatiles from both sides

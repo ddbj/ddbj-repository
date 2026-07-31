@@ -21,6 +21,12 @@ class CurationEvent < ApplicationRecord
 
   belongs_to :submission
 
+  # Set when the action ALSO patched the record — accession issuance does,
+  # since v2. The feed renders the event's sentence and links it to this
+  # entry rather than printing both. Nil for actions that are not record
+  # content at all.
+  belongs_to :submission_update, optional: true
+
   enum :action, ACTIONS.index_with(&:itself), validate: true
 
   validates :actor, presence: true
@@ -31,8 +37,9 @@ class CurationEvent < ApplicationRecord
   # dropped so "assignee was not touched" and "assignee was cleared" stay
   # distinguishable (the latter records the key with an explicit nil-ish
   # marker chosen by the caller, e.g. 'unassigned').
-  def self.record!(submission:, actor:, action:, row_count: 0, **details)
-    create!(submission:, actor:, action:, row_count:, details: details.compact.stringify_keys)
+  def self.record!(submission:, actor:, action:, row_count: 0, submission_update: nil, **details)
+    create!(submission:, actor:, action:, row_count:, submission_update:,
+            details: details.compact.stringify_keys)
   end
 
   # Curator-facing sentence for the activity feed. Phrasing lives with the

@@ -56,10 +56,14 @@ class ActivityFeed
   # rather than a user id, so they are shown as-is. Op counts are
   # deliberately not computed: each would mean downloading a patch blob,
   # and a 100K-sample TSV import writes multi-megabyte patches.
+  #
+  # A chain entry an event already describes is skipped: accession issuance
+  # both patches the record and records what it did, and "edited the
+  # record" adds nothing beside "issued 1,842 SAMD accessions".
   def update_entries
     return [] unless submission
 
-    submission.updates.order(id: :desc).limit(20).map {|update|
+    submission.updates.where.not(id: described_update_ids).order(id: :desc).limit(20).map {|update|
       Entry.new(
         at:        update.created_at,
         actor:     actor_label(update.actor),
@@ -69,15 +73,24 @@ class ActivityFeed
     }
   end
 
-  # The half of the history the patch chain cannot carry: status, assignee,
-  # comment and accession changes, none of which reach the DDBJ Record.
-  # They have no snapshot to link to, which is exactly why the reference
-  # column stays empty for these lines.
+  def described_update_ids
+    @described_update_ids ||= submission.curation_events.where.not(submission_update_id: nil).pluck(:submission_update_id)
+  end
+
+  # Curator actions in words. Most carry no snapshot to link to — status,
+  # assignee and the comment are not record content — so their reference
+  # column stays empty. Accession issuance is the exception: it patches the
+  # record too, and links to that entry (which update_entries then omits).
   def event_entries
     return [] unless submission
 
     submission.curation_events.limit(20).map {|event|
-      Entry.new(at: event.created_at, actor: event.actor_label, summary: event.summary, update_id: nil)
+      Entry.new(
+        at:        event.created_at,
+        actor:     event.actor_label,
+        summary:   event.summary,
+        update_id: event.submission_update_id
+      )
     }
   end
 

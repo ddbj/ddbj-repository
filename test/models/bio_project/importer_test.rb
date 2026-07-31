@@ -91,7 +91,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal 'PSUB000604', submission.source_id
     assert_equal 'bioproject', submission.db
     assert_equal 'migration-test', submission.user.uid
-    assert_equal 1, submission.canonical_version
+    assert_equal DDBJRecord::Canonicalizer::NUMBER, submission.canonical_version
     assert_match(%r{\Abp_v3/}, submission.converter_version)
     refute_nil submission.migration_run_id
 

@@ -121,6 +121,17 @@ namespace :canon do
       '/provenance/source_format',
       '/provenance/gff/pragmas',
       '/schema_version',
+      '/last_update',
+      '/access',
+      '/publication_date'
+    ].freeze
+
+    # §4.4 Not stripped. Asserted explicitly, not just left off the list
+    # above: `accession` was stripped under v1 and putting it back is the
+    # whole v2 delta, so a silent re-addition has to fail the build. It is
+    # durable state — assigned once, identical across regenerations — and
+    # §4.1's test is volatility, not authorship.
+    expected_non_volatile = [
       '/project/accession',
       '/samples/0/accession',
       '/experiments/0/accession',
@@ -130,9 +141,7 @@ namespace :canon do
       '/datasets/0/accession',
       '/assembly/accession',
       '/access_control/policy/accession',
-      '/last_update',
-      '/access',
-      '/publication_date'
+      '/submission/hold_date'
     ].freeze
 
     classifier = DDBJRecord::Canonicalizer::PathClassifier
@@ -149,17 +158,23 @@ namespace :canon do
       failures << "FAIL: #{path} expected #{expected} got #{actual}" unless actual == expected
     end
 
-    expected_volatile.each do |path|
-      # VolatileStripper drops a subtree as soon as any ancestor matches the
-      # registry, so the spec's "/provenance (subtree)" only needs `/provenance`
-      # to match — descendants inherit. Walk up the ancestor chain to mirror
-      # that semantics.
-      segments = path.split('/', -1).drop(1)
+    # VolatileStripper drops a subtree as soon as any ancestor matches the
+    # registry, so the spec's "/provenance (subtree)" only needs `/provenance`
+    # to match — descendants inherit. Walk up the ancestor chain to mirror
+    # that semantics.
+    stripped = ->(path) {
+      segments  = path.split('/', -1).drop(1)
       ancestors = (1..segments.length).map {|n| '/' + segments.first(n).join('/') }
 
-      next if ancestors.any? {|ancestor| classifier.volatile?(ancestor) }
+      ancestors.any? {|ancestor| classifier.volatile?(ancestor) }
+    }
 
-      failures << "FAIL: #{path} expected volatile got non-volatile"
+    expected_volatile.each do |path|
+      failures << "FAIL: #{path} expected volatile got non-volatile" unless stripped.call(path)
+    end
+
+    expected_non_volatile.each do |path|
+      failures << "FAIL: #{path} expected non-volatile got volatile" if stripped.call(path)
     end
 
     array_count    = DDBJRecord::Canonicalizer::Registry.arrays.size
@@ -167,7 +182,8 @@ namespace :canon do
     volatile_count = DDBJRecord::Canonicalizer::Registry.volatile_paths.size
 
     puts "#{array_count} arrays / #{string_count} strings / #{volatile_count} volatile paths registered."
-    puts "Spec coverage: #{expected_arrays.size} array / #{expected_strings.size} string / #{expected_volatile.size} volatile assertions."
+    puts "Spec coverage: #{expected_arrays.size} array / #{expected_strings.size} string / " \
+         "#{expected_volatile.size} volatile / #{expected_non_volatile.size} non-volatile assertions."
 
     if failures.empty?
       puts 'OK: registry covers every path promised by canonical-json.md.'

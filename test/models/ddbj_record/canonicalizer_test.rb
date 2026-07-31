@@ -61,21 +61,42 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
     end
   end
 
-  test 'strip_volatile removes provenance / accession / schema_version' do
+  # The membership rule is volatility, not authorship (canonical-json.md
+  # §4.1): a regeneration artifact goes, durable state stays. `accession`
+  # is archive-assigned but never changes between regenerations, so it is
+  # durable state and survives — that is the v1 → v2 delta.
+  test 'strip_volatile removes regeneration artifacts but keeps accession' do
     input = {
       'schema_version' => 'v3',
       'provenance'     => {'source_format' => 'xml'},
       'submission'     => {'comments' => 'hello'},
-      'samples'        => [{'alias' => 'A', 'accession' => 'SAMD000123'}]
+      'samples'        => [{'alias' => 'A', 'accession' => 'SAMD000123', 'last_update' => '2026-01-01'}]
     }
 
     stripped = C.strip_volatile(input)
 
     refute stripped.key?('schema_version')
     refute stripped.key?('provenance')
-    assert_equal 'hello', stripped.dig('submission', 'comments')
-    refute stripped['samples'][0].key?('accession')
-    assert_equal 'A', stripped['samples'][0]['alias']
+    refute stripped['samples'][0].key?('last_update')
+    assert_equal 'hello',       stripped.dig('submission', 'comments')
+    assert_equal 'A',           stripped['samples'][0]['alias']
+    assert_equal 'SAMD000123',  stripped['samples'][0]['accession']
+  end
+
+  # The point of the v2 bump: issuing an accession has to be expressible as
+  # a patch, or the chain cannot claim to be the record's history.
+  test 'an accession-only change produces a patch' do
+    before = {'project' => {'title' => 'x'}}
+    after  = {'project' => {'title' => 'x', 'accession' => 'PRJDB1'}}
+
+    ops = C.diff(before, after)
+
+    assert_equal [{'op' => 'add', 'path' => '/project/accession', 'value' => 'PRJDB1'}], ops
+  end
+
+  test 'the wire identifier and the registry agree on the version' do
+    assert_equal DDBJRecord::Canonicalizer::Registry.canonical_version, C::VERSION
+    assert_equal "ddbj-canon/v#{C::NUMBER}",                            C::VERSION
   end
 
   test 'strip_volatile honours index-targeted volatile path in arrays' do
