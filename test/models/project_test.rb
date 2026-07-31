@@ -24,20 +24,6 @@ class ProjectTest < ActiveSupport::TestCase
     assert project.valid?
   end
 
-  test 'assignee_must_be_admin rejects non-admin users' do
-    project = projects(:primary)
-
-    project.assignee = users(:alice)
-    assert_not project.valid?
-    assert_includes project.errors[:assignee], 'must be an admin user'
-
-    project.assignee = users(:bob)
-    assert project.valid?
-
-    project.assignee = nil
-    assert project.valid?
-  end
-
   test 'parents / children relations through ProjectLink' do
     parent = projects(:umbrella)
     child  = projects(:primary)

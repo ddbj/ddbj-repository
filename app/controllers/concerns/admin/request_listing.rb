@@ -6,16 +6,17 @@ module Admin
   module RequestListing
     extend ActiveSupport::Concern
 
-    # Per-BS-submission aggregate of (status, assignee) across samples, so
-    # a list can show "Uniform: public / kodama" vs "Mixed (3)" without
-    # hauling every Sample row over the wire. One SQL for the whole page —
-    # no N+1, no per-row distinct() calls.
-    SampleAggregate = Data.define(:statuses, :assignee_ids, :first_accession, :accession_count)
+    # Per-BS-submission aggregate of status + accessions across samples, so
+    # a list can show "Uniform: public" vs "Mixed (3)" without hauling
+    # every Sample row over the wire. One SQL for the whole page — no N+1,
+    # no per-row distinct() calls. (Assignee is not here: it is one column
+    # on the request, so it needs no aggregate.)
+    SampleAggregate = Data.define(:statuses, :first_accession, :accession_count)
 
     private
 
     def load_requests(scope)
-      @pagy, @requests   = pagy(scope.includes(:user, submission: [{project: :assignee}, :accessions]))
+      @pagy, @requests   = pagy(scope.includes(:user, :assignee, submission: %i[project accessions]))
       @sample_aggregates = sample_aggregates_for(@requests.filter_map(&:submission))
     end
 
@@ -28,12 +29,11 @@ module Admin
         .group(:submission_id)
         .pluck(:submission_id,
                Arel.sql('ARRAY_AGG(DISTINCT status) AS statuses'),
-               Arel.sql('ARRAY_AGG(DISTINCT assignee_id) AS assignee_ids'),
                Arel.sql('MIN(accession) AS first_accession'),
                Arel.sql('COUNT(accession) AS accession_count'))
 
-      rows.to_h {|sid, statuses, assignees, first_accession, accession_count|
-        [sid, SampleAggregate.new(statuses:, assignee_ids: assignees, first_accession:, accession_count:)]
+      rows.to_h {|sid, statuses, first_accession, accession_count|
+        [sid, SampleAggregate.new(statuses:, first_accession:, accession_count:)]
       }
     end
   end

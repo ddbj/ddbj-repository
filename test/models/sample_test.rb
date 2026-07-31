@@ -45,14 +45,4 @@ class SampleTest < ActiveSupport::TestCase
       assert sample.valid?, "Expected status #{name} to be valid"
     end
   end
-
-  test 'assignee_must_be_admin rejects non-admin users' do
-    sample = samples(:first)
-
-    sample.assignee = users(:alice)
-    assert_not sample.valid?
-
-    sample.assignee = users(:bob)
-    assert sample.valid?
-  end
 end

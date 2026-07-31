@@ -61,9 +61,16 @@ class CurationEvent < ApplicationRecord
 
   def curation_summary
     parts = []
-    parts << "set #{subject} to #{details['status']}"        if details['status']
-    parts << "assigned #{parts.any? ? 'them' : subject} to #{details['assignee']}" if details['assignee']
-    parts << 'updated the curator comment'                   if details['curator_comment']
+    parts << "set #{subject} to #{details['status']}" if details['status']
+
+    # Assignment is a fact about the request, not about the rows — so it
+    # never borrows `subject`, which counts rows and would report
+    # "assigned 0 samples" for a request that has not been applied yet.
+    if (assignee = details['assignee'])
+      parts << (assignee == 'unassigned' ? 'unassigned the request' : "assigned the request to #{assignee}")
+    end
+
+    parts << 'updated the curator comment' if details['curator_comment']
 
     parts.any? ? parts.to_sentence : "updated #{subject}"
   end

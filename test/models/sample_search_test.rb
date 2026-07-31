@@ -35,14 +35,6 @@ class SampleSearchTest < ActiveSupport::TestCase
     assert_equal [samples(:second)], search(accession: 'not_issued').to_a
   end
 
-  test 'the unassigned sentinel selects rows with no assignee' do
-    samples(:first).update!(assignee: users(:bob))
-
-    assert_equal [samples(:second)], search(assignee: '0').to_a
-    assert_equal [samples(:first)],  search(assignee: users(:bob).id.to_s).to_a
-    assert_equal 2,                  search(assignee: ['0', users(:bob).id.to_s]).count
-  end
-
   test 'filters compose' do
     assert_empty search(q: 'sample-1', accession: 'not_issued').to_a
   end

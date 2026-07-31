@@ -43,7 +43,7 @@ module Admin
     # screen, so a curator can look up from their own work and back without
     # losing their place. My queue stays in the nav for people who live there.
     def scoped(relation)
-      @mine ? relation.curated_by(current_user) : relation
+      @mine ? relation.assigned_to(current_user) : relation
     end
 
     def listed(action)

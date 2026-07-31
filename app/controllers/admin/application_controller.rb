@@ -21,7 +21,7 @@ module Admin
     end
 
     def my_queue_count
-      @my_queue_count ||= SubmissionRequest.curated_by(current_user).count
+      @my_queue_count ||= SubmissionRequest.assigned_to(current_user).count
     end
   end
 end

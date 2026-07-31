@@ -50,10 +50,9 @@ module SampleTSV
         )
       end
 
-      sample_by_name = @submission.samples.includes(:assignee).index_by(&:sample_name)
-      user_by_uid    = preload_assignee_uids(rows)
+      sample_by_name = @submission.samples.index_by(&:sample_name)
 
-      valid, errors = partition_rows(rows, attribute_cols, sample_by_name, user_by_uid)
+      valid, errors = partition_rows(rows, attribute_cols, sample_by_name)
 
       apply!(valid, attribute_cols) if valid.any?
 
@@ -76,14 +75,7 @@ module SampleTSV
       body.start_with?(BOM) ? body.sub(BOM, '') : body
     end
 
-    def preload_assignee_uids(rows)
-      uids = rows.filter_map { it['assignee_uid']&.strip.presence }.uniq
-      return {} if uids.empty?
-
-      User.where(uid: uids).index_by(&:uid)
-    end
-
-    def partition_rows(rows, attribute_cols, sample_by_name, user_by_uid)
+    def partition_rows(rows, attribute_cols, sample_by_name)
       valid  = []
       errors = []
 
@@ -103,26 +95,12 @@ module SampleTSV
           next
         end
 
-        assignee_id =
-          case row['assignee_uid']&.strip
-          when nil, ''             then sample.assignee_id # leave as-is
-          when '-'                 then nil                # explicit unassign
-          else
-            user = user_by_uid[row['assignee_uid'].strip]
-            unless user
-              errors << [row, "unknown assignee_uid: #{row['assignee_uid']}"]
-              next
-            end
-            user.id
-          end
-
         attrs = attribute_cols.to_h {|col| [col, row[col]&.strip.presence] }
 
         valid << {
-          sample:      sample,
-          status:      status || sample.status,
-          assignee_id: assignee_id,
-          attrs:       attrs
+          sample: sample,
+          status: status || sample.status,
+          attrs:  attrs
         }
       end
 
@@ -222,7 +200,6 @@ module SampleTSV
       valid.each do |row|
         row[:sample].update_columns(
           status:      row[:status],
-          assignee_id: row[:assignee_id],
           title:       row[:attrs]['sample_title'],
           organism:    row[:attrs]['organism'],
           taxonomy_id: Integer(row[:attrs]['taxonomy_id'].to_s, 10, exception: false)

@@ -61,7 +61,7 @@
           <%# One column, not two: two meant reading both and working out %>
           <%# which of them currently applied (see request_state_display). %>
           <td><%= request_state_display(request, submission, sample_aggregates) %></td>
-          <td><%= submission ? submission_assignee_display(submission, sample_aggregates) : '—' %></td>
+          <td><%= request.assignee&.uid || '—' %></td>
           <td class="text-nowrap"><%= elapsed_label(request.updated_at) %> ago</td>
         </tr>
       <% end %>
@@ -110,10 +110,10 @@
     </div>
 
     <p class="text-body-secondary small mt-2">
-      Apply sets curation status / assignee on each selected request's submission —
-      the Project (BP) or every Sample (BS). Issue accessions gives each one a PRJDB
-      (BP) or a SAMD per un-accessioned sample (BS), and mails the submitter.
-      Requests with no submission yet are not selectable.
+      Apply sets the assignee on each selected request, and the curation status on
+      its submission — the Project (BP) or every Sample (BS). Issue accessions gives
+      each one a PRJDB (BP) or a SAMD per un-accessioned sample (BS), and mails the
+      submitter. Requests with no submission yet are not selectable.
     </p>
   <% end %>
 <% end %>

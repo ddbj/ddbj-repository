@@ -50,13 +50,6 @@
     </div>
 
     <div class="col-md-2">
-      <%= label_tag :assignee, 'Assignee', class: 'form-label form-label-sm' %>
-      <%= select_tag :assignee,
-                     options_for_select([['Unassigned', '0']] + User.staff.order(:uid).pluck(:uid, :id), @search.assignees.first),
-                     include_blank: 'Any', class: 'form-select form-select-sm' %>
-    </div>
-
-    <div class="col-md-2">
       <%= label_tag :accession, 'Accession', class: 'form-label form-label-sm' %>
       <%= select_tag :accession,
                      options_for_select(SampleSearch::ACCESSION_STATES.map {|value, label| [label, value] }, @search.accession_state),
@@ -97,7 +90,6 @@
           <th>Organism</th>
           <th>Tax ID</th>
           <th>Status</th>
-          <th>Assignee</th>
         </tr>
       </thead>
       <tbody>
@@ -118,13 +110,12 @@
                 <%= sample.status.tr('_', ' ') %>
               </span>
             </td>
-            <td class="text-body-secondary"><%= sample.assignee&.uid || '—' %></td>
           </tr>
         <% end %>
 
         <% if @samples.empty? %>
           <tr>
-            <td colspan="8" class="text-center text-body-secondary py-4">No samples match this filter.</td>
+            <td colspan="7" class="text-center text-body-secondary py-4">No samples match this filter.</td>
           </tr>
         <% end %>
       </tbody>
@@ -154,11 +145,6 @@
         <%= f.select :status,
                      Sample.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
                      {include_blank: 'Status — leave as-is'},
-                     class: 'form-select form-select-sm w-auto' %>
-
-        <%= f.select :assignee_id,
-                     [['— Unassigned —', '0']] + User.staff.order(:uid).pluck(:uid, :id),
-                     {include_blank: 'Assignee — leave as-is'},
                      class: 'form-select form-select-sm w-auto' %>
 
         <%= f.submit 'Apply', class: 'btn btn-outline-light btn-sm',

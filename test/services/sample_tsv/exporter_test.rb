@@ -4,7 +4,7 @@ class SampleTSV::ExporterTest < ActiveSupport::TestCase
   setup do
     @submission = submissions(:biosample)
     @first      = samples(:first).tap  { it.update!(sample_name: 'sample-A', accession: 'SAMD00099991', status: 'curating') }
-    @second     = samples(:second).tap { it.update!(sample_name: 'sample-B', accession: 'SAMD00099992', status: 'public', assignee: users(:bob)) }
+    @second     = samples(:second).tap { it.update!(sample_name: 'sample-B', accession: 'SAMD00099992', status: 'public') }
 
     @submission.append_update!({
       'samples' => [
@@ -25,7 +25,7 @@ class SampleTSV::ExporterTest < ActiveSupport::TestCase
     tsv  = SampleTSV::Exporter.new(@submission).each.to_a.join
     rows = tsv.lines.map { it.chomp.split("\t", -1) }
 
-    expected_header = %w[sample_name accession status assignee_uid collection_date geo_loc_name organism sample_title]
+    expected_header = %w[sample_name accession status collection_date geo_loc_name organism sample_title]
     assert_equal expected_header, rows[0]
 
     # Rows in AR id order (samples :first then :second).
@@ -33,7 +33,6 @@ class SampleTSV::ExporterTest < ActiveSupport::TestCase
       'sample-A',
       'SAMD00099991',
       'curating',
-      '',
       '2026-03-01',
       '',
       'Homo sapiens',
@@ -44,7 +43,6 @@ class SampleTSV::ExporterTest < ActiveSupport::TestCase
       'sample-B',
       'SAMD00099992',
       'public',
-      'bob',
       '',
       'Japan',
       'Mus musculus',
@@ -71,7 +69,6 @@ class SampleTSV::ExporterTest < ActiveSupport::TestCase
     assert_equal 1, header.count('status'),       'reserved column `status` must not double-emit'
     assert_equal 1, header.count('accession'),    'reserved column `accession` must not double-emit'
     assert_equal 1, header.count('sample_name'),  'reserved column `sample_name` must not double-emit'
-    assert_equal 1, header.count('assignee_uid'), 'reserved column `assignee_uid` must not double-emit'
   end
 
   test 'sanitises tabs and newlines inside cell values (TSV separator collision)' do

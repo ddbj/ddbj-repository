@@ -1,6 +1,5 @@
 class Sample < ApplicationRecord
   include Lifecycleable
-  include AdminAssignable
 
   ACCESSION_FORMAT = /\ASAMD\d+\z/
 

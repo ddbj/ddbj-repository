@@ -43,9 +43,9 @@
     </div>
 
     <div class="d-flex align-items-center gap-2">
-      <% if @submission && @state.curated? && !@state.assigned_to?(current_user) %>
+      <% unless @state.assigned_to?(current_user) %>
         <%= button_to 'Assign to me',
-                      admin_submission_assignment_path(@submission),
+                      admin_submission_request_assignment_path(@request),
                       method: :post,
                       class:  'btn btn-outline-secondary btn-sm' %>
       <% end %>

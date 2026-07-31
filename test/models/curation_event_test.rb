@@ -32,13 +32,21 @@ class CurationEventTest < ActiveSupport::TestCase
   test 'status and assignee in one save read as one sentence' do
     event = record(action: :curation_updated, row_count: 1842, noun: 'sample', status: 'curating', assignee: 'tanaka')
 
-    assert_equal 'set 1,842 samples to curating and assigned them to tanaka', event.summary
+    assert_equal 'set 1,842 samples to curating and assigned the request to tanaka', event.summary
   end
 
-  test 'an assignee-only change names the rows rather than saying them' do
-    event = record(action: :curation_updated, row_count: 1, noun: 'project', assignee: 'tanaka')
+  # Assignment belongs to the request, so it never borrows the row count —
+  # which for an unapplied request is 0 and would read "assigned 0 samples".
+  test 'an assignee-only change talks about the request, not the rows' do
+    event = record(action: :curation_updated, row_count: 0, noun: 'sample', assignee: 'tanaka')
 
-    assert_equal 'assigned 1 project to tanaka', event.summary
+    assert_equal 'assigned the request to tanaka', event.summary
+  end
+
+  test 'clearing the assignee says so rather than naming a user' do
+    event = record(action: :curation_updated, row_count: 0, noun: 'sample', assignee: 'unassigned')
+
+    assert_equal 'unassigned the request', event.summary
   end
 
   test 'a comment-only change says so' do

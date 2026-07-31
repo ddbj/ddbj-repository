@@ -3,10 +3,12 @@
 <%# were four cards with four buttons; a curator changes them as a single %>
 <%# decision, so they post as a single form. %>
 <%#
-  A BS submission's samples can disagree. Where they do there is no value
-  to preselect, so the field opens on "Leave as-is" and an untouched
-  select genuinely leaves the mixture alone — picking a value is how you
-  flatten it.
+  A BS submission's samples can disagree on STATUS. Where they do there is
+  no value to preselect, so the field opens on "Leave as-is" and an
+  untouched select genuinely leaves the mixture alone — picking a value is
+  how you flatten it. Assignee cannot disagree: it is one column on the
+  request, which is also why it is offered before Apply, when there are no
+  rows for a status to apply to.
 %>
 <section class="card">
   <div class="card-body">
@@ -14,9 +16,9 @@
 
     <p class="text-body-secondary small">
       <% if state.curated? %>
-        Applies to all <%= number_with_delimiter(state.row_count) %> <%= state.row_noun %> in this submission.
+        Status applies to all <%= number_with_delimiter(state.row_count) %> <%= state.row_noun %> in this submission.
       <% else %>
-        This submission has no curation rows — status and assignee do not apply.
+        This submission has no curation rows yet, so there is no status to set — it can still be assigned.
       <% end %>
     </p>
 
@@ -29,16 +31,16 @@
                        {include_blank: '— Leave as-is —', selected: state.uniform_status},
                        class: 'form-select form-select-sm' %>
         </div>
-
-        <div class="mb-3">
-          <%= f.label :assignee_id, 'Assignee', class: 'form-label form-label-sm' %>
-          <%= f.select :assignee_id,
-                       [['— Unassigned —', CurationUpdate::UNASSIGNED]] + User.staff.order(:uid).pluck(:uid, :id),
-                       {include_blank: '— Leave as-is —',
-                        selected: state.assignee_ids.size == 1 ? (state.uniform_assignee_id || CurationUpdate::UNASSIGNED) : nil},
-                       class: 'form-select form-select-sm' %>
-        </div>
       <% end %>
+
+      <div class="mb-3">
+        <%= f.label :assignee_id, 'Assignee', class: 'form-label form-label-sm' %>
+        <%= f.select :assignee_id,
+                     [['— Unassigned —', CurationUpdate::UNASSIGNED]] + User.staff.order(:uid).pluck(:uid, :id),
+                     {include_blank: '— Leave as-is —',
+                      selected: state.request.assignee_id || CurationUpdate::UNASSIGNED},
+                     class: 'form-select form-select-sm' %>
+      </div>
 
       <%# BioProject only. `submission.hold_date` is a v3 field for any DB, %>
       <%# but nothing outside BP acts on it: the projection column lives on %>

@@ -39,7 +39,7 @@ class CurationQueue
 
     # Oldest first: a queue is a working order, not a newsfeed.
     def requests
-      scope.reorder(updated_at: :asc).includes(:user, submission: [{project: :assignee}, :accessions])
+      scope.reorder(updated_at: :asc).includes(:user, :assignee, submission: %i[project accessions])
     end
   end
 

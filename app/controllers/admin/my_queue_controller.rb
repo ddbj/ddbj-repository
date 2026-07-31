@@ -7,7 +7,7 @@ module Admin
     include RequestListing
 
     def show
-      load_requests(SubmissionRequest.curated_by(current_user).order(id: :desc))
+      load_requests(SubmissionRequest.assigned_to(current_user).order(id: :desc))
     end
   end
 end

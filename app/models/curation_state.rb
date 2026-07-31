@@ -108,22 +108,14 @@ class CurationState
     uniform_status&.tr('_', ' ') || "Mixed (#{statuses.size})"
   end
 
-  def assignee_ids = @assignee_ids ||= rows ? rows.distinct.pluck(:assignee_id) : []
+  # Assignment hangs off the request, not the rows, so there is nothing to
+  # aggregate and no "Mixed (3)" to display — and it reads the same before
+  # Apply, when there are no rows at all.
+  def assignee = request.assignee
 
-  def uniform_assignee_id = assignee_ids.size == 1 ? assignee_ids.first : nil
+  def assignee_label = assignee&.uid || 'Unassigned'
 
-  def assignee
-    @assignee ||= uniform_assignee_id && User.find_by(id: uniform_assignee_id)
-  end
-
-  def assignee_label
-    return '—' unless curated?
-    return "Mixed (#{assignee_ids.size})" if assignee_ids.size > 1
-
-    assignee&.uid || 'Unassigned'
-  end
-
-  def assigned_to?(user) = assignee_ids == [user.id]
+  def assigned_to?(user) = request.assignee_id == user.id
 
   def accessioned_count
     @accessioned_count ||= @row_summary&.accessioned_count || (rows ? rows.where.not(accession: nil).count : 0)

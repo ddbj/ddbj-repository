@@ -30,8 +30,8 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
     assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
   end
 
-  test 'index filter by assignee=<id> matches submissions where any project/sample is assigned' do
-    projects(:primary).update!(assignee: users(:bob))
+  test 'index filter by assignee=<id> matches requests assigned to that curator' do
+    submissions(:bioproject).request.assign!(users(:bob))
 
     get admin_submission_requests_path, params: {assignee: users(:bob).id.to_s}
 
@@ -39,9 +39,9 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
     assert_no_match admin_submission_request_path(submissions(:biosample).request),  response.body
   end
 
-  test 'index filter by assignee=0 matches submissions with at least one unassigned project/sample' do
-    projects(:primary).update!(assignee: users(:bob))
-    # BS samples remain unassigned (default).
+  test 'index filter by assignee=0 matches unclaimed requests' do
+    submissions(:bioproject).request.assign!(users(:bob))
+    # Every other fixture request remains unassigned (default).
 
     get admin_submission_requests_path, params: {assignee: '0'}
 
@@ -105,7 +105,9 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
     assert_equal 'set 2 samples to public', by_submission.fetch(submissions(:biosample).id).summary
   end
 
-  test 'bulk_update applies assignee across BP project AND BS samples' do
+  # Assignment lands on the requests, not on the rows the status write
+  # touches — so a BS submission's 100K samples are not rewritten for it.
+  test 'bulk_update applies the assignee to the selected requests' do
     post bulk_update_admin_submissions_path,
           params: {bulk: {
             submission_ids: [submissions(:bioproject).id.to_s, submissions(:biosample).id.to_s],
@@ -113,14 +115,13 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
           }}
 
     assert_redirected_to admin_submission_requests_path
-    assert_equal users(:bob), projects(:primary).reload.assignee
-    assert_equal users(:bob), samples(:first).reload.assignee
-    assert_equal users(:bob), samples(:second).reload.assignee
+    assert_equal users(:bob), submissions(:bioproject).request.reload.assignee
+    assert_equal users(:bob), submissions(:biosample).request.reload.assignee
   end
 
-  test 'bulk_update assignee_id="0" sets nil across selected rows' do
-    projects(:primary).update!(assignee: users(:bob))
-    samples(:first).update!(assignee:    users(:bob))
+  test 'bulk_update assignee_id="0" unclaims the selected requests' do
+    submissions(:bioproject).request.assign!(users(:bob))
+    submissions(:biosample).request.assign!(users(:bob))
 
     post bulk_update_admin_submissions_path,
           params: {bulk: {
@@ -129,8 +130,8 @@ class AdminBulkUpdateTest < ActionDispatch::IntegrationTest
           }}
 
     assert_redirected_to admin_submission_requests_path
-    assert_nil projects(:primary).reload.assignee
-    assert_nil samples(:first).reload.assignee
+    assert_nil submissions(:bioproject).request.reload.assignee
+    assert_nil submissions(:biosample).request.reload.assignee
   end
 
   test 'bulk_update with no submissions selected refuses' do

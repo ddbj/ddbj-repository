@@ -1,6 +1,5 @@
 class Project < ApplicationRecord
   include Lifecycleable
-  include AdminAssignable
 
   ACCESSION_FORMAT = /\APRJD[B-Z]\d+\z/
 

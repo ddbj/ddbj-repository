@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_062832) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -115,7 +115,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
 
   create_table "projects", force: :cascade do |t|
     t.string "accession"
-    t.bigint "assignee_id"
     t.datetime "created_at", null: false
     t.date "dist_date"
     t.datetime "distribution_notified_at"
@@ -129,7 +128,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
     t.string "title"
     t.datetime "updated_at", null: false
     t.index ["accession"], name: "index_projects_on_accession", unique: true, where: "(accession IS NOT NULL)"
-    t.index ["assignee_id"], name: "index_projects_on_assignee_id"
     t.index ["status"], name: "index_projects_on_status"
     t.index ["submission_id", "status"], name: "index_projects_awaiting_accession", where: "(accession IS NULL)"
     t.index ["submission_id"], name: "index_projects_on_submission_id", unique: true
@@ -198,7 +196,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
 
   create_table "samples", force: :cascade do |t|
     t.string "accession"
-    t.bigint "assignee_id"
     t.datetime "created_at", null: false
     t.date "dist_date"
     t.string "env_package"
@@ -215,7 +212,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
     t.string "title"
     t.datetime "updated_at", null: false
     t.index ["accession"], name: "index_samples_on_accession", unique: true, where: "(accession IS NOT NULL)"
-    t.index ["assignee_id"], name: "index_samples_on_assignee_id"
     t.index ["package"], name: "index_samples_on_package"
     t.index ["package_group"], name: "index_samples_on_package_group"
     t.index ["sample_name"], name: "index_samples_on_sample_name"
@@ -248,6 +244,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
   end
 
   create_table "submission_requests", force: :cascade do |t|
+    t.bigint "assignee_id"
     t.datetime "created_at", null: false
     t.string "db", null: false
     t.string "error_message"
@@ -256,6 +253,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
     t.bigint "submission_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["assignee_id"], name: "index_submission_requests_on_assignee_id"
     t.index ["db"], name: "index_submission_requests_on_db"
     t.index ["migration_run_id"], name: "index_submission_requests_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
     t.index ["submission_id"], name: "index_submission_requests_on_submission_id"
@@ -345,16 +343,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
   add_foreign_key "project_links", "projects", column: "child_project_id"
   add_foreign_key "project_links", "projects", column: "parent_project_id"
   add_foreign_key "projects", "submissions"
-  add_foreign_key "projects", "users", column: "assignee_id"
   add_foreign_key "reviewer_accesses", "submission_requests"
   add_foreign_key "sample_references", "samples"
   add_foreign_key "sample_tsv_imports", "submissions"
   add_foreign_key "samples", "submissions"
-  add_foreign_key "samples", "users", column: "assignee_id"
   add_foreign_key "submission_messages", "submission_requests"
   add_foreign_key "submission_messages", "users"
   add_foreign_key "submission_requests", "submissions"
   add_foreign_key "submission_requests", "users"
+  add_foreign_key "submission_requests", "users", column: "assignee_id"
   add_foreign_key "submission_updates", "submissions"
   add_foreign_key "submissions", "submission_updates", column: "cached_at_update_id", on_delete: :nullify
   add_foreign_key "submissions", "users"

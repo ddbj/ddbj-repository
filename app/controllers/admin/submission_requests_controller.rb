@@ -49,7 +49,7 @@ module Admin
       # `page_key: 'samples_page'` namespaces the URL param. (pagy v43:
       # the option is `page_key`, not `page_param`, and the value must be
       # a String not a Symbol; the wrong shape is silently ignored.)
-      @samples_pagy, @samples = pagy(scope.includes(:assignee).order(:id), page_key: 'samples_page', limit: 50)
+      @samples_pagy, @samples = pagy(scope.order(:id), page_key: 'samples_page', limit: 50)
       @matching_count         = @samples_pagy.count
     end
 
@@ -75,11 +75,12 @@ module Admin
       @state      = CurationState.new(@request)
     end
 
-    # The submission-based filters (source_id / accession / status /
-    # assignee) correlate on `submission_requests.submission_id`, which
-    # IS the submission's primary key. A request with no submission
-    # (pre-Apply) matches none of them, so those filters implicitly
-    # restrict to applied requests — exactly the curation cohort.
+    # The submission-based filters (source_id / accession / status)
+    # correlate on `submission_requests.submission_id`, which IS the
+    # submission's primary key. A request with no submission (pre-Apply)
+    # matches none of them, so those filters implicitly restrict to
+    # applied requests — exactly the curation cohort. `assignee` is not
+    # one of them: it lives on the request and works before Apply.
 
     # Multi-select filters treat "everything selected" the same as
     # "nothing selected" — a fully-checked group is no constraint. This
@@ -122,10 +123,11 @@ module Admin
       SQL
     end
 
-    # `assignee` is a multi select: `0` means "unassigned" (assignee_id IS
-    # NULL on a project/sample row) and any other value is a user id. The
-    # selected values are OR-ed — a row matches if it is assigned to ANY of
-    # the picked users, or unassigned when "0" is picked.
+    # `assignee` is a multi select: `0` means "unassigned" and any other
+    # value is a user id. Now that assignment is a column on the request
+    # this is a plain indexed IN — it used to need an EXISTS over both
+    # curation tables, which also meant a pre-Apply request could never
+    # match any assignee filter, not even "unassigned".
     def filter_by_assignee(scope, raw)
       selected = Array(raw).map(&:to_s).reject(&:blank?)
       return scope if selected.empty?
@@ -136,22 +138,10 @@ module Admin
       universe = ['0'] + User.staff.pluck(:id).map(&:to_s)
       return scope if (universe - selected).empty?
 
-      include_unassigned = selected.include?('0')
-      uids               = (selected - ['0']).map(&:to_i).reject(&:zero?)
+      ids = (selected - ['0']).map(&:to_i).reject(&:zero?)
+      ids << nil if selected.include?('0')
 
-      predicates = []
-      predicates << 'assignee_id IN (:uids)' if uids.any?
-      predicates << 'assignee_id IS NULL'    if include_unassigned
-      return scope if predicates.empty?
-
-      # `predicate` is built only from the two fixed literals above; the
-      # user-supplied ids ride in via the :uids bind, so there's no
-      # interpolation of untrusted input.
-      predicate = predicates.join(' OR ')
-      scope.where(<<~SQL.squish, uids:)
-        EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id AND (#{predicate})) OR
-        EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id AND (#{predicate}))
-      SQL
+      scope.where(assignee_id: ids)
     end
   end
 end

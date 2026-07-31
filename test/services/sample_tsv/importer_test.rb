@@ -22,8 +22,8 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
 
   test 'applies a row that touches typed cols + edits attributes via single SubmissionUpdate' do
     tsv = <<~TSV
-      sample_name\tstatus\tassignee_uid\tcollection_date\torganism\tsample_title
-      sample-A\taccession_issued\tbob\t2026-04-15\tMus musculus\tA new title
+      sample_name\tstatus\tcollection_date\torganism\tsample_title
+      sample-A\taccession_issued\t2026-04-15\tMus musculus\tA new title
     TSV
 
     chain_before = @submission.updates.count
@@ -47,7 +47,6 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
 
     @sample.reload
     assert_equal 'accession_issued', @sample.status
-    assert_equal users(:bob).id,     @sample.assignee_id
     assert_equal 'Mus musculus',     @sample.organism
     assert_equal 'A new title',      @sample.title
   end
@@ -106,23 +105,6 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     assert_match 'unknown status', result.error_report
   end
 
-  test 'assignee_uid="-" unassigns explicitly; empty leaves as-is' do
-    @sample.update!(assignee: users(:bob))
-
-    run_importer(<<~TSV)
-      sample_name\tassignee_uid
-      sample-A\t-
-    TSV
-    assert_nil @sample.reload.assignee_id
-
-    @sample.update!(assignee: users(:bob))
-    run_importer(<<~TSV)
-      sample_name\tassignee_uid
-      sample-A\t
-    TSV
-    assert_equal users(:bob).id, @sample.reload.assignee_id
-  end
-
   test 'no SubmissionUpdate is created when every row fails' do
     chain_before = @submission.updates.count
 
@@ -152,14 +134,5 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
 
     assert_equal 1, result.processed
     assert_nil   result.fatal_error
-  end
-
-  test 'partition uses stripped uid so padded assignee_uid still resolves' do
-    tsv = "sample_name\tassignee_uid\nsample-A\t  bob  \n"
-
-    result = run_importer(tsv)
-
-    assert_equal 1, result.processed, "padded uid '  bob  ' should resolve via stripped lookup"
-    assert_equal users(:bob).id, @sample.reload.assignee_id
   end
 end

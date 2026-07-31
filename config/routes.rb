@@ -59,6 +59,11 @@ Rails.application.routes.draw do
     resources :submission_requests, only: %i[index show] do
       resources :messages, only: %i[create]
 
+      # Claiming hangs off the request, not the submission: a request that
+      # has not been applied yet has no submission to address, and those
+      # are exactly the ones nobody has claimed.
+      resource :assignment, only: %i[create]
+
       member do
         get :samples
         get :messages
@@ -96,7 +101,6 @@ Rails.application.routes.draw do
       # forms with four save buttons; a curator changes them as one
       # decision, so they post as one.
       resource  :curation,           only: %i[update]
-      resource  :assignment,         only: %i[create]
       resource  :submitters,         only: %i[update]
       resource  :project_record,     only: %i[update]
       resource  :accession,          only: %i[create]

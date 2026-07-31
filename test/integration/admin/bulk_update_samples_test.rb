@@ -20,49 +20,15 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_equal 'curating', @sample_b.reload.status
   end
 
-  test 'bulk_update_samples sets assignee on every sample' do
-    post bulk_update_samples_admin_submission_path(@submission),
-          params: {bulk_sample: {assignee_id: users(:bob).id.to_s}}
-
-    assert_redirected_to samples_admin_submission_request_path(@submission.request)
-    assert_equal users(:bob), @sample_a.reload.assignee
-    assert_equal users(:bob), @sample_b.reload.assignee
-  end
-
-  test 'bulk_update_samples sets both status AND assignee in one go' do
-    post bulk_update_samples_admin_submission_path(@submission),
-          params: {bulk_sample: {status: 'public', assignee_id: users(:bob).id.to_s}}
-
-    assert_redirected_to samples_admin_submission_request_path(@submission.request)
-    assert_equal 'public',    @sample_a.reload.status
-    assert_equal users(:bob), @sample_a.assignee
-    assert_equal 'public',    @sample_b.reload.status
-    assert_equal users(:bob), @sample_b.assignee
-  end
-
-  test 'bulk_update_samples assignee_id="0" explicitly unassigns' do
-    @sample_a.update!(assignee: users(:bob))
-    @sample_b.update!(assignee: users(:bob))
-
-    post bulk_update_samples_admin_submission_path(@submission),
-          params: {bulk_sample: {assignee_id: '0'}}
-
-    assert_redirected_to samples_admin_submission_request_path(@submission.request)
-    assert_nil @sample_a.reload.assignee
-    assert_nil @sample_b.reload.assignee
-  end
-
-  test 'bulk_update_samples empty status keeps existing status (leave-as-is)' do
+  test 'bulk_update_samples with a blank status refuses the no-op' do
     original_a = @sample_a.status
-    original_b = @sample_b.status
 
     post bulk_update_samples_admin_submission_path(@submission),
-          params: {bulk_sample: {status: '', assignee_id: users(:bob).id.to_s}}
+          params: {bulk_sample: {status: ''}}
 
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
-    assert_equal original_a, @sample_a.reload.status, 'blank status field must be leave-as-is'
-    assert_equal original_b, @sample_b.reload.status
-    assert_equal users(:bob), @sample_a.assignee, 'assignee still applied'
+    assert_match(/No changes specified/, flash[:alert])
+    assert_equal original_a, @sample_a.reload.status
   end
 
   test 'bulk_update_samples rejects unknown status (manual cast guard)' do
@@ -73,23 +39,6 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_redirected_to samples_admin_submission_request_path(@submission.request)
     assert_match(/Unknown status/, flash[:alert])
     assert_equal original_a, @sample_a.reload.status
-  end
-
-  test 'bulk_update_samples rejects non-admin assignee (manual guard)' do
-    post bulk_update_samples_admin_submission_path(@submission),
-          params: {bulk_sample: {assignee_id: users(:alice).id.to_s}}
-
-    assert_redirected_to samples_admin_submission_request_path(@submission.request)
-    assert_match(/must be an admin user/, flash[:alert])
-    assert_nil @sample_a.reload.assignee
-  end
-
-  test 'bulk_update_samples with both fields blank refuses the no-op' do
-    post bulk_update_samples_admin_submission_path(@submission),
-          params: {bulk_sample: {status: '', assignee_id: ''}}
-
-    assert_redirected_to samples_admin_submission_request_path(@submission.request)
-    assert_match(/No changes specified/, flash[:alert])
   end
 
   test 'bulk_update_samples 404s for non-BS submissions' do
@@ -126,14 +75,14 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
   test 'a bulk edit records an event carrying the actor and the row count' do
     assert_difference 'CurationEvent.count', 1 do
       post bulk_update_samples_admin_submission_path(@submission),
-            params: {bulk_sample: {status: 'curating', assignee_id: users(:bob).id.to_s}}
+            params: {bulk_sample: {status: 'curating'}}
     end
 
     event = CurationEvent.last
 
     assert_equal 'admin:bob', event.actor
     assert_equal 2,           event.row_count
-    assert_equal 'set 2 samples to curating and assigned them to bob', event.summary
+    assert_equal 'set 2 samples to curating', event.summary
   end
 
   test 'the recorded count follows the chosen scope, not the whole submission' do
@@ -208,7 +157,6 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_match bulk_update_samples_admin_submission_path(@submission), response.body
     assert_match 'name="bulk_sample[status]"',                          response.body
-    assert_match 'name="bulk_sample[assignee_id]"',                     response.body
     assert_match 'name="bulk_sample[scope]"',                           response.body
     assert_match 'name="bulk_sample[sample_ids][]"',                    response.body
   end

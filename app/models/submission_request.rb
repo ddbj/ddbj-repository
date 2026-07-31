@@ -10,23 +10,22 @@ class SubmissionRequest < ApplicationRecord
   belongs_to :user
   belongs_to :submission, optional: true, inverse_of: :request
 
+  # Who has taken this on. One curator per request, never per curation
+  # row: D-way holds the same fact on the submission (`charge_id`) and
+  # only splits *status* per sample, and a request that has not been
+  # applied yet has no rows to hang an assignee off at all.
+  belongs_to :assignee, class_name: 'User', optional: true
+
+  validate :assignee_must_be_admin
+
   has_many :messages, -> { chronological }, class_name: 'SubmissionMessage', dependent: :destroy
 
   has_one :reviewer_access, dependent: :destroy
 
   has_one_attached :ddbj_record
 
-  # A request is "assigned to" a curator when the curation rows behind it
-  # — the BP Project, or any of the BS Samples — carry that assignee. A
-  # request with no submission yet has no curation rows and is therefore
-  # never in anybody's queue, which is exactly right: before Apply there is
-  # nothing to curate.
-  scope :curated_by, ->(user) {
-    where(<<~SQL.squish, assignee_id: user.id)
-      EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id AND projects.assignee_id = :assignee_id) OR
-      EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id AND samples.assignee_id  = :assignee_id)
-    SQL
-  }
+  scope :assigned_to, ->(user) { where(assignee_id: user.id) }
+  scope :unassigned,  -> { where(assignee_id: nil) }
 
   # What is on the submitter rather than on us: a file that failed
   # validation, a validated file waiting for them to press Apply, or a
@@ -86,5 +85,25 @@ class SubmissionRequest < ApplicationRecord
 
   def migration_origin?
     migration_run_id.present?
+  end
+
+  # Claiming a request is a curator-internal write, so it goes straight to
+  # the column rather than through `save`: `validates :ddbj_record,
+  # attached: true` guards the submitter's upload flow, and letting it
+  # refuse an assignment would make migration-sourced requests — which
+  # carry no upload at all — permanently unclaimable. The one rule that
+  # does apply is enforced here.
+  def assign!(user)
+    raise ArgumentError, 'Assignee must be an admin user.' unless user.nil? || user.admin?
+
+    update_columns(assignee_id: user&.id, updated_at: Time.current)
+  end
+
+  private
+
+  def assignee_must_be_admin
+    return if assignee.nil? || assignee.admin?
+
+    errors.add(:assignee, 'must be an admin user')
   end
 end

@@ -227,23 +227,4 @@ module Admin::ViewHelpers
     agg = sample_aggregates[submission.id]
     submission.accession_summary(agg && [agg.first_accession, agg.accession_count])
   end
-
-  # Assignee display for a Submission on the admin index.
-  #   - BP: project.assignee.uid, or "—" if unassigned/no project.
-  #   - BS: aggregate over Samples — "—" if all unassigned / a single uid if uniform / "Mixed (N)".
-  #   - ST26: "—".
-  def submission_assignee_display(submission, sample_aggregates)
-    if submission.bioproject_db?
-      submission.project&.assignee&.uid || '—'
-    elsif submission.biosample_db?
-      agg = sample_aggregates[submission.id]
-      return '—' unless agg
-      return '—' if agg.assignee_ids == [nil] || agg.assignee_ids.empty?
-      return User.find_by(id: agg.assignee_ids.first)&.uid || '—' if agg.assignee_ids.size == 1
-
-      "Mixed (#{agg.assignee_ids.size})"
-    else
-      '—'
-    end
-  end
 end

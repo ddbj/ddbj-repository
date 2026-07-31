@@ -9,37 +9,40 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
 
     @submission = submissions(:bioproject)
     @project    = projects(:primary)
+    @req    = @submission.request
   end
 
   # --- curation rows (status / assignee) --------------------------------
 
-  test 'PATCH update changes status + assignee on the BP Project' do
+  # Status lands on the curation rows, assignee on the request — one save,
+  # two destinations.
+  test 'PATCH update sets the status on the BP Project and the assignee on the request' do
     patch admin_submission_curation_path(@submission),
           params: {curation: {status: 'curating', assignee_id: users(:bob).id}}
 
-    assert_redirected_to admin_submission_request_path(@submission.request)
+    assert_redirected_to admin_submission_request_path(@req)
     assert_equal 'curating',  @project.reload.status
-    assert_equal users(:bob), @project.assignee
+    assert_equal users(:bob), @req.reload.assignee
   end
 
   test 'PATCH update with the unassigned sentinel clears the assignee' do
-    @project.update!(assignee: users(:bob))
+    @req.assign!(users(:bob))
 
     patch admin_submission_curation_path(@submission),
           params: {curation: {assignee_id: CurationUpdate::UNASSIGNED}}
 
-    assert_redirected_to admin_submission_request_path(@submission.request)
-    assert_nil @project.reload.assignee
+    assert_redirected_to admin_submission_request_path(@req)
+    assert_nil @req.reload.assignee
   end
 
   test 'PATCH update leaves a blank field alone' do
-    @project.update!(assignee: users(:bob))
+    @req.assign!(users(:bob))
 
     patch admin_submission_curation_path(@submission),
           params: {curation: {status: '', assignee_id: ''}}
 
     assert_equal 'private',   @project.reload.status
-    assert_equal users(:bob), @project.assignee
+    assert_equal users(:bob), @req.reload.assignee
   end
 
   test 'PATCH update rejects a non-admin assignee' do
@@ -66,13 +69,14 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
     patch admin_submission_curation_path(submission),
           params: {curation: {status: 'curating', assignee_id: users(:bob).id}}
 
-    assert_equal ['curating'],       submission.samples.distinct.pluck(:status)
-    assert_equal [users(:bob).id],   submission.samples.distinct.pluck(:assignee_id)
+    assert_equal ['curating'],  submission.samples.distinct.pluck(:status)
+    assert_equal users(:bob),   submission.request.reload.assignee
   end
 
   # A save that only touched the comment must not rewrite every sample row.
   test 'PATCH update skips the row write when the posted values already match' do
-    @project.update!(status: 'curating', assignee: users(:bob))
+    @project.update!(status: 'curating')
+    @req.assign!(users(:bob))
     before = @project.reload.updated_at
 
     travel 1.second do
@@ -102,7 +106,7 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
     assert_equal 'curation_updated',   event.action
     assert_equal 'admin:bob',          event.actor
     assert_equal 1,                    event.row_count
-    assert_equal 'set 1 project to curating and assigned them to bob', event.summary
+    assert_equal 'set 1 project to curating and assigned the request to bob', event.summary
   end
 
   # hold_date IS record content, so the chain already tells that story —
@@ -119,7 +123,8 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
   end
 
   test 'a save that changes nothing records nothing' do
-    @project.update!(status: 'curating', assignee: users(:bob))
+    @project.update!(status: 'curating')
+    @req.assign!(users(:bob))
 
     assert_no_difference 'CurationEvent.count' do
       patch admin_submission_curation_path(@submission),
@@ -138,10 +143,10 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
 
   test 'Assign to me is recorded like any other assignee change' do
     assert_difference 'CurationEvent.count', 1 do
-      post admin_submission_assignment_path(@submission)
+      post admin_submission_request_assignment_path(@req)
     end
 
-    assert_equal 'assigned 1 project to bob', CurationEvent.last.summary
+    assert_equal 'assigned the request to bob', CurationEvent.last.summary
   end
 
   # --- curator comment ---------------------------------------------------
@@ -279,11 +284,24 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
 
   # --- assign to me ------------------------------------------------------
 
-  test 'POST assignment claims every curation row for the current curator' do
-    post admin_submission_assignment_path(@submission)
+  test 'POST assignment claims the request for the current curator' do
+    post admin_submission_request_assignment_path(@req)
 
-    assert_redirected_to admin_submission_request_path(@submission.request)
-    assert_equal users(:bob), @project.reload.assignee
+    assert_redirected_to admin_submission_request_path(@req)
+    assert_equal users(:bob), @req.reload.assignee
+  end
+
+  # The queue's whole point: an unapplied request is claimable, which the
+  # old submission-scoped endpoint could not express at all.
+  test 'POST assignment claims a request that has not been applied' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'bioproject')
+    attach_ddbj_record(request)
+    request.save!
+
+    post admin_submission_request_assignment_path(request)
+
+    assert_redirected_to admin_submission_request_path(request)
+    assert_equal users(:bob), request.reload.assignee
   end
 
   private

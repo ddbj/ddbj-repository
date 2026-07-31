@@ -66,16 +66,16 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # the filter would (correctly) skip.
     User.create!(uid: 'dave', api_key: 'test_api_key_dave', admin: true)
 
-    projects(:primary).update!(assignee: users(:bob)) # bioproject project → bob
-    samples(:first).update!(assignee: nil)            # biosample → an unassigned sample
-    samples(:second).update!(assignee: nil)
+    submissions(:bioproject).request.assign!(users(:bob))
+    submissions(:biosample).request.assign!(nil)
+    submissions(:st26).request.assign!(User.find_by(uid: 'dave'))
 
     get admin_submission_requests_path, params: {assignee: ['0', users(:bob).id.to_s]}
 
     assert_response :ok
     assert_match    admin_submission_request_path(submissions(:bioproject).request), response.body # via bob
     assert_match    admin_submission_request_path(submissions(:biosample).request),  response.body # via unassigned
-    assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body
+    assert_no_match admin_submission_request_path(submissions(:st26).request),       response.body # dave
   end
 
   test 'index treats a fully-selected facet as no constraint (keeps pre-Apply requests)' do
@@ -91,9 +91,9 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match admin_submission_request_path(pending), response.body
   end
 
-  test 'index shows BP Project.status + assignee for bioproject rows' do
-    project = projects(:primary)
-    project.update!(status: 'curating', assignee: users(:bob))
+  test 'index shows BP Project.status and the request assignee for bioproject rows' do
+    projects(:primary).update!(status: 'curating')
+    submissions(:bioproject).request.assign!(users(:bob))
 
     get admin_submission_requests_path, params: {db: 'bioproject'}
 
@@ -104,9 +104,10 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match users(:bob).uid, body
   end
 
-  test 'index shows BS Sample aggregate — uniform status / assignee surfaces directly' do
-    samples(:first).update!(status: 'public',   assignee: users(:bob))
-    samples(:second).update!(status: 'public',  assignee: users(:bob))
+  test 'index shows the BS Sample aggregate — a uniform status surfaces directly' do
+    samples(:first).update!(status: 'public')
+    samples(:second).update!(status: 'public')
+    submissions(:biosample).request.assign!(users(:bob))
 
     get admin_submission_requests_path, params: {db: 'biosample'}
 
@@ -119,8 +120,8 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   end
 
   test 'index shows BS Sample aggregate — mixed status surfaces as "Mixed (N)"' do
-    samples(:first).update!(status: 'curating', assignee: users(:bob))
-    samples(:second).update!(status: 'public',  assignee: users(:bob))
+    samples(:first).update!(status: 'curating')
+    samples(:second).update!(status: 'public')
 
     get admin_submission_requests_path, params: {db: 'biosample'}
 
@@ -513,26 +514,6 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     assert_match 'SAMD00099001',    response.body
     assert_match 'sample organism', response.body
     assert_match 'DRS999001',       response.body
-  end
-
-  test 'the samples table renders the Assignee column with per-sample uid' do
-    submission = submissions(:biosample)
-    samples(:first).update!(assignee: users(:bob))
-    # samples(:second) intentionally left unassigned to pin the "—" case.
-
-    get samples_admin_submission_request_path(submission.request)
-
-    assert_response :ok
-    # Cells: [select, accession, sample name, package, organism, tax id,
-    # status, assignee] — the leading checkbox is what the bulk bar acts on.
-    rows = css_select('tbody tr')
-
-    assigned = rows.find {|tr| tr.css('td')[2]&.text&.strip == samples(:first).sample_name }
-    assert_match users(:bob).uid, assigned.to_s, 'assigned sample row must show the assignee uid'
-
-    unassigned = rows.find {|tr| tr.css('td')[2]&.text&.strip == samples(:second).sample_name }
-    assert_equal '—', unassigned.css('td')[7].text.strip,
-                 'unassigned sample row must show — in the Assignee cell'
   end
 
   test 'the record tab survives a single poisoned patch — the chain renders and names the bad row' do

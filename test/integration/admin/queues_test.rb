@@ -109,7 +109,8 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
   # Mine only filters the same queue rather than opening a different
   # screen, so a curator can look up from their own work and back.
   test 'Mine only narrows the queue to the curator own rows' do
-    projects(:primary).update!(accession: nil, status: 'curating', assignee: users(:bob))
+    projects(:primary).update!(accession: nil, status: 'curating')
+    submission_requests(:bioproject).assign!(users(:bob))
     samples(:first).update!(accession: nil, status: 'curating')
     samples(:second).update!(accession: nil, status: 'curating')
 
@@ -124,8 +125,8 @@ class AdminQueuesTest < ActionDispatch::IntegrationTest
     assert_no_match(/##{submission_requests(:biosample).id}\b/,                 response.body)
   end
 
-  test 'my queue lists only requests whose curation rows are assigned to me' do
-    projects(:primary).update!(assignee: users(:bob))
+  test 'my queue lists only requests assigned to me' do
+    submission_requests(:bioproject).assign!(users(:bob))
 
     get admin_my_queue_path
 

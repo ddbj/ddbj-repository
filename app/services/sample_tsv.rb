@@ -6,6 +6,6 @@
 module SampleTSV
   IDENTIFIER_COL  = 'sample_name'
   READ_ONLY_COLS  = %w[accession].freeze
-  TYPED_COLS      = %w[status assignee_uid].freeze
+  TYPED_COLS      = %w[status].freeze
   COLUMNS         = ([IDENTIFIER_COL] + READ_ONLY_COLS + TYPED_COLS).freeze
 end

@@ -13,8 +13,7 @@ module SampleTSV
   #                      Importer ignores it (an accession is issued, not
   #                      typed into a spreadsheet).
   #   3. status       — AR Sample#status enum value.
-  #   4. assignee_uid — User#uid of the assignee, blank if unassigned.
-  #   5..N. attribute names (column union sorted across all samples'
+  #   4..N. attribute names (column union sorted across all samples'
   #         v3 attribute bags).
   #
   # Blank cells in attribute columns mean "this sample has no value
@@ -36,15 +35,14 @@ module SampleTSV
 
       yield to_tsv_line(header)
 
-      @submission.samples.includes(:assignee).order(:id).find_each do |sample|
+      @submission.samples.order(:id).find_each do |sample|
         v3_sample = v3_by_alias[sample.sample_name] || {}
         attrs     = (v3_sample['attributes'] || []).to_h {|a| [a['name'], a['value']] }
 
         row = [
           sample.sample_name,
           sample.accession,
-          sample.status,
-          sample.assignee&.uid
+          sample.status
         ] + attribute_keys.map { attrs[it] }
 
         yield to_tsv_line(row)

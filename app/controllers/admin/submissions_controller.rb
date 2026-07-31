@@ -63,17 +63,16 @@ module Admin
              status: :unprocessable_entity
     end
 
-    # Bulk-apply (status, assignee) to the samples the Samples screen
-    # targeted — the checkboxed rows, or every row matching the current
-    # filter (see SampleTargeting).
+    # Bulk-apply status to the samples the Samples screen targeted — the
+    # checkboxed rows, or every row matching the current filter (see
+    # SampleTargeting). Assignment is not here: it belongs to the request
+    # as a whole, so there is nothing to apply per sample.
     #
     # Uses `update_all` (1 SQL) so the 100K-sample case stays interactive,
     # which bypasses ActiveRecord validations + callbacks — we validate
-    # both fields manually upfront.
+    # the status manually upfront.
     #
-    # Empty form field = "leave as-is" (key omitted from the update);
-    # `assignee_id = "0"` is the explicit "set to unassigned" sentinel
-    # (distinguishable from leave-as-is because '' parses as blank).
+    # Empty form field = "leave as-is" (key omitted from the update).
     def bulk_update_samples
       submission = Submission.find(params[:id])
       return head :not_found unless submission.biosample_db?
@@ -92,18 +91,7 @@ module Admin
         attrs[:status] = Sample.statuses.fetch(raw[:status])
       end
 
-      if raw.key?(:assignee_id) && raw[:assignee_id] != ''
-        if raw[:assignee_id] == '0'
-          attrs[:assignee_id] = nil
-        else
-          assignee = User.find_by(id: raw[:assignee_id])
-          return redirect_to back, alert: 'Assignee must be an admin user.' unless assignee&.admin?
-
-          attrs[:assignee_id] = assignee.id
-        end
-      end
-
-      return redirect_to back, alert: 'No changes specified (both fields left as-is).' if attrs.empty?
+      return redirect_to back, alert: 'No changes specified (status left as-is).' if attrs.empty?
 
       attrs[:updated_at] = Time.current
       affected = (target_samples(submission) || submission.samples).update_all(attrs)
@@ -116,9 +104,9 @@ module Admin
     end
 
     # Cross-submission bulk: apply (status, assignee) to many submissions
-    # in one form post from the index. BP submissions' Project row is
-    # updated; BS submissions' Samples rows are all updated. Validation
-    # for status / assignee mirrors `bulk_update_samples`.
+    # in one form post from the index. The two land in different places —
+    # status on the curation rows (the BP Project, every BS Sample),
+    # assignee on the request — so they are written separately.
     def bulk_update
       ids = Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
 
@@ -127,7 +115,7 @@ module Admin
                            alert: 'No submissions selected.'
       end
 
-      raw = bulk_cross_params
+      raw   = bulk_cross_params
       attrs = {}
 
       if raw[:status].present?
@@ -139,40 +127,49 @@ module Admin
         attrs[:status] = Lifecycleable::STATUSES.fetch(raw[:status])
       end
 
-      if raw.key?(:assignee_id) && raw[:assignee_id] != ''
-        if raw[:assignee_id] == '0'
-          attrs[:assignee_id] = nil
-        else
-          assignee = User.find_by(id: raw[:assignee_id])
-          unless assignee&.admin?
-            return redirect_to bulk_return_path,
-                               alert: 'Assignee must be an admin user.'
-          end
+      assign = raw.key?(:assignee_id) && raw[:assignee_id] != ''
 
-          attrs[:assignee_id] = assignee.id
+      if assign && raw[:assignee_id] != '0'
+        unless User.find_by(id: raw[:assignee_id])&.admin?
+          return redirect_to bulk_return_path, alert: 'Assignee must be an admin user.'
         end
       end
 
-      if attrs.empty?
+      if attrs.empty? && !assign
         return redirect_to bulk_return_path,
                            alert: 'No changes specified (both fields left as-is).'
       end
-
-      attrs[:updated_at] = Time.current
 
       subs   = Submission.where(id: ids)
       bp_ids = subs.where(db: 'bioproject').pluck(:id)
       bs_ids = subs.where(db: 'biosample').pluck(:id)
 
-      bp_affected = bp_ids.any? ? Project.where(submission_id: bp_ids).update_all(attrs) : 0
-      bs_affected = bs_ids.any? ? Sample.where(submission_id: bs_ids).update_all(attrs) : 0
+      bp_affected = 0
+      bs_affected = 0
+
+      if attrs.any?
+        attrs[:updated_at] = Time.current
+
+        bp_affected = bp_ids.any? ? Project.where(submission_id: bp_ids).update_all(attrs) : 0
+        bs_affected = bs_ids.any? ? Sample.where(submission_id: bs_ids).update_all(attrs) : 0
+      end
+
+      if assign
+        assignee_id = raw[:assignee_id] == '0' ? nil : raw[:assignee_id].to_i
+
+        SubmissionRequest.where(submission_id: ids).update_all(assignee_id:, updated_at: Time.current)
+      end
 
       record_cross_submission_events(subs, bp_ids, bs_ids, raw)
 
-      redirect_to bulk_return_path,
-                  notice: "Bulk-updated #{helpers.number_with_delimiter(bp_affected)} project(s) " \
-                          "+ #{helpers.number_with_delimiter(bs_affected)} sample(s) " \
-                          "across #{ids.size} submission(s)."
+      rows = [
+        ("#{helpers.number_with_delimiter(bp_affected)} project(s)" if bp_affected.positive?),
+        ("#{helpers.number_with_delimiter(bs_affected)} sample(s)"  if bs_affected.positive?)
+      ].compact
+
+      summary = rows.any? ? "Bulk-updated #{rows.join(' + ')} across" : 'Updated'
+
+      redirect_to bulk_return_path, notice: "#{summary} #{ids.size} submission(s)."
     end
 
     # Cross-submission bulk accession issuance from the index. Walks each
@@ -233,9 +230,9 @@ module Admin
                       .merge(Sample.where(submission_id: bs_ids).group(:submission_id).count)
 
       submissions.each do |submission|
-        count = counts[submission.id] or next
-
-        record_curation_event(submission, count, raw)
+        # An assignee-only batch touches no rows, so it still deserves an
+        # event — `count` then reports 0 rather than skipping the record.
+        record_curation_event(submission, raw[:status].present? ? counts[submission.id].to_i : 0, raw)
       end
     end
 
@@ -247,7 +244,7 @@ module Admin
     end
 
     def bulk_sample_params
-      params.expect(bulk_sample: [:status, :assignee_id, :scope, {sample_ids: []}])
+      params.expect(bulk_sample: [:status, :scope, {sample_ids: []}])
     end
 
     def bulk_cross_params

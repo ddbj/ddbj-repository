@@ -1,6 +1,39 @@
 require 'test_helper'
 
 class SubmissionRequestTest < ActiveSupport::TestCase
+  # --- assignment ---------------------------------------------------------
+
+  test 'assign! refuses a non-admin' do
+    request = submission_requests(:st26)
+
+    assert_raises(ArgumentError) { request.assign!(users(:alice)) }
+    assert_nil request.reload.assignee
+  end
+
+  test 'assign! takes and releases an admin' do
+    request = submission_requests(:st26)
+
+    request.assign!(users(:bob))
+    assert_equal users(:bob), request.reload.assignee
+
+    request.assign!(nil)
+    assert_nil request.reload.assignee
+  end
+
+  # A migration-sourced request carries no upload, and one that predates
+  # Apply is exactly what the Unclaimed queue is for — the submitter-facing
+  # attachment rule must not make either of them unclaimable.
+  test 'assign! works on a request that could not pass its own validations' do
+    request = submission_requests(:bioproject)
+    request.ddbj_record.purge
+
+    assert_not request.valid?
+
+    request.assign!(users(:bob))
+
+    assert_equal users(:bob), request.reload.assignee
+  end
+
   # --- needs_submitter_action --------------------------------------------
 
   test 'a validated file waiting to be applied is the submitter move' do
