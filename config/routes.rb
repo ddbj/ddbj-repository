@@ -103,7 +103,7 @@ Rails.application.routes.draw do
       resource  :curation,           only: %i[update]
       resource  :submitters,         only: %i[update]
       resource  :project_record,     only: %i[update]
-      resource  :accession,          only: %i[create]
+      resources :accessions,         only: %i[show create], path: 'accession'
       resource  :sample_tsv_export,  only: %i[show]
 
       # Per-submission BS sample-bag editing via TSV round-trip. The

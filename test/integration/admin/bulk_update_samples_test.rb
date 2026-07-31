@@ -109,7 +109,7 @@ class AdminBulkUpdateSamplesTest < ActionDispatch::IntegrationTest
     @sample_b.update!(accession: nil, status: 'curating')
 
     assert_no_difference 'Sample.where.not(accession: nil).count' do
-      post admin_submission_accession_path(@submission),
+      post admin_submission_accessions_path(@submission),
            params: {bulk_sample: {scope: 'all'}}
     end
 

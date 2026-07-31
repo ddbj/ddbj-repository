@@ -38,7 +38,7 @@
   <% when :issue %>
     <%# Posts straight from the queue: work that can be finished without %>
     <%# opening the request should not require opening the request. %>
-    <%= button_to 'Issue', admin_submission_accession_path(request.submission),
+    <%= button_to 'Issue', admin_submission_accessions_path(request.submission),
                   method: :post,
                   class:  'btn btn-outline-secondary btn-sm',
                   form:   {data: {turbo_confirm: "Issue accessions for ##{request.id}?"}} %>

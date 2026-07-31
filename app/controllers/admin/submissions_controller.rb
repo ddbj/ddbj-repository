@@ -174,12 +174,15 @@ module Admin
       redirect_to bulk_return_path, notice: "#{summary} #{ids.size} submission(s)."
     end
 
-    # Cross-submission bulk accession issuance from the index. Walks each
-    # selected submission through `AccessionIssue` (BP → 1 PRJDB, BS →
-    # all un-accessioned samples). Refused submissions surface in the
-    # flash with their reason; successful ones are summarised. The
-    # per-submission service handles transactions + mail enqueue, so
-    # one failure doesn't poison the rest.
+    # Cross-submission bulk accession issuance from the ledger: one job
+    # per selected submission (BP → 1 PRJDB, BS → all un-accessioned
+    # samples).
+    #
+    # It used to run them here, in series, each holding the Sequence row
+    # lock through a chain replay — so a curator who ticked ten BioSample
+    # submissions waited for all ten. Each now reports its own outcome on
+    # its own AccessionIssuance row, and one refusal cannot stall the
+    # rest because they no longer share a request.
     def bulk_issue_accessions
       ids = Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
 
@@ -188,25 +191,20 @@ module Admin
                            alert: 'No submissions selected.'
       end
 
-      issued = 0
-      refused = []
-
       Submission.where(id: ids).find_each do |submission|
-        result = AccessionIssue.call(submission:, actor: "admin:#{current_user.uid}")
-        issued += result.accessions.size
+        issuance = submission.accession_issuances.create!(
+          actor:      "admin:#{current_user.uid}",
+          started_at: Time.current
+        )
+
+        IssueAccessionsJob.perform_later(issuance_id: issuance.id)
 
         participate!(submission.request)
-      rescue AccessionIssue::Refused => e
-        refused << [submission.source_id.presence || "##{submission.id}", e.message]
       end
 
-      notice = "Issued #{helpers.number_with_delimiter(issued)} accession(s) across #{ids.size - refused.size} submission(s)."
-      notice += " #{refused.size} refused." if refused.any?
-
-      flash[:notice] = notice
-      flash[:alert]  = refused.map {|sid, msg| "#{sid}: #{msg}" }.join("\n") if refused.any?
-
-      redirect_to bulk_return_path
+      redirect_to bulk_return_path,
+                  notice: "Issuing accessions for #{ids.size} submission(s). " \
+                          'Each reports on its own request; refusals show there too.'
     end
 
     private

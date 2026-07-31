@@ -152,7 +152,7 @@
 
         <%= f.button "Issue #{@state.accession_prefix}",
                      type:       :submit,
-                     formaction: admin_submission_accession_path(@submission, @search.to_params),
+                     formaction: admin_submission_accessions_path(@submission, @search.to_params),
                      class:      'btn btn-warning btn-sm text-nowrap',
                      data:       {turbo_confirm: 'Issue accessions for the chosen samples?'} %>
       </div>

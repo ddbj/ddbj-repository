@@ -6,6 +6,8 @@ require 'application_system_test_case'
 # endpoint stay in test/integration/admin/submissions_test.rb — none of
 # them is anything a person does.
 class SubmissionRequestsSystemTest < ApplicationSystemTestCase
+  include ActiveJob::TestHelper
+
   setup do
     sign_in_as users(:bob)
 
@@ -50,10 +52,12 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     visit admin_submission_requests_path
 
     check "Select ##{@req.id}"
-    click_button 'Issue accessions'
 
-    assert_text 'Issued'
-    assert_not_nil projects(:primary).reload.accession
+    assert_enqueued_jobs 1, only: IssueAccessionsJob do
+      click_button 'Issue accessions'
+    end
+
+    assert_text 'Issuing accessions for 1 submission'
   end
 
   # One column, and it changes hands at Apply: before it the pipeline
@@ -111,6 +115,8 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
   # The Samples screen carries the same two-buttons-one-form shape, and
   # the same trap: a PATCH form would make Rack::MethodOverride rewrite
   # the issuance button's POST into a PATCH the route does not accept.
+  # The work runs in a job now, so the button lands the curator on a page
+  # that watches it rather than on a finished result.
   test 'issuing accessions from the samples screen reaches the issuance route' do
     submission = submissions(:biosample)
     submission.samples.update_all(accession: nil, status: Lifecycleable::STATUSES.fetch('curating'))
@@ -120,9 +126,17 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     # The scope radio is what the bulk bar acts on; "selected" with
     # nothing ticked is refused, which is its own correct behaviour.
     choose 'All 2 matching the filter'
-    click_button 'Issue SAMD'
 
-    assert_text 'Issued'
+    perform_enqueued_jobs do
+      click_button 'Issue SAMD'
+    end
+
+    assert_text 'Issuing accessions'
+
+    # And once it has run, the same page names what came out.
+    visit current_path
+
+    assert_text 'Issued 2 accessions'
     assert_empty submission.samples.where(accession: nil)
   end
 

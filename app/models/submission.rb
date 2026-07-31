@@ -15,7 +15,8 @@ class Submission < ApplicationRecord
   has_one  :project, dependent: :destroy
   has_many :samples, dependent: :destroy
 
-  has_many :sample_tsv_imports, -> { recent }, dependent: :destroy
+  has_many :sample_tsv_imports,  -> { recent }, dependent: :destroy
+  has_many :accession_issuances, -> { recent }, dependent: :destroy
 
   # Curator actions that produce no patch — see CurationEvent for where
   # the line between the two histories falls.

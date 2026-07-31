@@ -1,0 +1,70 @@
+<% content_for :title, "Accession issuance ##{@issuance.id}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'All requests', path: admin_submission_requests_path},
+  {label: "##{@submission.request.id}", path: admin_submission_request_path(@submission.request)},
+  {label: 'Accession issuance'}
+] %>
+
+<h1 class="display-6 mb-4">Accession issuance</h1>
+
+<dl class="row">
+  <dt class="col-sm-3">Request</dt>
+  <dd class="col-sm-9">
+    <%= link_to "##{@submission.request.id}", admin_submission_request_path(@submission.request) %>
+    <span class="text-body-secondary"><%= db_label(@submission.db) %></span>
+  </dd>
+
+  <dt class="col-sm-3">Started by</dt>
+  <dd class="col-sm-9"><%= @issuance.actor_label %> · <%= format_datetime(@issuance.started_at) %></dd>
+
+  <% if @issuance.finished_at %>
+    <dt class="col-sm-3">Finished at</dt>
+    <dd class="col-sm-9"><%= format_datetime(@issuance.finished_at) %></dd>
+  <% end %>
+</dl>
+
+<% if @issuance.loading? %>
+  <%# Nothing incremental to report — allocation, stamping and the patch %>
+  <%# are one transaction, so there is no half-issued state to show. What %>
+  <%# the curator needs is that it is running and that they may leave. %>
+  <div class="card" data-controller="auto-refresh">
+    <div class="card-body">
+      <p class="mb-2">Issuing — refreshing automatically. You can leave this page; it will finish either way.</p>
+
+      <div class="progress">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+<% elsif @issuance.completed_status? %>
+  <div class="alert alert-success">
+    Issued <%= pluralize(@issuance.accessions.size, 'accession') %>. The submitter has been emailed.
+  </div>
+
+  <ul class="list-group">
+    <% @issuance.accessions.first(50).each do |accession| %>
+      <li class="list-group-item"><code><%= accession %></code></li>
+    <% end %>
+  </ul>
+
+  <% if @issuance.accessions.size > 50 %>
+    <p class="text-body-secondary small mt-2">
+      <%= number_with_delimiter(@issuance.accessions.size - 50) %> more — the record and the
+      <%= link_to 'Samples tab', samples_admin_submission_request_path(@submission.request) %> carry them all.
+    </p>
+  <% end %>
+<% else %>
+  <%# Refused and failed read differently on purpose: one is the service %>
+  <%# declining for a reason it can state, the other is something going %>
+  <%# wrong. Putting "this was already done" in a red box would train %>
+  <%# curators to ignore the red box. %>
+  <div class="alert <%= @issuance.refused_status? ? 'alert-warning' : 'alert-danger' %>">
+    <strong><%= @issuance.refused_status? ? 'Not issued' : 'Issuance failed' %></strong>
+    <p class="mb-0"><%= @issuance.error_message %></p>
+  </div>
+<% end %>
+
+<p class="mt-3">
+  <%= link_to 'Back to the request', admin_submission_request_path(@submission.request) %>
+</p>

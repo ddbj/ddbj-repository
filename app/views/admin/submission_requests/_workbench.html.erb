@@ -62,7 +62,7 @@
       <%# the only PRJDB button a BP request has. %>
       <% if (label = @state.issue_label) %>
         <%= button_to label,
-                      admin_submission_accession_path(@submission),
+                      admin_submission_accessions_path(@submission),
                       method: :post,
                       class:  'btn btn-primary btn-sm',
                       data:   {turbo_confirm: "#{label}?"} %>
