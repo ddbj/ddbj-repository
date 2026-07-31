@@ -39,6 +39,8 @@ module('Acceptance | submission request', function (hooks) {
       status: 'waiting_validation',
       error_message: null,
       created_at: now,
+      closed_at: null,
+      closable: false,
       processing: false,
 
       ddbj_record: {

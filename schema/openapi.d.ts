@@ -320,6 +320,97 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submission_requests/{id}/closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Close a submission request — "I am not taking this one further".
+         *
+         *     A request that failed validation cannot be advanced: a corrected file
+         *     arrives as a new request with no link back to this one, so closing is
+         *     the only way it ever reaches an end. The request keeps its status, its
+         *     validation and its messages; it stops asking the submitter for
+         *     something and moves to the finished side of the list.
+         *
+         *     Only a request that is asking for something may be closed (validation
+         *     failed, or ready to apply) — see `closable`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the closed submission request. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionRequest"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                /** @description The request is not in a state that can be closed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * @description Reopen a closed submission request. As cheap as closing it, because
+         *     closing undoes nothing.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the reopened submission request. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionRequest"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submission_requests/{id}/submission": {
         parameters: {
             query?: never;
@@ -806,6 +897,13 @@ export interface components {
             status: components["schemas"]["SubmissionOperationStatus"];
             /** Format: date-time */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description The submitter put this request down. A row and the page it opens
+             *     answer the same question from the same facts, so the summary
+             *     carries it too.
+             */
+            closed_at: string | null;
             submission_id: number | null;
             source_id: string | null;
             first_accession: string | null;
@@ -834,6 +932,19 @@ export interface components {
             error_message: string | null;
             /** Format: date-time */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description When the submitter put this request down. A request that failed
+             *     validation cannot be advanced — a corrected file arrives as a new
+             *     request — so closing is the only way it reaches an end. Null while
+             *     it is still open.
+             */
+            closed_at: string | null;
+            /**
+             * @description Whether the submitter may close it now. True only while the request
+             *     is asking them for something (validation failed, or ready to apply).
+             */
+            closable: boolean;
             processing: boolean;
             ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;
@@ -862,6 +973,11 @@ export interface components {
             error_message: string | null;
             /** Format: date-time */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description The submitter put this request down. Null while it is still open.
+             */
+            closed_at: string | null;
             processing: boolean;
             ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;

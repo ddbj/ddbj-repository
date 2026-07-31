@@ -40,6 +40,30 @@ export default class extends Component<Signature> {
     return toneClasses(this.state.tone);
   }
 
+  // Closing and reopening are the same act in two directions, and the
+  // response is the request itself, so both write it back the same way.
+  @action
+  async setClosed(closed: boolean) {
+    const { model } = this.args;
+
+    await this.requestManager.request({
+      url: `/submission_requests/${model.id}/closure`,
+      method: closed ? 'POST' : 'DELETE',
+    });
+
+    await this.router.refresh();
+  }
+
+  @action
+  close() {
+    return this.setClosed(true);
+  }
+
+  @action
+  reopen() {
+    return this.setClosed(false);
+  }
+
   @action
   async apply() {
     const { model } = this.args;
@@ -90,9 +114,29 @@ export default class extends Component<Signature> {
         <h2 class="h4">{{this.state.heading}}</h2>
         <p class="prose mb-3">{{this.state.body}}</p>
 
-        {{#if (eq @model.status "ready_to_apply")}}
-          <button type="button" class="btn btn-primary" {{on "click" this.apply}}>Apply</button>
-        {{/if}}
+        <div class="d-flex gap-2 flex-wrap">
+          {{#if (eq @model.status "ready_to_apply")}}
+            <button type="button" class="btn btn-primary" {{on "click" this.apply}}>Apply</button>
+          {{/if}}
+
+          {{! A failed attempt cannot be advanced — a corrected file is a
+          new request — so without this it asks to be dealt with for ever
+          and crowds out the live one. Quiet, because it is the lesser of
+          the two things on offer when both are. }}
+          {{#if @model.closable}}
+            <button type="button" class="btn btn-outline-secondary" data-test-close {{on "click" this.close}}>Close this
+              request</button>
+          {{/if}}
+
+          {{#if @model.closed_at}}
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              data-test-reopen
+              {{on "click" this.reopen}}
+            >Reopen</button>
+          {{/if}}
+        </div>
       </section>
 
       <ProgressSteps @progress={{@model.progress}} />

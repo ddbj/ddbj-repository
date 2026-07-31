@@ -40,6 +40,25 @@ export function toneClasses(tone: Tone) {
 // Ordered by urgency: a broken pipeline first, then a step only the
 // submitter can take, then a curator's question, then the quiet states.
 export function requestState(request: StatefulRequest): RequestState {
+  // Checked first: whatever else is true of a request, the submitter has
+  // said they are not taking it further, and every reading below would
+  // ask them for something.
+  //
+  // Worded apart from `progress.closed` below on purpose. That one is the
+  // record leaving the pipeline — a curator withdrew, canceled or
+  // suppressed it. This one is the submitter putting their own attempt
+  // down, and calling both "Closed" would leave no way to tell which
+  // happened.
+  if (request.closed_at) {
+    return {
+      tone: 'waiting',
+      label: 'You closed this',
+      badge: 'Closed by you',
+      heading: 'You closed this request',
+      body: 'It is kept, with its validation report and any messages, but it is no longer waiting on you. Reopen it if you want it back.',
+    };
+  }
+
   if (request.progress.failed) {
     return {
       tone: 'failed',

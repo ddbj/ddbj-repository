@@ -27,6 +27,10 @@ Rails.application.routes.draw do
       resource  :submission,      only: :create
       resources :messages,        only: %i[index create]
       resource  :reviewer_access, only: %i[show create destroy]
+
+      # A closure is a thing that exists or does not, so creating and
+      # destroying one reads as closing and reopening.
+      resource :closure, only: %i[create destroy]
     end
 
     # Unauthenticated reviewer view — the request is looked up by its

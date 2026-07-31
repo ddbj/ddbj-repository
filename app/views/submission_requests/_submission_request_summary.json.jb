@@ -6,7 +6,7 @@ first_accession, accession_count = submission ? submission.accession_summary(bs_
 state = states[submission_request.id] || CurationState.new(submission_request)
 
 {
-  **submission_request.slice(:id, :db, :status, :created_at),
+  **submission_request.slice(:id, :db, :status, :created_at, :closed_at),
 
   submission_id:   submission&.id,
   source_id:       submission&.source_id,

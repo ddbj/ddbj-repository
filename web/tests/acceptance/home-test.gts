@@ -18,6 +18,7 @@ function summary(attrs: Partial<Summary> & Pick<Summary, 'id' | 'db'>): Summary 
   return {
     status: 'applied',
     created_at: now,
+    closed_at: null,
     submission_id: null,
     source_id: null,
     first_accession: null,

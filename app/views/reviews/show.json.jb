@@ -5,5 +5,5 @@
 # asked something or when the thread was last touched.
 render(
   partial: 'submission_requests/submission_request',
-  locals:  {submission_request: @request, conversation: false}
+  locals:  {submission_request: @request, conversation: false, closure: false}
 )

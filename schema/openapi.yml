@@ -332,6 +332,85 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /submission_requests/{id}/closure:
+    parameters:
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Close a submission request — "I am not taking this one further".
+
+        A request that failed validation cannot be advanced: a corrected file
+        arrives as a new request with no link back to this one, so closing is
+        the only way it ever reaches an end. The request keeps its status, its
+        validation and its messages; it stops asking the submitter for
+        something and moves to the finished side of the list.
+
+        Only a request that is asking for something may be closed (validation
+        failed, or ready to apply) — see `closable`.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the closed submission request.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          description: The request is not in a state that can be closed.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+
+                required:
+                  - error
+
+                properties:
+                  error:
+                    type: string
+
+    delete:
+      description: |
+        Reopen a closed submission request. As cheap as closing it, because
+        closing undoes nothing.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the reopened submission request.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /submission_requests/{id}/submission:
     parameters:
       - name: id
@@ -780,6 +859,7 @@ components:
         - db
         - status
         - created_at
+        - closed_at
         - submission_id
         - source_id
         - first_accession
@@ -800,6 +880,16 @@ components:
 
         created_at:
           type: string
+          format: date-time
+
+        closed_at:
+          description: |
+            The submitter put this request down. A row and the page it opens
+            answer the same question from the same facts, so the summary
+            carries it too.
+          type:
+            - string
+            - 'null'
           format: date-time
 
         submission_id:
@@ -882,6 +972,8 @@ components:
         - status
         - error_message
         - created_at
+        - closed_at
+        - closable
         - processing
         - ddbj_record
         - validation
@@ -908,6 +1000,23 @@ components:
         created_at:
           type: string
           format: date-time
+
+        closed_at:
+          description: |
+            When the submitter put this request down. A request that failed
+            validation cannot be advanced — a corrected file arrives as a new
+            request — so closing is the only way it reaches an end. Null while
+            it is still open.
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+        closable:
+          description: |
+            Whether the submitter may close it now. True only while the request
+            is asking them for something (validation failed, or ready to apply).
+          type: boolean
 
         processing:
           type: boolean
@@ -956,6 +1065,7 @@ components:
         - status
         - error_message
         - created_at
+        - closed_at
         - processing
         - ddbj_record
         - validation
@@ -979,6 +1089,13 @@ components:
 
         created_at:
           type: string
+          format: date-time
+
+        closed_at:
+          description: The submitter put this request down. Null while it is still open.
+          type:
+            - string
+            - 'null'
           format: date-time
 
         processing:

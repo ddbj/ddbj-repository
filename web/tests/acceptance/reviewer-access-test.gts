@@ -18,6 +18,8 @@ const request: SubmissionRequest = {
   status: 'applied',
   error_message: null,
   created_at: now,
+  closed_at: null,
+  closable: false,
   processing: false,
   ddbj_record: { filename: 'test.json', url: 'http://example.com/test.json' },
   validation: null,

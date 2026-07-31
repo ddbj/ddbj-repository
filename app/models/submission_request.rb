@@ -60,13 +60,14 @@ class SubmissionRequest < ApplicationRecord
   # method's return value into SQL is indistinguishable — to Brakeman and
   # to a reader — from interpolating a parameter. A constant is neither.
   NEEDS_SUBMITTER_ACTION = <<~SQL.squish
+    submission_requests.closed_at IS NULL AND (
     submission_requests.status IN (:statuses) OR
     EXISTS (
       SELECT 1 FROM submission_messages
       WHERE submission_messages.submission_request_id = submission_requests.id
         AND submission_messages.author_role = :role
         AND submission_messages.read_at IS NULL
-    )
+    ))
   SQL
 
   def self.needs_submitter_action_binds
@@ -86,14 +87,17 @@ class SubmissionRequest < ApplicationRecord
   # "Nothing further will happen here": every curation row has reached a
   # terminal status — released, or off the pipeline altogether — or, for a
   # database this system does not curate (ST.26), the file has been
-  # applied. A request with no submission yet is never finished.
+  # applied. A request with no submission yet is never finished, unless
+  # the submitter has said so themselves — which is the only way an
+  # attempt that failed validation ever reaches an end, since nothing
+  # advances it and a corrected file arrives as a new request.
   FINISHED_ROW_STATUSES = (['public'] + CurationState::CLOSED_STATUSES).freeze
 
   def self.finished_sql
     sids = FINISHED_ROW_STATUSES.map { Lifecycleable::STATUSES.fetch(it) }
 
     sanitize_sql_array([<<~SQL.squish, sids:, applied: statuses.fetch('applied')])
-      (
+      submission_requests.closed_at IS NOT NULL OR (
         (
           EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id) OR
           EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id)
@@ -105,6 +109,24 @@ class SubmissionRequest < ApplicationRecord
       )
     SQL
   end
+
+  def closed? = closed_at?
+
+  # Only what is asking for something can be put down. A request being
+  # validated or applied is in flight, and one that has been applied has
+  # a submission whose end is the curator's to declare (withdrawn,
+  # canceled) — a second notion of "closed" on the request would put the
+  # same fact in two places.
+  def closable? = !closed? && ACTION_STATUSES.include?(status)
+
+  # Straight to the column, for the same reason `assign!` is: `validates
+  # :ddbj_record, attached: true` guards the submitter's upload flow, and
+  # letting it refuse a closure would mean a request whose blob went
+  # missing could never be put down — which is exactly the request most
+  # likely to need it.
+  def close!  = update_columns(closed_at: Time.current, updated_at: Time.current)
+
+  def reopen! = update_columns(closed_at: nil, updated_at: Time.current)
 
   scope :needs_submitter_action, -> { where(needs_submitter_action_sql) }
   scope :finished,               -> { where(finished_sql) }

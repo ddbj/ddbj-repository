@@ -1,4 +1,4 @@
-# locals: (submission_request:, conversation: true)
+# locals: (submission_request:, conversation: true, closure: true)
 
 state = CurationState.new(submission_request)
 
@@ -8,7 +8,8 @@ payload = {
     :db,
     :status,
     :error_message,
-    :created_at
+    :created_at,
+    :closed_at
   ),
 
   processing:  submission_request.processing?,
@@ -18,6 +19,13 @@ payload = {
 
   progress: render('submission_requests/progress', state: state)
 }
+
+# Whether the button is offered, rather than the client re-deriving the
+# rule from the status — the rule is "what is asking for something can be
+# put down", and only the server knows it. Withheld from the reviewer
+# view, which is read-only: `closed_at` is a fact about the request and
+# goes either way, but an affordance nobody there can use is noise.
+payload[:closable] = submission_request.closable? if closure
 
 # The reviewer view renders this same body through an unauthenticated share
 # token, and must not disclose that a curator ↔ submitter conversation
