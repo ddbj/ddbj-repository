@@ -53,6 +53,94 @@ class SubmissionTest < ActiveSupport::TestCase
     refute_equal '', update.parsed_patch.first.fetch('path')
   end
 
+  # --- replay past damage ------------------------------------------------
+  # A root snapshot replaces the whole document, so nothing before it can
+  # affect the result. Replay therefore starts there — which is what makes
+  # the importers' "self-heal forward" actually heal: a poisoned patch used
+  # to stop replay dead, and the snapshot written afterwards was never
+  # reached, leaving a record only the cache could produce.
+
+  def poison!(submission)
+    SubmissionUpdate.create_with_patch!(
+      submission:, patch_json: 'not-json', db: submission.db, status: :applied,
+      actor: 'test', source: :manual, patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+  end
+
+  test 'a poisoned patch stops replay while it is the head of the chain' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'one'}}, actor: 'test')
+    poison!(submission)
+
+    assert_raises(Submission::MaterialisationFailed) { submission.materialise_at }
+  end
+
+  test 'a later root snapshot restores replay' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'one'}}, actor: 'test')
+    poison!(submission)
+
+    # What the importer writes when safe_prior_materialised has swallowed
+    # the failure: a whole-document snapshot.
+    SubmissionUpdate.create_with_patch!(
+      submission:,
+      patch_json: Oj.dump([{'op' => 'add', 'path' => '', 'value' => {'project' => {'title' => 'two'}}}], mode: :strict),
+      db: 'bioproject', status: :applied, actor: 'migration:test', source: :migration,
+      patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+
+    assert_equal({'project' => {'title' => 'two'}}, submission.materialise_at)
+  end
+
+  test 'the snapshot does not claim to repair the past' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'one'}}, actor: 'test')
+    poisoned = poison!(submission)
+
+    SubmissionUpdate.create_with_patch!(
+      submission:,
+      patch_json: Oj.dump([{'op' => 'add', 'path' => '', 'value' => {'project' => {'title' => 'two'}}}], mode: :strict),
+      db: 'bioproject', status: :applied, actor: 'migration:test', source: :migration,
+      patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+
+    # Head replays again...
+    assert_equal({'project' => {'title' => 'two'}}, submission.materialise_at)
+
+    # ...but `?as_of=` behind the damage still fails. That state genuinely
+    # cannot be reconstructed, and pretending otherwise would be worse.
+    assert_raises(Submission::MaterialisationFailed) { submission.materialise_at(update_id: poisoned.id) }
+  end
+
+  test 'a whole-document replace also resets the replay start' do
+    submission = submissions(:bioproject)
+    poison!(submission)
+
+    SubmissionUpdate.create_with_patch!(
+      submission:,
+      patch_json: Oj.dump([{'op' => 'replace', 'path' => '', 'value' => {'project' => {'title' => 'x'}}}], mode: :strict),
+      db: 'bioproject', status: :applied, actor: 'test', source: :manual,
+      patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+
+    assert_equal({'project' => {'title' => 'x'}}, submission.materialise_at)
+  end
+
+  # A patch we cannot read must not be trusted to claim it resets anything.
+  test 'an unreadable patch is never marked as a snapshot' do
+    submission = submissions(:bioproject)
+
+    refute poison!(submission).root_snapshot?
+  end
+
+  test 'an ordinary minimal patch is not a snapshot' do
+    submission = submissions(:bioproject)
+    submission.append_update!({'project' => {'title' => 'one'}}, actor: 'test')
+    update = submission.append_update!({'project' => {'title' => 'two'}}, actor: 'test')
+
+    refute update.root_snapshot?
+  end
+
   # Inputs canonicalisation rejects have no canonical form; the fallback
   # must still store something rather than re-raising the error it caught.
   test 'a record canonicalisation rejects still falls back to a snapshot' do

@@ -91,6 +91,28 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     refute_equal '', patch.first.fetch('path'), 'a healthy chain must not be replaced wholesale'
   end
 
+  # `safe_prior_materialised` swallows a replay failure so the importer can
+  # "self-heal forward". It only actually heals because the snapshot it
+  # then writes resets where replay starts — otherwise the record stayed
+  # readable through the cache alone, with the chain unable to reproduce it.
+  test 'a re-import repairs a chain a poisoned patch had stopped' do
+    submission = build.call.submission
+
+    SubmissionUpdate.create_with_patch!(
+      submission:, patch_json: 'not-json', db: 'bioproject', status: :applied,
+      actor: 'test', source: :manual, patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+    submission.update_columns(cached_at_update_id: nil, source_checksum: nil)
+
+    assert_raises(Submission::MaterialisationFailed) { submission.materialise_at }
+
+    assert_equal :updated, build.call.outcome
+
+    # Replay works again, and agrees with what the importer cached.
+    assert_equal Oj.load(submission.reload.cached_materialised_bytes, mode: :strict),
+                 submission.materialise_at
+  end
+
   # The fast path now asks "did the source change", which is a property of
   # the converter output alone — no canonicalisation, no chain replay.
   test 'the source checksum is recorded and short-circuits an unchanged re-run' do

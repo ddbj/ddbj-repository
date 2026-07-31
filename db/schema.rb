@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_000004) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_000005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -268,6 +268,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000004) do
     t.string "db", null: false
     t.string "error_message"
     t.integer "patch_canonical_version", default: 1, null: false
+    t.boolean "root_snapshot", default: false, null: false
     t.integer "source", default: 0, null: false
     t.integer "status", default: 0, null: false
     t.bigint "submission_id", null: false
@@ -275,6 +276,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000004) do
     t.index ["actor"], name: "index_submission_updates_on_actor", where: "(actor IS NOT NULL)"
     t.index ["db"], name: "index_submission_updates_on_db"
     t.index ["submission_id", "created_at"], name: "index_submission_updates_on_submission_id_and_created_at"
+    t.index ["submission_id", "id"], name: "index_submission_updates_root_snapshots", where: "root_snapshot"
     t.index ["submission_id"], name: "index_submission_updates_on_submission_id"
   end
 

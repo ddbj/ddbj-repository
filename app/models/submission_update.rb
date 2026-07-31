@@ -67,13 +67,29 @@ class SubmissionUpdate < ApplicationRecord
       content_type: 'application/json'
     )
 
-    submission.updates.build(**attrs).tap {
+    submission.updates.build(root_snapshot: root_snapshot?(patch_json), **attrs).tap {
       it.patch = blob
       it.save!
     }
   rescue StandardError
     blob&.purge_later
     raise
+  end
+
+  # An `add` or `replace` at path "" replaces the whole document (RFC 6902
+  # §4.1/§4.3), so nothing before it can affect the result — which is what
+  # lets Submission#materialise_at start there instead of at `{}`.
+  #
+  # Decided here, once, while the ops are already in hand: the alternative
+  # is parsing every patch during replay to find out which ones to skip.
+  # Unparseable input answers `false` — a patch we cannot read is exactly
+  # the kind we must not claim resets anything.
+  def self.root_snapshot?(patch_json)
+    ops = Oj.load(patch_json, mode: :strict)
+
+    ops.is_a?(Array) && ops.any? { it.is_a?(Hash) && it['path'] == '' && %w[add replace].include?(it['op']) }
+  rescue StandardError
+    false
   end
 
   # Memoised parse of the attached JSON Patch body. Returns the RFC 6902

@@ -157,10 +157,27 @@ class Submission < ApplicationRecord
   # Replay submission_updates up to and including `update_id` (defaults
   # to the most recent). Used for `?as_of=N` historical snapshots; the
   # cache-aware fast path lives on materialised_record.
+  #
+  # Replay starts at the most recent root snapshot rather than at `{}`.
+  # A snapshot replaces the whole document, so everything before it is
+  # irrelevant to the result — and, more importantly, unreachable damage
+  # before it stops mattering. That is what makes the importers' "self-heal
+  # forward" a heal: a poisoned patch used to stop replay dead, and the
+  # snapshot written afterwards was never reached, leaving a record that
+  # only the cache could produce.
+  #
+  # A snapshot does not repair the *past*: `?as_of=N` for an N behind the
+  # damage still fails, which is honest — that state genuinely cannot be
+  # reconstructed.
   def materialise_at(update_id: nil)
     scope = updates.order(:id).with_attached_patch
     scope = scope.where('submission_updates.id <= ?', update_id) if update_id&.positive?
-    rows  = scope.to_a
+
+    if (from = scope.where(root_snapshot: true).maximum(:id))
+      scope = scope.where('submission_updates.id >= ?', from)
+    end
+
+    rows = scope.to_a
     return nil if rows.empty?
 
     rows.reduce({}) {|state, update|
