@@ -43,6 +43,41 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert replayed.key?('submission'),  'submission must be in the materialised replay'
   end
 
+  # `diff` indexes into the canonical ordering while `apply` runs against
+  # whatever is stored, so a baseline in converter order would leave every
+  # later patch naming the wrong element of a keyed array.
+  test 'the baseline snapshot is stored canonical' do
+    submission = build.call.submission
+
+    assert_equal DDBJRecord::Canonicalizer.canonical_tree(submission.materialised_record),
+                 submission.materialised_record
+  end
+
+  # The fast path now asks "did the source change", which is a property of
+  # the converter output alone — no canonicalisation, no chain replay.
+  test 'the source checksum is recorded and short-circuits an unchanged re-run' do
+    submission = build.call.submission
+
+    assert_not_nil submission.reload.source_checksum
+
+    assert_no_difference 'submission.updates.count' do
+      assert_equal :skipped, build.call.outcome
+    end
+  end
+
+  # A curator edit between imports must survive an unchanged re-run: the
+  # question is "did D-way change", not "does the chain still match".
+  test 'a curator edit survives an unchanged re-import' do
+    submission = build.call.submission
+    submission.append_update!(
+      submission.materialised_record.deep_dup.tap { it['project']['title'] = 'Curator title' },
+      actor: 'admin:tanaka'
+    )
+
+    assert_equal :skipped, build.call.outcome
+    assert_equal 'Curator title', submission.reload.materialised_record.dig('project', 'title')
+  end
+
   test 'syncs staging release_date / dist_date / modified_date onto Project and backfills on a byte-identical re-run' do
     # First import with no lifecycle dates yet.
     project = build.call.submission.project

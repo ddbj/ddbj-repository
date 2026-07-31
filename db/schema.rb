@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -286,6 +286,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_000003) do
     t.text "curator_comment"
     t.string "db", null: false
     t.uuid "migration_run_id"
+    t.string "source_checksum"
     t.string "source_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false

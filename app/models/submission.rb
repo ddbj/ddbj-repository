@@ -141,18 +141,6 @@ class Submission < ApplicationRecord
     cached_materialised_record.download
   end
 
-  # True iff the cached snapshot's bytes are identical to `dump`.
-  # Compares ActiveStorage's pre-computed checksum (base64 MD5) instead
-  # of downloading the full blob — used by the importer fast-skip path
-  # so a 7MB BS record doesn't round-trip from SeaweedFS just to test
-  # for "no semantic change since last import".
-  def cached_record_matches_dump?(dump)
-    blob = cached_materialised_record.blob
-    return false unless blob
-
-    blob.checksum == Digest::MD5.base64digest(dump)
-  end
-
   # Replay submission_updates up to and including `update_id` (defaults
   # to the most recent). Used for `?as_of=N` historical snapshots; the
   # cache-aware fast path lives on materialised_record.
@@ -202,7 +190,9 @@ class Submission < ApplicationRecord
         DDBJRecord::Canonicalizer.diff(base, new_record)
       rescue DDBJRecord::Canonicalizer::Error
         op = base.empty? ? 'add' : 'replace'
-        [{'op' => op, 'path' => '', 'value' => new_record}]
+        # Canonical, not raw: a root snapshot defines the stored state that
+        # every later diff will index into. See Canonicalizer#canonical_tree.
+        [{'op' => op, 'path' => '', 'value' => DDBJRecord::Canonicalizer.canonical_tree(new_record)}]
       end
       return nil if patch.empty?
 

@@ -94,6 +94,52 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
     assert_equal [{'op' => 'add', 'path' => '/project/accession', 'value' => 'PRJDB1'}], ops
   end
 
+  # `diff` emits array indices into the CANONICAL ordering, while `apply`
+  # is pure RFC 6902 against whatever it is handed. Anything stored as a
+  # root snapshot must therefore already be canonical, or every later patch
+  # names the wrong element of a keyed array — silently, and only where the
+  # input order happened to differ from the key order.
+  test 'canonical_tree puts keyed arrays in the order diff indexes into' do
+    raw = {'samples' => [{'alias' => 'zz'}, {'alias' => 'aa'}]}
+
+    assert_equal %w[zz aa], raw['samples'].map { it['alias'] }, 'precondition: input is not in key order'
+    assert_equal %w[aa zz], C.canonical_tree(raw)['samples'].map { it['alias'] }
+  end
+
+  # Storage keeps volatile fields (§4.2) — canonical_tree is `for_diff:
+  # false`, so a root snapshot does not lose provenance or accession.
+  test 'canonical_tree retains volatile fields' do
+    tree = C.canonical_tree({'schema_version' => 'v3', 'project' => {'accession' => 'PRJDB1'}})
+
+    assert_equal 'v3',      tree['schema_version']
+    assert_equal 'PRJDB1',  tree.dig('project', 'accession')
+  end
+
+  test 'a patch applied to a canonical tree lands on the element it names' do
+    stored = C.canonical_tree({'samples' => [{'alias' => 'zz'}, {'alias' => 'aa'}]})
+    wanted = stored.deep_dup
+    wanted['samples'].find { it['alias'] == 'aa' }['accession'] = 'SAMD1'
+
+    result = C.apply(stored, C.diff(stored, wanted))
+
+    assert_equal 'SAMD1', result['samples'].find { it['alias'] == 'aa' }['accession']
+    assert_nil            result['samples'].find { it['alias'] == 'zz' }['accession']
+  end
+
+  # The property the chain exists for, over the operations that actually
+  # reshape a keyed array.
+  test 'diff then apply reproduces the target across adds, removes and edits' do
+    before = C.canonical_tree({'samples' => [{'alias' => 'a', 'title' => 'A'},
+                                             {'alias' => 'b', 'title' => 'B'},
+                                             {'alias' => 'c', 'title' => 'C'}]})
+
+    after = C.canonical_tree({'samples' => [{'alias' => 'a', 'title' => 'A'},
+                                            {'alias' => 'c', 'title' => 'C2'},
+                                            {'alias' => 'd', 'title' => 'D'}]})
+
+    assert_equal after, C.apply(before, C.diff(before, after))
+  end
+
   test 'the wire identifier and the registry agree on the version' do
     assert_equal DDBJRecord::Canonicalizer::Registry.canonical_version, C::VERSION
     assert_equal "ddbj-canon/v#{C::NUMBER}",                            C::VERSION

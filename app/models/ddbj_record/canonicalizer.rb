@@ -54,24 +54,35 @@ module DDBJRecord
         VolatileStripper.strip(coerce_for_strip(value))
       end
 
-      # `json-diff` based differ. Both sides are canonicalised first so
-      # numeric indices into `keyed` / `bag` arrays match. Volatile sub-trees
-      # are stripped (canonical-json.md §4.2: "chain replay uses True on
-      # both sides"). `moves: false` blocks `move` ops; the result is
-      # post-filtered to add / remove / replace only.
+      # The canonical form as a Ruby tree rather than as bytes — volatile
+      # fields retained (`for_diff: false`), keys sorted, keyed arrays in
+      # their canonical order.
+      #
+      # Anything stored as a root snapshot in a patch chain MUST go through
+      # this. `diff` emits array indices into the canonical ordering while
+      # `apply` is pure RFC 6902 against the stored state, so a chain whose
+      # stored state is not canonical has ops pointing at the wrong
+      # elements — silently, and only for arrays whose input order happened
+      # to differ from their key order.
+      def canonical_tree(value)
+        Oj.load(canonicalize(value), mode: :strict)
+      end
+
+      # Structural differ. Both sides are canonicalised first so numeric
+      # indices into `keyed` / `bag` arrays match. Volatile sub-trees are
+      # stripped (canonical-json.md §4.2: "chain replay uses True on both
+      # sides").
+      #
+      # TreeDiffer walks objects and keyed arrays itself and delegates the
+      # rest to json-diff — see there for why: json-diff aligns arrays with
+      # an N×M similarity matrix, which is quadratic in the sample count.
+      # `moves: false` blocks `move` ops; only add / remove / replace are
+      # emitted.
       def diff(a, b)
         canon_a = parse_canonical(a, for_diff: true)
         canon_b = parse_canonical(b, for_diff: true)
 
-        ops = JsonDiff.diff(canon_a, canon_b, moves: false, include_was: false)
-        ops.filter_map {|op|
-          next nil unless %w[add remove replace].include?(op['op'])
-          reject_bag_descent!(op)
-          {'op' => op['op'], 'path' => op['path']}.then {|out|
-            out['value'] = op['value'] if op.key?('value')
-            out
-          }
-        }
+        TreeDiffer.diff(canon_a, canon_b).each {|op| reject_bag_descent!(op) }
       end
 
       # Apply a patch atomically. `base` is deep-copied so caller state is

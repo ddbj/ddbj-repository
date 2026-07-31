@@ -91,21 +91,15 @@ module BioProject
         # a row imported before the projection existed.
         submission.sync_hold_date!(record)
 
-        # Fast :skipped path: if the SeaweedFS-stored snapshot from the
-        # PREVIOUS importer run still hashes to what this run would
-        # emit, the source XML hasn't changed meaningfully and we
-        # short-circuit without paying Canonicalizer.diff's
-        # canonicalize × 2 cost. The blob is left attached even when
-        # SubmissionUpdate#after_create invalidates the cache stamp
-        # (curator edits between imports), so this matches "vs last
-        # import" not "vs current chain" — which is correct: skipping
-        # here preserves curator edits made through the workbench
-        # against an unchanged D-way source. False negatives fall
-        # through to the full diff path and still produce correct
-        # results. See Submission#cached_record_matches_dump?.
-        new_dump = Oj.dump(record, mode: :strict)
+        # Fast :skipped path: a checksum of the raw converter output. If
+        # the source XML hasn't changed meaningfully we short-circuit
+        # without paying for a canonicalisation pass, let alone diff's two.
+        # Deliberately "vs last import" rather than "vs current chain", so
+        # curator edits made through the workbench survive an idempotent
+        # re-run against an unchanged D-way source.
+        source_checksum = Digest::MD5.base64digest(Oj.dump(record, mode: :strict))
 
-        if submission.cached_record_matches_dump?(new_dump)
+        if submission.source_checksum == source_checksum
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -119,8 +113,18 @@ module BioProject
         patch_ops    = compute_patch_ops(prior_record, record)
 
         if patch_ops.empty?
+          # Nothing to record, but remember what we just compared against
+          # so the next run takes the cheap path.
+          submission.update_columns(source_checksum:)
+
           return Result.new(submission:, outcome: :skipped)
         end
+
+        # The bytes the chain will now replay to. Derived by applying the
+        # ops we just computed rather than by re-serialising `record`:
+        # it avoids a third canonicalisation, and it asserts the property
+        # the chain exists for — replaying it reproduces exactly this.
+        new_dump = Oj.dump(DDBJRecord::Canonicalizer.apply(prior_record, patch_ops), mode: :strict)
 
         # `update_columns` bypasses the v2-era `validates :ddbj_record,
         # on: :update` — migration-sourced submissions store state in
@@ -129,6 +133,7 @@ module BioProject
           canonical_version: DDBJRecord::Canonicalizer::NUMBER,
           converter_version: "bp_v3/#{Converter::SOURCE_FORMAT}",
           migration_run_id:  @migration_run_id,
+          source_checksum:   source_checksum,
           updated_at:        Time.current
         )
 
@@ -193,12 +198,27 @@ module BioProject
     # bytes diff() rejects on re-import; falling through to a
     # root-`replace` snapshot keeps a one-off staging bug from
     # becoming a permanent :failed row.
+    # Root snapshots carry the CANONICAL tree, not the raw converter
+    # output. `diff` emits array indices into the canonical ordering while
+    # `apply` is pure RFC 6902 against whatever is stored, so a baseline in
+    # converter order leaves every later patch pointing at the wrong
+    # element of a keyed array — silently, and only where the two orders
+    # happen to differ. See Canonicalizer#canonical_tree.
     def compute_patch_ops(prior, current)
-      return [{'op' => 'add', 'path' => '', 'value' => current}] if prior.empty?
+      return [{'op' => 'add', 'path' => '', 'value' => canonical(current)}] if prior.empty?
 
       DDBJRecord::Canonicalizer.diff(prior, current)
     rescue DDBJRecord::Canonicalizer::Error
-      [{'op' => 'replace', 'path' => '', 'value' => current}]
+      [{'op' => 'replace', 'path' => '', 'value' => canonical(current)}]
+    end
+
+    # The rescue above fires on inputs `canonicalize` itself rejects, in
+    # which case there is no canonical form to fall back to and the raw
+    # tree is all we can store.
+    def canonical(record)
+      DDBJRecord::Canonicalizer.canonical_tree(record)
+    rescue DDBJRecord::Canonicalizer::Error
+      record
     end
 
     # Stand-in for the proper Spike 0.8 mapping table. status_id 700 was the
