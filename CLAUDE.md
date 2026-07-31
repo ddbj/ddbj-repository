@@ -43,10 +43,24 @@ data/             Qualifier/feature reference data
 ```sh
 bin/setup          # Initial setup
 bin/dev            # Start all services (Rails, Ember, SeaweedFS, etc.)
-bin/rails test     # Run backend tests
+bin/rails test:all # Run backend tests INCLUDING test/system (`test` alone skips them)
 cd web && pnpm test  # Run frontend tests
 cd web && pnpm lint  # Run frontend linters
 ```
+
+### Testing
+
+Anything a person does through a screen belongs in `test/system` — a
+Capybara test that visits the page and presses the control. Integration
+tests address routes directly and are therefore blind to everything
+between the screen and the request; several bugs have shipped past a
+green integration suite because the endpoint was right and the control
+that reached it was not.
+
+- `test/system` — user-perspective. `rack_test` by default; subclass
+  `JavaScriptSystemTestCase` for screens whose behaviour is Turbo /
+  Stimulus (runs it in process via `capybara-simulated`, no browser).
+- `test/integration` — the JSON API, and server-side rules with no screen.
 
 ## CI
 

@@ -44,6 +44,14 @@ group :development do
 end
 
 group :test do
+  gem 'capybara'
+
+  # In-process driver that actually runs Turbo / Stimulus, so a screen
+  # whose behaviour is JavaScript can be tested from the outside without
+  # a headless browser. See test/application_system_test_case.rb.
+  gem 'capybara-simulated'
+  gem 'rusty_racer'
+
   gem 'minitest-default_http_header'
   gem 'minitest-mock'
   gem 'skooma'
