@@ -7,11 +7,20 @@
 <%# numbers actually were. Both are here, and both stay until dismissed. %>
 <%# %>
 <%# The run page is the record; this is its summary. %>
-<div class="card border-success-subtle mb-3" data-test-issuance-summary>
+<%# A run that allocated nothing is not a success in a green box. "0 %>
+<%# accessions issued" reads as a broken counter rather than as an %>
+<%# outcome, and it is the reading a curator needs most: they ticked %>
+<%# something and got nothing. %>
+<% issued_nothing = run.finished? && run.accession_count.zero? %>
+
+<div class="card mb-3 <%= issued_nothing ? 'border-secondary-subtle' : 'border-success-subtle' %>"
+     data-test-issuance-summary>
   <div class="card-body">
     <div class="d-flex align-items-baseline gap-2 flex-wrap mb-3">
       <h2 class="h6 mb-0">
-        <% if run.finished? %>
+        <% if issued_nothing %>
+          Nothing was issued
+        <% elsif run.finished? %>
           <%= pluralize(run.accession_count, 'accession') %> issued
         <% else %>
           Issuing <%= pluralize(run.accession_count, 'accession') %>… <%= run.done %> of <%= run.total %> done

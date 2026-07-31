@@ -55,6 +55,21 @@ class AccessionSummarySystemTest < ApplicationSystemTestCase
     end
   end
 
+  # A press where every submission was skipped. "0 accessions issued"
+  # reads as a broken counter, and this is the case a curator most needs
+  # to understand: they ticked things and got nothing.
+  test 'a run that allocated nothing says so rather than counting to zero' do
+    issue(submissions(:bioproject), status: 'refused', error_message: 'Project status public is not issuable.')
+
+    visit admin_submission_requests_path
+
+    within '[data-test-issuance-summary]' do
+      assert_text    'Nothing was issued'
+      assert_no_text '0 accessions issued'
+      assert_text    'Project status public is not issuable.'
+    end
+  end
+
   test 'the summary stays until it is dismissed' do
     issue(submissions(:bioproject), accessions: %w[PRJDB19940])
 
