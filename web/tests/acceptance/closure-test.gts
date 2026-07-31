@@ -1,5 +1,5 @@
 import { module, test } from 'qunit';
-import { visit, click } from '@ember/test-helpers';
+import { visit, click, currentURL } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
@@ -87,5 +87,61 @@ module('Acceptance | closing a request', function (hooks) {
 
     assert.dom('[data-test-state]').includesText('could not be processed');
     assert.dom('[data-test-close]').exists();
+  });
+
+  // The one press that matches what almost everyone actually does. Left
+  // as two, the corrected file goes up as a new request and the failed
+  // one is only ever closed by somebody remembering to come back for it.
+  test('closing and resubmitting lands on a fresh upload for the same database', async function (assert) {
+    let closed = false;
+
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json(failedRequest(closed ? { closed_at: now, closable: false } : {})),
+      ),
+
+      http.post('/submission_requests/{id}/closure', ({ response }) => {
+        closed = true;
+
+        return response(200).json(failedRequest({ closed_at: now, closable: false }));
+      }),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+    );
+
+    await visit('/requests/42');
+    await click('[data-test-close-and-resubmit]');
+
+    assert.strictEqual(currentURL(), '/st26/requests/new', 'the database carries over');
+    assert.true(closed, 'and the attempt it replaces is not left behind');
+  });
+
+  // On a file that validated, the next step is Apply. A second primary
+  // button offering a fresh upload would compete with it.
+  test('a request that validated is not offered a corrected file', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json(
+          failedRequest({
+            status: 'ready_to_apply',
+            progress: {
+              step: 'validated',
+              row_count: 0,
+              failed: false,
+              closed: false,
+              accessioned_count: 0,
+              hold_date: null,
+            },
+          }),
+        ),
+      ),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+    );
+
+    await visit('/requests/42');
+
+    assert.dom('[data-test-close-and-resubmit]').doesNotExist();
+    assert.dom('[data-test-close]').exists('but it can still be put down');
   });
 });

@@ -64,6 +64,21 @@ export default class extends Component<Signature> {
     return this.setClosed(false);
   }
 
+  // What almost everyone does after a failed validation: fix the file and
+  // send it again. Doing it in one press is what stops the old attempt
+  // being left behind — a corrected file is a NEW request, so the failed
+  // one is only ever closed by somebody remembering to come back for it.
+  //
+  // Closed first, then navigated: if the close fails the submitter stays
+  // on the request that still needs it, rather than landing on an upload
+  // form believing this one is dealt with.
+  @action
+  async closeAndResubmit() {
+    await this.setClosed(true);
+
+    this.router.transitionTo('db.requests.new', this.args.model.db);
+  }
+
   @action
   async apply() {
     const { model } = this.args;
@@ -117,6 +132,18 @@ export default class extends Component<Signature> {
         <div class="d-flex gap-2 flex-wrap">
           {{#if (eq @model.status "ready_to_apply")}}
             <button type="button" class="btn btn-primary" {{on "click" this.apply}}>Apply</button>
+          {{/if}}
+
+          {{! Only where there is nothing else to do with the file. On a
+          request that validated, the next step is Apply, and a second
+          primary button offering a fresh upload would compete with it. }}
+          {{#if (eq @model.status "validation_failed")}}
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-test-close-and-resubmit
+              {{on "click" this.closeAndResubmit}}
+            >Close and submit a corrected file</button>
           {{/if}}
 
           {{! A failed attempt cannot be advanced — a corrected file is a
