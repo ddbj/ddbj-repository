@@ -130,30 +130,39 @@ export default class extends Component<Signature> {
         <p class="prose mb-3">{{this.state.body}}</p>
 
         <div class="d-flex gap-2 flex-wrap">
-          {{#if (eq @model.status "ready_to_apply")}}
-            <button type="button" class="btn btn-primary" {{on "click" this.apply}}>Apply</button>
-          {{/if}}
+          {{! Everything that acts on the request is withheld once it is
+          closed. The status does not change when a request is put down,
+          so a button gated on status alone stays on offer and then fails
+          against a server that will not act on a closed request — and
+          "Apply" beside "no longer waiting on you" is a contradiction
+          before it is a broken button. Reopen is the way back, and it is
+          what the panel above tells them to use. }}
+          {{#unless @model.closed_at}}
+            {{#if (eq @model.status "ready_to_apply")}}
+              <button type="button" class="btn btn-primary" {{on "click" this.apply}}>Apply</button>
+            {{/if}}
 
-          {{! Only where there is nothing else to do with the file. On a
-          request that validated, the next step is Apply, and a second
-          primary button offering a fresh upload would compete with it. }}
-          {{#if (eq @model.status "validation_failed")}}
-            <button
-              type="button"
-              class="btn btn-primary"
-              data-test-close-and-resubmit
-              {{on "click" this.closeAndResubmit}}
-            >Close and submit a corrected file</button>
-          {{/if}}
+            {{! Only where there is nothing else to do with the file. On a
+            request that validated, the next step is Apply, and a second
+            primary button offering a fresh upload would compete with it. }}
+            {{#if (eq @model.status "validation_failed")}}
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-test-close-and-resubmit
+                {{on "click" this.closeAndResubmit}}
+              >Close and submit a corrected file</button>
+            {{/if}}
 
-          {{! A failed attempt cannot be advanced — a corrected file is a
-          new request — so without this it asks to be dealt with for ever
-          and crowds out the live one. Quiet, because it is the lesser of
-          the two things on offer when both are. }}
-          {{#if @model.closable}}
-            <button type="button" class="btn btn-outline-secondary" data-test-close {{on "click" this.close}}>Close this
-              request</button>
-          {{/if}}
+            {{! A failed attempt cannot be advanced — a corrected file is a
+            new request — so without this it asks to be dealt with for ever
+            and crowds out the live one. Quiet, because it is the lesser of
+            the two things on offer when both are. }}
+            {{#if @model.closable}}
+              <button type="button" class="btn btn-outline-secondary" data-test-close {{on "click" this.close}}>Close
+                this request</button>
+            {{/if}}
+          {{/unless}}
 
           {{#if @model.closed_at}}
             <button

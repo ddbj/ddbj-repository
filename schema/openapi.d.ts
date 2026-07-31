@@ -782,6 +782,10 @@ export interface paths {
          *     with it" are different events, and a submitter who opens a question
          *     meaning to answer it later should keep the reminder. Replying discharges
          *     the thread too; this is for the note that needs no reply.
+         *
+         *     `through_id` is the newest message the client had in front of it. One
+         *     that arrives a moment later is not acknowledged by a press that could
+         *     not have taken it into account. Omit it to mark the whole thread.
          */
         post: {
             parameters: {
@@ -792,7 +796,13 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        through_id?: number;
+                    };
+                };
+            };
             responses: {
                 /** @description The curator's messages are marked read. */
                 204: {

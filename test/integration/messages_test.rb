@@ -49,6 +49,38 @@ class MessagesTest < ActionDispatch::IntegrationTest
     assert_not_includes SubmissionRequest.needs_submitter_action, @submission_request
   end
 
+  # The narrow version of the same lost reminder: a question that arrives
+  # while the reply is being typed has not been answered by it.
+  test 'a question that arrived after the reply was started stays unread' do
+    asked   = @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'first')
+    later   = nil
+
+    post submission_request_messages_path(@submission_request),
+         params:  {submission_message: {body: 'answering the first'}}.to_json,
+         headers: {'Content-Type' => 'application/json'}
+
+    reply = SubmissionMessage.order(:id).last
+    later = @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'second')
+
+    assert_not_nil asked.reload.read_at, 'what was asked before the reply is answered by it'
+    assert_operator later.id, :>, reply.id
+    assert_nil later.reload.read_at, 'and what came after is not'
+  end
+
+  test 'marking read acknowledges only what the submitter had in front of them' do
+    seen   = @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'seen')
+    unseen = @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'arrived since')
+
+    post read_submission_request_messages_path(@submission_request),
+         params:  {through_id: seen.id}.to_json,
+         headers: {'Content-Type' => 'application/json'}
+
+    assert_response :no_content
+    assert_not_nil seen.reload.read_at
+    assert_nil     unseen.reload.read_at
+    assert_includes SubmissionRequest.needs_submitter_action, @submission_request
+  end
+
   test 'marking read discharges a note that needs no reply' do
     unread = @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'FYI')
 

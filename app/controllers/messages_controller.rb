@@ -20,7 +20,12 @@ class MessagesController < ApplicationController
 
     # Answering is dealing with what was asked, so it discharges the
     # thread. It has to be said here now that reading no longer does it.
-    mark_read
+    #
+    # Only what was already there: a question that arrived while the
+    # reply was being typed has not been answered by it, and marking it
+    # read is the same lost reminder this whole change exists to stop,
+    # just in a narrower window.
+    mark_read(through: @message.id)
 
     SubmissionMessageMailer.with(message: @message).notify_curators.deliver_later
 
@@ -32,7 +37,7 @@ class MessagesController < ApplicationController
   # submitter's queue for ever, which is the trap the old auto-mark was
   # avoiding by discharging too much.
   def read
-    mark_read
+    mark_read(through: params[:through_id])
 
     head :no_content
   end
@@ -40,8 +45,17 @@ class MessagesController < ApplicationController
   private
 
   # Cheap UPDATE — at most touches the un-stamped tail of the thread.
-  def mark_read
-    @request.messages.curator_role.unread.update_all(read_at: Time.current)
+  #
+  # `through` bounds it to what the submitter had in front of them, so a
+  # message that landed a moment ago is not discharged by an act that
+  # could not have taken it into account. Absent, it means the whole
+  # thread — a client that does not say what it saw gets the old
+  # behaviour rather than an error.
+  def mark_read(through: nil)
+    scope = @request.messages.curator_role.unread
+    scope = scope.where(id: ..through.to_i) if through.present?
+
+    scope.update_all(read_at: Time.current)
   end
 
   # Scopes to the submitter's own requests, so a submitter cannot peek

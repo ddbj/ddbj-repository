@@ -20,6 +20,11 @@ module Admin
         body:        body
       )
 
+      # Asking something reopens a request the submitter had put down.
+      # Otherwise the mail goes out and the app shows nothing: no banner,
+      # no "needs you", and not even a row in the default list.
+      request.reopen_if_closed!
+
       SubmissionMessageMailer.with(message:).notify_submitter.deliver_later
 
       participate!(request)

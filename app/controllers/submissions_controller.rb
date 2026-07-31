@@ -21,6 +21,12 @@ class SubmissionsController < ApplicationController
       }
     ).find(params[:submission_request_id])
 
+    # Closed means "not taking this further", and applying it anyway
+    # would leave `closed_at` set through curation and release — where
+    # the client reads it before everything else and would report a
+    # public record as one the submitter had put down. Reopening first is
+    # what the screen already tells them to do.
+    raise ActiveRecord::RecordInvalid if request.closed?
     raise ActiveRecord::RecordInvalid unless request.ready_to_apply?
 
     request.waiting_application!

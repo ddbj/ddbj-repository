@@ -116,6 +116,57 @@ module('Acceptance | closing a request', function (hooks) {
     assert.true(closed, 'and the attempt it replaces is not left behind');
   });
 
+  // Closing does not change the status, so a button gated on status
+  // alone stays on offer and then fails against a server that will not
+  // act on a closed request. The one-press path was a dead end on
+  // exactly the requests it targets.
+  test('a closed request offers nothing that acts on it', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json(failedRequest({ closed_at: now, closable: false })),
+      ),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+    );
+
+    await visit('/requests/42');
+
+    assert.dom('[data-test-close-and-resubmit]').doesNotExist();
+    assert.dom('[data-test-close]').doesNotExist();
+    assert.dom('[data-test-reopen]').exists('only the way back');
+  });
+
+  // "Apply" under "no longer waiting on you" is a contradiction before
+  // it is a broken button — and the server refuses it either way.
+  test('a closed request that had validated is not offered Apply', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json(
+          failedRequest({
+            status: 'ready_to_apply',
+            closed_at: now,
+            closable: false,
+            progress: {
+              step: 'validated',
+              row_count: 0,
+              failed: false,
+              closed: false,
+              accessioned_count: 0,
+              hold_date: null,
+            },
+          }),
+        ),
+      ),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+    );
+
+    await visit('/requests/42');
+
+    assert.dom('[data-test-state]').includesText('You closed this request');
+    assert.dom('[data-test-state] button').hasText('Reopen', 'the only thing on offer');
+  });
+
   // On a file that validated, the next step is Apply. A second primary
   // button offering a fresh upload would compete with it.
   test('a request that validated is not offered a corrected file', async function (assert) {

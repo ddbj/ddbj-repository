@@ -733,6 +733,23 @@ paths:
         meaning to answer it later should keep the reminder. Replying discharges
         the thread too; this is for the note that needs no reply.
 
+        `through_id` is the newest message the client had in front of it. One
+        that arrives a moment later is not acknowledged by a press that could
+        not have taken it into account. Omit it to mark the whole thread.
+
+      requestBody:
+        required: false
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+
+              properties:
+                through_id:
+                  type: number
+
       tags:
         - Submission Requests
 

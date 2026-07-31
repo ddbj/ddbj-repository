@@ -9,6 +9,7 @@ import formatDatetime from 'repository/helpers/format-datetime';
 
 import type AttentionService from 'repository/services/attention';
 import type { RequestManager } from '@warp-drive/core';
+import type RouterService from '@ember/routing/router-service';
 import type { paths } from 'schema/openapi';
 
 type MessagesResponse =
@@ -28,6 +29,7 @@ interface Signature {
 export default class SubmissionMessages extends Component<Signature> {
   @service declare attention: AttentionService;
   @service declare requestManager: RequestManager;
+  @service declare router: RouterService;
 
   @tracked messages: Message[] = [];
   @tracked draft = '';
@@ -54,14 +56,32 @@ export default class SubmissionMessages extends Component<Signature> {
     return this.messages.some((m) => m.author_role === 'curator' && !m.read_at);
   }
 
+  // Acknowledges what is on screen, not whatever has arrived since: a
+  // question that landed a moment ago was not taken into account by a
+  // press that could not have seen it.
+  get newestMessageId() {
+    return this.messages.at(-1)?.id;
+  }
+
   @action
   async markRead() {
     await this.requestManager.request({
       url: `/submission_requests/${this.args.requestId}/messages/read`,
       method: 'POST',
+      data: { through_id: this.newestMessageId },
     });
 
     await this.load();
+    await this.settle();
+  }
+
+  // The panel above this thread is rendered from counts the route
+  // fetched, so discharging the thread has to send the route back for
+  // them — otherwise "A curator has a question … reply below" stays up
+  // over a thread that was just answered, and only the button vanishes.
+  async settle() {
+    await this.router.refresh();
+
     void this.attention.refresh();
   }
 
@@ -99,7 +119,7 @@ export default class SubmissionMessages extends Component<Signature> {
 
       this.draft = '';
 
-      void this.attention.refresh();
+      await this.settle();
     } finally {
       this.posting = false;
     }

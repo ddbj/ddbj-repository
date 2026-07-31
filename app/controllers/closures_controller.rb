@@ -27,8 +27,11 @@ class ClosuresController < ApplicationController
     render 'submission_requests/show'
   end
 
+  # Guarded because the write is not free: the admin ledger orders by
+  # `updated_at` ("what moved"), so a reopen that reopens nothing would
+  # float an untouched request to the top of every curator's list.
   def destroy
-    @request.reopen!
+    @request.reopen! if @request.closed?
 
     render 'submission_requests/show'
   end

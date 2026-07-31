@@ -73,6 +73,64 @@ class ClosuresTest < ActionDispatch::IntegrationTest
     assert_equal false, response.parsed_body['closable']
   end
 
+  # A closure says "I am not taking this further". Applying it anyway
+  # would leave closed_at set through curation and release — and the
+  # client reads closed_at before everything else, so a public record
+  # would report itself as one the submitter had put down.
+  test 'a closed request cannot be applied' do
+    # Everything the apply endpoint asks for, so the refusal is the
+    # closure and not a missing validation.
+    @req.update_columns(status: SubmissionRequest.statuses.fetch('ready_to_apply'))
+    Validation.create!(subject: @req, progress: :finished, finished_at: Time.current)
+    @req.close!
+
+    assert_no_difference 'Submission.count' do
+      post submission_request_submission_path(@req)
+    end
+
+    assert_response :unprocessable_entity
+    assert_predicate @req.reload, :closed?
+
+    # And the same request applies once it is picked back up, so the
+    # refusal is the closure rather than the setup.
+    @req.reopen!
+
+    post submission_request_submission_path(@req)
+
+    assert_response :no_content
+  end
+
+  # Otherwise the mail goes out and the app shows nothing: a closed
+  # request is not in "needs you", and counts as finished, so it is not
+  # even in the list the submitter opens by default.
+  test 'a curator asking something reopens what was put down' do
+    @req.close!
+
+    assert_difference 'SubmissionMessage.count', 1 do
+      @req.messages.create!(user: users(:bob), author_role: :curator, body: 'one more thing')
+      @req.reopen_if_closed!
+    end
+
+    assert_not_predicate @req.reload, :closed?
+    assert_includes SubmissionRequest.needs_submitter_action, @req
+  end
+
+  # The admin ledger orders by updated_at — "what moved" — so a reopen
+  # that reopens nothing must not float an untouched request to the top
+  # of every curator's list.
+  test 'reopening what is already open touches nothing' do
+    # Dated back rather than compared to itself: a write lands within the
+    # same second as the read, so second precision cannot tell "no write"
+    # from "written just now".
+    @req.update_columns(updated_at: 1.day.ago)
+    before = @req.reload.updated_at
+
+    delete submission_request_closure_path(@req)
+
+    assert_response :success
+    assert_equal before, @req.reload.updated_at
+  end
+
   test 'somebody else request is not theirs to close' do
     other = submission_requests(:st26)
     other.update_columns(user_id: users(:bob).id, status: SubmissionRequest.statuses.fetch('validation_failed'))

@@ -128,6 +128,18 @@ class SubmissionRequest < ApplicationRecord
 
   def reopen! = update_columns(closed_at: nil, updated_at: Time.current)
 
+  # A closure says "I am not taking this further". Anything that makes
+  # that untrue lifts it, rather than leaving a request that is closed
+  # and asking for something at the same time — which would be invisible
+  # twice over, since a closed request counts as finished and so is not
+  # even in the list a submitter opens by default.
+  # Not an endless method: a trailing `if` there binds to the definition
+  # itself, so the method is defined only when the class body happens to
+  # be truthy — which is never, and silently.
+  def reopen_if_closed!
+    reopen! if closed?
+  end
+
   scope :needs_submitter_action, -> { where(needs_submitter_action_sql) }
   scope :finished,               -> { where(finished_sql) }
   scope :unfinished,             -> { where.not(finished_sql) }
