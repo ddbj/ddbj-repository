@@ -178,15 +178,25 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_selector 'input[type=file][data-direct-upload-url]', visible: :all
   end
 
-  # Anyone already following is told about this message anyway, so
-  # leaving them unticked made the list read as "choose your recipients
-  # each time" — which would be work, and would be wrong.
-  test 'a colleague already following is shown as already covered' do
+  # Marked, not locked out. Being told and being ASKED are different
+  # things: ticking a follower writes "copied in dave" into the thread
+  # and sends them a direct request, and disabling the box left the only
+  # way to say that in the prose — while the mail they got said nothing
+  # was being asked of them.
+  test 'a colleague already following is marked, and can still be asked' do
     @req.subscribe!(users(:dave))
 
     visit messages_admin_submission_request_path(@req)
 
-    assert_selector "input[type=checkbox][value='#{users(:dave).id}'][checked][disabled]", visible: :all
+    assert_text 'following'
+    assert_no_selector "input[type=checkbox][value='#{users(:dave).id}'][disabled]", visible: :all
+
+    fill_in 'submission_message[body]', with: 'dave, could you look at the attachment?'
+    check users(:dave).uid
+    click_button 'Send message'
+
+    # Recorded, not only implied in the prose.
+    assert_text 'copied in dave'
   end
 
   # And the claim has to be true. A curator's message used to reach

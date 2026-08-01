@@ -104,4 +104,28 @@ class SubmissionMessageMailerTest < ActionMailer::TestCase
     assert_match 'samples.tsv', mail.text_part.body.to_s
     assert_match 'samples.tsv', mail.html_part.body.to_s
   end
+
+  # Quoted at a consistent two spaces. The template line carried two of
+  # its own and the map added two more, so the first line sat four in and
+  # every other line two.
+  test 'the quoted body is indented evenly' do
+    message = @request.messages.create!(user: @curator, author_role: :curator,
+                                        body: "line one\nline two")
+
+    quoted = SubmissionMessageMailer.with(message:).notify_submitter.text_part.body.to_s
+
+    assert_includes quoted, "  line one\n  line two"
+  end
+
+  # An account that is both a curator and the owner of a request would
+  # otherwise get two mails for one event, the second written in the
+  # third person about themselves.
+  test 'the submitter is not also mailed as a follower of their own request' do
+    @request.update_column(:user_id, @curator.id)
+    @request.subscribe!(@curator)
+
+    reply = @request.messages.create!(user: users(:dave), author_role: :curator, body: 'a reply')
+
+    assert_empty @request.followers_to_notify(reply)
+  end
 end

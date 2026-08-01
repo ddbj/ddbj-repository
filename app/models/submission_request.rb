@@ -240,7 +240,11 @@ class SubmissionRequest < ApplicationRecord
   # Asked by both the mailer and the caller that decides whether there is
   # anything to enqueue, so the two cannot drift.
   def followers_to_notify(message)
-    told = [message.user_id, *message.cc_user_ids]
+    # The submitter is told as the submitter, by their own mail. An
+    # account that is both a curator and the owner of a request — a
+    # curator's own test submission — would otherwise get two mails for
+    # one event, the second written in the third person about themselves.
+    told = [message.user_id, user_id, *message.cc_user_ids]
 
     followers.reject { told.include?(it.id) }
   end

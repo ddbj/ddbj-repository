@@ -109,23 +109,32 @@
           <% colleagues.each do |colleague| %>
             <% already = followers.include?(colleague) %>
 
-            <%# Anyone already following is shown ticked and fixed. They %>
-            <%# are told about this message either way, so leaving them %>
-            <%# blank made the list read as "choose your recipients each %>
-            <%# time" — which would be work, and would be wrong. %>
+            <%# A follower is marked, not disabled. Being told and being %>
+            <%# ASKED are different things: ticking one writes "copied in %>
+            <%# dave" into the thread and sends them a direct request, %>
+            <%# which is the whole reason this control exists. Locking %>
+            <%# them out left the only way to say it in the prose, while %>
+            <%# the mail they got said "nothing is being asked of you". %>
+            <%# %>
+            <%# The line below is what stops the list reading as a chore: %>
+            <%# nobody has to be ticked for a follower to hear about it. %>
             <div class="form-check form-check-inline">
-              <%= check_box_tag 'cc_user_ids[]', colleague.id, already,
-                                id: "cc_#{colleague.id}", class: 'form-check-input',
-                                disabled: already %>
-              <%= label_tag "cc_#{colleague.id}", colleague.uid,
-                            class: "form-check-label#{' text-body-secondary' if already}" %>
+              <%= check_box_tag 'cc_user_ids[]', colleague.id, false,
+                                id: "cc_#{colleague.id}", class: 'form-check-input' %>
+              <%= label_tag "cc_#{colleague.id}", class: 'form-check-label' do %>
+                <%= colleague.uid %>
+                <% if already %>
+                  <span class="text-body-secondary">· following</span>
+                <% end %>
+              <% end %>
             </div>
           <% end %>
         </div>
 
         <p class="text-body-secondary small mb-0 mt-1">
-          Everyone following this request is emailed a copy already — greyed above.
-          Ticking somebody else emails them too and starts them following.
+          Anyone following this request is emailed a copy already — nothing to tick for
+          that. Tick somebody to ask them directly: it says so in the thread, and their
+          copy says you asked.
         </p>
       </div>
     <% end %>

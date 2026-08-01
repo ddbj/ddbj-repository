@@ -2,7 +2,7 @@
 <%= @message.user.uid %> copied you in on <%= @request.db.humanize %> request (<%= @request.submission&.source_id.presence || "##{@request.id}" %>), where they wrote to the submitter (<%= @request.user.uid %>):
 
 <% if @message.body.present? -%>
-  <%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+<%= @message.body.lines.map { "  #{it}" }.join.chomp %>
 <% end -%>
 <%= render 'files', message: @message -%>
 
