@@ -139,6 +139,43 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_equal 0, @req.unread_message_count_for(users(:bob))
   end
 
+  # Following without saying anything: watch what happens next without
+  # replying, editing, or otherwise leaving a mark on somebody else's
+  # request. A subscription you can only get by replying is one nobody
+  # knows they have.
+  test 'a curator can follow a request without touching it' do
+    @req.update_column(:assignee_id, users(:dave).id)
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
+
+    visit admin_submission_request_path(@req)
+
+    assert_no_text 'following bob'
+
+    click_button 'Follow'
+
+    assert_text 'Following this request'
+    assert_text 'following bob'
+    assert_empty @req.messages.curator_role, 'watching is not speaking'
+
+    visit admin_root_path
+    within('[data-test-section="involved"]') { assert_text "##{@req.id}" }
+  end
+
+  # The summary bar is where the request's facts are, so it must not go
+  # on naming somebody who said they were done.
+  test 'the summary bar names who is following, not who once was' do
+    @req.update_column(:assignee_id, users(:dave).id)
+    @req.subscribe!(users(:bob))
+
+    visit admin_submission_request_path(@req)
+    assert_text 'following bob'
+
+    click_button 'Stop following'
+
+    assert_no_text 'following bob'
+    assert_includes @req.reload.participants, users(:bob), 'they were still here'
+  end
+
   # Acting on somebody else's request follows it from then on, which is
   # usually right and occasionally not. A queue nobody can put things
   # down in stops being read.
@@ -150,7 +187,7 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     visit admin_root_path
     within('[data-test-section="involved"]') { assert_text "##{@req.id}" }
 
-    visit messages_admin_submission_request_path(@req)
+    visit admin_submission_request_path(@req)
     click_button 'Stop following'
 
     assert_text 'No longer following'
@@ -169,7 +206,7 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     @req.update_column(:assignee_id, users(:bob).id)
     @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
 
-    visit messages_admin_submission_request_path(@req)
+    visit admin_submission_request_path(@req)
 
     assert_no_button 'Stop following'
   end

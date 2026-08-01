@@ -2,6 +2,5 @@
 
 <%= render layout: 'workbench', locals: {tab: :messages} do %>
   <%= render 'admin/messages/thread', request: @request, messages: @messages,
-             unread:    @request.unread_message_count_for(current_user),
-             following: @request.following?(current_user) %>
+             unread: @request.unread_message_count_for(current_user) %>
 <% end %>

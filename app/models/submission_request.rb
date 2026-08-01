@@ -25,6 +25,13 @@ class SubmissionRequest < ApplicationRecord
   has_many :participations, class_name: 'SubmissionRequestParticipant', dependent: :destroy
   has_many :participants, through: :participations, source: :user
 
+  # Who is actually following it. `participants` is everyone who has ever
+  # worked here, which is a fact about the past; this is the one to show
+  # and to notify, or a curator who stopped following goes on being
+  # listed as though they had not.
+  has_many :followers, -> { merge(SubmissionRequestParticipant.subscribed) },
+           through: :participations, source: :user
+
   has_one :reviewer_access, dependent: :destroy
 
   has_one_attached :ddbj_record

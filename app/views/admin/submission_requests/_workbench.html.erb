@@ -41,8 +41,11 @@
         <%= curation_status_badge(@state) %>
         <span class="text-body-secondary">
           assignee <strong><%= @state.assignee_label %></strong>
-          <% if (participants = @request.participants.order(:uid)).any? %>
-            · participants <strong><%= participants.map(&:uid).to_sentence %></strong>
+          <%# Followers, not everyone who has ever been here: a curator %>
+          <%# who stopped following was still listed, which is the one %>
+          <%# thing this line must not get wrong. %>
+          <% if (followers = @request.followers.order(:uid)).any? %>
+            · following <strong><%= followers.map(&:uid).to_sentence %></strong>
           <% end %>
           · updated <%= format_datetime(@submission&.updated_at || @request.updated_at) %>
         </span>
@@ -55,6 +58,27 @@
                       admin_submission_request_assignment_path(@request),
                       method: :post,
                       class:  'btn btn-outline-secondary btn-sm' %>
+
+        <%# Here rather than inside the thread, and on every tab, because %>
+        <%# following is a fact about the request rather than about the %>
+        <%# conversation — and because a subscription you can only reach %>
+        <%# by replying is one nobody knows they have. Following without %>
+        <%# replying is the whole point: watch what happens next without %>
+        <%# saying anything. %>
+        <%# %>
+        <%# Not offered to the assignee: owning it is not a subscription %>
+        <%# you can decline, and releasing it is how you stop owning it. %>
+        <% if @request.following?(current_user) %>
+          <%= button_to 'Stop following',
+                        admin_submission_request_subscription_path(@request),
+                        method: :delete,
+                        class:  'btn btn-outline-secondary btn-sm' %>
+        <% else %>
+          <%= button_to 'Follow',
+                        admin_submission_request_subscription_path(@request),
+                        method: :post,
+                        class:  'btn btn-outline-secondary btn-sm' %>
+        <% end %>
       <% end %>
 
       <%# Gated on "would this succeed", not on whether issuance happens to %>
