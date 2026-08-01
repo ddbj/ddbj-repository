@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_01_000612) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_01_004757) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -272,6 +272,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_01_000612) do
   create_table "submission_messages", force: :cascade do |t|
     t.string "author_role", null: false
     t.text "body", null: false
+    t.jsonb "cc_user_ids", default: [], null: false
     t.datetime "created_at", null: false
     t.datetime "read_at"
     t.bigint "submission_request_id", null: false

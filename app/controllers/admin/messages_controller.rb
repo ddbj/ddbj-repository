@@ -26,11 +26,22 @@ module Admin
         return
       end
 
+      cc = cc_users(request)
+
       message = request.messages.create!(
         user:        current_user,
         author_role: :curator,
-        body:        body
+        body:        body,
+        cc_user_ids: cc.map(&:id)
       )
+
+      # Copied-in curators follow it from here, which is what makes the
+      # submitter's next reply reach them. Told now as well as followed:
+      # a request with nothing unanswered says nothing in a queue, and
+      # "look at this" is not something to learn about later.
+      cc.each { request.subscribe!(it) }
+
+      SubmissionMessageMailer.with(message:).copied_in.deliver_later if cc.any?
 
       # Answering is having dealt with what was asked, so it discharges
       # the thread for this curator — and follows it, including for one
@@ -45,7 +56,22 @@ module Admin
 
       SubmissionMessageMailer.with(message:).notify_submitter.deliver_later
 
-      redirect_to messages_admin_submission_request_path(request), notice: 'Message sent to submitter.'
+      notice = 'Message sent to submitter.'
+      notice += " #{cc.map(&:uid).to_sentence} copied in." if cc.any?
+
+      redirect_to messages_admin_submission_request_path(request), notice:
+    end
+
+    private
+
+    # Admins other than the sender, from what the form offered. Anything
+    # else in the params is dropped rather than refused: copying somebody
+    # in is a courtesy on top of the message, and it must not be able to
+    # stop the message being sent.
+    def cc_users(request)
+      ids = Array(params[:cc_user_ids]).map(&:to_i)
+
+      User.staff.where(id: ids).where.not(id: current_user.id).order(:uid).to_a
     end
   end
 end

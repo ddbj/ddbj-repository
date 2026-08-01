@@ -1,0 +1,11 @@
+<% app_url = Rails.application.config_for(:app).app_url! -%>
+<%= @message.user.uid %> copied you in on <%= @request.db.humanize %> request (<%= @request.submission&.source_id.presence || "##{@request.id}" %>), where they wrote to the submitter (<%= @request.user.uid %>):
+
+  <%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+
+You are now following this request, so the submitter's replies will reach your queue. Stop following from the request page if you would rather not.
+
+Open the thread in the admin UI:
+<%= File.join(app_url, 'admin', 'submission_requests', @request.id.to_s) %>
+
+— DDBJ Repository

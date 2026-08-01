@@ -34,6 +34,10 @@ class SubmissionMessage < ApplicationRecord
   scope :chronological, -> { order(:created_at, :id) }
   scope :unread,        -> { where(read_at: nil) }
 
+  # Curators copied in on this message. Subscribing them is what makes it
+  # do anything later; this is what makes the thread say it happened.
+  def cc_users = User.where(id: cc_user_ids).order(:uid)
+
   # Submitter messages nobody has answered — no curator has posted since.
   #
   # This is what "waiting on a curator" means, and it is deliberately

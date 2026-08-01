@@ -4,6 +4,8 @@ require 'application_system_test_case'
 # screen answers one question, and the summary bar stays put across all
 # of them.
 class WorkbenchSystemTest < ApplicationSystemTestCase
+  include ActiveJob::TestHelper
+
   setup do
     sign_in_as users(:bob)
 
@@ -137,6 +139,49 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
 
     assert_text 'Marked as read.'
     assert_equal 0, @req.unread_message_count_for(users(:bob))
+  end
+
+  # What a curator does in mail without thinking about it. Without it the
+  # only way to bring a colleague in is to tell them out of band, at which
+  # point the thread stops being the record of who was asked what.
+  test 'copying a colleague in tells them and starts them following' do
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
+
+    visit messages_admin_submission_request_path(@req)
+
+    fill_in 'submission_message[body]', with: 'Looping in dave.'
+    check 'dave'
+
+    assert_emails 2 do
+      click_button 'Send message'
+    end
+
+    assert_text 'dave copied in'
+
+    # The thread says who was asked. The subscription it created is
+    # invisible from here, so without this the record is incomplete.
+    assert_text 'copied in dave'
+
+    assert @req.reload.following?(users(:dave))
+  end
+
+  # Being copied in has to arrive as mail, not only as a subscription. A
+  # curator who has just replied leaves nothing unanswered, so the queue
+  # would say nothing about it until the submitter writes back — which
+  # may be never, and is not when they were asked to look.
+  test 'a colleague copied in is told now, not when the submitter next writes' do
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
+
+    visit messages_admin_submission_request_path(@req)
+    fill_in 'submission_message[body]', with: 'Have a look.'
+    check 'dave'
+
+    perform_enqueued_jobs { click_button 'Send message' }
+
+    copied = ActionMailer::Base.deliveries.find { it.subject.include?('copied you in') }
+
+    assert_not_nil copied
+    assert_includes Array(copied.to), users(:dave).email
   end
 
   # Following without saying anything: watch what happens next without
