@@ -148,10 +148,14 @@ class MyQueue
     # would accept it, but a value spliced into SQL reads the same as a
     # parameter spliced into SQL, and the reader has to know which — see
     # SubmissionRequest::NEEDS_SUBMITTER_ACTION for the same call.
+    # Only a subscribed row carries a marker worth honouring: a curator
+    # who stopped following has no reading position to respect, and the
+    # sections exclude them anyway.
     join = SubmissionMessage.sanitize_sql_array([<<~SQL.squish, user_id: user.id])
       LEFT JOIN submission_request_participants
         ON submission_request_participants.submission_request_id = submission_messages.submission_request_id
        AND submission_request_participants.user_id = :user_id
+       AND submission_request_participants.unsubscribed_at IS NULL
     SQL
 
     SubmissionMessage

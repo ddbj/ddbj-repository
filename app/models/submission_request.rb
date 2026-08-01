@@ -33,7 +33,7 @@ class SubmissionRequest < ApplicationRecord
   scope :unassigned,  -> { where(assignee_id: nil) }
 
   scope :involving, ->(user) {
-    where(id: SubmissionRequestParticipant.where(user_id: user.id).select(:submission_request_id))
+    where(id: SubmissionRequestParticipant.subscribed.where(user_id: user.id).select(:submission_request_id))
   }
 
   # Nobody owns it and nobody has answered. Shown to every curator
@@ -41,8 +41,12 @@ class SubmissionRequest < ApplicationRecord
   # notice — if the section is never empty, that is a staffing signal
   # rather than an individual's backlog.
   #
+  # Subscribed participations only: if everyone who touched it has since
+  # stopped following, nobody is watching it, and that is exactly what
+  # this section is for. Keying on the row's mere existence would leave
+  # such a request owned by nobody and visible to nobody.
   scope :unclaimed, -> {
-    unassigned.where.not(id: SubmissionRequestParticipant.select(:submission_request_id))
+    unassigned.where.not(id: SubmissionRequestParticipant.subscribed.select(:submission_request_id))
   }
 
   # What is on the submitter rather than on us: a file that failed
@@ -213,6 +217,29 @@ class SubmissionRequest < ApplicationRecord
   # never fail the action it hangs off: already-a-participant is a no-op
   # (ON CONFLICT DO NOTHING), and a submitter acting on their own request
   # is simply not a participant.
+  def following?(user)
+    return false unless user
+
+    participations.subscribed.exists?(user_id: user.id)
+  end
+
+  # Acting on a request follows it, which is why replying re-subscribes:
+  # a curator who steps back in has stepped back in. Marking a thread
+  # read is not that — it is the opposite — so it does not come through
+  # here.
+  def subscribe!(user)
+    participate!(user)
+    participations.where(user_id: user.id).update_all(unsubscribed_at: nil)
+  end
+
+  # Stops it surfacing in this curator's queue. The participation stays:
+  # they did work here, and that is a fact about the past rather than a
+  # preference about the future.
+  def unsubscribe!(user)
+    participate!(user)
+    participations.where(user_id: user.id).update_all(unsubscribed_at: Time.current)
+  end
+
   def participate!(user)
     return unless user&.admin?
 

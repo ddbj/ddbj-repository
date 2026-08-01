@@ -33,8 +33,9 @@ module Admin
       )
 
       # Answering is having dealt with what was asked, so it discharges
-      # the thread for this curator — and subscribes them, which is why
-      # there is no separate participate! call here any more.
+      # the thread for this curator — and follows it, including for one
+      # who had stopped: stepping back in is stepping back in.
+      request.subscribe!(current_user)
       request.mark_read_by!(current_user, through: params[:through_id])
 
       # Asking something reopens a request the submitter had put down.

@@ -1,4 +1,4 @@
-<%# locals: (request:, messages:, unread: 0) %>
+<%# locals: (request:, messages:, unread: 0, following: false) %>
 <%# Per-request curator ↔ submitter thread. Submitter posts via the web %>
 <%# UI; curator posts via the form at the bottom. Speakers are told apart %>
 <%# by side and colour rather than by a label the eye has to read. %>
@@ -13,9 +13,10 @@
   <%# thread read for every curator, so a colleague glancing at it took %>
   <%# the request out of the assignee's queue too. %>
   <p class="text-body-secondary small">
-    Every post emails the other party. This thread stays in your queue until you
-    reply or mark it read — for you alone; a colleague reading it does not clear
-    yours. Taking a request on subscribes you to it.
+    Every post emails the other party. An unanswered message stays in your queue
+    until you reply or mark it read — a colleague reading it does not clear
+    yours, though a colleague answering it does. Replying follows the request
+    from then on.
   </p>
 
   <%# Both controls carry the newest message on screen. A question that %>
@@ -23,14 +24,31 @@
   <%# that reply, and "Mark 2 as read" must not quietly mean three. %>
   <% newest = messages.last&.id %>
 
-  <% if unread.positive? %>
-    <p>
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <% if unread.positive? %>
       <%= button_to "Mark #{pluralize(unread, 'message')} as read",
                     read_admin_submission_request_messages_path(request, through_id: newest),
                     method: :post,
                     class:  'btn btn-outline-secondary btn-sm' %>
-    </p>
-  <% end %>
+    <% end %>
+
+    <%# Not offered to the assignee: owning a request is not a %>
+    <%# subscription you can decline, and releasing it is how you stop %>
+    <%# owning it. %>
+    <% unless request.assignee_id == current_user.id %>
+      <% if following %>
+        <%= button_to 'Stop following',
+                      admin_submission_request_subscription_path(request),
+                      method: :delete,
+                      class:  'btn btn-outline-secondary btn-sm' %>
+      <% else %>
+        <%= button_to 'Follow',
+                      admin_submission_request_subscription_path(request),
+                      method: :post,
+                      class:  'btn btn-outline-secondary btn-sm' %>
+      <% end %>
+    <% end %>
+  </div>
 
   <% if messages.any? %>
     <ul class="list-unstyled mb-4 d-flex flex-column gap-3">

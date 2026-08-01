@@ -139,6 +139,54 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_equal 0, @req.unread_message_count_for(users(:bob))
   end
 
+  # Acting on somebody else's request follows it from then on, which is
+  # usually right and occasionally not. A queue nobody can put things
+  # down in stops being read.
+  test 'a curator can stop following a request they were drawn into' do
+    @req.update_column(:assignee_id, users(:dave).id)
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
+    @req.subscribe!(users(:bob))
+
+    visit admin_root_path
+    within('[data-test-section="involved"]') { assert_text "##{@req.id}" }
+
+    visit messages_admin_submission_request_path(@req)
+    click_button 'Stop following'
+
+    assert_text 'No longer following'
+
+    visit admin_root_path
+    within('[data-test-section="involved"]') { assert_no_text "##{@req.id}" }
+
+    # The work itself is untouched: it is still somebody's, and the
+    # participation still records that this curator was here.
+    assert_includes @req.reload.participants, users(:bob)
+    assert_equal users(:dave), @req.assignee
+  end
+
+  # Owning it is not a subscription you can decline.
+  test 'the assignee is not offered a way to stop following' do
+    @req.update_column(:assignee_id, users(:bob).id)
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
+
+    visit messages_admin_submission_request_path(@req)
+
+    assert_no_button 'Stop following'
+  end
+
+  # Stepping back in is stepping back in.
+  test 'replying follows a request again' do
+    @req.update_column(:assignee_id, users(:dave).id)
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
+    @req.unsubscribe!(users(:bob))
+
+    visit messages_admin_submission_request_path(@req)
+    fill_in 'submission_message[body]', with: 'Taking a look.'
+    click_button 'Send message'
+
+    assert @req.reload.following?(users(:bob))
+  end
+
   # The whole point of the marker: one curator dealing with it does not
   # speak for the others.
   test 'a colleague marking it read does not clear this curator queue' do

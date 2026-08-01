@@ -69,6 +69,10 @@ Rails.application.routes.draw do
         post :read, on: :collection
       end
 
+      # Following is per curator, so it is a singular resource under the
+      # request rather than something with an id of its own.
+      resource :subscription, only: %i[create destroy]
+
       # Claiming hangs off the request, not the submission: a request that
       # has not been applied yet has no submission to address, and those
       # are exactly the ones nobody has claimed.

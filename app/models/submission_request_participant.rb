@@ -17,4 +17,9 @@
 class SubmissionRequestParticipant < ApplicationRecord
   belongs_to :submission_request
   belongs_to :user
+
+  # Following it. The row survives unsubscribing — it still records that
+  # this curator worked here — so everything that asks "whose queue does
+  # this belong in" asks this rather than asking whether a row exists.
+  scope :subscribed, -> { where(unsubscribed_at: nil) }
 end

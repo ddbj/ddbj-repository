@@ -115,6 +115,20 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     assert_equal 1, req.unread_message_count_for(users(:bob))
   end
 
+  # If everyone who touched it has stopped following, nobody is watching
+  # it — which is what Unclaimed is for. Keying on the row's existence
+  # would leave such a request owned by nobody and visible to nobody.
+  test 'a request nobody follows any more is unclaimed again' do
+    req = submission_requests(:bioproject)
+    req.subscribe!(users(:bob))
+
+    assert_not_includes SubmissionRequest.unclaimed, req
+
+    req.unsubscribe!(users(:bob))
+
+    assert_includes SubmissionRequest.unclaimed, req
+  end
+
   test 'unclaimed excludes anything assigned or participated in' do
     assigned    = submission_requests(:bioproject)
     involved    = submission_requests(:biosample)
