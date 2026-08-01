@@ -178,6 +178,39 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_selector 'input[type=file][data-direct-upload-url]', visible: :all
   end
 
+  # "Leave as-is" means the same as not touching the select, so it is only
+  # offered where there is nothing to preselect: a BioSample submission
+  # whose samples disagree on status. Assignee cannot disagree, and there
+  # the option sat directly above "— Unassigned —" — two dashed, neutral
+  # entries, one a no-op and the other a real change.
+  test 'leave as-is is offered only where there is no value to preselect' do
+    # Rows that agree, so the status field has something to preselect.
+    @req.submission.samples.update_all(status: Lifecycleable::STATUSES.fetch('curating'))
+
+    visit admin_submission_request_path(@req)
+
+    within '[data-test-curator-edit]' do
+      assert_no_select 'curation[status]', with_options: ['— Leave as-is —']
+
+      # Assignee never needs it: one column on the request, always a value
+      # to preselect — and the option sat directly above "— Unassigned —".
+      assert_no_select 'curation[assignee_id]', with_options: ['— Leave as-is —']
+      assert_select    'curation[assignee_id]', selected: '— Unassigned —'
+    end
+  end
+
+  # Where the samples disagree there is nothing to preselect, and leaving
+  # the field alone has to mean leaving the mixture alone.
+  test 'a submission whose rows disagree opens on leave as-is' do
+    assert_nil CurationState.new(@req).uniform_status, 'the fixture is mixed'
+
+    visit admin_submission_request_path(@req)
+
+    within '[data-test-curator-edit]' do
+      assert_select 'curation[status]', with_options: ['— Leave as-is —']
+    end
+  end
+
   # Copying somebody in adds them to the notifications from here on, and
   # that is all it does — this thread is the curator's conversation with
   # the submitter, not a way to put work to another curator. So there is

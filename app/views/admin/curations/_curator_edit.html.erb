@@ -6,11 +6,18 @@
   A BS submission's samples can disagree on STATUS. Where they do there is
   no value to preselect, so the field opens on "Leave as-is" and an
   untouched select genuinely leaves the mixture alone — picking a value is
-  how you flatten it. Assignee cannot disagree: it is one column on the
-  request, which is also why it is offered before Apply, when there are no
-  rows for a status to apply to.
+  how you flatten it. Where they agree there IS a value to preselect, and
+  a "leave as-is" beside it means the same as not touching the select, so
+  it is not offered.
+
+  Assignee cannot disagree: it is one column on the request, which is also
+  why it is offered before Apply, when there are no rows for a status to
+  apply to. It therefore always has a value to preselect and never needs
+  the option — which mattered more than being tidy, because "— Leave as-is
+  —" sat directly above "— Unassigned —": two dashed, neutral-looking
+  entries, one a no-op and the other a real change.
 %>
-<section class="card">
+<section class="card" data-test-curator-edit>
   <div class="card-body">
     <h2 class="h6 card-title">Curation</h2>
 
@@ -28,7 +35,8 @@
           <%= f.label :status, 'Status', class: 'form-label form-label-sm' %>
           <%= f.select :status,
                        Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
-                       {include_blank: '— Leave as-is —', selected: state.uniform_status},
+                       {include_blank: ('— Leave as-is —' if state.uniform_status.nil?),
+                        selected:      state.uniform_status},
                        class: 'form-select form-select-sm' %>
         </div>
       <% end %>
@@ -37,8 +45,7 @@
         <%= f.label :assignee_id, 'Assignee', class: 'form-label form-label-sm' %>
         <%= f.select :assignee_id,
                      [['— Unassigned —', CurationUpdate::UNASSIGNED]] + User.staff.order(:uid).pluck(:uid, :id),
-                     {include_blank: '— Leave as-is —',
-                      selected: state.request.assignee_id || CurationUpdate::UNASSIGNED},
+                     {selected: state.request.assignee_id || CurationUpdate::UNASSIGNED},
                      class: 'form-select form-select-sm' %>
       </div>
 
