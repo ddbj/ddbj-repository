@@ -64,7 +64,10 @@ Rails.application.routes.draw do
     # question (state / bulk edits / conversation / provenance) instead of
     # stacking every block on `show`.
     resources :submission_requests, only: %i[index show] do
-      resources :messages, only: %i[create]
+      resources :messages, only: %i[create] do
+        # Opening the thread does not discharge it; saying so does.
+        post :read, on: :collection
+      end
 
       # Claiming hangs off the request, not the submission: a request that
       # has not been applied yet has no submission to address, and those

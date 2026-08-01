@@ -120,20 +120,33 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_current_path admin_submission_request_path(request)
   end
 
-  # Opening the thread is what marks it read, so the request stops
-  # appearing in every curator's queue. Overview must not — the queue
-  # entry has to survive until somebody actually looks.
-  test 'reading the thread clears it from the queue, and glancing at Overview does not' do
-    message = @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
+  # Reading is not dealing with it — and it never was on anyone else's
+  # behalf. Opening the tab used to mark the thread read for EVERY
+  # curator, so a colleague glancing at it took the request out of the
+  # assignee's queue as well as their own.
+  test 'reading the thread leaves it in the queue until this curator says otherwise' do
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
 
     visit admin_submission_request_path(@req)
-
-    assert_nil message.reload.read_at
-
     click_link 'Messages'
 
     assert_text 'Please advise'
-    assert_not_nil message.reload.read_at
+    assert_equal 1, @req.unread_message_count_for(users(:bob)), 'looking is not knowing'
+
+    click_button 'Mark 1 message as read'
+
+    assert_text 'Marked as read.'
+    assert_equal 0, @req.unread_message_count_for(users(:bob))
+  end
+
+  # The whole point of the marker: one curator dealing with it does not
+  # speak for the others.
+  test 'a colleague marking it read does not clear this curator queue' do
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'Please advise')
+    @req.mark_read_by!(users(:dave))
+
+    assert_equal 0, @req.unread_message_count_for(users(:dave))
+    assert_equal 1, @req.unread_message_count_for(users(:bob))
   end
   # The Record tab is where a curator edits the parts of the record this
   # UI exposes — and only the parts that exist for that database.

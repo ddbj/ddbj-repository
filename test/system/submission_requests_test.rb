@@ -292,6 +292,36 @@ class MyQueueSystemTest < ApplicationSystemTestCase
     within('[data-test-section="unclaimed"]') { assert_no_text "##{@req.id}" }
   end
 
+  # One curator dealing with a thread used to empty it for the whole
+  # team, including whoever was assigned to it. The queue asks "is there
+  # something here for me", and that was the one fact nobody recorded.
+  test 'a colleague reading the thread does not empty my queue' do
+    @req.update_column(:assignee_id, users(:bob).id)
+    @req.participate!(users(:bob))
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'still waiting')
+
+    @req.mark_read_by!(users(:dave))
+
+    visit admin_root_path
+
+    within('[data-test-section="assigned"]') { assert_text "##{@req.id}" }
+  end
+
+  test 'replying is this curator saying they have dealt with it' do
+    @req.update_column(:assignee_id, users(:bob).id)
+    @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'still waiting')
+
+    visit admin_root_path
+    within('[data-test-section="assigned"]') { assert_text "##{@req.id}" }
+
+    visit messages_admin_submission_request_path(@req)
+    fill_in 'submission_message[body]', with: 'Looking into it.'
+    click_button 'Send'
+
+    visit admin_root_path
+    within('[data-test-section="assigned"]') { assert_no_text "##{@req.id}" }
+  end
+
   # Replying is the other half of the model: it keeps the request in your
   # queue without taking it away from whoever owns it.
   test 'a request someone else owns that I replied on shows as involved' do

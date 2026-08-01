@@ -1,3 +1,4 @@
+<%# locals: (request:, messages:, unread: 0) %>
 <%# Per-request curator ↔ submitter thread. Submitter posts via the web %>
 <%# UI; curator posts via the form at the bottom. Speakers are told apart %>
 <%# by side and colour rather than by a label the eye has to read. %>
@@ -7,10 +8,29 @@
     <span class="text-body-secondary small">Submitter: <code><%= request.user.uid %></code></span>
   </div>
 
+  <%# Reading is not dealing with it, and it is not dealing with it on %>
+  <%# anybody else's behalf either. Opening this tab used to mark the %>
+  <%# thread read for every curator, so a colleague glancing at it took %>
+  <%# the request out of the assignee's queue too. %>
   <p class="text-body-secondary small">
-    Every post emails the other party. Opening this tab marks the submitter's
-    messages as read for all curators.
+    Every post emails the other party. This thread stays in your queue until you
+    reply or mark it read — for you alone; a colleague reading it does not clear
+    yours. Taking a request on subscribes you to it.
   </p>
+
+  <%# Both controls carry the newest message on screen. A question that %>
+  <%# lands while a reply is being typed has not been read by sending %>
+  <%# that reply, and "Mark 2 as read" must not quietly mean three. %>
+  <% newest = messages.last&.id %>
+
+  <% if unread.positive? %>
+    <p>
+      <%= button_to "Mark #{pluralize(unread, 'message')} as read",
+                    read_admin_submission_request_messages_path(request, through_id: newest),
+                    method: :post,
+                    class:  'btn btn-outline-secondary btn-sm' %>
+    </p>
+  <% end %>
 
   <% if messages.any? %>
     <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
@@ -39,6 +59,8 @@
                 method: :post,
                 scope:  :submission_message,
                 local:  true do |f| %>
+    <%= hidden_field_tag :through_id, newest %>
+
     <div class="mb-3">
       <%= f.label :body, 'New message to submitter', class: 'form-label' %>
       <%= f.text_area :body, class: 'form-control textarea-autogrow', required: true %>

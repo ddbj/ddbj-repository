@@ -73,13 +73,19 @@ class CurationState
       }
   end
 
-  def initialize(request, row_summary: nil)
+  # `viewer` is the curator the screen is being drawn for, where there is
+  # one. It decides only what counts as unread — a colleague having read
+  # the thread is no longer the same fact as this curator having read it.
+  # Lists rendered for nobody in particular pass none and get the
+  # collective reading.
+  def initialize(request, row_summary: nil, viewer: nil)
     @request     = request
     @submission  = request.submission
     @row_summary = row_summary
+    @viewer      = viewer
   end
 
-  attr_reader :request, :submission
+  attr_reader :request, :submission, :viewer
 
   def db = request.db
 
@@ -205,8 +211,12 @@ class CurationState
 
   # --- next action ---------------------------------------------------
 
+  # Per viewer where there is one. Without a viewer this is "anything a
+  # submitter has said", which is what a list rendered for nobody in
+  # particular can honestly say.
   def unread_message_count
-    @unread_message_count ||= request.messages.submitter_role.unread.count
+    @unread_message_count ||=
+      viewer ? request.unread_message_count_for(viewer) : request.messages.submitter_role.unread.count
   end
 
   # The single most useful thing a curator could do right now, or nil when

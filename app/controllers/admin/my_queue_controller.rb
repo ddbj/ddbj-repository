@@ -51,12 +51,15 @@ module Admin
       }
     end
 
+    # Per curator, like the sections themselves: a colleague reading the
+    # thread must not empty this curator's badge.
     def unread_counts(requests)
       return {} if requests.empty?
 
       SubmissionMessage
-        .submitter_role.unread
+        .submitter_role
         .where(submission_request_id: requests.map(&:id))
+        .where(id: MyQueue.unread_message_ids(current_user))
         .group(:submission_request_id)
         .count
     end

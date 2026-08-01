@@ -61,14 +61,13 @@ module Admin
       @matching_count         = @samples_pagy.count
     end
 
+    # Opening the tab records nothing. It used to mark the thread read for
+    # EVERY curator, so a colleague glancing at it took the request out of
+    # the assignee's queue as well as their own — and "somebody looked" is
+    # not "I know about this". Replying and Mark as read are what discharge
+    # it now, each for the curator who did it.
     def messages
       @messages = @request.messages.includes(:user).to_a
-
-      # Mark unread submitter messages as read by virtue of any curator
-      # opening the thread — keeps the "返信待ち" indicator semantically
-      # "any curator has looked". Stamped here rather than on Overview so
-      # the Needs action bucket only clears once somebody actually read it.
-      @request.messages.submitter_role.unread.update_all(read_at: Time.current)
     end
 
     def record
@@ -80,7 +79,7 @@ module Admin
     def load_workbench
       @request    = SubmissionRequest.includes(:user).find(params[:id])
       @submission = @request.submission
-      @state      = CurationState.new(@request)
+      @state      = CurationState.new(@request, viewer: current_user)
     end
 
     # The submission-based filters (source_id / accession / status)

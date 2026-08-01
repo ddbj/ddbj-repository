@@ -7,11 +7,13 @@
 # `author_role` distinguishes who wrote it, NOT who can see it: both
 # curators and the request's owner can read every message.
 #
-# `read_at` is stamped when the OTHER party first observes the message
-# (a curator-authored message gets stamped when the submitter opens the
-# thread; a submitter-authored message gets stamped on any curator's
-# admin show page view). Used to drive the "unread" badge on the
-# submitter's home request list.
+# `read_at` carries ONE direction now: a curator-authored message is
+# stamped when the submitter deals with it — by replying, or by saying
+# there is nothing to reply to. It is never stamped on a submitter's
+# message, because "read" in that direction is not a fact about the
+# message at all: it is a fact about each curator, and lives on their
+# subscription (SubmissionRequestParticipant#last_read_at). A colleague
+# reading a thread is not this curator having read it.
 class SubmissionMessage < ApplicationRecord
   belongs_to :submission_request
   belongs_to :user
@@ -31,4 +33,24 @@ class SubmissionMessage < ApplicationRecord
 
   scope :chronological, -> { order(:created_at, :id) }
   scope :unread,        -> { where(read_at: nil) }
+
+  # Submitter messages nobody has answered — no curator has posted since.
+  #
+  # This is what "waiting on a curator" means, and it is deliberately
+  # collective: a colleague ANSWERING is the work being done, so it
+  # settles the thread for everyone. A colleague merely reading is not,
+  # which is why reading writes nothing at all now. Each curator can
+  # narrow this further with their own marker (see
+  # SubmissionRequestParticipant#last_read_at) without speaking for the
+  # rest.
+  scope :unanswered, -> {
+    submitter_role.where(<<~SQL.squish)
+      NOT EXISTS (
+        SELECT 1 FROM submission_messages later
+        WHERE later.submission_request_id = submission_messages.submission_request_id
+          AND later.author_role = 'curator'
+          AND later.created_at > submission_messages.created_at
+      )
+    SQL
+  }
 end

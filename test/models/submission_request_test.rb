@@ -66,6 +66,55 @@ class SubmissionRequestTest < ActiveSupport::TestCase
 
   # Nobody owns it and nobody has been near it — the one section every
   # curator sees identically.
+  # Who a colleague's action speaks for. Answering is the work, so it
+  # settles the thread for everybody; reading is not, and putting it
+  # aside speaks only for the curator who did it.
+  test 'a colleague answering settles it for everyone' do
+    req = submission_requests(:bioproject)
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'a question')
+
+    assert_equal 1, req.unread_message_count_for(users(:bob))
+    assert_equal 1, req.unread_message_count_for(users(:dave))
+
+    req.messages.create!(user: users(:dave), author_role: 'curator', body: 'answered')
+
+    assert_equal 0, req.unread_message_count_for(users(:bob)), 'the work is done, for everyone'
+  end
+
+  test 'a colleague putting it aside speaks only for themselves' do
+    req = submission_requests(:bioproject)
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'a question')
+
+    req.mark_read_by!(users(:dave))
+
+    assert_equal 0, req.unread_message_count_for(users(:dave))
+    assert_equal 1, req.unread_message_count_for(users(:bob)), 'reading is not answering'
+  end
+
+  # A NULL marker means "put nothing aside", not "read nothing" — so
+  # taking on a request whose conversation was settled long ago does not
+  # report its whole history as waiting.
+  test 'a settled thread is not unread to a curator who has never touched it' do
+    req = submission_requests(:bioproject)
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'asked')
+    req.messages.create!(user: users(:dave),  author_role: 'curator',   body: 'answered')
+
+    assert_nil   req.participations.find_by(user_id: users(:bob).id)
+    assert_equal 0, req.unread_message_count_for(users(:bob))
+  end
+
+  # A question that lands while a reply is being typed has not been read
+  # by sending that reply.
+  test 'putting aside acknowledges only what was in front of them' do
+    req  = submission_requests(:bioproject)
+    seen = req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'seen')
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'arrived since')
+
+    req.mark_read_by!(users(:bob), through: seen.id)
+
+    assert_equal 1, req.unread_message_count_for(users(:bob))
+  end
+
   test 'unclaimed excludes anything assigned or participated in' do
     assigned    = submission_requests(:bioproject)
     involved    = submission_requests(:biosample)

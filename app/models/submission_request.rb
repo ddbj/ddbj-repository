@@ -36,10 +36,11 @@ class SubmissionRequest < ApplicationRecord
     where(id: SubmissionRequestParticipant.where(user_id: user.id).select(:submission_request_id))
   }
 
-  # Nobody owns it and nobody has been near it. Shown to every curator
+  # Nobody owns it and nobody has answered. Shown to every curator
   # identically, because a request in this state is not anyone's to
   # notice — if the section is never empty, that is a staffing signal
   # rather than an individual's backlog.
+  #
   scope :unclaimed, -> {
     unassigned.where.not(id: SubmissionRequestParticipant.select(:submission_request_id))
   }
@@ -164,6 +165,48 @@ class SubmissionRequest < ApplicationRecord
     raise ArgumentError, 'Assignee must be an admin user.' unless user.nil? || user.admin?
 
     update_columns(assignee_id: user&.id, updated_at: Time.current)
+
+    # Deliberately no subscription and no marker. Claiming says who owns
+    # this; it is not a claim to have read anything, and it must not
+    # discharge the very question that prompted the claim. The assignee
+    # reaches their queue through `assigned_to` regardless, and an absent
+    # marker already means "nothing put aside".
+  end
+
+  # What is waiting on THIS curator: unanswered, and not already put
+  # aside by them.
+  #
+  # No marker means "nothing put aside", not "nothing read" — the
+  # baseline is the thread's own state, so taking on a request whose
+  # conversation was settled long ago does not report its whole history
+  # as unread. A colleague ANSWERING settles it for everyone, because
+  # that is the work; a colleague reading settles nothing, which is the
+  # whole point of the marker.
+  def unread_message_count_for(user)
+    return 0 unless user
+
+    marker = participations.find_by(user_id: user.id)&.last_read_at
+    scope  = messages.unanswered
+    scope  = scope.where('submission_messages.created_at > ?', marker) if marker
+
+    scope.count
+  end
+
+  # "I have seen this thread, up to here."
+  #
+  # `through` is the newest message the curator had in front of them. A
+  # question that lands while a reply is being typed has not been read by
+  # sending that reply, and stamping `now` would discharge it unseen —
+  # the same lost reminder this whole model exists to stop, in a narrower
+  # window. Absent, it means the thread as it stands.
+  def mark_read_by!(user, through: nil)
+    return unless user&.admin?
+
+    at = through ? messages.where(id: through).pick(:created_at) : Time.current
+    return unless at
+
+    participate!(user)
+    participations.where(user_id: user.id).update_all(last_read_at: at)
   end
 
   # Called as a side effect of a curator doing something here, so it must

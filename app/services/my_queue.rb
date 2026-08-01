@@ -41,11 +41,12 @@ class MyQueue
     # before an accession nobody is waiting on.
     #
     # Both can be zero. The scope and the per-row counts are separate
-    # queries, so another curator opening the thread in between — which
-    # marks it read — leaves a row that qualified for neither reason by
-    # the time it renders. Saying nothing is right; guessing "issue" and
-    # rendering a button for a submission that may not exist is a 500 on
-    # the landing page.
+    # queries, so anything that discharges the request in between — this
+    # curator marking the thread read in another tab, an accession being
+    # issued — leaves a row that qualified for neither reason by the time
+    # it renders. Saying nothing is right; guessing "issue" and rendering
+    # a button for a submission that may not exist is a 500 on the
+    # landing page.
     def action
       return :reply if unread.positive?
       return :issue if issuable.positive? && !issuing
@@ -85,7 +86,7 @@ class MyQueue
         key:       :assigned,
         title:     'Assigned to me',
         criterion: 'You took these on — assignment only changes when someone changes it.',
-        scope:     needing_curator.assigned_to(user)
+        scope:     needing_curator(user).assigned_to(user)
       ),
       # IS DISTINCT FROM, not `!=`: SQL inequality is NULL for an
       # unassigned row, so `where.not(assignee_id: id)` silently drops
@@ -96,7 +97,7 @@ class MyQueue
         key:       :involved,
         title:     "I'm involved",
         criterion: 'You replied or edited here — someone else holds the assignment.',
-        scope:     needing_curator.involving(user).where('submission_requests.assignee_id IS DISTINCT FROM ?', user.id)
+        scope:     needing_curator(user).involving(user).where('submission_requests.assignee_id IS DISTINCT FROM ?', user.id)
       ),
       Section.new(
         key:       :unclaimed,
@@ -112,15 +113,52 @@ class MyQueue
   # Requests with something a curator can actually do. Kept as two plain
   # `where`s so they can be OR-ed (`.or` refuses structurally different
   # relations) and so the nav badge stays one aggregate query.
-  def self.needing_curator
+  #
+  # "Something to do" is an unanswered submitter message — one no curator
+  # has posted after. A colleague ANSWERING settles it for everyone,
+  # because that is the work being done; a colleague merely READING used
+  # to settle it too, and no longer does anything at all.
+  #
+  # Given a curator it narrows further to what they have not put aside
+  # themselves, so one of them dismissing a thread does not speak for the
+  # others.
+  def self.needing_curator(user = nil)
     base = SubmissionRequest.all
 
-    base.where(id: SubmissionMessage.submitter_role.unread.select(:submission_request_id))
+    base.where(id: unread_request_ids(user))
         .or(base.where(<<~SQL.squish, sids: ISSUABLE_STATUS_IDS.call))
           EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id AND projects.accession IS NULL AND projects.status IN (:sids)) OR
           EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id AND samples.accession  IS NULL AND samples.status  IN (:sids))
         SQL
   end
 
-  def needing_curator = self.class.needing_curator
+  # Requests carrying a submitter message this curator has not got to.
+  # A subscription with no marker has read nothing, which is why the join
+  # is LEFT — a request they follow but have never opened is unread in
+  # full.
+  def self.unread_request_ids(user) = unread_messages(user).select(:submission_request_id)
+
+  # The rows behind it, for the per-row badge — same rule, asked once.
+  def self.unread_message_ids(user) = unread_messages(user).select(:id)
+
+  def self.unread_messages(user)
+    return SubmissionMessage.unanswered unless user
+
+    # Bound rather than interpolated. `to_i` would be safe and Brakeman
+    # would accept it, but a value spliced into SQL reads the same as a
+    # parameter spliced into SQL, and the reader has to know which — see
+    # SubmissionRequest::NEEDS_SUBMITTER_ACTION for the same call.
+    join = SubmissionMessage.sanitize_sql_array([<<~SQL.squish, user_id: user.id])
+      LEFT JOIN submission_request_participants
+        ON submission_request_participants.submission_request_id = submission_messages.submission_request_id
+       AND submission_request_participants.user_id = :user_id
+    SQL
+
+    SubmissionMessage
+      .unanswered
+      .joins(join)
+      .where('submission_request_participants.last_read_at IS NULL OR submission_messages.created_at > submission_request_participants.last_read_at')
+  end
+
+  def needing_curator(for_user = nil) = self.class.needing_curator(for_user)
 end

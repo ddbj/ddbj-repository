@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_31_223127) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_31_233245) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -285,6 +285,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_31_223127) do
 
   create_table "submission_request_participants", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "last_read_at"
     t.bigint "submission_request_id", null: false
     t.bigint "user_id", null: false
     t.index ["submission_request_id", "user_id"], name: "index_participants_on_request_and_user", unique: true

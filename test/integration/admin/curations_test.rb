@@ -272,7 +272,10 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
   end
 
   # Claiming is the other axis: it says who owns this, and saying so is
-  # not the same as having worked on it.
+  # not the same as having worked on it. It is also not a claim to have
+  # READ anything — an assignee reaches their queue through the
+  # assignment itself, and subscribing them here would discharge the very
+  # question that prompted the claim.
   test 'Assign to me does not add a participant' do
     post admin_submission_request_assignment_path(@req)
 

@@ -7,7 +7,13 @@
 # why it can be written from anywhere without anyone having to think
 # about the consequences.
 #
-# Append-only, like CurationEvent. Rows are never edited or removed.
+# It is also the subscription, in the GitHub sense: a row means "keep
+# telling me about this one". `last_read_at` is how far that curator has
+# got, so a colleague dealing with the thread no longer takes it out of
+# their queue too. Nil means they have never marked anything read here.
+#
+# Rows are created but not removed. `last_read_at` is the one thing that
+# moves.
 class SubmissionRequestParticipant < ApplicationRecord
   belongs_to :submission_request
   belongs_to :user
