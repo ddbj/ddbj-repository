@@ -17,7 +17,10 @@ class SubmissionMessageMailerTest < ActionMailer::TestCase
     assert_match 'Please add organism details.',  mail.text_part.body.to_s
   end
 
-  test 'notify_curators recipients are deduplicated unique curators who have posted' do
+  # Everyone following it, once each — posting is one of the ways to
+  # start following, not the definition of who is told.
+  test 'notify_curators recipients are the unique curators following it' do
+    @request.subscribe!(users(:bob))
     @request.messages.create!(user: users(:bob), author_role: :curator, body: 'A')
     @request.messages.create!(user: users(:bob), author_role: :curator, body: 'B') # same curator
     submitter_msg = @request.messages.create!(user: @submitter, author_role: :submitter, body: 'reply')
@@ -30,6 +33,7 @@ class SubmissionMessageMailerTest < ActionMailer::TestCase
   test 'notify_curators drops a curator with no known address' do
     users(:bob).update!(email: nil)
 
+    @request.subscribe!(users(:bob))
     @request.messages.create!(user: users(:bob), author_role: :curator, body: 'A')
     submitter_msg = @request.messages.create!(user: @submitter, author_role: :submitter, body: 'reply')
 
@@ -61,8 +65,8 @@ class SubmissionMessageMailerTest < ActionMailer::TestCase
   # thread would go on being told about every reply to it.
   test 'a curator who stopped following is not mailed about replies' do
     request = submission_requests(:bioproject)
-    request.messages.create!(user: users(:bob),  author_role: :curator,   body: 'a question')
-    request.messages.create!(user: users(:dave), author_role: :curator,   body: 'and another')
+    request.subscribe!(users(:bob))
+    request.subscribe!(users(:dave))
     reply = request.messages.create!(user: users(:alice), author_role: :submitter, body: 'answered')
 
     request.unsubscribe!(users(:bob))
@@ -71,5 +75,33 @@ class SubmissionMessageMailerTest < ActionMailer::TestCase
 
     assert_not_includes Array(mail.to), users(:bob).email
     assert_includes     Array(mail.to), users(:dave).email
+  end
+
+  # Copied in without having posted. They are subscribed, so the request
+  # reaches their queue — and the mail that copied them in says replies
+  # will too, which was not true while the recipient list was built from
+  # who had posted.
+  test 'a curator copied in is mailed the reply, though they never posted' do
+    @request.subscribe!(users(:dave))
+    reply = @request.messages.create!(user: @submitter, author_role: :submitter, body: 'answered')
+
+    mail = SubmissionMessageMailer.with(message: reply).notify_curators
+
+    assert_includes Array(mail.to), users(:dave).email
+    assert_empty @request.messages.curator_role, 'they never posted'
+  end
+
+  # Body is optional now, so an attachment-only message would otherwise
+  # arrive as a heading followed by nothing at all — no quote, no mention
+  # that anything is attached.
+  test 'an attachment-only message names the file it is about' do
+    message = @request.messages.new(user: @curator, author_role: :curator, body: '')
+    message.files.attach(io: StringIO.new('x'), filename: 'samples.tsv', content_type: 'text/plain')
+    message.save!
+
+    mail = SubmissionMessageMailer.with(message:).notify_submitter
+
+    assert_match 'samples.tsv', mail.text_part.body.to_s
+    assert_match 'samples.tsv', mail.html_part.body.to_s
   end
 end

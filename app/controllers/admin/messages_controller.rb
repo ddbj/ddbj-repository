@@ -20,7 +20,7 @@ module Admin
     def create
       request = SubmissionRequest.find(params[:submission_request_id])
       body    = params.dig(:submission_message, :body).to_s.strip
-      files   = Array(params[:files]).compact_blank
+      files   = signed_ids(params[:files])
 
       # A message that is only an attachment is a real thing to send —
       # "here is the corrected file" needs no prose — so blank is only
@@ -30,7 +30,7 @@ module Admin
         return
       end
 
-      cc = cc_users(request)
+      cc = cc_users
 
       message = request.messages.create!(
         user:        current_user,
@@ -73,7 +73,17 @@ module Admin
     # else in the params is dropped rather than refused: copying somebody
     # in is a courtesy on top of the message, and it must not be able to
     # stop the message being sent.
-    def cc_users(request)
+    # Signed ids only. A malformed shape — `files[a]=b` arrives as
+    # Parameters rather than an Array — would otherwise reach the model
+    # write and come back as a 500, and an id that fails verification is
+    # a bad request rather than a fault.
+    def signed_ids(raw)
+      return [] unless raw.is_a?(Array)
+
+      raw.compact_blank.filter_map { it if it.is_a?(String) }
+    end
+
+    def cc_users
       ids = Array(params[:cc_user_ids]).map(&:to_i)
 
       User.staff.where(id: ids).where.not(id: current_user.id).order(:uid).to_a

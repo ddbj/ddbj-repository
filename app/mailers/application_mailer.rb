@@ -6,9 +6,17 @@ class ApplicationMailer < ActionMailer::Base
   # Mirror submission-mss: non-production mail subjects get a visible
   # environment prefix so a curator / submitter inbox doesn't confuse a
   # staging / dev delivery with the production one.
+  #
+  # `message`, not `mail`. The latter is the builder: calling it here on
+  # an action that returned early — because there was no address to send
+  # to — materialises a real message with no recipient, which then fails
+  # for good in the job queue. `message` is whatever was actually built,
+  # and is subjectless when nothing was.
   after_action do
-    mail.subject.prepend '[Staging] ' if Rails.env.staging?
-    mail.subject.prepend '[Dev] '     if Rails.env.dev?
+    prefix = '[Staging] ' if Rails.env.staging?
+    prefix = '[Dev] '     if Rails.env.dev?
+
+    message.subject&.prepend(prefix) if prefix
   end
 
   private

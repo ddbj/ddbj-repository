@@ -2,7 +2,10 @@ Dear submitter,
 
 A DDBJ curator (<%= @curator.uid %>) has posted a message on your <%= @request.db.humanize %> request (<%= @request.submission&.source_id.presence || "##{@request.id}" %>):
 
+<% if @message.body.present? -%>
   <%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+<% end -%>
+<%= render 'files', message: @message -%>
 
 Open the thread on the web UI to reply:
 <%= WebApp.url_for("/requests/#{@request.id}") %>

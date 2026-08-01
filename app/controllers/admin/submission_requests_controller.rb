@@ -67,7 +67,10 @@ module Admin
     # not "I know about this". Replying and Mark as read are what discharge
     # it now, each for the curator who did it.
     def messages
-      @messages = @request.messages.includes(:user).to_a
+      # The thread renders each message's attachments as well as its
+      # author, and `:user` does not cover them — one pair of queries per
+      # message otherwise.
+      @messages = @request.messages.includes(:user, files_attachments: :blob).to_a
     end
 
     def record

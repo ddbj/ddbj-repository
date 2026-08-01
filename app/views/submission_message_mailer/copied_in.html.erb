@@ -8,9 +8,13 @@
   where they wrote to the submitter (<%= @request.user.uid %>):
 </p>
 
-<blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
-  <%= simple_format @message.body %>
-</blockquote>
+<% if @message.body.present? %>
+  <blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
+    <%= simple_format @message.body %>
+  </blockquote>
+<% end %>
+
+<%= render 'files', message: @message %>
 
 <p>
   You are now following this request, so the submitter's replies will reach your

@@ -37,7 +37,15 @@ export default class SubmissionMessages extends Component<Signature> {
   @tracked messages: Message[] = [];
   @tracked draft = '';
   @tracked files: File[] = [];
+
+  // The element itself, so it can be emptied after a send. Clearing
+  // `files` alone leaves the control still displaying the name of what
+  // was just sent, and the next message then goes out with nothing
+  // attached while the sender is looking at the filename they believe is
+  // on it.
+  fileInput?: HTMLInputElement;
   @tracked posting = false;
+  @tracked error: string | null = null;
 
   constructor(owner: unknown, args: Signature['Args']) {
     // @ts-expect-error -- Glimmer Component owner typing
@@ -96,7 +104,8 @@ export default class SubmissionMessages extends Component<Signature> {
 
   @action
   selectFiles(e: Event) {
-    this.files = Array.from((e.target as HTMLInputElement).files ?? []);
+    this.fileInput = e.target as HTMLInputElement;
+    this.files = Array.from(this.fileInput.files ?? []);
   }
 
   // Straight to storage, the same path the submission upload itself
@@ -122,6 +131,7 @@ export default class SubmissionMessages extends Component<Signature> {
     if ((!body && this.files.length === 0) || this.posting) return;
 
     this.posting = true;
+    this.error = null;
 
     try {
       const files = await Promise.all(this.files.map((file) => this.upload(file)));
@@ -146,7 +156,15 @@ export default class SubmissionMessages extends Component<Signature> {
       this.draft = '';
       this.files = [];
 
+      if (this.fileInput) this.fileInput.value = '';
+
       await this.settle();
+    } catch {
+      // Storage going away is not hypothetical here — a dev SeaweedFS
+      // crash-looped unnoticed for a fortnight — and the only signal a
+      // silent failure gives is that the button came back and nothing
+      // happened.
+      this.error = 'Could not send. The file may not have uploaded — check your connection and try again.';
     } finally {
       this.posting = false;
     }
@@ -224,7 +242,6 @@ export default class SubmissionMessages extends Component<Signature> {
               id={{id}}
               class="form-control font-monospace small textarea-autogrow"
               value={{this.draft}}
-              required
               {{on "input" this.updateDraft}}
             ></textarea>
           {{/let}}

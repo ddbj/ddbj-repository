@@ -8,7 +8,7 @@ class MessagesController < ApplicationController
   # curator waiting on that answer saw nothing either, because their queue
   # tracks unread SUBMITTER messages. The conversation just went quiet.
   def index
-    @messages = @request.messages.includes(:user).to_a
+    @messages = @request.messages.includes(:user, files_attachments: :blob).to_a
   end
 
   def create
@@ -18,7 +18,7 @@ class MessagesController < ApplicationController
       user:        current_user,
       author_role: :submitter,
       body:        attrs[:body].to_s.strip,
-      files:       Array(attrs[:files]).compact_blank
+      files:       signed_ids(attrs[:files])
     )
 
     # Answering is dealing with what was asked, so it discharges the
@@ -52,6 +52,14 @@ class MessagesController < ApplicationController
   end
 
   private
+
+  # Signed ids only — see the admin controller for why the shape is
+  # checked rather than trusted.
+  def signed_ids(raw)
+    return [] unless raw.is_a?(Array)
+
+    raw.compact_blank.filter_map { it if it.is_a?(String) }
+  end
 
   # Cheap UPDATE — at most touches the un-stamped tail of the thread.
   #

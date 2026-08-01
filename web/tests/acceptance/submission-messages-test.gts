@@ -122,6 +122,36 @@ module('Acceptance | submission messages', function (hooks) {
     assert.dom('[data-test-messages] a[download]').hasAttribute('href', 'http://example.com/samples.tsv');
   });
 
+  // "Here is the corrected file" needs no prose, and the textarea's
+  // `required` made that path unreachable: the browser blocked the form
+  // before any of the component's own logic ran.
+  test('a submitter can send a file with no message', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+
+      http.post('/submission_requests/{submission_request_id}/messages', ({ response }) =>
+        response(201).json({
+          id: 9,
+          body: '',
+          author_role: 'submitter',
+          author_uid: 'alice',
+          created_at: now,
+          read_at: null,
+          files: [{ filename: 'samples.tsv', byte_size: 12, url: 'http://example.com/samples.tsv' }],
+        }),
+      ),
+    );
+
+    await visit(`/requests/${request.id}`);
+
+    assert.dom('textarea').doesNotHaveAttribute('required', 'an attachment is a message on its own');
+
+    // The form must not refuse to submit with an empty body.
+    assert.true(document.querySelector('form')?.checkValidity(), 'the browser would not block this');
+  });
+
   test('renders the thread and posts a reply', async function (assert) {
     const initial: Message[] = [
       {

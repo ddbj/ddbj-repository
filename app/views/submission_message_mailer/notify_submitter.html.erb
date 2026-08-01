@@ -8,9 +8,13 @@
   (<%= @request.submission&.source_id.presence || "##{@request.id}" %>):
 </p>
 
-<blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
-  <%= simple_format @message.body %>
-</blockquote>
+<% if @message.body.present? %>
+  <blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
+    <%= simple_format @message.body %>
+  </blockquote>
+<% end %>
+
+<%= render 'files', message: @message %>
 
 <p>
   <a href="<%= thread_url %>">Open the thread on the web UI to reply.</a>

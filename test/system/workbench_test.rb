@@ -156,6 +156,18 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_link 'samples.tsv'
   end
 
+  # Everyone following is told, not everyone who has posted. A curator
+  # copied in has not posted, and the mail that copied them in promises
+  # replies will reach them.
+  test 'a copied-in colleague is mailed the submitter reply too' do
+    @req.subscribe!(users(:dave))
+
+    reply = @req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'answered')
+    mail  = SubmissionMessageMailer.with(message: reply).notify_curators
+
+    assert_includes Array(mail.to), users(:dave).email
+  end
+
   # No size validation, deliberately — but "no limit" is only true
   # because the file never travels through this form. `direct_upload`
   # is what makes that so, and losing it would put every attachment
