@@ -209,14 +209,25 @@ class SubmissionRequest < ApplicationRecord
     at = through ? messages.where(id: through).pick(:created_at) : Time.current
     return unless at
 
-    participate!(user)
-    participations.where(user_id: user.id).update_all(last_read_at: at)
+    # Creates the row it needs to write on, but NOT as a subscription:
+    # acknowledging a thread is the opposite of asking to hear more about
+    # it, and enrolling a curator who glanced at an unclaimed request
+    # would put it in their queue from then on. An existing row keeps
+    # whatever it already said — ON CONFLICT DO NOTHING — so this never
+    # unsubscribes anybody either.
+    SubmissionRequestParticipant.insert_all(
+      [{submission_request_id: id, user_id: user.id, created_at: Time.current, unsubscribed_at: Time.current}],
+      unique_by: %i[submission_request_id user_id]
+    )
+
+    # Never backwards. A stale tab, rendered when more was unread, would
+    # otherwise reset the position to an older message and resurrect
+    # everything already dealt with.
+    participations.where(user_id: user.id)
+                  .where('last_read_at IS NULL OR last_read_at < ?', at)
+                  .update_all(last_read_at: at)
   end
 
-  # Called as a side effect of a curator doing something here, so it must
-  # never fail the action it hangs off: already-a-participant is a no-op
-  # (ON CONFLICT DO NOTHING), and a submitter acting on their own request
-  # is simply not a participant.
   def following?(user)
     return false unless user
 
@@ -240,6 +251,10 @@ class SubmissionRequest < ApplicationRecord
     participations.where(user_id: user.id).update_all(unsubscribed_at: Time.current)
   end
 
+  # Called as a side effect of a curator doing something here, so it must
+  # never fail the action it hangs off: already-a-participant is a no-op
+  # (ON CONFLICT DO NOTHING), and a submitter acting on their own request
+  # is simply not a participant.
   def participate!(user)
     return unless user&.admin?
 

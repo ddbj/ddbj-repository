@@ -211,12 +211,17 @@ class CurationState
 
   # --- next action ---------------------------------------------------
 
-  # Per viewer where there is one. Without a viewer this is "anything a
-  # submitter has said", which is what a list rendered for nobody in
-  # particular can honestly say.
+  # Per viewer where there is one; otherwise what is unanswered, which is
+  # a fact about the thread rather than about a person.
+  #
+  # It used to fall back to `submitter_role.unread`, and nothing stamps
+  # `read_at` on a submitter's message any more — so that branch counted
+  # every message ever written and could never reach zero. Unreachable
+  # today, but the next list screen built without a viewer would have
+  # inherited a badge that never clears.
   def unread_message_count
     @unread_message_count ||=
-      viewer ? request.unread_message_count_for(viewer) : request.messages.submitter_role.unread.count
+      viewer ? request.unread_message_count_for(viewer) : request.messages.unanswered.count
   end
 
   # The single most useful thing a curator could do right now, or nil when

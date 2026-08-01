@@ -115,6 +115,46 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     assert_equal 1, req.unread_message_count_for(users(:bob))
   end
 
+  # Acknowledging a thread is the opposite of asking to hear more about
+  # it. Enrolling a curator who glanced at an unclaimed request would put
+  # it in their queue from then on, with Stop following the only way out.
+  test 'marking a thread read does not start following it' do
+    req = submission_requests(:bioproject)
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'asked')
+
+    req.mark_read_by!(users(:bob))
+
+    assert_not req.following?(users(:bob))
+    assert_not_includes SubmissionRequest.involving(users(:bob)), req
+  end
+
+  test 'marking read again does not unsubscribe somebody who was following' do
+    req = submission_requests(:bioproject)
+    req.subscribe!(users(:bob))
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'asked')
+
+    req.mark_read_by!(users(:bob))
+
+    assert req.following?(users(:bob))
+  end
+
+  # A stale tab, rendered when more was unread, would otherwise reset the
+  # position to an older message and resurrect what was already dealt
+  # with.
+  test 'the marker never moves backwards' do
+    req   = submission_requests(:bioproject)
+    older = req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'first')
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'second')
+
+    req.mark_read_by!(users(:bob))
+
+    assert_equal 0, req.unread_message_count_for(users(:bob))
+
+    req.mark_read_by!(users(:bob), through: older.id)
+
+    assert_equal 0, req.unread_message_count_for(users(:bob)), 'a stale press must not resurrect'
+  end
+
   # If everyone who touched it has stopped following, nobody is watching
   # it — which is what Unclaimed is for. Keying on the row's existence
   # would leave such a request owned by nobody and visible to nobody.

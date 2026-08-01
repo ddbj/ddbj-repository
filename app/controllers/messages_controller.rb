@@ -27,6 +27,12 @@ class MessagesController < ApplicationController
     # just in a narrower window.
     mark_read(through: @message.id)
 
+    # Writing in a thread you had put down is picking it back up. Left
+    # closed, the request would carry on saying "You closed this" over a
+    # live conversation, and stay on the finished side of the list while
+    # the submitter waits for an answer.
+    @request.reopen_if_closed!
+
     SubmissionMessageMailer.with(message: @message).notify_curators.deliver_later
 
     render :show, status: :created

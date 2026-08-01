@@ -122,8 +122,13 @@ class MyQueue
   # Given a curator it narrows further to what they have not put aside
   # themselves, so one of them dismissing a thread does not speak for the
   # others.
+  #
+  # A request the submitter has closed is nobody's work: they have said
+  # they are not taking it further, and a curator asking anything reopens
+  # it (see Admin::MessagesController). Without this the queue would go on
+  # demanding a reply to an attempt that had been abandoned.
   def self.needing_curator(user = nil)
-    base = SubmissionRequest.all
+    base = SubmissionRequest.where(closed_at: nil)
 
     base.where(id: unread_request_ids(user))
         .or(base.where(<<~SQL.squish, sids: ISSUABLE_STATUS_IDS.call))
@@ -148,14 +153,17 @@ class MyQueue
     # would accept it, but a value spliced into SQL reads the same as a
     # parameter spliced into SQL, and the reader has to know which — see
     # SubmissionRequest::NEEDS_SUBMITTER_ACTION for the same call.
-    # Only a subscribed row carries a marker worth honouring: a curator
-    # who stopped following has no reading position to respect, and the
-    # sections exclude them anyway.
+    # Not filtered on `unsubscribed_at`. Where a curator got to and
+    # whether they want to hear about it are separate facts: the marker
+    # says what they have seen, the subscription decides whether the
+    # request reaches them at all (see `involving`). Filtering here as
+    # well made the two readers of the same marker disagree — the
+    # Messages tab said nothing was unread while the queue went on
+    # counting it.
     join = SubmissionMessage.sanitize_sql_array([<<~SQL.squish, user_id: user.id])
       LEFT JOIN submission_request_participants
         ON submission_request_participants.submission_request_id = submission_messages.submission_request_id
        AND submission_request_participants.user_id = :user_id
-       AND submission_request_participants.unsubscribed_at IS NULL
     SQL
 
     SubmissionMessage

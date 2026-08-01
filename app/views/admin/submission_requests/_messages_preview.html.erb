@@ -1,7 +1,7 @@
 <%# locals: (request:, state:) %>
 <%# The last thing said, so the curator can tell from Overview whether the %>
-<%# thread needs opening. Reading happens on the Messages tab — that is %>
-<%# also where "unread" is cleared. %>
+<%# thread needs opening. Opening it clears nothing — replying or Mark as %>
+<%# read does, and only for the curator who did it. %>
 <% last = request.messages.includes(:user).last %>
 
 <section class="card">

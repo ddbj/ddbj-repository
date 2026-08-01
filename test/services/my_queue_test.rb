@@ -86,4 +86,33 @@ class MyQueueTest < ActiveSupport::TestCase
 
     assert_equal 1, MyQueue.new(users(:bob)).count, 'assigned + involved must not double-count'
   end
+
+  # A request the submitter has closed is nobody's work: they have said
+  # they are not taking it further. Left in, the queue would go on
+  # demanding a reply to an abandoned attempt.
+  test 'a request the submitter closed is not curator work' do
+    req = submission_requests(:bioproject)
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'asked')
+
+    assert_includes MyQueue.needing_curator(users(:bob)), req
+
+    req.close!
+
+    assert_not_includes MyQueue.needing_curator(users(:bob)), req
+  end
+
+  # Where a curator got to and whether they want to hear about it are
+  # separate facts. Filtering the marker on the subscription too made the
+  # two readers of it disagree: the Messages tab said nothing was unread
+  # while the queue went on counting it.
+  test 'a read marker still counts after unsubscribing' do
+    req = submission_requests(:bioproject)
+    req.messages.create!(user: users(:alice), author_role: 'submitter', body: 'asked')
+
+    req.unsubscribe!(users(:bob))
+    req.mark_read_by!(users(:bob))
+
+    assert_equal 0, req.unread_message_count_for(users(:bob))
+    assert_not_includes MyQueue.unread_request_ids(users(:bob)).map(&:submission_request_id), req.id
+  end
 end

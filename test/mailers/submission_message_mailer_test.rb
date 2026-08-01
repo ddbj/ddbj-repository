@@ -55,4 +55,21 @@ class SubmissionMessageMailerTest < ActionMailer::TestCase
     # — deliver_later is a no-op for it, but assert the To is empty.
     assert_empty mail.to.to_a
   end
+
+  # Silencing the queue but not the mail would leave the escape hatch
+  # doing almost nothing: the curator who asked to be left out of a
+  # thread would go on being told about every reply to it.
+  test 'a curator who stopped following is not mailed about replies' do
+    request = submission_requests(:bioproject)
+    request.messages.create!(user: users(:bob),  author_role: :curator,   body: 'a question')
+    request.messages.create!(user: users(:dave), author_role: :curator,   body: 'and another')
+    reply = request.messages.create!(user: users(:alice), author_role: :submitter, body: 'answered')
+
+    request.unsubscribe!(users(:bob))
+
+    mail = SubmissionMessageMailer.with(message: reply).notify_curators
+
+    assert_not_includes Array(mail.to), users(:bob).email
+    assert_includes     Array(mail.to), users(:dave).email
+  end
 end

@@ -44,6 +44,13 @@ class SubmissionMessageMailer < ApplicationMailer
     # `reorder(nil)` strips the chronological scope's ORDER BY —
     # Postgres requires DISTINCT columns to appear in ORDER BY.
     user_ids = @request.messages.curator_role.reorder(nil).distinct.pluck(:user_id)
+
+    # Minus anyone who has stopped following. Silencing the queue but not
+    # the mail would leave the escape hatch doing almost nothing: the
+    # curator who asked to be left out of a thread would go on being told
+    # about every reply to it.
+    user_ids -= @request.participations.where.not(unsubscribed_at: nil).pluck(:user_id)
+
     User.where(id: user_ids).filter_map { recipient_for(it) }
   end
 end
