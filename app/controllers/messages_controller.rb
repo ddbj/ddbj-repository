@@ -12,10 +12,13 @@ class MessagesController < ApplicationController
   end
 
   def create
+    attrs = params.expect(submission_message: [:body, {files: []}])
+
     @message = @request.messages.create!(
       user:        current_user,
       author_role: :submitter,
-      body:        params.require(:submission_message).fetch(:body).to_s.strip
+      body:        attrs[:body].to_s.strip,
+      files:       Array(attrs[:files]).compact_blank
     )
 
     # Answering is dealing with what was asked, so it discharges the

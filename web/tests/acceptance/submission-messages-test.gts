@@ -66,6 +66,7 @@ module('Acceptance | submission messages', function (hooks) {
         author_uid: 'alice',
         created_at: now,
         read_at: null,
+        files: [],
       },
     ];
 
@@ -93,6 +94,34 @@ module('Acceptance | submission messages', function (hooks) {
     assert.dom('[data-test-mark-read]').doesNotExist();
   });
 
+  // "Here is the corrected file" is most of what this conversation is
+  // for, and it was the one thing the thread could not carry.
+  test('an attachment is listed on the message that brought it', async function (assert) {
+    const withFile: Message[] = [
+      {
+        id: 1,
+        body: 'Corrected sheet attached.',
+        author_role: 'curator',
+        author_uid: 'alice',
+        created_at: now,
+        read_at: null,
+        files: [{ filename: 'samples.tsv', byte_size: 2048, url: 'http://example.com/samples.tsv' }],
+      },
+    ];
+
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json(withFile)),
+    );
+
+    await visit(`/requests/${request.id}`);
+
+    assert.dom('[data-test-messages]').includesText('samples.tsv');
+    assert.dom('[data-test-messages]').includesText('2.0 KB', 'the size answers "which file is this"');
+    assert.dom('[data-test-messages] a[download]').hasAttribute('href', 'http://example.com/samples.tsv');
+  });
+
   test('renders the thread and posts a reply', async function (assert) {
     const initial: Message[] = [
       {
@@ -102,6 +131,7 @@ module('Acceptance | submission messages', function (hooks) {
         author_uid: 'alice',
         created_at: now,
         read_at: null,
+        files: [],
       },
     ];
 
@@ -112,6 +142,7 @@ module('Acceptance | submission messages', function (hooks) {
       author_uid: 'bob',
       created_at: now,
       read_at: null,
+      files: [],
     };
 
     worker.use(

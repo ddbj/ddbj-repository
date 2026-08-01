@@ -18,6 +18,13 @@ class SubmissionMessage < ApplicationRecord
   belongs_to :submission_request
   belongs_to :user
 
+  # No size or type validation, deliberately. The files this conversation
+  # is about are submission files, which are large by nature, and a limit
+  # invented before anyone has attached anything would be a guess that
+  # only shows up as a refusal. Both sides upload directly to storage, so
+  # nothing here is bounded by a request body — see config/importmap.rb.
+  has_many_attached :files
+
   AUTHOR_ROLES = %w[curator submitter].freeze
 
   # `suffix: :role` → `Model.curator_role` scope, `instance.curator_role?`
@@ -29,7 +36,10 @@ class SubmissionMessage < ApplicationRecord
   # which the string `author_role` column would silently mangle.
   enum :author_role, AUTHOR_ROLES.index_with(&:itself), suffix: :role, validate: true
 
-  validates :body, presence: true
+  # A message that is only an attachment is a real thing to send — "here
+  # is the corrected file" needs no prose — but an empty one with nothing
+  # at all is a misfire, and both sides refuse it before they get here.
+  validates :body, presence: true, unless: -> { files.attached? }
 
   scope :chronological, -> { order(:created_at, :id) }
   scope :unread,        -> { where(read_at: nil) }

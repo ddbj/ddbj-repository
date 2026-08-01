@@ -141,6 +141,31 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_equal 0, @req.unread_message_count_for(users(:bob))
   end
 
+  # "Here is the corrected file" is most of what this conversation is
+  # for, and it was the one thing the thread could not carry. Sent with
+  # no prose, because that is a real message.
+  test 'a message can be nothing but a file' do
+    file = @req.messages.new
+    file.files.attach(io: StringIO.new("sample_name\torganism\n"), filename: 'samples.tsv',
+                      content_type: 'text/tab-separated-values')
+    file.assign_attributes(user: users(:bob), author_role: 'curator', body: '')
+    file.save!
+
+    visit messages_admin_submission_request_path(@req)
+
+    assert_link 'samples.tsv'
+  end
+
+  # No size validation, deliberately — but "no limit" is only true
+  # because the file never travels through this form. `direct_upload`
+  # is what makes that so, and losing it would put every attachment
+  # behind an upstream body limit that is not ours to raise.
+  test 'the attachment field uploads straight to storage' do
+    visit messages_admin_submission_request_path(@req)
+
+    assert_selector 'input[type=file][data-direct-upload-url]', visible: :all
+  end
+
   # What a curator does in mail without thinking about it. Without it the
   # only way to bring a colleague in is to tell them out of band, at which
   # point the thread stops being the record of who was asked what.

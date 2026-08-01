@@ -20,9 +20,13 @@ module Admin
     def create
       request = SubmissionRequest.find(params[:submission_request_id])
       body    = params.dig(:submission_message, :body).to_s.strip
+      files   = Array(params[:files]).compact_blank
 
-      if body.blank?
-        redirect_to messages_admin_submission_request_path(request), alert: 'Message body cannot be blank.'
+      # A message that is only an attachment is a real thing to send —
+      # "here is the corrected file" needs no prose — so blank is only
+      # refused when there is nothing at all.
+      if body.blank? && files.empty?
+        redirect_to messages_admin_submission_request_path(request), alert: 'Write something or attach a file.'
         return
       end
 
@@ -32,7 +36,8 @@ module Admin
         user:        current_user,
         author_role: :curator,
         body:        body,
-        cc_user_ids: cc.map(&:id)
+        cc_user_ids: cc.map(&:id),
+        files:       files
       )
 
       # Copied-in curators follow it from here, which is what makes the

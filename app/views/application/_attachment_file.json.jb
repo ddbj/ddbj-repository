@@ -1,0 +1,12 @@
+# locals: (file:)
+#
+# An attached file among several, as against the single `has_one_attached`
+# the request and submission carry — same shape plus the size, which is
+# what tells a reader whether it is the corrected spreadsheet or the whole
+# submission again.
+
+{
+  filename:  file.filename.to_s,
+  byte_size: file.byte_size,
+  url:       rails_blob_url(file)
+}

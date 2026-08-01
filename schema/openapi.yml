@@ -822,6 +822,17 @@ paths:
                     body:
                       type: string
 
+                    files:
+                      description: |
+                        Signed ids from ActiveStorage direct upload. The file goes
+                        to storage from the browser, so nothing here is bounded by
+                        this request — the files this conversation is about are
+                        submission files, which are large by nature.
+                      type: array
+
+                      items:
+                        type: string
+
       responses:
         '201':
           description: Returns the newly-created message.
@@ -1409,6 +1420,29 @@ components:
           type: string
           format: uri
 
+    AttachedFile:
+      description: |
+        One file attached to a message. Uploaded directly to storage, so no
+        size limit is imposed here — the files this conversation is about are
+        submission files, which are large by nature.
+      type: object
+      additionalProperties: false
+
+      required:
+        - filename
+        - byte_size
+        - url
+
+      properties:
+        filename:
+          type: string
+
+        byte_size:
+          type: number
+
+        url:
+          type: string
+
     Message:
       type: object
       additionalProperties: false
@@ -1420,6 +1454,7 @@ components:
         - author_uid
         - created_at
         - read_at
+        - files
 
       properties:
         id:
@@ -1446,8 +1481,13 @@ components:
           type:
             - string
             - 'null'
-
           format: date-time
+
+        files:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/AttachedFile'
 
     SubmissionOperationStatus:
       type: string

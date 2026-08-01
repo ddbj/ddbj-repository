@@ -871,6 +871,13 @@ export interface paths {
                     "application/json": {
                         submission_message: {
                             body: string;
+                            /**
+                             * @description Signed ids from ActiveStorage direct upload. The file goes
+                             *     to storage from the browser, so nothing here is bounded by
+                             *     this request — the files this conversation is about are
+                             *     submission files, which are large by nature.
+                             */
+                            files?: string[];
                         };
                     };
                 };
@@ -1118,6 +1125,16 @@ export interface components {
             /** Format: uri */
             url: string;
         };
+        /**
+         * @description One file attached to a message. Uploaded directly to storage, so no
+         *     size limit is imposed here — the files this conversation is about are
+         *     submission files, which are large by nature.
+         */
+        AttachedFile: {
+            filename: string;
+            byte_size: number;
+            url: string;
+        };
         Message: {
             id: number;
             body: string;
@@ -1128,6 +1145,7 @@ export interface components {
             created_at: string;
             /** Format: date-time */
             read_at: string | null;
+            files: components["schemas"]["AttachedFile"][];
         };
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";

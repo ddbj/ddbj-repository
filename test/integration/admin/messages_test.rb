@@ -32,7 +32,7 @@ class AdminMessagesTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to messages_admin_submission_request_path(@submission_request)
-    assert_match(/cannot be blank/, flash[:alert])
+    assert_match(/Write something or attach a file/, flash[:alert])
   end
 
   test 'POST requires admin auth' do
