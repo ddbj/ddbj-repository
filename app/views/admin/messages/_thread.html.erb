@@ -1,4 +1,4 @@
-<%# locals: (request:, messages:, unread: 0, colleagues: []) %>
+<%# locals: (request:, messages:, unread: 0, colleagues: [], followers: []) %>
 <%# Per-request curator ↔ submitter thread. Submitter posts via the web %>
 <%# UI; curator posts via the form at the bottom. Speakers are told apart %>
 <%# by side and colour rather than by a label the eye has to read. %>
@@ -107,17 +107,25 @@
 
         <div>
           <% colleagues.each do |colleague| %>
+            <% already = followers.include?(colleague) %>
+
+            <%# Anyone already following is shown ticked and fixed. They %>
+            <%# are told about this message either way, so leaving them %>
+            <%# blank made the list read as "choose your recipients each %>
+            <%# time" — which would be work, and would be wrong. %>
             <div class="form-check form-check-inline">
-              <%= check_box_tag 'cc_user_ids[]', colleague.id, false,
-                                id: "cc_#{colleague.id}", class: 'form-check-input' %>
-              <%= label_tag "cc_#{colleague.id}", colleague.uid, class: 'form-check-label' %>
+              <%= check_box_tag 'cc_user_ids[]', colleague.id, already,
+                                id: "cc_#{colleague.id}", class: 'form-check-input',
+                                disabled: already %>
+              <%= label_tag "cc_#{colleague.id}", colleague.uid,
+                            class: "form-check-label#{' text-body-secondary' if already}" %>
             </div>
           <% end %>
         </div>
 
         <p class="text-body-secondary small mb-0 mt-1">
-          They are emailed a copy and start following the request, so the submitter's
-          replies reach their queue too.
+          Everyone following this request is emailed a copy already — greyed above.
+          Ticking somebody else emails them too and starts them following.
         </p>
       </div>
     <% end %>

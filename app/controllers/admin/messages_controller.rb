@@ -48,6 +48,13 @@ module Admin
 
       SubmissionMessageMailer.with(message:).copied_in.deliver_later if cc.any?
 
+      # And everyone already following, who would otherwise learn nothing:
+      # answering settles the thread, so it leaves their queue at the same
+      # moment it stops needing anyone.
+      if request.followers_to_notify(message).any?
+        SubmissionMessageMailer.with(message:).followed_activity.deliver_later
+      end
+
       # Answering is having dealt with what was asked, so it discharges
       # the thread for this curator — and follows it, including for one
       # who had stopped: stepping back in is stepping back in.

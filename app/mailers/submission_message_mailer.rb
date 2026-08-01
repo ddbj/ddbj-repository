@@ -35,6 +35,28 @@ class SubmissionMessageMailer < ApplicationMailer
     )
   end
 
+  # Something happened on a request you follow. Curator-authored
+  # messages used to reach nobody but the submitter, so a curator
+  # following a request learned nothing when a colleague answered on it —
+  # and since answering settles the thread, it left their queue at the
+  # same moment, making that the one event they could never find out
+  # about.
+  #
+  # Excludes the author, and anyone being copied in on this very message:
+  # they get the more direct `copied_in` instead.
+  def followed_activity
+    @message = params[:message]
+    @request = @message.submission_request
+
+    recipients = @request.followers_to_notify(@message).filter_map { recipient_for(it) }
+    return if recipients.empty?
+
+    mail(
+      to:      recipients,
+      subject: "[DDBJ Repository] #{@message.user.uid} replied to the submitter on ##{@request.id}"
+    )
+  end
+
   # Copied in by a colleague. A separate mail from the submitter's,
   # because the audience and the ask are different: the submitter is
   # being answered, these curators are being shown something.

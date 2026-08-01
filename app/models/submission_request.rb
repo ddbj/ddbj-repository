@@ -235,6 +235,16 @@ class SubmissionRequest < ApplicationRecord
                   .update_all(last_read_at: at)
   end
 
+  # Who hears about a message on this request, apart from whoever wrote
+  # it and anyone being copied in on it — they get a more direct mail.
+  # Asked by both the mailer and the caller that decides whether there is
+  # anything to enqueue, so the two cannot drift.
+  def followers_to_notify(message)
+    told = [message.user_id, *message.cc_user_ids]
+
+    followers.reject { told.include?(it.id) }
+  end
+
   def following?(user)
     return false unless user
 

@@ -178,6 +178,35 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_selector 'input[type=file][data-direct-upload-url]', visible: :all
   end
 
+  # Anyone already following is told about this message anyway, so
+  # leaving them unticked made the list read as "choose your recipients
+  # each time" — which would be work, and would be wrong.
+  test 'a colleague already following is shown as already covered' do
+    @req.subscribe!(users(:dave))
+
+    visit messages_admin_submission_request_path(@req)
+
+    assert_selector "input[type=checkbox][value='#{users(:dave).id}'][checked][disabled]", visible: :all
+  end
+
+  # And the claim has to be true. A curator's message used to reach
+  # nobody but the submitter, so a colleague following the request learned
+  # nothing when it was answered — and since answering settles the thread,
+  # it left their queue at the same moment.
+  test 'a colleague following is mailed when somebody else answers' do
+    @req.subscribe!(users(:dave))
+
+    visit messages_admin_submission_request_path(@req)
+    fill_in 'submission_message[body]', with: 'Answering this one.'
+
+    perform_enqueued_jobs { click_button 'Send message' }
+
+    told = ActionMailer::Base.deliveries.find { it.subject.include?('replied to the submitter') }
+
+    assert_not_nil told
+    assert_includes Array(told.to), users(:dave).email
+  end
+
   # What a curator does in mail without thinking about it. Without it the
   # only way to bring a colleague in is to tell them out of band, at which
   # point the thread stops being the record of who was asked what.

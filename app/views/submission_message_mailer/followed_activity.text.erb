@@ -1,0 +1,14 @@
+<% app_url = Rails.application.config_for(:app).app_url! -%>
+<%= @message.user.uid %> replied to the submitter (<%= @request.user.uid %>) on <%= @request.db.humanize %> request (<%= @request.submission&.source_id.presence || "##{@request.id}" %>), which you are following:
+
+<% if @message.body.present? -%>
+  <%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+<% end -%>
+<%= render 'files', message: @message -%>
+
+Nothing is being asked of you — this is what happened on a request you follow. Stop following from the request page if you would rather not hear about it.
+
+Open the thread in the admin UI:
+<%= File.join(app_url, 'admin', 'submission_requests', @request.id.to_s) %>
+
+— DDBJ Repository
