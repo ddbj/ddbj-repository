@@ -60,10 +60,10 @@
               </ul>
             <% end %>
 
-            <%# Who was brought in, on the message that brought them. The %>
-            <%# subscription it created is invisible from here, and a %>
-            <%# thread that does not say who was asked is not the record %>
-            <%# it is supposed to be. %>
+            <%# Who started following here, on the message that brought %>
+            <%# them in. The subscription itself is invisible from the %>
+            <%# thread, so without this there is no sign of when somebody %>
+            <%# joined the conversation. %>
             <% if m.cc_user_ids.any? %>
               <p class="small text-body-secondary mb-0 mt-2">
                 copied in <%= m.cc_users.map(&:uid).to_sentence %>
@@ -109,32 +109,26 @@
           <% colleagues.each do |colleague| %>
             <% already = followers.include?(colleague) %>
 
-            <%# A follower is marked, not disabled. Being told and being %>
-            <%# ASKED are different things: ticking one writes "copied in %>
-            <%# dave" into the thread and sends them a direct request, %>
-            <%# which is the whole reason this control exists. Locking %>
-            <%# them out left the only way to say it in the prose, while %>
-            <%# the mail they got said "nothing is being asked of you". %>
-            <%# %>
-            <%# The line below is what stops the list reading as a chore: %>
-            <%# nobody has to be ticked for a follower to hear about it. %>
+            <%# Copying somebody in adds them to the notifications from %>
+            <%# here on — that is all it does. This thread is the %>
+            <%# curator's conversation with the submitter, not a way to %>
+            <%# put work to another curator, so there is nothing a tick %>
+            <%# could mean for somebody already following. Shown ticked %>
+            <%# and fixed rather than blank, which would read as a list %>
+            <%# you have to fill in on every message. %>
             <div class="form-check form-check-inline">
-              <%= check_box_tag 'cc_user_ids[]', colleague.id, false,
-                                id: "cc_#{colleague.id}", class: 'form-check-input' %>
-              <%= label_tag "cc_#{colleague.id}", class: 'form-check-label' do %>
-                <%= colleague.uid %>
-                <% if already %>
-                  <span class="text-body-secondary">· following</span>
-                <% end %>
-              <% end %>
+              <%= check_box_tag 'cc_user_ids[]', colleague.id, already,
+                                id: "cc_#{colleague.id}", class: 'form-check-input',
+                                disabled: already %>
+              <%= label_tag "cc_#{colleague.id}", colleague.uid,
+                            class: "form-check-label#{' text-body-secondary' if already}" %>
             </div>
           <% end %>
         </div>
 
         <p class="text-body-secondary small mb-0 mt-1">
-          Anyone following this request is emailed a copy already — nothing to tick for
-          that. Tick somebody to ask them directly: it says so in the thread, and their
-          copy says you asked.
+          Anyone already following is emailed a copy — greyed above, nothing to do.
+          Ticking somebody else starts notifying them of this thread from here on.
         </p>
       </div>
     <% end %>

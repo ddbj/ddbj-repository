@@ -40,10 +40,11 @@ module Admin
         files:       files
       )
 
-      # Copied-in curators follow it from here, which is what makes the
-      # submitter's next reply reach them. Told now as well as followed:
-      # a request with nothing unanswered says nothing in a queue, and
-      # "look at this" is not something to learn about later.
+      # Copied-in curators follow it from here on, which is the whole of
+      # what copying somebody in does. Told now as well as followed: a
+      # request with nothing unanswered says nothing in a queue, so
+      # without a mail they would learn of it whenever the submitter next
+      # happened to write, which may be never.
       cc.each { request.subscribe!(it) }
 
       SubmissionMessageMailer.with(message:).copied_in.deliver_later if cc.any?
