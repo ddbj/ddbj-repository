@@ -40,6 +40,17 @@ class SubmissionsTest < ActionDispatch::IntegrationTest
     assert_not_includes ids,          submissions(:bioproject).id
   end
 
+  # The same rule as the request index, and for the same reason: a db
+  # the server does not know used to widen the query to everything.
+  test 'index refuses a db it does not know' do
+    with_exceptions_app do
+      get submissions_path(db: 'nonesuch')
+    end
+
+    assert_response :bad_request
+    assert_match(/nonesuch/, response.parsed_body['error'])
+  end
+
   test 'show' do
     get submission_path(id: @submission.id)
 

@@ -33,6 +33,45 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_not_includes ids, submission_requests(:bioproject).id
   end
 
+  # A value outside the enum is a client asking for something that cannot
+  # exist. Intersecting and dropping the filter answered that with the
+  # whole table: a reconciliation pass reading `?status[]=applied` after a
+  # rename would have walked every request in the database believing each
+  # one was applied.
+  #
+  # Refused, not dropped, and not raised either — the crafted value must
+  # not reach the enum coercion. Not `assert_conform_schema`: the request
+  # is deliberately off-contract, since the schema declares the enum
+  # these values are outside of, so the assertion would fail on the way
+  # in and never reach the answer.
+  test 'index refuses a status it does not know rather than returning everything' do
+    with_exceptions_app do
+      get submission_requests_path(status: %w[applied not_a_status])
+    end
+
+    assert_response :bad_request
+    assert_match(/not_a_status/, response.parsed_body['error'])
+  end
+
+  test 'index refuses a db it does not know' do
+    with_exceptions_app do
+      get submission_requests_path(db: %w[nonesuch])
+    end
+
+    assert_response :bad_request
+    assert_match(/nonesuch/, response.parsed_body['error'])
+  end
+
+  # The client omits the parameter rather than sending every value; a
+  # blank one arrives from a form that submitted an empty field, and is
+  # read as the same thing rather than as a value nothing matches.
+  test 'a blank filter constrains nothing' do
+    get submission_requests_path(db: [''])
+
+    assert_response :success
+    assert_equal SubmissionRequest.count, response.parsed_body.size
+  end
+
   test 'index filters by multi-select ?status[]=' do
     submission_requests(:bioproject).update_column(:status, SubmissionRequest.statuses.fetch('applied'))
 
@@ -75,16 +114,6 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     ids = response.parsed_body.pluck('id')
     assert_includes     ids, submission_requests(:st26).id
     assert_not_includes ids, submission_requests(:bioproject).id
-  end
-
-  test 'index ignores unknown facet values instead of raising on the enum' do
-    # Deliberately out-of-schema input (a crafted direct call) — assert only
-    # that the controller drops the values rather than 500-ing on the enum
-    # coercion; the response won't conform to the Db/status enums.
-    get submission_requests_path(db: %w[bogus], status: %w[nope])
-
-    assert_response :ok
-    assert_includes response.parsed_body.pluck('id'), submission_requests(:st26).id
   end
 
   test 'index includes db on each row' do

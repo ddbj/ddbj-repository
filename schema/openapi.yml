@@ -224,6 +224,9 @@ paths:
                 items:
                   $ref: '#/components/schemas/SubmissionRequestSummary'
 
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -635,6 +638,9 @@ paths:
 
                 items:
                   $ref: '#/components/schemas/SubmissionSummary'
+
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
         '401':
           $ref: '#/components/responses/Unauthorized'

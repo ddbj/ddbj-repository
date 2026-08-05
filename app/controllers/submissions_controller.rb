@@ -1,7 +1,8 @@
 class SubmissionsController < ApplicationController
+  include EnumFilterable
+
   def index
-    scope = current_user.submissions
-    scope = scope.where(db: params[:db]) if params[:db].present?
+    scope = filter_by_enum(current_user.submissions, :db, params[:db], Submission.dbs.keys)
 
     pagy, @submissions = pagy(scope.order(id: :desc))
 

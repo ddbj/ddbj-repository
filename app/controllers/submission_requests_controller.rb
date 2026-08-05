@@ -1,6 +1,7 @@
 class SubmissionRequestsController < ApplicationController
   include SourceIdFilterable
   include AccessionFilterable
+  include EnumFilterable
 
   # The submitter's list, organised around "where is this now".
   #
@@ -67,16 +68,14 @@ class SubmissionRequestsController < ApplicationController
 
   # Multi-select list filters (db / status). The web client omits the
   # param entirely when every box (or none) is checked, so a present
-  # param is always a proper subset. Unknown values are dropped so a
-  # crafted param can't raise on the enum coercion.
+  # param is always a proper subset — see EnumFilterable for what a value
+  # outside the set gets.
   def filter_by_db(scope, raw)
-    values = Array(raw).map(&:to_s) & SubmissionRequest.dbs.keys
-    values.empty? ? scope : scope.where(db: values)
+    filter_by_enum(scope, :db, raw, SubmissionRequest.dbs.keys)
   end
 
   def filter_by_status(scope, raw)
-    values = Array(raw).map(&:to_s) & SubmissionRequest.statuses.keys
-    values.empty? ? scope : scope.where(status: values)
+    filter_by_enum(scope, :status, raw, SubmissionRequest.statuses.keys)
   end
 
   # Default to the live half: it is the one with anything to do in it.
