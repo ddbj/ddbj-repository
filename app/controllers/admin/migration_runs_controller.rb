@@ -69,15 +69,17 @@ module Admin
                   notice: "Enqueued #{job_class.name} for migration run ##{run.id}."
     end
 
-    # Every failed row, as text — the list to work through offline or
-    # paste into a ticket. Only the row failures: the run-level notices
-    # are two lines on the screen already, and the whole log is one
-    # <details> away.
+    # Every row that did not import, as text — the list to work through
+    # offline or paste into a ticket. Entries in full, continuation lines
+    # included: a Postgres message keeps its DETAIL on the next line, and
+    # that is usually the half worth reading. The run-level notices are
+    # on the screen already, and the whole log is one <details> away.
     def failures
-      run  = MigrationRun.find(params[:id])
-      body = run.error_log.to_s.lines.select { MigrationRun::ROW_FAILURE.match?(it.strip) }.join
+      run = MigrationRun.find(params[:id])
 
-      send_data body, filename: "migration-run-#{run.id}-failures.txt", type: 'text/plain'
+      send_data "#{run.unimported_text}\n",
+                filename: "migration-run-#{run.id}-unimported.txt",
+                type:     'text/plain'
     end
 
     # Give up on a run whose worker is gone, from the screen rather than

@@ -25,7 +25,10 @@
 <%# Chips rather than a select and a Filter button: three choices, and %>
 <%# each is one press. %>
 <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Filter by database">
-  <% [[nil, 'Both'], *db_options.map(&:reverse).select { MigrationRun::DBS.include?(it.first) }].each do |value, label| %>
+  <%# Derived from the databases that can be migrated, not from the %>
+  <%# intersection with the label table — adding a third would otherwise %>
+  <%# get a state card and no filter chip, silently. %>
+  <% [[nil, 'Both'], *MigrationRun::DBS.map { [it, db_label(it)] }].each do |value, label| %>
     <%= link_to label, admin_migration_runs_path(db: value),
                 class: "btn btn-outline-secondary#{' active' if params[:db].presence == value}" %>
   <% end %>

@@ -37,16 +37,20 @@
   <div class="col-lg-8">
     <div class="card mb-4">
       <div class="card-body">
-        <% if @migration_run.enumerating? %>
+        <% if @migration_run.queued_status? %>
+          <p class="text-body-secondary mb-0">Waiting for a worker to pick it up.</p>
+        <% elsif @migration_run.enumerating? %>
           <p class="text-body-secondary mb-0">Counting the source rows…</p>
         <% else %>
+          <%# No estimate of what is left. `started_at` is preserved %>
+          <%# across a Continuation resume, so a run interrupted by a %>
+          <%# Friday deploy and resumed on Monday would charge the idle %>
+          <%# weekend to its rate and report days for an hour of work. %>
+          <%# Measuring the time actually spent would need the job to %>
+          <%# record it. %>
           <div class="d-flex justify-content-between small mb-1">
-            <span><%= migration_run_rows(@migration_run) %> rows</span>
-
-            <span class="text-body-secondary">
-              <%= @migration_run.progress_percent %>%<%=
-                " · about #{distance_of_time_in_words(@migration_run.eta)} left" if @migration_run.eta %>
-            </span>
+            <span><%= migration_run_rows(@migration_run) %></span>
+            <span class="text-body-secondary"><%= @migration_run.progress_percent %>%</span>
           </div>
 
           <div class="progress" role="progressbar"
@@ -78,17 +82,21 @@
       </table>
     <% end %>
 
-    <% groups = @migration_run.failure_groups %>
+    <% groups = @migration_run.unimported_groups %>
 
+    <%# "Rows that did not import" rather than "Failures": a row refused %>
+    <%# for belonging to another submitter is counted `cross_user` and a %>
+    <%# row that stopped the sweep is not counted at all, so a heading %>
+    <%# saying "failures" would contradict the `failed` line above it. %>
     <% if groups.any? %>
       <div class="d-flex align-items-baseline gap-2 mb-2">
-        <h2 class="h6 mb-0">Failures</h2>
+        <h2 class="h6 mb-0">Rows that did not import</h2>
         <span class="small text-body-secondary">
           <%= pluralize(number_with_delimiter(groups.sum { it[:count] }), 'row') %> · grouped by cause
         </span>
       </div>
 
-      <table class="table table-sm border align-middle mb-3" data-test-failure-groups>
+      <table class="table table-sm border align-middle mb-3" data-test-unimported-groups>
         <tbody>
           <% groups.each do |group| %>
             <tr>
@@ -105,7 +113,7 @@
       </table>
 
       <p class="mb-4">
-        <%= link_to 'Download the failure list', failures_admin_migration_run_path(@migration_run),
+        <%= link_to 'Download the full list', failures_admin_migration_run_path(@migration_run),
                     class: 'btn btn-outline-secondary btn-sm', data: {turbo: false} %>
       </p>
     <% end %>

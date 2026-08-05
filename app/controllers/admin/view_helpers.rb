@@ -250,7 +250,7 @@ module Admin::ViewHelpers
     done   = number_with_delimiter(run.counters_total)
     failed = run.counters['failed'].to_i
 
-    rows = run.total.to_i.positive? ? "#{done} of #{number_with_delimiter(run.total)}" : "#{done} rows"
+    rows = run.total.to_i.positive? ? "#{done} of #{number_with_delimiter(run.total)} rows" : "#{done} rows"
 
     failed.positive? ? "#{rows} · #{number_with_delimiter(failed)} failed" : rows
   end

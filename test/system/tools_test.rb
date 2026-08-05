@@ -65,7 +65,7 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
 
     within '[data-test-db-state="biosample"]' do
       assert_text 'Idle'
-      assert_text '20 of 20 · 3 failed'
+      assert_text '20 of 20 rows · 3 failed'
     end
   end
 
@@ -124,7 +124,7 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
   end
 
   # One line per row answers "which row" and never "what do I fix".
-  test 'failures are grouped by cause, with the raw log kept underneath' do
+  test 'rows that did not import are grouped by cause, with the raw log kept underneath' do
     run = MigrationRun.create!(db: 'bioproject', status: :completed, total: 4,
                                counters: {'failed' => 3, 'created' => 1}, started_at: 1.hour.ago)
 
@@ -137,7 +137,7 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
 
     visit admin_migration_run_path(run)
 
-    within '[data-test-failure-groups]' do
+    within '[data-test-unimported-groups]' do
       rows = all('tr').map(&:text)
 
       assert_equal 2, rows.size
@@ -152,7 +152,7 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
     assert_selector 'details', text: 'Show the raw log'
 
     # The whole list is a download, not three groups and a shrug.
-    click_link 'Download the failure list'
+    click_link 'Download the full list'
 
     assert_equal 3, page.body.lines.size
     assert_match(/\A\[PSUB000318\] KeyError/, page.body)

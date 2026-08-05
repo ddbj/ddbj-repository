@@ -17,19 +17,30 @@
           <% end %>
         </div>
 
-        <%# Start is offered only where it would be accepted. The old %>
+        <%# Start is offered exactly where it would be accepted. The old %>
         <%# screen showed "New run" always and refused with an alert %>
         <%# after the press — a round trip to be told what the screen %>
         <%# already knew. %>
-        <% if run %>
-          <%= link_to "Run ##{run.id} →", admin_migration_run_path(run), class: 'small' %>
-        <% elsif DataMigration::DwayDefaults.enabled? %>
-          <%= link_to 'Start a run', new_admin_migration_run_path(db: state[:db]), class: 'btn btn-sm btn-primary' %>
-        <% end %>
+        <%# %>
+        <%# A run that stopped reporting is one of those places: `create` %>
+        <%# supersedes it rather than refusing. Withholding Start there %>
+        <%# would send a curator to the run, to Abandon, and back for the %>
+        <%# one thing this card exists to offer. %>
+        <div class="d-flex align-items-center gap-2">
+          <% if run %>
+            <%= link_to "Run ##{run.id} →", admin_migration_run_path(run), class: 'small' %>
+          <% end %>
+
+          <% if (run.nil? || run.stale?) && DataMigration::DwayDefaults.enabled? %>
+            <%= link_to 'Start a run', new_admin_migration_run_path(db: state[:db]), class: 'btn btn-sm btn-primary' %>
+          <% end %>
+        </div>
       </div>
 
       <% if run %>
-        <% if run.enumerating? %>
+        <% if run.queued_status? %>
+          <p class="small text-body-secondary mb-0">Waiting for a worker to pick it up.</p>
+        <% elsif run.enumerating? %>
           <p class="small text-body-secondary mb-0">Counting the source rows…</p>
         <% else %>
           <div class="progress mb-2" style="height: 0.5rem;" role="progressbar"

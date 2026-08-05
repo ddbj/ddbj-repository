@@ -71,20 +71,13 @@ class MigrationRun < ApplicationRecord
   end
 
   # The job counts the source rows before it starts sweeping them, so a
-  # zero total on a live run means it is still counting rather than that
-  # there is nothing to do.
-  def enumerating? = total.to_i.zero? && (queued_status? || running_status?)
+  # zero total on a *running* run means it is still counting. A queued
+  # one has not been picked up at all, and saying it is counting would
+  # assert work that has not begun — which is exactly what a backed-up
+  # or stopped queue looks like.
+  def enumerating? = total.to_i.zero? && running_status?
 
   def remaining = [total.to_i - counters_total, 0].max
-
-  # Seconds of work left at the rate this run has managed. Its own rate,
-  # measured from its own start — BioSample rows cost seconds each and
-  # BioProject rows milliseconds, so nothing carries across.
-  def eta
-    return nil unless running_status? && counters_total.positive? && remaining.positive?
-
-    (updated_at - started_at) / counters_total * remaining
-  end
 
   # Counters as [key, sentence, count], in OUTCOMES order, keeping any
   # key the job has learned since this list was written rather than
@@ -96,34 +89,54 @@ class MigrationRun < ApplicationRecord
     known + unknown
   end
 
-  # Row failures grouped by what went wrong, most common first.
+  # The log is one entry per row that did not import — `[PSUB000318]
+  # Some::Error: message` — which answers "which row" and never "what do
+  # I fix". Grouping on the cause turns twenty entries into the two or
+  # three things they are.
   #
-  # The log is one line per row — `[PSUB000318] Some::Error: message` —
-  # which answers "which row" and never "what do I fix". Grouping on the
-  # cause turns twenty lines into the two or three things they are.
-  ROW_FAILURE = /\A\[([^\]]+)\]\s*(.+)\z/
+  # An entry is a header line plus everything after it that is not
+  # itself a header: `error.message` goes into the log verbatim, and
+  # Postgres messages carry their DETAIL on the next line. Splitting on
+  # newlines put those continuations in with the run-level notices,
+  # where a sweep with fifteen thousand failures would have rendered
+  # fifteen thousand warning paragraphs.
+  ROW_ENTRY   = /\A\[([^\]]+)\]\s*(.+)\z/
+  RUN_ENTRY   = /\A(ABANDONED:|TERMINAL )/
   SAMPLES     = 3
 
-  def failure_groups
-    rows = error_log.to_s.lines.filter_map { ROW_FAILURE.match(it.strip) }
+  # Rows the run could not import, grouped by cause, most common first.
+  #
+  # Not only the ones counted `failed`: a row refused for belonging to
+  # another submitter is counted `cross_user`, and one that stopped the
+  # sweep is not counted at all. All of them are rows that did not
+  # import, which is what the screen says.
+  def unimported_groups
+    entries = log_entries.select { it[:source_id] }
 
-    rows.group_by { normalise_cause(it[2]) }.map {|_, matched|
+    entries.group_by { normalise_cause(it[:cause]) }.map {|_, matched|
       # Shown with the first message of the group rather than the
       # normalised key: the key exists to collapse the identifiers, and
       # reading "Missing organism in X" back to a curator would be worse
       # than the log it replaced.
-      {cause:      matched.first[2].truncate(160),
+      {cause:      matched.first[:cause].truncate(160),
        count:      matched.size,
-       source_ids: matched.first(SAMPLES).map { it[1] },
+       source_ids: matched.first(SAMPLES).map { it[:source_id] },
        truncated:  matched.size > SAMPLES}
     }.sort_by { -it[:count] }
   end
 
-  # Lines that are about the run rather than about a row: why it was
-  # abandoned, or what stopped it.
-  def notices = error_log.to_s.lines.map(&:strip).reject { ROW_FAILURE.match?(it) }.compact_blank
+  # The full text of those entries, continuations included — the whole
+  # thing being summarised above, for reading offline.
+  def unimported_text = log_entries.select { it[:source_id] }.map { it[:text] }.join("\n")
 
-  def abandoned_reason = notices.find { it.start_with?('ABANDONED:') }&.delete_prefix('ABANDONED:')&.strip
+  # Entries about the run rather than about a row: why it was abandoned,
+  # or what stopped it. Matched on the prefixes the job actually writes,
+  # so a stray line cannot become one.
+  def notices = log_entries.reject { it[:source_id] }.map { it[:text] }
+
+  # Read off the raw string rather than through `log_entries`: the index
+  # asks every row for this, and most rows have nothing to say.
+  def abandoned_reason = error_log.to_s[/^ABANDONED:\s*(.+)$/, 1]
 
   # Apply a batch of in-memory increments collected by the job. Single
   # writer per (db) thanks to the enqueue-time precheck (see the class
@@ -167,6 +180,25 @@ class MigrationRun < ApplicationRecord
   end
 
   private
+
+  # The log, split into entries. A header line starts one; anything else
+  # continues the entry above it. A line before any header — there
+  # should not be one — is kept as its own entry rather than dropped.
+  def log_entries
+    @log_entries ||= error_log.to_s.lines.each_with_object([]) {|line, entries|
+      stripped = line.rstrip
+
+      next if stripped.blank?
+
+      if (row = ROW_ENTRY.match(stripped))
+        entries << {source_id: row[1], cause: row[2], text: stripped}
+      elsif RUN_ENTRY.match?(stripped) || entries.empty?
+        entries << {source_id: nil, cause: stripped, text: stripped}
+      else
+        entries.last[:text] += "\n#{stripped}"
+      end
+    }
+  end
 
   # Two rows that failed the same way differ in the identifiers their
   # messages happen to quote. Grouping on the raw text would put each in
