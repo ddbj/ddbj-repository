@@ -396,6 +396,34 @@ class SubmissionTest < ActiveSupport::TestCase
     assert_equal 'v2', submission.materialise_at(update_id: second.id).dig('project', 'title')
   end
 
+  # Only a MASS submission has a directory; one posted to the API keeps
+  # everything in object storage and never grows one. after_destroy
+  # removes the directory unconditionally, which is safe because
+  # `Pathname#rmtree` treats a missing path as nothing to do — pinned
+  # here because the whole of a bulk cleanup rides on it. A stricter
+  # removal would roll the destroy back, and every ST.26 submission is
+  # API-sourced.
+  test 'a submission with no directory on disk can still be destroyed' do
+    submission = Submission.create!(db: 'st26', user: users(:alice), source_id: "no-dir-#{SecureRandom.hex(4)}")
+
+    assert_not submission.dir.exist?
+
+    assert_difference 'Submission.count', -1 do
+      submission.destroy!
+    end
+  end
+
+  test 'destroying a submission takes its directory with it' do
+    submission = Submission.create!(db: 'st26', user: users(:alice), source_id: "with-dir-#{SecureRandom.hex(4)}")
+
+    submission.dir.mkpath
+    submission.dir.join('flatfile').write('LOCUS')
+
+    submission.destroy!
+
+    assert_not submission.dir.exist?
+  end
+
   test 'materialise_at p99 < 500ms over a 30-patch chain' do
     submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "bench-#{SecureRandom.hex(4)}")
     30.times {|i| submission.append_update!({'project' => {'title' => "v#{i}"}}, actor: 'bench') }

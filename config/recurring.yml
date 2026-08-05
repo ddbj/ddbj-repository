@@ -7,6 +7,14 @@ production: &production
     class: StorageHealthcheckJob
     schedule: every hour
 
+  # SolidQueue names a retention window for finished jobs but nothing
+  # acts on it, so the table only grows — one row per job, and a bulk
+  # import writes one job per submission. It only removes rows finished
+  # over a day ago, so the slot just has to be a quiet one.
+  clear_finished_jobs:
+    class: ClearFinishedJobsJob
+    schedule: at 1:30am every day
+
   load_taxdump:
     class: LoadTaxdumpJob
     schedule: at 6am every day
