@@ -194,14 +194,32 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
 
   # Sorted across the whole list, not within a page: a request waiting on
   # the submitter is useless on page 4.
-  test 'index floats requests that need the submitter above the rest' do
+  test 'index floats requests that need the submitter when asked to' do
+    older = submission_requests(:st26)
+    older.update_columns(status: SubmissionRequest.statuses.fetch('ready_to_apply'))
+
+    get submission_requests_path, params: {phase: 'all', needs_action_first: 'true'}
+
+    assert_conform_schema 200
+    assert_equal older.id, response.parsed_body.first['id']
+  end
+
+  # And not otherwise. The float makes the leading sort key move with the
+  # data, so a client walking the pages has rows shift between them
+  # underneath it — and one old request at the front is enough to make
+  # page 1 not look like the start of anything.
+  test 'the default order is newest first, whatever is waiting on the submitter' do
     older = submission_requests(:st26)
     older.update_columns(status: SubmissionRequest.statuses.fetch('ready_to_apply'))
 
     get submission_requests_path, params: {phase: 'all'}
 
     assert_conform_schema 200
-    assert_equal older.id, response.parsed_body.first['id']
+
+    ids = response.parsed_body.pluck('id')
+
+    assert_equal ids.sort.reverse, ids
+    assert_not_equal older.id, ids.first
   end
 
   test 'index narrows to the requests waiting on the submitter' do

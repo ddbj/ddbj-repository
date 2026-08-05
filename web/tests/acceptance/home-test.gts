@@ -51,6 +51,27 @@ module('Acceptance | home', function (hooks) {
   setupApplicationTest(hooks);
   setupAuthentication(hooks);
 
+  // The API sorts newest-first and nothing else unless asked, because
+  // floating makes the leading sort key move with the data — wrong for
+  // anything walking the pages. This screen is the one that wants it, so
+  // it has to ask, and dropping the parameter would silently stop the
+  // requests waiting on the submitter reaching the top of the list.
+  test('asks for the requests waiting on the submitter to be floated', async function (assert) {
+    const rows = [summary({ id: 3, db: 'st26' })];
+
+    worker.use(
+      http.get('/submission_requests', ({ request, response }) => {
+        assert.strictEqual(new URL(request.url).searchParams.get('needs_action_first'), 'true');
+
+        return response(200).json(rows, list(rows));
+      }),
+    );
+
+    await visit('/');
+
+    assert.dom('tbody tr').exists({ count: 1 });
+  });
+
   test('lists submission requests across databases', async function (assert) {
     const rows = [
       summary({

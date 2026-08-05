@@ -5,13 +5,19 @@ class SubmissionRequestsController < ApplicationController
 
   # The submitter's list, organised around "where is this now".
   #
-  # Two things a plain reverse-id list got wrong. Submissions that are
-  # finished never stop taking up room — a lab with 500 released records
-  # cannot see the three that are still moving — so `phase` splits the
-  # live ones from the done ones and the counts for both ride along in
-  # headers. And anything waiting on the submitter has to float to the top
-  # of the WHOLE list rather than of whichever page they happen to open,
-  # which is why the ordering is a SQL predicate and not a client sort.
+  # Submissions that are finished never stop taking up room — a lab with
+  # 500 released records cannot see the three that are still moving — so
+  # `phase` splits the live ones from the done ones and the counts for
+  # both ride along in headers.
+  #
+  # Newest first, and only that unless asked otherwise. Floating the
+  # requests that need the submitter is what their own screen wants, and
+  # it has to happen across the whole list rather than within a page, so
+  # it is a SQL predicate — but it makes the leading sort key something
+  # that changes when the data does. A client walking the pages then has
+  # rows move between them underneath it, and one old request floating
+  # to the front is enough to make page 1 not look like the start of
+  # anything. `needs_action_first` is how the screen asks for it.
   def index
     owned = current_user.submission_requests
 
@@ -23,9 +29,7 @@ class SubmissionRequestsController < ApplicationController
     scope = filter_by_accession(scope, params[:accession]) if params[:accession].present?
     scope = scope.needs_submitter_action                   if params[:needs_action].present?
 
-    ordered = scope.order(SubmissionRequest.needs_submitter_action_order, id: :desc)
-
-    pagy, @requests = pagy(ordered)
+    pagy, @requests = pagy(order(scope))
 
     # Per-page BS accession aggregate ([first, count] keyed by submission
     # id) so the summary's DB-aware accession column doesn't N+1.
@@ -65,6 +69,16 @@ class SubmissionRequestsController < ApplicationController
   end
 
   private
+
+  # Total and stable by default: `id` never changes, so page 2 is the
+  # same page it was a minute ago. The float is added in front of it, not
+  # instead of it, so ties within the floated group still read newest
+  # first.
+  def order(scope)
+    return scope.order(id: :desc) unless ActiveModel::Type::Boolean.new.cast(params[:needs_action_first])
+
+    scope.order(SubmissionRequest.needs_submitter_action_order, id: :desc)
+  end
 
   # Multi-select list filters (db / status). The web client omits the
   # param entirely when every box (or none) is checked, so a present

@@ -193,6 +193,16 @@ paths:
           schema:
             type: boolean
 
+        # Sorts the requests waiting on the submitter to the front of the
+        # whole list. Off by default: it makes the leading sort key
+        # something that changes when the data does, so a client walking
+        # the pages would have rows move between them underneath it.
+        - name: needs_action_first
+          in: query
+
+          schema:
+            type: boolean
+
         - name: page
           in: query
 

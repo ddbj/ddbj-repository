@@ -54,6 +54,12 @@ export default class IndexRoute extends Route {
           accession: accession || undefined,
           phase,
           needs_action: needsAction || undefined,
+          // Anything waiting on the submitter belongs at the top of the
+          // whole list, not of whichever page they happened to open.
+          // Asked for rather than assumed: it makes the leading sort key
+          // move with the data, which is wrong for anything walking the
+          // pages, and this screen is not that.
+          needs_action_first: true,
           page,
         },
       },

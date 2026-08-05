@@ -173,6 +173,7 @@ export interface paths {
                     accession?: string;
                     phase?: "unfinished" | "finished" | "all";
                     needs_action?: boolean;
+                    needs_action_first?: boolean;
                     page?: number;
                 };
                 header?: never;
@@ -193,6 +194,7 @@ export interface paths {
                         "application/json": components["schemas"]["SubmissionRequestSummary"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
             };
         };
@@ -665,6 +667,7 @@ export interface paths {
                         "application/json": components["schemas"]["SubmissionSummary"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
             };
         };
