@@ -1,0 +1,72 @@
+<% content_for :title, 'Regenerate every flatfile?' %>
+
+<%# In a frame, so it opens where the curator is; a plain page when the %>
+<%# URL is visited directly. Same shell as every other confirmation. %>
+<%= turbo_frame_tag 'confirm_dialog' do %>
+  <div class="card border-0 confirm-card mx-auto my-3" data-test-confirm
+       data-controller="type-to-confirm"
+       data-type-to-confirm-phrase-value="<%= Admin::RegenerateFlatfilesController::CONFIRM_PHRASE %>">
+    <div class="card-body p-4">
+      <% estimate = regeneration_estimate(@scope.total) %>
+
+      <h1 class="h4 mb-2">Regenerate every flatfile?</h1>
+
+      <p class="text-body-secondary">
+        This queues one job per submission<%= ", and takes #{estimate} to work through" if estimate %>.
+        Nothing is sent to submitters, and public records keep their current content
+        until each job commits.
+      </p>
+
+      <table class="table border align-middle my-4">
+        <tbody>
+          <tr>
+            <td>Submissions queued</td>
+            <td class="text-end fw-semibold"><%= number_with_delimiter(@scope.total) %></td>
+          </tr>
+
+          <% if estimate %>
+            <tr>
+              <td>Estimated job time</td>
+              <td class="text-end fw-semibold"><%= estimate %></td>
+            </tr>
+          <% end %>
+
+          <tr>
+            <td>LOCUS dates</td>
+            <td class="text-end fw-semibold"><%= @scope.locus_date ? "set to #{@scope.locus_date}" : 'unchanged' %></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <%= form_with url: admin_regenerate_flatfiles_path, method: :post, local: true, data: {turbo_frame: '_top'} do |f| %>
+        <%# The scope is carried as parameters and resolved again on %>
+        <%# POST, so what runs is what the form said rather than a count %>
+        <%# this page happened to render. %>
+        <% @scope.to_params.each do |key, value| %>
+          <%= hidden_field_tag key, value %>
+        <% end %>
+
+        <div class="mb-3">
+          <%= label_tag :confirm, class: 'form-label' do %>
+            Type <code><%= Admin::RegenerateFlatfilesController::CONFIRM_PHRASE %></code> to confirm the full scope.
+          <% end %>
+
+          <%= text_field_tag :confirm, nil, class: 'form-control', autocomplete: 'off', autofocus: true,
+                                            data: {type_to_confirm_target: 'input', action: 'input->type-to-confirm#check'} %>
+        </div>
+
+        <div class="d-flex gap-2 align-items-center">
+          <%= link_to 'Cancel', admin_regenerate_flatfiles_path,
+                      class: 'btn btn-link',
+                      data:  {action: 'dialog#cancel', turbo_frame: '_top'} %>
+
+          <%# Locked until the phrase is typed, and refused on the server %>
+          <%# either way — the lock is a speed bump, not the rule. %>
+          <%= f.submit "Regenerate #{number_with_delimiter(@scope.total)} #{'submission'.pluralize(@scope.total)}",
+                       class: 'btn btn-warning', disabled: true,
+                       data:  {type_to_confirm_target: 'submit'} %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+<% end %>

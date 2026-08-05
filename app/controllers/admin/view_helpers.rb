@@ -61,6 +61,7 @@ module Admin::ViewHelpers
   TOOLS_CONTROLLERS = %w[
     admin/migration_runs
     admin/regenerate_flatfiles
+    admin/regenerate_flatfiles_runs
   ].freeze
 
   # The facets a ledger view actually has on, summarised so the row stays
@@ -102,6 +103,17 @@ module Admin::ViewHelpers
   # everything in a queue is by definition waiting.
   def stale?(time, threshold: 1.day)
     time.present? && time < threshold.ago
+  end
+
+  # "about 3 hours" — the half of "regenerate 7,254 submissions" that
+  # decides whether it happens now or tonight. Silent until this
+  # installation has finished a run to measure, because the only number
+  # worth putting next to a destructive button is one that came from
+  # somewhere.
+  def regeneration_estimate(count, rate: RegenerateFlatfilesRun.measured_rate)
+    return nil if rate.nil? || count.zero?
+
+    distance_of_time_in_words(rate * count)
   end
 
   def workbench_tab_label(tab)

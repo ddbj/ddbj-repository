@@ -1,0 +1,59 @@
+<%# "When did someone last regenerate everything, and what happened?" %>
+<%# The tool used to keep one progress row, so the answer was whatever %>
+<%# the most recent press left behind. The newest run is not here — it %>
+<%# is the panel above, in full. %>
+<h2 class="h5 mb-3">Earlier runs</h2>
+
+<table class="table border align-middle" data-test-run-history>
+  <thead class="table-light">
+    <tr>
+      <th>Started</th>
+      <th>Scope</th>
+      <th>By</th>
+      <th>Outcome</th>
+      <th>Duration</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% runs.each do |run| %>
+      <tr>
+        <td class="text-nowrap">
+          <%= link_to format_datetime(run.started_at), admin_regenerate_flatfiles_run_path(run) %>
+        </td>
+
+        <td>
+          <%= run.scope_label %>
+          <span class="text-body-secondary">· <%= number_with_delimiter(run.total) %></span>
+        </td>
+
+        <td><%= run.actor_label %></td>
+
+        <td>
+          <% if run.loading? %>
+            <span class="text-body-secondary">running · <%= number_with_delimiter(run.done) %> done</span>
+          <% else %>
+            <% case run.outcome %>
+            <% when :stalled %>
+              <span class="text-warning-emphasis">stopped early</span>
+            <% when :partial %>
+              <span class="text-danger-emphasis"><%= number_with_delimiter(run.failed) %> failed</span>
+            <% else %>
+              all succeeded
+            <% end %>
+          <% end %>
+        </td>
+
+        <td class="text-nowrap text-body-secondary">
+          <%= run.finished_at ? distance_of_time_in_words(run.elapsed) : '—' %>
+        </td>
+      </tr>
+    <% end %>
+
+    <% if runs.empty? %>
+      <tr>
+        <td colspan="5" class="text-center text-body-secondary py-4">No earlier runs.</td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

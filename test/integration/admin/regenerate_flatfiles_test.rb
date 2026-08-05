@@ -1,8 +1,9 @@
 require 'test_helper'
 
 # What pressing Regenerate actually starts: one job per submission that
-# has a record, carrying the date and the force flag. The screen's three
-# states are test/system/tools_test.rb.
+# can produce a flatfile, carrying the date and the rewrite flag, and a
+# run row recording who asked for it and what they asked for. The screen
+# itself is test/system/tools_test.rb.
 #
 # This is the most destructive action in the admin, and none of what it
 # enqueues is visible from the page it redirects back to.
@@ -17,30 +18,93 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test 'create enqueues a job per submission that has a record, and counts them' do
+  test 'create enqueues a job per submission in scope, and records the run' do
     assert_enqueued_with job: RegenerateSubmissionFlatfilesJob do
-      post admin_regenerate_flatfiles_path, params: {date: '2026-07-01'}
+      post admin_regenerate_flatfiles_path, params: {target: 'all', confirm: 'all', date_mode: 'set', date: '2026-07-01'}
     end
 
     assert_redirected_to admin_regenerate_flatfiles_path
-    assert_equal 1, RegenerateFlatfilesProgress.order(created_at: :desc).first.total
+
+    run = RegenerateFlatfilesRun.sole
+
+    assert_equal 1,                     run.total
+    assert_equal 'all',                 run.target
+    assert_equal "admin:#{users(:bob).uid}", run.actor
+    assert_equal Date.new(2026, 7, 1),  run.locus_date
 
     assert_equal Date.new(2026, 7, 1).to_s, enqueued_argument('value')
     assert_equal false,                     enqueued_argument('force')
   end
 
-  test 'create forwards the force flag' do
-    post admin_regenerate_flatfiles_path, params: {date: '2026-07-01', force: '1'}
+  test 'create forwards the rewrite flag' do
+    post admin_regenerate_flatfiles_path, params: {target: 'all', confirm: 'all', force: '1'}
 
     assert_redirected_to admin_regenerate_flatfiles_path
     assert_equal true, enqueued_argument('force')
+    assert RegenerateFlatfilesRun.sole.force
+  end
+
+  # The dialog disables a button; a disabled button is a courtesy. The
+  # rule is here, or the one scope that cannot be taken back is a
+  # hand-written POST away.
+  test 'the all-submissions scope is refused without the typed phrase' do
+    assert_no_enqueued_jobs only: RegenerateSubmissionFlatfilesJob do
+      post admin_regenerate_flatfiles_path, params: {target: 'all'}
+    end
+
+    assert_redirected_to admin_regenerate_flatfiles_path
+    assert_empty RegenerateFlatfilesRun.all
+    assert_match(/Type all to confirm/, flash[:alert])
+  end
+
+  # A press that would cover nothing is refused rather than recorded: a
+  # run of 0 submissions never finishes, and would sit at the top of the
+  # history claiming to be in progress for ever.
+  test 'a scope that resolves to nothing starts no run' do
+    post admin_regenerate_flatfiles_path, params: {target: 'accessions', numbers: 'PRJDB00000'}
+
+    assert_redirected_to admin_regenerate_flatfiles_path
+    assert_empty RegenerateFlatfilesRun.all
+    assert_match(/Nothing to regenerate/, flash[:alert])
+  end
+
+  test 'a retry covers what failed, with the options that failed' do
+    previous = RegenerateFlatfilesRun.create!(
+      actor: 'admin:someone', target: 'all', total: 1, force: true,
+      locus_date: Date.new(2026, 7, 1), started_at: 1.hour.ago, finished_at: 1.hour.ago, failed: 1
+    )
+
+    previous.failures.create!(submission: submissions(:st26), label: 'X00001', message: 'boom')
+
+    post admin_regenerate_flatfiles_path, params: {retry_of: previous.id, force: '0'}
+
+    run = RegenerateFlatfilesRun.recent.first
+
+    assert_equal 'retry',  run.target
+    assert_equal previous, run.retry_of
+    assert_equal 1,        run.total
+
+    # The form said force off; the run it is retrying said on. What
+    # failed is re-run as it was, not as the page happened to look.
+    assert_equal true,                      run.force
+    assert_equal true,                      enqueued_argument('force')
+    assert_equal Date.new(2026, 7, 1).to_s, enqueued_argument('value')
+  end
+
+  test 'preview reports the scope without starting anything' do
+    assert_no_enqueued_jobs only: RegenerateSubmissionFlatfilesJob do
+      get preview_admin_regenerate_flatfiles_path, params: {target: 'all'}
+    end
+
+    assert_response :success
+    assert_select 'turbo-frame#regenerate_scope'
   end
 
   test 'create returns 403 for non-admin users' do
     sign_in_as users(:carol)
 
     with_exceptions_app do
-      post admin_regenerate_flatfiles_path, params: {date: '2026-07-01'}
+      post admin_regenerate_flatfiles_path, params: {target: 'all', confirm: 'all'}
     end
 
     assert_response :forbidden

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_01_004757) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_05_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -188,12 +188,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_01_004757) do
     t.index ["db", "kind", "status"], name: "index_public_xml_runs_on_db_and_kind_and_status"
   end
 
-  create_table "regenerate_flatfiles_progresses", force: :cascade do |t|
+  create_table "regenerate_flatfiles_failures", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label"
+    t.text "message", null: false
+    t.bigint "run_id", null: false
+    t.bigint "submission_id", null: false
+    t.index ["run_id"], name: "index_regenerate_flatfiles_failures_on_run_id"
+    t.index ["submission_id"], name: "index_regenerate_flatfiles_failures_on_submission_id"
+  end
+
+  create_table "regenerate_flatfiles_runs", force: :cascade do |t|
+    t.string "actor", null: false
     t.datetime "created_at", null: false
     t.integer "failed", default: 0, null: false
-    t.integer "processed", default: 0, null: false
+    t.datetime "finished_at"
+    t.boolean "force", default: false, null: false
+    t.date "locus_date"
+    t.text "numbers"
+    t.integer "regenerated", default: 0, null: false
+    t.bigint "retry_of_id"
+    t.integer "skipped", default: 0, null: false
+    t.datetime "started_at", null: false
+    t.string "target", null: false
     t.integer "total", null: false
     t.datetime "updated_at", null: false
+    t.index ["retry_of_id"], name: "index_regenerate_flatfiles_runs_on_retry_of_id"
+    t.index ["started_at"], name: "index_regenerate_flatfiles_runs_on_started_at"
   end
 
   create_table "reviewer_accesses", force: :cascade do |t|
@@ -401,6 +422,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_01_004757) do
   add_foreign_key "project_links", "projects", column: "child_project_id"
   add_foreign_key "project_links", "projects", column: "parent_project_id"
   add_foreign_key "projects", "submissions"
+  add_foreign_key "regenerate_flatfiles_failures", "regenerate_flatfiles_runs", column: "run_id"
+  add_foreign_key "regenerate_flatfiles_failures", "submissions"
+  add_foreign_key "regenerate_flatfiles_runs", "regenerate_flatfiles_runs", column: "retry_of_id"
   add_foreign_key "reviewer_accesses", "submission_requests"
   add_foreign_key "sample_references", "samples"
   add_foreign_key "sample_tsv_imports", "submissions"

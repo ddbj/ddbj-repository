@@ -29,7 +29,7 @@ Rails.application.routes.draw do
         # Reading the thread does not discharge it; saying so does.
         post :read, on: :collection
       end
-      resource  :reviewer_access, only: %i[show create destroy]
+      resource :reviewer_access, only: %i[show create destroy]
 
       # A closure is a thing that exists or does not, so creating and
       # destroying one reads as closing and reopening.
@@ -142,7 +142,18 @@ Rails.application.routes.draw do
       resource :proxy_login, only: %i[create]
     end
 
-    resource :regenerate_flatfiles, only: %i[show create]
+    # The tool screen, plus the two GETs that answer "what would this
+    # press cover?" — one for the live summary, one for the confirmation.
+    resource :regenerate_flatfiles, only: %i[show create] do
+      get :preview
+      get :confirm
+    end
+
+    resources :regenerate_flatfiles_runs, only: %i[show] do
+      member do
+        get :failures
+      end
+    end
 
     # One screen with three tabs (?tab=due|sent|template), so "was this
     # sent?" and "what does it say?" are not separate destinations. The

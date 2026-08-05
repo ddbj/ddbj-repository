@@ -80,46 +80,186 @@ end
 class RegenerateFlatfilesSystemTest < ApplicationSystemTestCase
   setup do
     sign_in_as users(:bob)
+
+    submissions(:st26).ddbj_record.attach(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
   end
 
-  # Three states, each of which has to say something different — and the
-  # page has to stop polling itself once there is nothing left to watch.
-  test 'a run that has not started says nothing is running' do
+  # The scope is the whole point of the screen: what it covers has to be
+  # readable before it is pressed, not in the flash afterwards.
+  test 'the summary counts the scope and names the button after it' do
+    visit admin_regenerate_flatfiles_path(target: 'all')
+
+    within '[data-test-scope-summary]' do
+      assert_text '1 submission'
+      assert_text 'every ST.26 submission with a stored record'
+      assert_text 'LOCUS dates unchanged'
+      assert_text 'Identical flatfiles skipped'
+      assert_text 'Submitters notified no'
+
+      assert_link 'Regenerate 1 submission…'
+    end
+  end
+
+  # Nothing typed is not a scope. It used to be the widest one there is.
+  test 'an empty form offers no press' do
     visit admin_regenerate_flatfiles_path
 
-    assert_text    'Regenerate Flatfiles'
-    assert_no_text 'Processing:'
-    assert_no_selector '[data-controller="auto-refresh"]'
+    within '[data-test-scope-summary]' do
+      assert_text     'Nothing to regenerate.'
+      assert_selector 'input[type=submit][disabled]'
+    end
+  end
+
+  # A number that names a BioProject is not a typo — it names a record
+  # this tool has no renderer for, and saying so is the difference
+  # between "check your input" and "this cannot be done yet".
+  test 'numbers that cannot be regenerated are named, not silently dropped' do
+    projects(:primary).update!(accession: 'PRJDB19940')
+
+    visit admin_regenerate_flatfiles_path(numbers: "PRJDB19940\nX99999")
+
+    within '[data-test-scope-summary]' do
+      assert_text '1 number matched no submission: X99999'
+      assert_text 'No flatfile for 1 number — BioProject and BioSample records have none: PRJDB19940'
+    end
   end
 
   test 'a run in progress reports its count and refreshes itself' do
-    RegenerateFlatfilesProgress.create!(total: 10, processed: 3)
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'all', total: 10, regenerated: 3,
+                                         started_at: 2.minutes.ago)
 
-    visit admin_regenerate_flatfiles_path
+    visit admin_regenerate_flatfiles_run_path(run)
 
-    assert_text 'Processing: 3 succeeded'
+    assert_text     '3 done'
+    assert_text     'of 10'
     assert_selector '[data-controller="auto-refresh"]'
   end
 
-  test 'a finished run reports when it finished, and stops refreshing' do
-    progress = RegenerateFlatfilesProgress.create!(total: 5, processed: 5)
+  # Three counts, not two: with the rewrite option off, "how many did
+  # nothing" is the reading of the run.
+  test 'a finished run reports what it changed, what it skipped, and stops refreshing' do
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'all', total: 10, regenerated: 7, skipped: 3,
+                                         started_at: 1.hour.ago, finished_at: 30.minutes.ago)
 
-    visit admin_regenerate_flatfiles_path
+    visit admin_regenerate_flatfiles_run_path(run)
 
-    assert_text "Completed at #{progress.updated_at.strftime('%Y-%m-%d %H:%M')}"
-    assert_text '5 succeeded.'
+    assert_text        '7 regenerated'
+    assert_text        '3 unchanged, skipped'
+    assert_text        '0 failed'
     assert_no_selector '[data-controller="auto-refresh"]'
   end
 
-  # Failures still count towards done, or a run with one bad submission
-  # would poll for ever.
-  test 'a run finishes even when some of it failed' do
-    RegenerateFlatfilesProgress.create!(total: 10, processed: 7, failed: 3)
+  # The failure is read here, with the accession and the reason, rather
+  # than in the job queue.
+  test 'a run with failures shows what failed and offers to retry those' do
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'all', total: 2, regenerated: 1, failed: 1,
+                                         started_at: 1.hour.ago, finished_at: 30.minutes.ago)
+
+    run.failures.create!(submission: submissions(:st26), label: 'PRJDB18220',
+                         message: 'Converter raised: unknown feature key misc_RNA')
+
+    visit admin_regenerate_flatfiles_run_path(run)
+
+    assert_text 'Finished with 1 failure'
+    assert_text 'PRJDB18220'
+    assert_text 'unknown feature key misc_RNA'
+    assert_link 'Download the list'
+
+    click_button 'Retry the 1 failed'
+
+    retried = RegenerateFlatfilesRun.recent.first
+
+    assert_equal 'retry', retried.target
+    assert_equal run,     retried.retry_of
+  end
+
+  # A run whose workers went away used to poll for ever, because nothing
+  # but the counters could say it had stopped.
+  test 'a run whose workers are gone reaches a result instead of polling' do
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'all', total: 10, regenerated: 4,
+                                         started_at: 5.hours.ago)
+    run.update_columns(updated_at: 5.hours.ago)
+
+    visit admin_regenerate_flatfiles_run_path(run)
+
+    assert_text        'Stopped without finishing'
+    assert_text        '6 of 10 still to go'
+    assert_no_selector '[data-controller="auto-refresh"]'
+  end
+
+  # "When did someone last regenerate everything?" used to have no
+  # answer: the tool kept one progress row, overwritten by the next press.
+  #
+  # The newest run is the panel rather than a row, because the panel keeps
+  # itself up to date and the table does not — two readings of the same
+  # run disagreeing about whether it has finished is worse than one.
+  test 'earlier runs are listed with their scope, actor and outcome' do
+    RegenerateFlatfilesRun.create!(actor: 'admin:sato', target: 'accessions', numbers: 'X00001 X00002',
+                                   total: 2, regenerated: 2, started_at: 2.days.ago, finished_at: 2.days.ago + 18)
+
+    RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'all', total: 1, regenerated: 1,
+                                   started_at: 1.minute.ago, finished_at: Time.current)
 
     visit admin_regenerate_flatfiles_path
 
-    assert_text 'Completed at'
-    assert_text '7 succeeded, 3 failed'
-    assert_no_selector '[data-controller="auto-refresh"]'
+    within '[data-test-run-history]' do
+      assert_text    '2 accessions'
+      assert_text    'sato'
+      assert_text    'all succeeded'
+      assert_no_text 'All submissions'
+    end
+
+    within '[data-test-run-result]' do
+      assert_text 'All submissions'
+    end
+  end
+end
+
+# The parts of the screen that only exist once JavaScript is running: the
+# summary following the field, and the lock on the one scope that cannot
+# be taken back.
+class RegenerateFlatfilesJavaScriptTest < JavaScriptSystemTestCase
+  setup do
+    sign_in_as users(:bob)
+
+    submissions(:st26).ddbj_record.attach(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+  end
+
+  test 'the summary follows the scope being chosen' do
+    visit admin_regenerate_flatfiles_path
+
+    assert_text 'Nothing to regenerate.'
+
+    choose 'Every submission with a stored record'
+
+    assert_text 'every ST.26 submission with a stored record'
+    assert_link 'Regenerate 1 submission…'
+  end
+
+  test 'regenerating everything is locked until the phrase is typed' do
+    visit admin_regenerate_flatfiles_path(target: 'all')
+
+    click_link 'Regenerate 1 submission…'
+
+    within '[data-test-confirm]' do
+      assert_text 'Regenerate every flatfile?'
+      assert_selector 'input[type=submit][disabled]'
+
+      fill_in 'confirm', with: 'all'
+
+      assert_no_selector 'input[type=submit][disabled]'
+
+      click_button 'Regenerate 1 submission'
+    end
+
+    assert_equal 'all', RegenerateFlatfilesRun.sole.target
   end
 end

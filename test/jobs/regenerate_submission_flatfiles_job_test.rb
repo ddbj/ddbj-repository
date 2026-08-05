@@ -18,29 +18,41 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     @admin      = users(:alice).tap { it.update!(admin: true) }
   end
 
-  test 'refuses v3 submissions, increments :failed, leaves the progress UI completable' do
-    progress = RegenerateFlatfilesProgress.create!(total: 1)
+  test 'refuses v3 submissions, and writes down which one and why' do
+    run = new_run
     @submission.ddbj_record.attach(
       io:           file_fixture('ddbj_record/v3_trad_gnm.json').open,
       filename:     'v3_trad_gnm.json',
       content_type: 'application/json'
     )
 
-    # V3NotImplementedError is a StandardError so rescue_from catches
-    # it AND re-raises. progress.failed advances so the admin progress
-    # UI eventually reports completed? instead of hanging at loading?.
+    # V3NotImplementedError is a StandardError so rescue_from catches it
+    # AND re-raises: the queue still records a failed job, and the run
+    # still reaches a result instead of hanging at loading?.
     assert_raises DDBJRecord::V3NotImplementedError do
-      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2026, 7, 1), force: true
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1), force: true
     end
 
-    assert_equal 1, progress.reload.failed
+    run.reload
+
+    assert_equal 1, run.failed
+    assert_predicate run, :completed?
+    assert_not_nil   run.finished_at
+
+    # The reason is on the row, so the screen can show it without
+    # sending anyone to the job queue.
+    failure = run.failures.sole
+
+    assert_equal @submission,                        failure.submission
+    assert_equal @submission.accessions.first.number, failure.label
+    assert_match(/not yet implemented for v3/,        failure.message)
   end
 
   test 'force: true regenerates even when flatfiles would be identical' do
-    progress = RegenerateFlatfilesProgress.create!(total: 1)
+    run = new_run
 
     assert_difference 'AccessionHistory.where(action: "regenerate").count', @submission.accessions.count do
-      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2026, 7, 1), force: true
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1), force: true
     end
 
     @submission.accessions.each do |acc|
@@ -52,10 +64,10 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     original_locus_dates = @submission.accessions.pluck(:id, :locus_date).to_h
     original_na_blob_id  = @submission.flatfile_na.blob.id
 
-    progress = RegenerateFlatfilesProgress.create!(total: 1)
+    run = new_run
 
     assert_no_difference 'AccessionHistory.count' do
-      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2099, 1, 1)
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2099, 1, 1)
     end
 
     @submission.reload
@@ -66,16 +78,21 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
       assert_equal original_locus_dates[acc.id], acc.locus_date
     end
 
-    assert_equal 1, progress.reload.processed
+    # Skipped, not regenerated. The distinction is the whole reading of a
+    # run made with the rewrite option off.
+    run.reload
+
+    assert_equal 1, run.skipped
+    assert_equal 0, run.regenerated
   end
 
   test 'regenerates flatfiles with new locus date when content changed' do
     @submission.flatfile_na.purge
     @submission.flatfile_aa.purge if @submission.flatfile_aa.attached?
 
-    progress = RegenerateFlatfilesProgress.create!(total: 1)
+    run = new_run
 
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2026, 7, 1)
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
 
     @submission.reload
 
@@ -91,9 +108,9 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     @submission.flatfile_na.purge
     @submission.flatfile_aa.purge if @submission.flatfile_aa.attached?
 
-    progress = RegenerateFlatfilesProgress.create!(total: 1)
+    run = new_run
 
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2026, 7, 1)
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
 
     histories = AccessionHistory.where(accession: @submission.accessions, action: 'regenerate')
 
@@ -101,11 +118,21 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     assert histories.all? { it.user == @admin }
   end
 
-  test 'increments progress' do
-    progress = RegenerateFlatfilesProgress.create!(total: 1)
+  test 'counts what it did, and closes the run when the last job lands' do
+    run = new_run
 
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, progress, Date.new(2026, 7, 1)
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1), force: true
 
-    assert_equal 1, progress.reload.processed
+    run.reload
+
+    assert_equal 1, run.regenerated
+    assert_predicate run, :completed?
+    assert_not_nil   run.finished_at
+  end
+
+  private
+
+  def new_run
+    RegenerateFlatfilesRun.create!(actor: 'admin:alice', target: 'accessions', total: 1, started_at: Time.current)
   end
 end

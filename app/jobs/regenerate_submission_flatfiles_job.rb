@@ -1,13 +1,20 @@
 class RegenerateSubmissionFlatfilesJob < ApplicationJob
   include SubmissionOutputWriter
 
+  # The failure is written down before it is re-raised: which submission,
+  # and what went wrong, in words a curator can act on. Re-raised so the
+  # queue still records a failed job and Sentry still sees it — the run
+  # screen is where the failure is read, not where it is reported.
   rescue_from StandardError do |error|
-    arguments.find { it.is_a?(RegenerateFlatfilesProgress) }&.increment! :failed
+    run        = arguments.find { it.is_a?(RegenerateFlatfilesRun) }
+    submission = arguments.find { it.is_a?(Submission) }
+
+    run&.record_failure!(submission, error)
 
     raise error
   end
 
-  def perform(submission, user, progress, date, force: false)
+  def perform(submission, user, run, date, force: false)
     # Detect v3 BEFORE parsing — v3 ddbj_records can be multi-GB and
     # V3::Parser is full-document (Oj.load on the whole blob). Eating
     # that allocation just to raise V3NotImplementedError would burn RAM
@@ -24,7 +31,9 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       DDBJRecord.parse(file)
     end
 
-    if force || changed?(submission, record)
+    regenerating = force || changed?(submission, record)
+
+    if regenerating
       submission.accessions.update_all(locus_date: date) if date
 
       entries             = build_entries(record, submission.accessions.reload)
@@ -46,7 +55,12 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       }
     end
 
-    progress.increment! :processed
+    # Counted apart, because the two outcomes answer different questions:
+    # a run that skipped everything did nothing, and a run that
+    # regenerated everything rewrote the lot. The old single `processed`
+    # counter could not tell them apart, so turning the rewrite option
+    # off produced a result nobody could read.
+    run.count! regenerating ? :regenerated : :skipped
   end
 
   private
