@@ -18,10 +18,14 @@
 class MailDomainAllowlistInterceptor
   # What is actually registered, for the screens that need to say so.
   # Read from here rather than from the config, so a banner promising a
-  # restriction cannot outlive the interceptor that enforces it.
+  # restriction cannot outlive the interceptor that enforces it — and it
+  # is the normalised list, so a config entry written `@DDBJ.nig.ac.jp`
+  # is announced as the address it actually matches.
   class << self
     attr_accessor :domains
   end
+
+  attr_reader :domains
 
   def initialize(domains)
     @domains = domains.map { it.downcase.delete_prefix('@') }
@@ -63,7 +67,7 @@ Rails.application.config.after_initialize do
   if (domains = Rails.application.config_for(:app).mail_allowed_domains.presence)
     interceptor = MailDomainAllowlistInterceptor.new(domains)
 
-    MailDomainAllowlistInterceptor.domains = domains
+    MailDomainAllowlistInterceptor.domains = interceptor.domains
 
     ActionMailer::Base.register_interceptor interceptor
   end

@@ -66,7 +66,7 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
   # blank one arrives from a form that submitted an empty field, and is
   # read as the same thing rather than as a value nothing matches.
   test 'a blank filter constrains nothing' do
-    get submission_requests_path(db: [''])
+    get submission_requests_path(db: [''], phase: 'all')
 
     assert_response :success
     assert_equal SubmissionRequest.count, response.parsed_body.size

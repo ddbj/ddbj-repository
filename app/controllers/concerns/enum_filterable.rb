@@ -19,7 +19,19 @@
 module EnumFilterable
   extend ActiveSupport::Concern
 
-  class UnknownFilterValue < StandardError; end
+  # ActionController::BadRequest rather than a bare StandardError: Rails
+  # already answers it with 400, and Sentry already leaves it alone. A
+  # script looping on a stale filter value is a client mistake reported
+  # to the client — turning each one into an error event would bury the
+  # faults that are ours.
+  class UnknownFilterValue < ActionController::BadRequest; end
+
+  # What of the client's input is quoted back. The parameter is not
+  # necessarily the small list of strings it is supposed to be —
+  # `?db[a]=x` arrives as a hash — and the message goes into a response
+  # body and a log line.
+  MAX_REPORTED       = 5
+  MAX_REPORTED_LENGTH = 40
 
   private
 
@@ -31,9 +43,15 @@ module EnumFilterable
 
     if (unknown = values - known).any?
       raise UnknownFilterValue,
-            "Unknown #{column}: #{unknown.join(', ')}. Valid values are #{known.join(', ')}."
+            "Unknown #{column}: #{reportable(unknown)}. Valid values are #{known.join(', ')}."
     end
 
     scope.where(column => values)
+  end
+
+  def reportable(values)
+    shown = values.take(MAX_REPORTED).map { it.truncate(MAX_REPORTED_LENGTH) }
+
+    shown.join(', ') + (values.size > MAX_REPORTED ? ", and #{values.size - MAX_REPORTED} more" : '')
   end
 end

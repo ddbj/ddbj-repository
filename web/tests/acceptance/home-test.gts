@@ -72,6 +72,25 @@ module('Acceptance | home', function (hooks) {
     assert.dom('tbody tr').exists({ count: 1 });
   });
 
+  // The server answers a database it does not know with 400, and this
+  // parameter is bookmarkable: a URL kept from before a rename would
+  // otherwise cost the submitter the list rather than the filter.
+  test('a database filter the server would refuse is dropped, not sent', async function (assert) {
+    const rows = [summary({ id: 3, db: 'st26' })];
+
+    worker.use(
+      http.get('/submission_requests', ({ request, response }) => {
+        assert.deepEqual(new URL(request.url).searchParams.getAll('db[]'), ['st26']);
+
+        return response(200).json(rows, list(rows));
+      }),
+    );
+
+    await visit(`/?db=${encodeURIComponent(JSON.stringify(['st26', 'no_such_database']))}`);
+
+    assert.dom('tbody tr').exists({ count: 1 });
+  });
+
   test('lists submission requests across databases', async function (assert) {
     const rows = [
       summary({

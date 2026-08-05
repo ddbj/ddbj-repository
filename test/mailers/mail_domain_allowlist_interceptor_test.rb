@@ -1,6 +1,14 @@
 require 'test_helper'
 
 class MailDomainAllowlistInterceptorTest < ActiveSupport::TestCase
+  # The banner reads this, and it has to name the addresses that actually
+  # get through: a config entry written `@DDBJ.nig.ac.jp` matches
+  # `someone@ddbj.nig.ac.jp`, and announcing it verbatim would render
+  # `@@DDBJ.nig.ac.jp`.
+  test 'the domains it reports are the ones it matches on' do
+    assert_equal %w[ddbj.nig.ac.jp], MailDomainAllowlistInterceptor.new(%w[@DDBJ.nig.ac.jp]).domains
+  end
+
   test 'keeps recipients whose domain is on the allowlist' do
     interceptor = MailDomainAllowlistInterceptor.new(%w[ddbj.nig.ac.jp ursm.jp])
     mail        = Mail.new(to: %w[curator@ddbj.nig.ac.jp outsider@example.com], cc: 'admin@ursm.jp')
