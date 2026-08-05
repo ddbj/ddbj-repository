@@ -49,7 +49,12 @@
 
     <% if runs.empty? %>
       <tr>
-        <td colspan="5" class="text-center text-body-secondary py-4">No earlier runs.</td>
+        <td colspan="5">
+          <%# The newest run is the panel above, so "earlier" is what is %>
+          <%# missing — and on a fresh install that is everything. %>
+          <%= empty_state :first_run, 'No earlier runs.',
+                          'Every regeneration is kept here, with what it changed and who started it.' %>
+        </td>
       </tr>
     <% end %>
   </tbody>

@@ -106,6 +106,17 @@ module Admin::ViewHelpers
     label.in?(['just now', '—']) ? label : "#{label} ago"
   end
 
+  # Relative time, with the absolute one carried along: `datetime` for
+  # anything reading the markup, `title` for whoever hovers. Rounding to
+  # "4d" is what makes a queue readable, and it is also what makes it
+  # impossible to answer "which Tuesday?" — so the exact value never
+  # leaves, it just stops taking up room.
+  def elapsed_time(time, label: nil)
+    return '—' unless time
+
+    tag.time(label || elapsed_phrase(time), datetime: time.iso8601, title: format_datetime(time))
+  end
+
   # Long enough that a row deserves to be looked at rather than scrolled
   # past. Colour is the only thing separating "moving" from "stalled" once
   # everything in a queue is by definition waiting.
@@ -122,6 +133,26 @@ module Admin::ViewHelpers
     return nil if rate.nil? || count.zero?
 
     distance_of_time_in_words(rate * count)
+  end
+
+  # The three ways a list can be empty, which are three different
+  # situations for whoever is looking at it. See the conventions in
+  # CLAUDE.md.
+  #
+  #   :first_run — nothing has ever been here; say what will appear, and
+  #                offer the way to start. The only one with an action.
+  #   :filtered  — rows exist, none match; recite what is on and offer to
+  #                clear it.
+  #   :clear     — empty is the point, as in a queue; say so as an
+  #                outcome and leave nothing to press.
+  def empty_state(kind, title, detail = nil, &action)
+    tag.div(class: 'text-center text-body-secondary py-4', data: {test_empty_state: kind}) do
+      safe_join([
+        tag.p(title, class: "mb-1#{' text-body' if kind == :clear}"),
+        (tag.p(detail, class: 'small mb-0') if detail.present?),
+        (tag.div(capture(&action), class: 'mt-2') if action && kind != :clear)
+      ].compact)
+    end
   end
 
   def workbench_tab_label(tab)

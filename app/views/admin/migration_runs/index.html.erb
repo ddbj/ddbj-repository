@@ -83,7 +83,16 @@
 
     <% if @migration_runs.empty? %>
       <tr>
-        <td colspan="6" class="text-center text-body-secondary py-4">No migration runs yet.</td>
+        <td colspan="6">
+          <% if params[:db].present? %>
+            <%= empty_state :filtered, "No runs for #{db_label(params[:db])} yet." do %>
+              <%= link_to 'Show both databases', admin_migration_runs_path, class: 'btn btn-sm btn-outline-secondary' %>
+            <% end %>
+          <% else %>
+            <%= empty_state :first_run, 'No migration runs yet.',
+                            'Runs appear here once a database has been imported from D-way.' %>
+          <% end %>
+        </td>
       </tr>
     <% end %>
   </tbody>

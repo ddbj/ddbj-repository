@@ -108,6 +108,83 @@ Two-pass streaming:
 
 Defined in `DDBJRecordValidator`. Reference in README.md.
 
+## Admin Screen Conventions
+
+Four decisions that would otherwise be made again on every screen, and
+differently each time. They apply to `app/views/admin/`.
+
+### Empty states are three different things
+
+Reaching zero rows means one of three situations, and they need different
+words. `empty_state` renders them.
+
+- **`:first_run`** — nothing has ever been here. Explain what will appear
+  and how to start. The only empty state that carries an action.
+- **`:filtered`** — rows exist but none match. Recite what is on
+  (`active_request_filters` already summarises it) and offer to clear it.
+- **`:clear`** — empty is the goal, as in a queue. Say so as an outcome.
+  No button: there is nothing to do, and offering one sends somebody
+  looking.
+
+### Relative time or absolute, by what the reader is doing
+
+- **`elapsed_time`** (relative, `<time>` with the absolute value in
+  `datetime` and `title`) — for "has this been sitting?": queues, list
+  columns, anything sorted by age. `stale?` colours it, and in a queue
+  where everything is by definition waiting that colour is the only thing
+  separating moving from stuck.
+- **`format_datetime`** (absolute, minute precision) — for the record:
+  logs, audit trails, timestamps quoted in a support thread.
+- **Both**, for a run in flight: when it started and whether it is still
+  alive are different questions.
+
+Never mix the two in one column, and never print seconds —
+`format_datetime` is minute-precision on purpose, and the web client's
+`formatDatetime` matches it.
+
+### Filters and page position live in the URL
+
+Never in the session: a filtered view has to survive being sent to
+somebody else. Consequences, all of which already hold — keep them:
+
+- The filter form is a GET with no `page` field, so changing a filter
+  returns to page 1 rather than to an empty page 3.
+- An absent filter param means "everything" (`filter_checkbox_group`
+  ticks every box), which is why `Clear` is a link to the bare path.
+- Anything that redirects back to a list rebuilds the filter from the
+  posted params (`index_filter_params`), not from a client-supplied URL.
+
+### Weight is shown by colour and by how much confirming costs
+
+Four steps. A new action belongs in one of them; if it does not fit, that
+is a sign the action needs redesigning rather than a fifth step.
+
+| Weight | Button | Confirmation |
+|---|---|---|
+| Reversible, one record | `btn-primary` / plain | none |
+| Writes, but can be redone | `btn-primary` | state the number affected |
+| Irreversible or leaves the building | `btn-warning` | breakdown, count in the label, locked after pressing |
+| Everything, and hours of it | `btn-warning` | the above, plus typing a phrase to unlock |
+
+**Red belongs to state, never to a button.** `text-bg-danger` and
+`text-danger` say something about the data: it failed, it is overdue, it
+is unread and waiting — the queue counts, the due-notice badge, the stale
+row. A control is never red, however irreversible: dangerous is amber,
+because red already means "look at this" and a button that competes with
+that reading wins the attention without carrying the meaning.
+
+Between the two state colours: **red asserts, amber doubts.** A queue row
+past its threshold is overdue and that is a fact, so it is red. A
+migration run that has reported nothing for an hour might have lost its
+worker or might be waiting behind something else — the row cannot tell,
+and says so in amber. Where a screen knows, it should say so plainly;
+where it does not, the colour should not pretend. (Amber therefore does
+double duty — careful on a control, uncertain on a state — which reads
+cleanly because a button and a badge are never mistaken for each other.)
+
+Results of anything above the first step belong in a panel that stays
+until dismissed, not in a flash.
+
 ## File Conventions
 
 - `config/seaweedfs.yml` — S3 credentials per environment

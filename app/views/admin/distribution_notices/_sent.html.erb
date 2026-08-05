@@ -62,8 +62,18 @@
 
     <% if @notices.empty? %>
       <tr>
-        <td colspan="5" class="text-center text-body-secondary py-4">
-          <%= params[:q].present? ? 'No notices match this search.' : 'No notices have been sent yet.' %>
+        <td colspan="5">
+          <%# This screen already told the two apart before there was a %>
+          <%# helper for it; it is the shape the others follow. %>
+          <% if params[:q].present? %>
+            <%= empty_state :filtered, 'No notices match this search.', "Searching for #{params[:q]}." do %>
+              <%= link_to 'Clear the search', admin_distribution_notices_path(tab: :sent),
+                          class: 'btn btn-sm btn-outline-secondary' %>
+            <% end %>
+          <% else %>
+            <%= empty_state :first_run, 'No notices have been sent yet.',
+                            'Every release notice sent to a submitter is listed here.' %>
+          <% end %>
         </td>
       </tr>
     <% end %>

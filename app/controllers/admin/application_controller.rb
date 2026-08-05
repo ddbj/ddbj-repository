@@ -14,6 +14,25 @@ module Admin
 
     private
 
+    # A page past the end shows an empty table under a header counting
+    # the rows that are there — the screen contradicting itself, with the
+    # remaining work invisible. Pagy neither raises nor clamps, so the
+    # redirect is ours to make.
+    #
+    # Reachable by hand (`?page=99`) and, more usefully, by working: a
+    # bulk action carries the page back so a curator resumes where they
+    # were, and if their changes emptied the last page that number no
+    # longer exists.
+    #
+    # Returns true when it redirected, so callers can stop.
+    def redirect_out_of_range_page(pagy, key: :page)
+      return false if pagy.page <= pagy.last
+
+      redirect_to url_for(request.query_parameters.merge(key.to_s => pagy.last))
+
+      true
+    end
+
     # Who did it, as the audit trail spells it. Every actor string in the
     # admin is this shape, and writing it out at each call site meant a
     # future change of shape would be eight edits and a grep.

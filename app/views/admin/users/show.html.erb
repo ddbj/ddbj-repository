@@ -60,7 +60,7 @@
                 <%= request_state_display(request, submission, @sample_aggregates) %>
               </span>
 
-              <span class="small text-body-secondary text-nowrap"><%= elapsed_label(request.updated_at) %> ago</span>
+              <span class="small text-body-secondary text-nowrap"><%= elapsed_time(request.updated_at) %></span>
             </div>
           <% end %>
         </div>

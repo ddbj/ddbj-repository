@@ -372,7 +372,7 @@ module Admin
     # so a curator who searched, ticked rows and pressed Apply came back
     # to the unfiltered list with their search gone.
     def index_filter_params
-      params.permit(:q, db: [], request_status: [], status: [], assignee: []).to_h
+      params.permit(:q, :page, db: [], request_status: [], status: [], assignee: []).to_h
     end
 
     # Strict positive-integer parser. Returns nil for anything other than

@@ -35,7 +35,10 @@
     </div>
 
     <% if listing.rows.empty? %>
-      <p class="small text-body-secondary fst-italic mb-0">Nothing here.</p>
+      <%# Empty is the point of a queue, so it reads as an outcome and %>
+      <%# carries nothing to press — a button here would send somebody %>
+      <%# looking for work the screen has just said there is none of. %>
+      <%= empty_state :clear, 'Nothing here.' %>
     <% else %>
       <div class="list-group">
         <% listing.rows.each do |row| %>

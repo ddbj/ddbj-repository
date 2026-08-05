@@ -34,6 +34,8 @@ module Admin
                       .first
 
       load_requests(scope)
+
+      redirect_out_of_range_page(@pagy)
     end
 
     # --- workbench tabs -------------------------------------------------
@@ -59,6 +61,8 @@ module Admin
       # a String not a Symbol; the wrong shape is silently ignored.)
       @samples_pagy, @samples = pagy(scope.order(:id), page_key: 'samples_page', limit: 50)
       @matching_count         = @samples_pagy.count
+
+      redirect_out_of_range_page(@samples_pagy, key: :samples_page)
     end
 
     # Opening the tab records nothing. It used to mark the thread read for

@@ -21,7 +21,7 @@
       <%# anyone is still waiting on it. %>
       <% if @migration_run.queued_status? || @migration_run.running_status? %>
         · <strong class="<%= 'text-warning-emphasis' if @migration_run.stale? %>">
-            last progress <%= elapsed_phrase(@migration_run.updated_at) %>
+            last progress <%= elapsed_time(@migration_run.updated_at) %>
           </strong>
       <% end %>
     </p>
@@ -181,17 +181,17 @@
             </p>
 
             <%= button_to 'Abandon this run', abandon_admin_migration_run_path(@migration_run),
-                          method: :patch, class: 'btn btn-outline-danger btn-sm' %>
+                          method: :patch, class: 'btn btn-outline-warning btn-sm' %>
           <% else %>
             <p class="small text-body-secondary">
               Only possible once nothing has moved for
               <%= distance_of_time_in_words(MigrationRun::STALE_AFTER) %> — it last progressed
-              <strong><%= elapsed_phrase(@migration_run.updated_at) %></strong>, so a worker
+              <strong><%= elapsed_time(@migration_run.updated_at) %></strong>, so a worker
               is still on it. Abandoning a live run would put a second worker on the same
               database.
             </p>
 
-            <button type="button" class="btn btn-outline-danger btn-sm" disabled>Abandon this run</button>
+            <button type="button" class="btn btn-outline-warning btn-sm" disabled>Abandon this run</button>
           <% end %>
         </div>
       </div>

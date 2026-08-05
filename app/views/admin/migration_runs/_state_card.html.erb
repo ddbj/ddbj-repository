@@ -51,7 +51,7 @@
           <div class="d-flex justify-content-between small">
             <span><strong><%= number_with_delimiter(run.counters_total) %></strong> of <%= number_with_delimiter(run.total) %> rows</span>
             <span class="<%= run.stale? ? 'text-warning-emphasis' : 'text-body-secondary' %>">
-              last progress <%= elapsed_phrase(run.updated_at) %>
+              last progress <%= elapsed_time(run.updated_at) %>
             </span>
           </div>
         <% end %>

@@ -117,7 +117,20 @@
 
         <% if @samples.empty? %>
           <tr>
-            <td colspan="7" class="text-center text-body-secondary py-4">No samples match this filter.</td>
+            <td colspan="7">
+              <%# A submission with no samples at all is not a filter %>
+              <%# problem, and saying it is sends the reader looking for %>
+              <%# a filter to clear. %>
+              <% if @search.active? %>
+                <%= empty_state :filtered, 'No samples match this filter.',
+                                @search.to_params.map { |key, value| "#{key.to_s.capitalize}: #{Array(value).join(', ')}" }.join(' · ') do %>
+                  <%= link_to 'Clear filters', samples_admin_submission_request_path(@request),
+                              class: 'btn btn-sm btn-outline-secondary' %>
+                <% end %>
+              <% else %>
+                <%= empty_state :first_run, 'This submission has no samples.' %>
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </tbody>

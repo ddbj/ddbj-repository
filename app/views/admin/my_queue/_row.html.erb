@@ -26,7 +26,7 @@
   <%# only question is how long — and a stale row has to be visible in a %>
   <%# column of rows that are all, by definition, overdue. %>
   <span class="small text-nowrap <%= 'text-danger fw-semibold' if stale?(request.updated_at) %>">
-    <%= elapsed_label(request.updated_at) %>
+    <%= elapsed_time(request.updated_at, label: elapsed_label(request.updated_at)) %>
   </span>
 
   <%# No `else`: a row whose reason was resolved by somebody else between %>

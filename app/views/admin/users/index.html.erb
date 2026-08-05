@@ -116,7 +116,7 @@
         <%# make. %>
         <td class="text-nowrap text-body-secondary">
           <% if (seen = @counts[:last_activity][user.id]) %>
-            <%= elapsed_label(seen) %> ago
+            <%= elapsed_time(seen) %>
           <% else %>
             —
           <% end %>
@@ -126,8 +126,22 @@
 
     <% if @users.empty? %>
       <tr>
-        <td colspan="6" class="text-center text-body-secondary py-4">
-          No accounts match this search.
+        <td colspan="6">
+          <%# The search is one of three things narrowing this list, and %>
+          <%# only it is worth blaming when there is one. Clearing keeps %>
+          <%# the segment and the submitted filter: a button that moves %>
+          <%# the reader to a different population clears more than it %>
+          <%# says. %>
+          <% if @query.present? %>
+            <%= empty_state :filtered, 'No accounts match this search.',
+                            "Within #{Admin::UsersController::SEGMENTS[@segment]}." do %>
+              <%= link_to 'Clear the search',
+                          admin_users_path(segment: @segment, submitted: ('1' if @submitted)),
+                          class: 'btn btn-sm btn-outline-secondary' %>
+            <% end %>
+          <% else %>
+            <%= empty_state :clear, 'No accounts in this segment.' %>
+          <% end %>
         </td>
       </tr>
     <% end %>

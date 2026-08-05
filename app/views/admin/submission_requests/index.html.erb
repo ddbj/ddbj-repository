@@ -73,8 +73,12 @@
   </div>
 <% end %>
 
+<%# `filter_params` must stay in step with %>
+<%# Admin::SubmissionsController#index_filter_params: these are what a %>
+<%# bulk action carries back, and a page number left out here drops a %>
+<%# curator to the top of the ledger they were three pages into. %>
 <%= render 'request_list',
            requests:          @requests,
            sample_aggregates: @sample_aggregates,
            pagy:              @pagy,
-           filter_params:     params.permit(:q, db: [], request_status: [], status: [], assignee: []) %>
+           filter_params:     params.permit(:q, :page, db: [], request_status: [], status: [], assignee: []) %>

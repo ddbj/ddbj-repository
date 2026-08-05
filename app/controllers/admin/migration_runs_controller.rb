@@ -21,6 +21,8 @@ module Admin
       scope = scope.where(db: params[:db]) if params[:db].present?
 
       @pagy, @migration_runs = pagy(scope)
+
+      redirect_out_of_range_page(@pagy)
     end
 
     def show

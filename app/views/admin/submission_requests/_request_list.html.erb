@@ -63,13 +63,35 @@
           <%# which of them currently applied (see request_state_display). %>
           <td><%= request_state_display(request, submission, sample_aggregates) %></td>
           <td><%= request.assignee&.uid || '—' %></td>
-          <td class="text-nowrap"><%= elapsed_label(request.updated_at) %> ago</td>
+          <td class="text-nowrap"><%= elapsed_time(request.updated_at) %></td>
         </tr>
       <% end %>
 
       <% if requests.empty? %>
         <tr>
-          <td colspan="9" class="text-center text-body-secondary py-4"><%= empty_message %></td>
+          <td colspan="9">
+            <%# Two different situations: a ledger with a filter on it, %>
+            <%# and one that has never had a request in it. The first %>
+            <%# needs the filter read back and a way out of it. %>
+            <% facets = active_request_filters(params) %>
+
+            <% if facets.any? || params[:q].present? %>
+              <%# The label names everything the press will clear. "Clear %>
+              <%# filters" next to a search box drops the search too, and %>
+              <%# a reader who has just been told nothing matched is the %>
+              <%# last one able to spot it. %>
+              <%= empty_state :filtered, 'No requests match these filters',
+                              [(%(Searching for "#{params[:q]}") if params[:q].present?),
+                               *facets].compact.join(' · ') do %>
+                <%= link_to (params[:q].present? && facets.any? ? 'Clear search and filters' :
+                             params[:q].present? ? 'Clear the search' : 'Clear filters'),
+                            admin_submission_requests_path,
+                            class: 'btn btn-sm btn-outline-secondary' %>
+              <% end %>
+            <% else %>
+              <%= empty_state :first_run, empty_message %>
+            <% end %>
+          </td>
         </tr>
       <% end %>
     </tbody>
