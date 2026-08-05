@@ -3,20 +3,38 @@ servers:
     hosts:
       - repository-production
 
+    # `--mount` rather than `--volume`, for every path that lives on
+    # Lustre. A volume whose source is missing is created as an empty
+    # directory on the host's local disk and the container starts
+    # happily; a mount whose source is missing refuses to start.
+    #
+    # On 2026-07-13 this host rebooted and Docker started PostgreSQL
+    # eight seconds later, before /lustre9 was mounted. It got an empty
+    # local directory, initdb'd into it, and served an empty database
+    # for three weeks. The data was intact the whole time, one
+    # directory away. Not starting is a few minutes; starting on the
+    # wrong disk is however long it takes somebody to notice.
+    #
+    # /etc/fstab carries `noauto` for /lustre9/open, so nothing orders
+    # against it — the ordering fix belongs in a docker.service drop-in
+    # (`RequiresMountsFor=/lustre9/open`) and needs root. This is what
+    # can be done from here, and it is worth having either way.
+    options:
+      mount:
+        - type=bind,source=/home/w3const/volumes/repository-production/storage,target=/rails/storage
+        - type=bind,source=/mnt/submission,target=/submission
+        - type=bind,source=/lustre9/open/home/ddbjshare,target=/ddbjshare,readonly
+
 proxy:
   host: repository.ddbj.nig.ac.jp
-
-volumes:
-  - ./volumes/repository-production/storage:/rails/storage
-  - /mnt/submission:/submission
-  - /lustre9/open/home/ddbjshare:/ddbjshare:ro
 
 accessories:
   postgres:
     host: repository-production
 
-    volumes:
-      - ./volumes/repository-production/postgres:/var/lib/postgresql
+    options:
+      mount:
+        - type=bind,source=/home/w3const/volumes/repository-production/postgres,target=/var/lib/postgresql
 
   seaweedfs:
     host: repository-production
@@ -24,14 +42,16 @@ accessories:
     proxy:
       host: repository-storage.ddbj.nig.ac.jp
 
-    volumes:
-      - ./volumes/repository-production/seaweedfs:/data
+    options:
+      mount:
+        - type=bind,source=/home/w3const/volumes/repository-production/seaweedfs,target=/data
 
   virtuoso:
     host: repository-production
 
-    volumes:
-      - ./volumes/repository-production/virtuoso:/database
+    options:
+      mount:
+        - type=bind,source=/home/w3const/volumes/repository-production/virtuoso,target=/database
 
   validator:
     host: repository-production
@@ -40,7 +60,8 @@ accessories:
       clear:
         DDBJ_VALIDATOR_APP_POSTGRES_HOST: a011
 
-    volumes:
-      - ./volumes/repository-production/validator/conf/pub:/usr/src/ddbj_validator/conf/pub
-      - ./volumes/repository-production/validator/conf/coll_dump:/usr/src/ddbj_validator/conf/coll_dump
-      - ./volumes/repository-production/validator/logs:/usr/src/ddbj_validator/logs
+    options:
+      mount:
+        - type=bind,source=/home/w3const/volumes/repository-production/validator/conf/pub,target=/usr/src/ddbj_validator/conf/pub
+        - type=bind,source=/home/w3const/volumes/repository-production/validator/conf/coll_dump,target=/usr/src/ddbj_validator/conf/coll_dump
+        - type=bind,source=/home/w3const/volumes/repository-production/validator/logs,target=/usr/src/ddbj_validator/logs
