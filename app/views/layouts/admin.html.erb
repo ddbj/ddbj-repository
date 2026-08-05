@@ -84,6 +84,22 @@
       </div>
     </nav>
 
+    <%# Mail is going nowhere but us, and the screens that send it have %>
+    <%# no way to say so: a suppressed delivery is not a failure, so an %>
+    <%# accession run reports "sent" either way. Said here rather than %>
+    <%# on each of them, because it is true of the environment and not %>
+    <%# of any one action — and a restriction nobody can see is one that %>
+    <%# gets discovered by a submitter who never replied. %>
+    <% if (domains = MailDomainAllowlistInterceptor.domains) %>
+      <div class="alert alert-warning border-0 rounded-0 mb-0 py-2 text-center small" role="status"
+           data-test-mail-restricted>
+        Outgoing mail is restricted to
+        <%= safe_join(domains.map { tag.strong("@#{it}") }, ', ') %>.
+        Anything addressed elsewhere is not delivered, and nothing on the
+        screens that send it will say so.
+      </div>
+    <% end %>
+
     <main class="container-xxl pb-5">
       <% flash.each do |level, message| %>
         <%# data-controller="flash-focus" scrolls the banner into view on %>

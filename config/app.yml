@@ -24,6 +24,16 @@ test:
 production: &production
   app_url:                https://repository.ddbj.nig.ac.jp
   mass_dir_path_template: /submission/{user}/submission/{user}/mass
+
+  # Nothing leaves DDBJ yet. Every deployed environment now carries this,
+  # production included: the curator screens can issue accessions and
+  # answer messages, and both mail the submitter, so until that is
+  # deliberately switched on the safe default is that only we receive it.
+  #
+  # Removing this line is what turns real mail on. The admin nav says so
+  # on every screen while it is here — a restriction nobody can see is
+  # one that gets discovered by a submitter who never replied.
+  mail_allowed_domains:   [ddbj.nig.ac.jp, ursm.jp]
   repository_dir:         <%= Rails.root.join('storage/repository') %>
   sentry_dsn:             https://7060cd8e48b01bfc7c294852533bdc83@o4506770361024512.ingest.sentry.io/4506778643333120
   validator_url:          http://repository-validator:3000/api
@@ -35,13 +45,11 @@ production: &production
 staging:
   <<: *production
   app_url:              https://repository-staging.ddbj.nig.ac.jp
-  mail_allowed_domains: [ddbj.nig.ac.jp, ursm.jp]
   web_url:              https://repository-staging.ddbj.nig.ac.jp
   account_url:          https://accounts-staging.ddbj.nig.ac.jp/
 
 dev:
   <<: *production
   app_url:              https://repository-dev.ddbj.nig.ac.jp
-  mail_allowed_domains: [ddbj.nig.ac.jp, ursm.jp]
   web_url:              https://repository-dev.ddbj.nig.ac.jp
   account_url:          https://accounts-staging.ddbj.nig.ac.jp/

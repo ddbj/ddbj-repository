@@ -1,19 +1,28 @@
 # Restrict outgoing mail to a configured set of allowed domains.
 #
-# Used by non-production envs (dev / staging) that import real D-way
-# data: a curator click on "Issue accession" must not send mail to the
-# real submitter at gmail/university/etc. while we are still
-# verifying the import.
+# Every deployed environment carries this, production included: the
+# curator screens can issue accessions and answer messages, and both
+# mail the submitter. Until sending to real submitters is deliberately
+# switched on, the safe default is that only we receive it — a click on
+# "Issue accession" against imported D-way data must not reach a real
+# submitter at gmail/university/etc.
 #
-# Config: `mail_allowed_domains` in `config/app.yml`'s env block, as
-# a YAML list. When unset (production) the interceptor is not
-# registered and every recipient is delivered.
+# Config: `mail_allowed_domains` in `config/app.yml`'s env block, as a
+# YAML list. Removing it is what turns real mail on; the interceptor is
+# then not registered and every recipient is delivered.
 #
 # Mechanism: an ActionMailer delivering-email interceptor mutates
 # to/cc/bcc to only those addresses ending with one of the allowed
 # domains. If nothing survives the filter the mail is suppressed via
 # `perform_deliveries = false` so SMTP is never contacted.
 class MailDomainAllowlistInterceptor
+  # What is actually registered, for the screens that need to say so.
+  # Read from here rather than from the config, so a banner promising a
+  # restriction cannot outlive the interceptor that enforces it.
+  class << self
+    attr_accessor :domains
+  end
+
   def initialize(domains)
     @domains = domains.map { it.downcase.delete_prefix('@') }
   end
@@ -52,6 +61,10 @@ end
 # with `uninitialized constant MailDeliveryJob`.
 Rails.application.config.after_initialize do
   if (domains = Rails.application.config_for(:app).mail_allowed_domains.presence)
-    ActionMailer::Base.register_interceptor MailDomainAllowlistInterceptor.new(domains)
+    interceptor = MailDomainAllowlistInterceptor.new(domains)
+
+    MailDomainAllowlistInterceptor.domains = domains
+
+    ActionMailer::Base.register_interceptor interceptor
   end
 end
