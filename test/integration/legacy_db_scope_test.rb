@@ -57,6 +57,39 @@ class LegacyDbScopeTest < ActionDispatch::IntegrationTest
     assert_equal 'biosample', SubmissionRequest.find(response.parsed_body['id']).db
   end
 
+  # The paths were kept working; what they meant was not. `phase` arrived
+  # in the same release, defaulting to the unfinished half, and an
+  # applied ST.26 request counts as finished — so a client walking the
+  # list for what it had submitted got nothing back through a URL that
+  # had always returned it. Silent, and the reason a reconciliation pass
+  # found no work to do.
+  test 'index still returns applied requests, as it did before phase existed' do
+    request = submission_requests(:st26)
+    request.update_columns(status: SubmissionRequest.statuses.fetch('applied'))
+
+    assert_predicate SubmissionRequest.finished.where(id: request.id), :exists?
+
+    get legacy_submission_requests_path('st26')
+
+    assert_response :success
+    assert_includes response.parsed_body.pluck('id'), request.id
+
+    # And the endpoint it stands in for keeps its own default, so this is
+    # a courtesy to old callers rather than a change to the API.
+    get submission_requests_path(db: %w[st26])
+
+    assert_not_includes response.parsed_body.pluck('id'), request.id
+  end
+
+  test 'a legacy caller that asks for a phase still gets it' do
+    submission_requests(:st26).update_columns(status: SubmissionRequest.statuses.fetch('applied'))
+
+    get legacy_submission_requests_path('st26', phase: 'unfinished')
+
+    assert_response :success
+    assert_not_includes response.parsed_body.pluck('id'), submission_requests(:st26).id
+  end
+
   test 'index is scoped to the database in the path' do
     get legacy_submission_requests_path('st26')
 
