@@ -49,6 +49,34 @@ Rails.application.routes.draw do
     resources :accessions, only: %i[show], param: :number, constraints: {number: %r{[^/]+}}
 
     resources :stats, only: %i[index]
+
+    # Deprecated: the database used to be the first path segment, and
+    # submission-bulk-st26 still addresses `/api/st26/submission_requests`
+    # from six places. Identifiers are globally unique, so the flat routes
+    # above are the shape from here on — these exist so the pipeline that
+    # feeds production does not have to be redeployed in step with the
+    # server.
+    #
+    # Deliberately absent from schema/openapi.yml: they are a way out, not
+    # an interface, and documenting them would invite new callers. Delete
+    # this block and the controller under app/controllers/legacy/ together
+    # once the clients have moved.
+    #
+    # The two endpoints for updating an applied submission
+    # (`POST /{db}/submissions/{id}/updates`, `PATCH
+    # /{db}/submission_updates/{id}`) have no flat equivalent to forward
+    # to — they were withdrawn rather than moved, and no known client
+    # calls them.
+    scope ':db', as: :legacy, constraints: {db: /st26|bioproject|biosample/} do
+      resources :submission_requests, only: %i[index show create], controller: 'legacy/submission_requests' do
+        resource :status,     only: :show
+        resource :submission, only: :create
+      end
+
+      resources :submissions, only: %i[index show] do
+        resources :accessions, only: %i[index]
+      end
+    end
   end
 
   namespace :admin do
