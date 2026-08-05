@@ -90,11 +90,21 @@ class RegenerateFlatfilesRun < ApplicationRecord
 
   def seconds_per_submission = done.positive? ? elapsed / done : 0
 
+  # Enough completions that the wait before the first one stopped
+  # dominating. `started_at` is when the jobs were enqueued, not when one
+  # first ran, so with a single completion the rate is however long the
+  # queue happened to be — and the panel refreshes every three seconds,
+  # which is often enough for somebody to read it.
+  MIN_SAMPLE = 20
+
   # Seconds of work left at the rate this run has managed so far. Its own
   # rate, not the historical one: a run that is going slowly today should
   # say so.
+  #
+  # Elapsed is measured to the last progress rather than to now, so a run
+  # whose workers went away freezes its estimate instead of inflating it.
   def eta
-    return nil unless loading? && done.positive? && remaining.positive?
+    return nil unless loading? && done >= MIN_SAMPLE && remaining.positive?
 
     seconds_per_submission * remaining
   end

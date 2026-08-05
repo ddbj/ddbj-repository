@@ -60,6 +60,30 @@ class RegenerateFlatfilesRunTest < ActiveSupport::TestCase
     assert_nil RegenerateFlatfilesRun.measured_rate
   end
 
+  # `started_at` is when the jobs were enqueued, not when one first ran.
+  # With a single completion the rate is however long the queue happened
+  # to be — and the panel refreshes every three seconds, which is often
+  # enough for somebody to read "about 2 years left".
+  test 'no estimate until enough has finished for the queue wait to wash out' do
+    run = new_run(total: 1000, regenerated: 1, started_at: 3.hours.ago)
+    run.update_columns(updated_at: Time.current)
+
+    assert_nil run.eta
+
+    run.update!(regenerated: RegenerateFlatfilesRun::MIN_SAMPLE)
+
+    assert_not_nil run.eta
+  end
+
+  # And a run whose workers went away freezes its estimate rather than
+  # inflating it: elapsed is measured to the last progress, not to now.
+  test 'the estimate stops growing once progress stops' do
+    run = new_run(total: 100, regenerated: 50, started_at: 2.hours.ago)
+    run.update_columns(updated_at: 1.hour.ago)
+
+    assert_in_delta 1.hour, run.eta, 1.minute
+  end
+
   # The escape hatch: a run whose worker died would otherwise block every
   # later press for good.
   test 'a run that has stopped reporting is no longer in flight' do
