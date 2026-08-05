@@ -169,6 +169,7 @@ Rails.application.routes.draw do
     resources :migration_runs, only: %i[index show new create] do
       member do
         patch :abandon
+        get   :failures
       end
     end
 

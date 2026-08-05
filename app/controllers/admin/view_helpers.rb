@@ -98,6 +98,14 @@ module Admin::ViewHelpers
     end
   end
 
+  # `elapsed_label` with the preposition it needs: "40s ago", but "just
+  # now" rather than "just now ago".
+  def elapsed_phrase(time)
+    label = elapsed_label(time)
+
+    label.in?(['just now', '—']) ? label : "#{label} ago"
+  end
+
   # Long enough that a row deserves to be looked at rather than scrolled
   # past. Colour is the only thing separating "moving" from "stalled" once
   # everything in a queue is by definition waiting.
@@ -232,6 +240,19 @@ module Admin::ViewHelpers
 
   def flash_bootstrap_class(level)
     FLASH_CLASSES.fetch(level.to_s, 'secondary')
+  end
+
+  # How much of a migration run's work is done, in one phrase: "28,410 of
+  # 45,900" while the total is known, the count alone when it is not, and
+  # the failures alongside because a run that imported everything and a
+  # run that imported everything but three are different results.
+  def migration_run_rows(run)
+    done   = number_with_delimiter(run.counters_total)
+    failed = run.counters['failed'].to_i
+
+    rows = run.total.to_i.positive? ? "#{done} of #{number_with_delimiter(run.total)}" : "#{done} rows"
+
+    failed.positive? ? "#{rows} · #{number_with_delimiter(failed)} failed" : rows
   end
 
   def migration_run_status_badge(run)

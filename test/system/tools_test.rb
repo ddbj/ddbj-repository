@@ -21,11 +21,52 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
     # uid field this screen never honoured.
     assert_no_field 'User uid'
 
-    select 'BioSample', from: 'Database'
-    click_button 'Filter'
+    within '.btn-group' do
+      click_link 'BioSample'
+    end
 
-    assert_text    "##{bs.id}"
-    assert_no_text "##{bp.id}"
+    within 'table' do
+      assert_text    "##{bs.id}"
+      assert_no_text "##{bp.id}"
+    end
+  end
+
+  # The rule is one run per database, so that is what the screen leads
+  # with. A list of runs made the reader reconstruct it, and then the
+  # press was refused with an alert saying what the screen already knew.
+  test 'each database leads with its own state and its one next move' do
+    running = MigrationRun.create!(db: 'bioproject', status: :running, total: 100,
+                                   counters: {'created' => 62}, started_at: 10.minutes.ago)
+
+    visit admin_migration_runs_path
+
+    within '[data-test-db-state="bioproject"]' do
+      # The badge is capitalised by CSS, so the text node is the enum's.
+      assert_text    'running'
+      assert_text    '62 of 100 rows'
+      assert_text    'last progress'
+      assert_link    "Run ##{running.id} →"
+      assert_no_link 'Start a run'
+    end
+
+    # The other one has nothing running, so it is the one that offers to.
+    within '[data-test-db-state="biosample"]' do
+      assert_text 'Idle'
+      assert_link 'Start a run'
+    end
+  end
+
+  test 'a database that has run before says how that went' do
+    MigrationRun.create!(db: 'biosample', status: :completed, total: 20,
+                         counters: {'created' => 17, 'failed' => 3},
+                         started_at: 2.days.ago, finished_at: 2.days.ago + 1.hour)
+
+    visit admin_migration_runs_path
+
+    within '[data-test-db-state="biosample"]' do
+      assert_text 'Idle'
+      assert_text '20 of 20 · 3 failed'
+    end
   end
 
   # A run whose worker died keeps its status for ever, and the enqueue
@@ -50,13 +91,72 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
   # Abandoning a live run would put a second worker on the same database,
   # and the two would write over each other. "It looks stuck" is not
   # enough — it has to have stopped.
-  test 'a run that is still moving cannot be abandoned' do
+  # Shown, and disabled, with the reason it cannot be pressed. Hidden, a
+  # curator who came back an hour later looked for a control that had
+  # never been there.
+  test 'a run that is still moving cannot be abandoned, and says why' do
     run = MigrationRun.create!(db: 'biosample', status: :running, started_at: 2.minutes.ago)
 
     visit admin_migration_run_path(run)
 
-    assert_text      'Still progressing'
-    assert_no_button 'Abandon this run'
+    assert_text     'it last progressed'
+    assert_selector 'button[disabled]', text: 'Abandon this run'
+  end
+
+  # The counter keys are the job's vocabulary. A table of them is
+  # readable only by someone who has read the importer.
+  test 'the run detail says what happened to each row in words' do
+    run = MigrationRun.create!(db: 'bioproject', status: :completed, total: 30,
+                               counters: {'failed' => 2, 'created' => 20, 'skipped' => 8},
+                               started_at: 1.hour.ago, finished_at: 30.minutes.ago)
+
+    visit admin_migration_run_path(run)
+
+    within '[data-test-outcomes]' do
+      assert_text 'Imported as a new submission'
+      assert_text 'Already identical, nothing written'
+      assert_text 'Could not be converted'
+
+      # Fixed order rather than sorted by count, so the same run reads
+      # the same way twice.
+      assert_equal %w[created skipped failed], all('code').map(&:text)
+    end
+  end
+
+  # One line per row answers "which row" and never "what do I fix".
+  test 'failures are grouped by cause, with the raw log kept underneath' do
+    run = MigrationRun.create!(db: 'bioproject', status: :completed, total: 4,
+                               counters: {'failed' => 3, 'created' => 1}, started_at: 1.hour.ago)
+
+    run.update!(error_log: [
+      '[PSUB000318] KeyError: missing organism',
+      '[PSUB000402] KeyError: missing organism',
+      '[PSUB000455] ArgumentError: unknown locus tag prefix',
+      'ABANDONED: superseded by a new run'
+    ].join("\n"))
+
+    visit admin_migration_run_path(run)
+
+    within '[data-test-failure-groups]' do
+      rows = all('tr').map(&:text)
+
+      assert_equal 2, rows.size
+      assert_match(/missing organism.*PSUB000318, PSUB000402.*2\z/m, rows.first)
+      assert_match(/unknown locus tag prefix.*PSUB000455.*1\z/m,     rows.last)
+    end
+
+    # Not a row failure, so it is said as what it is.
+    assert_text 'ABANDONED: superseded by a new run'
+
+    # And the log itself is still there for whoever needs it.
+    assert_selector 'details', text: 'Show the raw log'
+
+    # The whole list is a download, not three groups and a shrug.
+    click_link 'Download the failure list'
+
+    assert_equal 3, page.body.lines.size
+    assert_match(/\A\[PSUB000318\] KeyError/, page.body)
+    assert_no_match(/ABANDONED/, page.body)
   end
 
   # staging and production have the D-way credentials — the deployed app
@@ -68,8 +168,10 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
     DataMigration::DwayDefaults.stub(:enabled?, false) do
       visit admin_migration_runs_path
 
-      assert_selector '[data-test-migration-disabled]'
-      assert_no_link  'New run'
+      within '[data-test-db-state="bioproject"]' do
+        assert_text    'switched off'
+        assert_no_link 'Start a run'
+      end
 
       visit new_admin_migration_run_path
 

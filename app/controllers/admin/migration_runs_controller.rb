@@ -12,6 +12,11 @@ module Admin
     before_action :ensure_enabled, only: %i[new create]
 
     def index
+      # The rule is one run per database, so that is what the screen
+      # leads with. The list below answers "what happened before", which
+      # is a different question and a smaller one.
+      @states = MigrationRun::DBS.map { MigrationRun.state_of(it) }
+
       scope = MigrationRun.recent
       scope = scope.where(db: params[:db]) if params[:db].present?
 
@@ -26,8 +31,10 @@ module Admin
       @touched_count = Submission.where(migration_run_id: @migration_run.uuid).count
     end
 
+    # Reached from the state card of a database that is idle, so the
+    # database is already chosen by the time anyone gets here.
     def new
-      @migration_run = MigrationRun.new(db: params[:db].presence || 'bioproject')
+      @migration_run = MigrationRun.new(db: params[:db].presence_in(MigrationRun::DBS) || MigrationRun::DBS.first)
     end
 
     def create
@@ -60,6 +67,17 @@ module Admin
 
       redirect_to admin_migration_run_path(run),
                   notice: "Enqueued #{job_class.name} for migration run ##{run.id}."
+    end
+
+    # Every failed row, as text — the list to work through offline or
+    # paste into a ticket. Only the row failures: the run-level notices
+    # are two lines on the screen already, and the whole log is one
+    # <details> away.
+    def failures
+      run  = MigrationRun.find(params[:id])
+      body = run.error_log.to_s.lines.select { MigrationRun::ROW_FAILURE.match?(it.strip) }.join
+
+      send_data body, filename: "migration-run-#{run.id}-failures.txt", type: 'text/plain'
     end
 
     # Give up on a run whose worker is gone, from the screen rather than

@@ -1,122 +1,192 @@
 <% content_for :title, "Migration run ##{@migration_run.id}" %>
 
 <%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Migration runs',  path: admin_migration_runs_path},
-  {label: "##{@migration_run.id}"}
+  {label: 'Data migration', path: admin_migration_runs_path},
+  {label: "Run ##{@migration_run.id}"}
 ] %>
 
-<h1 class="display-6 mb-4">Migration run #<%= @migration_run.id %></h1>
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h1 class="display-6 mb-0">Run #<%= @migration_run.id %></h1>
+      <span class="badge text-bg-light border"><%= db_label(@migration_run.db) %></span>
+      <%= migration_run_status_badge(@migration_run) %>
+    </div>
 
-<div class="card mb-4">
-  <div class="card-body">
-    <dl class="row mb-0">
-      <dt class="col-sm-3">Database</dt>
-      <dd class="col-sm-9"><%= db_label(@migration_run.db) %></dd>
+    <p class="text-body-secondary mb-0">
+      started <%= format_datetime(@migration_run.started_at) || '—' %>
 
-      <dt class="col-sm-3">Status</dt>
-      <dd class="col-sm-9">
-        <%= migration_run_status_badge(@migration_run) %>
+      <%# A run only stops writing counters when its worker has gone, so %>
+      <%# how long ago it last moved is the fact that decides whether %>
+      <%# anyone is still waiting on it. %>
+      <% if @migration_run.queued_status? || @migration_run.running_status? %>
+        · <strong class="<%= 'text-warning-emphasis' if @migration_run.stale? %>">
+            last progress <%= elapsed_phrase(@migration_run.updated_at) %>
+          </strong>
+      <% end %>
+    </p>
+  </div>
 
-        <%# A run only stops writing counters when its worker has gone, %>
-        <%# so how long ago it last moved is the fact that decides %>
-        <%# whether anyone is still waiting on it. %>
-        <% if @migration_run.queued_status? || @migration_run.running_status? %>
-          <span class="text-body-secondary small">
-            last progress <%= elapsed_label(@migration_run.updated_at) %> ago
-          </span>
-        <% end %>
-      </dd>
+  <% if @touched_count.positive? %>
+    <%= link_to "#{number_with_delimiter(@touched_count)} submissions →",
+                admin_submission_requests_path(db: @migration_run.db), class: 'btn btn-outline-secondary' %>
+  <% end %>
+</div>
 
-      <dt class="col-sm-3">UUID</dt>
-      <dd class="col-sm-9"><code><%= @migration_run.uuid %></code></dd>
-
-      <dt class="col-sm-3">Started</dt>
-      <dd class="col-sm-9"><%= format_datetime(@migration_run.started_at) || '—' %></dd>
-
-      <dt class="col-sm-3">Finished</dt>
-      <dd class="col-sm-9"><%= format_datetime(@migration_run.finished_at) || '—' %></dd>
-
-      <dt class="col-sm-3">Submissions touched</dt>
-      <dd class="col-sm-9">
-        <% if @touched_count.positive? %>
-          <%= link_to "#{number_with_delimiter(@touched_count)} submission(s)",
-                      admin_submission_requests_path(db: @migration_run.db) %>
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card mb-4">
+      <div class="card-body">
+        <% if @migration_run.enumerating? %>
+          <p class="text-body-secondary mb-0">Counting the source rows…</p>
         <% else %>
-          —
+          <div class="d-flex justify-content-between small mb-1">
+            <span><%= migration_run_rows(@migration_run) %> rows</span>
+
+            <span class="text-body-secondary">
+              <%= @migration_run.progress_percent %>%<%=
+                " · about #{distance_of_time_in_words(@migration_run.eta)} left" if @migration_run.eta %>
+            </span>
+          </div>
+
+          <div class="progress" role="progressbar"
+               aria-valuenow="<%= @migration_run.progress_percent %>" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" style="width: <%= @migration_run.progress_percent %>%;"></div>
+          </div>
         <% end %>
-      </dd>
-    </dl>
+      </div>
+    </div>
+
+    <%# The counter keys are the job's vocabulary. Spelling out what each %>
+    <%# one meant is the difference between a table only its author can %>
+    <%# read and a report. %>
+    <% if @migration_run.counters.any? %>
+      <h2 class="h6 mb-2">What happened to each row</h2>
+
+      <table class="table table-sm border align-middle mb-4" data-test-outcomes>
+        <tbody>
+          <% @migration_run.outcome_rows.each do |key, label, count| %>
+            <tr>
+              <td>
+                <%= label %>
+                <code class="small text-body-secondary ms-1"><%= key %></code>
+              </td>
+              <td class="text-end fw-semibold"><%= number_with_delimiter(count) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% end %>
+
+    <% groups = @migration_run.failure_groups %>
+
+    <% if groups.any? %>
+      <div class="d-flex align-items-baseline gap-2 mb-2">
+        <h2 class="h6 mb-0">Failures</h2>
+        <span class="small text-body-secondary">
+          <%= pluralize(number_with_delimiter(groups.sum { it[:count] }), 'row') %> · grouped by cause
+        </span>
+      </div>
+
+      <table class="table table-sm border align-middle mb-3" data-test-failure-groups>
+        <tbody>
+          <% groups.each do |group| %>
+            <tr>
+              <td>
+                <%= group[:cause] %>
+                <span class="small text-body-secondary">
+                  · <%= group[:source_ids].join(', ') %><%= ', …' if group[:truncated] %>
+                </span>
+              </td>
+              <td class="text-end fw-semibold"><%= number_with_delimiter(group[:count]) %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <p class="mb-4">
+        <%= link_to 'Download the failure list', failures_admin_migration_run_path(@migration_run),
+                    class: 'btn btn-outline-secondary btn-sm', data: {turbo: false} %>
+      </p>
+    <% end %>
+
+    <%# Whatever is not a row failure: why it was abandoned, what stopped %>
+    <%# it. Short, and about the run rather than about the data. %>
+    <% @migration_run.notices.each do |notice| %>
+      <p class="small text-warning-emphasis"><%= notice %></p>
+    <% end %>
+
+    <% if @migration_run.error_log.present? %>
+      <details class="mb-4">
+        <summary class="small text-body-secondary">Show the raw log</summary>
+
+        <pre class="bg-body-tertiary p-3 border rounded small mt-2 mb-0"><%= @migration_run.error_log %></pre>
+      </details>
+    <% end %>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-body">
+        <h2 class="h6 mb-3">This run</h2>
+
+        <dl class="small mb-3">
+          <div class="d-flex justify-content-between border-top py-1">
+            <dt class="fw-normal text-body-secondary">Database</dt>
+            <dd class="mb-0"><%= db_label(@migration_run.db) %></dd>
+          </div>
+
+          <div class="d-flex justify-content-between border-top py-1">
+            <dt class="fw-normal text-body-secondary">Started</dt>
+            <dd class="mb-0"><%= format_datetime(@migration_run.started_at) || '—' %></dd>
+          </div>
+
+          <div class="d-flex justify-content-between border-top border-bottom py-1">
+            <dt class="fw-normal text-body-secondary">Finished</dt>
+            <dd class="mb-0"><%= format_datetime(@migration_run.finished_at) || '—' %></dd>
+          </div>
+        </dl>
+
+        <%# Last, and small: nobody decides anything from a UUID. It is %>
+        <%# here to be quoted, which is why it is selectable rather than %>
+        <%# prominent. %>
+        <div class="small text-body-secondary">Run UUID</div>
+        <code class="small user-select-all"><%= @migration_run.uuid %></code>
+      </div>
+    </div>
 
     <%# Abandoning is how a run whose worker died stops blocking every %>
-    <%# future import of its database. Offered only once it has stopped %>
-    <%# moving: a second worker on the same database would write over %>
-    <%# the first, so "it looks stuck" is not enough — it has to BE %>
-    <%# stuck, and the timestamp above is how that is judged. %>
+    <%# future import of its database. Shown whenever the run is live, %>
+    <%# with the reason it cannot be pressed yet — hiding it made a %>
+    <%# curator who came back later look for a control that had never %>
+    <%# been there. %>
     <% if @migration_run.queued_status? || @migration_run.running_status? %>
-      <hr>
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h6 mb-2">Give up on this run</h2>
 
-      <% if @migration_run.stale? %>
-        <%= button_to 'Abandon this run', abandon_admin_migration_run_path(@migration_run),
-                      method: :patch, class: 'btn btn-outline-danger btn-sm' %>
+          <% if @migration_run.stale? %>
+            <p class="small text-body-secondary">
+              Nothing has moved for over an hour, so the worker is gone. Abandoning marks the
+              run failed and lets a new one start; the rows it already imported stay as they
+              are, and the next run picks them up from the source again.
+            </p>
 
-        <p class="text-body-secondary small mb-0 mt-2">
-          Nothing has moved for over an hour, so the worker is gone. Abandoning marks the run
-          failed and lets a new one start; the rows it already imported stay as they are, and
-          the next run picks them up from the source again.
-        </p>
-      <% else %>
-        <p class="text-body-secondary small mb-0">
-          Still progressing. A run can only be abandoned once it has been silent for
-          <%= distance_of_time_in_words(MigrationRun::STALE_AFTER) %> — abandoning a live one
-          would put a second worker on the same database.
-        </p>
-      <% end %>
+            <%= button_to 'Abandon this run', abandon_admin_migration_run_path(@migration_run),
+                          method: :patch, class: 'btn btn-outline-danger btn-sm' %>
+          <% else %>
+            <p class="small text-body-secondary">
+              Only possible once nothing has moved for
+              <%= distance_of_time_in_words(MigrationRun::STALE_AFTER) %> — it last progressed
+              <strong><%= elapsed_phrase(@migration_run.updated_at) %></strong>, so a worker
+              is still on it. Abandoning a live run would put a second worker on the same
+              database.
+            </p>
+
+            <button type="button" class="btn btn-outline-danger btn-sm" disabled>Abandon this run</button>
+          <% end %>
+        </div>
+      </div>
     <% end %>
   </div>
 </div>
-
-<h2 class="h5 mt-4 mb-3">Progress</h2>
-
-<% if @migration_run.total.to_i.zero? %>
-  <p class="text-body-secondary">Total not yet enumerated.</p>
-<% else %>
-  <div class="progress mb-2" style="height: 1.5rem;" role="progressbar"
-       aria-valuenow="<%= @migration_run.progress_percent %>" aria-valuemin="0" aria-valuemax="100">
-    <div class="progress-bar" style="width: <%= @migration_run.progress_percent %>%">
-      <%= @migration_run.progress_percent %>%
-    </div>
-  </div>
-
-  <p class="text-body-secondary">
-    <%= number_with_delimiter(@migration_run.counters_total) %>
-    /
-    <%= number_with_delimiter(@migration_run.total) %>
-    rows processed
-  </p>
-<% end %>
-
-<h2 class="h5 mt-4 mb-3">Outcome counters</h2>
-
-<% if @migration_run.counters.any? %>
-  <table class="table table-sm border w-auto">
-    <thead class="table-light">
-      <tr><th>Outcome</th><th class="text-end">Count</th></tr>
-    </thead>
-    <tbody>
-      <% @migration_run.counters.sort_by {|_, n| -n.to_i }.each do |outcome, n| %>
-        <tr>
-          <td><code><%= outcome %></code></td>
-          <td class="text-end"><%= number_with_delimiter(n) %></td>
-        </tr>
-      <% end %>
-    </tbody>
-  </table>
-<% else %>
-  <p class="text-body-secondary">No counters yet.</p>
-<% end %>
-
-<% if @migration_run.error_log.present? %>
-  <h2 class="h5 mt-4 mb-3">Errors</h2>
-
-  <pre class="bg-body-tertiary p-3 border rounded small"><%= @migration_run.error_log %></pre>
-<% end %>

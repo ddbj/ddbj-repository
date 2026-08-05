@@ -1,43 +1,45 @@
-<% content_for :title, 'Migration runs' %>
+<% content_for :title, 'Data migration' %>
 
 <%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Migration runs'}
+  {label: 'Data migration'}
 ] %>
 
-<div class="d-flex justify-content-between align-items-start mb-4">
-  <h1 class="display-6 mb-0">Migration runs</h1>
+<h1 class="display-6 mb-1">Data migration</h1>
 
-  <%# The list stays readable wherever runs happened; starting one is %>
-  <%# offered only where importing is switched on. %>
-  <% if DataMigration::DwayDefaults.enabled? %>
-    <%= link_to 'New run', new_admin_migration_run_path, class: 'btn btn-primary' %>
-  <% else %>
-    <span class="text-body-secondary small" data-test-migration-disabled>
-      Importing from D-way is switched off here.
-    </span>
+<p class="text-body-secondary mb-4">
+  Imports records from the D-way database. One run per database at a time — the
+  current state of each is below.
+</p>
+
+<%# One card per database, because that is the unit the rule is about. %>
+<%# The old screen led with a list of runs and left the reader to work %>
+<%# out which database was busy, then refused the press with an alert. %>
+<div class="row g-3 mb-4" data-test-db-states>
+  <% @states.each do |state| %>
+    <%= render 'state_card', state: state %>
   <% end %>
 </div>
 
-<%= form_with url: admin_migration_runs_path, method: :get, local: true, class: 'row g-2 mb-3' do |f| %>
-  <div class="col-sm-10">
-    <%= f.label :db, 'Database', class: 'form-label visually-hidden' %>
-    <%= f.select :db, db_options, {include_blank: 'All databases', selected: params[:db]}, class: 'form-select' %>
-  </div>
+<h2 class="h5 mb-3">All runs</h2>
 
-  <div class="col-sm-2">
-    <%= f.submit 'Filter', class: 'btn btn-primary w-100' %>
-  </div>
-<% end %>
+<%# Chips rather than a select and a Filter button: three choices, and %>
+<%# each is one press. %>
+<div class="btn-group btn-group-sm mb-3" role="group" aria-label="Filter by database">
+  <% [[nil, 'Both'], *db_options.map(&:reverse).select { MigrationRun::DBS.include?(it.first) }].each do |value, label| %>
+    <%= link_to label, admin_migration_runs_path(db: value),
+                class: "btn btn-outline-secondary#{' active' if params[:db].presence == value}" %>
+  <% end %>
+</div>
 
-<table class="table border">
+<table class="table border align-middle">
   <thead class="table-light">
     <tr>
-      <th>ID</th>
+      <th>Run</th>
       <th>Database</th>
-      <th>Status</th>
-      <th>Progress</th>
+      <th>State</th>
+      <th>Rows</th>
       <th>Started</th>
-      <th>Finished</th>
+      <th>Duration</th>
     </tr>
   </thead>
 
@@ -46,24 +48,33 @@
       <tr>
         <td><%= link_to "##{run.id}", admin_migration_run_path(run) %></td>
         <td><%= db_label(run.db) %></td>
-        <td><%= migration_run_status_badge(run) %></td>
+
         <td>
-          <% if run.total.to_i.zero? %>
-            <span class="text-body-secondary">—</span>
-          <% else %>
-            <div class="d-flex align-items-center gap-2">
-              <div class="progress flex-grow-1" style="height: 0.5rem;" role="progressbar"
-                   aria-valuenow="<%= run.progress_percent %>" aria-valuemin="0" aria-valuemax="100">
-                <div class="progress-bar" style="width: <%= run.progress_percent %>%"></div>
-              </div>
-              <small class="text-body-secondary text-nowrap">
-                <%= number_with_delimiter(run.counters_total) %> / <%= number_with_delimiter(run.total) %>
-              </small>
-            </div>
+          <%= migration_run_status_badge(run) %>
+
+          <%# A run that stopped reporting is not the same as one still %>
+          <%# working, and the list is where that difference is cheapest %>
+          <%# to see. %>
+          <% if run.stale? %>
+            <span class="small text-warning-emphasis">not reporting</span>
           <% end %>
         </td>
-        <td><%= format_datetime(run.started_at) %></td>
-        <td><%= format_datetime(run.finished_at) %></td>
+
+        <td>
+          <%= migration_run_rows(run) %>
+
+          <%# "Abandoned" without a reason makes the reader open the run %>
+          <%# to find out why. The reason is already recorded. %>
+          <% if (reason = run.abandoned_reason) %>
+            <span class="small text-body-secondary">· <%= reason %></span>
+          <% end %>
+        </td>
+
+        <td class="text-nowrap"><%= format_datetime(run.started_at) %></td>
+
+        <td class="text-nowrap text-body-secondary">
+          <%= run.started_at ? distance_of_time_in_words(run.started_at, run.finished_at || Time.current) : '—' %>
+        </td>
       </tr>
     <% end %>
 

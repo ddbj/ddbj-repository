@@ -1,0 +1,65 @@
+<%# What is happening to one database, and the one thing to do about it. %>
+<% run = state[:current] %>
+
+<div class="col-md-6">
+  <div class="card h-100" data-test-db-state="<%= state[:db] %>">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <h3 class="h6 mb-0"><%= db_label(state[:db]) %></h3>
+
+          <% if run.nil? %>
+            <span class="badge text-bg-light border">Idle</span>
+          <% elsif run.stale? %>
+            <span class="badge text-bg-warning">Not reporting</span>
+          <% else %>
+            <%= migration_run_status_badge(run) %>
+          <% end %>
+        </div>
+
+        <%# Start is offered only where it would be accepted. The old %>
+        <%# screen showed "New run" always and refused with an alert %>
+        <%# after the press — a round trip to be told what the screen %>
+        <%# already knew. %>
+        <% if run %>
+          <%= link_to "Run ##{run.id} →", admin_migration_run_path(run), class: 'small' %>
+        <% elsif DataMigration::DwayDefaults.enabled? %>
+          <%= link_to 'Start a run', new_admin_migration_run_path(db: state[:db]), class: 'btn btn-sm btn-primary' %>
+        <% end %>
+      </div>
+
+      <% if run %>
+        <% if run.enumerating? %>
+          <p class="small text-body-secondary mb-0">Counting the source rows…</p>
+        <% else %>
+          <div class="progress mb-2" style="height: 0.5rem;" role="progressbar"
+               aria-valuenow="<%= run.progress_percent %>" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" style="width: <%= run.progress_percent %>%;"></div>
+          </div>
+
+          <div class="d-flex justify-content-between small">
+            <span><strong><%= number_with_delimiter(run.counters_total) %></strong> of <%= number_with_delimiter(run.total) %> rows</span>
+            <span class="<%= run.stale? ? 'text-warning-emphasis' : 'text-body-secondary' %>">
+              last progress <%= elapsed_phrase(run.updated_at) %>
+            </span>
+          </div>
+        <% end %>
+      <% elsif state[:last] %>
+        <p class="small text-body-secondary mb-0">
+          Last run <%= link_to "##{state[:last].id}", admin_migration_run_path(state[:last]) %>
+          <%= state[:last].failed_status? ? 'stopped' : 'finished' %>
+          <%= format_datetime(state[:last].finished_at || state[:last].updated_at) %> —
+          <%= migration_run_rows(state[:last]) %>.
+        </p>
+      <% else %>
+        <p class="small text-body-secondary mb-0">Never imported.</p>
+      <% end %>
+
+      <%# Where importing is switched off there is nothing to press, and %>
+      <%# saying so beats an absent button. %>
+      <% if run.nil? && !DataMigration::DwayDefaults.enabled? %>
+        <p class="small text-body-secondary mb-0 mt-2">Importing from D-way is switched off here.</p>
+      <% end %>
+    </div>
+  </div>
+</div>
