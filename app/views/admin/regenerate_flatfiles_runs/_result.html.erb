@@ -6,10 +6,7 @@
   <div class="card-body">
     <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
       <span class="h6 mb-0">
-        <% case run.outcome %>
-        <% when :stalled %>
-          Stopped without finishing
-        <% when :partial %>
+        <% if run.outcome == :partial %>
           Finished with <%= pluralize(number_with_delimiter(run.failed), 'failure') %>
         <% else %>
           Finished
@@ -18,7 +15,7 @@
 
       <span class="small text-body-secondary">
         <%= run.scope_label %> · by <%= run.actor_label %> ·
-        <%= run.finished_at ? "#{format_datetime(run.finished_at)} · #{distance_of_time_in_words(run.elapsed)}" : "started #{format_datetime(run.started_at)}" %>
+        <%= format_datetime(run.finished_at) %> · <%= distance_of_time_in_words(run.elapsed) %>
       </span>
     </div>
 
@@ -35,14 +32,6 @@
       </span>
     </div>
 
-    <% if run.stale? %>
-      <p class="small text-warning-emphasis">
-        The workers stopped reporting over an hour ago, with
-        <%= number_with_delimiter(run.remaining) %> of <%= number_with_delimiter(run.total) %> still to go.
-        Anything they did not reach is unchanged; running it again is safe.
-      </p>
-    <% end %>
-
     <% failures = run.shown_failures %>
 
     <% if failures.any? %>
@@ -50,7 +39,7 @@
         <tbody>
           <% failures.each do |failure| %>
             <tr>
-              <td class="text-nowrap"><code><%= failure.display_label %></code></td>
+              <td class="text-nowrap"><code><%= failure.label %></code></td>
               <td class="small text-body-secondary"><%= failure.message %></td>
             </tr>
           <% end %>

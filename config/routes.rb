@@ -145,7 +145,10 @@ Rails.application.routes.draw do
     # The tool screen, plus the two GETs that answer "what would this
     # press cover?" — one for the live summary, one for the confirmation.
     resource :regenerate_flatfiles, only: %i[show create] do
-      get :preview
+      # POST for a read: the form carries the accession list, which is a
+      # bulk paste that does not fit in a query string.
+      post :preview
+
       get :confirm
     end
 

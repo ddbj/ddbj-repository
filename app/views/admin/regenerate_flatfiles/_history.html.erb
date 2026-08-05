@@ -30,17 +30,14 @@
         <td><%= run.actor_label %></td>
 
         <td>
-          <% if run.loading? %>
+          <% if run.stale? %>
+            <span class="text-warning-emphasis">not reporting · <%= number_with_delimiter(run.done) %> done</span>
+          <% elsif run.loading? %>
             <span class="text-body-secondary">running · <%= number_with_delimiter(run.done) %> done</span>
+          <% elsif run.outcome == :partial %>
+            <span class="text-danger-emphasis"><%= number_with_delimiter(run.failed) %> failed</span>
           <% else %>
-            <% case run.outcome %>
-            <% when :stalled %>
-              <span class="text-warning-emphasis">stopped early</span>
-            <% when :partial %>
-              <span class="text-danger-emphasis"><%= number_with_delimiter(run.failed) %> failed</span>
-            <% else %>
-              all succeeded
-            <% end %>
+            all succeeded
           <% end %>
         </td>
 

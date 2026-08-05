@@ -118,6 +118,34 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     assert histories.all? { it.user == @admin }
   end
 
+  # A submission destroyed between enqueue and execution makes reading
+  # the job's own arguments the thing that fails. Reaching for them from
+  # inside the handler raised the same error again, so nothing was
+  # recorded and the run could never reach its total — it sat at
+  # "Regenerating…" until the stale bound caught it an hour later.
+  test 'a submission destroyed before the job ran is still counted, and named' do
+    run        = new_run
+    serialized = RegenerateSubmissionFlatfilesJob.new(@submission, @admin, run, Date.new(2026, 7, 1)).serialize
+    id         = @submission.id
+
+    @submission.destroy!
+
+    assert_raises ActiveJob::DeserializationError do
+      ActiveJob::Base.deserialize(serialized).perform_now
+    end
+
+    run.reload
+
+    assert_equal 1, run.failed
+    assert_not_nil  run.finished_at
+
+    failure = run.failures.sole
+
+    assert_nil     failure.submission
+    assert_equal   "Submission ##{id} (deleted)", failure.label
+    assert_match(/DeserializationError/,          failure.message)
+  end
+
   test 'counts what it did, and closes the run when the last job lands' do
     run = new_run
 

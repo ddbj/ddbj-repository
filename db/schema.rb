@@ -190,10 +190,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_05_150000) do
 
   create_table "regenerate_flatfiles_failures", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.string "label"
+    t.string "label", null: false
     t.text "message", null: false
     t.bigint "run_id", null: false
-    t.bigint "submission_id", null: false
+    t.bigint "submission_id"
     t.index ["run_id"], name: "index_regenerate_flatfiles_failures_on_run_id"
     t.index ["submission_id"], name: "index_regenerate_flatfiles_failures_on_submission_id"
   end
@@ -423,7 +423,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_05_150000) do
   add_foreign_key "project_links", "projects", column: "parent_project_id"
   add_foreign_key "projects", "submissions"
   add_foreign_key "regenerate_flatfiles_failures", "regenerate_flatfiles_runs", column: "run_id"
-  add_foreign_key "regenerate_flatfiles_failures", "submissions"
+  add_foreign_key "regenerate_flatfiles_failures", "submissions", on_delete: :nullify
   add_foreign_key "regenerate_flatfiles_runs", "regenerate_flatfiles_runs", column: "retry_of_id"
   add_foreign_key "reviewer_accesses", "submission_requests"
   add_foreign_key "sample_references", "samples"

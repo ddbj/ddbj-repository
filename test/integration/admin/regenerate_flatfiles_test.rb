@@ -91,13 +91,50 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     assert_equal Date.new(2026, 7, 1).to_s, enqueued_argument('value')
   end
 
+  # Two runs over one submission would have two workers rewriting one
+  # flatfile, both overwriting the LOCUS date and both writing an
+  # accession history entry for it.
+  test 'a second run is refused while one is in flight' do
+    RegenerateFlatfilesRun.create!(actor: 'admin:someone', target: 'all', total: 10, started_at: 2.minutes.ago)
+
+    assert_no_enqueued_jobs only: RegenerateSubmissionFlatfilesJob do
+      post admin_regenerate_flatfiles_path, params: {target: 'all', confirm: 'all'}
+    end
+
+    assert_equal 1, RegenerateFlatfilesRun.count
+    assert_match(/still going/, flash[:alert])
+  end
+
+  # Or one dead worker would close the tool for good — the same dead end
+  # a BioSample migration run reached in July.
+  test 'a run that has stopped reporting does not block a new one' do
+    dead = RegenerateFlatfilesRun.create!(actor: 'admin:someone', target: 'all', total: 10, started_at: 5.hours.ago)
+    dead.update_columns(updated_at: 5.hours.ago)
+
+    post admin_regenerate_flatfiles_path, params: {target: 'all', confirm: 'all'}
+
+    assert_equal 2, RegenerateFlatfilesRun.count
+  end
+
+  # The total is what was enqueued. Counted-then-enqueued leaves a run
+  # one short of a total it can never reach if a submission goes away in
+  # between, and the screen then reports "Regenerating…" for an hour.
+  test 'the total counts what was enqueued' do
+    post admin_regenerate_flatfiles_path, params: {target: 'all', confirm: 'all'}
+
+    run = RegenerateFlatfilesRun.sole
+
+    assert_equal 1, run.total
+    assert_equal 1, enqueued_jobs.count { it['job_class'] == 'RegenerateSubmissionFlatfilesJob' }
+  end
+
   test 'preview reports the scope without starting anything' do
     assert_no_enqueued_jobs only: RegenerateSubmissionFlatfilesJob do
-      get preview_admin_regenerate_flatfiles_path, params: {target: 'all'}
+      post preview_admin_regenerate_flatfiles_path, params: {target: 'all'}
     end
 
     assert_response :success
-    assert_select 'turbo-frame#regenerate_scope'
+    assert_select '[data-test-scope-summary]'
   end
 
   test 'create returns 403 for non-admin users' do

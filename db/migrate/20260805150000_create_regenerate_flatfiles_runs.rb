@@ -30,13 +30,20 @@ class CreateRegenerateFlatfilesRuns < ActiveRecord::Migration[8.1]
     # concurrently, and appending to a column from twenty workers at once
     # loses entries in a way a count never shows.
     create_table :regenerate_flatfiles_failures do |t|
-      t.references :run,        null: false, foreign_key: {to_table: :regenerate_flatfiles_runs}
-      t.references :submission, null: false, foreign_key: true
+      t.references :run, null: false, foreign_key: {to_table: :regenerate_flatfiles_runs}
 
-      # Stamped at the time of the failure. Read back through the
-      # submission it would follow later renumbering, and the list a
-      # curator downloaded would stop matching what they saw.
-      t.string :label
+      # Nullable, and nullified rather than restricted, for the two ways
+      # a failure outlives its submission: one destroyed between enqueue
+      # and execution (the job cannot even deserialise its arguments,
+      # which is itself the failure), and one destroyed afterwards. A
+      # record of what went wrong should not be what stops a submission
+      # being deleted.
+      t.references :submission, foreign_key: {on_delete: :nullify}
+
+      # Stamped at the time of the failure, and required: read back
+      # through the submission it would follow later renumbering — and
+      # for a submission that is gone there would be nothing to read.
+      t.string :label,   null: false
       t.text   :message, null: false
 
       t.datetime :created_at, null: false

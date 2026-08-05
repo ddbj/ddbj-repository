@@ -9,6 +9,7 @@ module Admin
     def show
       @scope     = RegenerationScope.new(params)
       @all_total = RegenerationScope.regeneratable.count
+      @blocking  = RegenerateFlatfilesRun.in_flight.recent.first
       @run       = RegenerateFlatfilesRun.recent.first
 
       # The newest run is the panel, so it is not also a row: the panel
@@ -22,8 +23,15 @@ module Admin
     # than a client-side guess: what "3 accession numbers" resolves to is
     # a question only the database can answer, and answering it wrongly
     # in the summary would be worse than not showing one.
+    # POST for a read, because the thing being read is the accession
+    # list: a bulk paste is thousands of numbers, and a query string that
+    # long is refused by the proxy before it reaches here — which would
+    # break the summary at exactly the scale it exists for.
     def preview
-      render partial: 'summary', locals: {scope: RegenerationScope.new(params)}
+      render partial: 'summary', locals: {
+        scope:    RegenerationScope.new(params),
+        blocking: RegenerateFlatfilesRun.in_flight.recent.first
+      }
     end
 
     def confirm
@@ -32,6 +40,18 @@ module Admin
 
     def create
       scope = build_scope
+
+      # Two runs over one submission put two workers on the same record:
+      # both rewrite the flatfile, both overwrite the LOCUS date, and
+      # both write an accession history entry. The screen disables the
+      # button while a run is going; this is the same rule for the press
+      # that arrives anyway — a second tab, a back button, a double
+      # submit of the confirmation.
+      if (blocking = RegenerateFlatfilesRun.in_flight.recent.first)
+        return redirect_to admin_regenerate_flatfiles_path,
+                           alert: "A regeneration run started at #{helpers.format_datetime(blocking.started_at)} " \
+                                  'is still going. Wait for it to finish.'
+      end
 
       unless scope.ready?
         return redirect_to admin_regenerate_flatfiles_path,
@@ -82,11 +102,22 @@ module Admin
       # In batches: the all-submissions scope is the whole table, and
       # materialising it to hand one array to perform_all_later is the
       # kind of allocation that only shows up on the day someone uses it.
+      enqueued = 0
+
       scope.submissions.find_in_batches(batch_size: 500) do |submissions|
         ActiveJob.perform_all_later submissions.map {|submission|
           RegenerateSubmissionFlatfilesJob.new(submission, current_user, run, scope.locus_date, force: scope.force)
         }
+
+        enqueued += submissions.size
       end
+
+      # The total is what was enqueued, not what was counted a moment
+      # earlier. A submission deleted in between would leave the run one
+      # short of a total it can never reach, and the screen would report
+      # "Regenerating…" for an hour before the stale bound noticed.
+      run.update!(total: enqueued) unless enqueued == run.total
+      run.finish_if_done!
 
       run
     end

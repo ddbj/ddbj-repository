@@ -6,12 +6,13 @@
 # a developer's view of a question they asked as "which records are
 # stale?".
 class RegenerateFlatfilesFailure < ApplicationRecord
-  belongs_to :run,        class_name: 'RegenerateFlatfilesRun'
-  belongs_to :submission
+  belongs_to :run, class_name: 'RegenerateFlatfilesRun'
 
+  # Optional, because the two interesting failures are a submission
+  # destroyed between enqueue and execution and one destroyed since. The
+  # label is what the row is read by, so it carries the name instead.
+  belongs_to :submission, optional: true
+
+  validates :label,   presence: true
   validates :message, presence: true
-
-  # What the curator recognises the row by. Falls back to the submission
-  # id only when there is nothing published to name it with.
-  def display_label = label.presence || "submission ##{submission_id}"
 end

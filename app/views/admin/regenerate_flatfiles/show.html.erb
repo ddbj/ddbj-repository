@@ -64,10 +64,14 @@
               </div>
 
               <div class="form-check">
-                <%= radio_button_tag :date_mode, 'set', @scope.setting_date?, class: 'form-check-input' %>
+                <%= radio_button_tag :date_mode, 'set', @scope.setting_date?, class: 'form-check-input',
+                                                                              data: {scope_preview_target: 'setDate'} %>
                 <%= label_tag :date_mode_set, 'Set every regenerated flatfile to', class: 'form-check-label' %>
 
-                <%= date_field_tag :date, @scope.date_input, class: 'form-control mt-2', 'aria-label': 'LOCUS date' %>
+                <%# Filling this in is choosing to set a date; leaving %>
+                <%# the radio behind would discard it without saying so. %>
+                <%= date_field_tag :date, @scope.date_input, class: 'form-control mt-2', 'aria-label': 'LOCUS date',
+                                                             data: {action: 'input->scope-preview#dateEntered'} %>
               </div>
 
               <div class="form-text">
@@ -97,8 +101,8 @@
     </div>
   </div>
 
-  <div class="col-lg-4">
-    <%= render 'summary', scope: @scope %>
+  <div class="col-lg-4" data-scope-preview-target="panel">
+    <%= render 'summary', scope: @scope, blocking: @blocking %>
   </div>
 <% end %>
 

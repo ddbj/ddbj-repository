@@ -11,7 +11,7 @@ module Admin
     # works through offline. Rendered from the stored rows rather than
     # from the submissions, so it matches what the screen showed.
     def failures
-      body = @run.failures.map { "#{it.display_label}\t#{it.message}" }.join("\n")
+      body = @run.failures.map { "#{it.label}\t#{it.message}" }.join("\n")
 
       send_data "#{body}\n",
                 filename: "regenerate-flatfiles-#{@run.id}-failures.txt",

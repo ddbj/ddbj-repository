@@ -1,10 +1,15 @@
 <%# One job per submission, so the count is the truth rather than an %>
 <%# approximation of it — unlike the TSV import, whose second half is a %>
 <%# single transaction and can only report that it started. %>
-<div class="card mb-4" data-controller="auto-refresh" data-test-run-progress>
+<%# A run that has reported nothing for an hour stops being polled, but %>
+<%# is not declared over: it may be queued behind something long, and %>
+<%# "the workers are gone, run it again" would put a second worker on %>
+<%# every submission the first is still holding. %>
+<div class="card mb-4" data-test-run-progress
+     <%= 'data-controller=auto-refresh'.html_safe unless run.stale? %>>
   <div class="card-body">
     <div class="d-flex align-items-baseline gap-2 mb-3">
-      <span class="h6 mb-0">Regenerating…</span>
+      <span class="h6 mb-0"><%= run.stale? ? 'Not reporting' : 'Regenerating…' %></span>
 
       <span class="small text-body-secondary">
         started <%= format_datetime(run.started_at) %> by <%= run.actor_label %> · <%= run.scope_label.downcase %>
@@ -29,8 +34,18 @@
       </span>
     </div>
 
-    <p class="small text-body-secondary mb-0 mt-3">
-      One job per submission — a failure stops only that submission. You can leave this page.
-    </p>
+    <% if run.stale? %>
+      <p class="small text-warning-emphasis mb-0 mt-3">
+        Nothing has been reported since <%= format_datetime(run.updated_at) %>. The remaining jobs may
+        be queued behind other work, or their workers may be gone — this page has stopped asking.
+        <%= link_to 'Check again', admin_regenerate_flatfiles_run_path(run), data: {turbo_frame: '_top'} %>,
+        or look at <%= link_to 'Jobs', admin_mission_control_jobs_path, data: {turbo_frame: '_top'} %>
+        to see which it is.
+      </p>
+    <% else %>
+      <p class="small text-body-secondary mb-0 mt-3">
+        One job per submission — a failure stops only that submission. You can leave this page.
+      </p>
+    <% end %>
   </div>
 </div>

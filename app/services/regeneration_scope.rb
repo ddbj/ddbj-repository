@@ -12,12 +12,19 @@ class RegenerationScope
 
   attr_reader :numbers_text, :date_mode, :date_input, :force, :retry_of
 
-  # Flatfiles are rendered from v1/v2 DDBJ Records. Every BioProject and
-  # BioSample record is v3, which has no renderer yet —
+  # Flatfiles are rendered from v1/v2 DDBJ Records, and every BioProject
+  # and BioSample record in this system is v3 —
   # RegenerateSubmissionFlatfilesJob raises V3NotImplementedError on
   # sight of one. Including them would enqueue thousands of jobs whose
   # only possible outcome is a failed row, so they are named as out of
   # scope here instead.
+  #
+  # `db` and not the record's own version, because the version is inside
+  # the blob: `submissions.canonical_version` is the canonicaliser's
+  # version, a different axis entirely. So this is the closest thing to
+  # the question that can be asked in SQL, and an ST.26 submission
+  # holding a v3 record still fails — visibly, as a failure row naming
+  # it, rather than silently.
   def self.regeneratable = Submission.st26_db.where.associated(:ddbj_record_attachment)
 
   def self.retrying(run)
@@ -101,11 +108,17 @@ class RegenerationScope
     end
   end
 
-  # The subset of the form the confirmation and the POST have to carry
-  # forward — the parameters, not the counts, so that what is confirmed
-  # is re-resolved rather than trusted from a link.
+  # The subset of the form the confirmation has to carry forward — the
+  # parameters, not the counts, so that what is confirmed is re-resolved
+  # rather than trusted from a link.
+  #
+  # The accession list is left out when it is not what is being run: it
+  # is a bulk paste of thousands of numbers, and the confirmation is
+  # reached by a GET.
   def to_params
-    {target: @target, numbers: numbers_text, date_mode:, date: date_input, force: force ? '1' : '0'}
+    {target: @target, date_mode:, date: date_input, force: force ? '1' : '0'}.tap {|params|
+      params[:numbers] = numbers_text if accessions_target?
+    }
   end
 
   private

@@ -6,10 +6,9 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   # queue still records a failed job and Sentry still sees it — the run
   # screen is where the failure is read, not where it is reported.
   rescue_from StandardError do |error|
-    run        = arguments.find { it.is_a?(RegenerateFlatfilesRun) }
-    submission = arguments.find { it.is_a?(Submission) }
+    run, submission, label = failed_target
 
-    run&.record_failure!(submission, error)
+    run&.record_failure!(submission, error, label:)
 
     raise error
   end
@@ -60,10 +59,49 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     # regenerated everything rewrote the lot. The old single `processed`
     # counter could not tell them apart, so turning the rewrite option
     # off produced a result nobody could read.
-    run.count! regenerating ? :regenerated : :skipped
+    run.count! (regenerating ? :regenerated : :skipped), submission
   end
 
   private
+
+  # Which run to report to, and which submission the report is about.
+  #
+  # A submission destroyed between enqueue and execution makes reading
+  # the job's own arguments the thing that fails, and `arguments` is
+  # then simply empty — it does not raise, it reports nothing. Read only
+  # from there, the handler would find no run, so the failure would go
+  # unrecorded, the run would never reach its total, and the screen
+  # would sit at "Regenerating…" until the stale bound caught it an hour
+  # later. The serialised form still names both.
+  def failed_target
+    run        = arguments.find { it.is_a?(RegenerateFlatfilesRun) } || locate_serialized(RegenerateFlatfilesRun)
+    submission = arguments.find { it.is_a?(Submission) }
+
+    [run, submission, ("#{serialized_label(Submission)} (deleted)" unless submission)]
+  end
+
+  def serialized_globalid(klass)
+    serialized_arguments
+      .grep(Hash)
+      .filter_map { it['_aj_globalid'] }
+      .find { it.include?("/#{klass.name}/") }
+  end
+
+  def locate_serialized(klass)
+    gid = serialized_globalid(klass) or return nil
+
+    GlobalID::Locator.locate(gid)
+  rescue ActiveRecord::RecordNotFound
+    # The run itself has been deleted. There is nowhere to report to,
+    # and raising here would replace the failure with one about it.
+    nil
+  end
+
+  def serialized_label(klass)
+    gid = serialized_globalid(klass)
+
+    gid ? "#{klass.name.underscore.humanize} ##{gid.split('/').last}" : 'unknown submission'
+  end
 
   def changed?(submission, record)
     entries             = build_entries(record, submission.accessions)

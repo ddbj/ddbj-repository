@@ -177,18 +177,37 @@ class RegenerateFlatfilesSystemTest < ApplicationSystemTestCase
     assert_equal run,     retried.retry_of
   end
 
-  # A run whose workers went away used to poll for ever, because nothing
-  # but the counters could say it had stopped.
-  test 'a run whose workers are gone reaches a result instead of polling' do
+  # A run that has gone quiet stops being polled, and stops there. It is
+  # not declared over: its jobs may be queued behind something long, and
+  # "the workers are gone, run it again" would put a second worker on
+  # every submission the first is still holding.
+  test 'a run that stops reporting stops being polled, without being declared over' do
     run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'all', total: 10, regenerated: 4,
                                          started_at: 5.hours.ago)
     run.update_columns(updated_at: 5.hours.ago)
 
     visit admin_regenerate_flatfiles_run_path(run)
 
-    assert_text        'Stopped without finishing'
-    assert_text        '6 of 10 still to go'
+    assert_text        'Not reporting'
+    assert_text        'Nothing has been reported since'
+    assert_no_text     'Finished'
     assert_no_selector '[data-controller="auto-refresh"]'
+  end
+
+  # One run at a time: two over the same submission would have two
+  # workers rewriting one flatfile.
+  test 'the press is withheld while a run is in flight' do
+    RegenerateFlatfilesRun.create!(actor: 'admin:sato', target: 'all', total: 10, regenerated: 4,
+                                   started_at: 2.minutes.ago)
+
+    visit admin_regenerate_flatfiles_path(target: 'all')
+
+    within '[data-test-scope-summary]' do
+      assert_text     'is still going'
+      assert_text     '4 of 10 done'
+      assert_selector 'input[type=submit][disabled]'
+      assert_no_link  'Regenerate 1 submission…'
+    end
   end
 
   # "When did someone last regenerate everything?" used to have no
@@ -233,14 +252,32 @@ class RegenerateFlatfilesJavaScriptTest < JavaScriptSystemTestCase
     )
   end
 
+  # With the forgery check running, because that is the half this cannot
+  # be trusted to get right on its own: the preview is a POST outside the
+  # form's own action, so the form's per-action token does not verify it
+  # and the summary would silently stop following the fields.
   test 'the summary follows the scope being chosen' do
-    visit admin_regenerate_flatfiles_path
+    with_forgery_protection do
+      visit admin_regenerate_flatfiles_path
 
-    assert_text 'Nothing to regenerate.'
+      assert_text 'Nothing to regenerate.'
 
-    choose 'Every submission with a stored record'
+      choose 'Every submission with a stored record'
 
-    assert_text 'every ST.26 submission with a stored record'
+      assert_text 'every ST.26 submission with a stored record'
+      assert_link 'Regenerate 1 submission…'
+    end
+  end
+
+  # Filling in a date is choosing to set one. Left to the radio alone it
+  # is discarded, and the only sign is a summary line saying the dates
+  # are unchanged.
+  test 'entering a LOCUS date chooses to set it' do
+    visit admin_regenerate_flatfiles_path(target: 'all')
+
+    fill_in 'LOCUS date', with: '2026-09-01'
+
+    assert_text 'set to 2026-09-01'
     assert_link 'Regenerate 1 submission…'
   end
 

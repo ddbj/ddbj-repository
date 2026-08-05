@@ -11,10 +11,13 @@ class RegenerateFlatfilesRun < ApplicationRecord
   # last time" — it cannot be re-derived from a list of numbers.
   TARGETS = %w[accessions all retry].freeze
 
-  # A run whose workers are gone. Every increment touches the row, so an
-  # hour of silence with jobs outstanding is not a slow queue — it is a
-  # queue that is no longer being served. Without this bound the screen
-  # polls itself for ever and the run never reaches a result.
+  # How long a run may report nothing before it stops being believed.
+  #
+  # It is deliberately not read as "the workers are gone": a run queued
+  # behind a long migration has never touched its row either, and saying
+  # its jobs are lost would invite a second run over the same
+  # submissions. What it does is stop the screen polling for ever, and
+  # stop one silent run blocking every later one.
   STALE_AFTER = 1.hour
 
   belongs_to :retry_of, class_name: 'RegenerateFlatfilesRun', optional: true
@@ -31,6 +34,14 @@ class RegenerateFlatfilesRun < ApplicationRecord
   scope :recent,   -> { order(started_at: :desc) }
   scope :finished, -> { where.not(finished_at: nil) }
 
+  # What a second press has to wait for. Two runs over the same
+  # submission put two workers on the same record: both rewrite the
+  # flatfile, both overwrite `accessions.locus_date`, and both write an
+  # accession history entry. The stale bound is the escape — a run that
+  # reports nothing for an hour stops blocking later ones, or one dead
+  # worker would close the tool for good.
+  scope :in_flight, -> { where(finished_at: nil, updated_at: STALE_AFTER.ago..) }
+
   # How long a submission takes, measured rather than assumed. The
   # estimate on the form is worth showing only because it comes from what
   # this installation actually did — a constant compiled in here would be
@@ -41,7 +52,12 @@ class RegenerateFlatfilesRun < ApplicationRecord
     rows = finished.where('regenerated + skipped + failed > 0').recent.limit(5).to_a
     return nil if rows.empty?
 
-    rows.sum(&:seconds_per_submission) / rows.size
+    # Weighted by what each run actually got through, not one vote per
+    # run. Most runs are two or three accessions whose elapsed time is
+    # mostly queue latency; averaging their rates with a thousand-record
+    # run's would put a number an order of magnitude high next to the
+    # most destructive control on the screen.
+    rows.sum(&:elapsed) / rows.sum(&:done)
   end
 
   # Enough failures to recognise what went wrong without turning the
@@ -58,13 +74,16 @@ class RegenerateFlatfilesRun < ApplicationRecord
 
   def percent = total.zero? ? 100 : done * 100 / total
 
-  # Still being worked on. A run that stopped moving is not loading, so
-  # the screen shows what it got through instead of a bar that never
-  # fills — see STALE_AFTER.
-  def loading? = finished_at.nil? && !stale?
+  # Not finished. A run that has gone quiet is still loading — it may be
+  # queued behind something long — so it keeps its progress reading
+  # rather than being declared over on a timer.
+  def loading? = finished_at.nil?
 
   def completed? = !loading?
 
+  # Reporting nothing for long enough that the screen stops asking. Says
+  # only that: whether the jobs are lost or merely waiting is not
+  # something this row knows.
   def stale? = finished_at.nil? && updated_at < STALE_AFTER.ago
 
   def elapsed = (finished_at || updated_at) - started_at
@@ -80,17 +99,11 @@ class RegenerateFlatfilesRun < ApplicationRecord
     seconds_per_submission * remaining
   end
 
-  # Three readings, and the difference between them is what a curator
-  # came to the screen for:
-  #
-  #   :clean   — everything it covered is regenerated or deliberately skipped
-  #   :partial — some submissions failed; the rest are live
-  #   :stalled — the workers went away, so the counts are all there is
-  def outcome
-    return :stalled if stale?
-
-    failed.positive? ? :partial : :clean
-  end
+  # Two readings of a finished run, and the difference between them is
+  # what a curator came to the screen for: everything it covered is
+  # regenerated or deliberately skipped, or some of it failed and the
+  # rest is live.
+  def outcome = failed.positive? ? :partial : :clean
 
   def scope_label
     case target
@@ -105,11 +118,24 @@ class RegenerateFlatfilesRun < ApplicationRecord
   # Records a failure and counts it in one go, so the row and the counter
   # cannot disagree — a screen that says "6 failed" and lists five is a
   # screen nobody trusts twice.
-  def record_failure!(submission, error)
+  #
+  # `label` takes what it can get: a submission that has been destroyed
+  # is exactly the case where the job could not even read its arguments,
+  # and "the run failed on something" is not a report.
+  def record_failure!(submission, error, label: nil)
+    label ||= self.class.label_for(submission)
+
+    # A submission destroyed while its job was in flight: the row it
+    # points at is gone, so storing the reference would fail on the
+    # foreign key — inside the failure handler, where it would replace
+    # the error being reported with one about the reporting. The label
+    # is what the row is read by, and it is already in hand.
+    submission = nil unless submission && Submission.exists?(submission.id)
+
     transaction do
       failures.create!(
         submission: submission,
-        label:      submission && (submission.accessions.order(:id).first&.number || submission.source_id),
+        label:      label,
         message:    "#{error.class}: #{error.message}"
       )
 
@@ -119,8 +145,27 @@ class RegenerateFlatfilesRun < ApplicationRecord
     finish_if_done!
   end
 
-  def count!(counter)
-    increment! counter, touch: true
+  def self.label_for(submission)
+    return 'unknown submission' unless submission
+
+    submission.accessions.order(:id).first&.number.presence ||
+      submission.source_id.presence ||
+      "submission ##{submission.id}"
+  end
+
+  # Counts one submission's outcome, and takes back the failure it is
+  # replacing. A job re-run from the queue browser lands here for a
+  # submission this run has already counted as failed; without clearing
+  # it the run reports more outcomes than it has submissions, and goes
+  # on naming a failure that has since succeeded.
+  def count!(counter, submission)
+    transaction do
+      cleared = failures.where(submission_id: submission.id).delete_all
+
+      self.class.update_counters(id, failed: -cleared) if cleared.positive?
+
+      increment! counter, touch: true
+    end
 
     finish_if_done!
   end
