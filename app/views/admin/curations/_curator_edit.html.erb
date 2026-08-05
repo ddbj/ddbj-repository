@@ -1,0 +1,92 @@
+<%# locals: (submission:, state:, materialised: nil, error: nil) %>
+<%# One card, one save. Status / assignee / hold date / curator comment %>
+<%# were four cards with four buttons; a curator changes them as a single %>
+<%# decision, so they post as a single form. %>
+<%#
+  A BS submission's samples can disagree on STATUS. Where they do there is
+  no value to preselect, so the field opens on "Leave as-is" and an
+  untouched select genuinely leaves the mixture alone — picking a value is
+  how you flatten it. Where they agree there IS a value to preselect, and
+  a "leave as-is" beside it means the same as not touching the select, so
+  it is not offered.
+
+  Assignee cannot disagree: it is one column on the request, which is also
+  why it is offered before Apply, when there are no rows for a status to
+  apply to. It therefore always has a value to preselect and never needs
+  the option — which mattered more than being tidy, because "— Leave as-is
+  —" sat directly above "— Unassigned —": two dashed, neutral-looking
+  entries, one a no-op and the other a real change.
+%>
+<section class="card" data-test-curator-edit>
+  <div class="card-body">
+    <h2 class="h6 card-title">Curation</h2>
+
+    <p class="text-body-secondary small">
+      <% if state.curated? %>
+        Status applies to all <%= number_with_delimiter(state.row_count) %> <%= state.row_noun %> in this submission.
+      <% else %>
+        This submission has no curation rows yet, so there is no status to set — it can still be assigned.
+      <% end %>
+    </p>
+
+    <%= form_with url: admin_submission_curation_path(submission), method: :patch, scope: :curation, local: true do |f| %>
+      <% if state.curated? %>
+        <div class="mb-3">
+          <%= f.label :status, 'Status', class: 'form-label form-label-sm' %>
+          <%= f.select :status,
+                       Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                       {include_blank: ('— Leave as-is —' if state.uniform_status.nil?),
+                        selected:      state.uniform_status},
+                       class: 'form-select form-select-sm' %>
+        </div>
+      <% end %>
+
+      <div class="mb-3">
+        <%= f.label :assignee_id, 'Assignee', class: 'form-label form-label-sm' %>
+        <%= f.select :assignee_id,
+                     [['— Unassigned —', CurationUpdate::UNASSIGNED]] + User.staff.order(:uid).pluck(:uid, :id),
+                     {selected: state.request.assignee_id || CurationUpdate::UNASSIGNED},
+                     class: 'form-select form-select-sm' %>
+      </div>
+
+      <%# BioProject only. `submission.hold_date` is a v3 field for any DB, %>
+      <%# but nothing outside BP acts on it: the projection column lives on %>
+      <%# Project, Submission#sync_hold_date! is a no-op elsewhere, and %>
+      <%# DistributionNotifier is BP-only. Offering it here would let a %>
+      <%# curator set a date, be told it saved, and have nothing honour it. %>
+      <%# %>
+      <%# Omitted entirely — not merely disabled — when the chain cannot %>
+      <%# be replayed: CurationUpdate reads an absent key as "leave alone", %>
+      <%# so a broken record can never be silently rewritten from a form %>
+      <%# that could not show its current value. %>
+      <% if submission.bioproject_db? && materialised && error.nil? %>
+        <div class="mb-3">
+          <%= f.label :hold_date, 'Hold date', class: 'form-label form-label-sm' %>
+          <%= f.date_field :hold_date,
+                           value: materialised.dig('submission', 'hold_date'),
+                           class: 'form-control form-control-sm' %>
+          <div class="form-text">Blank clears it. Saving appends a patch to the chain.</div>
+        </div>
+      <% elsif submission.bioproject_db? && error %>
+        <div class="mb-3 small text-danger">
+          Hold date is not editable — the patch chain failed to replay.
+          See <%= link_to 'Record & history', record_admin_submission_request_path(submission.request) %>.
+        </div>
+      <% end %>
+
+      <div class="mb-3">
+        <%= f.label :curator_comment, class: 'form-label form-label-sm' do %>
+          Curator comment <span class="fw-normal text-body-secondary">(internal)</span>
+        <% end %>
+        <%= f.text_area :curator_comment, value: submission.curator_comment,
+                        class: 'form-control form-control-sm textarea-autogrow' %>
+        <div class="form-text">Visible only to curators. Never part of the DDBJ Record.</div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= f.submit 'Save changes', class: 'btn btn-primary btn-sm flex-fill' %>
+        <%= link_to 'Reset', admin_submission_request_path(submission.request), class: 'btn btn-outline-secondary btn-sm' %>
+      </div>
+    <% end %>
+  </div>
+</section>

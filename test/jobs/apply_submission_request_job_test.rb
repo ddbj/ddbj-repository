@@ -54,4 +54,25 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert_equal 'stack level too deep', request.error_message
     assert_not request.processing?
   end
+
+  test 'refuses v3 records, transitions request to application_failed cleanly' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+
+    request.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/v3_trad_gnm.json').open,
+      filename:     'v3_trad_gnm.json',
+      content_type: 'application/json'
+    )
+
+    request.save!
+
+    # V3NotImplementedError is a StandardError so the job's bareword
+    # rescue catches it; request transitions to :application_failed
+    # with the deferral message recorded for operator triage.
+    ApplySubmissionRequestJob.perform_now request
+
+    request.reload
+    assert request.application_failed?
+    assert_match(/v3 record application not yet implemented/, request.error_message)
+  end
 end

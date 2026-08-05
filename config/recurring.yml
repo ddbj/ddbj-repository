@@ -1,7 +1,65 @@
 production: &production
+  # Is the object store there? Nothing else asks unless it happens to
+  # need a blob, and the two times SeaweedFS died it was days or weeks
+  # before something did — see StorageHealthcheckJob. Hourly, because the
+  # cost of asking is one HEAD and the cost of not asking was a fortnight.
+  storage_healthcheck:
+    class: StorageHealthcheckJob
+    schedule: every hour
+
+  # SolidQueue names a retention window for finished jobs but nothing
+  # acts on it, so the table only grows — one row per job, and a bulk
+  # import writes one job per submission. It only removes rows finished
+  # over a day ago, so the slot just has to be a quiet one.
+  clear_finished_jobs:
+    class: ClearFinishedJobsJob
+    schedule: at 1:30am every day
+
   load_taxdump:
     class: LoadTaxdumpJob
     schedule: at 6am every day
 
+  # Fill users.email for accounts that have never logged in (the D-way
+  # importer creates them from a uid alone). Runs before the mail-sending
+  # jobs below so a notice goes to a real address on its first attempt.
+  sync_user_emails:
+    class: SyncUserEmailsJob
+    schedule: at 1am every day
+
+  publish_bp_xml:
+    class: PublishBpXMLJob
+    schedule: at 2am every day
+
+  publish_bs_xml:
+    class: PublishBsXMLJob
+    schedule: at 2:30am every day
+
+  # BP three-pole (三極交換) exchange dump. Daily, like the public dumps —
+  # legacy bpbatch generated public + collab together in one nightly run.
+  # It anchors its delta on the previous exchange run, so it can sit in the
+  # same window as the public jobs without interfering.
+  publish_bp_exchange_xml:
+    class: PublishBpExchangeXMLJob
+    schedule: at 3am every day
+
+  # BP/BS livelists (public / suppressed / withdrawn status lists for NCBI).
+  # Daily, mirroring D-way's nightly generation.
+  publish_bp_livelist:
+    class: PublishBpLiveListJob
+    schedule: at 4am every day
+
+  publish_bs_livelist:
+    class: PublishBsLiveListJob
+    schedule: at 4:30am every day
+
+  # Release-notice mail for embargoed records whose hold_date is approaching
+  # (DistributionNotifier). 5:30 mirrors the legacy TSUNAMI batch.
+  distribution_notifier:
+    class: DistributionNotifierJob
+    schedule: at 5:30am every day
+
 staging:
+  <<: *production
+
+dev:
   <<: *production

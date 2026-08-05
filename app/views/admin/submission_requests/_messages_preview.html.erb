@@ -1,0 +1,29 @@
+<%# locals: (request:, state:) %>
+<%# The last thing said, so the curator can tell from Overview whether the %>
+<%# thread needs opening. Opening it clears nothing — replying or Mark as %>
+<%# read does, and only for the curator who did it. %>
+<% last = request.messages.includes(:user).last %>
+
+<section class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h6 card-title mb-0">Messages</h2>
+      <% if state.unread_message_count.positive? %>
+        <span class="badge text-bg-danger"><%= state.unread_message_count %> unread</span>
+      <% end %>
+    </div>
+
+    <% if last %>
+      <blockquote class="border-start border-2 ps-3 mb-2 small text-body-secondary text-truncate-3">
+        <%= truncate(last.body, length: 160) %>
+      </blockquote>
+      <p class="small text-body-tertiary mb-3">
+        <%= last.user.uid %> · <%= format_datetime(last.created_at) %>
+      </p>
+    <% else %>
+      <p class="small text-body-secondary fst-italic">No messages yet.</p>
+    <% end %>
+
+    <%= link_to 'Open thread', messages_admin_submission_request_path(request), class: 'btn btn-outline-secondary btn-sm w-100' %>
+  </div>
+</section>

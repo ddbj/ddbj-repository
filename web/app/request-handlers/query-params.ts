@@ -1,6 +1,7 @@
 import type { NextFn } from '@ember-data/request';
 
-type ParamValue = string | number | boolean | null | undefined;
+type ScalarParam = string | number | boolean | null | undefined;
+type ParamValue = ScalarParam | ScalarParam[];
 
 export default class QueryParamsHandler {
   request<T>(
@@ -13,7 +14,12 @@ export default class QueryParamsHandler {
       const searchParams = new URLSearchParams();
 
       for (const [key, value] of Object.entries(params)) {
-        if (value != null) {
+        if (Array.isArray(value)) {
+          // Rails parses repeated `key[]=` occurrences into an array.
+          for (const item of value) {
+            if (item != null) searchParams.append(`${key}[]`, item.toString());
+          }
+        } else if (value != null) {
           searchParams.set(key, value.toString());
         }
       }

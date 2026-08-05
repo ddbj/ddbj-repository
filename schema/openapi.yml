@@ -69,19 +69,152 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /{db}/submission_requests:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
+  /attention:
     get:
-      description: Get a list of submission requests.
+      description: |
+        Get the requests that are waiting on the current user: a file that
+        stopped on a validation error, one that passed validation and is
+        waiting to be applied, or an unanswered curator question. Used for
+        a global banner, so the notice is visible from any screen rather
+        than only where the request happens to be listed.
+
+        A failed *application* is deliberately not here — that one is
+        DDBJ's to fix, and asking the submitter to act on it only makes
+        them resubmit a file that was fine.
 
       tags:
         - Submission Requests
 
       responses:
         '200':
+          description: Returns the requests needing attention, newest first.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [requests]
+
+                properties:
+                  requests:
+                    type: array
+
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [id, db, source_id, reason]
+
+                      properties:
+                        id:
+                          type: number
+
+                        db:
+                          $ref: '#/components/schemas/Db'
+
+                        source_id:
+                          type:
+                            - string
+                            - 'null'
+
+                        reason:
+                          description: |
+                            Why this request is waiting on the submitter,
+                            most-blocking first when it is more than one.
+                          type: string
+                          enum:
+                            - validation_failed
+                            - ready_to_apply
+                            - unread_message
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /submission_requests:
+    get:
+      description: |
+        Get a list of submission requests. `db` and `status` are multi-select
+        filters (repeat the key, e.g. `?db[]=st26&db[]=biosample`); omit a
+        filter to span every value. `source_id` is a case-insensitive prefix
+        match on the applied submission's source id. `accession` is a
+        case-insensitive prefix match across the submission's accessions
+        (BP project / BS samples / ST.26 accessions).
+
+        `phase` splits the live submissions from the finished ones and
+        defaults to `unfinished`; `needs_action` narrows to the ones
+        waiting on the submitter (the same set `/attention` returns).
+        `Unfinished-Count` and `Finished-Count` report both halves
+        regardless of which one is being listed.
+
+      tags:
+        - Submission Requests
+
+      parameters:
+        - name: db
+          in: query
+
+          schema:
+            type: array
+
+            items:
+              $ref: '#/components/schemas/Db'
+
+        - name: status
+          in: query
+
+          schema:
+            type: array
+
+            items:
+              $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        - name: source_id
+          in: query
+
+          schema:
+            type: string
+
+        - name: accession
+          in: query
+
+          schema:
+            type: string
+
+        - name: phase
+          in: query
+
+          schema:
+            type: string
+            enum: [unfinished, finished, all]
+
+        - name: needs_action
+          in: query
+
+          schema:
+            type: boolean
+
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
+      responses:
+        '200':
           description: Returns the list of submission requests.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
+
+            Unfinished-Count:
+              schema:
+                type: string
+
+            Finished-Count:
+              schema:
+                type: string
 
           content:
             application/json:
@@ -114,9 +247,12 @@ paths:
                 submission_request:
                   type: object
                   additionalProperties: false
-                  required: [ddbj_record]
+                  required: [db, ddbj_record]
 
                   properties:
+                    db:
+                      $ref: '#/components/schemas/Db'
+
                     ddbj_record:
                       type: string
                       format: binary
@@ -136,23 +272,20 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /{db}/submission_requests/{id}:
+  /submission_requests/{id}:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
       description: Get a submission request.
 
       tags:
         - Submission Requests
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
 
       responses:
         '200':
@@ -169,23 +302,20 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submission_requests/{id}/status:
+  /submission_requests/{id}/status:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
       description: Get the status of a submission request. Lightweight endpoint for polling.
 
       tags:
         - Submission Requests
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
 
       responses:
         '200':
@@ -202,23 +332,99 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submission_requests/{id}/submission:
+  /submission_requests/{id}/closure:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Close a submission request — "I am not taking this one further".
+
+        A request that failed validation cannot be advanced: a corrected file
+        arrives as a new request with no link back to this one, so closing is
+        the only way it ever reaches an end. The request keeps its status, its
+        validation and its messages; it stops asking the submitter for
+        something and moves to the finished side of the list.
+
+        Only a request that is asking for something may be closed (validation
+        failed, or ready to apply) — see `closable`.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the closed submission request.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          description: The request is not in a state that can be closed.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+
+                required:
+                  - error
+
+                properties:
+                  error:
+                    type: string
+
+    delete:
+      description: |
+        Reopen a closed submission request. As cheap as closing it, because
+        closing undoes nothing.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the reopened submission request.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionRequest'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submission_requests/{id}/submission:
+    parameters:
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     post:
       description: Apply a submission request.
 
       tags:
         - Submission Requests
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
 
       responses:
         '204':
@@ -233,32 +439,29 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /{db}/submission_updates/{id}:
+  /submission_requests/{submission_request_id}/reviewer_access:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
-      description: Get a submission update.
+      description: Get the reviewer-access link state for a request.
 
       tags:
-        - Submission Updates
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
+        - Submission Requests
 
       responses:
         '200':
-          description: Returns the requested submission update.
+          description: Whether reviewer access is enabled and, if so, its share URL and expiry.
 
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubmissionUpdate'
+                $ref: '#/components/schemas/ReviewerAccess'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -266,27 +469,41 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submission_updates/{id}/submission:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
-    patch:
-      description: Apply a submission update.
+    post:
+      description: Enable reviewer access, minting a fresh unguessable link. Any existing link is invalidated.
 
       tags:
-        - Submission Updates
+        - Submission Requests
 
-      parameters:
-        - name: id
-          in: path
-          required: true
+      requestBody:
+        required: true
 
-          schema:
-            type: number
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [reviewer_access]
+
+              properties:
+                reviewer_access:
+                  type: object
+                  additionalProperties: false
+                  required: [expires_at]
+
+                  properties:
+                    expires_at:
+                      type: string
+                      format: date-time
 
       responses:
-        '204':
-          description: Accepted the submission update application.
+        '201':
+          description: Returns the newly-enabled reviewer access.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewerAccess'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -297,19 +514,119 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableContent'
 
-  /{db}/submissions:
+    delete:
+      description: Disable reviewer access, invalidating the link.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '204':
+          description: Reviewer access disabled.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reviews/{token}:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: token
+        in: path
+        required: true
+
+        schema:
+          type: string
 
     get:
-      description: Get a list of submissions.
+      description: Reviewer view of a submission request via its share token. No authentication; messages are deliberately not included.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the submission request.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewerSubmissionRequest'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reviews/{token}/accessions:
+    parameters:
+      - name: token
+        in: path
+        required: true
+
+        schema:
+          type: string
+
+    get:
+      description: Reviewer view of a submission's accessions via the share token. No authentication.
+
+      tags:
+        - Submission Requests
+
+      parameters:
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: Returns the list of accessions.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/Accession'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submissions:
+    get:
+      description: Get a list of submissions. Omit `db` to span every database the user has access to.
 
       tags:
         - Submissions
 
+      parameters:
+        - name: db
+          in: query
+
+          schema:
+            $ref: '#/components/schemas/Db'
+
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
       responses:
         '200':
           description: Returns the list of submissions.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
 
           content:
             application/json:
@@ -322,23 +639,20 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /{db}/submissions/{id}:
+  /submissions/{id}:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
       description: Get a submission.
 
       tags:
         - Submissions
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
 
       responses:
         '200':
@@ -355,9 +669,14 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submissions/{id}/accessions:
+  /submissions/{id}/accessions:
     parameters:
-      - $ref: '#/components/parameters/Db'
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
 
     get:
       description: Get a paginated list of accessions for a submission.
@@ -366,13 +685,6 @@ paths:
         - Submissions
 
       parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
-
         - name: page
           in: query
 
@@ -401,6 +713,143 @@ paths:
 
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /submission_requests/{submission_request_id}/messages/read:
+    parameters:
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Mark the curator's messages in this thread as read — "nothing to answer
+        here".
+
+        Reading the thread does not do this. "I have seen it" and "I have dealt
+        with it" are different events, and a submitter who opens a question
+        meaning to answer it later should keep the reminder. Replying discharges
+        the thread too; this is for the note that needs no reply.
+
+        `through_id` is the newest message the client had in front of it. One
+        that arrives a moment later is not acknowledged by a press that could
+        not have taken it into account. Omit it to mark the whole thread.
+
+      requestBody:
+        required: false
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+
+              properties:
+                through_id:
+                  type: number
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '204':
+          description: The curator's messages are marked read.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submission_requests/{submission_request_id}/messages:
+    parameters:
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    get:
+      description: Get the curator ↔ submitter message thread for a request. Marks any unread curator-authored messages as read.
+
+      tags:
+        - Submission Requests
+
+      responses:
+        '200':
+          description: Returns the chronological list of messages.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/Message'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      description: Submitter posts a reply to the thread. Notifies curators by email.
+
+      tags:
+        - Submission Requests
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [submission_message]
+
+              properties:
+                submission_message:
+                  type: object
+                  additionalProperties: false
+                  required: [body]
+
+                  properties:
+                    body:
+                      type: string
+
+                    files:
+                      description: |
+                        Signed ids from ActiveStorage direct upload. The file goes
+                        to storage from the browser, so nothing here is bounded by
+                        this request — the files this conversation is about are
+                        submission files, which are large by nature.
+                      type: array
+
+                      items:
+                        type: string
+
+      responses:
+        '201':
+          description: Returns the newly-created message.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
 
   /accessions/{number}:
     get:
@@ -451,63 +900,6 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /{db}/submissions/{id}/updates:
-    parameters:
-      - $ref: '#/components/parameters/Db'
-
-    post:
-      description: Create a submission update.
-
-      tags:
-        - Submissions
-
-      parameters:
-        - name: id
-          in: path
-          required: true
-
-          schema:
-            type: number
-
-      requestBody:
-        required: true
-
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [submission_update]
-
-              properties:
-                submission_update:
-                  type: object
-                  additionalProperties: false
-                  required: [ddbj_record]
-
-                  properties:
-                    ddbj_record:
-                      type: string
-                      format: binary
-
-      responses:
-        '202':
-          description: Accepted the submission update creation.
-
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SubmissionUpdate'
-
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-        '422':
-          $ref: '#/components/responses/UnprocessableContent'
-
 components:
   schemas:
     Db:
@@ -524,17 +916,84 @@ components:
 
       required:
         - id
+        - db
         - status
         - created_at
+        - closed_at
+        - submission_id
+        - source_id
+        - first_accession
+        - accession_count
+        - processing
+        - unread_curator_message_count
+        - progress
 
       properties:
         id:
           type: number
 
+        db:
+          $ref: '#/components/schemas/Db'
+
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'
 
         created_at:
+          type: string
+          format: date-time
+
+        closed_at:
+          description: |
+            The submitter put this request down. A row and the page it opens
+            answer the same question from the same facts, so the summary
+            carries it too.
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+        submission_id:
+          type: number
+          nullable: true
+
+        source_id:
+          type:
+            - string
+            - 'null'
+
+        first_accession:
+          type:
+            - string
+            - 'null'
+
+        accession_count:
+          type: number
+
+        processing:
+          description: Validation or application is running right now.
+          type: boolean
+
+        unread_curator_message_count:
+          type: number
+
+        progress:
+          $ref: '#/components/schemas/Progress'
+
+    ReviewerAccess:
+      type: object
+      additionalProperties: false
+
+      required:
+        - enabled
+
+      properties:
+        enabled:
+          type: boolean
+
+        url:
+          type: string
+
+        expires_at:
           type: string
           format: date-time
 
@@ -569,17 +1028,26 @@ components:
 
       required:
         - id
+        - db
         - status
         - error_message
         - created_at
+        - closed_at
+        - closable
         - processing
         - ddbj_record
         - validation
         - submission
+        - progress
+        - unread_curator_message_count
+        - last_message_at
 
       properties:
         id:
           type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
 
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'
@@ -591,6 +1059,103 @@ components:
 
         created_at:
           type: string
+          format: date-time
+
+        closed_at:
+          description: |
+            When the submitter put this request down. A request that failed
+            validation cannot be advanced — a corrected file arrives as a new
+            request — so closing is the only way it reaches an end. Null while
+            it is still open.
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+        closable:
+          description: |
+            Whether the submitter may close it now. True only while the request
+            is asking them for something (validation failed, or ready to apply).
+          type: boolean
+
+        processing:
+          type: boolean
+
+        ddbj_record:
+          $ref: '#/components/schemas/Attachment'
+
+        validation:
+          anyOf:
+            - $ref: '#/components/schemas/Validation'
+            - type: 'null'
+
+        submission:
+          anyOf:
+            - $ref: '#/components/schemas/Submission'
+            - type: 'null'
+
+        progress:
+          $ref: '#/components/schemas/Progress'
+
+        unread_curator_message_count:
+          type: number
+
+        last_message_at:
+          description: When the thread was last posted to, by either party.
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+    ReviewerSubmissionRequest:
+      description: |
+        What a share-link holder may see. Identical to SubmissionRequest
+        minus the messaging facts: the endpoint is unauthenticated, so it
+        must not disclose that a curator ↔ submitter conversation exists.
+        Spelled out rather than derived from SubmissionRequest because
+        `additionalProperties: false` does not compose through `allOf` —
+        which also means a field added to the submitter view stays out of
+        this one until somebody decides it belongs here.
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - db
+        - status
+        - error_message
+        - created_at
+        - closed_at
+        - processing
+        - ddbj_record
+        - validation
+        - submission
+        - progress
+
+      properties:
+        id:
+          type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
+
+        status:
+          $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        error_message:
+          type:
+            - string
+            - 'null'
+
+        created_at:
+          type: string
+          format: date-time
+
+        closed_at:
+          description: The submitter put this request down. Null while it is still open.
+          type:
+            - string
+            - 'null'
           format: date-time
 
         processing:
@@ -609,55 +1174,60 @@ components:
             - $ref: '#/components/schemas/Submission'
             - type: 'null'
 
-    SubmissionUpdate:
+        progress:
+          $ref: '#/components/schemas/Progress'
+
+    Progress:
+      description: |
+        How far along the request is, in a vocabulary a submitter can read.
+        Derived server-side from the ingest status and the curation rows —
+        neither of the underlying enums is a progress scale on its own.
       type: object
       additionalProperties: false
 
       required:
-        - id
-        - status
-        - diff
-        - error_message
-        - created_at
-        - processing
-        - ddbj_record
-        - validation
-        - submission
+        - step
+        - failed
+        - closed
+        - row_count
+        - accessioned_count
+        - hold_date
 
       properties:
-        id:
-          type: number
-
-        status:
-          $ref: '#/components/schemas/SubmissionOperationStatus'
-
-        diff:
-          type:
-            - string
-            - 'null'
-
-        error_message:
-          type:
-            - string
-            - 'null'
-
-        created_at:
+        step:
           type: string
-          format: date-time
+          enum:
+            - submitted
+            - validated
+            - applied
+            - curating
+            - accession_issued
+            - public
 
-        processing:
+        failed:
+          description: The pipeline stopped at the step after `step`.
           type: boolean
 
-        ddbj_record:
-          $ref: '#/components/schemas/Attachment'
+        closed:
+          description: |
+            The record left the pipeline — withdrawn, canceled or
+            permanently suppressed. `step` is then where it stopped, not
+            where work is in progress.
+          type: boolean
 
-        validation:
-          anyOf:
-            - $ref: '#/components/schemas/Validation'
-            - type: 'null'
+        row_count:
+          description: Curation rows behind the request — 1 project (BP), N samples (BS), 0 otherwise.
+          type: number
 
-        submission:
-          $ref: '#/components/schemas/Submission'
+        accessioned_count:
+          type: number
+
+        hold_date:
+          description: Scheduled release date. Only BioProject carries one.
+          type:
+            - string
+            - 'null'
+          format: date
 
     Validation:
       type: object
@@ -741,12 +1311,22 @@ components:
 
       required:
         - id
+        - db
+        - source_id
         - created_at
         - updated_at
 
       properties:
         id:
           type: number
+
+        db:
+          $ref: '#/components/schemas/Db'
+
+        source_id:
+          type:
+            - string
+            - 'null'
 
         created_at:
           type: string
@@ -762,16 +1342,22 @@ components:
 
       required:
         - id
+        - source_id
         - created_at
         - updated_at
+        - accessions_count
         - ddbj_record
         - flatfile_na
         - flatfile_aa
-        - updates
 
       properties:
         id:
           type: number
+
+        source_id:
+          type:
+            - string
+            - 'null'
 
         created_at:
           type: string
@@ -780,6 +1366,9 @@ components:
         updated_at:
           type: string
           format: date-time
+
+        accessions_count:
+          type: number
 
         ddbj_record:
           $ref: '#/components/schemas/Attachment'
@@ -793,39 +1382,6 @@ components:
           anyOf:
             - $ref: '#/components/schemas/Attachment'
             - type: 'null'
-
-        updates:
-          type: array
-
-          items:
-            type: object
-            additionalProperties: false
-
-            required:
-              - id
-              - status
-              - created_at
-              - ddbj_record
-              - validation
-
-            properties:
-              id:
-                type: number
-
-              status:
-                $ref: '#/components/schemas/SubmissionOperationStatus'
-
-              created_at:
-                type: string
-                format: date-time
-
-              ddbj_record:
-                $ref: '#/components/schemas/Attachment'
-
-              validation:
-                anyOf:
-                  - $ref: '#/components/schemas/Validation'
-                  - type: 'null'
 
     Accession:
       type: object
@@ -863,6 +1419,75 @@ components:
         url:
           type: string
           format: uri
+
+    AttachedFile:
+      description: |
+        One file attached to a message. Uploaded directly to storage, so no
+        size limit is imposed here — the files this conversation is about are
+        submission files, which are large by nature.
+      type: object
+      additionalProperties: false
+
+      required:
+        - filename
+        - byte_size
+        - url
+
+      properties:
+        filename:
+          type: string
+
+        byte_size:
+          type: number
+
+        url:
+          type: string
+
+    Message:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - body
+        - author_role
+        - author_uid
+        - created_at
+        - read_at
+        - files
+
+      properties:
+        id:
+          type: number
+
+        body:
+          type: string
+
+        author_role:
+          type: string
+
+          enum:
+            - curator
+            - submitter
+
+        author_uid:
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        read_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+        files:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/AttachedFile'
 
     SubmissionOperationStatus:
       type: string
@@ -928,12 +1553,3 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
 
-  parameters:
-    Db:
-      name: db
-      in: path
-      required: true
-      description: Database that the submission belongs to.
-
-      schema:
-        $ref: '#/components/schemas/Db'

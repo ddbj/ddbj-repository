@@ -1,0 +1,107 @@
+import Controller from '@ember/controller';
+import { action } from '@ember/object';
+import { tracked } from '@glimmer/tracking';
+
+export interface FilterOption {
+  value: string;
+  label: string;
+}
+
+export const DB_OPTIONS: FilterOption[] = [
+  { value: 'st26', label: 'ST.26' },
+  { value: 'bioproject', label: 'BioProject' },
+  { value: 'biosample', label: 'BioSample' },
+];
+
+export type Phase = 'unfinished' | 'finished' | 'all';
+
+export const PHASE_TABS: { value: Phase; label: string }[] = [
+  { value: 'unfinished', label: 'In progress' },
+  { value: 'finished', label: 'Completed' },
+  { value: 'all', label: 'All' },
+];
+
+export default class extends Controller {
+  queryParams = [
+    'db',
+    'sourceId',
+    'accession',
+    'phase',
+    { needsAction: { type: 'boolean' }, page: { type: 'number' } } as const,
+  ];
+
+  // Which half of the list is on screen. Finished submissions never stop
+  // accumulating, so a lab with 500 released records cannot find the
+  // three that are still moving unless the two are separated.
+  @tracked phase: Phase = 'unfinished';
+
+  // Set by the attention band's "Show only these": narrows to what is
+  // waiting on the submitter, across both halves.
+  @tracked needsAction = false;
+
+  // The applied filter — the checked subset for each facet. An empty
+  // array means "no constraint" (every value), so the param drops out of
+  // the URL. The checkboxes are only read on submit, so editing them
+  // never re-queries or resets mid-edit.
+  @tracked db: string[] = [];
+  @tracked sourceId = '';
+  @tracked accession = '';
+  @tracked page = 1;
+
+  @action
+  applyFilters(e: Event) {
+    e.preventDefault();
+    const data = new FormData(e.target as HTMLFormElement);
+
+    this.db = normalize(
+      data.getAll('db') as string[],
+      DB_OPTIONS.map((o) => o.value),
+    );
+    const sourceId = data.get('sourceId');
+    this.sourceId = typeof sourceId === 'string' ? sourceId.trim() : '';
+    const accession = data.get('accession');
+    this.accession = typeof accession === 'string' ? accession.trim() : '';
+    this.page = 1;
+  }
+
+  // Check / uncheck every box in a facet. Operates on the DOM directly
+  // (the checkboxes are uncontrolled until Filter is pressed), so it does
+  // not query — the user presses Filter to apply.
+  @action
+  setFacet(name: string, checked: boolean, e: Event) {
+    const form = (e.currentTarget as HTMLElement).closest('form');
+    form?.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`).forEach((box) => {
+      box.checked = checked;
+    });
+  }
+
+  @action
+  clearFilters() {
+    this.db = [];
+    this.sourceId = '';
+    this.accession = '';
+    this.needsAction = false;
+    this.page = 1;
+  }
+
+  @action
+  selectPhase(phase: Phase) {
+    this.phase = phase;
+    this.page = 1;
+  }
+
+  get hasActiveFilters(): boolean {
+    return this.db.length > 0 || this.sourceId.length > 0 || this.accession.length > 0 || this.needsAction;
+  }
+}
+
+// All-checked and none-checked both mean "no constraint" (show every
+// value) — the standard faceted-filter convention, matching the admin
+// list. Only a proper subset becomes an actual filter.
+function normalize(selected: string[], all: string[]): string[] {
+  return selected.length === 0 || selected.length === all.length ? [] : selected;
+}
+
+export function isChecked(selected: string[], value: string): boolean {
+  return selected.length === 0 || selected.includes(value);
+}

@@ -1,0 +1,15 @@
+<%# locals: (label:, path:, active:, count: nil, count_class: 'text-bg-secondary', disabled: false) %>
+<li class="nav-item">
+  <% classes = "nav-link d-inline-flex align-items-center gap-2 #{'active' if active} #{'disabled' if disabled}" %>
+
+  <% if disabled %>
+    <span class="<%= classes %>"><%= label %></span>
+  <% else %>
+    <%= link_to path, class: classes, 'aria-current': ('page' if active) do %>
+      <%= label %>
+      <% if count&.positive? %>
+        <span class="badge <%= count_class %>"><%= number_with_delimiter(count) %></span>
+      <% end %>
+    <% end %>
+  <% end %>
+</li>

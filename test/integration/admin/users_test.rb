@@ -1,62 +1,12 @@
 require 'test_helper'
 
+# What the Users endpoints do irrespective of any screen: who may reach
+# them, what they do when the account is not ours, and where proxy login
+# hands off to. Everything a curator reads or presses lives in
+# test/system/users_test.rb.
 class AdminUsersTest < ActionDispatch::IntegrationTest
-  ALICE_PROFILE = {uid: 'alice', full_name: 'Alice Liddell', email: 'alice@example.com', organization: 'Wonderland',   account_type_number: 'general'}.freeze
-  BOB_PROFILE   = {uid: 'bob',   full_name: 'Bob Builder',   email: 'bob@example.com',   organization: 'Construction', account_type_number: 'general'}.freeze
-  CAROL_PROFILE = {uid: 'carol', full_name: 'Carol King',    email: 'carol@example.com', organization: 'Music',        account_type_number: 'general'}.freeze
-
   setup do
-    sign_in_as users(:bob)
-  end
-
-  test 'index lists active users with profile fetched from cloakman' do
-    stub_cloakman_lookup [ALICE_PROFILE]
-
-    get admin_users_path
-
-    assert_response :ok
-    assert_match 'alice',         response.body
-    assert_match 'Alice Liddell', response.body
-  end
-
-  test 'index includes inactive users when include_inactive=1' do
-    stub_cloakman_lookup [ALICE_PROFILE, BOB_PROFILE, CAROL_PROFILE]
-
-    get admin_users_path, params: {include_inactive: '1'}
-
-    assert_response :ok
-    assert_match 'Alice Liddell', response.body
-    assert_match 'Bob Builder',   response.body
-    assert_match 'Carol King',    response.body
-  end
-
-  test 'index filters cloakman search results to registered active users' do
-    stub_request(:get, 'http://cloakman.example.com/api/users')
-      .with(query: {query: 'ali'})
-      .to_return(
-        status:  200,
-        body:    [
-          ALICE_PROFILE,
-          {uid: 'alicia', full_name: 'Alicia Keys', email: 'alicia@example.com', organization: 'Music', account_type_number: 'general'}
-        ].to_json,
-        headers: {'Content-Type' => 'application/json'}
-      )
-
-    get admin_users_path, params: {query: 'ali'}
-
-    assert_response :ok
-    assert_match    'Alice Liddell', response.body
-    assert_no_match 'Alicia Keys',   response.body
-  end
-
-  test 'show returns the user profile combined with the admin flag and counts' do
-    stub_cloakman_lookup [ALICE_PROFILE]
-
-    get admin_user_path(uid: 'alice')
-
-    assert_response :ok
-    assert_match 'Alice Liddell', response.body
-    assert_match 'Wonderland',    response.body
+    sign_in_as users(:bob) # admin
   end
 
   test 'show returns 404 when the user is not registered locally' do
@@ -67,46 +17,18 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test 'show includes the persisted notes' do
-    users(:alice).update!(notes: 'Existing note')
-
-    stub_cloakman_lookup [ALICE_PROFILE]
+  # DDBJ Account being unreachable is a fact about the fetch, not about
+  # the user — it must not turn an account that exists into one that
+  # does not.
+  test 'show renders without a profile rather than 404-ing' do
+    stub_cloakman_lookup [], uids: %w[alice]
 
     get admin_user_path(uid: 'alice')
 
     assert_response :ok
-    assert_match 'Existing note', response.body
   end
 
-  test 'update persists notes and redirects with a flash message' do
-    stub_cloakman_lookup [ALICE_PROFILE]
-
-    patch admin_user_path(uid: 'alice'), params: {user: {notes: 'Be careful with this account.'}}
-
-    assert_redirected_to admin_user_path(uid: 'alice')
-    assert_equal 'Notes saved.',                  flash[:notice]
-    assert_equal 'Be careful with this account.', users(:alice).reload.notes
-  end
-
-  test 'update returns 403 for non-admin users' do
-    sign_in_as users(:carol)
-
-    with_exceptions_app do
-      patch admin_user_path(uid: 'alice'), params: {user: {notes: 'nope'}}
-    end
-
-    assert_response :forbidden
-  end
-
-  test 'show returns 404 when cloakman has no matching profile' do
-    stub_cloakman_lookup [], uids: %w[alice]
-
-    with_exceptions_app do
-      get admin_user_path(uid: 'alice')
-    end
-
-    assert_response :not_found
-  end
+  # --- authorisation -------------------------------------------------------
 
   test 'index returns 403 for non-admin users' do
     sign_in_as users(:carol)
@@ -128,11 +50,24 @@ class AdminUsersTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
+  test 'update returns 403 for non-admin users' do
+    sign_in_as users(:carol)
+
+    with_exceptions_app do
+      patch admin_user_path(uid: 'alice'), params: {user: {notes: 'nope'}}
+    end
+
+    assert_response :forbidden
+  end
+
+  # --- proxy login ---------------------------------------------------------
+
+  # A handoff to another application rather than a screen of our own: the
+  # web client is JWT-only, so proxy login hands it the admin's own token
+  # plus the target, and the web login route acts as that user.
   test 'proxy_login redirects to the web login with the admin token and proxy target' do
     post admin_user_proxy_login_path(user_uid: 'alice')
 
-    # The web client is JWT-only, so proxy-login hands it the admin's own
-    # token plus the proxy target; the web login route then acts as alice.
-    assert_redirected_to %r{http://repository\.example\.com:4200/web/login\?token=.+&proxy_login=alice}
+    assert_redirected_to %r{http://repository\.example\.com:4200/web/auth/callback\?token=.+&proxy_login=alice}
   end
 end

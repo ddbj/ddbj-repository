@@ -1,0 +1,12 @@
+<% app_url = Rails.application.config_for(:app).app_url! -%>
+The submitter (<%= @request.user.uid %>) has replied on <%= @request.db.humanize %> request (<%= @request.submission&.source_id.presence || "##{@request.id}" %>):
+
+<% if @message.body.present? -%>
+<%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+<% end -%>
+<%= render 'files', message: @message -%>
+
+Open the thread in the admin UI:
+<%= File.join(app_url, 'admin', 'submission_requests', @request.id.to_s) %>
+
+— DDBJ Repository

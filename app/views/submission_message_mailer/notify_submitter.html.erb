@@ -1,0 +1,26 @@
+<% thread_url = WebApp.url_for("/requests/#{@request.id}") %>
+
+<p>Dear submitter,</p>
+
+<p>
+  A DDBJ curator (<%= @curator.uid %>) has posted a message on your
+  <%= @request.db.humanize %> request
+  (<%= @request.submission&.source_id.presence || "##{@request.id}" %>):
+</p>
+
+<% if @message.body.present? %>
+  <blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
+    <%= simple_format @message.body %>
+  </blockquote>
+<% end %>
+
+<%= render 'files', message: @message %>
+
+<p>
+  <a href="<%= thread_url %>">Open the thread on the web UI to reply.</a>
+</p>
+
+<p>
+  Regards,<br>
+  DDBJ Repository
+</p>

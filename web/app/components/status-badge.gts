@@ -11,8 +11,8 @@ export default <template>
   <span class="badge {{colorClass @status}} text-capitalize">{{humanize @status}}</span>
 </template> satisfies TOC<Signature>;
 
-function colorClass(validity: Signature['Args']['status']): string {
-  switch (validity) {
+function colorClass(status: Signature['Args']['status']): string {
+  switch (status) {
     case 'waiting_validation':
       return 'text-bg-secondary';
     case 'validating':
@@ -32,7 +32,7 @@ function colorClass(validity: Signature['Args']['status']): string {
     case 'no_change':
       return 'text-bg-light';
     default:
-      throw new Error(validity satisfies never);
+      throw new Error(status satisfies never);
   }
 }
 

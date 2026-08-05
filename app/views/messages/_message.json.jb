@@ -1,0 +1,14 @@
+# locals: (message:)
+
+{
+  id:          message.id,
+  body:        message.body,
+  author_role: message.author_role,
+  author_uid:  message.user.uid,
+  created_at:  message.created_at.iso8601,
+  read_at:     message.read_at&.iso8601,
+
+  # Both sides upload directly to storage, so this is a list of what
+  # landed rather than anything this request carried.
+  files: message.files.map { render('application/attachment_file', file: it) }
+}

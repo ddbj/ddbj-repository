@@ -1,0 +1,57 @@
+<%# locals: (row:, section:) %>
+<%# One queue row. Exactly one reason and exactly one button: the row %>
+<%# exists so a curator can act without first deciding what kind of thing %>
+<%# they are looking at. Which of the two it is comes from MyQueue::Row. %>
+<% request = row.request %>
+<div class="list-group-item d-flex align-items-center gap-3 flex-wrap">
+  <%= link_to "##{request.id}", admin_submission_request_path(request), class: 'fw-semibold text-nowrap' %>
+
+  <span class="badge text-bg-light border"><%= db_label(request.db) %></span>
+
+  <span class="small text-body-secondary text-nowrap">
+    <code><%= request.submission&.source_id || '—' %></code> · <%= request.user.uid %>
+    <%# Who holds it, but only where that is the surprising part: in %>
+    <%# "I'm involved" the assignment is somebody else's, and in %>
+    <%# "Unclaimed" the absence of a submission is why nobody has it. %>
+    <% if section.key == :involved && request.assignee %>
+      · assignee <%= request.assignee.uid %>
+    <% elsif section.key == :unclaimed && request.submission.nil? %>
+      · not applied yet
+    <% end %>
+  </span>
+
+  <span class="flex-fill small text-body-secondary"><%= row.reason %></span>
+
+  <%# Elapsed, not a timestamp: everything in a queue is waiting, so the %>
+  <%# only question is how long — and a stale row has to be visible in a %>
+  <%# column of rows that are all, by definition, overdue. %>
+  <span class="small text-nowrap <%= 'text-danger fw-semibold' if stale?(request.updated_at) %>">
+    <%= elapsed_label(request.updated_at) %>
+  </span>
+
+  <%# No `else`: a row whose reason was resolved by somebody else between %>
+  <%# the two queries has no action left, and offering the wrong one is %>
+  <%# worse than offering none. It disappears on the next load. %>
+  <% case row.action %>
+  <% when :reply %>
+    <%= link_to 'Reply', messages_admin_submission_request_path(request), class: 'btn btn-outline-secondary btn-sm' %>
+  <% when :issue %>
+    <%# Straight from the queue: work that can be finished without %>
+    <%# opening the request should not require opening the request — but %>
+    <%# through the same confirmation as everywhere else, opened over the %>
+    <%# queue so a cancelled one costs no place in it. %>
+    <%= link_to 'Issue', new_admin_submission_accession_path(request.submission),
+                class: 'btn btn-outline-secondary btn-sm',
+                data:  {turbo_frame: 'confirm_dialog'} %>
+  <% end %>
+
+  <% if row.issuing %>
+    <span class="badge text-bg-warning">Issuing…</span>
+  <% end %>
+
+  <% if section.key == :unclaimed %>
+    <%= button_to 'Assign to me', admin_submission_request_assignment_path(request),
+                  method: :post,
+                  class:  'btn btn-primary btn-sm' %>
+  <% end %>
+</div>

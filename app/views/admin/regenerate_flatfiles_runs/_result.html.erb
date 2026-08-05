@@ -1,0 +1,76 @@
+<%# What the run did, on the screen that started it. The failures are %>
+<%# read here rather than in the job queue: "see Jobs for failure %>
+<%# details" answers a curator's question ("which records are stale?") %>
+<%# with a developer's tool. %>
+<div class="card mb-4" data-test-run-result>
+  <div class="card-body">
+    <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2 mb-3">
+      <span class="h6 mb-0">
+        <% if run.outcome == :partial %>
+          Finished with <%= pluralize(number_with_delimiter(run.failed), 'failure') %>
+        <% else %>
+          Finished
+        <% end %>
+      </span>
+
+      <span class="small text-body-secondary">
+        <%= run.scope_label %> · by <%= run.actor_label %> ·
+        <%= format_datetime(run.finished_at) %> · <%= distance_of_time_in_words(run.elapsed) %>
+      </span>
+    </div>
+
+    <div class="d-flex flex-wrap gap-3 small mb-3">
+      <span><strong><%= number_with_delimiter(run.regenerated) %></strong> regenerated</span>
+
+      <%# Counted apart from "regenerated", because with the rewrite %>
+      <%# option off they are the difference between "nothing needed %>
+      <%# doing" and "nothing was done". %>
+      <span class="text-body-secondary"><strong><%= number_with_delimiter(run.skipped) %></strong> unchanged, skipped</span>
+
+      <span class="<%= run.failed.positive? ? 'text-danger-emphasis' : 'text-body-secondary' %>">
+        <strong><%= number_with_delimiter(run.failed) %></strong> failed
+      </span>
+    </div>
+
+    <% failures = run.shown_failures %>
+
+    <% if failures.any? %>
+      <table class="table table-sm border align-middle mb-3">
+        <tbody>
+          <% failures.each do |failure| %>
+            <tr>
+              <td class="text-nowrap"><code><%= failure.label %></code></td>
+              <td class="small text-body-secondary"><%= failure.message %></td>
+            </tr>
+          <% end %>
+
+          <% if run.failed > failures.size %>
+            <tr>
+              <td colspan="2" class="small text-body-secondary">
+                <%= pluralize(number_with_delimiter(run.failed - failures.size), 'more failure') %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <%# Same options as the run that failed, so a retry is a retry %>
+        <%# rather than a new run that happens to cover the same rows. %>
+        <%= button_to "Retry the #{number_with_delimiter(run.failed)} failed",
+                      admin_regenerate_flatfiles_path,
+                      params: {retry_of: run.id},
+                      class:  'btn btn-outline-primary btn-sm',
+                      form:   {data: {turbo_frame: '_top'}} %>
+
+        <%= link_to 'Download the list', failures_admin_regenerate_flatfiles_run_path(run),
+                    class: 'btn btn-outline-secondary btn-sm', data: {turbo: false} %>
+
+        <%# True because the job re-raises: Sentry's ActiveJob %>
+        <%# integration captures it, and the failed job stays in the %>
+        <%# queue for a developer to look at. %>
+        <span class="small text-body-secondary">Every failure was reported to the developers automatically.</span>
+      </div>
+    <% end %>
+  </div>
+</div>

@@ -1,42 +1,80 @@
-<% content_for :title, 'Submission requests' %>
+<% content_for :title, 'All requests' %>
 
-<%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Administration', path: admin_root_path},
-  {label: 'Submission requests'}
-] %>
+<%= render 'admin/shared/breadcrumb', items: [{label: 'All requests'}] %>
 
-<h1 class="display-6 mb-4">Submission requests</h1>
+<h1 class="display-6 mb-1">All requests</h1>
 
-<%= render 'admin/shared/list_filter', url: admin_submission_requests_path %>
+<p class="text-body-secondary mb-3">
+  <%= pluralize(@total, 'request') %><%
+    %><% if @pagy.count != @total %> · <%= number_with_delimiter(@pagy.count) %> matching the current filter<% end %>
+</p>
 
-<table class="table border">
-  <thead class="table-light">
-    <tr>
-      <th>ID</th>
-      <th>Database</th>
-      <th>User</th>
-      <th>Created</th>
-      <th>Status</th>
-    </tr>
-  </thead>
+<% if @issuance_run %>
+  <%= render 'admin/accession_issuance_runs/summary', run: @issuance_run %>
+<% end %>
 
-  <tbody>
-    <% @requests.each do |request| %>
-      <tr>
-        <td>Request-<%= request.id %></td>
-        <td><%= db_label(request.db) %></td>
-        <td><%= request.user.uid %></td>
-        <td><%= request.created_at.to_fs(:db) %></td>
-        <td><%= status_badge(request.status) %></td>
-      </tr>
-    <% end %>
+<%# Search first. Six stacked checkbox facets used to fill the screen %>
+<%# above the table, so arriving here showed filters rather than requests %>
+<%# — and most lookups are not a facet combination at all, they are %>
+<%# somebody holding an identifier. The facets fold in behind it. %>
+<%= form_with url: admin_submission_requests_path, method: :get, local: true, class: 'mb-3' do %>
+  <div class="row g-2 align-items-center mb-2">
+    <div class="col-md-6 col-lg-5">
+      <%= search_field_tag :q, params[:q], class: 'form-control',
+                           placeholder: 'ID, source ID, accession, submitter…',
+                           'aria-label': 'Search requests' %>
+    </div>
 
-    <% if @requests.empty? %>
-      <tr>
-        <td colspan="5" class="text-center text-body-secondary py-4">No requests found.</td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+    <div class="col-auto">
+      <%= submit_tag 'Search', class: 'btn btn-primary' %>
+    </div>
 
-<%= render 'admin/shared/pagy_nav', pagy: @pagy %>
+    <div class="col-auto">
+      <%# Summarises what is on rather than restating every facet: a %>
+      <%# multi-select reads as "Curating +1" so the row stays one line. %>
+      <% active_request_filters(params).each do |label| %>
+        <span class="badge text-bg-light border me-1"><%= label %></span>
+      <% end %>
+
+      <button class="btn btn-link btn-sm text-decoration-none" type="button"
+              data-bs-toggle="collapse" data-bs-target="#more-filters"
+              aria-expanded="<%= request_filters_active?(params) %>" aria-controls="more-filters">
+        More filters
+      </button>
+
+      <% if request_filters_active?(params) || params[:q].present? %>
+        <%= link_to 'Clear', admin_submission_requests_path, class: 'btn btn-link btn-sm' %>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="collapse <%= 'show' if request_filters_active?(params) %>" id="more-filters">
+    <div class="card card-body bg-body-tertiary">
+      <%= render 'checkbox_filter', label: 'Database', name: :db, options: db_options, param: params[:db] %>
+
+      <%= render 'checkbox_filter',
+                 label:   'Pipeline',
+                 name:    :request_status,
+                 options: SubmissionRequest.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                 param:   params[:request_status] %>
+
+      <%= render 'checkbox_filter',
+                 label:   'Curation',
+                 name:    :status,
+                 options: Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                 param:   params[:status] %>
+
+      <%= render 'checkbox_filter',
+                 label:   'Assignee',
+                 name:    :assignee,
+                 options: [['Unassigned', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                 param:   params[:assignee] %>
+    </div>
+  </div>
+<% end %>
+
+<%= render 'request_list',
+           requests:          @requests,
+           sample_aggregates: @sample_aggregates,
+           pagy:              @pagy,
+           filter_params:     params.permit(:q, db: [], request_status: [], status: [], assignee: []) %>

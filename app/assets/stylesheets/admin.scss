@@ -1,1 +1,159 @@
 @use 'bootstrap';
+
+// --- Curator workbench -------------------------------------------------
+// Identity, state and the primary action stay pinned while the curator
+// scrolls a 50-row sample table, so "what am I looking at" never leaves
+// the screen. The tab strip rides along with it.
+.workbench-summary {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+// Six-step pipeline. Colour carries the state and the glyph repeats it,
+// so it still reads without colour perception.
+.workbench-progress {
+  gap: 0.5rem;
+}
+
+.workbench-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  color: var(--bs-secondary-color);
+}
+
+.workbench-progress-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 50%;
+  background: var(--bs-body-bg);
+  color: #fff;
+  font-size: 0.625rem;
+  line-height: 1;
+}
+
+.workbench-progress-line {
+  min-width: 1rem;
+  height: 1px;
+  background: var(--bs-border-color);
+}
+
+.workbench-progress-step.is-done {
+  color: var(--bs-success-text-emphasis);
+}
+
+.workbench-progress-step.is-done .workbench-progress-marker,
+.workbench-progress-line.is-done {
+  border-color: var(--bs-success);
+  background: var(--bs-success);
+}
+
+.workbench-progress-step.is-current {
+  color: var(--bs-warning-text-emphasis);
+  font-weight: 600;
+}
+
+.workbench-progress-step.is-current .workbench-progress-marker {
+  border-width: 3px;
+  border-color: var(--bs-warning);
+}
+
+.workbench-progress-line.is-current {
+  background: var(--bs-warning);
+}
+
+.workbench-progress-step.is-failed {
+  color: var(--bs-danger-text-emphasis);
+  font-weight: 600;
+}
+
+.workbench-progress-step.is-failed .workbench-progress-marker,
+.workbench-progress-line.is-failed {
+  border-color: var(--bs-danger);
+  background: var(--bs-danger);
+}
+
+// Withdrawn / canceled / suppressed: the record stopped here rather than
+// being worked on here, so it reads as terminal, not as in-progress.
+.workbench-progress-step.is-closed {
+  color: var(--bs-secondary-color);
+}
+
+.workbench-progress-step.is-closed .workbench-progress-marker,
+.workbench-progress-line.is-closed {
+  border-color: var(--bs-secondary-color);
+  background: var(--bs-secondary-color);
+}
+
+// The Samples screen's selection bar. Docked to the bottom so a selection
+// made at row 1 is still actionable at row 50 without scrolling back.
+.bulk-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1010;
+}
+
+// Right-hand curation rail on Overview. Clears the sticky summary above it.
+.workbench-rail {
+  position: sticky;
+  top: 14rem;
+}
+
+// Confirmations that open over the page they were pressed on. Native
+// <dialog>, so Esc, the backdrop and the focus trap are the browser's
+// rather than ours — the card inside brings its own padding.
+.app-dialog {
+  padding: 0;
+  border: 0;
+  max-width: min(42rem, 92vw);
+  border-radius: var(--bs-border-radius-xl);
+  box-shadow: var(--bs-box-shadow-lg);
+
+  &::backdrop {
+    background: rgb(0 0 0 / 40%);
+  }
+}
+
+// A confirmation's own width, so the same markup is a readable column on
+// a bare page and fills the dialog when it is opened in one.
+.confirm-card {
+  max-width: 42rem;
+}
+
+// Free-text fields that start small and grow as they are written in.
+//
+// `field-sizing: content` makes the box track its contents, which is what
+// a comment box should do — three empty rows of grey is a poor use of a
+// screen, and a reply that outgrows its box is worse. Browsers without it
+// fall back to `rows`, i.e. to exactly what these fields did before.
+//
+// The bounds are not optional. `rows` is ignored once this is on, so
+// `min-height` is what keeps room to write in an empty box; `max-height`
+// is what stops a long paste pushing the submit button off the screen —
+// past it the field scrolls, as it always did.
+//
+// Qualified with BOTH the element and `.form-control` because Bootstrap
+// sets `textarea.form-control { min-height: ... }`. Matching its
+// specificity is not enough — which stylesheet lands last differs between
+// the two apps (compiled into this one, injected by a JS import in web),
+// so the rule has to out-specify it rather than out-order it. Get this
+// wrong and the min-height is silently lost: an empty box collapses to
+// one line, which is worse than the `rows` this replaced.
+textarea.form-control.textarea-autogrow,
+textarea.form-control.textarea-autogrow-tall {
+  field-sizing: content;
+  min-height: 4lh;
+  max-height: 20lh;
+}
+
+// The notice template is written into rather than replied in, so it opens
+// at the size of the thing being edited rather than at a composer's.
+textarea.form-control.textarea-autogrow-tall {
+  min-height: 14lh;
+}

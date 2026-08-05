@@ -1,12 +1,22 @@
 alice:
   uid: alice
   api_key: test_api_key_alice
+  email: alice@example.com
 
 bob:
   uid: bob
   api_key: test_api_key_bob
   admin: true
+  email: bob@example.com
 
 carol:
   uid: carol
   api_key: test_api_key_carol
+
+# A second curator, so "assigned to somebody else" is expressible — with
+# only one admin, "not mine" and "unassigned" are the same state.
+dave:
+  uid: dave
+  api_key: test_api_key_dave
+  admin: true
+  email: dave@example.com

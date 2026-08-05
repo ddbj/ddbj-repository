@@ -12,13 +12,17 @@ gem 'importmap-rails'
 gem 'diff-lcs'
 gem 'erubi'
 gem 'faraday'
+gem 'hana'
 gem 'jb'
 gem 'json'
+gem 'json-canonicalization'
+gem 'json-diff'
 gem 'oj'
 gem 'jwt'
 gem 'kamal', require: false
 gem 'mission_control-jobs'
 gem 'omniauth_openid_connect'
+gem 'csv' # data_migration:dump_excluded_* rake tasks
 gem 'pagy'
 gem 'pg'
 gem 'propshaft' # mission_control-jobs
@@ -34,10 +38,20 @@ gem 'turbo-rails'
 group :development do
   gem 'brakeman', require: false
   gem 'debug', require: 'debug/prelude', group: :test
+  gem 'letter_opener' # 配信のたびにデフォルトブラウザで .eml を開く (Phase B accession 発行 mail inspect)
   gem 'rubocop-rails-omakase', require: false
+  gem 'stackprof', require: false
 end
 
 group :test do
+  gem 'capybara'
+
+  # In-process driver that actually runs Turbo / Stimulus, so a screen
+  # whose behaviour is JavaScript can be tested from the outside without
+  # a headless browser. See test/application_system_test_case.rb.
+  gem 'capybara-simulated'
+  gem 'rusty_racer'
+
   gem 'minitest-default_http_header'
   gem 'minitest-mock'
   gem 'skooma'

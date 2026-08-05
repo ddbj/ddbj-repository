@@ -4,7 +4,9 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
 
     resource '/api/*', **{
       headers: :any,
-      expose:  %w[Link Current-Page Page-Items Total-Pages Total-Count],
+      # A header the browser cannot read may as well not be sent — the
+      # phase tabs read their counts from these two.
+      expose:  %w[Link Current-Page Page-Items Total-Pages Total-Count Unfinished-Count Finished-Count],
       methods: %i[get post put patch delete options head]
     }
 

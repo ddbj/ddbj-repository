@@ -12,12 +12,60 @@
     <%= yield :head %>
   </head>
   <body class="bg-body-tertiary">
+    <%# Task-axis navigation: what a curator is trying to do, not which %>
+    <%# database the data lives in. DB is a filter on the lists below. %>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
       <div class="container">
-        <%= link_to 'DDBJ Repository Administration', admin_root_path, class: 'navbar-brand' %>
+        <%= link_to admin_root_path, class: 'navbar-brand' do %>
+          DDBJ Repository <span class="opacity-50 fw-normal">Admin</span>
+        <% end %>
 
         <% if current_user %>
-          <ul class="navbar-nav ms-auto">
+          <ul class="navbar-nav me-auto">
+            <%# One axis each, ordered by how often a curator is on it: %>
+            <%# my work, the ledger, the people, the outgoing mail, then %>
+            <%# the things you visit when something is wrong. %>
+            <%# %>
+            <%# Users and Distribution notices are out of the Tools %>
+            <%# dropdown: both are places curators work, and a dropdown %>
+            <%# labelled "Tools" reads as a place for machinery. What is %>
+            <%# left in there is machinery. %>
+            <%= render 'layouts/admin_nav_item',
+                       label:  'My queue',
+                       path:   admin_my_queue_path,
+                       active: controller_path == 'admin/my_queue',
+                       badge:  my_queue_count,
+                       badge_class: my_queue_count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>
+
+            <%= render 'layouts/admin_nav_item',
+                       label:  'All requests',
+                       path:   admin_submission_requests_path,
+                       active: controller_path == 'admin/submission_requests' %>
+
+            <%= render 'layouts/admin_nav_item',
+                       label:  'Users',
+                       path:   admin_users_path,
+                       active: controller_path == 'admin/users' %>
+
+            <%= render 'layouts/admin_nav_item',
+                       label:  'Distribution notices',
+                       path:   admin_distribution_notices_path,
+                       active: controller_path.in?(%w[admin/distribution_notices admin/distribution_notice_templates]) %>
+
+            <li class="nav-item dropdown">
+              <button type="button" class="nav-link dropdown-toggle <%= 'active' if admin_tools_section? %>" data-bs-toggle="dropdown" aria-expanded="false">
+                Tools
+              </button>
+
+              <ul class="dropdown-menu">
+                <li><%= link_to 'Data migration',       admin_migration_runs_path,       class: 'dropdown-item' %></li>
+                <li><%= link_to 'Regenerate flatfiles', admin_regenerate_flatfiles_path, class: 'dropdown-item' %></li>
+                <li><%= link_to 'Jobs',                 admin_mission_control_jobs_path, class: 'dropdown-item' %></li>
+              </ul>
+            </li>
+          </ul>
+
+          <ul class="navbar-nav">
             <li class="nav-item dropdown">
               <button type="button" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                 <%= current_user.uid %>
@@ -36,9 +84,19 @@
       </div>
     </nav>
 
-    <main class="container pb-5">
+    <main class="container-xxl pb-5">
       <% flash.each do |level, message| %>
-        <div class="alert alert-<%= flash_bootstrap_class(level) %> alert-dismissible fade show" role="alert">
+        <%# data-controller="flash-focus" scrolls the banner into view on %>
+        <%# render so a post-save redirect doesn't leave the notice above %>
+        <%# the curator's current scroll position (turbo-refresh-scroll is %>
+        <%# preserve so the form-bottom scroll position survives). %>
+        <%# The token value re-emits per render so Stimulus fires the %>
+        <%# value-change callback even when Turbo morph reuses the .alert %>
+        <%# element across saves (connect() would only fire on first mount). %>
+        <div class="alert alert-<%= flash_bootstrap_class(level) %> alert-dismissible fade show"
+             role="alert"
+             data-controller="flash-focus"
+             data-flash-focus-token-value="<%= SecureRandom.hex(8) %>">
           <%= message %>
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>

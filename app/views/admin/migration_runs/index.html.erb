@@ -1,0 +1,70 @@
+<% content_for :title, 'Migration runs' %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Migration runs'}
+] %>
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <h1 class="display-6 mb-0">Migration runs</h1>
+
+  <%= link_to 'New run', new_admin_migration_run_path, class: 'btn btn-primary' %>
+</div>
+
+<%= form_with url: admin_migration_runs_path, method: :get, local: true, class: 'row g-2 mb-3' do |f| %>
+  <div class="col-sm-10">
+    <%= f.label :db, 'Database', class: 'form-label visually-hidden' %>
+    <%= f.select :db, db_options, {include_blank: 'All databases', selected: params[:db]}, class: 'form-select' %>
+  </div>
+
+  <div class="col-sm-2">
+    <%= f.submit 'Filter', class: 'btn btn-primary w-100' %>
+  </div>
+<% end %>
+
+<table class="table border">
+  <thead class="table-light">
+    <tr>
+      <th>ID</th>
+      <th>Database</th>
+      <th>Status</th>
+      <th>Progress</th>
+      <th>Started</th>
+      <th>Finished</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% @migration_runs.each do |run| %>
+      <tr>
+        <td><%= link_to "##{run.id}", admin_migration_run_path(run) %></td>
+        <td><%= db_label(run.db) %></td>
+        <td><%= migration_run_status_badge(run) %></td>
+        <td>
+          <% if run.total.to_i.zero? %>
+            <span class="text-body-secondary">—</span>
+          <% else %>
+            <div class="d-flex align-items-center gap-2">
+              <div class="progress flex-grow-1" style="height: 0.5rem;" role="progressbar"
+                   aria-valuenow="<%= run.progress_percent %>" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar" style="width: <%= run.progress_percent %>%"></div>
+              </div>
+              <small class="text-body-secondary text-nowrap">
+                <%= number_with_delimiter(run.counters_total) %> / <%= number_with_delimiter(run.total) %>
+              </small>
+            </div>
+          <% end %>
+        </td>
+        <td><%= format_datetime(run.started_at) %></td>
+        <td><%= format_datetime(run.finished_at) %></td>
+      </tr>
+    <% end %>
+
+    <% if @migration_runs.empty? %>
+      <tr>
+        <td colspan="6" class="text-center text-body-secondary py-4">No migration runs yet.</td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<%= render 'admin/shared/pagy_nav', pagy: @pagy %>

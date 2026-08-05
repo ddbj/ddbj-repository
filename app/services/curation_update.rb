@@ -1,0 +1,200 @@
+# One curator decision, applied across the four places it actually lives.
+#
+# Status is a typed column on the curation rows; assignee is a column on
+# the request; hold date is a field of the v3 record and therefore a
+# patch on the chain; the curator comment is a column on the submission
+# and never reaches the record. A curator does not think of those as four
+# edits, so they are saved together — this is where the fan-out happens.
+#
+# Leave-as-is is expressed by absence, not by a sentinel: a key missing
+# from `params` is untouched. `assignee_id` is the one exception, because
+# "no assignee" has to be expressible — `"0"` clears it, matching the
+# convention the request list already uses.
+class CurationUpdate
+  class Refused < StandardError; end
+
+  Result = Data.define(:changes) do
+    def any? = changes.any?
+
+    def to_sentence = changes.to_sentence
+  end
+
+  UNASSIGNED = '0'
+
+  def initialize(submission:, actor:, params:)
+    @submission = submission
+    @actor      = actor
+    @params     = params
+  end
+
+  # One save, one outcome. Wrapped in a transaction because the pieces are
+  # applied in sequence and any of them can still refuse: an invalid hold
+  # date used to surface as "could not save" *after* the comment had
+  # already been written, so the flash and the database disagreed.
+  def call
+    Submission.transaction do
+      changed  = apply_status         # {'status' => …} when the rows actually moved
+      changed.merge!(apply_assignee)  # {'assignee' => …} when the request actually moved
+      comment  = apply_curator_comment # true when the column moved
+      hold     = apply_hold_date       # rendered fragments; already a patch, so not an event
+
+      record_event(changed, comment)
+
+      Result.new(changes: describe(changed, comment) + hold)
+    end
+  end
+
+  private
+
+  attr_reader :submission, :actor, :params
+
+  # Status, assignee and the comment never reach the DDBJ Record, so no
+  # patch describes them — without an event they would leave nothing but a
+  # bumped `updated_at`. The hold date is deliberately absent: it IS record
+  # content, so the chain already tells that story.
+  def record_event(changed, comment)
+    return if changed.empty? && !comment
+
+    CurationEvent.record!(
+      submission:,
+      actor:,
+      action:    :curation_updated,
+      row_count: @row_count.to_i,
+      noun:      submission.curation_row_noun,
+      status:    changed['status'],
+      assignee:  changed['assignee'],
+      curator_comment: comment.presence
+    )
+  end
+
+  def describe(changed, comment)
+    changed.map {|field, value| "#{field}=#{value}" } + (comment ? ['curator comment'] : [])
+  end
+
+  # `update_all` (1 SQL) so a 100K-sample submission stays interactive.
+  # That bypasses validations and callbacks, so the value is checked here
+  # first — the same trade the bulk endpoints already make.
+  #
+  # The form always posts the current value, so a save that only touched
+  # the comment would otherwise rewrite every sample row. Comparing
+  # against what is already there keeps the write (and the flash) to what
+  # actually changed.
+  def apply_status
+    return {} if params[:status].blank?
+
+    rows = submission.curation_rows or raise Refused, 'This submission has no curation rows to update.'
+
+    status = params[:status].to_s
+    raise Refused, "Unknown status: #{status.inspect}." unless Lifecycleable::STATUSES.key?(status)
+
+    return {} if rows.distinct.pluck(:status) == [status]
+
+    @row_count = rows.update_all(status: Lifecycleable::STATUSES.fetch(status), updated_at: Time.current)
+
+    {'status' => status}
+  end
+
+  # Assignment is one value on the request, so unlike status it needs no
+  # bulk write and works before Apply, when there are no rows at all.
+  def apply_assignee
+    return {} if params[:assignee_id].blank?
+
+    request  = submission.request
+    assignee = resolve_assignee(params[:assignee_id].to_s)
+
+    return {} if request.assignee_id == assignee&.id
+
+    request.assign!(assignee)
+
+    {'assignee' => assignee&.uid || 'unassigned'}
+  end
+
+  def resolve_assignee(raw)
+    return nil if raw == UNASSIGNED
+
+    assignee = User.find_by(id: raw)
+    raise Refused, 'Assignee must be an admin user.' unless assignee&.admin?
+
+    assignee
+  end
+
+  # `submission.hold_date` is a v3 record field, so it goes through the
+  # patch chain — and then onto the projected `projects.hold_date` column,
+  # without which DistributionNotifier can never see the edit (a blob
+  # patch chain is not filterable in SQL). See Submission#sync_hold_date!.
+  def apply_hold_date
+    return [] unless params.key?(:hold_date)
+
+    # The rail only renders this field for BioProject, because nothing
+    # outside BP acts on it — `sync_hold_date!` is a no-op there and
+    # DistributionNotifier never looks. Enforced here too: a template is
+    # not a guard, and a replayed POST would otherwise append a real patch
+    # setting a date that nothing will ever honour, which is exactly the
+    # trap the field was hidden to avoid.
+    unless submission.bioproject_db?
+      raise Refused, 'Hold date applies to BioProject submissions only.'
+    end
+
+    raw       = params[:hold_date].to_s.strip
+    hold_date = parse_iso_date(raw) if raw.present?
+
+    raise Refused, 'Hold date must be a valid YYYY-MM-DD date.' if raw.present? && hold_date.nil?
+
+    current = submission.materialised_record
+    return [] if current.nil?
+
+    # The form posts this field on every save, so a curator who only edited
+    # the comment would otherwise pay for `append_update!` — a full chain
+    # replay plus two canonicalisation passes, under a row lock — just to
+    # produce an empty patch. On a 100K-sample record that is tens of
+    # seconds per click. Comparing against the cached snapshot first costs
+    # one blob download.
+    return [] if current.dig('submission', 'hold_date') == hold_date
+
+    record = patched_record(current, hold_date)
+    update = submission.append_update!(record, actor:, source: :manual)
+    submission.sync_hold_date!(record)
+
+    update ? ["hold date=#{hold_date || '—'}"] : []
+  end
+
+  # Strict ISO-8601 only — Date.parse would happily turn "May" or "12"
+  # into a today-anchored date, silently fabricating a hold value. The
+  # anchor rejects month-name / day-only partials before Date.iso8601 runs.
+  def parse_iso_date(raw)
+    return nil unless raw.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+
+    Date.iso8601(raw).iso8601
+  rescue Date::Error
+    nil
+  end
+
+  def patched_record(current, hold_date)
+    record = current.deep_dup
+    block  = record['submission'] ||= {}
+
+    if hold_date
+      block['hold_date'] = hold_date
+    else
+      block.delete('hold_date')
+    end
+
+    record.delete('submission') if block.empty?
+    record
+  end
+
+  # `update_columns` bypasses Submission's `validates :ddbj_record,
+  # attached: true, on: :update` — that rule guards user-facing submission
+  # flows, not curator-internal typed-column writes. Migration-sourced
+  # submissions carry no ddbj_record blob at all.
+  def apply_curator_comment
+    return false unless params.key?(:curator_comment)
+
+    body = params[:curator_comment].presence
+    return false if body == submission.curator_comment
+
+    submission.update_columns(curator_comment: body)
+
+    true
+  end
+end

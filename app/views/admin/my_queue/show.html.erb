@@ -1,0 +1,56 @@
+<% content_for :title, 'My queue' %>
+
+<%= render 'admin/shared/breadcrumb', items: [{label: 'My queue'}] %>
+
+<h1 class="display-6 mb-1">My queue</h1>
+
+<%# Says what the number is made of, because the three sections mean %>
+<%# different things: two are yours, one is nobody's. %>
+<% mine, unclaimed = @sections.partition { it.section.key != :unclaimed }.map { it.sum(&:count) } %>
+<p class="text-body-secondary mb-4">
+  <% if @total.zero? %>
+    Nothing is waiting on a curator right now.
+  <% else %>
+    <%= pluralize(@total, 'request') %>
+    <%= @total == 1 ? 'needs' : 'need' %> a curator:
+    <%= mine %> <%= mine == 1 ? 'is' : 'are' %> yours or involve you,
+    <%= unclaimed %> unclaimed. Oldest first.
+  <% end %>
+</p>
+
+<% @sections.each do |listing| %>
+  <%# Named so a test can say "this row is in Unclaimed" rather than %>
+  <%# "this row is somewhere on the page" — which is the whole claim the %>
+  <%# three sections make. %>
+  <section class="mb-4" data-test-section="<%= listing.section.key %>">
+    <div class="d-flex align-items-baseline gap-2 flex-wrap mb-2">
+      <h2 class="h6 mb-0"><%= listing.section.title %></h2>
+      <span class="badge <%= listing.count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>">
+        <%= number_with_delimiter(listing.count) %>
+      </span>
+      <%# Why a request is in this section, written next to the section — %>
+      <%# the difference between "assigned" and "involved" is the whole %>
+      <%# design, and it has to be readable rather than inferred. %>
+      <span class="small text-body-tertiary"><%= listing.section.criterion %></span>
+    </div>
+
+    <% if listing.rows.empty? %>
+      <p class="small text-body-secondary fst-italic mb-0">Nothing here.</p>
+    <% else %>
+      <div class="list-group">
+        <% listing.rows.each do |row| %>
+          <%= render 'row', row: row, section: listing.section %>
+        <% end %>
+      </div>
+
+      <% if listing.overflow.positive? %>
+        <p class="small text-body-secondary mt-2 mb-0">
+          <%= number_with_delimiter(listing.overflow) %> more —
+          <%= link_to 'open in All requests', admin_submission_requests_path %>.
+        </p>
+      <% end %>
+    <% end %>
+  </section>
+<% end %>
+
+<%= render 'admin/shared/confirm_dialog' %>

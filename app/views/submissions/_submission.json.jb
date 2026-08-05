@@ -3,24 +3,14 @@
 {
   **submission.slice(
     :id,
+    :source_id,
     :created_at,
     :updated_at
   ),
 
+  accessions_count: submission.accessions.count,
+
   ddbj_record: render('attachment', attachment: submission.ddbj_record),
   flatfile_na: render('attachment', attachment: submission.flatfile_na),
-  flatfile_aa: render('attachment', attachment: submission.flatfile_aa),
-
-  updates: submission.updates.map {|update|
-    {
-      **update.slice(
-        :id,
-        :status,
-        :created_at
-      ),
-
-      ddbj_record: render('attachment', attachment: update.ddbj_record),
-      validation:  update.validation_with_validity&.then { render(it) }
-    }
-  }
+  flatfile_aa: render('attachment', attachment: submission.flatfile_aa)
 }

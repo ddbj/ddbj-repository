@@ -1,0 +1,45 @@
+<%# The schedule as it is actually configured, read from the file %>
+<%# SolidQueue reads — so editing recurring.yml cannot leave this line %>
+<%# quietly claiming a time nothing runs at. %>
+<% schedule = DistributionNotifier.schedule %>
+<% run      = DistributionNotice.last_scheduled_run.to_a %>
+
+<div class="alert alert-light border d-flex align-items-center gap-3 flex-wrap py-2">
+  <span class="badge text-bg-success">AUTO</span>
+
+  <span class="small">
+    <% if schedule %>
+      Sending automatically <%= schedule %>.
+    <% else %>
+      The daily send is not scheduled on this environment.
+    <% end %>
+
+    <% if run.any? %>
+      <% delivered = run.select(&:delivered_result?) %>
+      <% skipped   = run.count(&:skipped_result?) %>
+      Last run <%= format_datetime(run.first.sent_at) %> —
+      <%= pluralize(delivered.sum { it.accessions.size }, 'notice') %>
+      to <%= pluralize(delivered.size, 'submitter') %><%= ", #{skipped} skipped" if skipped.positive? %>.
+    <% else %>
+      It has not run yet.
+    <% end %>
+  </span>
+
+  <span class="flex-fill"></span>
+
+  <%# Sent, not Jobs. Mission Control holds the retries and the timing, %>
+  <%# which is a developer's question; what happened to the submitters is %>
+  <%# this screen's own record, and pointing away from it made a curator %>
+  <%# depend on a page that is not for them. %>
+  <%# %>
+  <%# Only when there is a run Sent can actually show. The job writes %>
+  <%# nothing on a day with no candidates, so after a quiet spell the %>
+  <%# last run can be older than the 90 days that tab covers — and a %>
+  <%# link onto an empty list is worse than no link. %>
+  <% within_sent = run.any? && run.first.sent_at >= Admin::DistributionNoticesController::SENT_WINDOW.ago %>
+
+  <% if within_sent && @tab != 'sent' %>
+    <%= link_to "See #{run.first.sent_at.to_date == Date.current ? "today's" : 'that'} run in Sent",
+                admin_distribution_notices_path(tab: 'sent'), class: 'small' %>
+  <% end %>
+</div>

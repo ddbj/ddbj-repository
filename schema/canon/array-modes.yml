@@ -1,0 +1,132 @@
+# DDBJ Record Canonical JSON v2 — array mode + string class + volatile path registry.
+#
+# Derived from ddbj-record-specifications @ bdcdb8d8 (2026-04-13) and
+# tmp/data-migration/canonical-json.md §3 / §4 / §6.
+#
+# DO NOT modify after first use. Changes require a canonical_version bump
+# and a plan for records written under the previous version.
+#
+# For the v1 → v2 bump that plan is a full re-import rather than a
+# reconciling migration: replay is pure RFC 6902 so v1 chains still
+# materialise correctly, and the migrated corpus is rebuilt from D-way.
+#
+# A v1 chain must NOT be extended with a v2 patch, though: v1 stored root
+# snapshots in raw converter order while v2 diffs index into canonical
+# order, so a positional op would name the wrong element of a keyed array.
+# Submission#append_update! detects this (`submissions.canonical_version`
+# below the current one) and replaces the whole record instead of diffing,
+# healing the chain in one step. Re-import is still the cheaper route for
+# the migrated corpus; the heal is what keeps an untouched record from
+# being corrupted by a curator edit in the meantime.
+canonical_version: ddbj-canon/v2
+
+# ----------------------------------------------------------------------
+# Arrays: ordered (preserve input order) / keyed (sort by tuple) / bag
+# (sort by sha256 of canonical bytes).
+# ----------------------------------------------------------------------
+arrays:
+  # ----- ordered -----
+  '/submission/submitters':                              {mode: ordered}
+  # v3 Submission.comments is `list[str]` — curator notes accumulate in
+  # input order and reading them sorted destroys narrative continuity
+  # ("first I noted X, then Y"). Omitted from the original registry
+  # because at canonical_version bump time no record had multi-element
+  # comments (2677 BS records had exactly one-element arrays from the
+  # Converter's `Array(comment.presence)` wrap, which bag-mode sorts to
+  # themselves — verified 2026-06-04). Adding the path here is a
+  # registry-omission fix; canonical bytes for every existing record
+  # are byte-identical because single-element arrays are sort-invariant.
+  '/submission/comments':                                {mode: ordered}
+  '/sequences/entries':                                  {mode: ordered}
+  '/sequences/entries/*/source_features':                {mode: ordered}
+  '/sequences/entries/*/source_features/*/qualifiers/*': {mode: ordered}
+  '/sequences/entries/*/comments':                       {mode: ordered}
+  '/experiments/*/spot_descriptor/reads':                {mode: ordered}
+  '/experiments/*/processing':                           {mode: ordered}
+  '/analyses/*/processing':                              {mode: ordered}
+  '/runs/*/files':                                       {mode: ordered}
+  '/analyses/*/files':                                   {mode: ordered}
+  '/project/publications/*/authors':                     {mode: ordered}
+  '/features/*/qualifiers/*':                            {mode: ordered}
+  '/provenance/gff/pragmas':                             {mode: ordered}
+
+  # ----- keyed -----
+  '/samples':                                            {mode: keyed, key: [alias]}
+  '/relations':                                          {mode: keyed, key: [type, label, source/db, source/id, target/db, target/id, target/url]}
+  '/project/publications':                               {mode: keyed, key: [doi, pubmed_id, title]}
+  '/project/grants':                                     {mode: keyed, key: [id, title, agency]}
+  '/datasets':                                           {mode: keyed, key: [alias]}
+  '/access_control/dacs':                                {mode: keyed, key: [alias, accession]}
+  '/access_control/dacs/*/contacts':                     {mode: keyed, key: [email, last, first]}
+  '/submission/st26/invention_titles':                   {mode: keyed, key: [language_code]}
+  '/submission/attributes':                              {mode: keyed, key: [name, unit]}
+  '/assembly/attributes':                                {mode: keyed, key: [name, unit]}
+  '/datasets/*/attributes':                              {mode: keyed, key: [name, unit]}
+  # Fallback: any other path ending in /attributes (samples, project, run,
+  # analysis, experiment, sequences, etc.) keys by (name, unit).
+  '/**/attributes':                                      {mode: keyed, key: [name, unit]}
+
+  # ----- bag -----
+  '/experiments':                                        {mode: bag}
+  '/runs':                                               {mode: bag}
+  '/analyses':                                           {mode: bag}
+  '/features':                                           {mode: bag}
+  '/features/*/parent_ids':                              {mode: bag}
+  '/sequences/entries/*/structured_comments':            {mode: bag}
+  '/submission/submitters/*/organizations':              {mode: bag}
+  '/datasets/*/dataset_types':                           {mode: bag}
+  '/project/keywords':                                   {mode: bag}
+  '/project/study_types':                                {mode: bag}
+  '/project/locus_tag_prefix':                           {mode: bag}
+  '/project/target/data_types':                          {mode: bag}
+  '/experiments/*/targeted_loci':                        {mode: bag}
+
+# ----------------------------------------------------------------------
+# Volatile sub-trees stripped before diff (for_diff: true).
+#
+# Membership rule (canonical-json.md §4.1): would regenerating this record
+# from the same source produce a different value? Authorship is NOT the
+# test — `accession` is archive-assigned but stable, so it stays in the
+# diff and issuance shows up as a patch (v2; stripped in v1).
+# ----------------------------------------------------------------------
+volatile_paths:
+  - '/provenance'           # whole sub-tree
+  - '/schema_version'
+  - '/**/last_update'
+  - '/**/access'
+  - '/**/publication_date'
+
+# ----------------------------------------------------------------------
+# String classification. Default = multi_line (preserve newlines, trim
+# horizontal whitespace per line). single_line collapses internal whitespace
+# to a single ASCII space. sequence is a streaming-compatible class for
+# nucleotide sequences (no NFC, no collapse, alphabet-restricted).
+# ----------------------------------------------------------------------
+strings:
+  default: multi_line
+  paths:
+    '/sequences/entries/*/sequence':                      sequence
+    '/submission/hold_date':                              single_line
+    '/submission/st26/filing_date':                       single_line
+    '/submission/st26/production_date':                   single_line
+    '/**/orcid':                                          single_line
+    '/**/doi':                                            single_line
+    '/**/pubmed_id':                                      single_line
+    '/**/checksum':                                       single_line
+    '/**/email':                                          single_line
+    '/**/url':                                            single_line
+    '/**/ror_id':                                         single_line
+    '/**/language_code':                                  single_line
+    '/relations/*/properties/*':                          single_line
+    '/project/relevance/*':                               single_line
+    '/access_control/policy/policy_url':                  single_line
+
+# ----------------------------------------------------------------------
+# JSON number paths that are allowed to carry a Float per canonical-json.md
+# §2.3. Defaults to NONE — every other numeric path must be an Integer in
+# IEEE-754 safe range or a String (identifier-like).
+# ----------------------------------------------------------------------
+floats:
+  - '/experiments/*/library/nominal_sdev'
+  - '/features/*/score'
+

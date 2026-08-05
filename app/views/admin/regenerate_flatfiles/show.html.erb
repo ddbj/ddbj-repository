@@ -1,61 +1,120 @@
-<% content_for :title, 'Regenerate Flatfiles' %>
-
-<% loading = @progress&.loading? %>
+<% content_for :title, 'Regenerate flatfiles' %>
 
 <%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Administration', path: admin_root_path},
-  {label: 'Regenerate Flatfiles'}
+  {label: 'Regenerate flatfiles'}
 ] %>
 
-<h1 class="display-6 mb-4">Regenerate Flatfiles</h1>
+<h1 class="display-6 mb-1">Regenerate flatfiles</h1>
 
-<div class="card">
-  <div class="card-body">
-    <%= form_with url: admin_regenerate_flatfiles_path, method: :post, local: true do |f| %>
-      <div class="mb-3">
-        <%= f.label :numbers, 'Accession numbers', class: 'form-label' %>
-        <%= f.text_area :numbers, class: 'form-control font-monospace', rows: 4, disabled: loading,
-                                  placeholder: "One per line (or comma-separated). Leave blank to target all submissions." %>
-        <div class="form-text">Submissions that own any of these accessions are regenerated.</div>
-      </div>
+<p class="text-body-secondary mb-4">
+  Rebuilds the DDBJ flatfile from each submission's stored record. Use it after a
+  converter change, or when a flatfile is known to be stale.
+</p>
 
-      <div class="mb-3">
-        <%= f.label :date, 'LOCUS Date', class: 'form-label' %>
-        <%= f.date_field :date, class: 'form-control', disabled: loading %>
-        <div class="form-text">Leave blank to keep existing LOCUS dates (flatfiles are regenerated without touching <code>accessions.locus_date</code>).</div>
-      </div>
+<%# The scope is chosen, never defaulted. "Leave it blank to target every %>
+<%# submission" made the most destructive option the one that happens %>
+<%# when nobody decides anything. %>
+<%= form_with url: admin_regenerate_flatfiles_path, method: :post, local: true,
+              class: 'row g-4 mb-4',
+              data:  {controller:               'scope-preview',
+                      scope_preview_url_value:  preview_admin_regenerate_flatfiles_path,
+                      action:                   'input->scope-preview#update change->scope-preview#update'} do |f| %>
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-body">
+        <fieldset class="mb-4">
+          <legend class="form-label fs-6 fw-semibold">Which submissions</legend>
 
-      <div class="form-check mb-3">
-        <%= f.check_box :force, {class: 'form-check-input', disabled: loading}, '1', '' %>
-        <%= f.label :force, 'Force regenerate (even if content is unchanged)', class: 'form-check-label' %>
-      </div>
+          <div class="form-check mb-3">
+            <%= radio_button_tag :target, 'accessions', @scope.accessions_target?, class: 'form-check-input' %>
+            <%= label_tag :target_accessions, 'By accession number', class: 'form-check-label fw-semibold' %>
 
-      <%= f.submit 'Regenerate', class: 'btn btn-primary', disabled: loading %>
-    <% end %>
-  </div>
-</div>
+            <div class="mt-2">
+              <%= text_area_tag :numbers, @scope.numbers_text, rows: 4, class: 'form-control font-monospace',
+                                                               'aria-label': 'Accession numbers' %>
+              <div class="form-text">
+                One per line or comma-separated. The submission that owns each accession is regenerated in full.
+              </div>
+            </div>
+          </div>
 
-<% if loading %>
-  <div class="card mt-3" data-controller="auto-refresh">
-    <div class="card-body">
-      <p class="mb-2">
-        Processing: <%= @progress.processed %> succeeded
-        <% if @progress.failed.positive? %>, <%= @progress.failed %> failed<% end %>
-        / <%= @progress.total %> submissions
-      </p>
+          <div class="form-check">
+            <%= radio_button_tag :target, 'all', @scope.all_target?, class: 'form-check-input' %>
+            <%= label_tag :target_all, 'Every submission with a stored record', class: 'form-check-label fw-semibold' %>
 
-      <div class="progress">
-        <% percent = @progress.total.zero? ? 100 : ((@progress.processed + @progress.failed).to_f / @progress.total * 100).round %>
-        <div class="progress-bar" role="progressbar" style="width: <%= percent %>%;"></div>
+            <%# The count and the cost sit on the option itself, so the %>
+            <%# scale of the choice is readable before it is made. %>
+            <div class="form-text">
+              <% estimate = regeneration_estimate(@all_total) %>
+              <%= number_with_delimiter(@all_total) %> ST.26 <%= 'submission'.pluralize(@all_total) %><%=
+                " · roughly #{estimate} of job time" if estimate %>.
+              BioProject and BioSample records have no flatfile.
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="row g-4">
+          <div class="col-md-6">
+            <fieldset>
+              <legend class="form-label fs-6 fw-semibold">LOCUS date</legend>
+
+              <div class="form-check">
+                <%= radio_button_tag :date_mode, 'keep', !@scope.setting_date?, class: 'form-check-input' %>
+                <%= label_tag :date_mode_keep, 'Keep existing dates', class: 'form-check-label' %>
+              </div>
+
+              <div class="form-check">
+                <%= radio_button_tag :date_mode, 'set', @scope.setting_date?, class: 'form-check-input',
+                                                                              data: {scope_preview_target: 'setDate'} %>
+                <%= label_tag :date_mode_set, 'Set every regenerated flatfile to', class: 'form-check-label' %>
+
+                <%# Filling this in is choosing to set a date; leaving %>
+                <%# the radio behind would discard it without saying so. %>
+                <%= date_field_tag :date, @scope.date_input, class: 'form-control mt-2', 'aria-label': 'LOCUS date',
+                                                             data: {action: 'input->scope-preview#dateEntered'} %>
+              </div>
+
+              <div class="form-text">
+                Setting a date overwrites <code>accessions.locus_date</code> on every regenerated flatfile.
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="col-md-6">
+            <fieldset>
+              <legend class="form-label fs-6 fw-semibold">Unchanged content</legend>
+
+              <%# Named by what it does to the records, not by the flag: %>
+              <%# "Force regenerate" says how it is implemented. %>
+              <div class="form-check">
+                <%= check_box_tag :force, '1', @scope.force, class: 'form-check-input' %>
+                <%= label_tag :force, 'Rewrite even if identical', class: 'form-check-label' %>
+              </div>
+
+              <div class="form-text">
+                Off: submissions whose flatfile would not change are skipped.
+              </div>
+            </fieldset>
+          </div>
+        </div>
       </div>
     </div>
   </div>
-<% elsif @progress&.completed? %>
-  <div class="alert alert-<%= @progress.failed.positive? ? 'warning' : 'success' %> mt-3 mb-0" role="alert">
-    Completed at <%= @progress.updated_at.to_fs(:db) %>:
-    <%= @progress.processed %> succeeded<% if @progress.failed.positive? %>, <%= @progress.failed %> failed<% end %>.
-    <% if @progress.failed.positive? %>
-      See <%= link_to 'Jobs', admin_mission_control_jobs_path, class: 'alert-link' %> for failure details.
-    <% end %>
+
+  <div class="col-lg-4" data-scope-preview-target="panel">
+    <%= render 'summary', scope: @scope, blocking: @blocking %>
   </div>
 <% end %>
+
+<%= render 'admin/shared/confirm_dialog' %>
+
+<% if @run %>
+  <%# While a run is going the panel polls itself inside its own frame, %>
+  <%# so a refresh every three seconds does not take the half-filled %>
+  <%# form above with it. %>
+  <%= turbo_frame_tag 'regenerate_run', src: (admin_regenerate_flatfiles_run_path(@run) if @run.loading?) do %>
+    <%= render 'admin/regenerate_flatfiles_runs/panel', run: @run %>
+  <% end %>
+<% end %>
+
+<%= render 'history', runs: @runs %>

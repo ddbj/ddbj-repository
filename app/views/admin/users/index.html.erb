@@ -1,68 +1,147 @@
 <% content_for :title, 'Users' %>
 
-<%= render 'admin/shared/breadcrumb', items: [
-  {label: 'Administration', path: admin_root_path},
-  {label: 'Users'}
-] %>
+<%= render 'admin/shared/breadcrumb', items: [{label: 'Users'}] %>
 
-<h1 class="display-6 mb-4">Users</h1>
+<h1 class="display-6 mb-1">Users</h1>
 
-<%= form_with url: admin_users_path, method: :get, local: true do |f| %>
-  <div class="mb-3">
-    <label for="users-query" class="visually-hidden">Search</label>
+<p class="text-body-secondary mb-3">
+  Find a DDBJ account to review their submissions, leave notes for other curators,
+  or open the submitter view as them.
+</p>
 
-    <div class="input-group">
-      <%= f.search_field :query, value: params[:query], id: 'users-query', class: 'form-control', placeholder: 'Search by username, email, or name' %>
-      <%= f.submit 'Search', class: 'btn btn-primary' %>
+<%= form_with url: admin_users_path, method: :get, local: true, class: 'mb-3' do %>
+  <div class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <label for="users-query" class="visually-hidden">Search accounts</label>
+      <%= search_field_tag :q, @query, id: 'users-query', class: 'form-control',
+                           placeholder: 'Account, name, organization, email…' %>
+    </div>
+
+    <div class="col-auto">
+      <%= submit_tag 'Search', class: 'btn btn-primary' %>
+    </div>
+
+    <%# Which population, as one choice rather than an `admin` column the %>
+    <%# reader has to scan. "Who is staff" is a question, so it gets an %>
+    <%# answer in one click. %>
+    <div class="col-auto">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Population">
+        <% Admin::UsersController::SEGMENTS.each do |value, label| %>
+          <%= link_to admin_users_path(request.query_parameters.merge(segment: value)),
+                      class: "btn btn-outline-secondary #{'active' if @segment == value}",
+                      'aria-current': ('true' if @segment == value) do %>
+            <%= label %>
+            <% if value == 'staff' %>
+              <span class="badge text-bg-secondary ms-1"><%= @staff_count %></span>
+            <% end %>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+
+    <%# The old wording was "include users without submission requests", %>
+    <%# which asks the reader to negate a negative. Same filter, put the %>
+    <%# way somebody would actually say it. %>
+    <%# %>
+    <%# Absent on Staff, where it does not apply: a ticked box above a %>
+    <%# list that ignores it is worse than no box, because unticking it %>
+    <%# changes nothing and the reader is left wondering what did. %>
+    <div class="col-auto" <%= 'hidden' if @segment == 'staff' %>>
+      <div class="form-check">
+        <%# The hidden partner is what makes unticking expressible: an %>
+        <%# unchecked box sends nothing at all, and "absent" has to mean %>
+        <%# "first visit, default on" — so without this the filter could be %>
+        <%# turned on and never off again. %>
+        <%= hidden_field_tag :submitted, '', id: nil %>
+        <%= check_box_tag :submitted, '1', @submitted, id: 'users-submitted', class: 'form-check-input',
+                          onchange: 'this.form.requestSubmit()' %>
+        <label for="users-submitted" class="form-check-label">Has submitted before</label>
+      </div>
     </div>
   </div>
 
-  <div class="form-check mb-3">
-    <%= f.check_box :include_inactive, {checked: @include_inactive, class: 'form-check-input', id: 'users-include-inactive', onchange: 'this.form.submit()'}, '1', '' %>
-    <label for="users-include-inactive" class="form-check-label">
-      Include users without submission requests
-    </label>
-  </div>
+  <%= hidden_field_tag :segment, @segment %>
 <% end %>
 
-<p class="text-body-secondary small">
-  Up to 100 users are shown. Refine your search if you don't see the user you're looking for.
-</p>
-
-<table class="table table-hover border">
+<table class="table table-hover border align-middle">
   <thead class="table-light">
     <tr>
-      <th>Username</th>
-      <th>Name</th>
+      <th>Account</th>
+      <th>Name / organization</th>
       <th>Email</th>
-      <th>Organization</th>
-      <th>Account type</th>
       <th class="text-end">Requests</th>
-      <th class="text-end">Submissions</th>
+      <th class="text-end">Applied</th>
+      <th>Last activity</th>
     </tr>
   </thead>
 
   <tbody>
-    <% rows = @users.filter_map {|user| [user, @profiles_by_uid[user.uid]] if @profiles_by_uid.key?(user.uid) } %>
-
-    <% rows.each do |user, profile| %>
+    <% @users.each do |user| %>
+      <% profile = @profiles_by_uid[user.uid] %>
       <tr class="position-relative">
         <td>
           <%= link_to user.uid, admin_user_path(uid: user.uid), class: 'stretched-link text-decoration-none text-reset' %>
         </td>
-        <td><%= profile['full_name'] %></td>
-        <td><%= profile['email'] %></td>
-        <td><%= profile['organization'] %></td>
-        <td><%= profile['account_type_number'] %></td>
+
+        <%# A profile we could not fetch is a fact about the fetch. Saying %>
+        <%# so beats dropping the row, which used to make a real account %>
+        <%# look like one that does not exist. %>
+        <td>
+          <% if profile %>
+            <%= profile['full_name'] %>
+            <% if profile['organization'].present? %>
+              <span class="text-body-secondary">· <%= profile['organization'] %></span>
+            <% end %>
+          <% else %>
+            <span class="text-body-secondary fst-italic">Profile unavailable — DDBJ Account did not answer</span>
+          <% end %>
+        </td>
+
+        <td>
+          <% if profile %>
+            <%= profile['email'] %>
+          <% elsif user.email.present? %>
+            <%= user.email %>
+            <span class="text-body-secondary small">(local copy)</span>
+          <% else %>
+            —
+          <% end %>
+        </td>
+
         <td class="text-end"><%= @counts[:requests][user.id] %></td>
         <td class="text-end"><%= @counts[:submissions][user.id] %></td>
+
+        <%# Replaces `account_type_number`, a raw code no decision was ever %>
+        <%# made from. Whether an account has gone quiet is one people do %>
+        <%# make. %>
+        <td class="text-nowrap text-body-secondary">
+          <% if (seen = @counts[:last_activity][user.id]) %>
+            <%= elapsed_label(seen) %> ago
+          <% else %>
+            —
+          <% end %>
+        </td>
       </tr>
     <% end %>
 
-    <% if rows.empty? %>
+    <% if @users.empty? %>
       <tr>
-        <td colspan="7" class="text-center text-body-secondary py-4">No users found.</td>
+        <td colspan="6" class="text-center text-body-secondary py-4">
+          No accounts match this search.
+        </td>
       </tr>
     <% end %>
   </tbody>
 </table>
+
+<%# The cap belongs on the result line, not in a standing caveat above the %>
+<%# table: with the match count on screen its existence explains itself, %>
+<%# and it only needs saying when it actually bit. %>
+<p class="text-body-secondary small">
+  <%= pluralize(@total, 'account') %>
+  <%= @query.present? ? "match “#{@query}”" : 'in this segment' %>.
+  <% if @total > Admin::UsersController::LIMIT %>
+    Up to <%= Admin::UsersController::LIMIT %> are listed at a time — narrow the search
+    if the one you want is missing.
+  <% end %>
+</p>

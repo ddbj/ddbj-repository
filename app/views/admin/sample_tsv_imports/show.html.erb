@@ -1,0 +1,76 @@
+<% content_for :title, "Sample TSV import ##{@import.id}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'All requests', path: admin_submission_requests_path},
+  {label: "##{@submission.request.id}", path: admin_submission_request_path(@submission.request)},
+  {label: 'Sample TSV import'}
+] %>
+
+<h1 class="display-6 mb-1">Sample TSV import</h1>
+
+<p class="text-body-secondary mb-4">
+  <%= link_to "##{@submission.request.id}", admin_submission_request_path(@submission.request) %>
+  · <code><%= @submission.source_id %></code>
+  · uploaded by <%= @import.actor %>
+  · <%= format_datetime(@import.started_at) %>
+</p>
+
+<% if @import.loading? %>
+  <%# Two phases, because the work has two shapes and only one of them %>
+  <%# can be counted. Splitting the write to produce a bar for the %>
+  <%# second would cost what the write is for: one chain entry meaning %>
+  <%# "the submission now matches this TSV". %>
+  <div class="card mb-3" data-controller="auto-refresh">
+    <div class="card-body">
+      <div class="d-flex align-items-baseline gap-2 mb-3">
+        <span class="h6 mb-0">Importing…</span>
+        <span class="text-body-secondary small">
+          <%= number_with_delimiter(@import.total) %> rows in the file
+        </span>
+      </div>
+
+      <div class="mb-3">
+        <div class="d-flex justify-content-between small mb-1">
+          <span class="fw-semibold">1 · Checking</span>
+          <span class="text-body-secondary">
+            <% if @import.checking? %>
+              <%= number_with_delimiter(@import.processed) %> checked ·
+              <%= number_with_delimiter(@import.failed) %> rejected
+            <% else %>
+              done
+            <% end %>
+          </span>
+        </div>
+
+        <% pct = @import.checking? && @import.total.positive? ? (@import.processed * 100 / @import.total) : 100 %>
+        <div class="progress" role="progressbar">
+          <div class="progress-bar<%= ' bg-success' unless @import.checking? %>" style="width: <%= pct %>%;"></div>
+        </div>
+      </div>
+
+      <div class="<%= 'opacity-50' if @import.checking? %>">
+        <div class="d-flex justify-content-between small mb-1">
+          <span class="fw-semibold">2 · Applying</span>
+          <span class="text-body-secondary">
+            <% if @import.applying? %>
+              <%= number_with_delimiter(@import.processed) %> rows, one write
+            <% end %>
+          </span>
+        </div>
+
+        <div class="progress" role="progressbar">
+          <div class="progress-bar progress-bar-striped <%= 'progress-bar-animated' if @import.applying? %>"
+               style="width: <%= @import.applying? ? 100 : 0 %>%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-body-secondary small">
+    The valid rows are written as one transaction, so that step has no row-by-row
+    progress — it either lands whole or not at all. You can leave this page; the
+    result shows up in the request's Activity.
+  </p>
+<% else %>
+  <%= render 'result' %>
+<% end %>

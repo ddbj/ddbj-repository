@@ -1,0 +1,103 @@
+<% if @projects.empty? %>
+  <p class="text-body-secondary fst-italic">No submitters are currently due for a release notice.</p>
+<% else %>
+  <%# What is stuck, at the top, once. A submitter with no address used to %>
+  <%# appear as a disabled button buried in their own card — visible only %>
+  <%# if you scrolled to it, and silent about how long it had been that %>
+  <%# way, which is the part that decides whether anyone chases it. %>
+  <% if @blocked.any? %>
+    <div class="alert alert-warning d-flex align-items-center gap-3 flex-wrap py-2">
+      <span class="badge text-bg-warning">BLOCKED</span>
+
+      <span class="small">
+        <%= pluralize(@blocked.size, 'submitter') %>
+        <%= @blocked.size == 1 ? 'has' : 'have' %> no address on file.
+        Nothing is sent and the row stays here until an address turns up.
+
+        <%# Every one of them, by name. A single "Review in Users" link %>
+        <%# could only point at one, and the rest were findable solely by %>
+        <%# scrolling the cards below and noticing the badge. %>
+        <% @blocked.each_with_index do |user, i| %><%= ' ·' if i.positive? %>
+          <%= link_to user.uid, admin_user_path(uid: user.uid) %><% end %>
+      </span>
+    </div>
+  <% end %>
+
+  <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+    <span class="text-body-secondary">
+      <%= pluralize(@by_user.size, 'submitter') %> ·
+      <%= pluralize(@projects.size, 'project') %> ·
+      nearest release <%= @projects.first.hold_date.iso8601 %>
+    </span>
+
+    <%# Weaker than it was. The daily job is what sends these; a curator %>
+    <%# pressing this is the exception, and a primary button invited it to %>
+    <%# be read as the normal way. %>
+    <%# %>
+    <%# Through the confirmation, like every Issue: it names how many %>
+    <%# submitters hear from us and who is skipped, which one line of %>
+    <%# window.confirm never did. %>
+    <%= link_to 'Send all now', new_admin_distribution_notice_path,
+                class: 'btn btn-outline-secondary btn-sm',
+                data:  {turbo_frame: 'confirm_dialog'} %>
+  </div>
+
+  <% @by_user.each do |user, projects| %>
+    <div class="card mb-3" data-test-submitter="<%= user.uid %>">
+      <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <span>
+          <strong><%= user.uid %></strong>
+
+          <% if user.email.present? %>
+            <span class="text-body-secondary"><%= user.email %></span>
+          <% else %>
+            <span class="badge text-bg-warning">No address on file</span>
+          <% end %>
+
+          <span class="text-body-secondary">
+            · <%= pluralize(projects.size, 'project') %>
+
+            <%# How long this has been stuck. Without it a blocked row is %>
+            <%# indistinguishable from one that arrived this morning. %>
+            <% if (since = @blocked_since[user.id]) %>
+              · blocked since <%= since.to_date.iso8601 %>
+            <% end %>
+          </span>
+        </span>
+
+        <%# The same dialog, shrunk to one submitter. This button used to %>
+        <%# send with no confirmation at all — the friction was on the %>
+        <%# rarer press and absent from the common one. %>
+        <% if user.email.present? %>
+          <%= link_to 'Send now', new_admin_distribution_notice_path(user_id: user.id),
+                      class: 'btn btn-sm btn-outline-secondary',
+                      data:  {turbo_frame: 'confirm_dialog'} %>
+        <% else %>
+          <%# Kept rather than hidden: it says where sending happens once %>
+          <%# an address turns up. tabindex, because a disabled anchor is %>
+          <%# only inert if the keyboard cannot reach it either. %>
+          <%= link_to 'Send now', '#', class: 'btn btn-sm btn-outline-secondary disabled',
+                      tabindex: -1, aria: {disabled: true} %>
+        <% end %>
+      </div>
+
+      <ul class="list-group list-group-flush">
+        <% projects.each do |project| %>
+          <li class="list-group-item d-flex justify-content-between align-items-baseline gap-3">
+            <span>
+              <code><%= project.accession %></code>
+
+              <%# The accession alone does not tell a curator what is about %>
+              <%# to become public. The title does. %>
+              <span class="ms-2"><%= project.title.presence || '(untitled)' %></span>
+            </span>
+
+            <span class="text-body-secondary text-nowrap">releases <%= project.hold_date.iso8601 %></span>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>
+
+<%= render 'admin/shared/confirm_dialog' %>

@@ -1,0 +1,36 @@
+<% content_for :title, 'Distribution notices' %>
+
+<%= render 'admin/shared/breadcrumb', items: [{label: 'Distribution notices'}] %>
+
+<h1 class="display-6 mb-1">Distribution notices</h1>
+
+<p class="text-body-secondary mb-3">
+  Release notices go to submitters whose embargoed BioProjects are within
+  <%= DistributionNotifier::NOTICE_DAYS %> days of their hold date.
+</p>
+
+<%# The automation is the mechanism, not a footnote to it. Promoted from a %>
+<%# sentence in the body copy to a standing strip, with the result of the %>
+<%# last run — "it is automatic" is not reassuring on its own, "it ran %>
+<%# this morning and here is what it did" is. %>
+<%= render 'admin/distribution_notices/automation' %>
+
+<ul class="nav nav-tabs mb-3">
+  <% {'due' => 'Due now', 'sent' => "Sent last #{Admin::DistributionNoticesController::SENT_WINDOW.inspect}", 'template' => 'Template'}.each do |key, label| %>
+    <li class="nav-item">
+      <%= link_to admin_distribution_notices_path(tab: key),
+                  class: "nav-link #{'active' if @tab == key}",
+                  'aria-current': ('page' if @tab == key) do %>
+        <%= label %>
+        <% if key == 'due' && @due_count.positive? %>
+          <span class="badge text-bg-danger ms-1"><%= @due_count %></span>
+        <% end %>
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+
+<%# Fully qualified: the template tab re-renders this screen from %>
+<%# DistributionNoticeTemplatesController when a save is rejected, and %>
+<%# a bare name would be looked up under that controller's prefix. %>
+<%= render "admin/distribution_notices/#{@tab}" %>

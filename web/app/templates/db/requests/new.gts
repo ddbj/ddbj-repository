@@ -15,8 +15,7 @@ import type RouterService from '@ember/routing/router-service';
 import type { Blob } from '@rails/activestorage';
 import type { paths } from 'schema/openapi';
 
-type CreateRequestResponse =
-  paths['/{db}/submission_requests']['post']['responses']['202']['content']['application/json'];
+type CreateRequestResponse = paths['/submission_requests']['post']['responses']['202']['content']['application/json'];
 
 interface Signature {
   Args: {
@@ -49,21 +48,20 @@ export default class extends Component<Signature> {
     });
 
     const { content } = await this.requestManager.request<CreateRequestResponse>({
-      url: `/${db}/submission_requests`,
+      url: '/submission_requests',
       method: 'POST',
-      data: { submission_request: { ddbj_record: blob.signed_id } },
+      data: { submission_request: { db, ddbj_record: blob.signed_id } },
     });
 
-    this.router.transitionTo('request', db, content.id);
+    this.router.transitionTo('request', content.id);
   }
 
   <template>
     <Breadcrumb
       @items={{array
         (hash label="Home" route="index")
-        (hash label=(dbLabel @model.db) route="db" models=(array @model.db))
-        (hash label="Requests" route="db.requests" models=(array @model.db))
-        (hash label="New")
+        (hash label="New Submission" route="new")
+        (hash label=(dbLabel @model.db))
       }}
     />
 

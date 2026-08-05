@@ -1,0 +1,88 @@
+{
+  "name": "smp_001931_v001_v002",
+  "base": {
+    "accession": "SAMD00001842",
+    "alias": "akifumi_tanabe-0003_Sample_0928",
+    "attributes": [
+      {
+        "name": "sample attribute",
+        "value": "Missing"
+      }
+    ],
+    "description": "Root samples collected in a temperate secondary forest on Mt. Yoshida, Kyoto, Japan.",
+    "organism": {
+      "name": "rhizosphere metagenome",
+      "taxonomy_id": 939928
+    },
+    "package": "Generic",
+    "package_group": "Generic",
+    "relations": [
+      {
+        "target": {
+          "db": "sra",
+          "id": "DRS004772"
+        },
+        "type": "xref"
+      }
+    ],
+    "title": "G63WAOO01__ACAGTGTC__rbcL"
+  },
+  "after": {
+    "accession": "SAMD00001842",
+    "alias": "DRS004772",
+    "attributes": [
+      {
+        "name": "sample attribute",
+        "value": "Missing"
+      }
+    ],
+    "description": "Root samples collected in a temperate secondary forest on Mt. Yoshida, Kyoto, Japan.",
+    "organism": {
+      "name": "rhizosphere metagenome",
+      "taxonomy_id": 939928
+    },
+    "package": "Generic",
+    "package_group": "Generic",
+    "relations": [
+      {
+        "target": {
+          "db": "sra",
+          "id": "DRS004772"
+        },
+        "type": "xref"
+      }
+    ],
+    "submitters": [
+      {
+        "email": "sample-1@example.test",
+        "first": "Sample-First-1",
+        "is_primary": true,
+        "last": "Sample-Last-5"
+      }
+    ],
+    "title": "G63WAOO01__ACAGTGTC__rbcL"
+  },
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/alias",
+      "value": "DRS004772"
+    },
+    {
+      "op": "add",
+      "path": "/submitters",
+      "value": [
+        {
+          "email": "sample-1@example.test",
+          "first": "Sample-First-1",
+          "is_primary": true,
+          "last": "Sample-Last-5"
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "op_count": 2,
+    "classification": "signal.surgical"
+  }
+}

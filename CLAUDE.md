@@ -43,10 +43,35 @@ data/             Qualifier/feature reference data
 ```sh
 bin/setup          # Initial setup
 bin/dev            # Start all services (Rails, Ember, SeaweedFS, etc.)
-bin/rails test     # Run backend tests
+bin/rails test:all # Run backend tests INCLUDING test/system (`test` alone skips them)
 cd web && pnpm test  # Run frontend tests
 cd web && pnpm lint  # Run frontend linters
 ```
+
+### Testing
+
+Anything a person does through a screen belongs in `test/system` — a
+Capybara test that visits the page and presses the control. Integration
+tests address routes directly and are therefore blind to everything
+between the screen and the request; several bugs have shipped past a
+green integration suite because the endpoint was right and the control
+that reached it was not.
+
+- `test/system` — user-perspective. `rack_test` by default; subclass
+  `JavaScriptSystemTestCase` for screens whose behaviour is Turbo /
+  Stimulus (runs it in process via `capybara-simulated`, no browser).
+- `test/integration` — the JSON API, and server-side rules with no screen.
+
+The admin integration tests predate this split and still address screens
+directly; migrate them as those screens are touched rather than in one
+sweep. A system test that covers the same ground replaces the
+integration one — leaving both means two suites drifting, and the
+integration half keeps encoding requests no browser makes.
+
+Address controls by their accessible name (`aria-label` counts —
+`Capybara.enable_aria_label` is on) and sections by `data-test-*`. CSS
+classes are the framework's, not ours, and matching on them tests
+nothing a user can see.
 
 ## CI
 

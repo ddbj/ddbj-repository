@@ -1,0 +1,69 @@
+<%# locals: (validation:) %>
+<%# Grouped by code, because the actionable question is "how many entries %>
+<%# hit this rule", not "list every occurrence". The full per-entry table %>
+<%# stays available behind the disclosure. %>
+<section class="card mb-4">
+  <div class="card-body pb-0 d-flex justify-content-between align-items-center">
+    <h2 class="h6 card-title mb-0">Validation</h2>
+
+    <% if validation.nil? %>
+      <span class="badge text-bg-light border">Not validated</span>
+    <% elsif validation.validity == 'valid' %>
+      <span class="badge text-bg-success">
+        Valid<%= " · #{pluralize(validation.details.size, 'warning')}" if validation.details.any? %>
+      </span>
+    <% elsif validation.validity == 'invalid' %>
+      <span class="badge text-bg-danger">Invalid</span>
+    <% else %>
+      <span class="badge text-bg-secondary text-capitalize"><%= validation.progress %></span>
+    <% end %>
+  </div>
+
+  <div class="card-body">
+    <% if validation.nil? %>
+      <p class="text-body-secondary small mb-0">
+        This request carries no validation — migration-sourced records are
+        imported from D-way rather than validated on the way in.
+      </p>
+    <% elsif validation.details.empty? %>
+      <p class="text-body-secondary small mb-0">No findings.</p>
+    <% else %>
+      <ul class="list-unstyled mb-0">
+        <% validation.details.group_by {|d| [d.severity, d.code, d.message] }
+                             .sort_by {|(severity, _, _), group| [severity == 'error' ? 0 : 1, -group.size] }
+                             .each do |(severity, code, message), group| %>
+          <li class="d-flex gap-3 align-items-baseline small py-1 border-bottom">
+            <code class="<%= severity == 'error' ? 'text-danger' : 'text-warning-emphasis' %> fw-semibold"><%= code %></code>
+            <span class="flex-fill text-body-secondary"><%= message %></span>
+            <span class="text-nowrap text-body-secondary"><%= pluralize(group.size, 'entry') %></span>
+          </li>
+        <% end %>
+      </ul>
+
+      <details class="mt-3">
+        <summary class="small text-body-secondary" role="button">Every finding (<%= validation.details.size %>)</summary>
+
+        <table class="table table-sm border mt-2">
+          <thead class="table-light">
+            <tr>
+              <th>Entry ID</th>
+              <th>Code</th>
+              <th>Severity</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% validation.details.each do |detail| %>
+              <tr>
+                <td><%= detail.entry_id %></td>
+                <td><%= detail.code %></td>
+                <td><%= detail.severity %></td>
+                <td><%= detail.message %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </details>
+    <% end %>
+  </div>
+</section>

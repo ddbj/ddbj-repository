@@ -1,0 +1,15 @@
+<% before, after = @template.body_around_placeholder %>
+
+<%= simple_format before %>
+
+<ul>
+  <% @notices.each do |notice| %>
+    <li>
+      <%= notice.accession %> will be released on <%= notice.hold_date.iso8601 %><% if notice.url %> —
+        <a href="<%= notice.url %>">open the submission</a>
+      <% end %>
+    </li>
+  <% end %>
+</ul>
+
+<%= simple_format after %>

@@ -84,25 +84,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_requests": {
+    "/attention": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** @description Get a list of submission requests. */
+        /**
+         * @description Get the requests that are waiting on the current user: a file that
+         *     stopped on a validation error, one that passed validation and is
+         *     waiting to be applied, or an unanswered curator question. Used for
+         *     a global banner, so the notice is visible from any screen rather
+         *     than only where the request happens to be listed.
+         *
+         *     A failed *application* is deliberately not here — that one is
+         *     DDBJ's to fix, and asking the submitter to act on it only makes
+         *     them resubmit a file that was fine.
+         */
         get: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the requests needing attention, newest first. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            requests: {
+                                id: number;
+                                db: components["schemas"]["Db"];
+                                source_id: string | null;
+                                /**
+                                 * @description Why this request is waiting on the submitter,
+                                 *     most-blocking first when it is more than one.
+                                 * @enum {string}
+                                 */
+                                reason: "validation_failed" | "ready_to_apply" | "unread_message";
+                            }[];
+                        };
+                    };
                 };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submission_requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get a list of submission requests. `db` and `status` are multi-select
+         *     filters (repeat the key, e.g. `?db[]=st26&db[]=biosample`); omit a
+         *     filter to span every value. `source_id` is a case-insensitive prefix
+         *     match on the applied submission's source id. `accession` is a
+         *     case-insensitive prefix match across the submission's accessions
+         *     (BP project / BS samples / ST.26 accessions).
+         *
+         *     `phase` splits the live submissions from the finished ones and
+         *     defaults to `unfinished`; `needs_action` narrows to the ones
+         *     waiting on the submitter (the same set `/attention` returns).
+         *     `Unfinished-Count` and `Finished-Count` report both halves
+         *     regardless of which one is being listed.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    db?: components["schemas"]["Db"][];
+                    status?: components["schemas"]["SubmissionOperationStatus"][];
+                    source_id?: string;
+                    accession?: string;
+                    phase?: "unfinished" | "finished" | "all";
+                    needs_action?: boolean;
+                    page?: number;
+                };
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -110,6 +184,9 @@ export interface paths {
                 /** @description Returns the list of submission requests. */
                 200: {
                     headers: {
+                        "Total-Pages"?: string;
+                        "Unfinished-Count"?: string;
+                        "Finished-Count"?: string;
                         [name: string]: unknown;
                     };
                     content: {
@@ -125,16 +202,14 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                };
+                path?: never;
                 cookie?: never;
             };
             requestBody: {
                 content: {
                     "application/json": {
                         submission_request: {
+                            db: components["schemas"]["Db"];
                             /** Format: binary */
                             ddbj_record: string;
                         };
@@ -161,13 +236,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_requests/{id}": {
+    "/submission_requests/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -177,8 +251,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -206,13 +278,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_requests/{id}/status": {
+    "/submission_requests/{id}/status": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -222,8 +293,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -251,13 +320,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_requests/{id}/submission": {
+    "/submission_requests/{id}/closure": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Close a submission request — "I am not taking this one further".
+         *
+         *     A request that failed validation cannot be advanced: a corrected file
+         *     arrives as a new request with no link back to this one, so closing is
+         *     the only way it ever reaches an end. The request keeps its status, its
+         *     validation and its messages; it stops asking the submitter for
+         *     something and moves to the finished side of the list.
+         *
+         *     Only a request that is asking for something may be closed (validation
+         *     failed, or ready to apply) — see `closable`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the closed submission request. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionRequest"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                /** @description The request is not in a state that can be closed. */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        /**
+         * @description Reopen a closed submission request. As cheap as closing it, because
+         *     closing undoes nothing.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the reopened submission request. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SubmissionRequest"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submission_requests/{id}/submission": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
             };
             cookie?: never;
         };
@@ -269,8 +428,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -295,40 +452,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_updates/{id}": {
+    "/submission_requests/{submission_request_id}/reviewer_access": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                submission_request_id: number;
             };
             cookie?: never;
         };
-        /** @description Get a submission update. */
+        /** @description Get the reviewer-access link state for a request. */
         get: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                    id: number;
+                    submission_request_id: number;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Returns the requested submission update. */
+                /** @description Whether reviewer access is enabled and, if so, its share URL and expiry. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SubmissionUpdate"];
+                        "application/json": components["schemas"]["ReviewerAccess"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** @description Enable reviewer access, minting a fresh unguessable link. Any existing link is invalidated. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reviewer_access: {
+                            /** Format: date-time */
+                            expires_at: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Returns the newly-enabled reviewer access. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewerAccess"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        /** @description Disable reviewer access, invalidating the link. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Reviewer access disabled. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reviews/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** @description Reviewer view of a submission request via its share token. No authentication; messages are deliberately not included. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the submission request. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewerSubmissionRequest"];
+                    };
+                };
                 404: components["responses"]["NotFound"];
             };
         };
@@ -340,69 +591,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submission_updates/{id}/submission": {
+    "/reviews/{token}/accessions": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                token: string;
             };
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description Apply a submission update. */
-        patch: {
+        /** @description Reviewer view of a submission's accessions via the share token. No authentication. */
+        get: {
             parameters: {
-                query?: never;
+                query?: {
+                    page?: number;
+                };
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                    id: number;
+                    token: string;
                 };
                 cookie?: never;
             };
             requestBody?: never;
             responses: {
-                /** @description Accepted the submission update application. */
-                204: {
+                /** @description Returns the list of accessions. */
+                200: {
                     headers: {
+                        "Total-Pages"?: string;
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": components["schemas"]["Accession"][];
+                    };
                 };
-                401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
-                422: components["responses"]["UnprocessableContent"];
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
-    "/{db}/submissions": {
+    "/submissions": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** @description Get a list of submissions. */
+        /** @description Get a list of submissions. Omit `db` to span every database the user has access to. */
         get: {
             parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
+                query?: {
+                    db?: components["schemas"]["Db"];
+                    page?: number;
                 };
+                header?: never;
+                path?: never;
                 cookie?: never;
             };
             requestBody?: never;
@@ -410,6 +658,7 @@ export interface paths {
                 /** @description Returns the list of submissions. */
                 200: {
                     headers: {
+                        "Total-Pages"?: string;
                         [name: string]: unknown;
                     };
                     content: {
@@ -427,13 +676,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submissions/{id}": {
+    "/submissions/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -443,8 +691,6 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -472,13 +718,12 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submissions/{id}/accessions": {
+    "/submissions/{id}/accessions": {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
+                id: number;
             };
             cookie?: never;
         };
@@ -490,8 +735,6 @@ export interface paths {
                 };
                 header?: never;
                 path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
                     id: number;
                 };
                 cookie?: never;
@@ -514,6 +757,146 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submission_requests/{submission_request_id}/messages/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_request_id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Mark the curator's messages in this thread as read — "nothing to answer
+         *     here".
+         *
+         *     Reading the thread does not do this. "I have seen it" and "I have dealt
+         *     with it" are different events, and a submitter who opens a question
+         *     meaning to answer it later should keep the reminder. Replying discharges
+         *     the thread too; this is for the note that needs no reply.
+         *
+         *     `through_id` is the newest message the client had in front of it. One
+         *     that arrives a moment later is not acknowledged by a press that could
+         *     not have taken it into account. Omit it to mark the whole thread.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        through_id?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description The curator's messages are marked read. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submission_requests/{submission_request_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_request_id: number;
+            };
+            cookie?: never;
+        };
+        /** @description Get the curator ↔ submitter message thread for a request. Marks any unread curator-authored messages as read. */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the chronological list of messages. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Message"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** @description Submitter posts a reply to the thread. Notifies curators by email. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        submission_message: {
+                            body: string;
+                            /**
+                             * @description Signed ids from ActiveStorage direct upload. The file goes
+                             *     to storage from the browser, so nothing here is bounded by
+                             *     this request — the files this conversation is about are
+                             *     submission files, which are large by nature.
+                             */
+                            files?: string[];
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Returns the newly-created message. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Message"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -567,61 +950,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/{db}/submissions/{id}/updates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Database that the submission belongs to. */
-                db: components["parameters"]["Db"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Create a submission update. */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description Database that the submission belongs to. */
-                    db: components["parameters"]["Db"];
-                    id: number;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        submission_update: {
-                            /** Format: binary */
-                            ddbj_record: string;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description Accepted the submission update creation. */
-                202: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SubmissionUpdate"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-                422: components["responses"]["UnprocessableContent"];
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -630,9 +958,31 @@ export interface components {
         Db: "st26" | "bioproject" | "biosample";
         SubmissionRequestSummary: {
             id: number;
+            db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
             /** Format: date-time */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description The submitter put this request down. A row and the page it opens
+             *     answer the same question from the same facts, so the summary
+             *     carries it too.
+             */
+            closed_at: string | null;
+            submission_id: number | null;
+            source_id: string | null;
+            first_accession: string | null;
+            accession_count: number;
+            /** @description Validation or application is running right now. */
+            processing: boolean;
+            unread_curator_message_count: number;
+            progress: components["schemas"]["Progress"];
+        };
+        ReviewerAccess: {
+            enabled: boolean;
+            url?: string;
+            /** Format: date-time */
+            expires_at?: string;
         };
         SubmissionRequestStatus: {
             id: number;
@@ -642,26 +992,87 @@ export interface components {
         };
         SubmissionRequest: {
             id: number;
+            db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
             error_message: string | null;
             /** Format: date-time */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description When the submitter put this request down. A request that failed
+             *     validation cannot be advanced — a corrected file arrives as a new
+             *     request — so closing is the only way it reaches an end. Null while
+             *     it is still open.
+             */
+            closed_at: string | null;
+            /**
+             * @description Whether the submitter may close it now. True only while the request
+             *     is asking them for something (validation failed, or ready to apply).
+             */
+            closable: boolean;
             processing: boolean;
             ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;
             submission: components["schemas"]["Submission"] | null;
+            progress: components["schemas"]["Progress"];
+            unread_curator_message_count: number;
+            /**
+             * Format: date-time
+             * @description When the thread was last posted to, by either party.
+             */
+            last_message_at: string | null;
         };
-        SubmissionUpdate: {
+        /**
+         * @description What a share-link holder may see. Identical to SubmissionRequest
+         *     minus the messaging facts: the endpoint is unauthenticated, so it
+         *     must not disclose that a curator ↔ submitter conversation exists.
+         *     Spelled out rather than derived from SubmissionRequest because
+         *     `additionalProperties: false` does not compose through `allOf` —
+         *     which also means a field added to the submitter view stays out of
+         *     this one until somebody decides it belongs here.
+         */
+        ReviewerSubmissionRequest: {
             id: number;
+            db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
-            diff: string | null;
             error_message: string | null;
             /** Format: date-time */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description The submitter put this request down. Null while it is still open.
+             */
+            closed_at: string | null;
             processing: boolean;
             ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;
-            submission: components["schemas"]["Submission"];
+            submission: components["schemas"]["Submission"] | null;
+            progress: components["schemas"]["Progress"];
+        };
+        /**
+         * @description How far along the request is, in a vocabulary a submitter can read.
+         *     Derived server-side from the ingest status and the curation rows —
+         *     neither of the underlying enums is a progress scale on its own.
+         */
+        Progress: {
+            /** @enum {string} */
+            step: "submitted" | "validated" | "applied" | "curating" | "accession_issued" | "public";
+            /** @description The pipeline stopped at the step after `step`. */
+            failed: boolean;
+            /**
+             * @description The record left the pipeline — withdrawn, canceled or
+             *     permanently suppressed. `step` is then where it stopped, not
+             *     where work is in progress.
+             */
+            closed: boolean;
+            /** @description Curation rows behind the request — 1 project (BP), N samples (BS), 0 otherwise. */
+            row_count: number;
+            accessioned_count: number;
+            /**
+             * Format: date
+             * @description Scheduled release date. Only BioProject carries one.
+             */
+            hold_date: string | null;
         };
         Validation: {
             id: number;
@@ -683,6 +1094,8 @@ export interface components {
         };
         SubmissionSummary: {
             id: number;
+            db: components["schemas"]["Db"];
+            source_id: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
@@ -690,21 +1103,15 @@ export interface components {
         };
         Submission: {
             id: number;
+            source_id: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
             updated_at: string;
+            accessions_count: number;
             ddbj_record: components["schemas"]["Attachment"];
             flatfile_na: components["schemas"]["Attachment"] | null;
             flatfile_aa: components["schemas"]["Attachment"] | null;
-            updates: {
-                id: number;
-                status: components["schemas"]["SubmissionOperationStatus"];
-                /** Format: date-time */
-                created_at: string;
-                ddbj_record: components["schemas"]["Attachment"];
-                validation: components["schemas"]["Validation"] | null;
-            }[];
         };
         Accession: {
             number: string;
@@ -717,6 +1124,28 @@ export interface components {
             filename: string;
             /** Format: uri */
             url: string;
+        };
+        /**
+         * @description One file attached to a message. Uploaded directly to storage, so no
+         *     size limit is imposed here — the files this conversation is about are
+         *     submission files, which are large by nature.
+         */
+        AttachedFile: {
+            filename: string;
+            byte_size: number;
+            url: string;
+        };
+        Message: {
+            id: number;
+            body: string;
+            /** @enum {string} */
+            author_role: "curator" | "submitter";
+            author_uid: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            read_at: string | null;
+            files: components["schemas"]["AttachedFile"][];
         };
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
@@ -771,10 +1200,7 @@ export interface components {
             };
         };
     };
-    parameters: {
-        /** @description Database that the submission belongs to. */
-        Db: components["schemas"]["Db"];
-    };
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;

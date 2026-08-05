@@ -25,6 +25,16 @@ class ApplySubmissionRequestJob < ApplicationJob
 
   def apply(request)
     request.ddbj_record.open do |file|
+      # v3 streaming + apply path is unimplemented — refuse explicitly
+      # to prevent silent NoMethodError downstream when
+      # DDBJRecord::StreamingParser (v2 SAJ-only) hits v3 input.
+      major, = DDBJRecord::SchemaVersionDetector.detect(file)
+      file.rewind
+      if major == '3'
+        raise DDBJRecord::V3NotImplementedError,
+              "SubmissionRequest ##{request.id}: v3 record application not yet implemented (Phase 6+)"
+      end
+
       parser             = DDBJRecord::StreamingParser.new(file.path)
       metadata           = parser.metadata
       features_by_seq_id = parser.features_by_sequence_id
@@ -42,7 +52,7 @@ class ApplySubmissionRequestJob < ApplicationJob
         [
           Sequence.allocate!(:jpo_na, na_count),
           Sequence.allocate!(:jpo_aa, aa_count),
-          request.create_submission!(db: request.db)
+          request.create_submission!(db: request.db, user: request.user)
         ]
       }
 

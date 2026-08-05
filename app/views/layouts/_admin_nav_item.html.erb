@@ -1,0 +1,9 @@
+<%# locals: (label:, path:, active:, badge: nil, badge_class: 'text-bg-secondary') %>
+<li class="nav-item">
+  <%= link_to path, class: "nav-link d-flex align-items-center gap-2 #{'active' if active}", 'aria-current': ('page' if active) do %>
+    <%= label %>
+    <% if badge %>
+      <span class="badge <%= badge_class %>"><%= number_with_delimiter(badge) %></span>
+    <% end %>
+  <% end %>
+</li>

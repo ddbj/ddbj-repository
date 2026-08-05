@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_05_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -21,6 +21,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
     t.bigint "user_id", null: false
     t.index ["accession_id"], name: "index_accession_histories_on_accession_id"
     t.index ["user_id"], name: "index_accession_histories_on_user_id"
+  end
+
+  create_table "accession_issuance_runs", force: :cascade do |t|
+    t.string "actor", null: false
+    t.datetime "created_at", null: false
+    t.datetime "dismissed_at"
+    t.string "origin", null: false
+    t.datetime "started_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor", "started_at"], name: "index_accession_issuance_runs_undismissed", where: "(dismissed_at IS NULL)"
+  end
+
+  create_table "accession_issuances", force: :cascade do |t|
+    t.jsonb "accessions", default: [], null: false
+    t.string "actor", null: false
+    t.datetime "created_at", null: false
+    t.text "error_message"
+    t.datetime "finished_at"
+    t.bigint "run_id"
+    t.datetime "started_at", null: false
+    t.string "status", default: "queued", null: false
+    t.bigint "submission_id", null: false
+    t.jsonb "targeting", default: {}, null: false
+    t.datetime "updated_at", null: false
+    t.index ["run_id"], name: "index_accession_issuances_on_run_id"
+    t.index ["submission_id", "started_at"], name: "index_accession_issuances_on_submission_id_and_started_at"
   end
 
   create_table "accessions", force: :cascade do |t|
@@ -64,12 +90,195 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "regenerate_flatfiles_progresses", force: :cascade do |t|
+  create_table "curation_events", force: :cascade do |t|
+    t.string "action", null: false
+    t.string "actor", null: false
+    t.datetime "created_at", null: false
+    t.jsonb "details", default: {}, null: false
+    t.integer "row_count", default: 0, null: false
+    t.bigint "submission_id", null: false
+    t.bigint "submission_update_id"
+    t.index ["submission_id", "created_at"], name: "index_curation_events_on_submission_id_and_created_at"
+    t.index ["submission_id"], name: "index_curation_events_on_submission_id"
+    t.index ["submission_update_id"], name: "index_curation_events_on_submission_update_id"
+  end
+
+  create_table "distribution_notices", force: :cascade do |t|
+    t.jsonb "accessions", default: [], null: false
+    t.string "actor"
+    t.string "result", null: false
+    t.datetime "sent_at", null: false
+    t.string "skip_reason"
+    t.string "trigger", null: false
+    t.bigint "user_id", null: false
+    t.index ["sent_at"], name: "index_distribution_notices_on_sent_at", order: :desc
+    t.index ["user_id", "sent_at"], name: "index_distribution_notices_on_user_id_and_sent_at"
+  end
+
+  create_table "distribution_notifier_templates", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.string "subject", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "migration_runs", force: :cascade do |t|
+    t.jsonb "counters", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.string "db", null: false
+    t.text "error_log"
+    t.datetime "finished_at"
+    t.datetime "started_at"
+    t.string "status", default: "queued", null: false
+    t.integer "total"
+    t.datetime "updated_at", null: false
+    t.uuid "uuid", null: false
+    t.index ["created_at"], name: "index_migration_runs_on_created_at"
+    t.index ["db", "status"], name: "index_migration_runs_on_db_and_status"
+    t.index ["uuid"], name: "index_migration_runs_on_uuid", unique: true
+  end
+
+  create_table "project_links", force: :cascade do |t|
+    t.bigint "child_project_id", null: false
+    t.datetime "created_at", null: false
+    t.string "external_accession"
+    t.bigint "parent_project_id"
+    t.datetime "updated_at", null: false
+    t.index ["child_project_id", "external_accession"], name: "index_project_links_on_child_and_external", unique: true, where: "(external_accession IS NOT NULL)"
+    t.index ["child_project_id", "parent_project_id"], name: "index_project_links_on_child_and_parent", unique: true, where: "(parent_project_id IS NOT NULL)"
+    t.index ["child_project_id"], name: "index_project_links_on_child_project_id"
+    t.index ["parent_project_id"], name: "index_project_links_on_parent_project_id"
+    t.check_constraint "parent_project_id IS NOT NULL AND external_accession IS NULL OR parent_project_id IS NULL AND external_accession IS NOT NULL", name: "project_links_target_exclusivity"
+  end
+
+  create_table "projects", force: :cascade do |t|
+    t.string "accession"
+    t.datetime "created_at", null: false
+    t.date "dist_date"
+    t.datetime "distribution_notified_at"
+    t.date "hold_date"
+    t.date "issued_date"
+    t.date "modified_date"
+    t.integer "project_type", null: false
+    t.date "release_date"
+    t.integer "status", default: 5100, null: false
+    t.bigint "submission_id", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["accession"], name: "index_projects_on_accession", unique: true, where: "(accession IS NOT NULL)"
+    t.index ["status"], name: "index_projects_on_status"
+    t.index ["submission_id", "status"], name: "index_projects_awaiting_accession", where: "(accession IS NULL)"
+    t.index ["submission_id"], name: "index_projects_on_submission_id", unique: true
+  end
+
+  create_table "public_xml_runs", force: :cascade do |t|
+    t.integer "added", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.string "db", null: false
+    t.integer "emitted", default: 0, null: false
+    t.text "error_log"
+    t.datetime "finished_at"
+    t.string "kind", null: false
+    t.datetime "started_at", null: false
+    t.string "status", default: "running", null: false
+    t.integer "unchanged", default: 0, null: false
+    t.integer "updated", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["db", "kind", "finished_at"], name: "index_public_xml_runs_on_db_and_kind_and_finished_at"
+    t.index ["db", "kind", "status"], name: "index_public_xml_runs_on_db_and_kind_and_status"
+  end
+
+  create_table "regenerate_flatfiles_failures", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label", null: false
+    t.text "message", null: false
+    t.bigint "run_id", null: false
+    t.bigint "submission_id"
+    t.index ["run_id"], name: "index_regenerate_flatfiles_failures_on_run_id"
+    t.index ["submission_id"], name: "index_regenerate_flatfiles_failures_on_submission_id"
+  end
+
+  create_table "regenerate_flatfiles_runs", force: :cascade do |t|
+    t.string "actor", null: false
     t.datetime "created_at", null: false
     t.integer "failed", default: 0, null: false
-    t.integer "processed", default: 0, null: false
+    t.datetime "finished_at"
+    t.boolean "force", default: false, null: false
+    t.date "locus_date"
+    t.text "numbers"
+    t.integer "regenerated", default: 0, null: false
+    t.bigint "retry_of_id"
+    t.integer "skipped", default: 0, null: false
+    t.datetime "started_at", null: false
+    t.string "target", null: false
     t.integer "total", null: false
     t.datetime "updated_at", null: false
+    t.index ["retry_of_id"], name: "index_regenerate_flatfiles_runs_on_retry_of_id"
+    t.index ["started_at"], name: "index_regenerate_flatfiles_runs_on_started_at"
+  end
+
+  create_table "reviewer_accesses", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "expires_at", null: false
+    t.bigint "submission_request_id", null: false
+    t.string "token", null: false
+    t.datetime "updated_at", null: false
+    t.index ["submission_request_id"], name: "index_reviewer_accesses_on_submission_request_id", unique: true
+    t.index ["token"], name: "index_reviewer_accesses_on_token", unique: true
+  end
+
+  create_table "sample_references", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ref_accession", null: false
+    t.string "ref_db", null: false
+    t.bigint "sample_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["ref_db", "ref_accession"], name: "index_sample_references_on_ref_db_and_ref_accession"
+    t.index ["sample_id", "ref_db", "ref_accession"], name: "index_sample_references_on_sample_db_accession", unique: true
+    t.index ["sample_id"], name: "index_sample_references_on_sample_id"
+  end
+
+  create_table "sample_tsv_imports", force: :cascade do |t|
+    t.string "actor", null: false
+    t.datetime "created_at", null: false
+    t.text "error_report"
+    t.integer "failed", default: 0, null: false
+    t.datetime "finished_at"
+    t.string "phase"
+    t.integer "processed", default: 0, null: false
+    t.jsonb "rejections", default: [], null: false
+    t.datetime "started_at", null: false
+    t.string "status", default: "running", null: false
+    t.bigint "submission_id", null: false
+    t.integer "total", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["submission_id"], name: "index_sample_tsv_imports_on_submission_id"
+  end
+
+  create_table "samples", force: :cascade do |t|
+    t.string "accession"
+    t.datetime "created_at", null: false
+    t.date "dist_date"
+    t.string "env_package"
+    t.date "modified_date"
+    t.string "organism"
+    t.string "package"
+    t.string "package_group"
+    t.date "release_date"
+    t.integer "release_type"
+    t.string "sample_name", null: false
+    t.integer "status", default: 5100, null: false
+    t.bigint "submission_id", null: false
+    t.integer "taxonomy_id"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["accession"], name: "index_samples_on_accession", unique: true, where: "(accession IS NOT NULL)"
+    t.index ["package"], name: "index_samples_on_package"
+    t.index ["package_group"], name: "index_samples_on_package_group"
+    t.index ["sample_name"], name: "index_samples_on_sample_name"
+    t.index ["status"], name: "index_samples_on_status"
+    t.index ["submission_id", "status"], name: "index_samples_awaiting_accession", where: "(accession IS NULL)"
+    t.index ["submission_id"], name: "index_samples_on_submission_id"
   end
 
   create_table "sequences", force: :cascade do |t|
@@ -81,43 +290,95 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
     t.index ["scope"], name: "index_sequences_on_scope", unique: true
   end
 
+  create_table "submission_messages", force: :cascade do |t|
+    t.string "author_role", null: false
+    t.text "body", null: false
+    t.jsonb "cc_user_ids", default: [], null: false
+    t.datetime "created_at", null: false
+    t.datetime "read_at"
+    t.bigint "submission_request_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["submission_request_id", "author_role", "read_at"], name: "idx_on_submission_request_id_author_role_read_at_0b8f32e48f"
+    t.index ["submission_request_id", "created_at"], name: "idx_on_submission_request_id_created_at_cf469d0ffd"
+    t.index ["submission_request_id"], name: "index_submission_messages_on_submission_request_id"
+    t.index ["user_id"], name: "index_submission_messages_on_user_id"
+  end
+
+  create_table "submission_request_participants", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_read_at"
+    t.bigint "submission_request_id", null: false
+    t.datetime "unsubscribed_at"
+    t.bigint "user_id", null: false
+    t.index ["submission_request_id", "user_id"], name: "index_participants_on_request_and_user", unique: true
+    t.index ["user_id"], name: "index_submission_request_participants_on_user_id"
+  end
+
   create_table "submission_requests", force: :cascade do |t|
+    t.bigint "assignee_id"
+    t.datetime "closed_at"
     t.datetime "created_at", null: false
     t.string "db", null: false
     t.string "error_message"
+    t.uuid "migration_run_id"
     t.integer "status", default: 0, null: false
     t.bigint "submission_id"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.index ["assignee_id"], name: "index_submission_requests_on_assignee_id"
     t.index ["db"], name: "index_submission_requests_on_db"
+    t.index ["migration_run_id"], name: "index_submission_requests_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
     t.index ["submission_id"], name: "index_submission_requests_on_submission_id"
     t.index ["user_id"], name: "index_submission_requests_on_user_id"
   end
 
   create_table "submission_updates", force: :cascade do |t|
+    t.string "actor"
     t.datetime "created_at", null: false
     t.string "db", null: false
-    t.string "diff"
     t.string "error_message"
+    t.integer "patch_canonical_version", default: 1, null: false
+    t.boolean "root_snapshot", default: false, null: false
+    t.integer "source", default: 0, null: false
     t.integer "status", default: 0, null: false
     t.bigint "submission_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["actor"], name: "index_submission_updates_on_actor", where: "(actor IS NOT NULL)"
     t.index ["db"], name: "index_submission_updates_on_db"
+    t.index ["submission_id", "created_at"], name: "index_submission_updates_on_submission_id_and_created_at"
+    t.index ["submission_id", "id"], name: "index_submission_updates_root_snapshots", where: "root_snapshot"
     t.index ["submission_id"], name: "index_submission_updates_on_submission_id"
   end
 
   create_table "submissions", force: :cascade do |t|
+    t.bigint "cached_at_update_id"
+    t.integer "canonical_version", default: 1, null: false
+    t.string "converter_version"
     t.datetime "created_at", null: false
+    t.text "curator_comment"
     t.string "db", null: false
+    t.uuid "migration_run_id"
+    t.string "source_checksum"
+    t.string "source_id"
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["cached_at_update_id"], name: "index_submissions_on_cached_at_update_id", where: "(cached_at_update_id IS NOT NULL)"
     t.index ["db"], name: "index_submissions_on_db"
+    t.index ["migration_run_id"], name: "index_submissions_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
+    t.index ["source_id"], name: "index_submissions_on_source_id", unique: true, where: "(source_id IS NOT NULL)"
+    t.index ["user_id"], name: "index_submissions_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
     t.string "api_key", null: false
     t.datetime "created_at", null: false
+    t.string "email"
+    t.datetime "last_signed_in_at"
     t.text "notes", default: "", null: false
+    t.datetime "notes_updated_at"
+    t.bigint "notes_updated_by_id"
     t.string "uid", null: false
     t.datetime "updated_at", null: false
     t.index ["api_key"], name: "index_users_on_api_key", unique: true
@@ -150,11 +411,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_05_21_235831) do
 
   add_foreign_key "accession_histories", "accessions"
   add_foreign_key "accession_histories", "users"
+  add_foreign_key "accession_issuances", "accession_issuance_runs", column: "run_id"
+  add_foreign_key "accession_issuances", "submissions"
   add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "curation_events", "submission_updates", on_delete: :nullify
+  add_foreign_key "curation_events", "submissions"
+  add_foreign_key "distribution_notices", "users"
+  add_foreign_key "project_links", "projects", column: "child_project_id"
+  add_foreign_key "project_links", "projects", column: "parent_project_id"
+  add_foreign_key "projects", "submissions"
+  add_foreign_key "regenerate_flatfiles_failures", "regenerate_flatfiles_runs", column: "run_id"
+  add_foreign_key "regenerate_flatfiles_failures", "submissions", on_delete: :nullify
+  add_foreign_key "regenerate_flatfiles_runs", "regenerate_flatfiles_runs", column: "retry_of_id"
+  add_foreign_key "reviewer_accesses", "submission_requests"
+  add_foreign_key "sample_references", "samples"
+  add_foreign_key "sample_tsv_imports", "submissions"
+  add_foreign_key "samples", "submissions"
+  add_foreign_key "submission_messages", "submission_requests"
+  add_foreign_key "submission_messages", "users"
+  add_foreign_key "submission_request_participants", "submission_requests"
+  add_foreign_key "submission_request_participants", "users"
   add_foreign_key "submission_requests", "submissions"
   add_foreign_key "submission_requests", "users"
+  add_foreign_key "submission_requests", "users", column: "assignee_id"
   add_foreign_key "submission_updates", "submissions"
+  add_foreign_key "submissions", "submission_updates", column: "cached_at_update_id", on_delete: :nullify
+  add_foreign_key "submissions", "users"
+  add_foreign_key "users", "users", column: "notes_updated_by_id"
   add_foreign_key "validation_details", "validations"
 end

@@ -1,0 +1,134 @@
+<%# locals: (requests:, sample_aggregates:, pagy:, filter_params: {}, empty_message: 'No requests found.') %>
+<%# The request table plus its cross-request bulk actions — the ledger's %>
+<%# working surface. My queue renders rows of its own instead: a queue %>
+<%# offers one action per row, which is a different thing from selecting %>
+<%# a set and acting on it. %>
+<%# POST, not PATCH: a PATCH form emits a hidden `_method` field, and %>
+<%# Rack::MethodOverride applies it to EVERY submit — including the %>
+<%# accession button's `formaction`, whose route is POST-only, which %>
+<%# then 404s. One method across the whole form removes the conflict. %>
+<%# The session-wide token rather than the per-form one for the same %>
+<%# reason: a per-form token is bound to this form's own action, so the %>
+<%# accession button's `formaction` would be rejected as forged. %>
+<%= form_with url:                bulk_update_admin_submissions_path(filter_params),
+              method:             :post,
+              scope:              :bulk,
+              local:              true,
+              authenticity_token: form_authenticity_token,
+              data:               {controller: 'bulk-select'} do |f| %>
+  <table class="table border align-middle">
+    <thead class="table-light">
+      <tr>
+        <th style="width: 1rem;">
+          <input type="checkbox" class="form-check-input" data-bulk-select-target="toggle" aria-label="Select all on this page">
+        </th>
+        <th>ID</th>
+        <th>Database</th>
+        <th>Submitter</th>
+        <th>Source ID</th>
+        <th>Accession</th>
+        <th>Curation</th>
+        <th>Assignee</th>
+        <th>Updated ↓</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <% requests.each do |request| %>
+        <% submission = request.submission %>
+        <tr>
+          <td>
+            <% if submission %>
+              <%= f.check_box :submission_ids,
+                              {multiple: true, class: 'form-check-input', data: {bulk_select_target: 'row'}, 'aria-label': "Select ##{request.id}"},
+                              submission.id, nil %>
+            <% end %>
+          </td>
+          <td><%= link_to "##{request.id}", admin_submission_request_path(request) %></td>
+          <td><%= db_label(request.db) %></td>
+          <td><%= request.user.uid %></td>
+          <td><%= submission&.source_id || '—' %></td>
+          <td>
+            <% first_accession, accession_count = submission ? accession_summary(submission, sample_aggregates) : [nil, 0] %>
+            <% if accession_count.positive? %>
+              <code><%= first_accession %></code>
+              <% if accession_count > 1 %>
+                <span class="text-body-secondary">(<%= accession_count %>)</span>
+              <% end %>
+            <% else %>
+              —
+            <% end %>
+          </td>
+          <%# One column, not two: two meant reading both and working out %>
+          <%# which of them currently applied (see request_state_display). %>
+          <td><%= request_state_display(request, submission, sample_aggregates) %></td>
+          <td><%= request.assignee&.uid || '—' %></td>
+          <td class="text-nowrap"><%= elapsed_label(request.updated_at) %> ago</td>
+        </tr>
+      <% end %>
+
+      <% if requests.empty? %>
+        <tr>
+          <td colspan="9" class="text-center text-body-secondary py-4"><%= empty_message %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <%= render 'admin/shared/pagy_nav', pagy: pagy %>
+
+  <%# Same sticky bar as the Samples screen, so "tick rows, act on them" %>
+  <%# looks and works the same wherever a curator does it. Unlike Samples %>
+  <%# there is no "all matching the filter" scope: a ledger filter can %>
+  <%# span the whole corpus, and issuing accessions for it by accident is %>
+  <%# not undoable. Selection stays what is visibly ticked. %>
+  <% if requests.any? %>
+    <div class="bulk-bar bg-dark text-white rounded-3 p-3 d-flex align-items-center gap-3 flex-wrap">
+      <span class="text-nowrap">
+        <span data-bulk-select-target="counter">0</span> selected on this page
+      </span>
+
+      <span class="flex-fill"></span>
+
+      <%= f.select :status,
+                   Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                   {include_blank: 'Curation status — leave as-is'},
+                   class: 'form-select form-select-sm w-auto' %>
+
+      <%= f.select :assignee_id,
+                   [['— Unassigned —', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                   {include_blank: 'Assignee — leave as-is'},
+                   class: 'form-select form-select-sm w-auto' %>
+
+      <%# No confirmation. Friction belongs on the operation that cannot %>
+      <%# be taken back, and this one can: the ledger below shows the new %>
+      <%# state, and the notice says what moved and what was already %>
+      <%# there — so a wrong press is visible and fixable by pressing %>
+      <%# again. `turbo_confirm` is a native window.confirm, which blocks %>
+      <%# the whole renderer to ask about something reversible. %>
+      <%= f.submit 'Apply', class: 'btn btn-outline-light btn-sm' %>
+
+      <%# To the confirmation, not to the run: it names how many numbers %>
+      <%# this allocates and which of the selection will be skipped, so a %>
+      <%# wrong tick is fixable before it is permanent. %>
+      <%# %>
+      <%# Into the frame, which is also what makes the POST work at all: %>
+      <%# this one renders rather than redirects, and Turbo discards a %>
+      <%# 200 from a form unless it has a frame to put it in. %>
+      <%= f.button 'Issue accessions',
+                   type:       :submit,
+                   formaction: confirm_issue_accessions_admin_submissions_path(filter_params),
+                   class:      'btn btn-warning btn-sm text-nowrap',
+                   data:       {turbo_frame: 'confirm_dialog'} %>
+    </div>
+
+    <p class="text-body-secondary small mt-2">
+      Apply sets the assignee on each selected request, and the curation status on
+      its submission — the Project (BP) or every Sample (BS). Issue accessions opens
+      a confirmation naming what would be allocated and what would be skipped.
+      Requests with no submission yet are not selectable.
+    </p>
+  <% end %>
+<% end %>
+
+<%= render 'admin/shared/confirm_dialog' %>

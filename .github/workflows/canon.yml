@@ -1,0 +1,106 @@
+name: Canon
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: canon-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruby-fixture-pinning:
+    name: Ruby fixture pinning
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17.4
+
+        ports:
+          - 5432:5432
+
+        env:
+          POSTGRES_DB: repository_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      RAILS_ENV: test
+      TZ: Asia/Tokyo
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - run: bin/rails db:test:prepare
+
+      - name: Run canonicalizer test suite
+        run: bin/rails test test/models/ddbj_record/canonicalizer_test.rb test/models/ddbj_record/canon/
+
+      - name: Verify field manifest + registry coverage
+        run: bin/rails canon:fields_check canon:registry_completeness
+
+  cross-lang-jcs-gate:
+    name: Cross-language JCS gate
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17.4
+
+        ports:
+          - 5432:5432
+
+        env:
+          POSTGRES_DB: repository_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      RAILS_ENV: test
+      TZ: Asia/Tokyo
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Python canonicalization deps
+        run: pip install rfc8785==0.1.4 jsonpatch==1.33
+
+      - name: Expose Python interpreter to the cross-lang test
+        run: echo "DDBJ_CANON_PY=$(which python)" >> "$GITHUB_ENV"
+
+      - run: bin/rails db:test:prepare
+
+      - name: Run cross-language JCS parity test
+        run: bin/rails test test/models/ddbj_record/canon/cross_lang_jcs_test.rb

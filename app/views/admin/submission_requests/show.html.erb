@@ -1,0 +1,31 @@
+<% content_for :title, "##{@request.id}" %>
+
+<%= render layout: 'workbench', locals: {tab: :overview} do %>
+  <div class="row g-4">
+    <div class="col-xl-8">
+      <%= render 'next_action', state: @state %>
+
+      <%= render 'facts', request: @request, submission: @submission, state: @state, materialised: @materialised %>
+
+      <%= render 'validation', validation: @validation %>
+
+      <%= render 'activity', entries: @activity, submission: @submission %>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="workbench-rail d-flex flex-column gap-3">
+        <% if @submission %>
+          <%= render 'admin/curations/curator_edit',
+                     submission:   @submission,
+                     state:        @state,
+                     materialised: @materialised,
+                     error:        @materialisation_error %>
+        <% end %>
+
+        <%= render 'messages_preview', request: @request, state: @state %>
+
+        <%= render 'files', request: @request, submission: @submission %>
+      </div>
+    </div>
+  </div>
+<% end %>

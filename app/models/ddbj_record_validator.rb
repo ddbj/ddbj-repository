@@ -52,9 +52,14 @@ module DDBJRecordValidator
   end
 
   def _validate(subject)
-    details    = []
-    record     = subject.ddbj_record.open { DDBJRecord.parse(it) }
-    app_number = record.submission&.application_identification&.application_number_text
+    details = []
+    record  = subject.ddbj_record.open { DDBJRecord.parse(it) }
+    v3      = record.is_a?(DDBJRecord::V3::Root)
+
+    # ST26 application identification — v2: submission.application_identification,
+    # v3: submission.st26.application (per v3 St26Meta).
+    app_node   = v3 ? record.submission&.st26&.application : record.submission&.application_identification
+    app_number = app_node&.application_number_text
 
     if app_number && !app_number.match?(%r{\A[A-Za-z0-9/\-]+\z})
       details << {
@@ -74,13 +79,34 @@ module DDBJRecordValidator
       }
     end
 
-    [
-      ['applicant_names',      pluck_en_texts(record.st26&.applicant_names)],
-      ['applicant_name_latin', record.st26&.applicant_name_latin],
-      ['inventor_names',       pluck_en_texts(record.st26&.inventor_names)],
-      ['inventor_name_latin',  record.st26&.inventor_name_latin],
-      ['invention_titles',     pluck_en_texts(record.st26&.invention_titles)]
-    ].each do |key, texts|
+    # ST26 name fields (TRD_R0009: non-ASCII).
+    # v2: arrays of LocalizedText; the en-only filter is what the rule
+    #   intends to enforce ("the English text must be ASCII").
+    # v3: applicant_name / inventor_name are bare strings whose language is
+    #   the producer's choice (often the original Japanese), while
+    #   applicant_name_latin / inventor_name_latin is the Latin form. The
+    #   v3 equivalent of "must be ASCII" only applies to the *_latin
+    #   variants. invention_titles keeps language_code per entry, so we
+    #   mirror v2's en-only filter.
+    st26 = v3 ? record.submission&.st26 : record.st26
+
+    non_ascii_groups = if v3
+      [
+        ['applicant_name_latin', Array(st26&.applicant_name_latin)],
+        ['inventor_name_latin',  Array(st26&.inventor_name_latin)],
+        ['invention_titles',     Array(st26&.invention_titles).select { it.language_code == 'en' }.map(&:title)]
+      ]
+    else
+      [
+        ['applicant_names',      pluck_en_texts(st26&.applicant_names)],
+        ['applicant_name_latin', st26&.applicant_name_latin],
+        ['inventor_names',       pluck_en_texts(st26&.inventor_names)],
+        ['inventor_name_latin',  st26&.inventor_name_latin],
+        ['invention_titles',     pluck_en_texts(st26&.invention_titles)]
+      ]
+    end
+
+    non_ascii_groups.each do |key, texts|
       Array(texts).each do |text|
         next if text.nil? || text.ascii_only?
 
@@ -93,17 +119,32 @@ module DDBJRecordValidator
       end
     end
 
-    record.sequences.entries.each do |entry|
-      entry_id = entry.id
+    # For v3, mol_type is hoisted to sequences.common_source.mol_type
+    # (per V3::Sequences); v2 carries it per-entry inside source_features.
+    common_mol_type = v3 ? record.sequences&.common_source&.mol_type : nil
 
-      entry.source_features.each do |sf|
+    # Don't Array()-wrap the v2 path here — v2 records with a missing
+    # `sequences` block used to fail loudly via NoMethodError → TRD_R9999;
+    # silencing that would let a malformed v2 record reach ready_to_apply.
+    entries = v3 ? Array(record.sequences&.entries) : record.sequences.entries
+
+    entries.each do |entry|
+      # v2 Entry has :id (server-extension); v3 Entry uses :alias as the
+      # curator-facing identifier and falls back to :accession when alias
+      # is blank (or, rarely, the empty string).
+      entry_id = v3 ? (entry.alias.presence || entry.accession.presence) : entry.id
+
+      Array(entry.source_features).each do |sf|
         details.concat validate_qualifiers(sf.source&.qualifiers || {}, **{
           entry_id:,
           feature: :source
         })
       end
 
-      unless entry.source_features.any? { it.source&.mol_type }
+      has_mol_type = common_mol_type.present? ||
+                     Array(entry.source_features).any? { it.source&.mol_type }
+
+      unless has_mol_type
         details << {
           entry_id:,
           code:     'TRD_R0010',
@@ -123,7 +164,8 @@ module DDBJRecordValidator
         }
       end
 
-      aa = entry.source_features.any? { it.source&.mol_type == 'protein' }
+      aa = common_mol_type == 'protein' ||
+           Array(entry.source_features).any? { it.source&.mol_type == 'protein' }
 
       if !aa && !seq.empty? && seq.count('^Nn').zero?
         details << {
@@ -153,7 +195,9 @@ module DDBJRecordValidator
       end
     end
 
-    record.features.each do |feature|
+    features = v3 ? Array(record.features) : record.features
+
+    features.each do |feature|
       fkey     = feature.type
       entry_id = feature.sequence_id
 
@@ -166,9 +210,15 @@ module DDBJRecordValidator
         }
       end
 
-      details.concat validate_qualifiers(feature.qualifiers, entry_id:, feature: fkey)
+      details.concat validate_qualifiers(feature.qualifiers || {}, entry_id:, feature: fkey)
     end
-  rescue Oj::ParseError => e
+  # Oj::ParseError is raised by the v2 SAJ Handler on malformed JSON.
+  # TypeError is what V3::Parser raises when the JSON is well-formed
+  # but a node has the wrong container type (e.g. `"sequences": []`
+  # where an object is expected) — surface both as a parse error
+  # detail rather than letting them escape into the outer rescue =>
+  # TRD_R9999 catch-all.
+  rescue Oj::ParseError, TypeError => e
     details << {
       entry_id: nil,
       code:     nil,

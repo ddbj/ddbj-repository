@@ -41,7 +41,10 @@ jobs:
           bundler-cache: true
 
       - run: bin/rails db:test:prepare
-      - run: bin/rails test
+
+      # `test` alone skips test/system, which is where the
+      # user-perspective coverage lives. `test:all` is both.
+      - run: bin/rails test:all
 
   scan_ruby:
     runs-on: ubuntu-latest

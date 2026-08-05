@@ -1,0 +1,35 @@
+<%# locals: (entries:, submission:) %>
+<%# The patch chain in words. Technical handles stay as trailing %>
+<%# references so a curator can pivot to the raw snapshot without having %>
+<%# to read ops to work out what happened. %>
+<section class="card mb-0">
+  <div class="card-body pb-0 d-flex justify-content-between align-items-center">
+    <h2 class="h6 card-title mb-0">Activity</h2>
+    <% if submission %>
+      <%= link_to 'Full patch chain →', record_admin_submission_request_path(@request), class: 'small' %>
+    <% end %>
+  </div>
+
+  <div class="card-body">
+    <% if entries.empty? %>
+      <p class="text-body-secondary small mb-0">Nothing has happened yet.</p>
+    <% else %>
+      <ul class="list-unstyled mb-0">
+        <% entries.each do |entry| %>
+          <li class="d-flex gap-3 align-items-baseline small py-2 border-bottom">
+            <span class="text-body-tertiary font-monospace text-nowrap"><%= format_datetime(entry.at) %></span>
+            <span class="flex-fill">
+              <strong><%= entry.actor %></strong>
+              <%= entry.summary %>
+            </span>
+            <% if entry.update_id %>
+              <%= link_to "patch ##{entry.update_id}",
+                          materialised_admin_submission_path(submission, as_of: entry.update_id),
+                          class: 'text-body-tertiary text-nowrap' %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    <% end %>
+  </div>
+</section>

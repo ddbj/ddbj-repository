@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<PackageSet>
+	<Package>
+		<Project>
+			<Project>
+				<ProjectID>
+					<ArchiveID accession="PRJDB502" archive="DDBJ" />
+				</ProjectID>
+				<ProjectDescr>
+					<Title>Chromosome Mycobacterium avium sequencing</Title>
+					<Description>Mycobacterium avium complex (MAC) infection causes mainly two types of disease: disseminated disease in immmunocompromised hosts such as AIDS patients; and pulmonary disease in persons without systemic immunosuppression. To explore bacterial factors that affect different forms of MAC disease, we determine complete genome sequence of M. avium strain TH135 isolated from HIV-negative patient with pulmonary MAC disease, and compare with the genome of M. avium strain 104 derived from an AIDS patient with MAC infection</Description>
+					<Grant GrantId="24590164">
+						<Title>Comparative genome analysis of nontuberculous mycobacteria and clinical application</Title>
+						<Agency abbr="JSPC">Japan Society for the Promotion of Science</Agency>
+					</Grant>
+					<ProjectReleaseDate>2013-05-30T17:44:31.148+09:00</ProjectReleaseDate>
+					<Relevance>
+						<Medical>yes</Medical>
+					</Relevance>
+					<LocusTagPrefix>MAH</LocusTagPrefix>
+				</ProjectDescr>
+				<ProjectType>
+					<ProjectTypeSubmission>
+						<Target sample_scope="eMonoisolate" material="eGenome" capture="eWhole">
+							<Organism taxID="1229671">
+								<OrganismName>Mycobacterium avium subsp. hominissuis TH135</OrganismName>
+								<Strain>TH135</Strain>
+								<BiologicalProperties>
+									<Morphology>
+										<Gram>ePositive</Gram>
+										<Enveloped>eNo</Enveloped>
+										<Shape>eCocci</Shape>
+										<Endospores>eNo</Endospores>
+										<Motility>eNo</Motility>
+									</Morphology>
+									<Environment>
+										<Salinity>eMesophilic</Salinity>
+										<OxygenReq>eAerobic</OxygenReq>
+										<OptimumTemperature>37</OptimumTemperature>
+										<TemperatureRange>eMesophilic</TemperatureRange>
+										<Habitat>eMultiple</Habitat>
+									</Environment>
+									<Phenotype>
+										<BioticRelationship>eParasite</BioticRelationship>
+										<TrophicLevel>eAutotroph</TrophicLevel>
+										<Disease>Mycobacterium avium complex disease</Disease>
+									</Phenotype>
+								</BiologicalProperties>
+								<Organization>eColonial</Organization>
+								<Reproduction>eAsexual</Reproduction>
+								<RepliconSet>
+									<Replicon>
+										<Type location="eNuclearProkaryote" isSingle="false">ePlasmid</Type>
+										<Name>plasmid</Name>
+										<Size units="Kb">20</Size>
+									</Replicon>
+									<Ploidy type="eHaploid" />
+									<Count repliconType="ePlasmid">1</Count>
+								</RepliconSet>
+								<GenomeSize units="Mb">5</GenomeSize>
+							</Organism>
+							<Provider>Higashinagoya National Hospital</Provider>
+						</Target>
+						<Method method_type="eSequencing" />
+						<Objectives>
+							<Data data_type="eSequence" />
+						</Objectives>
+						<ProjectDataTypeSet>
+							<DataType>Genome Sequencing</DataType>
+						</ProjectDataTypeSet>
+					</ProjectTypeSubmission>
+				</ProjectType>
+			</Project>
+		</Project>
+		<Submission>
+			<Submission submitted="2012-09-04">
+				<Description>
+					<Organization type="center" role="owner">
+						<Name>Meijo University faculty of pharmacy</Name>
+						<Contact email="sample-1@example.test">
+							<Name>
+								<First>Sample-First-1</First>
+								<Last>Sample-Last-1</Last>
+							</Name>
+						</Contact>
+						<Contact email="sample-2@example.test">
+							<Name>
+								<First>Sample-First-2</First>
+								<Last>Sample-Last-2</Last>
+							</Name>
+						</Contact>
+					</Organization>
+					<Access>public</Access>
+				</Description>
+			</Submission>
+		</Submission>
+	</Package>
+</PackageSet>

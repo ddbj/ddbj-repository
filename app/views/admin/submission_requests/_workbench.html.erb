@@ -1,0 +1,136 @@
+<%# locals: (tab:) %>
+<%# Layout partial for the four workbench tabs. %>
+<%# Identity, state and the primary action stay put while the curator %>
+<%# moves between tabs, so "where am I and what do I do next" never %>
+<%# scrolls away. %>
+<% overview = tab == :overview %>
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'All requests', path: admin_submission_requests_path},
+  {label: "##{@request.id}", path: (admin_submission_request_path(@request) unless overview)},
+  *(overview ? [] : [{label: workbench_tab_label(tab)}])
+] %>
+
+<%# The horizontal padding sits on an inner wrapper, not on the box, so %>
+<%# the tab strip reaches both edges and its own bottom border can be the %>
+<%# single seam between this box and the panel below — hence %>
+<%# `border-bottom-0` here and `border-top-0` there. With padding on the %>
+<%# box the two borders stacked, giving a line that was 2px in the middle %>
+<%# and 1px at the ends. %>
+<div class="workbench-summary bg-body border border-bottom-0 rounded-top-3 pt-3">
+  <div class="px-4 d-flex justify-content-between align-items-start gap-4 flex-wrap">
+    <div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h1 class="h3 mb-0">#<%= @request.id %></h1>
+        <span class="badge text-bg-light border"><%= db_label(@request.db) %></span>
+        <code class="text-body-secondary"><%= @submission&.source_id || '—' %></code>
+        <span class="text-body-tertiary">·</span>
+        <span class="text-body-secondary"><%= @request.user.uid %></span>
+        <% if @state.curated? %>
+          <span class="text-body-tertiary">·</span>
+          <span class="text-body-secondary">
+            <%= number_with_delimiter(@state.row_count) %> <%= @state.row_noun %>
+          </span>
+        <% end %>
+      </div>
+
+      <%# Who is on this, in one line. Participants sit next to the %>
+      <%# assignee because the difference between them is the whole point: %>
+      <%# replying here puts you in the second list and keeps the request %>
+      <%# in your queue, without moving the first. %>
+      <div class="d-flex align-items-center gap-2 mt-2 small">
+        <%= curation_status_badge(@state) %>
+        <span class="text-body-secondary">
+          assignee <strong><%= @state.assignee_label %></strong>
+          <%# Followers, not everyone who has ever been here: a curator %>
+          <%# who stopped following was still listed, which is the one %>
+          <%# thing this line must not get wrong. %>
+          <% if (followers = @request.followers.order(:uid)).any? %>
+            · following <strong><%= followers.map(&:uid).to_sentence %></strong>
+          <% end %>
+          · updated <%= format_datetime(@submission&.updated_at || @request.updated_at) %>
+        </span>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <% unless @state.assigned_to?(current_user) %>
+        <%= button_to 'Assign to me',
+                      admin_submission_request_assignment_path(@request),
+                      method: :post,
+                      class:  'btn btn-outline-secondary btn-sm' %>
+
+        <%# Here rather than inside the thread, and on every tab, because %>
+        <%# following is a fact about the request rather than about the %>
+        <%# conversation — and because a subscription you can only reach %>
+        <%# by replying is one nobody knows they have. Following without %>
+        <%# replying is the whole point: watch what happens next without %>
+        <%# saying anything. %>
+        <%# %>
+        <%# Not offered to the assignee: owning it is not a subscription %>
+        <%# you can decline, and releasing it is how you stop owning it. %>
+        <% if @request.following?(current_user) %>
+          <%= button_to 'Stop following',
+                        admin_submission_request_subscription_path(@request),
+                        method: :delete,
+                        class:  'btn btn-outline-secondary btn-sm' %>
+        <% else %>
+          <%= button_to 'Follow',
+                        admin_submission_request_subscription_path(@request),
+                        method: :post,
+                        class:  'btn btn-outline-secondary btn-sm' %>
+        <% end %>
+      <% end %>
+
+      <%# Gated on "would this succeed", not on whether issuance happens to %>
+      <%# be the most urgent thing to say — an unread message must not hide %>
+      <%# the only PRJDB button a BP request has. %>
+      <%# Amber and a confirmation, where the reversible bulk actions have %>
+      <%# none: the dialog names how many numbers this allocates, which is %>
+      <%# what makes "permanent" concrete. %>
+      <% if (label = @state.issue_label) %>
+        <%= link_to label, new_admin_submission_accession_path(@submission),
+                    class: 'btn btn-warning btn-sm',
+                    data:  {turbo_frame: 'confirm_dialog'} %>
+      <% elsif @state.issuing? %>
+        <span class="badge text-bg-warning">Issuing…</span>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="px-4">
+    <%= render 'progress', state: @state %>
+  </div>
+
+  <%# Full-bleed: the ul spans the box so its border-bottom lands exactly %>
+  <%# on the seam, which is what lets the active tab punch through it. %>
+  <ul class="nav nav-tabs px-4">
+    <%= render 'tab', label: workbench_tab_label(:overview),
+                      path:  admin_submission_request_path(@request),
+                      active: overview %>
+
+    <%# BP has a single Project and ST.26 has no curation rows at all, so %>
+    <%# there is no sample workbench to offer — and no count to imply one. %>
+    <% biosample = @submission&.biosample_db? %>
+    <%= render 'tab', label: workbench_tab_label(:samples),
+                      path:  samples_admin_submission_request_path(@request),
+                      active: tab == :samples,
+                      count: (@state.row_count if biosample),
+                      disabled: !biosample %>
+
+    <%= render 'tab', label: workbench_tab_label(:messages),
+                      path:  messages_admin_submission_request_path(@request),
+                      active: tab == :messages,
+                      count: @state.unread_message_count,
+                      count_class: 'text-bg-danger' %>
+
+    <%= render 'tab', label: workbench_tab_label(:record),
+                      path:  record_admin_submission_request_path(@request),
+                      active: tab == :record %>
+  </ul>
+</div>
+
+<div class="bg-body border border-top-0 rounded-bottom-3 p-4 mb-4">
+  <%= yield %>
+</div>
+
+<%= render 'admin/shared/confirm_dialog' %>

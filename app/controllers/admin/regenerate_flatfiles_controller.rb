@@ -1,29 +1,125 @@
 module Admin
   class RegenerateFlatfilesController < ApplicationController
+    # Typed out in full for the one scope that cannot be taken back by
+    # pressing it again. Three submissions is a click; every submission
+    # in the database is a decision, and the difference should cost
+    # something.
+    CONFIRM_PHRASE = 'all'.freeze
+
     def show
-      @progress = RegenerateFlatfilesProgress.order(created_at: :desc).first
+      @scope     = RegenerationScope.new(params)
+      @all_total = RegenerationScope.regeneratable.count
+      @blocking  = RegenerateFlatfilesRun.in_flight.recent.first
+      @run       = RegenerateFlatfilesRun.recent.first
+
+      # The newest run is the panel, so it is not also a row: the panel
+      # keeps itself up to date and the table does not, and the two
+      # disagreeing about whether the run has finished is the sort of
+      # thing that makes a screen not worth reading.
+      @runs = RegenerateFlatfilesRun.recent.where.not(id: @run&.id).limit(10)
+    end
+
+    # The count, live, as the form is filled in. Its own endpoint rather
+    # than a client-side guess: what "3 accession numbers" resolves to is
+    # a question only the database can answer, and answering it wrongly
+    # in the summary would be worse than not showing one.
+    # POST for a read, because the thing being read is the accession
+    # list: a bulk paste is thousands of numbers, and a query string that
+    # long is refused by the proxy before it reaches here — which would
+    # break the summary at exactly the scale it exists for.
+    def preview
+      render partial: 'summary', locals: {
+        scope:    RegenerationScope.new(params),
+        blocking: RegenerateFlatfilesRun.in_flight.recent.first
+      }
+    end
+
+    def confirm
+      @scope = RegenerationScope.new(params)
     end
 
     def create
-      date  = params[:date].presence && Date.parse(params[:date])
-      force = ActiveModel::Type::Boolean.new.cast(params[:force]) || false
+      scope = build_scope
 
-      submissions = Submission.where.associated(:ddbj_record_attachment)
-
-      if params[:numbers].present?
-        numbers     = params[:numbers].split(/[\s,]+/).reject(&:blank?)
-        submissions = submissions.where(id: Accession.where(number: numbers).select(:submission_id))
+      # Two runs over one submission put two workers on the same record:
+      # both rewrite the flatfile, both overwrite the LOCUS date, and
+      # both write an accession history entry. The screen disables the
+      # button while a run is going; this is the same rule for the press
+      # that arrives anyway — a second tab, a back button, a double
+      # submit of the confirmation.
+      if (blocking = RegenerateFlatfilesRun.in_flight.recent.first)
+        return redirect_to admin_regenerate_flatfiles_path,
+                           alert: "A regeneration run started at #{helpers.format_datetime(blocking.started_at)} " \
+                                  'is still going. Wait for it to finish.'
       end
 
-      progress = RegenerateFlatfilesProgress.create!(total: submissions.count)
+      unless scope.ready?
+        return redirect_to admin_regenerate_flatfiles_path,
+                           alert: "Nothing to regenerate — #{scope.problems.first || 'the scope was empty'}"
+      end
 
-      ActiveJob.perform_all_later submissions.map {|submission|
-        RegenerateSubmissionFlatfilesJob.new(submission, current_user, progress, date, force:)
-      }
+      # The phrase is checked here and not only in the dialog: the dialog
+      # disables a button, and a disabled button is a courtesy rather
+      # than a rule.
+      if scope.all_target? && params[:confirm].to_s.strip.downcase != CONFIRM_PHRASE
+        return redirect_to admin_regenerate_flatfiles_path,
+                           alert: "Type #{CONFIRM_PHRASE} to confirm regenerating every flatfile."
+      end
+
+      run = start(scope)
 
       redirect_to admin_regenerate_flatfiles_path,
-                  notice: "Flatfile regeneration started for #{progress.total} submission(s).",
+                  notice: "Regenerating #{helpers.pluralize(run.total, 'submission')}.",
                   status: :see_other
+    end
+
+    private
+
+    def build_scope
+      if (previous = params[:retry_of].presence)
+        # A retry re-runs what failed with the options that produced the
+        # failures, not with whatever the form happens to be showing —
+        # otherwise "retry the 6 failed" would quietly become a different
+        # run that happens to cover the same six.
+        RegenerationScope.retrying(RegenerateFlatfilesRun.find(previous))
+      else
+        RegenerationScope.new(params)
+      end
+    end
+
+    def start(scope)
+      run = RegenerateFlatfilesRun.create!(
+        actor:      current_actor,
+        target:     scope.target,
+        numbers:    (scope.numbers_text if scope.accessions_target?),
+        locus_date: scope.locus_date,
+        force:      scope.force,
+        total:      scope.total,
+        started_at: Time.current,
+        retry_of:   scope.retry_of
+      )
+
+      # In batches: the all-submissions scope is the whole table, and
+      # materialising it to hand one array to perform_all_later is the
+      # kind of allocation that only shows up on the day someone uses it.
+      enqueued = 0
+
+      scope.submissions.find_in_batches(batch_size: 500) do |submissions|
+        ActiveJob.perform_all_later submissions.map {|submission|
+          RegenerateSubmissionFlatfilesJob.new(submission, current_user, run, scope.locus_date, force: scope.force)
+        }
+
+        enqueued += submissions.size
+      end
+
+      # The total is what was enqueued, not what was counted a moment
+      # earlier. A submission deleted in between would leave the run one
+      # short of a total it can never reach, and the screen would report
+      # "Regenerating…" for an hour before the stale bound noticed.
+      run.update!(total: enqueued) unless enqueued == run.total
+      run.finish_if_done!
+
+      run
     end
   end
 end

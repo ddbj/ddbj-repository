@@ -1,0 +1,138 @@
+<%# locals: (request:, messages:, unread: 0, colleagues: [], followers: []) %>
+<%# Per-request curator ↔ submitter thread. Submitter posts via the web %>
+<%# UI; curator posts via the form at the bottom. Speakers are told apart %>
+<%# by side and colour rather than by a label the eye has to read. %>
+<section>
+  <div class="d-flex justify-content-between align-items-baseline mb-1">
+    <h2 class="h5 mb-0">Messages</h2>
+    <span class="text-body-secondary small">Submitter: <code><%= request.user.uid %></code></span>
+  </div>
+
+  <%# Reading is not dealing with it, and it is not dealing with it on %>
+  <%# anybody else's behalf either. Opening this tab used to mark the %>
+  <%# thread read for every curator, so a colleague glancing at it took %>
+  <%# the request out of the assignee's queue too. %>
+  <p class="text-body-secondary small">
+    Every post emails the other party. An unanswered message stays in your queue
+    until you reply or mark it read — a colleague reading it does not clear
+    yours, though a colleague answering it does. Replying follows the request
+    from then on.
+  </p>
+
+  <%# Both controls carry the newest message on screen. A question that %>
+  <%# lands while a reply is being typed has not been read by sending %>
+  <%# that reply, and "Mark 2 as read" must not quietly mean three. %>
+  <% newest = messages.last&.id %>
+
+  <div class="d-flex gap-2 flex-wrap mb-3">
+    <% if unread.positive? %>
+      <%= button_to "Mark #{pluralize(unread, 'message')} as read",
+                    read_admin_submission_request_messages_path(request, through_id: newest),
+                    method: :post,
+                    class:  'btn btn-outline-secondary btn-sm' %>
+    <% end %>
+  </div>
+
+  <% if messages.any? %>
+    <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
+      <% messages.each do |m| %>
+        <li class="d-flex gap-3 <%= 'ps-5' unless m.curator_role? %>">
+          <% if m.curator_role? %>
+            <span class="badge rounded-circle text-bg-dark d-flex align-items-center justify-content-center"
+                  style="width: 2rem; height: 2rem;" aria-hidden="true">DC</span>
+          <% end %>
+
+          <div class="flex-fill border rounded p-3 <%= m.curator_role? ? 'bg-body-tertiary' : 'bg-primary-subtle border-primary-subtle' %>">
+            <div class="d-flex justify-content-between small text-body-secondary mb-1">
+              <strong class="text-body"><%= m.curator_role? ? 'DDBJ curator' : m.user.uid %></strong>
+              <span><%= format_datetime(m.created_at) %></span>
+            </div>
+            <div style="white-space: pre-wrap;"><%= m.body %></div>
+
+            <% if m.files.attached? %>
+              <ul class="list-unstyled mb-0 mt-2 small">
+                <% m.files.each do |file| %>
+                  <li>
+                    <%= link_to file.filename.to_s, rails_blob_path(file, disposition: :attachment) %>
+                    <span class="text-body-secondary"><%= number_to_human_size(file.byte_size) %></span>
+                  </li>
+                <% end %>
+              </ul>
+            <% end %>
+
+            <%# Who started following here, on the message that brought %>
+            <%# them in. The subscription itself is invisible from the %>
+            <%# thread, so without this there is no sign of when somebody %>
+            <%# joined the conversation. %>
+            <% if m.cc_user_ids.any? %>
+              <p class="small text-body-secondary mb-0 mt-2">
+                copied in <%= m.cc_users.map(&:uid).to_sentence %>
+              </p>
+            <% end %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-body-secondary fst-italic">No messages yet.</p>
+  <% end %>
+
+  <%= form_with url: admin_submission_request_messages_path(request),
+                method: :post,
+                scope:  :submission_message,
+                local:  true do |f| %>
+    <%= hidden_field_tag :through_id, newest %>
+
+    <div class="mb-3">
+      <%= f.label :body, 'New message to submitter', class: 'form-label' %>
+      <%= f.text_area :body, class: 'form-control textarea-autogrow' %>
+    </div>
+
+    <%# Direct upload: the file goes to storage rather than through this %>
+    <%# form, so the upstream body limit — which is not ours to raise — %>
+    <%# never comes into it. %>
+    <div class="mb-3">
+      <%= label_tag :files, 'Attach files', class: 'form-label' %>
+      <%= file_field_tag 'files[]', multiple: true, direct_upload: true, class: 'form-control' %>
+    </div>
+
+    <%# What a curator does in mail without thinking about it. Without %>
+    <%# it the only way to bring a colleague in is to tell them out of %>
+    <%# band, and the thread stops being the record of who was asked. %>
+    <%# Not behind a disclosure. This is one field and no ceremony in %>
+    <%# mail, and a control nobody finds is a control nobody uses. %>
+    <% if colleagues.any? %>
+      <div class="mb-3">
+        <span class="form-label">Also notify</span>
+
+        <div>
+          <% colleagues.each do |colleague| %>
+            <% already = followers.include?(colleague) %>
+
+            <%# Copying somebody in adds them to the notifications from %>
+            <%# here on — that is all it does. This thread is the %>
+            <%# curator's conversation with the submitter, not a way to %>
+            <%# put work to another curator, so there is nothing a tick %>
+            <%# could mean for somebody already following. Shown ticked %>
+            <%# and fixed rather than blank, which would read as a list %>
+            <%# you have to fill in on every message. %>
+            <div class="form-check form-check-inline">
+              <%= check_box_tag 'cc_user_ids[]', colleague.id, already,
+                                id: "cc_#{colleague.id}", class: 'form-check-input',
+                                disabled: already %>
+              <%= label_tag "cc_#{colleague.id}", colleague.uid,
+                            class: "form-check-label#{' text-body-secondary' if already}" %>
+            </div>
+          <% end %>
+        </div>
+
+        <p class="text-body-secondary small mb-0 mt-1">
+          Anyone already following is emailed a copy — greyed above, nothing to do.
+          Ticking somebody else starts notifying them of this thread from here on.
+        </p>
+      </div>
+    <% end %>
+
+    <%= f.submit 'Send message', class: 'btn btn-primary' %>
+  <% end %>
+</section>

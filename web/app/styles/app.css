@@ -55,3 +55,40 @@ dl.horizontal {
     transform: scaleX(1);
   }
 }
+
+/* Submitter progress bar — six fixed-width segments (ProgressSteps). */
+.progress-step-bar {
+  height: 4px;
+}
+
+/* Round avatar for the curator side of a message thread. */
+.message-avatar {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Keep body copy at a comfortable measure without a utility class per use. */
+.prose {
+  max-width: 74ch;
+}
+
+/* Small-caps section label on the sign-in page. */
+.eyebrow {
+  letter-spacing: 0.08em;
+}
+
+/* Free-text fields that start small and grow as they are written in.
+   `rows` is ignored once field-sizing is on, so min-height is what keeps
+   room to write; max-height stops a long reply pushing the send button
+   off screen. Browsers without it fall back to `rows`.
+
+   Qualified with both the element and `.form-control` so it out-specifies
+   Bootstrap's own `textarea.form-control { min-height }` rather than
+   relying on landing after it — here Bootstrap arrives as an inline sheet
+   from a JS import and always lands last. See the admin stylesheet: same
+   rule, same reason. */
+textarea.form-control.textarea-autogrow {
+  field-sizing: content;
+  min-height: 4lh;
+  max-height: 20lh;
+}

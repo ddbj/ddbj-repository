@@ -1,0 +1,15 @@
+<% content_for :title, "Regenerate flatfiles run ##{@run.id}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Regenerate flatfiles', path: admin_regenerate_flatfiles_path},
+  {label: "Run ##{@run.id}"}
+] %>
+
+<h1 class="display-6 mb-4">Regeneration run #<%= @run.id %></h1>
+
+<%# The same frame the tool screen polls, so one template serves both. %>
+<%= turbo_frame_tag 'regenerate_run' do %>
+  <%= render 'panel', run: @run %>
+<% end %>
+
+<p><%= link_to 'Back to Regenerate flatfiles', admin_regenerate_flatfiles_path %></p>

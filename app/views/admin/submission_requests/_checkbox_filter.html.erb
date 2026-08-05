@@ -1,0 +1,11 @@
+<%# locals: (label:, name:, options:, param:) %>
+<div class="row mb-2" data-controller="checkbox-group">
+  <label class="col-sm-2 col-form-label pt-0"><%= label %></label>
+  <div class="col-sm-10">
+    <%= filter_checkbox_group(name, options, param) %>
+    <div class="mt-1 small">
+      <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none me-3" data-action="checkbox-group#selectAll">Select all</button>
+      <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" data-action="checkbox-group#deselectAll">Deselect all</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,14 @@
+<%# The empty shell a confirmation loads into, wherever one is offered. %>
+<%# %>
+<%# One frame id, not one per screen: two confirmations never share a %>
+<%# page, and a name per caller would mean the dialog shell, the %>
+<%# template that fills it and every button targeting it had to agree on %>
+<%# a third thing. %>
+<%# %>
+<%# Rendered next to the buttons rather than in the layout because the %>
+<%# id has to be unique on the page, and the confirmation itself is %>
+<%# served inside a frame of the same id — a layout-wide copy would %>
+<%# collide with it on a direct visit to the confirmation URL. %>
+<dialog class="app-dialog" data-controller="dialog">
+  <turbo-frame id="confirm_dialog" data-dialog-target="frame"></turbo-frame>
+</dialog>

@@ -1,1 +1,10 @@
-render(partial: 'submission_request_summary', collection: @requests, as: :submission_request)
+render(
+  partial:    'submission_request_summary',
+  collection: @requests,
+  as:         :submission_request,
+  locals:     {
+    unread_counts:          @unread_counts,
+    bs_accession_summaries: @bs_accession_summaries,
+    states:                 @states
+  }
+)

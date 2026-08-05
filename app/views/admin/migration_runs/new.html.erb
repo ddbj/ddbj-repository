@@ -1,0 +1,36 @@
+<% content_for :title, 'New migration run' %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Migration runs',  path: admin_migration_runs_path},
+  {label: 'New'}
+] %>
+
+<h1 class="display-6 mb-4">New migration run</h1>
+
+<%# `limits_concurrency` is deliberately NOT used — it would discard a %>
+<%# Continuable retry and lose the resume (see DataMigration::SyncJob). %>
+<%# One run per database is enforced here instead, by refusing the %>
+<%# enqueue and saying so, which the old copy described as a silent %>
+<%# discard it never was. %>
+<p class="text-body-secondary">
+  Enqueues a <code>DataMigration::Sync&lt;db&gt;Job</code> against the configured
+  D-way staging connection. One run per database at a time: while one is in flight
+  this refuses and points at it. A run that stopped moving over an hour ago is
+  treated as gone, and starting a new one closes it out.
+</p>
+
+<%= form_with model: @migration_run, url: admin_migration_runs_path, scope: :migration_run do |f| %>
+  <div class="mb-3">
+    <%= f.label :db, 'Database', class: 'form-label' %>
+
+    <% MigrationRun::DBS.each do |db| %>
+      <div class="form-check">
+        <%= f.radio_button :db, db, class: 'form-check-input' %>
+        <%= f.label "db_#{db}", db_label(db), class: 'form-check-label' %>
+      </div>
+    <% end %>
+  </div>
+
+  <%= f.submit 'Enqueue', class: 'btn btn-primary' %>
+  <%= link_to 'Cancel', admin_migration_runs_path, class: 'btn btn-link' %>
+<% end %>

@@ -23,6 +23,13 @@ export default class CurrentUserService extends Service {
   @tracked user?: User;
   @tracked proxyUid?: string;
 
+  // Set when a request came back 401 — the session ended somewhere else
+  // (logged out in another tab, admin flag revoked, proxy ended). Drives a
+  // banner rather than a modal: there is no session expiry here, so this
+  // is rare, and covering the screen a curator is mid-edit on is the only
+  // part of it that actually costs them something.
+  @tracked sessionExpired = false;
+
   previousTransition?: Transition;
 
   get isLoggedIn() {
@@ -77,8 +84,23 @@ export default class CurrentUserService extends Service {
     this.router.transitionTo('index');
   }
 
+  // A 401 means the token is no longer good, whatever the tab thinks.
+  // The URL is remembered across the OAuth round trip (a full page load,
+  // so component state does not survive) to make "you will come back to
+  // this page" true.
+  expireSession() {
+    if (this.sessionExpired) return;
+
+    localStorage.setItem('returnTo', this.router.currentURL ?? '/');
+    localStorage.removeItem('token');
+
+    this.clear();
+    this.sessionExpired = true;
+  }
+
   async login(token: string, proxyUid?: string) {
     this.clear();
+    this.sessionExpired = false;
     localStorage.setItem('token', token);
 
     await this.restore();
@@ -90,9 +112,15 @@ export default class CurrentUserService extends Service {
       this.startProxy(proxyUid);
     }
 
+    const returnTo = localStorage.getItem('returnTo');
+    localStorage.removeItem('returnTo');
+
     if (this.previousTransition) {
       this.previousTransition.retry();
       this.previousTransition = undefined;
+    } else if (returnTo) {
+      // Recorded before a 401 sent us out to the identity provider.
+      this.router.transitionTo(returnTo);
     } else {
       this.router.transitionTo('index');
     }

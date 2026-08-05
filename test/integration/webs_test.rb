@@ -9,6 +9,18 @@ class WebsTest < ActionDispatch::IntegrationTest
     assert_select 'meta[name=?][content=?]', 'sentry-environment', 'test'
   end
 
+  # The sign-in page names the host the login button leaves for, and links
+  # somebody without an account to the account service. Two different
+  # hosts — login goes to the Keycloak IdP, accounts live in Cloakman — and
+  # both are per-environment, so neither can be baked into the build.
+  test 'injects the identity provider and account service URLs' do
+    get '/web/'
+
+    assert_response :success
+    assert_select 'meta[name=?][content=?]', 'identity-provider', 'http://keycloak.example.com'
+    assert_select 'meta[name=?][content=?]', 'account-url',       'https://accounts.example.com/'
+  end
+
   test 'serves the shell for the bare mount point and client-side routes' do
     # Ember's rootURL is /web/, but a trailing slash is optional in routing and Ember
     # normalizes /web to /web/ on the client, so both must reach the shell.

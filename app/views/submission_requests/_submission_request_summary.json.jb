@@ -1,3 +1,23 @@
-# locals: (submission_request:)
+# locals: (submission_request:, unread_counts: {}, bs_accession_summaries: {}, states: {})
 
-submission_request.slice(:id, :status, :created_at)
+submission                = submission_request.submission
+first_accession, accession_count = submission ? submission.accession_summary(bs_accession_summaries[submission.id]) : [nil, 0]
+
+state = states[submission_request.id] || CurationState.new(submission_request)
+
+{
+  **submission_request.slice(:id, :db, :status, :created_at, :closed_at),
+
+  submission_id:   submission&.id,
+  source_id:       submission&.source_id,
+  first_accession: first_accession,
+  accession_count: accession_count,
+
+  # Enough for the client to say where this is in the submitter's own
+  # words — the same inputs the detail screen answers it from, so a row
+  # and the page it opens can never disagree.
+  processing:                   submission_request.processing?,
+  unread_curator_message_count: unread_counts.fetch(submission_request.id, 0),
+
+  progress: render('progress', state: state)
+}

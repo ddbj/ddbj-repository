@@ -1,0 +1,38 @@
+<% content_for :title, 'Login did not complete' %>
+
+<%# Cause, consequence, next step — in that order. The provider's own %>
+<%# error symbol is kept because the help desk will ask for it, but it is %>
+<%# not the headline: it means nothing to the person reading this. %>
+<div class="row justify-content-center py-4">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card">
+      <div class="card-body p-4 d-flex gap-3 align-items-start">
+        <span class="badge rounded-circle text-bg-danger d-flex align-items-center justify-content-center flex-shrink-0"
+              style="width: 1.75rem; height: 1.75rem;" aria-hidden="true">!</span>
+
+        <div>
+          <h1 class="h4">Login did not complete</h1>
+
+          <p class="mb-3">
+            <% if @message %>
+              The DDBJ Account service returned <code><%= @message %></code>.
+            <% end %>
+            This usually means the login window was left open too long.
+            <strong>Nothing was submitted or changed.</strong>
+          </p>
+
+          <div class="d-flex gap-2 flex-wrap">
+            <%# data-turbo="false" for the same reason as the sign-in form: %>
+            <%# OmniAuth's request phase 302s to a different origin, which %>
+            <%# fetch() cannot follow but a top-level navigation can. %>
+            <form action="/auth/keycloak" method="post" data-turbo="false">
+              <button type="submit" class="btn btn-primary">Try again</button>
+            </form>
+
+            <%= link_to 'Go to my submissions', WebApp.url_for, class: 'btn btn-outline-secondary', data: {turbo: false} %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
