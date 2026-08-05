@@ -11,6 +11,13 @@ development:
   # exchange XML), collab/ (BP/BS livelists).
   output_dir: <%= Rails.root.join('storage/output') %>
 
+  # Reading BioProject / BioSample out of the D-way Postgres. Only where
+  # the migration is actually being worked on: the credentials for it are
+  # present wherever the app is deployed, so without this the difference
+  # between "we import here" and "we do not" is that nobody has pressed
+  # the button yet.
+  data_migration: true
+
 test:
   app_url:                http://repository.example.com:3000
   mass_dir_path_template: <%= Rails.root.join('spec/fixtures/files/submission/{user}') %>
@@ -19,7 +26,8 @@ test:
   account_url:            https://accounts.example.com/
   web_url:                http://repository.example.com:4200
 
-  output_dir: <%= Rails.root.join('tmp/storage/output') %>
+  output_dir:     <%= Rails.root.join('tmp/storage/output') %>
+  data_migration: true
 
 production: &production
   app_url:                https://repository.ddbj.nig.ac.jp
@@ -53,3 +61,7 @@ dev:
   app_url:              https://repository-dev.ddbj.nig.ac.jp
   web_url:              https://repository-dev.ddbj.nig.ac.jp
   account_url:          https://accounts-staging.ddbj.nig.ac.jp/
+
+  # Where the BP/BS migration is worked on. staging and production
+  # inherit the production block, which does not carry this.
+  data_migration:       true

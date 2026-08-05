@@ -24,6 +24,8 @@ module BioSample
     Contact    = Data.define(:email, :first, :last)
 
     def initialize(**overrides)
+      DataMigration::DwayDefaults.ensure_enabled!
+
       @conn = PG.connect(**DEFAULT_OPTIONS.merge(overrides))
       @conn.exec('SET search_path TO mass')
     end

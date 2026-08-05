@@ -7,7 +7,15 @@
 <div class="d-flex justify-content-between align-items-start mb-4">
   <h1 class="display-6 mb-0">Migration runs</h1>
 
-  <%= link_to 'New run', new_admin_migration_run_path, class: 'btn btn-primary' %>
+  <%# The list stays readable wherever runs happened; starting one is %>
+  <%# offered only where importing is switched on. %>
+  <% if DataMigration::DwayDefaults.enabled? %>
+    <%= link_to 'New run', new_admin_migration_run_path, class: 'btn btn-primary' %>
+  <% else %>
+    <span class="text-body-secondary small" data-test-migration-disabled>
+      Importing from D-way is switched off here.
+    </span>
+  <% end %>
 </div>
 
 <%= form_with url: admin_migration_runs_path, method: :get, local: true, class: 'row g-2 mb-3' do |f| %>

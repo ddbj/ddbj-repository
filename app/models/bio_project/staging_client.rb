@@ -23,6 +23,8 @@ module BioProject
     Submission = Data.define(:psub_id, :submitter_id, :status_id, :accession, :project_type, :xml, :release_date, :dist_date, :modified_date)
 
     def initialize(**overrides)
+      DataMigration::DwayDefaults.ensure_enabled!
+
       @conn = PG.connect(**DEFAULT_OPTIONS.merge(overrides))
       @conn.exec('SET search_path TO mass')
     end

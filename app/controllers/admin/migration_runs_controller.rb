@@ -5,6 +5,12 @@ module Admin
       'biosample'  => DataMigration::SyncBsJob
     }.freeze
 
+    # Reading past runs stays available everywhere — the history of what
+    # was imported is worth having wherever it happened. Starting one is
+    # refused where the import is switched off, so a curator is told
+    # rather than left watching a job fail.
+    before_action :ensure_enabled, only: %i[new create]
+
     def index
       scope = MigrationRun.recent
       scope = scope.where(db: params[:db]) if params[:db].present?
@@ -74,6 +80,13 @@ module Admin
     end
 
     private
+
+    def ensure_enabled
+      return if DataMigration::DwayDefaults.enabled?
+
+      redirect_to admin_migration_runs_path,
+                  alert: "Importing from D-way is switched off in #{Rails.env}."
+    end
 
     def supersede_stale(db)
       MigrationRun.where(db: db, status: %w[queued running]).find_each do |run|

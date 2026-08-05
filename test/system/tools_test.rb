@@ -59,6 +59,39 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
     assert_no_button 'Abandon this run'
   end
 
+  # staging and production have the D-way credentials — the deployed app
+  # reads the legacy Postgres through the same one — so "we do not import
+  # here" was only ever true while nobody pressed the button. The list
+  # stays readable, because the history of what was imported is worth
+  # having wherever it happened.
+  test 'where importing is switched off, the list reads but nothing starts' do
+    DataMigration::DwayDefaults.stub(:enabled?, false) do
+      visit admin_migration_runs_path
+
+      assert_selector '[data-test-migration-disabled]'
+      assert_no_link  'New run'
+
+      visit new_admin_migration_run_path
+
+      assert_text 'switched off'
+      assert_no_button 'Enqueue'
+    end
+  end
+
+  # The rule, as opposed to the courtesy: every import path opens one of
+  # these, including a rake task and a console.
+  test 'the D-way connection itself is refused where importing is off' do
+    DataMigration::DwayDefaults.stub(:enabled?, false) do
+      assert_raises DataMigration::DwayDefaults::Disabled do
+        BioProject::StagingClient.new
+      end
+
+      assert_raises DataMigration::DwayDefaults::Disabled do
+        BioSample::StagingClient.new
+      end
+    end
+  end
+
   # Belt and braces for the run nobody thought to abandon: starting a new
   # one closes out the abandoned predecessor rather than being refused by
   # it, and says so in that run's log.
