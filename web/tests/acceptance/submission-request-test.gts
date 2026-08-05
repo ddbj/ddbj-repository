@@ -29,7 +29,11 @@ module('Acceptance | submission request', function (hooks) {
     await click('a[href="/web/st26/requests/new"]');
 
     assert.strictEqual(currentURL(), '/st26/requests/new');
-    assert.dom('h1').hasText('New Request (ST.26)');
+    assert.dom('h1').hasText('New Submission (ST.26)');
+
+    // The four steps of making a submission, with this one marked.
+    assert.dom('[data-test-submission-steps] [data-test-step="2"]').hasAttribute('aria-current', 'step');
+    assert.dom('button[type="submit"]').hasText('Check my data');
 
     // --- Upload file and submit ---
 

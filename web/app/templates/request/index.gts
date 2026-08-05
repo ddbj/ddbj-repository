@@ -7,6 +7,7 @@ import { concat } from '@ember/helper';
 import Breadcrumb from 'repository/components/breadcrumb';
 import ProgressSteps from 'repository/components/progress-steps';
 import ValidityBadge from 'repository/components/validity-badge';
+import ValidationReport from 'repository/components/validation-report';
 import SubmissionMessages from 'repository/components/submission-messages';
 import ReviewerAccess from 'repository/components/reviewer-access';
 import autoRefresh from 'repository/modifiers/auto-refresh';
@@ -34,6 +35,15 @@ export default class extends Component<Signature> {
 
   get state() {
     return requestState(this.args.model);
+  }
+
+  // Only when the check found something that blocks sending. A report
+  // above the fold on a request that passed would be answering a
+  // question nobody asked.
+  get failedCheck() {
+    const { validation } = this.args.model;
+
+    return validation?.validity === 'invalid' && validation.details.length > 0 ? validation : null;
   }
 
   get tone() {
@@ -138,8 +148,12 @@ export default class extends Component<Signature> {
           before it is a broken button. Reopen is the way back, and it is
           what the panel above tells them to use. }}
           {{#unless @model.closed_at}}
+            {{! "Send to DDBJ", not "Apply". There are two buttons in this
+            flow and only one of them hands anything over; naming them
+            after what they do to DDBJ rather than after the endpoint is
+            what makes which is which readable. }}
             {{#if (eq @model.status "ready_to_apply")}}
-              <button type="button" class="btn btn-primary" {{on "click" this.apply}}>Apply</button>
+              <button type="button" class="btn btn-primary" data-test-send {{on "click" this.apply}}>Send to DDBJ</button>
             {{/if}}
 
             {{! Only where there is nothing else to do with the file. On a
@@ -175,6 +189,14 @@ export default class extends Component<Signature> {
         </div>
       </section>
 
+      {{! A failed check is the one thing on this screen worth reading, so
+      it is not folded away with the reference material at the bottom. A
+      report that has to be opened before it says anything is a report
+      nobody reads twice. }}
+      {{#if this.failedCheck}}
+        <ValidationReport @validation={{this.failedCheck}} />
+      {{/if}}
+
       <ProgressSteps @progress={{@model.progress}} />
 
       <SubmissionMessages @requestId={{@model.id}} />
@@ -186,42 +208,48 @@ export default class extends Component<Signature> {
       the disclosure is open, which is exactly what these are. }}
       {{! template-lint-disable no-nested-interactive }}
       <div class="mt-4 border-top">
-        {{#if @model.validation}}
-          <details class="py-3 border-bottom">
-            <summary>
-              Validation report
-              <span class="text-body-secondary ms-2">
-                <ValidityBadge @validity={{@model.validation.validity}} />
-                {{#if @model.validation.details.length}}
-                  {{@model.validation.details.length}}
-                  findings
-                {{/if}}
-              </span>
-            </summary>
+        {{! Folded away only while it is reference. Once the check has
+        failed the report is above, said as work, and the same findings
+        listed twice on one screen makes the reader wonder which is the
+        real one. }}
+        {{#unless this.failedCheck}}
+          {{#if @model.validation}}
+            <details class="py-3 border-bottom">
+              <summary>
+                Validation report
+                <span class="text-body-secondary ms-2">
+                  <ValidityBadge @validity={{@model.validation.validity}} />
+                  {{#if @model.validation.details.length}}
+                    {{@model.validation.details.length}}
+                    findings
+                  {{/if}}
+                </span>
+              </summary>
 
-            <table class="table mt-3">
-              <thead>
-                <tr>
-                  <th>Entry ID</th>
-                  <th>Code</th>
-                  <th>Severity</th>
-                  <th>Message</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {{#each @model.validation.details as |detail|}}
+              <table class="table mt-3">
+                <thead>
                   <tr>
-                    <td>{{detail.entry_id}}</td>
-                    <td>{{detail.code}}</td>
-                    <td>{{detail.severity}}</td>
-                    <td>{{detail.message}}</td>
+                    <th>Entry ID</th>
+                    <th>Code</th>
+                    <th>Severity</th>
+                    <th>Message</th>
                   </tr>
-                {{/each}}
-              </tbody>
-            </table>
-          </details>
-        {{/if}}
+                </thead>
+
+                <tbody>
+                  {{#each @model.validation.details as |detail|}}
+                    <tr>
+                      <td>{{detail.entry_id}}</td>
+                      <td>{{detail.code}}</td>
+                      <td>{{detail.severity}}</td>
+                      <td>{{detail.message}}</td>
+                    </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+            </details>
+          {{/if}}
+        {{/unless}}
 
         {{#if @model.submission}}
           <details class="py-3 border-bottom">

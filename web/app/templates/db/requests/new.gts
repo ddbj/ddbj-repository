@@ -8,6 +8,7 @@ import { DirectUpload } from '@rails/activestorage';
 import ENV from 'repository/config/environment';
 
 import Breadcrumb from 'repository/components/breadcrumb';
+import SubmissionSteps from 'repository/components/submission-steps';
 import dbLabel from 'repository/helpers/db-label';
 
 import type { RequestManager } from '@warp-drive/core';
@@ -65,7 +66,9 @@ export default class extends Component<Signature> {
       }}
     />
 
-    <h1 class="display-6 mb-4">New Request ({{dbLabel @model.db}})</h1>
+    <h1 class="display-6 mb-3">New Submission ({{dbLabel @model.db}})</h1>
+
+    <SubmissionSteps @current={{2}} />
 
     <form {{on "submit" this.submit}}>
       <div class="mb-3">
@@ -75,7 +78,12 @@ export default class extends Component<Signature> {
         {{/let}}
       </div>
 
-      <button type="submit" class="btn btn-primary">Validate</button>
+      {{! "Check", not "Validate": what it does is tell you whether
+      this would be accepted, and it can be done as often as you like.
+      Nothing leaves for DDBJ until Send, on the step after this one. }}
+      <button type="submit" class="btn btn-primary">Check my data</button>
+
+      <p class="small text-body-secondary mt-2 mb-0">Nothing is sent to DDBJ yet.</p>
     </form>
   </template>
 }

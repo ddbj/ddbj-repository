@@ -3,6 +3,7 @@ import { array, hash } from '@ember/helper';
 import { pageTitle } from 'ember-page-title';
 
 import Breadcrumb from 'repository/components/breadcrumb';
+import SubmissionSteps from 'repository/components/submission-steps';
 
 import type { TOC } from '@ember/component/template-only';
 
@@ -11,7 +12,9 @@ export default <template>
 
   <Breadcrumb @items={{array (hash label="Home" route="index") (hash label="New Submission")}} />
 
-  <h1 class="display-6 mb-4">New Submission</h1>
+  <h1 class="display-6 mb-3">New Submission</h1>
+
+  <SubmissionSteps @current={{1}} />
 
   <p class="text-body-secondary mb-4">Select the database you want to submit to.</p>
 
