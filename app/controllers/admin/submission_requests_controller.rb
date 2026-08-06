@@ -23,7 +23,7 @@ module Admin
       scope = filter_by_db(scope, params[:db])                         if params[:db].present?
       scope = filter_by_request_status(scope, params[:request_status]) if params[:request_status].present?
       scope = filter_by_status(scope, params[:status])                 if params[:status].present?
-      scope = filter_by_assignee(scope, params[:assignee])             if params[:assignee].present?
+      scope = filter_by_assignee(scope, params[:assignee], staff)      if params[:assignee].present?
 
       # The last press this curator made, until they put it away. The
       # ledger is where the bulk happened, so it is where "what did that
@@ -35,11 +35,12 @@ module Admin
 
       @saved_views = current_user.saved_views.ordered.to_a
 
-      # One query for the whole chip row rather than one per chip. The
-      # staff list is what "every assignee" means, so it is needed both
-      # to normalise the current URL and to tell whether a view names
-      # somebody who has since gone.
-      @assignee_ids    = RequestFilter.assignee_universe
+      # One query for the staff list, which this screen asks about four
+      # times over: the assignee facet's own checkboxes, the filter it
+      # applies, what "every assignee" means when normalising the URL,
+      # and whether a saved view names somebody who has since gone.
+      @staff           = staff
+      @assignee_ids    = ['0'] + staff.map { it.id.to_s }
       @assignee_labels = SavedView.assignee_labels(@saved_views)
 
       load_requests(scope)
@@ -151,14 +152,19 @@ module Admin
     # this is a plain indexed IN — it used to need an EXISTS over both
     # curation tables, which also meant a pre-Apply request could never
     # match any assignee filter, not even "unassigned".
-    def filter_by_assignee(scope, raw)
+    # Loaded whole rather than plucked, because the screen needs both the
+    # ids (the filter) and the uids (the checkboxes), and ordered because
+    # that is how the boxes are listed.
+    def staff = @staff ||= User.staff.order(:uid).to_a
+
+    def filter_by_assignee(scope, raw, staff)
       selected = Array(raw).map(&:to_s).reject(&:blank?)
       return scope if selected.empty?
 
       # Universe = "unassigned" (0) + every staff user. Selecting all of it
       # is no constraint (see full_or_empty? — same rule, computed here
-      # because the universe needs a query).
-      universe = ['0'] + User.staff.pluck(:id).map(&:to_s)
+      # because the universe is not a static enum).
+      universe = ['0'] + staff.map { it.id.to_s }
       return scope if (universe - selected).empty?
 
       ids = (selected - ['0']).map(&:to_i).reject(&:zero?)

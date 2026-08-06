@@ -24,14 +24,30 @@ export default class extends Controller {
     this.form?.removeEventListener('submit', this.pruneIfWhole);
   }
 
+  // Disabled only for as long as it takes the form to be read. `disabled`
+  // reflects to the attribute, and Turbo snapshots the page on the way
+  // out — so left set, a Back button would restore a cached page with
+  // every facet greyed out and unclickable until a hard reload. A
+  // submission that never completes (network gone, load stopped) would
+  // strand them the same way.
+  //
+  // The restore is a task later, which is after both Turbo and the
+  // browser have serialised the form: they read it synchronously while
+  // the submit event is still being dispatched.
   pruneIfWhole = () => {
     const boxes = this.boxes;
 
-    if (boxes.length > 0 && boxes.every((box) => box.checked)) {
+    if (boxes.length === 0 || !boxes.every((box) => box.checked)) return;
+
+    boxes.forEach((box) => {
+      box.disabled = true;
+    });
+
+    setTimeout(() => {
       boxes.forEach((box) => {
-        box.disabled = true;
+        box.disabled = false;
       });
-    }
+    }, 0);
   };
 
   get boxes() {

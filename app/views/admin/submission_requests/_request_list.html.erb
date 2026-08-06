@@ -73,18 +73,20 @@
             <%# Two different situations: a ledger with a filter on it, %>
             <%# and one that has never had a request in it. The first %>
             <%# needs the filter read back and a way out of it. %>
-            <% facets = active_request_filters(params) %>
+            <% facets = active_request_filters(params, assignee_ids: @assignee_ids) %>
 
-            <% if facets.any? || params[:q].present? %>
+            <% query = RequestFilter.normalise(params, assignee_ids: @assignee_ids)['q'] %>
+
+            <% if facets.any? || query.present? %>
               <%# The label names everything the press will clear. "Clear %>
               <%# filters" next to a search box drops the search too, and %>
               <%# a reader who has just been told nothing matched is the %>
               <%# last one able to spot it. %>
               <%= empty_state :filtered, 'No requests match these filters',
-                              [(%(Searching for "#{params[:q]}") if params[:q].present?),
+                              [(%(Searching for "#{query}") if query.present?),
                                *facets].compact.join(' · ') do %>
-                <%= link_to (params[:q].present? && facets.any? ? 'Clear search and filters' :
-                             params[:q].present? ? 'Clear the search' : 'Clear filters'),
+                <%= link_to (query.present? && facets.any? ? 'Clear search and filters' :
+                             query.present? ? 'Clear the search' : 'Clear filters'),
                             admin_submission_requests_path,
                             class: 'btn btn-sm btn-outline-secondary' %>
               <% end %>

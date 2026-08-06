@@ -83,6 +83,17 @@ class RequestFilterTest < ActiveSupport::TestCase
     assert_equal({'db' => %w[biosample]}, filters)
   end
 
+  # Every filter intersects with its universe before applying, so a value
+  # the ledger no longer knows is dropped from the query. Kept here, the
+  # screen would print "Curation: Renamed status" over an unfiltered
+  # ledger and offer a Clear link for it.
+  test 'a value the ledger would drop is not a filter here either' do
+    assert_empty RequestFilter.normalise({'status' => %w[no_such_status]})
+
+    assert_equal({'status' => %w[curating]},
+                 RequestFilter.normalise({'status' => %w[curating no_such_status]}))
+  end
+
   # An id says nothing to whoever reads it back, and `0` is not an id at
   # all — it is the "nobody has claimed this" box.
   test 'assignees are named' do

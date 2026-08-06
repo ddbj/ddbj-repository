@@ -37,29 +37,51 @@ class SavedView < ApplicationRecord
     filters == RequestFilter.normalise(params, assignee_ids:)
   end
 
-  # Values this view names that no longer exist: a status renamed, a
-  # curator who has left. The ledger drops unknown values rather than
-  # refusing them, which is right for a typed URL and wrong for a saved
-  # one — dropped silently, a view that meant "assigned to Tanaka"
-  # quietly becomes "everything". So it is said on the chip instead.
+  # Everything that has happened to a view since it was saved, in the two
+  # ways it can stop meaning what it meant.
   #
-  # `assignee_ids` is passed in rather than queried per view: the chip
-  # row renders every view the curator has, and each would otherwise
-  # cost a query to answer the same question.
-  def unknown_values(assignee_ids:)
-    RequestFilter.universes(assignee_ids).filter_map {|key, known|
-      gone = Array(filters[key]) - known
-
-      [key, gone] if gone.any?
-    }.to_h
+  # `assignee_ids` is passed in rather than queried per view: the chip row
+  # renders every view the curator has, and each would otherwise cost a
+  # query to answer the same question.
+  # `widened` is worked out where the stored sets are still in hand: a
+  # facet with nothing left to filter on stops filtering, and so does one
+  # that now covers every option there is. A facet that merely lost some
+  # of its values still constrains, on the ones that remain.
+  Staleness = Data.define(:unknown, :ineffective, :widened) do
+    def any? = unknown.any? || ineffective.any?
   end
 
-  # True where a whole facet has gone unknown, which is the only case
-  # that widens the view: the ledger drops what it does not recognise, so
-  # a facet with nothing left to filter on stops filtering. A facet that
-  # lost some of its values still constrains, on the ones that remain.
-  def widened_by?(unknown)
-    unknown.any? {|key, gone| gone.size == Array(filters[key]).size }
+  def staleness(assignee_ids:)
+    universes = RequestFilter.universes(assignee_ids)
+
+    # Values the view names that no longer exist: a status renamed, a
+    # curator who has left. The ledger drops what it does not recognise,
+    # so a view that meant "assigned to Tanaka" quietly becomes
+    # "everything" — said on the chip rather than left to be noticed as a
+    # quiet morning.
+    unknown = universes.filter_map {|key, known|
+      stored = Array(filters[key])
+      gone   = stored - known
+
+      [key, gone, stored] if gone.any?
+    }
+
+    # And the other direction, which nothing above can see: every value
+    # still exists, but the set now covers the whole universe. A view
+    # naming "unassigned or bob" while bob and dave were staff stops
+    # narrowing anything the day dave is no longer staff — nothing became
+    # unknown, the universe shrank to meet it.
+    ineffective = universes.filter_map {|key, known|
+      stored = Array(filters[key])
+
+      key if stored.any? && (known - stored).empty?
+    }
+
+    Staleness.new(
+      unknown:     unknown.to_h {|key, gone, _stored| [key, gone] },
+      ineffective:,
+      widened:     ineffective.any? || unknown.any? {|_key, gone, stored| gone.size == stored.size }
+    )
   end
 
   # Names for every assignee this row of chips mentions, resolved once

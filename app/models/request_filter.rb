@@ -76,6 +76,19 @@ class RequestFilter
           assignee_ids ||= assignee_universe if key == 'assignee'
           universe       = key == 'assignee' ? assignee_ids : ENUM_UNIVERSES.fetch(key).call
 
+          # Narrowed to what the ledger will actually act on. Every filter
+          # intersects with its universe before applying, so a value it no
+          # longer knows — a renamed status, a curator who has left — is
+          # dropped from the query; kept here, the screen would print
+          # "Curation: Renamed status" over an unfiltered ledger, offer to
+          # clear it, and light up the stale chip that produced it as
+          # though it were showing.
+          #
+          # A saved view's own staleness is read off `filters` directly,
+          # so it still sees what was stored.
+          values &= universe
+          next if values.empty?
+
           # Every box ticked is not a filter, and neither is none of them.
           next if (universe - values).empty?
 

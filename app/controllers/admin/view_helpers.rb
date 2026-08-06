@@ -164,17 +164,26 @@ module Admin::ViewHelpers
   # filter off when pressed, and puts it on otherwise, is two behaviours
   # under one name — and the only place to say which one is in front of
   # the reader is here.
-  def saved_view_title(view, unknown, assignee_labels = {}, current: false)
+  def saved_view_title(view, staleness, assignee_labels = {}, current: false)
     parts = [current ? "#{view.name} — showing. Press again to clear it." : view.name]
 
-    if unknown.any?
-      named = unknown.map {|key, values|
+    if staleness.unknown.any?
+      named = staleness.unknown.map {|key, values|
         "#{REQUEST_FILTER_LABELS.fetch(key.to_sym, key)}: #{filter_value_labels(key, values, assignee_labels).join(', ')}"
       }.join('; ')
 
       parts << "No longer matches #{named}."
-      parts << 'It now shows more than it was saved with.' if view.widened_by?(unknown)
     end
+
+    # The quieter half, and the one nothing else can show: every value
+    # still exists, but there are no longer any others to exclude.
+    if staleness.ineffective.any?
+      covered = staleness.ineffective.map { REQUEST_FILTER_LABELS.fetch(it.to_sym, it) }.to_sentence
+
+      parts << "#{covered} now covers every option, so it no longer narrows anything."
+    end
+
+    parts << 'It now shows more than it was saved with.' if staleness.widened
 
     parts.join(' ')
   end

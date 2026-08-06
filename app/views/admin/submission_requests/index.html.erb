@@ -73,7 +73,7 @@
       <%= render 'checkbox_filter',
                  label:   'Assignee',
                  name:    :assignee,
-                 options: [['Unassigned', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                 options: [['Unassigned', '0']] + @staff.map { [it.uid, it.id] },
                  param:   params[:assignee] %>
     </div>
   </div>

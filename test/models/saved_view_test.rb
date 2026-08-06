@@ -54,34 +54,51 @@ class SavedViewTest < ActiveSupport::TestCase
   # The ledger drops a value it no longer knows rather than refusing it,
   # which is right for a typed URL and wrong for a saved one: dropped
   # silently, "assigned to Tanaka" quietly becomes "everything".
-  test 'unknown_values names what the view no longer matches' do
+  test 'staleness names what the view no longer matches' do
     view = @user.saved_views.new(
       name:    'Gone',
       filters: {'status' => %w[curating no_such_status], 'assignee' => %w[999]}
     )
 
-    unknown = view.unknown_values(assignee_ids: %w[0 1])
+    stale = view.staleness(assignee_ids: %w[0 1])
 
-    assert_equal %w[no_such_status], unknown['status']
-    assert_equal %w[999],            unknown['assignee']
+    assert_equal %w[no_such_status], stale.unknown['status']
+    assert_equal %w[999],            stale.unknown['assignee']
   end
 
   test 'a view whose every value still exists says nothing' do
     view = @user.saved_views.new(name: 'Fine', filters: {'db' => %w[biosample], 'assignee' => %w[0]})
 
-    assert_empty view.unknown_values(assignee_ids: %w[0 1])
+    assert_not view.staleness(assignee_ids: %w[0 1]).any?
   end
 
   # Only a facet that lost ALL of its values stops filtering. One that
   # lost some still constrains on the rest, and claiming otherwise would
   # be the chip inventing a drift — the same sin as the silence it was
   # added to break.
-  test 'widened_by? is true only where a facet has nothing left to filter on' do
+  test 'widened is true only where a facet has nothing left to filter on' do
     partly = @user.saved_views.new(name: 'Partly', filters: {'status' => %w[curating gone]})
     wholly = @user.saved_views.new(name: 'Wholly', filters: {'status' => %w[gone]})
 
-    assert_not partly.widened_by?(partly.unknown_values(assignee_ids: []))
-    assert     wholly.widened_by?(wholly.unknown_values(assignee_ids: []))
+    assert_not partly.staleness(assignee_ids: []).widened
+    assert     wholly.staleness(assignee_ids: []).widened
+  end
+
+  # The direction nothing else can see. Every value the view names still
+  # exists — the universe shrank to meet it, so there is no longer
+  # anything for it to exclude. "Unassigned or bob" while bob and dave
+  # were staff stops narrowing anything the day dave is not.
+  test 'a view whose set now covers everything is stale too' do
+    view = @user.saved_views.new(name: 'Mine', filters: {'assignee' => %w[0 1]})
+
+    assert_not view.staleness(assignee_ids: %w[0 1 2]).any?
+
+    shrunk = view.staleness(assignee_ids: %w[0 1])
+
+    assert         shrunk.any?, 'it no longer narrows anything, and nothing became unknown to say so'
+    assert         shrunk.widened
+    assert_equal   %w[assignee], shrunk.ineffective
+    assert_empty   shrunk.unknown
   end
 
   # An id says nothing to whoever reads the chip, and a curator who has

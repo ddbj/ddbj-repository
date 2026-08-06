@@ -103,6 +103,31 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     assert_selector '[data-test-active-filter]', text: 'Database: BioProject'
   end
 
+  # The one refusal where the field is empty. Asking the form to reopen
+  # on `present?` shut it on exactly that message, leaving "Name can't be
+  # blank" with nothing under it to correct.
+  test 'a blank name comes back to the form, like any other refusal' do
+    visit admin_submission_requests_path(db: %w[biosample])
+
+    fill_in 'Name for this view', with: '  '
+    click_button 'Save'
+
+    assert_text 'Name can\'t be blank'
+    assert_selector 'button[aria-expanded="true"]', text: 'Save this view'
+  end
+
+  # A stale view still opens; what it must not do is claim to be showing
+  # when the ledger dropped the value it names.
+  test 'a view the ledger cannot apply does not report itself as showing' do
+    users(:bob).saved_views.create!(name: 'Gone', filters: {'status' => %w[no_such_status]})
+
+    visit admin_submission_requests_path(status: %w[no_such_status])
+
+    assert_no_selector '[data-test-active-filter]'
+    assert_no_selector '[data-test-saved-view="Gone"][aria-current]'
+    assert_selector    '[data-test-saved-view-stale="Gone"]'
+  end
+
   # Pressing Search ticks every box in every facet, which the ledger
   # reads as no constraint. Offering to save that would put the whole
   # ledger in the row under a name — and the refusal a curator would get

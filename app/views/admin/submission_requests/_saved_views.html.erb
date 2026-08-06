@@ -11,7 +11,12 @@
     every facet — which the ledger reads as no constraint and which must
     not become a saved view of everything. %>
 <% savable   = filters.any? %>
-<% naming    = params[:view_name].present? %>
+
+<%# Key, not value. A refused save comes back with what was typed, and
+    what was typed can be nothing at all — "Name can't be blank" is the
+    one refusal where the field is empty, and asking for `present?` shut
+    the form on exactly that message. %>
+<% naming    = params.key?(:view_name) %>
 <% return_to = filters.merge(page: params[:page].presence).compact %>
 
 <% if views.any? || savable %>
@@ -33,7 +38,7 @@
         used. Not a delete mode: that would make everybody carry a
         memory of it for the sake of a rare press. %>
     <% views.each do |view| %>
-      <% unknown = view.unknown_values(assignee_ids:) %>
+      <% stale   = view.staleness(assignee_ids:) %>
       <% current = view.showing?(params, assignee_ids:) %>
 
       <%# The name truncates — it is free text, and one long one turns the
@@ -46,15 +51,15 @@
           deliberate hover to find and was therefore no explanation at
           all. %>
       <%= link_to (current ? admin_submission_requests_path : admin_submission_requests_path(view.to_query)),
-                  class: "btn btn-sm #{saved_view_button_class(current:, stale: unknown.any?)} d-inline-flex align-items-center gap-1",
+                  class: "btn btn-sm #{saved_view_button_class(current:, stale: stale.any?)} d-inline-flex align-items-center gap-1",
                   style: 'max-width: 16rem;',
                   'aria-current': ('true' if current),
-                  title: saved_view_title(view, unknown, assignee_labels, current:),
+                  title: saved_view_title(view, stale, assignee_labels, current:),
                   'data-test-saved-view': view.name,
-                  'data-test-saved-view-stale': (view.name if unknown.any?) do %>
+                  'data-test-saved-view-stale': (view.name if stale.any?) do %>
         <span class="text-truncate"><%= view.name %></span>
 
-        <% if unknown.any? %>
+        <% if stale.any? %>
           <span class="badge text-bg-warning" data-test-saved-view-stale-badge>!</span>
         <% end %>
 
