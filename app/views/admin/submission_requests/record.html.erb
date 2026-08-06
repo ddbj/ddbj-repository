@@ -18,6 +18,56 @@
       <%= render 'admin/submitters/curator_edit', submission: @submission %>
     <% end %>
 
+    <%# The record itself, laid out for reading.
+
+        Curators were being given the raw JSON, which is the whole record
+        and unreadable. A curated subset would be readable and not the
+        whole record — and what was asked for was the whole thing. So the
+        layout comes from the shape of the data (see RecordOutline) and
+        nothing here names a field: v3 is still moving, and a screen that
+        knew the fields would need revising on every revision.
+
+        The JSON stays, below. It is what somebody reaches for when they
+        need to see exactly what is stored, and there is no reason to take
+        it away. %>
+    <% if @outline || @materialised %>
+      <section class="card mb-4" data-test-record-outline>
+        <div class="card-body">
+          <h2 class="h6 card-title">Record</h2>
+
+          <% if @outline.nil? %>
+            <p class="text-body-secondary small mb-0" data-test-record-too-large>
+              Not laid out — the record is <%= number_to_human_size(@materialised_size) %>
+              (limit <%= number_to_human_size(Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT) %>).
+              A record this size is a bag of samples or entries, and those have their own
+              screens; the JSON below is the whole of it.
+            </p>
+          <% end %>
+
+          <% if @outline&.elided? %>
+            <p class="text-body-secondary small" data-test-record-elided-note>
+              Parts of this record are too deep to lay out and are marked
+              &ldquo;not expanded&rdquo;. The JSON below is the whole of it.
+            </p>
+          <% end %>
+
+          <% sections = @outline&.sections || [] %>
+
+          <% if @outline && sections.empty? %>
+            <p class="text-body-secondary small mb-0">The record carries nothing.</p>
+          <% end %>
+
+          <% sections.each do |section| %>
+            <div class="mb-3" data-test-record-section="<%= section.key %>">
+              <h3 class="small fw-semibold text-uppercase text-body-secondary"><%= section.key %></h3>
+
+              <%= render 'record_node', node: section.node %>
+            </div>
+          <% end %>
+        </div>
+      </section>
+    <% end %>
+
     <h2 class="h5 mt-4">
       Patch chain
       <span class="badge text-bg-secondary"><%= @updates.size %></span>

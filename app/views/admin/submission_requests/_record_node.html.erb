@@ -1,0 +1,84 @@
+<%# locals: (node:) %>
+<%# One node of RecordOutline, drawn by its shape. Recurses into itself,
+    so nesting needs no extra template and no depth limit — the record is
+    a tree and this follows it. %>
+
+<% case node.kind %>
+<% when :value %>
+  <%# Free text is the only thing given room. Line breaks matter more
+      than length here — a three-line address is 120 characters and
+      collapses to one without this, while a long single paragraph does
+      not need it and gets it anyway (harmless). %>
+  <% if node.value.is_a?(String) && (node.value.length > 200 || node.value.include?("\n")) %>
+    <div class="small" style="white-space: pre-wrap;"><%= node.value %></div>
+  <% else %>
+    <%= node.value %>
+  <% end %>
+
+<% when :empty %>
+  <span class="text-body-secondary small">—</span>
+
+<% when :elided %>
+  <span class="text-body-secondary small" data-test-record-elided>not expanded — see the JSON</span>
+
+<% when :fields %>
+  <dl class="row mb-0 small">
+    <% node.rows.each do |key, child| %>
+      <dt class="col-sm-4 fw-normal text-body-secondary"><%= key %></dt>
+      <dd class="col-sm-8 mb-1"><%= render 'record_node', node: child %></dd>
+    <% end %>
+  </dl>
+
+<% when :list %>
+  <ul class="list-unstyled mb-0 small">
+    <% node.rows.each do |child| %>
+      <li><%= render 'record_node', node: child %></li>
+    <% end %>
+  </ul>
+
+<% when :table %>
+  <%# Wide records are common — the attribute bag alone can run to
+      dozens of columns — so the table scrolls inside its own box rather
+      than pushing the page sideways. %>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered small mb-1">
+      <thead class="table-light">
+        <tr>
+          <% node.columns.first(RecordOutline::COLUMN_LIMIT).each do |column| %>
+            <th class="text-nowrap"><%= column %></th>
+          <% end %>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% node.rows.each do |cells| %>
+          <tr>
+            <% cells.each do |cell| %>
+              <td><%= render 'record_node', node: cell if cell %></td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%# Said, never implied. Three rows of ten thousand look like three
+      rows unless the screen says otherwise — the same reading that made
+      the validation report group its findings rather than show the
+      first few. %>
+  <% if node.columns.size > RecordOutline::COLUMN_LIMIT %>
+    <p class="small text-body-secondary mb-1" data-test-record-columns-hidden>
+      <%= node.columns.size - RecordOutline::COLUMN_LIMIT %> more
+      <%= 'column'.pluralize(node.columns.size - RecordOutline::COLUMN_LIMIT) %>
+      not shown: <%= node.columns.drop(RecordOutline::COLUMN_LIMIT).join(', ') %>
+    </p>
+  <% end %>
+<% end %>
+
+<% if node.truncated? %>
+  <p class="small text-body-secondary mb-0" data-test-record-truncated>
+    Showing <%= number_with_delimiter(node.shown) %> of
+    <%= number_with_delimiter(node.total) %> —
+    <%= number_with_delimiter(node.hidden) %> more.
+  </p>
+<% end %>

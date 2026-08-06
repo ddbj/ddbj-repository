@@ -34,7 +34,16 @@ module Admin
       @updates = submission.updates.order(:id).to_a
 
       load_materialised(submission)
-      return unless @materialised && @materialised_size <= CANONICAL_DISPLAY_SIZE_LIMIT
+      return unless @materialised
+      return if @materialised_size > CANONICAL_DISPLAY_SIZE_LIMIT
+
+      # The reading view costs a walk of the record, so it is bounded by
+      # the same limit as canonicalisation. Past it the screen says so
+      # rather than dropping the section — a curator opening a 20K-sample
+      # submission and finding no Record at all cannot tell that from the
+      # feature not being deployed, and those are the records least
+      # readable as raw JSON.
+      @outline = RecordOutline.new(@materialised)
 
       begin
         @canonical_bytes = DDBJRecord::Canonicalizer.canonicalize(@materialised)

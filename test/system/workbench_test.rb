@@ -414,3 +414,85 @@ class WorkbenchAccessSystemTest < ApplicationSystemTestCase
     assert_text 'curator'
   end
 end
+
+# The record, laid out for reading.
+#
+# Curators were shown the raw JSON, which is the whole record and
+# unreadable. The ask was for the whole thing, legible — so the layout
+# follows the shape of the data and names no field, and the assertions
+# here follow the same rule: one that named `project.title` would carry
+# the same obligation to the schema the screen was written to avoid.
+class RecordOutlineSystemTest < ApplicationSystemTestCase
+  setup do
+    sign_in_as users(:bob)
+
+    @request    = submission_requests(:bioproject)
+    @submission = @request.submission
+  end
+
+  def with_record(record)
+    @submission.append_update!(record, actor: 'test')
+    yield
+  end
+
+  test 'the record is readable without opening the JSON' do
+    with_record({'project' => {'title' => 'A study of things', 'hold_date' => '2026-12-01'}}) do
+      visit record_admin_submission_request_path(@request)
+
+      within '[data-test-record-section="project"]' do
+        assert_text 'title'
+        assert_text 'A study of things'
+        assert_text 'hold_date'
+      end
+
+      # Not instead of the JSON — that is what somebody reaches for when
+      # they need to see exactly what is stored.
+      assert_link 'View as JSON'
+    end
+  end
+
+  test 'repeated records are a table, and a long one says what it is not showing' do
+    samples = Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
+
+    with_record({'samples' => samples}) do
+      visit record_admin_submission_request_path(@request)
+
+      within '[data-test-record-section="samples"]' do
+        assert_selector 'th', text: 'alias'
+        assert_selector 'th', text: 'organism'
+        assert_text 'S0'
+
+        # Twenty rows out of forty look like forty unless it says so.
+        assert_selector '[data-test-record-truncated]', text: 'Showing 20 of 40'
+      end
+    end
+  end
+
+  # The screen has no field list, so a key nobody has taught it about
+  # still appears. This is the whole reason it is written this way.
+  test 'a field the screen has never heard of shows up anyway' do
+    with_record({'project' => {'some_future_field' => 'from a later schema'}}) do
+      visit record_admin_submission_request_path(@request)
+
+      within '[data-test-record-section="project"]' do
+        assert_text 'some_future_field'
+        assert_text 'from a later schema'
+      end
+    end
+  end
+
+  # A record too big to lay out used to make the section disappear, which
+  # a curator cannot tell from the feature not being deployed — and the
+  # records that reach the limit are the ones least readable as JSON.
+  test 'a record too large to lay out says so rather than vanishing' do
+    with_record({'project' => {'description' => 'x' * (Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT + 1024)}}) do
+      visit record_admin_submission_request_path(@request)
+
+      within '[data-test-record-outline]' do
+        assert_selector '[data-test-record-too-large]', text: 'Not laid out'
+      end
+
+      assert_link 'View as JSON'
+    end
+  end
+end
