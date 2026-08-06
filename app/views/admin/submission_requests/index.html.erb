@@ -13,6 +13,11 @@
   <%= render 'admin/accession_issuance_runs/summary', run: @issuance_run %>
 <% end %>
 
+<%# The filters this curator comes back to, above the box that builds %>
+<%# them: arriving with a queue in mind, the name is the shorter route. %>
+<%= render 'saved_views', views: @saved_views, assignee_ids: @assignee_ids,
+                          filters: SavedView.normalise(params) %>
+
 <%# Search first. Six stacked checkbox facets used to fill the screen %>
 <%# above the table, so arriving here showed filters rather than requests %>
 <%# — and most lookups are not a facet combination at all, they are %>
@@ -33,7 +38,7 @@
       <%# Summarises what is on rather than restating every facet: a %>
       <%# multi-select reads as "Curating +1" so the row stays one line. %>
       <% active_request_filters(params).each do |label| %>
-        <span class="badge text-bg-light border me-1"><%= label %></span>
+        <span class="badge text-bg-light border me-1" data-test-active-filter><%= label %></span>
       <% end %>
 
       <button class="btn btn-link btn-sm text-decoration-none" type="button"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_010000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_06_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -282,6 +282,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_010000) do
     t.index ["submission_id"], name: "index_samples_on_submission_id"
   end
 
+  create_table "saved_views", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "filters", default: {}, null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id", "name"], name: "index_saved_views_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_saved_views_on_user_id"
+  end
+
   create_table "sequences", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "next", default: 1, null: false
@@ -430,6 +440,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_010000) do
   add_foreign_key "sample_references", "samples"
   add_foreign_key "sample_tsv_imports", "submissions"
   add_foreign_key "samples", "submissions"
+  add_foreign_key "saved_views", "users"
   add_foreign_key "submission_messages", "submission_requests"
   add_foreign_key "submission_messages", "users"
   add_foreign_key "submission_request_participants", "submission_requests"

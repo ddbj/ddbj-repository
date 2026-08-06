@@ -60,6 +60,12 @@ Rails.application.routes.draw do
 
     resource :session, only: %i[new destroy]
 
+    # A name for a set of ledger filters. There is no `show`: the chip
+    # links straight at the ledger with the stored params, so a saved
+    # view lands on an ordinary, shareable URL rather than on a page
+    # only its owner can reach.
+    resources :saved_views, only: %i[create destroy]
+
     # The request detail is a four-tab workbench: one screen answers one
     # question (state / bulk edits / conversation / provenance) instead of
     # stacking every block on `show`.

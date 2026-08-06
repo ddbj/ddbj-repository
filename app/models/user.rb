@@ -8,6 +8,9 @@ class User < ApplicationRecord
   has_many :submissions
   has_many :submission_updates, through: :submissions, source: :updates
 
+  # Named ledger filters. Personal, so they go when the account does.
+  has_many :saved_views, dependent: :destroy
+
   belongs_to :notes_updated_by, class_name: 'User', optional: true
 
   scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }

@@ -1,0 +1,56 @@
+<%# locals: (views:, assignee_ids:, filters:) %>
+<%# The filter combinations a curator comes back to, as names.
+    Nothing is stored here that the URL did not already carry — a chip is
+    a link to the ledger with the saved params, so it lands on an
+    ordinary shareable address and not on a private page. %>
+<% if views.any? || request_filters_active?(params) || params[:q].present? %>
+  <div class="d-flex align-items-center gap-2 flex-wrap mb-2" data-test-saved-views>
+    <% views.each do |view| %>
+      <% unknown  = view.unknown_values(assignee_ids:) %>
+      <% current  = view.showing?(params) %>
+
+      <span class="btn-group btn-group-sm" role="group">
+        <%# aria-current, not colour alone: which view is showing is the %>
+        <%# one thing this row says, and it has to survive being read out. %>
+        <%= link_to view.name, admin_submission_requests_path(view.to_query),
+                    class: "btn #{current ? 'btn-primary' : 'btn-outline-secondary'}",
+                    'aria-current': ('true' if current),
+                    'data-test-saved-view': view.name %>
+
+        <%# Amber, and only a mark: the ledger drops a value it no longer %>
+        <%# knows rather than refusing it, so this view still opens — it %>
+        <%# just no longer means what it was saved to mean, and a silent %>
+        <%# widening is the failure worth naming. %>
+        <% if unknown.any? %>
+          <span class="btn btn-outline-warning disabled text-warning-emphasis"
+                data-test-saved-view-stale="<%= view.name %>"
+                title="No longer matches: <%= unknown.values.flatten.join(', ') %>. This view now shows more than it was saved with.">!</span>
+        <% end %>
+
+        <%= button_to '×', admin_saved_view_path(view, filters), method: :delete,
+                      class: 'btn btn-outline-secondary',
+                      form: {class: 'd-inline'},
+                      'aria-label': "Delete saved view #{view.name}" %>
+      </span>
+    <% end %>
+
+    <%# Only where there is something to name. On an unfiltered ledger it %>
+    <%# would offer to save "everything", which is the link in the nav. %>
+    <% if request_filters_active?(params) || params[:q].present? %>
+      <%= form_with url: admin_saved_views_path, method: :post, class: 'd-flex gap-1 align-items-center' do %>
+        <% filters.each do |key, value| %>
+          <% Array(value).each do |v| %>
+            <%= hidden_field_tag "#{key}#{'[]' if value.is_a?(Array)}", v, id: nil %>
+          <% end %>
+        <% end %>
+
+        <%= text_field_tag :name, suggested_view_name(params), class: 'form-control form-control-sm',
+                           maxlength: SavedView::MAX_NAME_LENGTH, 'aria-label': 'Name for this view',
+                           placeholder: 'Name this view' %>
+
+        <%= submit_tag 'Save this view', class: 'btn btn-sm btn-outline-primary text-nowrap',
+                       data: {turbo_submits_with: 'Saving…'} %>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

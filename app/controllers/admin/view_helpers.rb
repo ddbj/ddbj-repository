@@ -82,6 +82,17 @@ module Admin::ViewHelpers
     REQUEST_FILTER_LABELS.keys.any? { Array(params[it]).reject(&:blank?).any? }
   end
 
+  # A name already in the box, so saving a view is one press rather than
+  # a naming decision. It is the same summary the filter row shows, which
+  # is what the curator has just been reading — and it is editable, so a
+  # bad guess costs nothing.
+  def suggested_view_name(params)
+    parts = active_request_filters(params)
+    parts = ["Search: #{params[:q]}"] + parts if params[:q].present?
+
+    parts.join(' · ').first(SavedView::MAX_NAME_LENGTH)
+  end
+
   # Compact elapsed time for a queue: "9h", "4d". The question a queue
   # answers is "has this been sitting?", which minute precision only
   # obscures — and the row is sorted by it anyway.
