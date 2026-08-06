@@ -39,10 +39,16 @@
       <% end %>
     </div>
   <% else %>
-    <dl class="row mb-0 small">
+    <%# A fixed key column rather than a proportion. `col-sm-4` grows with
+        the card, so on a wide screen a one-key hash puts `environmental`
+        and `true` several hundred pixels apart and the pair stops reading
+        as a pair. Fixed, the distance is the same however many keys there
+        are — which is also why `dense` does not need widening to cover
+        small hashes. A long key wraps instead of pushing the value. %>
+    <dl class="mb-0 small" style="display: grid; grid-template-columns: 220px 1fr; column-gap: 1rem;">
       <% node.rows.each do |key, child| %>
-        <dt class="col-sm-4 fw-normal text-body-secondary"><%= key %></dt>
-        <dd class="col-sm-8 mb-1"><%= render 'record_node', node: child, dense: %></dd>
+        <dt class="fw-normal text-body-secondary" style="overflow-wrap: anywhere;"><%= key %></dt>
+        <dd class="mb-1"><%= render 'record_node', node: child, dense: %></dd>
       <% end %>
     </dl>
   <% end %>
