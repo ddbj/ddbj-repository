@@ -209,6 +209,27 @@ module Admin::ViewHelpers
     request ? link_to("##{request.id}", admin_submission_request_path(request)) : '—'
   end
 
+  # Whether the submitter was told, in one phrase. The run page puts it
+  # in a column and the ledger summary in a sentence; what it says is the
+  # same in both, and it is read off what was recorded at issuance rather
+  # than worked out again here — the environment's mail allowlist is
+  # temporary, and a page that re-derived this would start claiming old
+  # runs had mailed people the day the restriction is lifted.
+  #
+  # Only a genuine send failure is red: it is the one that leaves work
+  # behind, and per CLAUDE.md red asserts. A recipient the allowlist held
+  # back is the environment behaving as configured, and the banner at the
+  # top of every admin page has already said so.
+  def mail_outcome(issuance)
+    case issuance.mail_status
+    when 'sent'       then "sent #{format_datetime(issuance.finished_at)}"
+    when 'failed'     then tag.span('not sent', class: 'text-danger-emphasis')
+    when 'restricted' then 'not delivered (restricted)'
+    when 'no_address' then 'no address on file'
+    else                   issuance.loading? ? 'after commit' : 'not sent'
+    end
+  end
+
   # Compact timestamp for admin tables / detail — minute precision (drops
   # seconds), matching the web client's formatDatetime. Returns nil for a
   # nil time so callers can chain `|| '—'`.

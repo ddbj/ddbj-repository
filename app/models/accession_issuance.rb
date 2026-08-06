@@ -9,6 +9,16 @@
 class AccessionIssuance < ApplicationRecord
   STATUSES = %w[queued running completed refused failed].freeze
 
+  # What became of the notification. Nil until the accessions commit,
+  # because until then nothing has been attempted — and on a row that
+  # never got that far, nil for good.
+  #
+  # `restricted` and `no_address` are separate from `failed` on purpose:
+  # nothing went wrong, the mail simply had nowhere to go, and the four
+  # are read by a curator who needs to know whether the submitter has
+  # been told. Only `failed` is work left over.
+  MAIL_STATUSES = %w[sent failed restricted no_address].freeze
+
   # How long a `running` row is believed. The work itself is bounded by
   # one transaction, so anything past this is a job that died with its
   # worker — and without a bound, that row would latch the submission
@@ -23,7 +33,8 @@ class AccessionIssuance < ApplicationRecord
   # state ("already has an accession"), failed is something that went
   # wrong. Rolling them together would put "this was already done" in the
   # same red box as a crash.
-  enum :status, STATUSES.index_with(&:itself), suffix: :status, validate: true
+  enum :status,      STATUSES.index_with(&:itself),      suffix: :status,      validate: true
+  enum :mail_status, MAIL_STATUSES.index_with(&:itself), suffix: :mail_status, validate: {allow_nil: true}
 
   validates :actor, presence: true
 

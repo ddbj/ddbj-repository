@@ -14,11 +14,16 @@ class AccessionSummarySystemTest < ApplicationSystemTestCase
                                         origin: 'All requests (2 submissions)')
   end
 
+  # Mirrors what IssueAccessionsJob writes: a completed row has attempted
+  # a mail and recorded what became of it, and nothing else has.
   def issue(submission, status: 'completed', **attrs)
-    finished = {finished_at: Time.current} unless AccessionIssuance.new(status:).loading?
+    settled = {}
+
+    settled[:finished_at] = Time.current unless AccessionIssuance.new(status:).loading?
+    settled[:mail_status] = 'sent'       if status == 'completed'
 
     @run.issuances.create!(submission:, actor: @run.actor, started_at: Time.current,
-                           status:, **(finished || {}), **attrs)
+                           status:, **settled, **attrs)
   end
 
   test 'the numbers that were allocated are on the ledger, not one click away' do

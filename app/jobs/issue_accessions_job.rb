@@ -43,11 +43,11 @@ class IssueAccessionsJob < ApplicationJob
       samples:    issuance.target_samples
     )
 
-    # `mail_error` on a completed row means "issued, but the submitter
-    # was not told" — the accessions are the outcome, the notification is
-    # a consequence of it, and one failing does not undo the other.
-    issuance.update!(status: 'completed', accessions: result.accessions,
-                     finished_at: Time.current, error_message: result.mail_error)
+    # `mail_status` on a completed row is the answer to "was the
+    # submitter told" — the accessions are the outcome, the notification
+    # is a consequence of it, and one failing does not undo the other.
+    issuance.update!(status: 'completed', accessions: result.accessions, finished_at: Time.current,
+                     mail_status: result.mail_status, error_message: result.mail_error)
 
     # Issuing is editing, so it puts the curator in the request's
     # participants — but only now that it has happened. Pressing a button

@@ -51,11 +51,11 @@ class AccessionIssue
   # Not rescued by the job, so it lands as `failed` and is reported.
   class ChainBroken < StandardError; end
 
-  # `mail_error` is set when the accessions were committed but the
-  # notification could not be enqueued. It is not an alternative to
+  # `mail_status` is what became of the notification, and `mail_error`
+  # the reason when it is `failed`. Neither is an alternative to
   # `accessions` — the numbers exist either way, and a record that
   # forgets them because the mailer hiccupped is the worse failure.
-  Result = Data.define(:submission, :accessions, :mail_error)
+  Result = Data.define(:submission, :accessions, :mail_status, :mail_error)
 
   ISSUABLE_FROM = %w[submission_accepted curating].freeze
 
@@ -115,7 +115,7 @@ class AccessionIssue
     end
 
     Result.new(submission: @submission, accessions: [accession],
-               mail_error: enqueue_mail(@submission, [accession]))
+               **enqueue_mail(@submission, [accession]))
   end
 
   def issue_bs
@@ -146,8 +146,7 @@ class AccessionIssue
       acc_list
     end
 
-    Result.new(submission: @submission, accessions:,
-               mail_error: enqueue_mail(@submission, accessions))
+    Result.new(submission: @submission, accessions:, **enqueue_mail(@submission, accessions))
   end
 
   # Write the freshly-issued accessions into the record as a patch.
@@ -210,15 +209,25 @@ class AccessionIssue
 
   # Runs after the transaction has committed, so a failure here cannot
   # take the accessions back — and must not take the *record* of them
-  # back either. Returns the reason instead of raising, so the caller
+  # back either. Returns the outcome instead of raising, so the caller
   # writes down what was issued and what did not go out.
+  #
+  # The two silent outcomes are settled here rather than left to be
+  # guessed from an empty error: a submitter with no address on file gets
+  # nothing, and so does one outside the environment's mail allowlist.
+  # Both used to reach the run page as "sent".
   def enqueue_mail(submission, accessions)
+    address = submission.user&.email
+
+    return {mail_status: 'no_address', mail_error: nil} if address.blank?
+    return {mail_status: 'restricted', mail_error: nil} unless MailDomainAllowlistInterceptor.delivers_to?(address)
+
     AccessionMailer.with(submission:, accessions:).issued.deliver_later
 
-    nil
+    {mail_status: 'sent', mail_error: nil}
   rescue StandardError => e
     Rails.error.report(e, handled: true, source: 'accession_issue.mail')
 
-    "#{e.class}: #{e.message}"
+    {mail_status: 'failed', mail_error: "#{e.class}: #{e.message}"}
   end
 end

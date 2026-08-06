@@ -46,18 +46,40 @@
   <%# "The submitter has been emailed" is a claim, not a decoration. The %>
   <%# mail is enqueued after the transaction commits, so it can fail on %>
   <%# its own — and a curator who believes it was sent will not send it. %>
-  <% if @issuance.error_message.present? %>
+  <%# Three ways it does not go, and only two of them are work: a %>
+  <%# restricted environment is behaving as configured, which the banner %>
+  <%# above has already said, so it is stated rather than warned about. %>
+  <% issued = pluralize(@issuance.accessions.size, 'accession') %>
+
+  <% case @issuance.mail_status %>
+  <% when 'failed' %>
     <div class="alert alert-warning">
-      <strong>Issued <%= pluralize(@issuance.accessions.size, 'accession') %>, but the submitter was not emailed.</strong>
+      <strong>Issued <%= issued %>, but the submitter was not emailed.</strong>
       <p class="mb-0">
         The numbers below are allocated and recorded. The notification could not be queued —
         developers were notified, and the submitter still has to be told.
       </p>
       <p class="mb-0 small text-body-secondary"><%= @issuance.error_message %></p>
     </div>
+  <% when 'no_address' %>
+    <div class="alert alert-warning">
+      <strong>Issued <%= issued %>. There is no address on file for this submitter.</strong>
+      <p class="mb-0">
+        The numbers below are allocated and recorded. Nothing was sent, and nothing will be
+        until an address turns up — they have to be told another way.
+      </p>
+    </div>
+  <% when 'restricted' %>
+    <div class="alert alert-secondary">
+      <strong>Issued <%= issued %>. No notification left the building.</strong>
+      <p class="mb-0">
+        Outgoing mail is restricted here, and this submitter's address is outside it.
+        The numbers below are allocated and recorded.
+      </p>
+    </div>
   <% else %>
     <div class="alert alert-success">
-      Issued <%= pluralize(@issuance.accessions.size, 'accession') %>. The submitter has been emailed.
+      Issued <%= issued %>. The submitter has been emailed.
     </div>
   <% end %>
 

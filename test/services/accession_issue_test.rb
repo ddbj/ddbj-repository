@@ -132,9 +132,67 @@ class AccessionIssueTest < ActiveSupport::TestCase
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
 
+    result = nil
+
     assert_enqueued_emails 1 do
-      AccessionIssue.call(submission:, actor: 'test')
+      result = AccessionIssue.call(submission:, actor: 'test')
     end
+
+    assert_equal 'sent', result.mail_status
+  end
+
+  # The two ways a notification goes nowhere without anything going
+  # wrong. Both used to be indistinguishable from a delivery: nothing
+  # raised, so `mail_error` was nil, and every screen read that as sent.
+  test 'a submitter with no address on file is recorded as such, not as mailed' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+    submission.user.update!(email: nil)
+
+    result = nil
+
+    assert_no_enqueued_emails do
+      result = AccessionIssue.call(submission:, actor: 'test')
+    end
+
+    assert_equal 'no_address', result.mail_status
+    assert_equal 1, result.accessions.size, 'the accessions are the outcome either way'
+  end
+
+  # While the environment restricts outgoing mail, an address outside it
+  # is suppressed by the interceptor — after the mailer has been queued,
+  # where nothing that reports on the issuance can see it. Asked here
+  # instead, of the object that does the restricting.
+  test 'a recipient outside the mail allowlist is recorded as restricted' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+    submission.user.update!(email: 'someone@example.com')
+
+    result = nil
+
+    restrict_mail_to 'ddbj.nig.ac.jp' do
+      assert_no_enqueued_emails do
+        result = AccessionIssue.call(submission:, actor: 'test')
+      end
+    end
+
+    assert_equal 'restricted', result.mail_status
+  end
+
+  test 'a recipient inside the allowlist is mailed as normal' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+    submission.user.update!(email: 'curator@ddbj.nig.ac.jp')
+
+    result = nil
+
+    restrict_mail_to 'ddbj.nig.ac.jp' do
+      assert_enqueued_emails 1 do
+        result = AccessionIssue.call(submission:, actor: 'test')
+      end
+    end
+
+    assert_equal 'sent', result.mail_status
   end
 
   # --- BS ---

@@ -71,22 +71,12 @@
 
         <%# The mail is enqueued after the transaction commits, so a row %>
         <%# still running has not sent one — saying "after commit" beats %>
-        <%# a blank cell that could mean either. %>
-        <%# %>
-        <%# A completed row with an error_message is the third case: the %>
-        <%# accessions committed and the notification did not go out. %>
-        <%# Reading "sent" there would be the one lie this column can %>
-        <%# tell, since nobody else will notice the submitter is waiting. %>
-        <td class="text-nowrap text-body-secondary small">
-          <% if issuance.completed_status? && issuance.error_message.present? %>
-            <span class="text-danger-emphasis">not sent</span>
-          <% elsif issuance.completed_status? %>
-            sent <%= format_datetime(issuance.finished_at) %>
-          <% elsif issuance.loading? %>
-            after commit
-          <% else %>
-            not sent
-          <% end %>
+        <%# a blank cell that could mean either. The rest is whatever %>
+        <%# issuance recorded: a notification that failed, one with no %>
+        <%# address to go to, and one the allowlist held back are three %>
+        <%# different sentences, and all three used to read "sent". %>
+        <td class="text-nowrap text-body-secondary small" data-test-mail-outcome>
+          <%= mail_outcome(issuance) %>
         </td>
       </tr>
     <% end %>

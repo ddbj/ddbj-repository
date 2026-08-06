@@ -60,11 +60,11 @@
                 (<code><%= issuance.accession_range %></code>)
               <% end %>
 
-              <%# Issued, but nobody was told — which is work left over %>
-              <%# rather than a completed row, so it says so where the %>
-              <%# row is read. %>
-              <% if issuance.error_message.present? %>
-                <span class="text-danger-emphasis">— submitter not emailed</span>
+              <%# Issued, but nobody was told — which is unfinished on a %>
+              <%# row that otherwise reads as done, so it says so where %>
+              <%# the row is read. Silence here means the mail went. %>
+              <% unless issuance.sent_mail_status? %>
+                — <%= mail_outcome(issuance) %>
               <% end %>
             </li>
           <% end %>

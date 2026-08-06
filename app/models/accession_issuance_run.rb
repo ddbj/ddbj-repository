@@ -41,11 +41,11 @@ class AccessionIssuanceRun < ApplicationRecord
   def unchanged = issuances.reject {|issuance| issuance.loading? || issuance.accessions.any? }
 
   # The mail leaves the building, so it is counted apart from the rows —
-  # and only when it actually left. An issuance that committed its
-  # accessions but could not queue the notification carries the reason in
-  # `error_message`, and counting it here would tell the curator the
-  # submitter knows.
-  def mailed = changed.count { it.error_message.blank? }
+  # and only when it actually left. A notification that failed, that had
+  # no address to go to, or that the environment's allowlist held back is
+  # not one the submitter received, and counting any of them here would
+  # tell the curator otherwise.
+  def mailed = changed.count(&:sent_mail_status?)
 
   def dismissed? = dismissed_at?
 

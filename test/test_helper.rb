@@ -103,6 +103,17 @@ class ActiveSupport::TestCase
 
   def cloakman_profile(name) = CLOAKMAN_PROFILES.fetch(name)
 
+  # Every deployed environment restricts outgoing mail while sending to
+  # real submitters is switched off. A real interceptor rather than a
+  # stubbed domain list, so what a test says about a restricted
+  # environment is what that environment actually does — including the
+  # screens that ask it whether a given address would be delivered to.
+  def restrict_mail_to(*domains)
+    MailDomainAllowlistInterceptor.stub(:registered, MailDomainAllowlistInterceptor.new(domains)) do
+      yield
+    end
+  end
+
   # Cloakman's free-text search, which the Users screen widens its uid
   # match with.
   def stub_cloakman_search(query, profiles)

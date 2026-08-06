@@ -22,7 +22,16 @@ class MailDomainAllowlistInterceptor
   # is the normalised list, so a config entry written `@DDBJ.nig.ac.jp`
   # is announced as the address it actually matches.
   class << self
-    attr_accessor :domains
+    attr_accessor :registered
+
+    def domains = registered&.domains
+
+    # Whether a given address would actually be delivered to. Answered by
+    # the object that does the filtering rather than by a screen reading
+    # the config, so a page saying "not delivered" cannot drift from what
+    # happens — and unrestricted means everything goes, which is the
+    # answer when nothing is registered.
+    def delivers_to?(address) = registered.nil? || registered.allows?(address)
   end
 
   attr_reader :domains
@@ -30,6 +39,8 @@ class MailDomainAllowlistInterceptor
   def initialize(domains)
     @domains = domains.map { it.downcase.delete_prefix('@') }
   end
+
+  def allows?(address) = address.present? && @domains.any? { address.to_s.downcase.end_with?("@#{it}") }
 
   def delivering_email(mail)
     original = (Array(mail.to) + Array(mail.cc) + Array(mail.bcc))
@@ -51,11 +62,7 @@ class MailDomainAllowlistInterceptor
 
   private
 
-  def filter(addresses)
-    Array(addresses).select {|addr|
-      @domains.any? { addr.downcase.end_with?("@#{it}") }
-    }
-  end
+  def filter(addresses) = Array(addresses).select { allows?(it) }
 end
 
 # Defer the actual registration to after_initialize: touching
@@ -67,7 +74,7 @@ Rails.application.config.after_initialize do
   if (domains = Rails.application.config_for(:app).mail_allowed_domains.presence)
     interceptor = MailDomainAllowlistInterceptor.new(domains)
 
-    MailDomainAllowlistInterceptor.domains = interceptor.domains
+    MailDomainAllowlistInterceptor.registered = interceptor
 
     ActionMailer::Base.register_interceptor interceptor
   end
