@@ -128,6 +128,36 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     assert_selector    '[data-test-saved-view-stale="Gone"]'
   end
 
+  # Every other filter drops a value it no longer knows; assignee applied
+  # it. A chip naming a curator who has since left asked for a user
+  # nobody is assigned to, and the ledger came back empty under "nothing
+  # has ever been here" — on a ledger with requests in it.
+  test 'a filter naming a curator who has gone narrows nothing' do
+    users(:bob).saved_views.create!(name: 'Gone', filters: {'assignee' => %w[999999]})
+
+    visit admin_submission_requests_path
+    click_link 'Gone'
+
+    assert_no_selector '[data-test-empty-state]'
+    assert_no_selector '[data-test-active-filter]'
+    assert_selector    'tbody tr'
+  end
+
+  # A view is saved from the ledger and has to light up on it. The chip's
+  # URL and the ledger's own reading of it are canonicalised against the
+  # assignee universe, so the two have to agree on its order — they were
+  # obtained by different queries, one of them unordered.
+  test 'a view saved from the ledger is showing on the ledger it was saved from' do
+    picked = [users(:dave), users(:bob)].map { it.id.to_s }
+
+    visit admin_submission_requests_path(assignee: picked)
+
+    fill_in 'Name for this view', with: 'Claimed'
+    click_button 'Save'
+
+    assert_selector '[data-test-saved-view="Claimed"][aria-current="true"]'
+  end
+
   # Pressing Search ticks every box in every facet, which the ledger
   # reads as no constraint. Offering to save that would put the whole
   # ledger in the row under a name — and the refusal a curator would get

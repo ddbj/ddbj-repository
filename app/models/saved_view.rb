@@ -28,7 +28,12 @@ class SavedView < ApplicationRecord
 
   # What to put in the link. Symbol keys, because that is what the route
   # helpers take.
-  def to_query = filters.symbolize_keys
+  #
+  # Not `to_query`: ActiveSupport defines that on Object with an arity of
+  # one, and `Hash#to_query` calls it on every value — so the name would
+  # raise ArgumentError the day anyone passed a view into a path helper
+  # or serialised a hash holding one.
+  def link_params = filters.symbolize_keys
 
   # Whether the screen is currently showing this view. Compared against
   # the normalised form of what is on screen so "?db=biosample&page=2"

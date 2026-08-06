@@ -158,14 +158,20 @@ module Admin
     def staff = @staff ||= User.staff.order(:uid).to_a
 
     def filter_by_assignee(scope, raw, staff)
-      selected = Array(raw).map(&:to_s).reject(&:blank?)
-      return scope if selected.empty?
-
-      # Universe = "unassigned" (0) + every staff user. Selecting all of it
-      # is no constraint (see full_or_empty? — same rule, computed here
-      # because the universe is not a static enum).
+      # Universe = "unassigned" (0) + every staff user. Not a static enum,
+      # so it is computed rather than looked up — but the rule is the one
+      # every other filter follows: intersect first, then treat a full or
+      # empty selection as no constraint.
+      #
+      # Without the intersection this was the one filter that acted on a
+      # value the screen had already dropped: `?assignee[]=999999` — which
+      # a saved view naming a curator who has since left produces — asked
+      # for a user nobody is assigned to and returned an empty ledger
+      # under "nothing has ever been here".
       universe = ['0'] + staff.map { it.id.to_s }
-      return scope if (universe - selected).empty?
+      selected = Array(raw).map(&:to_s).reject(&:blank?) & universe
+
+      return scope if selected.empty? || (universe - selected).empty?
 
       ids = (selected - ['0']).map(&:to_i).reject(&:zero?)
       ids << nil if selected.include?('0')

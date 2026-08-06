@@ -50,7 +50,7 @@
           explanation used to live in the `title`, where it took a
           deliberate hover to find and was therefore no explanation at
           all. %>
-      <%= link_to (current ? admin_submission_requests_path : admin_submission_requests_path(view.to_query)),
+      <%= link_to (current ? admin_submission_requests_path : admin_submission_requests_path(view.link_params)),
                   class: "btn btn-sm #{saved_view_button_class(current:, stale: stale.any?)} d-inline-flex align-items-center gap-1",
                   style: 'max-width: 16rem;',
                   'aria-current': ('true' if current),

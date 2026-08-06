@@ -34,8 +34,14 @@ class RequestFilter
 
   class << self
     # "Unassigned" plus every staff id — the universe `filter_by_assignee`
-    # measures a selection against.
-    def assignee_universe = [UNASSIGNED] + User.staff.pluck(:id).map(&:to_s)
+    # measures a selection against, ordered the way the boxes are.
+    #
+    # The order is not cosmetic here. `normalise` canonicalises a selection
+    # by its position in the universe, so an unordered pluck and the
+    # ledger's own `order(:uid)` list would canonicalise the same URL two
+    # different ways — and a view saved from the ledger would then not
+    # light up on the ledger it was saved from.
+    def assignee_universe = [UNASSIGNED] + User.staff.order(:uid).pluck(:id).map(&:to_s)
 
     # Assignee values are user ids, which say nothing to whoever reads
     # them back. Anywhere one is echoed — the badge row, a saved view's
