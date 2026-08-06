@@ -1,43 +1,58 @@
-<%# locals: (views:, assignee_ids:, filters:) %>
+<%# locals: (views:, assignee_ids:, assignee_labels:, filters:) %>
 <%# The filter combinations a curator comes back to, as names.
     Nothing is stored here that the URL did not already carry — a chip is
     a link to the ledger with the saved params, so it lands on an
     ordinary shareable address and not on a private page. %>
-<% filtered = request_filters_active?(params) || params[:q].present? %>
 
-<% if views.any? || filtered %>
+<%# `filters` is the normalised form, so this asks "is anything actually
+    filtered" rather than "is any facet present". They differ on the most
+    common route to this screen: the facet groups sit inside the search
+    form with every box checked, so a bare Search posts every value of
+    every facet — which the ledger reads as no constraint and which must
+    not become a saved view of everything. %>
+<% savable    = filters.any? %>
+<% naming     = params[:view_name].present? %>
+<% return_to  = filters.merge(page: params[:page].presence).compact %>
+
+<% if views.any? || savable %>
   <div class="d-flex align-items-center gap-2 flex-wrap mb-2" data-test-saved-views>
     <% views.each do |view| %>
       <% unknown = view.unknown_values(assignee_ids:) %>
-      <% current = view.showing?(params) %>
+      <% current = view.showing?(params, assignee_ids:) %>
+      <% variant = saved_view_button_class(current:, stale: unknown.any?) %>
 
       <%# The form wraps the group rather than sitting inside it: a
           `button_to` here would put a <form> where Bootstrap expects a
           button, and the delete would render as a detached box beside
           the name. A link inside a form is valid and submits nothing. %>
-      <% variant = saved_view_button_class(current:, stale: unknown.any?) %>
-
-      <%= form_with url: admin_saved_view_path(view, filters), method: :delete, class: 'd-inline-block' do %>
+      <%= form_with url: admin_saved_view_path(view, return_to), method: :delete, class: 'd-inline-block',
+                    data: {turbo_confirm: "Delete the saved view “#{view.name}”? The filter it names is not stored anywhere else."} do %>
         <div class="btn-group btn-group-sm" role="group">
-          <%# Amber on the name itself rather than a third segment: the
-              view still opens, it just no longer means what it was saved
-              to mean. Colour is not the only carrier — the title says
-              which values went, and it is what a screen reader reads. %>
           <%# Truncated rather than trusted to be short: a name is free
               text, and one long one turns the row into a wall. The full
-              one is in the title, which is where the stale note lives
-              too. %>
+              one is in the title, which is where the note about what the
+              view has stopped matching lives too. %>
           <%= link_to admin_submission_requests_path(view.to_query),
                       class: "btn #{variant} text-truncate", style: 'max-width: 14rem;',
                       'aria-current': ('true' if current),
-                      title: saved_view_title(view, unknown),
+                      title: saved_view_title(view, unknown, assignee_labels),
                       'data-test-saved-view': view.name,
                       'data-test-saved-view-stale': (view.name if unknown.any?) do %>
             <%= view.name %><%= ' !' if unknown.any? %>
           <% end %>
 
           <%# Same variant as the name beside it: a filled pill with an
-              outlined × reads as two controls that happened to collide. %>
+              outlined × reads as two controls that happened to collide.
+              What stops a stray click is the confirmation on the form,
+              not a colour.
+
+              The ledger's bulk Apply deliberately has no `turbo_confirm`
+              — it is a native window.confirm, and blocking the renderer
+              to ask about something reversible is not worth it. This one
+              earns it by not being reversible: the filter a view names
+              is written down nowhere else, and a chip is one stray click
+              away on every ledger screen, including the ones showing
+              something entirely different. %>
           <button type="submit" class="btn <%= variant %>"
                   aria-label="Delete saved view <%= view.name %>">&times;</button>
         </div>
@@ -46,20 +61,21 @@
 
     <%# Only where there is something to name. On an unfiltered ledger it
         would offer to save "everything", which is the link in the nav. %>
-    <% if filtered %>
+    <% if savable %>
       <button class="btn btn-sm btn-link text-decoration-none" type="button"
               data-bs-toggle="collapse" data-bs-target="#save-view"
-              aria-expanded="false" aria-controls="save-view">
+              aria-expanded="<%= naming %>" aria-controls="save-view">
         Save this view
       </button>
     <% end %>
   </div>
 
-  <%# Folded away until asked for. The name field lived in the row and
-      made three things compete along one line — chips, a text box and a
-      button — where only the chips are read at a glance. %>
-  <% if filtered %>
-    <div class="collapse mb-2" id="save-view">
+  <%# Folded away until asked for — chips, a text box and a button
+      competing along one line, where only the chips are read at a
+      glance, was most of what made this row unreadable. Open again when
+      a save was refused, with what was typed still in it. %>
+  <% if savable %>
+    <div class="collapse <%= 'show' if naming %> mb-2" id="save-view">
       <%= form_with url: admin_saved_views_path, method: :post, class: 'd-flex gap-2 align-items-center' do %>
         <% filters.each do |key, value| %>
           <% Array(value).each do |v| %>
@@ -67,7 +83,9 @@
           <% end %>
         <% end %>
 
-        <%= text_field_tag :name, suggested_view_name(params),
+        <%= hidden_field_tag :page, params[:page], id: nil if params[:page].present? %>
+
+        <%= text_field_tag :name, params[:view_name].presence || suggested_view_name(params),
                            class: 'form-control form-control-sm', style: 'max-width: 16rem;',
                            maxlength: SavedView::MAX_NAME_LENGTH,
                            'aria-label': 'Name for this view', placeholder: 'Name this view' %>
@@ -75,9 +93,11 @@
         <%= submit_tag 'Save', class: 'btn btn-sm btn-primary',
                        data: {turbo_submits_with: 'Saving…'} %>
 
-        <span class="small text-body-secondary">
-          Saves <%= active_request_filters(params).to_sentence.presence || 'this search' %>.
-        </span>
+        <%# What is actually stored, which is not the same as the badge
+            row beside the search box: that one reports facets, this one
+            reports the view — the query included, the fully-ticked
+            facets left out. %>
+        <span class="small text-body-secondary">Saves <%= saved_view_summary(filters) %>.</span>
       <% end %>
     </div>
   <% end %>

@@ -68,6 +68,35 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
 
     assert_text 'Name has already been taken'
     assert_equal 1, users(:bob).saved_views.count
+
+    # And the correction is where the mistake was. Redirecting to a fresh
+    # page left the message with no form under it: the collapse was shut
+    # and the field back to its suggestion, so a rejected name had to be
+    # found, reopened and retyped.
+    assert_field 'Name for this view', with: 'BS'
+  end
+
+  # Pressing Search ticks every box in every facet, which the ledger
+  # reads as no constraint. Offering to save that would put the whole
+  # ledger in the row under a name — and the refusal a curator would get
+  # for it ("nothing is filtered") reads as a bug on a screen that just
+  # invited them to save.
+  test 'a bare search is not something to save' do
+    visit admin_submission_requests_path
+    click_button 'Search'
+
+    assert_no_button 'Save this view'
+  end
+
+  # A view is a set of rows; the page is where the curator was standing.
+  # Both matter on the way back — one to the chip, the other to them.
+  test 'deleting leaves the curator on the page they were reading' do
+    users(:bob).saved_views.create!(name: 'BS', filters: {'db' => %w[biosample]})
+
+    visit admin_submission_requests_path(db: %w[bioproject], page: '1')
+    click_button 'Delete saved view BS'
+
+    assert_current_path(/page=1/)
   end
 
   test 'deleting takes the chip away and leaves the rows where they were' do

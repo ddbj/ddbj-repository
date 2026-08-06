@@ -45,13 +45,41 @@ class SavedView < ApplicationRecord
   # a filter value that matches nothing and reads as gibberish on the
   # chip. Anything that is not a string was not something the ledger's
   # own form could have produced.
-  def self.normalise(params)
+  # The universe each facet is chosen from — the same sets the ledger
+  # measures a selection against. `assignee` needs a query, so it is
+  # passed in: the chip row normalises once per view and would otherwise
+  # ask the same question every time.
+  def self.assignee_universe = ['0'] + User.staff.pluck(:id).map(&:to_s)
+
+  def self.universes(assignee_ids)
+    {
+      'db'             => SubmissionRequest.dbs.keys,
+      'request_status' => SubmissionRequest.statuses.keys,
+      'status'         => Lifecycleable::STATUSES.keys,
+      'assignee'       => assignee_ids
+    }
+  end
+
+  def self.normalise(params, assignee_ids: assignee_universe)
+    universes = universes(assignee_ids)
+
     FILTERS.each_with_object({}) {|key, filters|
       raw = params[key]
 
       if MULTI.include?(key)
         values = Array.wrap(raw).grep(String).map(&:strip).reject(&:blank?).uniq
-        filters[key] = values if values.any?
+
+        # A facet with every box ticked is not a filter. The ledger reads
+        # it as no constraint (see `full_or_empty?`), and its form posts
+        # exactly that on a bare Search — every box is checked when the
+        # param is absent — so without this, pressing Search and then
+        # Save stores the whole ledger under the name of a filter.
+        next if values.empty? || (universes.fetch(key) - values).empty?
+
+        # Sorted, because a view is a set: the same two boxes ticked in
+        # the other order is the same view, and `showing?` compares these
+        # hashes.
+        filters[key] = values.sort
       else
         # Capped where the search caps it, so a stored query cannot mean
         # more than the box it was typed into.
@@ -68,7 +96,9 @@ class SavedView < ApplicationRecord
   # Whether the screen is currently showing this view. Compared against
   # the normalised form of what is on screen so "?db=biosample&page=2"
   # still counts — the page is not part of the view.
-  def showing?(params) = filters == self.class.normalise(params)
+  def showing?(params, assignee_ids: self.class.assignee_universe)
+    filters == self.class.normalise(params, assignee_ids:)
+  end
 
   # Values this view names that no longer exist: a status renamed, a
   # curator who has left. The ledger drops unknown values rather than
@@ -80,12 +110,29 @@ class SavedView < ApplicationRecord
   # row renders every view the curator has, and each would otherwise
   # cost a query to answer the same question.
   def unknown_values(assignee_ids:)
-    {
-      'db'             => Array(filters['db']) - SubmissionRequest.dbs.keys,
-      'request_status' => Array(filters['request_status']) - SubmissionRequest.statuses.keys,
-      'status'         => Array(filters['status']) - Lifecycleable::STATUSES.keys,
-      'assignee'       => Array(filters['assignee']) - assignee_ids
-    }.reject {|_key, values| values.empty? }
+    self.class.universes(assignee_ids).filter_map {|key, known|
+      gone = Array(filters[key]) - known
+
+      [key, gone] if gone.any?
+    }.to_h
+  end
+
+  # True where a whole facet has gone unknown, which is the only case
+  # that widens the view: the ledger drops what it does not recognise, so
+  # a facet with nothing left to filter on stops filtering. A facet that
+  # lost some of its values still constrains, on the ones that remain.
+  def widened_by?(unknown)
+    unknown.any? {|key, gone| gone.size == Array(filters[key]).size }
+  end
+
+  # Uids for the assignees a set of views name and the staff list no
+  # longer has — a demoted or departed curator. Without it a chip would
+  # report a bare database id, which tells the reader nothing.
+  def self.assignee_labels(views, assignee_ids)
+    ids = views.flat_map { it.unknown_values(assignee_ids:)['assignee'] }.compact.uniq
+    return {} if ids.empty?
+
+    User.where(id: ids).pluck(:id, :uid).to_h {|id, uid| [id.to_s, uid] }
   end
 
   private

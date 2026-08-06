@@ -16,7 +16,8 @@
 <%# The filters this curator comes back to, above the box that builds %>
 <%# them: arriving with a queue in mind, the name is the shorter route. %>
 <%= render 'saved_views', views: @saved_views, assignee_ids: @assignee_ids,
-                          filters: SavedView.normalise(params) %>
+                          assignee_labels: @assignee_labels,
+                          filters: SavedView.normalise(params, assignee_ids: @assignee_ids) %>
 
 <%# Search first. Six stacked checkbox facets used to fill the screen %>
 <%# above the table, so arriving here showed filters rather than requests %>

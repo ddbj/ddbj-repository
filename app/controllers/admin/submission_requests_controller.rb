@@ -35,11 +35,12 @@ module Admin
 
       @saved_views = current_user.saved_views.ordered.to_a
 
-      # One query for the whole chip row rather than one per chip: every
-      # view has to be checked against the current staff list to know
-      # whether the curator it names is still here, and they all ask the
-      # same question. Skipped entirely when no view names anybody.
-      @assignee_ids = staff_ids_for(@saved_views)
+      # One query for the whole chip row rather than one per chip. The
+      # staff list is what "every assignee" means, so it is needed both
+      # to normalise the current URL and to tell whether a view names
+      # somebody who has since gone.
+      @assignee_ids     = SavedView.assignee_universe
+      @assignee_labels  = SavedView.assignee_labels(@saved_views, @assignee_ids)
 
       load_requests(scope)
 
@@ -111,14 +112,6 @@ module Admin
     # exclude), and lets the "Deselect all" button clear a facet.
     def full_or_empty?(selected, universe_size)
       selected.empty? || selected.size >= universe_size
-    end
-
-    # The assignee universe as the filter spells it — "0" for unassigned
-    # plus every staff id. Only queried when a saved view names one.
-    def staff_ids_for(views)
-      return [] if views.none? { it.filters['assignee'].present? }
-
-      ['0'] + User.staff.pluck(:id).map(&:to_s)
     end
 
     def filter_by_db(scope, raw)

@@ -97,10 +97,19 @@ module Admin::ViewHelpers
     values.first.to_s.tr('_', ' ').capitalize
   end
 
+  # An assignee is stored as a user id, which says nothing to whoever
+  # reads the chip. Resolved where it can be — a curator who has left is
+  # still a User — and left as an id where the row has gone entirely.
+  def saved_view_values(key, values, assignee_labels)
+    return values unless key.to_s == 'assignee'
+
+    values.map { assignee_labels[it] || "user ##{it}" }
+  end
+
   # A saved view is grey; the one on screen is filled in; one whose
   # values no longer all exist is amber. Amber doubts, per CLAUDE.md —
-  # the view opens, it just shows more than it was saved with, and the
-  # current view being stale is still worth colouring as stale.
+  # the view opens, it just no longer means quite what it was saved to
+  # mean, and the current view being stale is still worth colouring.
   def saved_view_button_class(current:, stale:)
     return 'btn-outline-warning' if stale
     return 'btn-primary'         if current
@@ -111,11 +120,38 @@ module Admin::ViewHelpers
   # The full name, because the chip truncates, plus what the view has
   # stopped matching. Both are things the pill cannot show and the reader
   # needs on hover.
-  def saved_view_title(view, unknown)
+  #
+  # The widening is claimed only where it happened. A facet that lost
+  # some of its values still filters on the rest, and saying "shows more
+  # than it was saved with" there would be the chip inventing a drift —
+  # which is the same sin as the silence it was added to break.
+  def saved_view_title(view, unknown, assignee_labels = {})
     return view.name if unknown.empty?
 
-    "#{view.name} — no longer matches #{unknown.values.flatten.join(', ')}, " \
-      'so it now shows more than it was saved with.'
+    named = unknown.map {|key, values|
+      "#{REQUEST_FILTER_LABELS.fetch(key.to_sym, key)}: #{saved_view_values(key, values, assignee_labels).join(', ')}"
+    }.join('; ')
+
+    widened = ' It now shows more than it was saved with.' if view.widened_by?(unknown)
+
+    "#{view.name} — no longer matches #{named}.#{widened}"
+  end
+
+  # What the save form promises. Reads the normalised filters rather than
+  # the params, so it names the query as well as the facets and leaves
+  # out a facet with every box ticked — which is what will be stored, and
+  # differs from the badge row beside the search box.
+  def saved_view_summary(filters)
+    parts = REQUEST_FILTER_LABELS.filter_map {|key, label|
+      values = Array(filters[key.to_s])
+      next if values.empty?
+
+      "#{label}: #{values.map { it.tr('_', ' ').capitalize }.join(', ')}"
+    }
+
+    parts.unshift("Search: #{filters['q']}") if filters['q'].present?
+
+    parts.to_sentence.presence || 'nothing'
   end
 
   # Compact elapsed time for a queue: "9h", "4d". The question a queue
