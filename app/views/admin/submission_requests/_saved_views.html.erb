@@ -36,18 +36,31 @@
       <% unknown = view.unknown_values(assignee_ids:) %>
       <% current = view.showing?(params, assignee_ids:) %>
 
-      <%# Truncated rather than trusted to be short: a name is free text,
-          and one long one turns the row into a wall. The full one is in
-          the title, which is where the note about what the view has
-          stopped matching lives too. %>
+      <%# The name truncates — it is free text, and one long one turns the
+          row into a wall — but the markers do not: they are the state,
+          and a state that can be cut off is not one.
+
+          "on" rather than only a colour. Which of the two things this
+          press does depends on whether the view is showing, and the
+          explanation used to live in the `title`, where it took a
+          deliberate hover to find and was therefore no explanation at
+          all. %>
       <%= link_to (current ? admin_submission_requests_path : admin_submission_requests_path(view.to_query)),
-                  class: "btn btn-sm #{saved_view_button_class(current:, stale: unknown.any?)} text-truncate",
-                  style: 'max-width: 14rem;',
+                  class: "btn btn-sm #{saved_view_button_class(current:, stale: unknown.any?)} d-inline-flex align-items-center gap-1",
+                  style: 'max-width: 16rem;',
                   'aria-current': ('true' if current),
                   title: saved_view_title(view, unknown, assignee_labels, current:),
                   'data-test-saved-view': view.name,
                   'data-test-saved-view-stale': (view.name if unknown.any?) do %>
-        <%= view.name %><%= ' !' if unknown.any? %>
+        <span class="text-truncate"><%= view.name %></span>
+
+        <% if unknown.any? %>
+          <span class="badge text-bg-warning" data-test-saved-view-stale-badge>!</span>
+        <% end %>
+
+        <% if current %>
+          <span class="badge text-bg-light border">on · press to clear</span>
+        <% end %>
       <% end %>
     <% end %>
 

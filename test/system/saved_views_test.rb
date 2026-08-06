@@ -129,6 +129,11 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
 
     assert_selector '[data-test-saved-view="BS"][aria-current="true"]'
 
+    # Said on the chip rather than in a `title` nobody hovers: which of
+    # the two things this press does depends on the state, so the state
+    # has to be legible without asking for it.
+    assert_selector '[data-test-saved-view="BS"]', text: 'on · press to clear'
+
     click_link 'BS'
 
     assert_current_path admin_submission_requests_path
