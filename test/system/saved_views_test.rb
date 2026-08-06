@@ -94,7 +94,10 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     users(:bob).saved_views.create!(name: 'BS', filters: {'db' => %w[biosample]})
 
     visit admin_submission_requests_path(db: %w[bioproject], page: '1')
-    click_button 'Delete saved view BS'
+
+    within '[data-test-manage-saved-views]' do
+      click_button 'Delete saved view BS'
+    end
 
     assert_current_path(/page=1/)
   end
@@ -104,13 +107,66 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
 
     visit admin_submission_requests_path(db: %w[biosample])
 
-    click_button 'Delete saved view BS'
+    within '[data-test-manage-saved-views]' do
+      click_button 'Delete saved view BS'
+    end
 
     assert_text 'Deleted “BS”'
     assert_no_selector '[data-test-saved-view="BS"]'
 
     # Still filtered: deleting a name is not a navigation.
     assert_selector '[data-test-active-filter]', text: 'Database: BioSample'
+  end
+
+  # The obvious thing to press to take an applied view off was the ×
+  # beside its name — which deleted the view for good. The free operation
+  # and the irreversible one were the same gesture in the same place, so
+  # the free one is now what the name itself does.
+  test 'pressing the view that is showing takes it off' do
+    users(:bob).saved_views.create!(name: 'BS', filters: {'db' => %w[biosample]})
+
+    visit admin_submission_requests_path(db: %w[biosample])
+
+    assert_selector '[data-test-saved-view="BS"][aria-current="true"]'
+
+    click_link 'BS'
+
+    assert_current_path admin_submission_requests_path
+    assert_no_selector '[data-test-saved-view="BS"][aria-current]'
+
+    # Taking the filter off is not throwing the view away.
+    assert_selector '[data-test-saved-view="BS"]'
+    assert_equal 1, users(:bob).saved_views.count
+  end
+
+  # Where a view is managed, as opposed to where it is used. Not a delete
+  # mode: that makes everybody carry a memory of it for a rare press.
+  test 'deleting is not on the chip' do
+    users(:bob).saved_views.create!(name: 'BS', filters: {'db' => %w[biosample]})
+
+    visit admin_submission_requests_path
+
+    # One delete control on the screen, and it is in the menu rather
+    # than against the name.
+    assert_selector '[aria-label="Delete saved view BS"]', count: 1
+    assert_selector '[data-test-manage-saved-views] [aria-label="Delete saved view BS"]'
+  end
+
+  # The name is the only thing a view has that the URL does not, so it is
+  # the only thing to edit — and the only way to fix a bad one was to
+  # delete it and rebuild the filter.
+  test 'a view can be renamed without being rebuilt' do
+    view = users(:bob).saved_views.create!(name: 'BS', filters: {'db' => %w[biosample]})
+
+    visit admin_submission_requests_path
+
+    within '[data-test-manage-saved-views]' do
+      fill_in 'New name for BS', with: 'BS to curate'
+      click_button 'Save name'
+    end
+
+    assert_text 'Renamed to “BS to curate”'
+    assert_equal({'db' => %w[biosample]}, view.reload.filters, 'renaming does not touch what it points at')
   end
 
   # The ledger drops a value it no longer knows, so a stale view still

@@ -64,7 +64,7 @@ Rails.application.routes.draw do
     # links straight at the ledger with the stored params, so a saved
     # view lands on an ordinary, shareable URL rather than on a page
     # only its owner can reach.
-    resources :saved_views, only: %i[create destroy]
+    resources :saved_views, only: %i[create update destroy]
 
     # The request detail is a four-tab workbench: one screen answers one
     # question (state / bulk edits / conversation / provenance) instead of

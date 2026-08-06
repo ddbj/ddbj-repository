@@ -21,6 +21,21 @@ module Admin
       refuse view, name, 'Name has already been taken.'
     end
 
+    # The name is the only thing a view has that the URL does not, so it
+    # is the only thing there is to edit. Changing what a view points at
+    # would be saving a different view — and that is what Save is.
+    def update
+      view = current_user.saved_views.find(params[:id])
+
+      if view.update(name: params[:name].to_s.strip)
+        redirect_to ledger_path, notice: "Renamed to “#{view.name}”."
+      else
+        redirect_to ledger_path, alert: view.errors.full_messages.to_sentence
+      end
+    rescue ActiveRecord::RecordNotUnique
+      redirect_to ledger_path, alert: 'Name has already been taken.'
+    end
+
     # Scoped to the current curator's own views, so an id from somebody
     # else's row is a 404 rather than a deletion.
     def destroy

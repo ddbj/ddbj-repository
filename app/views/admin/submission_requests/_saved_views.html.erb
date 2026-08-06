@@ -10,53 +10,100 @@
     form with every box checked, so a bare Search posts every value of
     every facet — which the ledger reads as no constraint and which must
     not become a saved view of everything. %>
-<% savable    = filters.any? %>
-<% naming     = params[:view_name].present? %>
-<% return_to  = filters.merge(page: params[:page].presence).compact %>
+<% savable   = filters.any? %>
+<% naming    = params[:view_name].present? %>
+<% return_to = filters.merge(page: params[:page].presence).compact %>
 
 <% if views.any? || savable %>
   <div class="d-flex align-items-center gap-2 flex-wrap mb-2" data-test-saved-views>
+    <% if views.any? %>
+      <span class="small text-body-secondary">Saved</span>
+    <% end %>
+
+    <%# A toggle, not a chip with a remove button on it.
+
+        The obvious thing to press to take an applied view off is the ×
+        beside its name — and the × meant "delete this saved view for
+        good", so the free operation and the irreversible one were the
+        same gesture in the same place. Pressing an applied view again
+        releases it instead: back to the bare ledger, which is where the
+        curator was trying to get.
+
+        Deleting has moved into the ▾, where it is managed rather than
+        used. Not a delete mode: that would make everybody carry a
+        memory of it for the sake of a rare press. %>
     <% views.each do |view| %>
       <% unknown = view.unknown_values(assignee_ids:) %>
       <% current = view.showing?(params, assignee_ids:) %>
-      <% variant = saved_view_button_class(current:, stale: unknown.any?) %>
 
-      <%# The form wraps the group rather than sitting inside it: a
-          `button_to` here would put a <form> where Bootstrap expects a
-          button, and the delete would render as a detached box beside
-          the name. A link inside a form is valid and submits nothing. %>
-      <%= form_with url: admin_saved_view_path(view, return_to), method: :delete, class: 'd-inline-block',
-                    data: {turbo_confirm: "Delete the saved view “#{view.name}”? The filter it names is not stored anywhere else."} do %>
-        <div class="btn-group btn-group-sm" role="group">
-          <%# Truncated rather than trusted to be short: a name is free
-              text, and one long one turns the row into a wall. The full
-              one is in the title, which is where the note about what the
-              view has stopped matching lives too. %>
-          <%= link_to admin_submission_requests_path(view.to_query),
-                      class: "btn #{variant} text-truncate", style: 'max-width: 14rem;',
-                      'aria-current': ('true' if current),
-                      title: saved_view_title(view, unknown, assignee_labels),
-                      'data-test-saved-view': view.name,
-                      'data-test-saved-view-stale': (view.name if unknown.any?) do %>
-            <%= view.name %><%= ' !' if unknown.any? %>
+      <%# Truncated rather than trusted to be short: a name is free text,
+          and one long one turns the row into a wall. The full one is in
+          the title, which is where the note about what the view has
+          stopped matching lives too. %>
+      <%= link_to (current ? admin_submission_requests_path : admin_submission_requests_path(view.to_query)),
+                  class: "btn btn-sm #{saved_view_button_class(current:, stale: unknown.any?)} text-truncate",
+                  style: 'max-width: 14rem;',
+                  'aria-current': ('true' if current),
+                  title: saved_view_title(view, unknown, assignee_labels, current:),
+                  'data-test-saved-view': view.name,
+                  'data-test-saved-view-stale': (view.name if unknown.any?) do %>
+        <%= view.name %><%= ' !' if unknown.any? %>
+      <% end %>
+    <% end %>
+
+    <%# Where a view is managed, as opposed to where it is used.
+        `auto-close="outside"` so renaming one does not shut the menu on
+        the way. %>
+    <% if views.any? %>
+      <div class="dropdown">
+        <button class="btn btn-sm btn-link text-decoration-none dropdown-toggle" type="button"
+                data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                aria-expanded="false" aria-label="Manage saved views">Manage</button>
+
+        <div class="dropdown-menu p-2" style="min-width: 20rem;" data-test-manage-saved-views>
+          <h6 class="dropdown-header px-2">Saved views</h6>
+
+          <% views.each do |view| %>
+            <div class="d-flex align-items-center gap-2 px-2 py-1">
+              <span class="flex-fill text-truncate"><%= view.name %></span>
+
+              <button class="btn btn-sm btn-link text-decoration-none p-0" type="button"
+                      data-bs-toggle="collapse" data-bs-target="#rename-view-<%= view.id %>"
+                      aria-controls="rename-view-<%= view.id %>" aria-expanded="false"
+                      aria-label="Rename <%= view.name %>">Rename</button>
+
+              <%# The one irreversible thing on this row, so it is the
+                  one thing that asks. The ledger's bulk Apply has no
+                  confirmation on purpose — it can be undone by pressing
+                  again — and this cannot: the filter a view names is
+                  written down nowhere else. %>
+              <%= button_to 'Delete', admin_saved_view_path(view, return_to), method: :delete,
+                            class: 'btn btn-sm btn-link text-decoration-none p-0',
+                            form: {class: 'd-inline', data: {turbo_confirm: "Delete the saved view “#{view.name}”? The filter it names is not stored anywhere else."}},
+                            'aria-label': "Delete saved view #{view.name}" %>
+            </div>
+
+            <div class="collapse px-2 pb-2" id="rename-view-<%= view.id %>">
+              <%= form_with url: admin_saved_view_path(view, return_to), method: :patch,
+                            class: 'd-flex gap-2 align-items-center' do %>
+                <%= text_field_tag :name, view.name, class: 'form-control form-control-sm',
+                                   maxlength: SavedView::MAX_NAME_LENGTH, id: nil,
+                                   'aria-label': "New name for #{view.name}" %>
+
+                <%= submit_tag 'Save name', class: 'btn btn-sm btn-outline-secondary text-nowrap' %>
+              <% end %>
+            </div>
           <% end %>
 
-          <%# Same variant as the name beside it: a filled pill with an
-              outlined × reads as two controls that happened to collide.
-              What stops a stray click is the confirmation on the form,
-              not a colour.
+          <% if savable %>
+            <div class="dropdown-divider"></div>
 
-              The ledger's bulk Apply deliberately has no `turbo_confirm`
-              — it is a native window.confirm, and blocking the renderer
-              to ask about something reversible is not worth it. This one
-              earns it by not being reversible: the filter a view names
-              is written down nowhere else, and a chip is one stray click
-              away on every ledger screen, including the ones showing
-              something entirely different. %>
-          <button type="submit" class="btn <%= variant %>"
-                  aria-label="Delete saved view <%= view.name %>">&times;</button>
+            <button class="btn btn-sm btn-link text-decoration-none" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#save-view"
+                    aria-controls="save-view">Save the current filter…</button>
+          <% end %>
         </div>
-      <% end %>
+      </div>
     <% end %>
 
     <%# Only where there is something to name. On an unfiltered ledger it

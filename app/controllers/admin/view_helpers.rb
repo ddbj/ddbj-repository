@@ -160,16 +160,23 @@ module Admin::ViewHelpers
   # some of its values still filters on the rest, and saying "shows more
   # than it was saved with" there would be the chip inventing a drift —
   # which is the same sin as the silence it was added to break.
-  def saved_view_title(view, unknown, assignee_labels = {})
-    return view.name if unknown.empty?
+  # It is also where the toggle explains itself. A link that takes the
+  # filter off when pressed, and puts it on otherwise, is two behaviours
+  # under one name — and the only place to say which one is in front of
+  # the reader is here.
+  def saved_view_title(view, unknown, assignee_labels = {}, current: false)
+    parts = [current ? "#{view.name} — showing. Press again to clear it." : view.name]
 
-    named = unknown.map {|key, values|
-      "#{REQUEST_FILTER_LABELS.fetch(key.to_sym, key)}: #{filter_value_labels(key, values, assignee_labels).join(', ')}"
-    }.join('; ')
+    if unknown.any?
+      named = unknown.map {|key, values|
+        "#{REQUEST_FILTER_LABELS.fetch(key.to_sym, key)}: #{filter_value_labels(key, values, assignee_labels).join(', ')}"
+      }.join('; ')
 
-    widened = ' It now shows more than it was saved with.' if view.widened_by?(unknown)
+      parts << "No longer matches #{named}."
+      parts << 'It now shows more than it was saved with.' if view.widened_by?(unknown)
+    end
 
-    "#{view.name} — no longer matches #{named}.#{widened}"
+    parts.join(' ')
   end
 
   # What the save form promises. Reads the normalised filters rather than
