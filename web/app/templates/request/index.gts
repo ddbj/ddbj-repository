@@ -208,10 +208,10 @@ export default class extends Component<Signature> {
       the disclosure is open, which is exactly what these are. }}
       {{! template-lint-disable no-nested-interactive }}
       <div class="mt-4 border-top">
-        {{! Folded away only while it is reference. Once the check has
-        failed the report is above, said as work, and the same findings
-        listed twice on one screen makes the reader wonder which is the
-        real one. }}
+        {{! Only while the check passed. A failed one is reported above,
+        said as work, and it carries this same table folded underneath
+        itself — listing the findings twice on one screen makes the
+        reader wonder which is the real one. }}
         {{#unless this.failedCheck}}
           {{#if @model.validation}}
             <details class="py-3 border-bottom">

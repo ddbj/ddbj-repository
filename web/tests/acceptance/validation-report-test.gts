@@ -137,18 +137,73 @@ module('Acceptance | validation report', function (hooks) {
   });
 
   // The same findings listed twice on one screen makes the reader wonder
-  // which is the real one.
-  test('the folded reference copy stands down while the report is up', async function (assert) {
+  // which is the real one — but the grouped view names three ids out of
+  // ten, and whoever is correcting the file needs the other seven.
+  test('the whole list stays, folded, under the grouped one', async function (assert) {
     worker.use(
       http.get('/submission_requests/{id}', ({ response }) =>
-        response(200).json(requestWith([detail({ code: 'BS_R0037', message: 'collection_date must be a date' })])),
+        response(200).json(
+          requestWith(
+            [1, 2, 3, 4, 5].map((n) =>
+              detail({ code: 'BS_R0037', message: 'collection_date must be a date', entry_id: `S${n}` }),
+            ),
+          ),
+        ),
       ),
     );
 
     await visit('/requests/42');
 
     assert.dom('[data-test-validation-report]').exists();
+    assert.dom('[data-test-every-finding] summary').hasText('Every finding (5)');
+    assert.dom('[data-test-every-finding] tbody tr').exists({ count: 5 });
+
+    // And not a second time further down the page.
     assert.dom('details').doesNotIncludeText('Validation report');
+  });
+
+  // A group mixing file-level and entry-level findings collects fewer
+  // than three ids, and without this reads as though those were all of
+  // them.
+  test('the examples say when they are only some of the records', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json(
+          requestWith([
+            detail({ code: 'BS_R0037', message: 'collection_date must be a date', entry_id: 'S1' }),
+            detail({ code: 'BS_R0037', message: 'collection_date must be a date', entry_id: 'S2' }),
+            detail({ code: 'BS_R0037', message: 'collection_date must be a date', entry_id: null }),
+          ]),
+        ),
+      ),
+    );
+
+    await visit('/requests/42');
+
+    // Two of the three carried an id, so two is the whole of what can be
+    // named — and it does not pretend otherwise in either direction.
+    assert.dom('[data-test-findings] tbody tr').includesText('S1, S2');
+    assert.dom('[data-test-findings] tbody tr').doesNotIncludeText('S1, S2, …');
+  });
+
+  // Opening on an empty tab would be a report hiding its only content,
+  // and the highlighted tab has to be the one whose table is showing.
+  test('a report with only warnings opens on them', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json(
+          requestWith([
+            detail({ code: 'BS_R0999', message: 'organism is unusual for this package', severity: 'warning' }),
+          ]),
+        ),
+      ),
+    );
+
+    await visit('/requests/42');
+
+    assert.dom('[data-test-tab="warning"]').hasAttribute('aria-pressed', 'true');
+    assert.dom('[data-test-tab="error"]').hasAttribute('aria-pressed', 'false');
+    assert.dom('[data-test-findings]').includesText('organism is unusual');
   });
 
   // A report that has to be opened before it says anything is a report
