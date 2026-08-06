@@ -495,4 +495,30 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
       assert_link 'View as JSON'
     end
   end
+
+  # v3 gives every database the same keys, so which ones are present is
+  # itself the answer to "does this record have sequences?" — otherwise a
+  # question answered by scrolling.
+  test 'the record says what it carries before it says what is in it' do
+    with_record({'project' => {'title' => 'x'}, 'relations' => %w[PRJDB1]}) do
+      visit record_admin_submission_request_path(@request)
+
+      within '[data-test-record-carries]' do
+        assert_link 'project'
+        assert_link 'relations'
+        assert_text "2 of the #{RecordOutline.schema_key_count} v3 keys"
+      end
+    end
+  end
+
+  # Browser search answers "not here" for a value that is in the record
+  # and not on the page, so the omission has to carry its destination
+  # where the reader is rather than only at the top of the card.
+  test 'a truncated collection says where the rest is' do
+    with_record({'samples' => Array.new(40) {|i| {'alias' => "S#{i}"} }}) do
+      visit record_admin_submission_request_path(@request)
+
+      assert_selector '[data-test-record-truncated]', text: 'in the tabs above or in the JSON below'
+    end
+  end
 end

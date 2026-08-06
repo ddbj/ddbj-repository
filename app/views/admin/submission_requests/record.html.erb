@@ -57,9 +57,31 @@
             <p class="text-body-secondary small mb-0">The record carries nothing.</p>
           <% end %>
 
+          <%# Which of the v3 keys this record has is itself an answer. Every
+              database shares the same fourteen, so an absent one means "no
+              such thing here" — and "does this record have sequences?" is
+              otherwise a question you answer by scrolling. %>
+          <% if sections.any? %>
+            <p class="small mb-3" data-test-record-carries>
+              <span class="text-body-secondary">Carries</span>
+              <% sections.each do |section| %>
+                <a href="#record-<%= section.key %>" class="badge text-bg-light border text-decoration-none"><%= section.key %></a>
+              <% end %>
+              <span class="text-body-secondary ms-1">
+                <%= sections.size %> of the <%= RecordOutline.schema_key_count %> v3 keys
+              </span>
+            </p>
+          <% end %>
+
           <% sections.each do |section| %>
-            <div class="mb-3" data-test-record-section="<%= section.key %>">
-              <h3 class="small fw-semibold text-uppercase text-body-secondary"><%= section.key %></h3>
+            <%# The section heading is the page's skeleton and was drawn
+                weaker than the body it introduces, so the joins
+                disappeared. Small is fine — uppercase and letter-spacing
+                make it a structural label — but it takes the body colour,
+                a rule above, and more room above than below, because a
+                heading belongs to what follows it. %>
+            <div class="mt-4 pt-3 border-top" id="record-<%= section.key %>" data-test-record-section="<%= section.key %>">
+              <h3 class="small fw-semibold text-uppercase mb-2" style="letter-spacing: 0.08em;"><%= section.key %></h3>
 
               <%= render 'record_node', node: section.node %>
             </div>

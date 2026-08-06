@@ -56,6 +56,17 @@ class RecordOutline
     @record = record || {}
   end
 
+  # How many keys v3 gives every database, read off the schema rather than
+  # written down — the count is the only thing about the shape this class
+  # knows, and it is what makes "4 of 14" mean anything.
+  def self.schema_key_count = DDBJRecord::V3::Root.members.size
+
+  # The top-level keys this record carries. v3 gives every database the
+  # same keys, so which ones are present is itself the answer to "does
+  # this record have sequences?" — a question otherwise answered by
+  # scrolling.
+  def carried_keys = sections.map(&:key)
+
   # Whether the walk stopped short of the whole record. Said once, at the
   # top, rather than at every point it happened — the reader needs to know
   # the page is not all of it, not where each cut fell.

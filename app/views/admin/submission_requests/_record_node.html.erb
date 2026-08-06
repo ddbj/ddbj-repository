@@ -1,7 +1,14 @@
-<%# locals: (node:) %>
+<%# locals: (node:, dense: false) %>
 <%# One node of RecordOutline, drawn by its shape. Recurses into itself,
     so nesting needs no extra template and no depth limit — the record is
-    a tree and this follows it. %>
+    a tree and this follows it.
+
+    `dense` is the one thing the shape does not decide: the same :fields
+    has a card's width under a section and about 150px inside a table
+    cell, and a 4/8 grid in the narrow one puts the key column at 50px
+    where it wraps — taking the value with it and stretching every row.
+    Set when recursing from :table and :list, so it follows the width
+    rather than the field. %>
 
 <% case node.kind %>
 <% when :value %>
@@ -22,17 +29,28 @@
   <span class="text-body-secondary small" data-test-record-elided>not expanded — see the JSON</span>
 
 <% when :fields %>
-  <dl class="row mb-0 small">
-    <% node.rows.each do |key, child| %>
-      <dt class="col-sm-4 fw-normal text-body-secondary"><%= key %></dt>
-      <dd class="col-sm-8 mb-1"><%= render 'record_node', node: child %></dd>
-    <% end %>
-  </dl>
+  <% if dense %>
+    <%# key: value on one line. A single-key hash — `{environmental:
+        true}` — then costs one line rather than a wrapped two-column
+        grid, which is most of what made nested cells unreadable. %>
+    <div class="small">
+      <% node.rows.each do |key, child| %>
+        <div><span class="text-body-secondary"><%= key %>:</span> <%= render 'record_node', node: child, dense: %></div>
+      <% end %>
+    </div>
+  <% else %>
+    <dl class="row mb-0 small">
+      <% node.rows.each do |key, child| %>
+        <dt class="col-sm-4 fw-normal text-body-secondary"><%= key %></dt>
+        <dd class="col-sm-8 mb-1"><%= render 'record_node', node: child, dense: %></dd>
+      <% end %>
+    </dl>
+  <% end %>
 
 <% when :list %>
   <ul class="list-unstyled mb-0 small">
     <% node.rows.each do |child| %>
-      <li><%= render 'record_node', node: child %></li>
+      <li><%= render 'record_node', node: child, dense: true %></li>
     <% end %>
   </ul>
 
@@ -54,7 +72,7 @@
         <% node.rows.each do |cells| %>
           <tr>
             <% cells.each do |cell| %>
-              <td><%= render 'record_node', node: cell if cell %></td>
+              <td><%= render 'record_node', node: cell, dense: true if cell %></td>
             <% end %>
           </tr>
         <% end %>
@@ -75,10 +93,15 @@
   <% end %>
 <% end %>
 
+<%# Where the omission happened, because that is where somebody is
+    reading — and browser search will not tell them. Ctrl+F answers "not
+    here" for a value that is in the record and not on the page, so the
+    line has to carry its own destination rather than rely on a note at
+    the top of the card. %>
 <% if node.truncated? %>
   <p class="small text-body-secondary mb-0" data-test-record-truncated>
     Showing <%= number_with_delimiter(node.shown) %> of
     <%= number_with_delimiter(node.total) %> —
-    <%= number_with_delimiter(node.hidden) %> more.
+    <%= number_with_delimiter(node.hidden) %> more, in the tabs above or in the JSON below.
   </p>
 <% end %>
