@@ -14,8 +14,17 @@ class RequestFilterTest < ActiveSupport::TestCase
       'authenticity_token' => 'nope'
     })
 
-    # Sorted, because a facet is a set — see the ordering test below.
+    # Canonically ordered, because a facet is a set — see below.
     assert_equal({'q' => 'PRJDB', 'db' => %w[bioproject biosample], 'status' => %w[curating]}, filters)
+  end
+
+  # The order is the boxes' own, not alphabetical: this is what a badge
+  # reads back and what a saved view is named after, and "ST.26,
+  # BioSample" is the order the curator ticked them in.
+  test 'values come back in the order the facet lists them' do
+    filters = RequestFilter.normalise({'db' => %w[biosample st26]})
+
+    assert_equal %w[st26 biosample], filters['db']
   end
 
   # `page` above all: a filter is a set of rows, not a position in it.

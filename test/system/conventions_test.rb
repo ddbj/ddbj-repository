@@ -16,7 +16,7 @@ class EmptyStateSystemTest < ApplicationSystemTestCase
 
     within '[data-test-empty-state="filtered"]' do
       assert_text 'No requests match these filters'
-      assert_text 'Database: Bioproject'
+      assert_text 'Database: BioProject'
       assert_text 'Curation: Curating'
       assert_link 'Clear filters'
     end
@@ -49,7 +49,7 @@ class EmptyStateSystemTest < ApplicationSystemTestCase
 
     within '[data-test-empty-state="filtered"]' do
       assert_text 'Searching for "nothing-matches-this"'
-      assert_text 'Database: Bioproject'
+      assert_text 'Database: BioProject'
       assert_link 'Clear search and filters'
     end
   end

@@ -16,7 +16,7 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     # Already filled in, so saving is a press rather than a naming
     # decision — and short, because the chip is what the curator will
     # recognise the view by and the full summary is on screen anyway.
-    assert_field 'Name for this view', with: 'Biosample'
+    assert_field 'Name for this view', with: 'BioSample'
 
     fill_in 'Name for this view', with: 'BS to curate'
     click_button 'Save'
@@ -110,7 +110,7 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     assert_no_selector '[data-test-saved-view="BS"]'
 
     # Still filtered: deleting a name is not a navigation.
-    assert_selector '[data-test-active-filter]', text: 'Database: Biosample'
+    assert_selector '[data-test-active-filter]', text: 'Database: BioSample'
   end
 
   # The ledger drops a value it no longer knows, so a stale view still
@@ -142,6 +142,20 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
 
     assert_no_selector '[data-test-active-filter]'
     assert_no_link     'Clear'
+  end
+
+  # Naming the view after the first value left a filter on two databases
+  # suggesting the name of one of them, with the other nowhere on screen.
+  test 'the suggested name carries every value it is filtered by' do
+    visit admin_submission_requests_path(db: %w[st26 biosample])
+
+    assert_field 'Name for this view', with: 'ST.26, BioSample'
+  end
+
+  test 'the suggested name spans facets rather than stopping at the first' do
+    visit admin_submission_requests_path(db: %w[biosample], status: %w[curating])
+
+    assert_field 'Name for this view', with: 'BioSample · Curating'
   end
 
   # `0` is the "unassigned" box and the rest are user ids, neither of

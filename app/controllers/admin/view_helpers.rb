@@ -81,15 +81,13 @@ module Admin::ViewHelpers
   # nothing at all.
   def active_request_filters(params, assignee_ids: nil)
     facets = RequestFilter.facets(params, assignee_ids:)
-    names  = RequestFilter.assignee_labels(Array(facets['assignee'])) if facets.key?('assignee')
+    names  = RequestFilter.assignee_labels(Array(facets['assignee']))
 
     REQUEST_FILTER_LABELS.filter_map {|key, label|
       values = Array(facets[key.to_s])
       next if values.empty?
 
-      first = key == :assignee ? names.fetch(values.first, "user ##{values.first}") : values.first.tr('_', ' ').capitalize
-
-      "#{label}: #{first}#{" +#{values.size - 1}" if values.size > 1}"
+      "#{label}: #{filter_value_labels(key, values, names).first}#{" +#{values.size - 1}" if values.size > 1}"
     }
   end
 
@@ -98,27 +96,49 @@ module Admin::ViewHelpers
   end
 
   # Something in the box, so saving is a press rather than a naming
-  # decision — but short. The whole filter summary was the first thing
-  # tried and it made the chip a restatement of the badge row two lines
-  # below it, in a pill wide enough to push everything else off the line.
-  # A name is what the curator will recognise it by; the summary is
-  # already on screen.
-  def suggested_view_name(params)
-    return params[:q].to_s.strip.first(SavedView::MAX_NAME_LENGTH) if params[:q].present?
+  # decision. The whole filter summary was the first thing tried, labels
+  # and all, and it made the chip a restatement of the badge row two
+  # lines below it in a pill wide enough to push everything else off the
+  # line.
+  #
+  # Values, not labels: what a curator recognises the view by is "ST.26,
+  # BioSample", and the facet each value belongs to is already written
+  # under the field. Every value of every facet, so nothing is silently
+  # dropped — naming only the first left a view filtered to two databases
+  # suggesting the name of one of them.
+  #
+  # Read off the normalised filters rather than the params, or a facet
+  # with every box ticked could name the view after something it does not
+  # filter on.
+  def suggested_view_name(params, assignee_ids: nil)
+    filters = RequestFilter.normalise(params, assignee_ids:)
+    names   = RequestFilter.assignee_labels(Array(filters['assignee']))
 
-    key    = REQUEST_FILTER_LABELS.keys.find { Array(params[it]).reject(&:blank?).any? }
-    values = Array(params[key]).reject(&:blank?)
+    parts = REQUEST_FILTER_LABELS.keys.filter_map {|key|
+      values = Array(filters[key.to_s])
+      filter_value_labels(key, values, names).join(', ') if values.any?
+    }
 
-    values.first.to_s.tr('_', ' ').capitalize
+    parts.unshift(filters['q']) if filters['q'].present?
+
+    parts.join(' · ').first(SavedView::MAX_NAME_LENGTH)
   end
 
-  # An assignee is stored as a user id, which says nothing to whoever
-  # reads the chip. Resolved where it can be — a curator who has left is
-  # still a User — and left as an id where the row has gone entirely.
-  def saved_view_values(key, values, assignee_labels)
-    return values.map { it.tr('_', ' ').capitalize } unless key.to_s == 'assignee'
-
-    values.map { assignee_labels[it] || "user ##{it}" }
+  # Facet values as a reader would say them, wherever one is echoed back:
+  # the badge row, a saved view's name, the explanation of what a stale
+  # view has stopped matching.
+  #
+  # An assignee is a user id, which says nothing on its own — resolved
+  # where it can be (a curator who has left the staff list is still a
+  # User) and left as an id where the row has gone entirely. A database
+  # has a name of its own; the rest are enum keys, which read well enough
+  # with the underscores taken out.
+  def filter_value_labels(key, values, assignee_labels = {})
+    case key.to_s
+    when 'assignee' then values.map { assignee_labels[it] || "user ##{it}" }
+    when 'db'       then values.map { db_label(it) }
+    else                 values.map { it.tr('_', ' ').capitalize }
+    end
   end
 
   # A saved view is grey; the one on screen is filled in; one whose
@@ -144,7 +164,7 @@ module Admin::ViewHelpers
     return view.name if unknown.empty?
 
     named = unknown.map {|key, values|
-      "#{REQUEST_FILTER_LABELS.fetch(key.to_sym, key)}: #{saved_view_values(key, values, assignee_labels).join(', ')}"
+      "#{REQUEST_FILTER_LABELS.fetch(key.to_sym, key)}: #{filter_value_labels(key, values, assignee_labels).join(', ')}"
     }.join('; ')
 
     widened = ' It now shows more than it was saved with.' if view.widened_by?(unknown)
@@ -163,7 +183,7 @@ module Admin::ViewHelpers
       values = Array(filters[key.to_s])
       next if values.empty?
 
-      "#{label}: #{saved_view_values(key, values, names).join(', ')}"
+      "#{label}: #{filter_value_labels(key, values, names).join(', ')}"
     }
 
     parts.unshift("Search: #{filters['q']}") if filters['q'].present?

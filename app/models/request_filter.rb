@@ -79,9 +79,13 @@ class RequestFilter
           # Every box ticked is not a filter, and neither is none of them.
           next if (universe - values).empty?
 
-          # Sorted, because a facet is a set: the same two boxes ticked in
-          # the other order is the same filter.
-          filters[key] = values.sort
+          # Canonical order, because a facet is a set: the same two boxes
+          # ticked in the other order is the same filter. In the order the
+          # boxes themselves are in rather than alphabetically — this is
+          # what gets read back on a badge and suggested as a view's name,
+          # and "ST.26, BioSample" is the order the curator just ticked
+          # them in. Anything the universe does not know goes last.
+          filters[key] = values.sort_by { [universe.index(it) || universe.size, it] }
         else
           # Capped where the search caps it, so an echoed query cannot
           # claim more than the box it was typed into.
