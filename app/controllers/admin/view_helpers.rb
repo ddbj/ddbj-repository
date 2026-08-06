@@ -443,29 +443,46 @@ module Admin::ViewHelpers
   # the curation status is. ST.26 is never curated through this UI, so it
   # keeps showing the pipeline status for its whole life — which is why
   # this falls back rather than printing a dash.
+  # One column, so one shape. The curation half used to be bare text
+  # while the pipeline half was a badge, which put the same column's two
+  # answers in two registers — a BioSample row reading "curating" beside
+  # an ST.26 row wearing a red "Validation failed" reads as though only
+  # one of them were a state.
   def request_state_display(request, submission, sample_aggregates)
-    curation = submission && submission_status_display(submission, sample_aggregates)
+    status = submission && submission_status(submission, sample_aggregates)
 
-    curation || status_badge(request.status)
+    return status_badge(request.status) if status.nil?
+
+    # Mixed has no one status and therefore no one colour — neutral, the
+    # same as the detail screen's rail (see curation_status_badge).
+    if status == :mixed
+      tag.span "Mixed (#{sample_aggregates[submission.id].statuses.size})", class: 'badge text-bg-light border'
+    else
+      curation_badge(status)
+    end
   end
 
-  # Curation status of a Submission, or nil when it has none.
+  def curation_badge(status)
+    tag.span status.tr('_', ' '),
+             class: "badge text-bg-#{CURATION_STATUS_COLORS.fetch(status, 'secondary')} text-capitalize"
+  end
+
+  # Curation status of a Submission as the enum spells it, `:mixed` where
+  # a BS submission's samples disagree, or nil when it has none.
   #   - BP: the Project's Lifecycleable status.
-  #   - BS: aggregate over Samples — "<status>" if uniform, "Mixed (N)" if not.
-  #   - ST26: nil (not curated through this UI).
-  def submission_status_display(submission, sample_aggregates)
+  #   - BS: aggregate over Samples.
+  #   - ST26: nil (not curated through this UI), so the caller falls back
+  #     to the pipeline status rather than printing a dash.
+  def submission_status(submission, sample_aggregates)
     if submission.bioproject_db?
-      submission.project&.status&.tr('_', ' ')
+      submission.project&.status
     elsif submission.biosample_db?
       agg = sample_aggregates[submission.id]
       return nil unless agg
+      return :mixed unless agg.statuses.size == 1
 
-      if agg.statuses.size == 1
-        # `Sample.statuses` is {'public' => 5500, ...} so invert is keyed by integer.
-        Sample.statuses.invert.fetch(agg.statuses.first, agg.statuses.first.to_s).tr('_', ' ')
-      else
-        "Mixed (#{agg.statuses.size})"
-      end
+      # `Sample.statuses` is {'public' => 5500, ...} so invert is keyed by integer.
+      Sample.statuses.invert.fetch(agg.statuses.first, agg.statuses.first.to_s)
     end
   end
 

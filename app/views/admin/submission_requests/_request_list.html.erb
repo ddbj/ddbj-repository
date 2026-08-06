@@ -61,7 +61,7 @@
           </td>
           <%# One column, not two: two meant reading both and working out %>
           <%# which of them currently applied (see request_state_display). %>
-          <td><%= request_state_display(request, submission, sample_aggregates) %></td>
+          <td data-test-curation><%= request_state_display(request, submission, sample_aggregates) %></td>
           <td><%= request.assignee&.uid || '—' %></td>
           <td class="text-nowrap"><%= elapsed_time(request.updated_at) %></td>
         </tr>

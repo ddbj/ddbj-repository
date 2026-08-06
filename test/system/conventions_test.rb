@@ -163,3 +163,27 @@ class FilterRetentionSystemTest < ApplicationSystemTestCase
     assert_equal '1',      query['page']
   end
 end
+
+# Colour says state, and a column that answers one question has to answer
+# it the same way down its whole length.
+class StateColumnSystemTest < ApplicationSystemTestCase
+  setup do
+    sign_in_as users(:bob)
+  end
+
+  # The ledger's Curation column carries the pipeline status before Apply
+  # and the curation status after it. The curation half used to be bare
+  # text while the pipeline half was a badge, so a BioProject row reading
+  # "private" sat beside an ST.26 row wearing "Validation failed" as
+  # though only one of them were a state.
+  test 'the state column is one shape whichever half it is showing' do
+    visit admin_submission_requests_path
+
+    assert_selector '[data-test-curation] span', text: 'private'
+    assert_selector '[data-test-curation] span', text: 'waiting validation'
+
+    # And coloured by what the state means, the same map the workbench
+    # rail uses — not by which half of the column it came from.
+    assert_selector '[data-test-curation] .text-bg-secondary', text: 'private'
+  end
+end
