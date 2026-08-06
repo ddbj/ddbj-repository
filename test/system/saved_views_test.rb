@@ -14,11 +14,12 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     visit admin_submission_requests_path(db: %w[biosample])
 
     # Already filled in, so saving is a press rather than a naming
-    # decision — and editable, so a bad guess costs nothing.
-    assert_field 'Name for this view', with: /Database: Biosample/
+    # decision — and short, because the chip is what the curator will
+    # recognise the view by and the full summary is on screen anyway.
+    assert_field 'Name for this view', with: 'Biosample'
 
     fill_in 'Name for this view', with: 'BS to curate'
-    click_button 'Save this view'
+    click_button 'Save'
 
     assert_text 'Saved “BS to curate”'
 
@@ -63,7 +64,7 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     visit admin_submission_requests_path(db: %w[bioproject])
 
     fill_in 'Name for this view', with: 'BS'
-    click_button 'Save this view'
+    click_button 'Save'
 
     assert_text 'Name has already been taken'
     assert_equal 1, users(:bob).saved_views.count

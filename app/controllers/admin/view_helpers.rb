@@ -82,15 +82,40 @@ module Admin::ViewHelpers
     REQUEST_FILTER_LABELS.keys.any? { Array(params[it]).reject(&:blank?).any? }
   end
 
-  # A name already in the box, so saving a view is one press rather than
-  # a naming decision. It is the same summary the filter row shows, which
-  # is what the curator has just been reading — and it is editable, so a
-  # bad guess costs nothing.
+  # Something in the box, so saving is a press rather than a naming
+  # decision — but short. The whole filter summary was the first thing
+  # tried and it made the chip a restatement of the badge row two lines
+  # below it, in a pill wide enough to push everything else off the line.
+  # A name is what the curator will recognise it by; the summary is
+  # already on screen.
   def suggested_view_name(params)
-    parts = active_request_filters(params)
-    parts = ["Search: #{params[:q]}"] + parts if params[:q].present?
+    return params[:q].to_s.strip.first(SavedView::MAX_NAME_LENGTH) if params[:q].present?
 
-    parts.join(' · ').first(SavedView::MAX_NAME_LENGTH)
+    key    = REQUEST_FILTER_LABELS.keys.find { Array(params[it]).reject(&:blank?).any? }
+    values = Array(params[key]).reject(&:blank?)
+
+    values.first.to_s.tr('_', ' ').capitalize
+  end
+
+  # A saved view is grey; the one on screen is filled in; one whose
+  # values no longer all exist is amber. Amber doubts, per CLAUDE.md —
+  # the view opens, it just shows more than it was saved with, and the
+  # current view being stale is still worth colouring as stale.
+  def saved_view_button_class(current:, stale:)
+    return 'btn-outline-warning' if stale
+    return 'btn-primary'         if current
+
+    'btn-outline-secondary'
+  end
+
+  # The full name, because the chip truncates, plus what the view has
+  # stopped matching. Both are things the pill cannot show and the reader
+  # needs on hover.
+  def saved_view_title(view, unknown)
+    return view.name if unknown.empty?
+
+    "#{view.name} — no longer matches #{unknown.values.flatten.join(', ')}, " \
+      'so it now shows more than it was saved with.'
   end
 
   # Compact elapsed time for a queue: "9h", "4d". The question a queue
