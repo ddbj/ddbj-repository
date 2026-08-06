@@ -87,15 +87,20 @@
     <%# Mail is going nowhere but us. Said here because it is true of the %>
     <%# environment and not of any one action, and because a restriction %>
     <%# nobody can see is one that gets discovered by a submitter who %>
-    <%# never replied. Where a screen claims a particular mail was sent, %>
-    <%# it is that screen's job to be honest about this one — see %>
-    <%# AccessionIssuance#mail_status. %>
+    <%# never replied. %>
+    <%# %>
+    <%# Accession issuance answers for it on its own rows %>
+    <%# (AccessionIssuance#mail_status); the message thread, the release %>
+    <%# notices and the regeneration summary still count a suppressed %>
+    <%# delivery as sent, so the general warning has to stay and has to %>
+    <%# say which half it is covering. %>
     <% if (domains = MailDomainAllowlistInterceptor.domains) %>
       <div class="alert alert-warning border-0 rounded-0 mb-0 py-2 text-center small" role="status"
            data-test-mail-restricted>
         Outgoing mail is restricted to
         <%= safe_join(domains.map { tag.strong("@#{it}") }, ', ') %>.
-        Anything addressed elsewhere is not delivered.
+        Anything addressed elsewhere is not delivered — accession issuance says so per row,
+        and the screens that send anything else do not.
       </div>
     <% end %>
 

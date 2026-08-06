@@ -40,7 +40,20 @@ class MailDomainAllowlistInterceptor
     @domains = domains.map { it.downcase.delete_prefix('@') }
   end
 
-  def allows?(address) = address.present? && @domains.any? { address.to_s.downcase.end_with?("@#{it}") }
+  # Callers reach this from two directions and hand over two different
+  # things. `delivering_email` passes `mail.to`, which Mail has already
+  # parsed down to the addr-spec; a screen asking about a submitter
+  # passes whatever is stored on the User, which may carry a display
+  # name or trailing whitespace. Unparsed, `Foo <foo@ddbj.nig.ac.jp>`
+  # ends with `>` and matches nothing — and since a false answer now
+  # skips the send rather than merely reporting on it, that would be a
+  # silent non-delivery to somebody the allowlist allows.
+  def allows?(address)
+    addr = address.to_s.strip.downcase
+    addr = addr[/<([^>]*)>\z/, 1] || addr
+
+    addr.present? && @domains.any? { addr.end_with?("@#{it}") }
+  end
 
   def delivering_email(mail)
     original = (Array(mail.to) + Array(mail.cc) + Array(mail.bcc))

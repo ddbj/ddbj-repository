@@ -105,6 +105,28 @@ class MailRestrictionSystemTest < ApplicationSystemTestCase
     assert_text     'told another way'
   end
 
+  # A row that did not say. Only `sent` earns the green box — the two
+  # screens used to part company here, the run page reading "not sent"
+  # off the same row this one called a success.
+  test 'an issuance with no recorded outcome is not reported as emailed' do
+    submission = submissions(:bioproject)
+
+    issuance = submission.accession_issuances.create!(
+      actor: 'admin:bob', started_at: Time.current, finished_at: Time.current,
+      status: 'completed', accessions: %w[PRJDB19940],
+      error_message: 'Net::OpenTimeout: execution expired'
+    )
+
+    visit admin_submission_accession_path(submission, issuance)
+
+    assert_no_text 'The submitter has been emailed'
+    assert_text    'not recorded'
+
+    # And whatever it did know is still on the page. The branch this
+    # replaces was the one that printed no error at all.
+    assert_text 'Net::OpenTimeout'
+  end
+
   # Read off what issuance recorded, not worked out again at render time:
   # the restriction is temporary, and re-deriving it would turn every past
   # run into a claim that it had mailed people the day it is lifted.

@@ -179,6 +179,24 @@ class AccessionIssueTest < ActiveSupport::TestCase
     assert_equal 'restricted', result.mail_status
   end
 
+  # The interceptor only ever saw addresses Mail had already parsed. The
+  # screens ask about what is stored on the User, and a false answer now
+  # skips the send rather than only reporting on it — so a display name
+  # or a stray space would be a silent non-delivery to somebody the
+  # allowlist allows.
+  test 'an allowed address is recognised through a display name or stray whitespace' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    restrict_mail_to 'ddbj.nig.ac.jp' do
+      ['  curator@ddbj.nig.ac.jp ', 'Curator <curator@DDBJ.nig.ac.jp>'].each do |stored|
+        assert MailDomainAllowlistInterceptor.delivers_to?(stored), "#{stored.inspect} should be deliverable"
+      end
+
+      assert_not MailDomainAllowlistInterceptor.delivers_to?('Curator <curator@example.com>')
+    end
+  end
+
   test 'a recipient inside the allowlist is mailed as normal' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')

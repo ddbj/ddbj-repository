@@ -77,9 +77,25 @@
         The numbers below are allocated and recorded.
       </p>
     </div>
-  <% else %>
+  <% when 'sent' %>
     <div class="alert alert-success">
       Issued <%= issued %>. The submitter has been emailed.
+    </div>
+  <% else %>
+    <%# Anything else is a row that did not say. Only "sent" earns the %>
+    <%# green box: a claim nobody recorded is not one this page should %>
+    <%# make on its behalf, and an error_message it cannot classify is %>
+    <%# still an error_message — the old branch keyed on that alone and %>
+    <%# so could not lose it. %>
+    <div class="alert alert-secondary">
+      <strong>Issued <%= issued %>. Whether the submitter was told was not recorded.</strong>
+      <p class="mb-0">
+        The numbers below are allocated and recorded. Treat them as not yet notified.
+      </p>
+
+      <% if @issuance.error_message.present? %>
+        <p class="mb-0 small text-body-secondary"><%= @issuance.error_message %></p>
+      <% end %>
     </div>
   <% end %>
 

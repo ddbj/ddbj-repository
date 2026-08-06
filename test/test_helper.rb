@@ -105,9 +105,13 @@ class ActiveSupport::TestCase
 
   # Every deployed environment restricts outgoing mail while sending to
   # real submitters is switched off. A real interceptor rather than a
-  # stubbed domain list, so what a test says about a restricted
-  # environment is what that environment actually does — including the
-  # screens that ask it whether a given address would be delivered to.
+  # stubbed domain list, so the matching a test relies on is the matching
+  # that runs in production.
+  #
+  # It is not registered with ActionMailer, so this restricts what
+  # `delivers_to?` answers and not what the test adapter records: a mail
+  # some other path enqueues still counts as delivered here. Enough for
+  # code that asks before sending, and not a way to test suppression.
   def restrict_mail_to(*domains)
     MailDomainAllowlistInterceptor.stub(:registered, MailDomainAllowlistInterceptor.new(domains)) do
       yield
