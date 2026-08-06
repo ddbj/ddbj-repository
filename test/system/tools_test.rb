@@ -210,6 +210,47 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
     assert_match(/superseded/, dead.error_log)
     assert_equal 2, MigrationRun.where(db: 'biosample').count
   end
+
+  # The press abandons a run, and the run it abandons has a number. The
+  # form used to state the rule ("a run that stopped moving over an hour
+  # ago is treated as gone") and leave the reader to work out that it
+  # applied to them — which is the general-warning shape this screen is
+  # supposed to be past.
+  test 'the confirmation names the run that starting would abandon' do
+    dead = MigrationRun.create!(db: 'biosample', status: :running, total: 900,
+                                counters: {'created' => 412}, started_at: 9.days.ago)
+    dead.update_columns(updated_at: 9.days.ago)
+
+    visit new_admin_migration_run_path(db: 'biosample')
+
+    within '[data-test-supersedes="biosample"]' do
+      assert_link "##{dead.id}"
+      assert_text 'Starting abandons it'
+
+      # What survives it, because "abandoned" reads as "undone" and 412
+      # rows are not coming back out.
+      assert_text '412 imported rows stay imported'
+    end
+
+    # Said against the database it is true of. The radio can still change
+    # which one that is, and BioProject has nothing running.
+    within '[data-test-db-option="bioproject"]' do
+      assert_text 'Nothing is running.'
+    end
+  end
+
+  # The other half of the same sentence: a live run is not superseded, it
+  # refuses. Saying so before the press beats an alert after it.
+  test 'the confirmation says when starting would be refused instead' do
+    running = MigrationRun.create!(db: 'bioproject', status: :running, started_at: 2.minutes.ago)
+
+    visit new_admin_migration_run_path(db: 'bioproject')
+
+    within '[data-test-blocked-by="bioproject"]' do
+      assert_link "##{running.id}"
+      assert_text 'Starting is refused'
+    end
+  end
 end
 
 class RegenerateFlatfilesSystemTest < ApplicationSystemTestCase

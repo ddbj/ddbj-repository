@@ -14,19 +14,43 @@
 <%# discard it never was. %>
 <p class="text-body-secondary">
   Enqueues a <code>DataMigration::Sync&lt;db&gt;Job</code> against the configured
-  D-way staging connection. One run per database at a time: while one is in flight
-  this refuses and points at it. A run that stopped moving over an hour ago is
-  treated as gone, and starting a new one closes it out.
+  D-way staging connection. One run per database at a time.
 </p>
 
 <%= form_with model: @migration_run, url: admin_migration_runs_path, scope: :migration_run do |f| %>
   <div class="mb-3">
     <%= f.label :db, 'Database', class: 'form-label' %>
 
+    <%# What pressing Enqueue does to this database, said against the %>
+    <%# choice it applies to. Abandoning the run that stopped reporting %>
+    <%# is a consequence of starting, not a separate decision, and it is %>
+    <%# the reason the card offers Start on a database that already has %>
+    <%# a run — so the press has to name what it closes out. Stated per %>
+    <%# option because the radio can still change which database that %>
+    <%# is, and a single line above the form would then be describing %>
+    <%# the wrong one. %>
     <% MigrationRun::DBS.each do |db| %>
-      <div class="form-check">
+      <% running = @current[db] %>
+
+      <div class="form-check mb-2" data-test-db-option="<%= db %>">
         <%= f.radio_button :db, db, class: 'form-check-input' %>
         <%= f.label "db_#{db}", db_label(db), class: 'form-check-label' %>
+
+        <% if running.nil? %>
+          <div class="small text-body-secondary">Nothing is running.</div>
+        <% elsif running.stale? %>
+          <div class="small text-warning-emphasis" data-test-supersedes="<%= db %>">
+            Run <%= link_to "##{running.id}", admin_migration_run_path(running) %>
+            last reported <%= elapsed_time(running.updated_at) %> and is treated as gone.
+            <strong>Starting abandons it</strong>, and its
+            <%= number_with_delimiter(running.counters_total) %> imported rows stay imported.
+          </div>
+        <% else %>
+          <div class="small text-body-secondary" data-test-blocked-by="<%= db %>">
+            Run <%= link_to "##{running.id}", admin_migration_run_path(running) %>
+            is <%= running.status %>. Starting is refused while it is.
+          </div>
+        <% end %>
       </div>
     <% end %>
   </div>

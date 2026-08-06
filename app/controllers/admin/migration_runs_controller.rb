@@ -33,10 +33,19 @@ module Admin
       @touched_count = Submission.where(migration_run_id: @migration_run.uuid).count
     end
 
-    # Reached from the state card of a database that is idle, so the
-    # database is already chosen by the time anyone gets here.
+    # Reached from the state card of a database that is idle or has
+    # stopped reporting, so the database is already chosen by the time
+    # anyone gets here — but the radio can still change it, and what
+    # starting costs differs per database. `@current` is what each one
+    # already has, so the form can say it against the choice it applies
+    # to rather than as a rule the reader has to apply themselves.
+    #
+    # Not `in_flight`: that scope deliberately excludes a run past
+    # STALE_AFTER, and the stale one is the whole point here — it is the
+    # run the press abandons.
     def new
       @migration_run = MigrationRun.new(db: params[:db].presence_in(MigrationRun::DBS) || MigrationRun::DBS.first)
+      @current       = MigrationRun::DBS.index_with { MigrationRun.state_of(it)[:current] }
     end
 
     def create
