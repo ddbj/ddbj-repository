@@ -113,7 +113,7 @@
 
             <button class="btn btn-sm btn-link text-decoration-none" type="button"
                     data-bs-toggle="collapse" data-bs-target="#save-view"
-                    aria-controls="save-view">Save the current filter…</button>
+                    aria-controls="save-view" aria-expanded="<%= naming %>">Save the current filter…</button>
           <% end %>
         </div>
       </div>
@@ -152,6 +152,19 @@
 
         <%= submit_tag 'Save', class: 'btn btn-sm btn-primary',
                        data: {turbo_submits_with: 'Saving…'} %>
+
+        <%# A way out. The collapse toggle does close it again, but that
+            is a thing to work out rather than to see, and after a
+            refused save it is not enough on its own: `view_name` is in
+            the URL by then, so closing it client-side leaves a form that
+            reopens on the next reload.
+
+            A link rather than a toggle, so one control covers both — it
+            lands on the same rows with the form shut and the param
+            dropped. The rename form beside it needs none of this: its
+            menu closes when you press anywhere else. %>
+        <%= link_to 'Cancel', admin_submission_requests_path(return_to),
+                    class: 'btn btn-sm btn-link text-decoration-none' %>
 
         <%# What is actually stored, which is not the same as the badge
             row beside the search box: that one reports facets, this one

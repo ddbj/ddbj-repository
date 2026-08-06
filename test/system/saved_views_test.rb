@@ -76,6 +76,33 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     assert_field 'Name for this view', with: 'BS'
   end
 
+  # Opening the form is a decision that has to be reversible on its own
+  # terms. Closing the collapse again is something to work out rather
+  # than see — and after a refused save it does not even work, since the
+  # name is in the URL and the form comes back on the next reload.
+  test 'the save form can be abandoned' do
+    users(:bob).saved_views.create!(name: 'BS', filters: {'db' => %w[biosample]})
+
+    visit admin_submission_requests_path(db: %w[bioproject])
+
+    fill_in 'Name for this view', with: 'BS'
+    click_button 'Save'
+
+    assert_text 'Name has already been taken'
+
+    click_link 'Cancel'
+
+    # Folded away again — `aria-expanded` rather than the class, because
+    # that is the state as anything but a stylesheet sees it.
+    assert_selector 'button[aria-expanded="false"]', text: 'Save this view'
+    assert_no_text  'Name has already been taken'
+    assert_field    'Name for this view', with: 'BioProject'
+
+    # The same rows it was opened over. Cancelling a name is not a
+    # navigation either.
+    assert_selector '[data-test-active-filter]', text: 'Database: BioProject'
+  end
+
   # Pressing Search ticks every box in every facet, which the ledger
   # reads as no constraint. Offering to save that would put the whole
   # ledger in the row under a name — and the refusal a curator would get
