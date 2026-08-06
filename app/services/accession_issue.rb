@@ -59,8 +59,8 @@ class AccessionIssue
 
   ISSUABLE_FROM = %w[submission_accepted curating].freeze
 
-  def self.call(submission:, actor:, samples: nil)
-    new(submission:, actor:, samples:).call
+  def self.call(submission:, actor:, samples: nil, issuance: nil)
+    new(submission:, actor:, samples:, issuance:).call
   end
 
   # The refusal rules as a predicate, so the admin UI offers the button
@@ -80,10 +80,14 @@ class AccessionIssue
   # or filtered to on the Samples screen. nil means "every sample in the
   # submission", which is what the cross-submission bulk action wants.
   # Ignored for BP, which has exactly one Project either way.
-  def initialize(submission:, actor:, samples: nil)
+  # `issuance` is the row this run reports on. It travels with the mail so
+  # the delivery job can settle `mail_status` when it knows the answer —
+  # see MailDeliveryJob.
+  def initialize(submission:, actor:, samples: nil, issuance: nil)
     @submission = submission
     @actor      = actor
     @samples    = samples
+    @issuance   = issuance
   end
 
   def call
@@ -215,16 +219,20 @@ class AccessionIssue
   # The two silent outcomes are settled here rather than left to be
   # guessed from an empty error: a submitter with no address on file gets
   # nothing, and so does one outside the environment's mail allowlist.
-  # Both used to reach the run page as "sent".
+  # Both used to reach the run page as "sent". The third — a delivery
+  # that fails after its retries — is settled by the delivery job, which
+  # is the only place that knows.
   def enqueue_mail(submission, accessions)
     address = submission.user&.email
 
     return {mail_status: 'no_address', mail_error: nil} if address.blank?
     return {mail_status: 'restricted', mail_error: nil} unless MailDomainAllowlistInterceptor.delivers_to?(address)
 
-    AccessionMailer.with(submission:, accessions:).issued.deliver_later
+    AccessionMailer.with(submission:, accessions:, issuance: @issuance).issued.deliver_later
 
-    {mail_status: 'sent', mail_error: nil}
+    # Queued, not sent. `deliver_later` has promised nothing yet — the
+    # delivery job settles this either way (MailDeliveryJob#settle).
+    {mail_status: 'queued', mail_error: nil}
   rescue StandardError => e
     Rails.error.report(e, handled: true, source: 'accession_issue.mail')
 

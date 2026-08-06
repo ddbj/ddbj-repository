@@ -17,8 +17,13 @@ module Admin
       # is a different question and a smaller one.
       @states = MigrationRun::DBS.map { MigrationRun.state_of(it) }
 
+      # `presence_in` rather than `present?`: a query string can nest
+      # (`?db[x]=y`) and a Parameters reaching `where` is a 500. The
+      # ledger learned this in RequestFilter; this screen has one filter
+      # and a fixed universe, so it needs no more than the check.
+      @db   = params[:db].presence_in(MigrationRun::DBS)
       scope = MigrationRun.recent
-      scope = scope.where(db: params[:db]) if params[:db].present?
+      scope = scope.where(db: @db) if @db
 
       @pagy, @migration_runs = pagy(scope)
 

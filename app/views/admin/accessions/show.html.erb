@@ -81,6 +81,14 @@
     <div class="alert alert-success">
       Issued <%= issued %>. The submitter has been emailed.
     </div>
+  <% when 'queued' %>
+    <%# `deliver_later` has promised nothing yet. Saying "has been
+        emailed" here was the claim that survived the retries running
+        out — the delivery job settles this within seconds either way. %>
+    <div class="alert alert-secondary">
+      <strong>Issued <%= issued %>. The notification is on its way.</strong>
+      <p class="mb-0">Refresh in a moment to see whether it went.</p>
+    </div>
   <% else %>
     <%# Anything else is a row that did not say. Only "sent" earns the %>
     <%# green box: a claim nobody recorded is not one this page should %>

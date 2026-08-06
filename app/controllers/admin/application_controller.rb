@@ -25,10 +25,19 @@ module Admin
     # longer exists.
     #
     # Returns true when it redirected, so callers can stop.
+    #
+    # Built from the request's own path rather than handed to `url_for`,
+    # which reads a dozen of its keys as routing options rather than as
+    # query values. `?page=99&host=evil.example` raised OpenRedirectError,
+    # `&controller=admin/users` sent the curator to another screen, and
+    # `&script_name=/zzz` moved the whole app — all from a link somebody
+    # could paste into a chat.
     def redirect_out_of_range_page(pagy, key: :page)
       return false if pagy.page <= pagy.last
 
-      redirect_to url_for(request.query_parameters.merge(key.to_s => pagy.last))
+      query = request.query_parameters.merge(key.to_s => pagy.last)
+
+      redirect_to "#{request.path}?#{query.to_query}"
 
       true
     end

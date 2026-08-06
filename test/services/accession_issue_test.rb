@@ -138,7 +138,8 @@ class AccessionIssueTest < ActiveSupport::TestCase
       result = AccessionIssue.call(submission:, actor: 'test')
     end
 
-    assert_equal 'sent', result.mail_status
+    # Queued, not sent — `deliver_later` has promised nothing yet.
+    assert_equal 'queued', result.mail_status
   end
 
   # The two ways a notification goes nowhere without anything going
@@ -210,7 +211,59 @@ class AccessionIssueTest < ActiveSupport::TestCase
       end
     end
 
-    assert_equal 'sent', result.mail_status
+    assert_equal 'queued', result.mail_status
+  end
+
+  # And the delivery job settles it. Recording `sent` at enqueue time was
+  # the one claim this column exists to stop making: the message can
+  # still be dropped after its retries, and the row went on saying it had
+  # arrived.
+  test 'the delivery job records whether the mail actually went' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+    issuance = submission.accession_issuances.create!(actor: 'admin:bob', started_at: Time.current)
+
+    # Enqueue first, perform after — the block form of
+    # `perform_enqueued_jobs` runs the job inline at enqueue time, which
+    # is the one order production never has.
+    result = AccessionIssue.call(submission:, actor: 'test', issuance:)
+
+    # What IssueAccessionsJob writes down before the delivery job has an
+    # answer.
+    issuance.update!(status: 'completed', finished_at: Time.current, mail_status: result.mail_status)
+
+    assert_equal 'queued', issuance.reload.mail_status
+
+    perform_enqueued_jobs
+
+    assert_equal 'sent', issuance.reload.mail_status
+  end
+
+  test 'a delivery that fails says so rather than leaving the claim standing' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+    issuance = submission.accession_issuances.create!(actor: 'admin:bob', started_at: Time.current)
+
+    # The delivery itself is what fails — after the job has picked the
+    # message up, which is exactly where the old code had already
+    # promised the submitter had been told. An interceptor is the
+    # smallest way to break delivery without breaking anything else.
+    breaker = Class.new {
+      def self.delivering_email(_mail) = raise(Net::SMTPFatalError, 'mailbox unavailable')
+    }
+
+    ActionMailer::Base.register_interceptor(breaker)
+
+    AccessionIssue.call(submission:, actor: 'test', issuance:)
+
+    begin
+      assert_raises(Net::SMTPFatalError) { perform_enqueued_jobs }
+    ensure
+      ActionMailer::Base.unregister_interceptor(breaker)
+    end
+
+    assert_equal 'failed', issuance.reload.mail_status
+    assert issuance.error_message.present?, 'the reason has to survive, or nobody can act on it'
   end
 
   # --- BS ---

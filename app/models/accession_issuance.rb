@@ -17,7 +17,11 @@ class AccessionIssuance < ApplicationRecord
   # nothing went wrong, the mail simply had nowhere to go, and the four
   # are read by a curator who needs to know whether the submitter has
   # been told. Only `failed` is work left over.
-  MAIL_STATUSES = %w[sent failed restricted no_address].freeze
+  # `queued` is the honest state between `deliver_later` and the delivery
+  # job settling it. Recording `sent` there was the claim this column was
+  # added to stop making — the mail can still be dropped after its
+  # retries, and the row went on saying it had arrived.
+  MAIL_STATUSES = %w[queued sent failed restricted no_address].freeze
 
   # How long a `running` row is believed. The work itself is bounded by
   # one transaction, so anything past this is a job that died with its

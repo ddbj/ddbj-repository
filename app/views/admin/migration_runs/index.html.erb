@@ -30,7 +30,7 @@
   <%# get a state card and no filter chip, silently. %>
   <% [[nil, 'Both'], *MigrationRun::DBS.map { [it, db_label(it)] }].each do |value, label| %>
     <%= link_to label, admin_migration_runs_path(db: value),
-                class: "btn btn-outline-secondary#{' active' if params[:db].presence == value}" %>
+                class: "btn btn-outline-secondary#{' active' if @db == value}" %>
   <% end %>
 </div>
 
@@ -84,8 +84,8 @@
     <% if @migration_runs.empty? %>
       <tr>
         <td colspan="6">
-          <% if params[:db].present? %>
-            <%= empty_state :filtered, "No runs for #{db_label(params[:db])} yet." do %>
+          <% if @db %>
+            <%= empty_state :filtered, "No runs for #{db_label(@db)} yet." do %>
               <%= link_to 'Show both databases', admin_migration_runs_path, class: 'btn btn-sm btn-outline-secondary' %>
             <% end %>
           <% else %>

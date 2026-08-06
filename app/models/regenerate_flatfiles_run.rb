@@ -103,8 +103,12 @@ class RegenerateFlatfilesRun < ApplicationRecord
   #
   # Elapsed is measured to the last progress rather than to now, so a run
   # whose workers went away freezes its estimate instead of inflating it.
+  # `[MIN_SAMPLE, total]` rather than MIN_SAMPLE flat: a run of twenty or
+  # fewer could never satisfy both the sample size and "there is anything
+  # left", so it showed no estimate for its whole life rather than only
+  # at the start of it.
   def eta
-    return nil unless loading? && done >= MIN_SAMPLE && remaining.positive?
+    return nil unless loading? && done >= [MIN_SAMPLE, total].min && remaining.positive?
 
     seconds_per_submission * remaining
   end

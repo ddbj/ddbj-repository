@@ -40,7 +40,8 @@ class IssueAccessionsJob < ApplicationJob
     result = AccessionIssue.call(
       submission: issuance.submission,
       actor:      issuance.actor,
-      samples:    issuance.target_samples
+      samples:    issuance.target_samples,
+      issuance:
     )
 
     # `mail_status` on a completed row is the answer to "was the

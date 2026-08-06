@@ -348,6 +348,7 @@ module Admin::ViewHelpers
   def mail_outcome(issuance)
     case issuance.mail_status
     when 'sent'       then "sent #{format_datetime(issuance.finished_at)}"
+    when 'queued'     then 'sending'
     when 'failed'     then tag.span('not sent', class: 'text-danger-emphasis')
     when 'restricted' then 'not delivered (restricted)'
     when 'no_address' then 'no address on file'

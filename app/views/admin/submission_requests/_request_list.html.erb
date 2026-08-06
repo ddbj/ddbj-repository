@@ -1,4 +1,4 @@
-<%# locals: (requests:, sample_aggregates:, pagy:, filter_params: {}, empty_message: 'No requests found.') %>
+<%# locals: (requests:, sample_aggregates:, pagy:, staff:, filter_params: {}, empty_message: 'No requests found.') %>
 <%# The request table plus its cross-request bulk actions — the ledger's %>
 <%# working surface. My queue renders rows of its own instead: a queue %>
 <%# offers one action per row, which is a different thing from selecting %>
@@ -120,7 +120,7 @@
                    class: 'form-select form-select-sm w-auto' %>
 
       <%= f.select :assignee_id,
-                   [['— Unassigned —', '0']] + User.staff.order(:uid).pluck(:uid, :id),
+                   [['— Unassigned —', '0']] + staff.map { [it.uid, it.id] },
                    {include_blank: 'Assignee — leave as-is'},
                    class: 'form-select form-select-sm w-auto' %>
 

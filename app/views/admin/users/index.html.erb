@@ -139,6 +139,18 @@
                           admin_users_path(segment: @segment, submitted: ('1' if @submitted)),
                           class: 'btn btn-sm btn-outline-secondary' %>
             <% end %>
+          <% elsif @submitted %>
+            <%# `submitted` defaults to on for every segment but Staff, so
+                an empty list here is a narrowed one — accounts in the
+                segment do exist, they just have not submitted anything.
+                Saying "empty is the outcome" and offering nothing to
+                press would be the screen hiding its own filter. %>
+            <%= empty_state :filtered, 'No accounts in this segment have submitted anything.',
+                            "Within #{Admin::UsersController::SEGMENTS[@segment]}." do %>
+              <%= link_to 'Include accounts that have not submitted',
+                          admin_users_path(segment: @segment),
+                          class: 'btn btn-sm btn-outline-secondary' %>
+            <% end %>
           <% else %>
             <%= empty_state :clear, 'No accounts in this segment.' %>
           <% end %>

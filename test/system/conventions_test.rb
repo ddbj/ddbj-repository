@@ -116,6 +116,20 @@ class PageRangeSystemTest < ApplicationSystemTestCase
 
     assert_equal '1', Rack::Utils.parse_query(URI.parse(current_url).query.to_s)['samples_page']
   end
+
+  # The redirect carries the rest of the query string back, and a query
+  # string is somebody else's text: handed to `url_for`, a dozen of its
+  # keys are read as routing options rather than as filters. A link
+  # pasted into a chat could move the curator to another screen, or move
+  # the whole app.
+  test 'a crafted page param cannot steer the redirect' do
+    # A raw string, because the path helpers consume these as options
+    # too — which is the whole point.
+    visit '/admin/submission_requests?page=99&controller=admin%2Fusers&script_name=%2Fzzz&host=evil.example'
+
+    assert_equal admin_submission_requests_path, URI.parse(current_url).path
+    assert_equal '1', Rack::Utils.parse_query(URI.parse(current_url).query.to_s)['page']
+  end
 end
 
 class RelativeTimeSystemTest < ApplicationSystemTestCase
