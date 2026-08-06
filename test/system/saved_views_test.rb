@@ -134,6 +134,28 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     assert_no_selector '[data-test-saved-view-stale="Mine"]'
   end
 
+  # The badge row used to read the params, which say "three databases are
+  # selected" when the truth is "no database filter is on" — over a count
+  # that says 989 requests, unqualified, two lines above.
+  test 'ticking every box in a facet is described as no filter at all' do
+    visit admin_submission_requests_path(db: SubmissionRequest.dbs.keys)
+
+    assert_no_selector '[data-test-active-filter]'
+    assert_no_link     'Clear'
+  end
+
+  # `0` is the "unassigned" box and the rest are user ids, neither of
+  # which means anything read back as a number.
+  test 'an assignee filter is described by name, not by id' do
+    visit admin_submission_requests_path(assignee: ['0'])
+
+    assert_selector '[data-test-active-filter]', text: 'Assignee: Unassigned'
+
+    visit admin_submission_requests_path(assignee: [users(:dave).id.to_s])
+
+    assert_selector '[data-test-active-filter]', text: 'Assignee: dave'
+  end
+
   # Personal, so one curator's row is not another's.
   test 'saved views belong to the curator who saved them' do
     users(:dave).saved_views.create!(name: "Dave's", filters: {'db' => %w[biosample]})
@@ -141,5 +163,36 @@ class SavedViewsSystemTest < ApplicationSystemTestCase
     visit admin_submission_requests_path
 
     assert_no_selector '[data-test-saved-view="Dave\'s"]'
+  end
+end
+
+# The other half of "everything selected is the same as nothing
+# selected": the form stops posting a facet that constrains nothing, so
+# the two arrive at the same address rather than at two URLs the screen
+# has to describe identically.
+class LedgerFilterFormJavaScriptTest < JavaScriptSystemTestCase
+  setup do
+    sign_in_as users(:bob)
+  end
+
+  test 'a fully-ticked facet is left out of the URL' do
+    visit admin_submission_requests_path
+
+    click_button 'Search'
+
+    # Not one of the four facets, where the form used to post every value
+    # of all of them.
+    assert_no_current_path(/db%5B%5D|request_status%5B%5D|status%5B%5D|assignee%5B%5D/)
+  end
+
+  test 'a facet the curator narrowed still travels' do
+    visit admin_submission_requests_path
+
+    click_button 'More filters'
+    uncheck 'ST.26'
+    click_button 'Search'
+
+    assert_current_path(/db%5B%5D=bioproject/)
+    assert_no_current_path(/db%5B%5D=st26/)
   end
 end

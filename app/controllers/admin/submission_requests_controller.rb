@@ -39,8 +39,8 @@ module Admin
       # staff list is what "every assignee" means, so it is needed both
       # to normalise the current URL and to tell whether a view names
       # somebody who has since gone.
-      @assignee_ids     = SavedView.assignee_universe
-      @assignee_labels  = SavedView.assignee_labels(@saved_views, @assignee_ids)
+      @assignee_ids    = RequestFilter.assignee_universe
+      @assignee_labels = SavedView.assignee_labels(@saved_views)
 
       load_requests(scope)
 

@@ -5,42 +5,8 @@ class SavedViewTest < ActiveSupport::TestCase
     @user = users(:bob)
   end
 
-  # A view is the params and nothing else, so what gets stored has to be
-  # exactly what the ledger's own form would have produced.
-  test 'normalise keeps the ledger filters and drops everything else' do
-    filters = SavedView.normalise({
-      'q'              => '  PRJDB  ',
-      'db'             => %w[biosample bioproject],
-      'status'         => ['curating'],
-      'page'           => '3',
-      'authenticity_token' => 'nope'
-    })
-
-    # Sorted, because a view is a set — see the ordering test below.
-    assert_equal({'q' => 'PRJDB', 'db' => %w[bioproject biosample], 'status' => %w[curating]}, filters)
-  end
-
-  # `page` above all: a view is a set of rows, not a position in it.
-  # Saved with the page, every chip would land wherever its author
-  # happened to be scrolled to when they pressed Save.
-  test 'normalise drops the page' do
-    assert_not_includes SavedView.normalise({'db' => ['biosample'], 'page' => '4'}), 'page'
-  end
-
-  # A query string can nest. Coerced with to_s, a Parameters would be
-  # stored as a filter value that matches nothing and reads as gibberish.
-  test 'normalise ignores values the form could not have produced' do
-    filters = SavedView.normalise({'db' => {'evil' => 'x'}, 'q' => {'evil' => 'x'}, 'status' => ['curating']})
-
-    assert_equal({'status' => %w[curating]}, filters)
-  end
-
-  test 'normalise caps the query where the search box caps it' do
-    long = 'a' * 200
-
-    assert_equal Admin::RequestSearch::MAX_QUERY_LENGTH, SavedView.normalise({'q' => long})['q'].length
-  end
-
+  # What a view may hold is RequestFilter's business (see its test); this
+  # is what a view is on top of it.
   test 'a view of everything is refused — that is the ledger' do
     view = @user.saved_views.new(name: 'Everything', filters: {})
 
@@ -85,39 +51,6 @@ class SavedViewTest < ActiveSupport::TestCase
     assert_not view.showing?({'db' => %w[biosample]})
   end
 
-  # The facet groups live inside the search form with every box checked
-  # when the param is absent, so a bare Search posts every value of every
-  # facet. The ledger reads that as no constraint; stored, it would be a
-  # view of the whole ledger under the name of a filter — and
-  # `filters_present` would not catch it, because the hash is not blank.
-  test 'a facet with every box ticked is not a filter' do
-    filters = SavedView.normalise({
-      'db'             => SubmissionRequest.dbs.keys,
-      'request_status' => SubmissionRequest.statuses.keys,
-      'status'         => Lifecycleable::STATUSES.keys,
-      'assignee'       => %w[0 1 2]
-    }, assignee_ids: %w[0 1 2])
-
-    assert_empty filters, 'pressing Search selects everything, which is not a view'
-  end
-
-  test 'a facet with some boxes ticked still is' do
-    filters = SavedView.normalise({'db' => %w[biosample]}, assignee_ids: %w[0])
-
-    assert_equal({'db' => %w[biosample]}, filters)
-  end
-
-  # The pinned list is the failure the stale marker cannot see: nothing
-  # became unknown, something became newly known. Not storing a
-  # full-universe selection is what keeps it from arising.
-  test 'a view cannot pin the staff list as it stood when it was saved' do
-    everyone = SavedView.assignee_universe
-    filters  = SavedView.normalise({'assignee' => everyone, 'db' => %w[biosample]})
-
-    assert_equal({'db' => %w[biosample]}, filters,
-                 'a curator joining must not make an old view start hiding their requests')
-  end
-
   # The ledger drops a value it no longer knows rather than refusing it,
   # which is right for a typed URL and wrong for a saved one: dropped
   # silently, "assigned to Tanaka" quietly becomes "everything".
@@ -156,7 +89,7 @@ class SavedViewTest < ActiveSupport::TestCase
   test 'a departed assignee is named' do
     view = @user.saved_views.new(name: 'Dave', filters: {'assignee' => [users(:dave).id.to_s]})
 
-    labels = SavedView.assignee_labels([view], %w[0])
+    labels = SavedView.assignee_labels([view])
 
     assert_equal 'dave', labels[users(:dave).id.to_s]
   end

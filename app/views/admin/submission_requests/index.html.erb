@@ -17,7 +17,7 @@
 <%# them: arriving with a queue in mind, the name is the shorter route. %>
 <%= render 'saved_views', views: @saved_views, assignee_ids: @assignee_ids,
                           assignee_labels: @assignee_labels,
-                          filters: SavedView.normalise(params, assignee_ids: @assignee_ids) %>
+                          filters: RequestFilter.normalise(params, assignee_ids: @assignee_ids) %>
 
 <%# Search first. Six stacked checkbox facets used to fill the screen %>
 <%# above the table, so arriving here showed filters rather than requests %>
@@ -38,23 +38,23 @@
     <div class="col-auto">
       <%# Summarises what is on rather than restating every facet: a %>
       <%# multi-select reads as "Curating +1" so the row stays one line. %>
-      <% active_request_filters(params).each do |label| %>
+      <% active_request_filters(params, assignee_ids: @assignee_ids).each do |label| %>
         <span class="badge text-bg-light border me-1" data-test-active-filter><%= label %></span>
       <% end %>
 
       <button class="btn btn-link btn-sm text-decoration-none" type="button"
               data-bs-toggle="collapse" data-bs-target="#more-filters"
-              aria-expanded="<%= request_filters_active?(params) %>" aria-controls="more-filters">
+              aria-expanded="<%= request_filters_active?(params, assignee_ids: @assignee_ids) %>" aria-controls="more-filters">
         More filters
       </button>
 
-      <% if request_filters_active?(params) || params[:q].present? %>
+      <% if request_filters_active?(params, assignee_ids: @assignee_ids) || params[:q].present? %>
         <%= link_to 'Clear', admin_submission_requests_path, class: 'btn btn-link btn-sm' %>
       <% end %>
     </div>
   </div>
 
-  <div class="collapse <%= 'show' if request_filters_active?(params) %>" id="more-filters">
+  <div class="collapse <%= 'show' if request_filters_active?(params, assignee_ids: @assignee_ids) %>" id="more-filters">
     <div class="card card-body bg-body-tertiary">
       <%= render 'checkbox_filter', label: 'Database', name: :db, options: db_options, param: params[:db] %>
 

@@ -69,17 +69,32 @@ module Admin::ViewHelpers
   # spelling out every checked value.
   REQUEST_FILTER_LABELS = {db: 'Database', request_status: 'Pipeline', status: 'Curation', assignee: 'Assignee'}.freeze
 
-  def active_request_filters(params)
+  # What is on, in the reader's words. Measured against what the ledger
+  # actually narrows on rather than against what is in the query string:
+  # the facet groups render every box checked when their param is absent
+  # and sit inside the search form, so a bare Search posts all of them —
+  # and a badge row saying "Database: St26 +2" over an unfiltered ledger
+  # is the screen contradicting its own count two lines above.
+  #
+  # An assignee is a user id, so it is named. `0` is the "unassigned"
+  # box, which is a filter like any other and reads as a number like
+  # nothing at all.
+  def active_request_filters(params, assignee_ids: nil)
+    facets = RequestFilter.facets(params, assignee_ids:)
+    names  = RequestFilter.assignee_labels(Array(facets['assignee'])) if facets.key?('assignee')
+
     REQUEST_FILTER_LABELS.filter_map {|key, label|
-      values = Array(params[key]).reject(&:blank?)
+      values = Array(facets[key.to_s])
       next if values.empty?
 
-      "#{label}: #{values.first.to_s.tr('_', ' ').capitalize}#{" +#{values.size - 1}" if values.size > 1}"
+      first = key == :assignee ? names.fetch(values.first, "user ##{values.first}") : values.first.tr('_', ' ').capitalize
+
+      "#{label}: #{first}#{" +#{values.size - 1}" if values.size > 1}"
     }
   end
 
-  def request_filters_active?(params)
-    REQUEST_FILTER_LABELS.keys.any? { Array(params[it]).reject(&:blank?).any? }
+  def request_filters_active?(params, assignee_ids: nil)
+    RequestFilter.facets(params, assignee_ids:).any?
   end
 
   # Something in the box, so saving is a press rather than a naming
@@ -101,7 +116,7 @@ module Admin::ViewHelpers
   # reads the chip. Resolved where it can be — a curator who has left is
   # still a User — and left as an id where the row has gone entirely.
   def saved_view_values(key, values, assignee_labels)
-    return values unless key.to_s == 'assignee'
+    return values.map { it.tr('_', ' ').capitalize } unless key.to_s == 'assignee'
 
     values.map { assignee_labels[it] || "user ##{it}" }
   end
@@ -142,11 +157,13 @@ module Admin::ViewHelpers
   # out a facet with every box ticked — which is what will be stored, and
   # differs from the badge row beside the search box.
   def saved_view_summary(filters)
+    names = RequestFilter.assignee_labels(Array(filters['assignee']))
+
     parts = REQUEST_FILTER_LABELS.filter_map {|key, label|
       values = Array(filters[key.to_s])
       next if values.empty?
 
-      "#{label}: #{values.map { it.tr('_', ' ').capitalize }.join(', ')}"
+      "#{label}: #{saved_view_values(key, values, names).join(', ')}"
     }
 
     parts.unshift("Search: #{filters['q']}") if filters['q'].present?

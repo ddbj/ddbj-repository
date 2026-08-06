@@ -7,7 +7,7 @@ module Admin
   class SavedViewsController < ApplicationController
     def create
       name = params[:name].to_s.strip
-      view = current_user.saved_views.new(name:, filters: SavedView.normalise(params))
+      view = current_user.saved_views.new(name:, filters: RequestFilter.normalise(params))
 
       if view.save
         redirect_to ledger_path, notice: "Saved “#{view.name}”."
@@ -52,7 +52,7 @@ module Admin
     # which is what this is for.
     def ledger_path(extra = {})
       admin_submission_requests_path(
-        SavedView.normalise(params).merge(extra).compact.merge(page: params[:page].presence).compact
+        RequestFilter.normalise(params).merge(extra).compact.merge(page: params[:page].presence).compact
       )
     end
   end
