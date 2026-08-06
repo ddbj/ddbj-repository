@@ -41,7 +41,35 @@ class AccessionSummarySystemTest < ApplicationSystemTestCase
       assert_text '18 samples now accession_issued'
       assert_text 'SAMD00412919–936'
 
-      assert_text '2 notification mails sent'
+      assert_text '2 of 2 notifications sent'
+    end
+  end
+
+  # The count and the rows are read together, so the count has to say
+  # what it was counted from. "2 notification mails sent" beside a row
+  # reading "not delivered (restricted)" is two facts that do not
+  # obviously belong to the same three submissions.
+  test 'the notification count names its denominator' do
+    issue(submissions(:bioproject), accessions: %w[PRJDB19940])
+    issue(submissions(:biosample), accessions: %w[SAMD00412919], mail_status: 'restricted')
+
+    visit admin_submission_requests_path
+
+    within '[data-test-issuance-summary]' do
+      assert_text 'not delivered (restricted)'
+      assert_text '1 of 2 notifications sent'
+    end
+  end
+
+  # And at zero, where the line used to disappear — a column whose total
+  # is absent exactly when it is most worth reading.
+  test 'a run that told nobody says so rather than dropping the count' do
+    issue(submissions(:bioproject), accessions: %w[PRJDB19940], mail_status: 'restricted')
+
+    visit admin_submission_requests_path
+
+    within '[data-test-issuance-summary]' do
+      assert_text '0 of 1 notification sent'
     end
   end
 
