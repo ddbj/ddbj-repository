@@ -14,7 +14,11 @@
   <body class="bg-body-tertiary">
     <%# Task-axis navigation: what a curator is trying to do, not which %>
     <%# database the data lives in. DB is a filter on the lists below. %>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <%# No margin under the navbar: the gap below it belongs to the content %>
+    <%# (main's padding), so that anything sitting between the two — the %>
+    <%# mail-restriction banner — reads as attached to the bar rather than %>
+    <%# floating in the gap with the page crowding it from below. %>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
         <%= link_to admin_root_path, class: 'navbar-brand' do %>
           DDBJ Repository <span class="opacity-50 fw-normal">Admin</span>
@@ -104,7 +108,7 @@
       </div>
     <% end %>
 
-    <main class="container-xxl pb-5">
+    <main class="container-xxl pt-4 pb-5">
       <% flash.each do |level, message| %>
         <%# data-controller="flash-focus" scrolls the banner into view on %>
         <%# render so a post-save redirect doesn't leave the notice above %>
