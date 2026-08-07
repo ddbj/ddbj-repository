@@ -73,6 +73,13 @@ class ReviewsTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 200
     assert_includes response.parsed_body.pluck('accession'), 'ACC_REVIEW1'
+
+    # The share token is unauthenticated, and where DDBJ has got to with an
+    # entry is not a reviewer's business — the same reason the message
+    # thread is unreachable from here. The submitter's own list of the
+    # same entries does carry it, which is what makes this a separate
+    # view rather than a flag on one.
+    assert_not_includes response.parsed_body.first.keys, 'status'
   end
 
   test 'accessions 404s for an expired token' do

@@ -607,7 +607,7 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/Accession'
+                  $ref: '#/components/schemas/ReviewerAccession'
 
         '404':
           $ref: '#/components/responses/NotFound'
@@ -1511,6 +1511,36 @@ components:
 
           items:
             $ref: '#/components/schemas/AttachedFile'
+
+    ReviewerAccession:
+      type: object
+      additionalProperties: false
+
+      description: >
+        What a share-token holder sees of an entry. Deliberately narrower than
+        Accession: the token is unauthenticated, and where the entry stands in
+        DDBJ's own handling of the submission is not a reviewer's business — the
+        same reason the message thread is unreachable from a share link.
+
+      required:
+        - accession
+        - entry_id
+        - version
+        - locus_date
+
+      properties:
+        accession:
+          type: string
+
+        entry_id:
+          type: string
+
+        version:
+          type: number
+
+        locus_date:
+          type: string
+          format: date
 
     CurationStatus:
       type: string

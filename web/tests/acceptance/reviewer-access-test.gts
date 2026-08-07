@@ -78,9 +78,7 @@ module('Acceptance | reviewer view (share link, no login)', function (hooks) {
       }),
 
       http.get('/reviews/{token}/accessions', ({ response }) => {
-        return response(200).json([
-          { accession: 'ACC_R1', entry_id: 'E1', status: 'public', version: 1, locus_date: '2025-01-01' },
-        ]);
+        return response(200).json([{ accession: 'ACC_R1', entry_id: 'E1', version: 1, locus_date: '2025-01-01' }]);
       }),
     );
 

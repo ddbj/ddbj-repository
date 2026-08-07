@@ -623,7 +623,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Accession"][];
+                        "application/json": components["schemas"]["ReviewerAccession"][];
                     };
                 };
                 404: components["responses"]["NotFound"];
@@ -1152,8 +1152,16 @@ export interface components {
             read_at: string | null;
             files: components["schemas"]["AttachedFile"][];
         };
+        /** @description What a share-token holder sees of an entry. Deliberately narrower than Accession: the token is unauthenticated, and where the entry stands in DDBJ's own handling of the submission is not a reviewer's business — the same reason the message thread is unreachable from a share link. */
+        ReviewerAccession: {
+            accession: string;
+            entry_id: string;
+            version: number;
+            /** Format: date */
+            locus_date: string;
+        };
         /**
-         * @description Where a curated row stands. `canceled` and `withdrawn` mean the row is no longer part of the submission: it is left out of the generated flatfile and should be left out of anything derived from it.
+         * @description Where a curated row stands. `canceled` and `withdrawn` mean the row is no longer part of the submission: it is left out of the flatfile the next time one is generated, and should be left out of anything derived from it. The stored flatfile still contains it until then — the status is what changed, and regenerating is a separate run.
          * @enum {string}
          */
         CurationStatus: "submission_accepted" | "curating" | "accession_issued" | "private" | "public" | "withdrawn" | "canceled" | "permanently_suppressed" | "temporarily_suppressed";
