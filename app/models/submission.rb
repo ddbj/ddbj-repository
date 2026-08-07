@@ -59,34 +59,37 @@ class Submission < ApplicationRecord
   end
 
   # [first_accession, count] for list display, reading the right source
-  # per DB: BP → its Project, BS → its Samples, ST.26 → its Entries. For
-  # BS the caller passes the preloaded [first, count] aggregate
-  # as `bs_accession` (one grouped query for the whole page) to avoid an
-  # N+1; without it a BS submission reports "not loaded" (0) rather than
-  # silently firing per-row queries.
-  def accession_summary(bs_accession = nil)
+  # per DB: BP → its Project, BS → its Samples, ST.26 → its Entries.
+  #
+  # The two bagged databases take a preloaded [first, count] aggregate —
+  # one grouped query for the whole page — rather than loading the bag: a
+  # ledger page can hold several ST.26 submissions of 27K entries each and
+  # prints one accession and one count for each of them. Without it they
+  # report "not loaded" (0) rather than silently firing per-row queries.
+  #
+  # "First" is the smallest accession, not the oldest row. ST.26 used to
+  # take the oldest; BioSample has always taken the smallest, and the two
+  # only differ where a submission's numbers were not allocated in row
+  # order, which the allocator does not do.
+  def accession_summary(aggregate = nil)
     if bioproject_db?
       accession = project&.accession
       [accession, accession ? 1 : 0]
-    elsif biosample_db?
-      bs_accession || [nil, 0]
     else
-      records = entries.to_a
-      [records.min_by(&:id)&.accession, records.size]
+      aggregate || [nil, 0]
     end
   end
 
   # The rows that carry curation state (status / assignee / accession) for
-  # this submission: the single BP Project, or every BS Sample.
+  # this submission: the single BP Project, every BS Sample, every ST.26
+  # Entry.
   #
-  # ST.26 is still nil here, and should not stay that way: its entries now
-  # carry a status of their own, so they are a curated set and everything
-  # counted from this — the progress steps, the ledger's cross-submission
-  # bulk, CurationState#row_count — is wrong for ST.26 until they are
-  # included. What blocks it is that callers read `accession` off a
-  # curation row and an Entry's is `number`, and that `accession_summary`
-  # orders by id where a grouped MIN would not. Both want fixing on their
-  # own rather than in passing.
+  # ST.26 was nil here until its entries carried a status of their own.
+  # They are a curated set now — retracting one is what keeps it out of
+  # the flatfile — so everything counted from this follows: the progress
+  # steps, the ledger's cross-submission bulk, the row counts. An Entry
+  # can stand where a Sample does because it carries the same two things
+  # every caller reads, `accession` and a Lifecycleable `status`.
   #
   # Returned as a relation
   # in both cases so callers can aggregate, filter and `update_all`
@@ -96,6 +99,8 @@ class Submission < ApplicationRecord
       project && Project.where(id: project.id)
     elsif biosample_db?
       samples
+    else
+      entries
     end
   end
 

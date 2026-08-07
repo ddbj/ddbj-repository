@@ -84,4 +84,31 @@ class EntriesSystemTest < ApplicationSystemTestCase
     assert_link 'Samples'
     assert_no_link 'Entries'
   end
+
+  # The entries are curation rows now, so everything counted from them
+  # follows. The progress bar could not leave "Applied" for an ST.26
+  # submission before, however far along its entries were.
+  test 'the progress bar reads the entries' do
+    @request.submission.entries.update_all(status: Lifecycleable::STATUSES.fetch('public'))
+
+    state = CurationState.new(@request.reload)
+
+    assert_equal 2, state.row_count, 'the entries are the rows now'
+    assert state.curated?
+
+    visit admin_submission_request_path(@request)
+
+    within '.workbench-progress' do
+      assert_text 'Public'
+    end
+  end
+
+  # ST.26 entries are created with their accession, so there is never
+  # anything to issue — the ledger has to say so rather than offer a
+  # button that allocates nothing.
+  test 'there is nothing to issue accessions for' do
+    plan = AccessionPlan.for([@request.submission])
+
+    assert_equal 0, plan.items.sole.issuable
+  end
 end

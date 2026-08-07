@@ -21,7 +21,7 @@ class SubmissionRequestsController < ApplicationController
   def index
     owned = current_user.submission_requests
 
-    scope = owned.includes(submission: %i[project entries])
+    scope = owned.includes(submission: :project)
     scope = filter_by_phase(scope, params[:phase])
     scope = filter_by_db(scope, params[:db])               if params[:db].present?
     scope = filter_by_status(scope, params[:status])       if params[:status].present?
@@ -106,12 +106,18 @@ class SubmissionRequestsController < ApplicationController
 
   # {submission_id => [first_accession, count]} for BS submissions, via one
   # grouped MIN / COUNT over sample accessions.
+  # BioSample samples and ST.26 entries both, so neither list loads a bag
+  # of rows to print one accession and one count.
   def sample_accession_summaries(submissions)
-    bs_ids = submissions.select(&:biosample_db?).map(&:id)
-    return {} if bs_ids.empty?
+    summarise(Sample, submissions.select(&:biosample_db?).map(&:id))
+      .merge(summarise(Entry, submissions.select(&:st26_db?).map(&:id)))
+  end
 
-    Sample
-      .where(submission_id: bs_ids)
+  def summarise(model, ids)
+    return {} if ids.empty?
+
+    model
+      .where(submission_id: ids)
       .group(:submission_id)
       .pluck(:submission_id, Arel.sql('MIN(accession)'), Arel.sql('COUNT(accession)'))
       .to_h {|sid, first, count| [sid, [first, count]] }

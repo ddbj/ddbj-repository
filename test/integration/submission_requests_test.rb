@@ -136,8 +136,11 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     bp   = body.find { it['id'] == submission_requests(:bioproject).id }
     bs   = body.find { it['id'] == submission_requests(:biosample).id }
 
-    # ST.26: the accessions table (two rows) — first is the lowest id.
-    assert_equal submissions(:st26).entries.order(:id).first.accession, st26['first_accession']
+    # ST.26: its entries (two rows). "First" is the smallest accession,
+    # the same reading BioSample has always had — not the oldest row,
+    # which is what this used to say and which only differs where the
+    # numbers were not allocated in row order.
+    assert_equal submissions(:st26).entries.minimum(:accession), st26['first_accession']
     assert_equal 2, st26['accession_count']
 
     # BP: the Project's accession.

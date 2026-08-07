@@ -47,13 +47,16 @@ class CurationState
     }
   end
 
-  # {submission_id => RowSummary} over the BP Projects and BS Samples of
-  # the given submissions — one grouped query per model. Submissions with
-  # no rows are absent, which `batch` reads as EMPTY_ROW_SUMMARY.
+  # {submission_id => RowSummary} over the BP Projects, BS Samples and
+  # ST.26 Entries of the given submissions — one grouped query per model.
+  # Submissions with no rows are absent, which `batch` reads as
+  # EMPTY_ROW_SUMMARY.
   def self.row_summaries(submissions)
     names = Lifecycleable::STATUSES.invert
 
-    [[Project, submissions.select(&:bioproject_db?)], [Sample, submissions.select(&:biosample_db?)]]
+    [[Project, submissions.select(&:bioproject_db?)],
+     [Sample,  submissions.select(&:biosample_db?)],
+     [Entry,   submissions.select(&:st26_db?)]]
       .flat_map {|model, subs|
         next [] if subs.empty?
 

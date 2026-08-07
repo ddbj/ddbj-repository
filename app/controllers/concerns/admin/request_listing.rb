@@ -16,25 +16,31 @@ module Admin
     private
 
     def load_requests(scope)
-      @pagy, @requests   = pagy(scope.includes(:user, :assignee, submission: %i[project entries]))
+      @pagy, @requests   = pagy(scope.includes(:user, :assignee, submission: :project))
       @sample_aggregates = sample_aggregates_for(@requests.filter_map(&:submission))
     end
 
+    # One grouped query per kind of row rather than loading the rows: a
+    # page of the ledger can hold several ST.26 submissions of 27K entries
+    # each, and it prints one accession and one count for each of them.
     def sample_aggregates_for(submissions)
-      bs_ids = submissions.select(&:biosample_db?).map(&:id)
-      return {} if bs_ids.empty?
+      aggregate(Sample, submissions.select(&:biosample_db?).map(&:id))
+        .merge(aggregate(Entry, submissions.select(&:st26_db?).map(&:id)))
+    end
 
-      rows = Sample
-        .where(submission_id: bs_ids)
+    def aggregate(model, ids)
+      return {} if ids.empty?
+
+      model
+        .where(submission_id: ids)
         .group(:submission_id)
         .pluck(:submission_id,
                Arel.sql('ARRAY_AGG(DISTINCT status) AS statuses'),
                Arel.sql('MIN(accession) AS first_accession'),
                Arel.sql('COUNT(accession) AS accession_count'))
-
-      rows.to_h {|sid, statuses, first_accession, accession_count|
-        [sid, SampleAggregate.new(statuses:, first_accession:, accession_count:)]
-      }
+        .to_h {|sid, statuses, first_accession, accession_count|
+          [sid, SampleAggregate.new(statuses:, first_accession:, accession_count:)]
+        }
     end
   end
 end
