@@ -90,13 +90,14 @@ erDiagram
         datetime updated_at
     }
 
-    accessions {
+    entries {
         bigint id PK
         bigint submission_id FK
-        string number UK "e.g. LC000001"
+        string accession UK "e.g. LC000001"
         string entry_id
         integer version "default: 1"
         date locus_date
+        integer status "Lifecycleable, default: 5300"
         datetime created_at
         datetime updated_at
     }
@@ -135,7 +136,7 @@ erDiagram
     users ||--o{ submission_requests : "has many"
     submission_requests |o--o| submissions : "creates"
     submissions ||--o{ submission_updates : "has many"
-    submissions ||--o{ accessions : "has many"
+    submissions ||--o{ entries : "has many"
     submission_requests ||--o| validations : "has one (polymorphic)"
     submission_updates ||--o| validations : "has one (polymorphic)"
     validations ||--o{ validation_details : "has many"

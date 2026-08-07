@@ -20,7 +20,11 @@ class OpenapiTest < ActionDispatch::IntegrationTest
     # Clients read this to know which statuses mean the row is gone —
     # ddbj/submission-bulk-st26 leaves those out of the live list. A name
     # that drifts here is one that silently stops matching.
-    'CurationStatus'            => -> { [Lifecycleable::STATUSES.keys, Entry.statuses.keys] }
+    #
+    # One source, not two: Project, Sample and Entry all take this enum
+    # from the concern, so asserting against any of them is asserting
+    # against the constant a second time.
+    'CurationStatus'            => -> { [Lifecycleable::STATUSES.keys] }
   }.each do |name, model_values|
     test "#{name} in the schema matches every model filtered by it" do
       document  = YAML.safe_load(Rails.root.join('schema/openapi.yml').read, aliases: true)

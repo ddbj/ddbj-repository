@@ -18,6 +18,7 @@ export default <template>
         <th>Entry ID</th>
         <th>Version</th>
         <th>LOCUS Date</th>
+        <th>Status</th>
       </tr>
     </thead>
 
@@ -28,6 +29,7 @@ export default <template>
           <td>{{accession.entry_id}}</td>
           <td>{{accession.version}}</td>
           <td>{{accession.locus_date}}</td>
+          <td>{{accession.status}}</td>
         </tr>
       {{/each}}
     </tbody>

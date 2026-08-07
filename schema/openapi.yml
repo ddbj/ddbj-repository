@@ -1517,8 +1517,10 @@ components:
 
       description: >
         Where a curated row stands. `canceled` and `withdrawn` mean the row is no
-        longer part of the submission: it is left out of the generated flatfile and
-        should be left out of anything derived from it.
+        longer part of the submission: it is left out of the flatfile the next time
+        one is generated, and should be left out of anything derived from it. The
+        stored flatfile still contains it until then — the status is what changed,
+        and regenerating is a separate run.
 
       enum:
         - submission_accepted
