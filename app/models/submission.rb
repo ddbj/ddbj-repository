@@ -72,7 +72,7 @@ class Submission < ApplicationRecord
       bs_accession || [nil, 0]
     else
       records = entries.to_a
-      [records.min_by(&:id)&.number, records.size]
+      [records.min_by(&:id)&.accession, records.size]
     end
   end
 

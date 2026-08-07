@@ -8,6 +8,6 @@ class AccessionsController < ApplicationController
   end
 
   def show
-    @accession = Entry.joins(:submission).merge(current_user.submissions).find_by!(number: params[:number])
+    @accession = Entry.joins(:submission).merge(current_user.submissions).find_by!(accession: params[:number])
   end
 end

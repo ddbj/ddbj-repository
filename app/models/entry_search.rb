@@ -3,5 +3,5 @@
 # hand when they arrive here — from a validation finding, or from a
 # question quoting an accession.
 class EntrySearch < SubmissionRowSearch
-  search_columns :entry_id, :number
+  search_columns :entry_id, :accession
 end

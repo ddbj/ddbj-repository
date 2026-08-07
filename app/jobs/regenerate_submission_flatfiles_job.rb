@@ -141,8 +141,8 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       acc = rows_by_entry_id.fetch(entry.id)
 
       entry.with(
-        accession:    acc.number,
-        locus:        acc.number,
+        accession:    acc.accession,
+        locus:        acc.accession,
         version:      acc.version,
         last_updated: acc.locus_date.to_s
       )

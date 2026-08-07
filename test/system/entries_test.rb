@@ -33,25 +33,25 @@ class EntriesSystemTest < ApplicationSystemTestCase
     click_link 'Entries'
 
     assert_selector 'h2', text: 'Entries'
-    assert_text @entries.first.number
+    assert_text @entries.first.accession
     assert_text @entries.first.entry_id
   end
 
   test 'the entries can be narrowed to the one being fixed' do
     visit entries_admin_submission_request_path(@request)
 
-    assert_text @entries.first.number
-    assert_text @entries.second.number
+    assert_text @entries.first.accession
+    assert_text @entries.second.accession
 
-    fill_in 'Search', with: @entries.first.number
+    fill_in 'Search', with: @entries.first.accession
     click_button 'Filter'
 
-    assert_text    @entries.first.number
-    assert_no_text @entries.second.number
+    assert_text    @entries.first.accession
+    assert_no_text @entries.second.accession
 
     click_link 'Clear'
 
-    assert_text @entries.second.number
+    assert_text @entries.second.accession
   end
 
   # Retracting is the point of the screen, so it has to be reachable from
@@ -73,8 +73,8 @@ class EntriesSystemTest < ApplicationSystemTestCase
 
     visit entries_admin_submission_request_path(@request, status: 'canceled')
 
-    assert_text    @entries.first.number
-    assert_no_text @entries.second.number
+    assert_text    @entries.first.accession
+    assert_no_text @entries.second.accession
   end
 
   # A BioSample submission keeps its own tab, under its own name.

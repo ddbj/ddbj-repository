@@ -891,10 +891,10 @@ paths:
               schema:
                 type: object
                 additionalProperties: false
-                required: [number, entry_id, version, locus_date, submission]
+                required: [accession, entry_id, version, locus_date, submission]
 
                 properties:
-                  number:
+                  accession:
                     type: string
 
                   entry_id:
@@ -1404,13 +1404,13 @@ components:
       additionalProperties: false
 
       required:
-        - number
+        - accession
         - entry_id
         - version
         - locus_date
 
       properties:
-        number:
+        accession:
           type: string
 
         entry_id:

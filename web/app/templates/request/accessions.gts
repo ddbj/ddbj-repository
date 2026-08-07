@@ -31,7 +31,7 @@ export default <template>
     <tbody>
       {{#each @model.accessions as |accession|}}
         <tr>
-          <td>{{accession.number}}</td>
+          <td>{{accession.accession}}</td>
           <td>{{accession.entry_id}}</td>
           <td>{{accession.version}}</td>
           <td>{{accession.locus_date}}</td>

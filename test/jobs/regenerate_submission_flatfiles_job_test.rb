@@ -44,7 +44,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     failure = run.failures.sole
 
     assert_equal @submission,                        failure.submission
-    assert_equal @submission.entries.first.number, failure.label
+    assert_equal @submission.entries.first.accession, failure.label
     assert_match(/not yet implemented for v3/,        failure.message)
   end
 
@@ -165,8 +165,8 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
 
     before = @submission.flatfile_na.download
 
-    assert_includes before, kept.number
-    assert_includes before, gone.number
+    assert_includes before, kept.accession
+    assert_includes before, gone.accession
 
     gone.update!(status: :withdrawn)
 
@@ -174,8 +174,8 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
 
     after = @submission.reload.flatfile_na.download
 
-    assert_includes after, kept.number
-    assert_not_includes after, gone.number
+    assert_includes after, kept.accession
+    assert_not_includes after, gone.accession
 
     record = Oj.load(@submission.ddbj_record.download, mode: :strict)
     ids    = record.dig('sequences', 'entries').map { it['id'] }

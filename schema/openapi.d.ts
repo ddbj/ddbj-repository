@@ -932,7 +932,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            number: string;
+                            accession: string;
                             entry_id: string;
                             version: number;
                             /** Format: date */
@@ -1117,7 +1117,7 @@ export interface components {
             flatfile_aa: components["schemas"]["Attachment"] | null;
         };
         Accession: {
-            number: string;
+            accession: string;
             entry_id: string;
             version: number;
             /** Format: date */

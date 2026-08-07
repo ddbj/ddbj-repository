@@ -60,7 +60,7 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
     submission = submissions(:biosample)
     submission.samples.update_all(accession: nil, status: Lifecycleable::STATUSES.fetch('curating'))
 
-    issuance = issuance_for(submission, targeting: {scope: 'selected', sample_ids: [samples(:first).id]})
+    issuance = issuance_for(submission, targeting: {scope: 'selected', ids: [samples(:first).id]})
 
     IssueAccessionsJob.perform_now(issuance_id: issuance.id)
 

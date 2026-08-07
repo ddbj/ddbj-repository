@@ -98,7 +98,7 @@ module Admin
 
       case params.dig(:bulk_row, :scope).presence
       when nil        then {}
-      when 'selected' then {scope: 'selected', sample_ids: selected_row_ids}
+      when 'selected' then {scope: 'selected', ids: selected_row_ids}
       when 'filtered' then {scope: 'filtered', filter: SampleSearch.new(submission.samples, params).to_params}
       else                 raise RowTargeting::UnknownScope, "Unknown target: #{params.dig(:bulk_row, :scope).inspect}."
       end

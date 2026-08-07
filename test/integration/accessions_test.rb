@@ -14,13 +14,13 @@ class AccessionsTest < ActionDispatch::IntegrationTest
 
     accession = submission.entries.first
 
-    get accession_path(accession.number)
+    get accession_path(accession.accession)
 
     assert_conform_schema 200
 
     body = response.parsed_body
 
-    assert_equal accession.number, body['number']
+    assert_equal accession.accession, body['accession']
     assert_equal submission.id,    body.dig('submission', 'id')
     assert_not_nil                 body.dig('submission', 'flatfile_na', 'url')
   end
@@ -37,7 +37,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     default_headers['Authorization'] = "Bearer #{users(:carol).api_key}"
 
     with_exceptions_app do
-      get accession_path(submissions(:st26).entries.first.number)
+      get accession_path(submissions(:st26).entries.first.accession)
     end
 
     assert_conform_schema 404

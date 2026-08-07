@@ -67,12 +67,12 @@ class ReviewsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GET accessions returns the submission accessions' do
-    @submission_request.submission.entries.create!(number: 'ACC_REVIEW1', entry_id: 'E|1', version: 1)
+    @submission_request.submission.entries.create!(accession: 'ACC_REVIEW1', entry_id: 'E|1', version: 1)
 
     get review_accessions_path(@access.token)
 
     assert_conform_schema 200
-    assert_includes response.parsed_body.pluck('number'), 'ACC_REVIEW1'
+    assert_includes response.parsed_body.pluck('accession'), 'ACC_REVIEW1'
   end
 
   test 'accessions 404s for an expired token' do

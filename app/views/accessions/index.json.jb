@@ -1,8 +1,8 @@
-@accessions.map {|accession|
-  accession.slice(
-    :number,
-    :entry_id,
-    :version,
-    :locus_date
-  )
+@accessions.map {|entry|
+  {
+    accession:  entry.accession,
+    entry_id:   entry.entry_id,
+    version:    entry.version,
+    locus_date: entry.locus_date
+  }
 }

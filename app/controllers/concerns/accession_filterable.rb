@@ -20,7 +20,7 @@ module AccessionFilterable
     scope.where(<<~SQL.squish, pattern: "#{ActiveRecord::Base.sanitize_sql_like(value)}%")
       EXISTS (SELECT 1 FROM projects   WHERE projects.submission_id   = submission_requests.submission_id AND projects.accession   ILIKE :pattern) OR
       EXISTS (SELECT 1 FROM samples    WHERE samples.submission_id    = submission_requests.submission_id AND samples.accession    ILIKE :pattern) OR
-      EXISTS (SELECT 1 FROM entries WHERE entries.submission_id = submission_requests.submission_id AND entries.number    ILIKE :pattern)
+      EXISTS (SELECT 1 FROM entries WHERE entries.submission_id = submission_requests.submission_id AND entries.accession    ILIKE :pattern)
     SQL
   end
 end

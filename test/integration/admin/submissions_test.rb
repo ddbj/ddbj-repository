@@ -123,10 +123,10 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # Without sanitize_sql_like, `_` would match ANY single char, so the
     # filter 'ACC_' would also match this synthetic 'ACCX000001' on the
     # bioproject submission, leaking unrelated submissions into the list.
-    # Entry.number has no format validator (unlike Sample/Project), so
+    # Entry#accession has no format validator (unlike Sample/Project), so
     # we can attach a literal probe value to a non-st26 submission.
     submissions(:bioproject).entries.create!(
-      number:     'ACCX000001',
+      accession:  'ACCX000001',
       entry_id:   'wildcard-probe',
       locus_date: Date.current
     )

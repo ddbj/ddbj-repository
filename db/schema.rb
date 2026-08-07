@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_07_100001) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_07_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -102,16 +102,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_07_100001) do
   end
 
   create_table "entries", force: :cascade do |t|
+    t.string "accession", null: false
     t.datetime "created_at", null: false
     t.string "entry_id", null: false
     t.date "locus_date", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.string "number", null: false
     t.integer "status", default: 5300, null: false
     t.bigint "submission_id", null: false
     t.datetime "updated_at", null: false
     t.integer "version", default: 1, null: false
-    t.index ["number", "entry_id", "version"], name: "index_entries_on_number_and_entry_id_and_version", unique: true
-    t.index ["number"], name: "index_entries_on_number", unique: true
+    t.index ["accession", "entry_id", "version"], name: "index_entries_on_accession_and_entry_id_and_version", unique: true
+    t.index ["accession"], name: "index_entries_on_accession", unique: true
     t.index ["submission_id"], name: "index_entries_on_submission_id"
   end
 

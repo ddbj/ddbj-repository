@@ -44,10 +44,6 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     assert_equal({'status' => %w[private]}, targeting['filter'])
   end
 
-  # The form param and the stored key are not the same name and must not
-  # be made to match: rows written before the Entries tab renamed the
-  # param are still in the table, and reading the wrong key targets
-  # nothing at all.
   test 'a checkbox selection is stored as the ids that were ticked' do
     submission = submissions(:biosample)
 
@@ -57,7 +53,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     targeting = submission.accession_issuances.sole.targeting
 
     assert_equal 'selected',           targeting['scope']
-    assert_equal [samples(:first).id], targeting['sample_ids']
+    assert_equal [samples(:first).id], targeting['ids']
     assert_equal [samples(:first).id],
                  AccessionIssuance.new(submission:, targeting:).send(:target_rows).ids
   end

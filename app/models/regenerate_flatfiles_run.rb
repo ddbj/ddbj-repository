@@ -162,7 +162,7 @@ class RegenerateFlatfilesRun < ApplicationRecord
   def self.label_for(submission)
     return 'unknown submission' unless submission
 
-    submission.entries.order(:id).first&.number.presence ||
+    submission.entries.order(:id).first&.accession.presence ||
       submission.source_id.presence ||
       "submission ##{submission.id}"
   end
