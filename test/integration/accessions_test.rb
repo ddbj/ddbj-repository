@@ -208,4 +208,15 @@ class AccessionsTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 401
   end
+
+  # Pagy decodes an unreadable cursor to nil and answers with page one,
+  # which a walk cannot tell from its own first page — it would start
+  # over and never finish, or finish having read the first page twice.
+  test 'an unreadable page cursor is refused rather than restarted' do
+    with_exceptions_app do
+      get accessions_path(page: 'not-a-cursor')
+    end
+
+    assert_response :bad_request
+  end
 end

@@ -3,7 +3,7 @@
 # progress stepper, the next-action banner and the curation rail all agree.
 #
 # The curation rows behind a request differ per database (BP has one
-# Project, BS has N Samples, ST.26 has neither), and a BS submission can
+# Project, BS has N Samples, ST.26 its Entries), and a BS submission can
 # carry 100K of them. Every derived value here is therefore an aggregate
 # query, never a `map` over loaded rows.
 class CurationState

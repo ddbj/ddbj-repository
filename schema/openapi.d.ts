@@ -936,11 +936,12 @@ export interface paths {
          *     is read by a script keeping a copy in step, not by a person.
          *
          *     Walked with a cursor rather than a page number. Offset pagination
-         *     is wrong for a walk rather than merely slow: a row landing between
-         *     two requests shifts every later page back by one, and the row
-         *     pushed across the boundary is never returned. Pass the `Next-Page`
-         *     header of the previous response back as `page`; its absence means
-         *     there is nothing after this page. There is no total.
+         *     is wrong for a walk rather than merely slow: a row that disappears
+         *     from a page already read pulls every later row back one place, and
+         *     the row on the far side of the boundary is never returned. Pass
+         *     the `Next-Page` header of the previous response back as `page`;
+         *     its absence means there is nothing after this page. There is no
+         *     total.
          */
         get: {
             parameters: {

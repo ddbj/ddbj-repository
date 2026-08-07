@@ -72,7 +72,11 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
   # ST.26 carries neither a Project nor Samples, so a curation status has
   # nothing to set. The notice used to come out empty, rendering a green
   # alert box with no text in it.
+  # ST.26 used to be this case, from when its entries carried no status.
+  # What is left is a request applied without rows behind it.
   test 'a selection with no curation rows says so instead of flashing blank' do
+    submission_requests(:st26).submission.entries.delete_all
+
     visit admin_submission_requests_path
 
     check "Select ##{submission_requests(:st26).id}"
@@ -80,6 +84,18 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     click_button 'Apply'
 
     assert_text 'Nothing to update — the selection has no curation rows.'
+  end
+
+  # And when it does have rows, they are set and named for what they are.
+  test 'the ledger sets an ST.26 submission\'s entries, and says entries' do
+    visit admin_submission_requests_path
+
+    check "Select ##{submission_requests(:st26).id}"
+    select 'Withdrawn', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Set 2 entries to withdrawn.'
+    assert_equal %w[withdrawn], submission_requests(:st26).submission.entries.distinct.pluck(:status)
   end
 
   # Both bulk buttons post from one form, and Issue overrides the action
@@ -155,10 +171,11 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
       assert_text 'SAMD00000001'
     end
 
-    # ST.26 is never curated through this UI, so it keeps showing the
-    # pipeline status for its whole life rather than an empty cell.
+    # ST.26 shows its entries' curation status, the same as the other two
+    # show theirs. The pipeline status is the fallback for a request with
+    # no rows to read, not a permanent state of this database.
     within row_for(submission_requests(:st26)) do
-      assert_text 'waiting validation' # the badge is text-capitalize, so the text is lower case
+      assert_text 'accession issued' # the badge is text-capitalize, so the text is lower case
       assert_text '—' # no assignee
     end
   end

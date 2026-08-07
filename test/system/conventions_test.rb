@@ -194,6 +194,12 @@ class StateColumnSystemTest < ApplicationSystemTestCase
     visit admin_submission_requests_path
 
     assert_selector '[data-test-curation] span', text: 'private'
+
+    # The pipeline half, for a request with no rows to read a curation
+    # status from.
+    submission_requests(:st26).submission.entries.delete_all
+    visit admin_submission_requests_path
+
     assert_selector '[data-test-curation] span', text: 'waiting validation'
 
     # And coloured by what the state means, the same map the workbench

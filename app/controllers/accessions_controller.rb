@@ -72,6 +72,16 @@ class AccessionsController < ApplicationController
   # absent on the last page, which is how a client knows to stop —
   # there is no total to count down to.
   def keyset_page(scope)
+    # A cursor the server cannot read is refused rather than treated as
+    # "start again". Pagy decodes a bad one to nil and hands back page
+    # one, which a walk reads as its own first page — the same reasoning
+    # EnumFilterable applies to `status` two lines up, on the endpoint
+    # whose whole purpose is a walk that does not lose its place.
+    if params[:page].present? && Pagy::Keyset.decode(params[:page]).nil?
+      raise EnumFilterable::UnknownFilterValue,
+            'Unreadable page cursor. Pass back the Next-Page header of the previous response, or omit it to start.'
+    end
+
     pagy = Pagy::Keyset.new(scope, limit: SYNC_LIMIT, page: params[:page])
 
     @accessions = pagy.records

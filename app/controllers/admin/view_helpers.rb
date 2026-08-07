@@ -472,19 +472,20 @@ module Admin::ViewHelpers
   # a BS submission's samples disagree, or nil when it has none.
   #   - BP: the Project's Lifecycleable status.
   #   - BS: aggregate over Samples.
-  #   - ST26: nil (not curated through this UI), so the caller falls back
-  #     to the pipeline status rather than printing a dash.
+  #   - ST26: aggregate over Entries. It used to be nil here, from when
+  #     entries carried no status — which left a submission whose every
+  #     entry had been withdrawn showing a green pipeline badge, so the
+  #     ledger could not be used to find one.
   def submission_status(submission, sample_aggregates)
-    if submission.bioproject_db?
-      submission.project&.status
-    elsif submission.biosample_db?
-      agg = sample_aggregates[submission.id]
-      return nil unless agg
-      return :mixed unless agg.statuses.size == 1
+    return submission.project&.status if submission.bioproject_db?
 
-      # `Sample.statuses` is {'public' => 5500, ...} so invert is keyed by integer.
-      Sample.statuses.invert.fetch(agg.statuses.first, agg.statuses.first.to_s)
-    end
+    agg = sample_aggregates[submission.id]
+    return nil unless agg
+    return :mixed unless agg.statuses.size == 1
+
+    # ARRAY_AGG bypasses the enum's cast, so the statuses come back as the
+    # integers the column stores.
+    Lifecycleable::STATUSES.invert.fetch(agg.statuses.first, agg.statuses.first.to_s)
   end
 
   # Accession display for a Submission on the admin index — returns

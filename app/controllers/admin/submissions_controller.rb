@@ -172,19 +172,28 @@ module Admin
                            alert: 'No changes specified (both fields left as-is).'
       end
 
-      subs   = Submission.where(id: ids)
-      bp_ids = subs.where(db: 'bioproject').pluck(:id)
-      bs_ids = subs.where(db: 'biosample').pluck(:id)
+      subs     = Submission.where(id: ids)
+      bp_ids   = subs.where(db: 'bioproject').pluck(:id)
+      bs_ids   = subs.where(db: 'biosample').pluck(:id)
+      st26_ids = subs.where(db: 'st26').pluck(:id)
 
       projects = Applied.none
       samples  = Applied.none
+      entries  = Applied.none
       assigned = Applied.none
 
       if attrs.any?
         attrs[:updated_at] = Time.current
 
         projects = apply_status(Project.where(submission_id: bp_ids), attrs)
-        samples  = apply_status(Sample.where(submission_id: bs_ids), attrs)
+
+        # Entries counted with the samples: both are "the rows of a
+        # submission", and the notice names them by the submission's own
+        # noun. ST.26 was missing here entirely — the selection reported
+        # "no curation rows" and filed an event saying 0 rows changed,
+        # while the same status applied fine from the Entries tab.
+        samples = apply_status(Sample.where(submission_id: bs_ids), attrs)
+        entries = apply_status(Entry.where(submission_id: st26_ids), attrs)
       end
 
       if assign
@@ -199,7 +208,7 @@ module Admin
       record_cross_submission_events(subs, bp_ids, bs_ids, raw)
       SubmissionRequest.where(submission_id: ids).find_each { participate!(it) }
 
-      redirect_to bulk_return_path, notice: bulk_notice(projects:, samples:, assigned:, raw:)
+      redirect_to bulk_return_path, notice: bulk_notice(projects:, samples:, entries:, assigned:, raw:)
     end
 
     # The confirmation for the ledger's bulk. Same component the single
@@ -316,28 +325,33 @@ module Admin
     # `to_sentence` produced "Nothing to set and 1 row already curating",
     # which is a list of fragments rather than a statement of what
     # happened.
-    def bulk_notice(projects:, samples:, assigned:, raw:)
-      parts = [status_notice(projects, samples, raw), assignee_notice(assigned, raw)].compact
+    def bulk_notice(projects:, samples:, entries:, assigned:, raw:)
+      parts = [status_notice(projects, samples, entries, raw), assignee_notice(assigned, raw)].compact
 
-      # A selection with nothing to act on: ST.26 requests carry neither a
-      # Project nor Samples, so a curation status finds no rows to set.
-      # An empty string still renders an empty green alert, which is worse
-      # than the old vague sentence it replaced.
+      # A selection with nothing to act on — every request in it applied
+      # but not yet carrying rows. An empty string still renders an empty
+      # green alert, which is worse than the old vague sentence it
+      # replaced.
       return 'Nothing to update — the selection has no curation rows.' if parts.empty?
 
       parts.join(' ')
     end
 
-    def status_notice(projects, samples, raw)
-      return nil unless projects.any? || samples.any?
+    def status_notice(projects, samples, entries, raw)
+      return nil unless projects.any? || samples.any? || entries.any?
 
       status = raw[:status]
-      moved  = [
+
+      # Named by what each kind of row is called. A mixed selection reads
+      # "Set 1 project and 40 entries to public" — "40 rows" would be
+      # shorter and would leave the curator to work out which.
+      moved = [
         (helpers.pluralize(projects.changed, 'project') if projects.changed.positive?),
-        (helpers.pluralize(samples.changed, 'sample')   if samples.changed.positive?)
+        (helpers.pluralize(samples.changed,  'sample')  if samples.changed.positive?),
+        (helpers.pluralize(entries.changed,  'entry')   if entries.changed.positive?)
       ].compact
 
-      already = projects.unchanged + samples.unchanged
+      already = projects.unchanged + samples.unchanged + entries.unchanged
       tail    = " #{helpers.pluralize(already, 'row')} #{already == 1 ? 'was' : 'were'} already #{status}." if already.positive?
 
       if moved.any?

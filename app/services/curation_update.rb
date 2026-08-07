@@ -85,7 +85,18 @@ class CurationUpdate
     rows = submission.curation_rows or raise Refused, 'This submission has no curation rows to update.'
 
     status = params[:status].to_s
-    raise Refused, "Unknown status: #{status.inspect}." unless Lifecycleable::STATUSES.key?(status)
+
+    # What the row model will accept, not every status there is: an
+    # ST.26 Entry takes `accession_issued` from the pipeline and cannot
+    # be put back to it from a screen, so offering it here would write a
+    # state the Entries tab has no way to undo.
+    settable =
+      if rows.klass.const_defined?(:SETTABLE_STATUSES, false)
+        rows.klass::SETTABLE_STATUSES
+      else
+        Lifecycleable::STATUSES.keys
+      end
+    raise Refused, "Unknown status: #{status.inspect}." unless settable.include?(status)
 
     return {} if rows.distinct.pluck(:status) == [status]
 

@@ -43,7 +43,7 @@ export default <template>
   Args: {
     model: {
       token: string;
-      accessions: components['schemas']['Accession'][];
+      accessions: components['schemas']['ReviewerAccession'][];
       totalPages: number;
     };
 
