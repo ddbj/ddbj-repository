@@ -15,7 +15,12 @@ class OpenapiTest < ActionDispatch::IntegrationTest
   # document still advertises.
   {
     'Db'                        => -> { [Submission.dbs.keys, SubmissionRequest.dbs.keys] },
-    'SubmissionOperationStatus' => -> { [SubmissionRequest.statuses.keys] }
+    'SubmissionOperationStatus' => -> { [SubmissionRequest.statuses.keys] },
+
+    # Clients read this to know which statuses mean the row is gone —
+    # ddbj/submission-bulk-st26 leaves those out of the live list. A name
+    # that drifts here is one that silently stops matching.
+    'CurationStatus'            => -> { [Lifecycleable::STATUSES.keys, Entry.statuses.keys] }
   }.each do |name, model_values|
     test "#{name} in the schema matches every model filtered by it" do
       document  = YAML.safe_load(Rails.root.join('schema/openapi.yml').read, aliases: true)

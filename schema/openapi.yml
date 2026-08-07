@@ -891,11 +891,14 @@ paths:
               schema:
                 type: object
                 additionalProperties: false
-                required: [accession, entry_id, version, locus_date, submission]
+                required: [accession, entry_id, version, locus_date, status, submission]
 
                 properties:
                   accession:
                     type: string
+
+                  status:
+                    $ref: '#/components/schemas/CurationStatus'
 
                   entry_id:
                     type: string
@@ -1408,6 +1411,7 @@ components:
         - entry_id
         - version
         - locus_date
+        - status
 
       properties:
         accession:
@@ -1415,6 +1419,9 @@ components:
 
         entry_id:
           type: string
+
+        status:
+          $ref: '#/components/schemas/CurationStatus'
 
         version:
           type: number
@@ -1504,6 +1511,25 @@ components:
 
           items:
             $ref: '#/components/schemas/AttachedFile'
+
+    CurationStatus:
+      type: string
+
+      description: >
+        Where a curated row stands. `canceled` and `withdrawn` mean the row is no
+        longer part of the submission: it is left out of the generated flatfile and
+        should be left out of anything derived from it.
+
+      enum:
+        - submission_accepted
+        - curating
+        - accession_issued
+        - private
+        - public
+        - withdrawn
+        - canceled
+        - permanently_suppressed
+        - temporarily_suppressed
 
     SubmissionOperationStatus:
       type: string

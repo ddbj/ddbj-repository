@@ -42,4 +42,28 @@ class AccessionsTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 404
   end
+
+  # ddbj/submission-bulk-st26 builds the live list from this, and a
+  # retracted entry has to be leavable out of it. Without the status the
+  # list keeps an entry the flatfile has already dropped.
+  test 'the status says whether the entry is still part of the submission' do
+    submission = submissions(:st26)
+    entry      = submission.entries.first
+
+    attach_submission_files submission
+    entry.update!(status: :withdrawn)
+
+    get accession_path(entry.accession)
+
+    assert_conform_schema 200
+    assert_equal 'withdrawn', response.parsed_body['status']
+
+    get submission_accessions_path(submission)
+
+    assert_conform_schema 200
+
+    row = response.parsed_body.find { it['accession'] == entry.accession }
+
+    assert_equal 'withdrawn', row['status']
+  end
 end

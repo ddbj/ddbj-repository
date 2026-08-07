@@ -1,5 +1,6 @@
 {
   accession:  @accession.accession,
+  status:     @accession.status,
   entry_id:   @accession.entry_id,
   version:    @accession.version,
   locus_date: @accession.locus_date,

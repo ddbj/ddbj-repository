@@ -933,6 +933,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             accession: string;
+                            status: components["schemas"]["CurationStatus"];
                             entry_id: string;
                             version: number;
                             /** Format: date */
@@ -1119,6 +1120,7 @@ export interface components {
         Accession: {
             accession: string;
             entry_id: string;
+            status: components["schemas"]["CurationStatus"];
             version: number;
             /** Format: date */
             locus_date: string;
@@ -1150,6 +1152,11 @@ export interface components {
             read_at: string | null;
             files: components["schemas"]["AttachedFile"][];
         };
+        /**
+         * @description Where a curated row stands. `canceled` and `withdrawn` mean the row is no longer part of the submission: it is left out of the generated flatfile and should be left out of anything derived from it.
+         * @enum {string}
+         */
+        CurationStatus: "submission_accepted" | "curating" | "accession_issued" | "private" | "public" | "withdrawn" | "canceled" | "permanently_suppressed" | "temporarily_suppressed";
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
         Error: {

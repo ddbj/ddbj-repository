@@ -1,6 +1,7 @@
 @accessions.map {|entry|
   {
     accession:  entry.accession,
+    status:     entry.status,
     entry_id:   entry.entry_id,
     version:    entry.version,
     locus_date: entry.locus_date
