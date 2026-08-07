@@ -35,12 +35,14 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     if regenerating
       submission.entries.update_all(locus_date: date) if date
 
-      entries             = build_entries(record, submission.entries.reload)
+      rows                = submission.entries.reload.to_a
+      entries             = build_entries(record, rows)
       record_with_entries = record.with(sequences: record.sequences.with(entries:))
 
       generate_outputs record_with_entries, entries, **{
-        filename:     submission.ddbj_record.filename,
-        content_type: submission.ddbj_record.content_type
+        filename:       submission.ddbj_record.filename,
+        content_type:   submission.ddbj_record.content_type,
+        flatfile_omits: retracted_entry_ids(rows)
       } do |updates|
         submission.update! updates
       end
@@ -104,14 +106,20 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   end
 
   def changed?(submission, record)
-    entries             = build_entries(record, submission.entries)
+    # `reload`, because the caller may have loaded the association before
+    # handing the submission over — a second run in the same process
+    # otherwise compares against the statuses of the first, and a
+    # retraction that changed the flatfile is reported as no change.
+    rows                = submission.entries.reload.to_a
+    entries             = build_entries(record, rows)
     record_with_entries = record.with(sequences: record.sequences.with(entries:))
 
     result = false
 
     generate_outputs record_with_entries, entries, **{
-      filename:     submission.ddbj_record.filename,
-      content_type: submission.ddbj_record.content_type
+      filename:       submission.ddbj_record.filename,
+      content_type:   submission.ddbj_record.content_type,
+      flatfile_omits: retracted_entry_ids(rows)
     } do |updates|
       result =
         attachment_changed?(submission.ddbj_record, updates[:ddbj_record]) ||
@@ -121,6 +129,10 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
 
     result
   end
+
+  # Retracting an entry changes the flatfile, so this is also what makes
+  # `changed?` notice and regenerate rather than skip.
+  def retracted_entry_ids(rows) = rows.select(&:retracted?).map(&:entry_id).to_set
 
   def build_entries(record, rows)
     rows_by_entry_id = rows.index_by(&:entry_id)

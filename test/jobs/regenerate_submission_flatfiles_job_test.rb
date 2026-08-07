@@ -158,6 +158,49 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     assert_not_nil   run.finished_at
   end
 
+  # Withdrawing an entry is for keeping it out of what goes out. The
+  # record is the account of what was submitted and keeps it.
+  test 'a retracted entry leaves the flatfile and stays in the record' do
+    kept, gone = @submission.entries.order(:id).first(2)
+
+    before = @submission.flatfile_na.download
+
+    assert_includes before, kept.number
+    assert_includes before, gone.number
+
+    gone.update!(status: :withdrawn)
+
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, nil
+
+    after = @submission.reload.flatfile_na.download
+
+    assert_includes after, kept.number
+    assert_not_includes after, gone.number
+
+    record = Oj.load(@submission.ddbj_record.download, mode: :strict)
+    ids    = record.dig('sequences', 'entries').map { it['id'] }
+
+    assert_includes ids, gone.entry_id, 'the record is what was submitted, not what went out'
+  end
+
+  # `changed?` decides whether to rewrite anything at all, so a status
+  # change that it cannot see is a status change that never reaches the
+  # flatfile.
+  test 'retracting an entry is a change worth regenerating for' do
+    run = new_run
+
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, nil
+
+    assert_equal 1, run.reload.skipped, 'nothing changed, so nothing was rewritten'
+
+    @submission.entries.order(:id).first.update!(status: :canceled)
+
+    run = new_run
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, nil
+
+    assert_equal 1, run.reload.regenerated
+  end
+
   private
 
   def new_run

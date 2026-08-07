@@ -17,6 +17,13 @@ module Lifecycleable
     'temporarily_suppressed' => 5900
   }.freeze
 
+  # The two that mean the record is no longer part of the submission, as
+  # opposed to merely not out yet. Named once because two things ask: the
+  # curator lists leave them out, and so does the flatfile — for different
+  # reasons, which is exactly how the two lists drift apart if each keeps
+  # its own copy.
+  RETRACTED = %w[canceled withdrawn].freeze
+
   included do
     enum :status, STATUSES, prefix: :status, validate: true
 
@@ -26,6 +33,8 @@ module Lifecycleable
     # final answer surfaces as a visible diff. Do NOT wire into external-facing
     # endpoints until 0.8 resolves.
     scope :publicly_visible, -> { status_public }
-    scope :curator_visible,  -> { where.not(status: %i[canceled withdrawn]) }
+    scope :curator_visible,  -> { where.not(status: RETRACTED) }
+
+    def retracted? = status.in?(RETRACTED)
   end
 end

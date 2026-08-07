@@ -1,7 +1,12 @@
 module SubmissionOutputWriter
   private
 
-  def generate_outputs(record, entries, filename:, content_type:)
+  # `flatfile_omits` is entry ids the flatfile leaves out — canceled and
+  # withdrawn entries. They stay in the DDBJ Record, which is the account
+  # of what was submitted; the flatfile is what goes out, and a withdrawn
+  # entry going out is the thing withdrawing it was for. Dropping them
+  # from `entries` instead would take them out of both.
+  def generate_outputs(record, entries, filename:, content_type:, flatfile_omits: Set.new)
     features_by_seq_id = record.features.group_by(&:sequence_id)
 
     ddbj_record = Tempfile.open(['ddbj_record', '.json'])
@@ -19,6 +24,8 @@ module SubmissionOutputWriter
     DDBJRecord::StreamingWriter.new(ddbj_record).write record, features: record.features do |w|
       entries.each do |entry|
         w << entry
+
+        next if flatfile_omits.include?(entry.id)
 
         if aa?(entry)
           aa_renderer.render_entry entry

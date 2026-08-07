@@ -7,7 +7,7 @@
 # what it was asked to do, so the answer survives the next press.
 class RegenerateFlatfilesRun < ApplicationRecord
   # What the run was pointed at. `retry` is its own target rather than a
-  # flag on `accessions`, because the set it covers is "whatever failed
+  # flag on `entries`, because the set it covers is "whatever failed
   # last time" — it cannot be re-derived from a list of numbers.
   TARGETS = %w[accessions all retry].freeze
 
