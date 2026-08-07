@@ -12,11 +12,15 @@ class Entry < ApplicationRecord
 
   has_many :histories, dependent: :destroy, class_name: 'EntryHistory'
 
-  # What a curator may set an entry to. Not the whole nine-state enum:
-  # `submission_accepted`, `curating` and `accession_issued` describe how
-  # far the submission got and are written by the pipeline, so offering
-  # them would report a successful bulk update that changed nothing a
-  # curator can see. The two that do something today are `canceled` and
-  # `withdrawn`, which take the entry out of the flatfile.
-  SETTABLE_STATUSES = %w[public private temporarily_suppressed permanently_suppressed canceled withdrawn].freeze
+  # What a curator may set an entry to: everything except
+  # `submission_accepted`, which is false of every entry there is — an
+  # entry is created with its accession, so it has never been in the
+  # state of being accepted and not yet numbered.
+  #
+  # `accession_issued` is in the list because it is the way back.
+  # Withdrawing an entry keeps it out of the flatfile, and a curator who
+  # did that in error has to be able to undo it — leaving the state an
+  # entry starts in off the list made retraction one-way, which is not
+  # something a screen should do quietly.
+  SETTABLE_STATUSES = (Lifecycleable::STATUSES.keys - %w[submission_accepted]).freeze
 end

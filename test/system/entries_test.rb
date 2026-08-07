@@ -111,4 +111,24 @@ class EntriesSystemTest < ApplicationSystemTestCase
 
     assert_equal 0, plan.items.sole.issuable
   end
+
+  # Withdrawing an entry keeps it out of the flatfile, so a curator who
+  # did it in error has to be able to undo it. Leaving the state an entry
+  # starts in off the settable list made retraction one-way.
+  test 'a withdrawn entry can be put back' do
+    entry = @entries.first
+
+    entry.update!(status: :withdrawn)
+
+    visit entries_admin_submission_request_path(@request)
+
+    check "Select #{entry.entry_id}"
+    select 'Accession issued', from: 'bulk_row[status]'
+    click_button 'Apply'
+
+    assert_text 'Bulk-updated 1'
+    assert_equal 'accession_issued', entry.reload.status
+    assert_not entry.retracted?
+  end
 end
+
