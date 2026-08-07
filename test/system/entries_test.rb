@@ -131,4 +131,3 @@ class EntriesSystemTest < ApplicationSystemTestCase
     assert_not entry.retracted?
   end
 end
-
