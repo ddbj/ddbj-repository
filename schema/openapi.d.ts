@@ -730,10 +730,16 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** @description Get a paginated list of accessions for a submission. */
+        /**
+         * @description Get a paginated list of accessions for a submission. `status`
+         *     filters it, the same way it does on `/accessions` — the two share
+         *     the action, so leaving it undocumented here would mean a client
+         *     relying on behaviour no test defends.
+         */
         get: {
             parameters: {
                 query?: {
+                    "status[]"?: components["schemas"]["CurationStatus"][];
                     page?: number;
                 };
                 header?: never;
@@ -754,6 +760,7 @@ export interface paths {
                         "application/json": components["schemas"]["Accession"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -900,6 +907,62 @@ export interface paths {
                 422: components["responses"]["UnprocessableContent"];
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/accessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Get a paginated list of every accession the caller has, across
+         *     submissions. `status` is a multi-select filter (repeat the key,
+         *     e.g. `?status[]=canceled&status[]=withdrawn`); omit it to span
+         *     every value.
+         *
+         *     Narrowing by status is what this is for. A client holding a local
+         *     copy of every entry it registered rebuilds its lists from that
+         *     copy, so it has to hear about a retraction it did not make — and
+         *     those are a handful of rows among millions. Asking for them a
+         *     submission at a time is one walk per submission.
+         *
+         *     Paginated 1000 at a time rather than the usual 20: a page of this
+         *     is read by a script keeping a copy in step, not by a person.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    "status[]"?: components["schemas"]["CurationStatus"][];
+                    page?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the list of accessions. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Accession"][];
+                    };
+                };
+                400: components["responses"]["BadRequest"];
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

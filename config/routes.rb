@@ -46,7 +46,10 @@ Rails.application.routes.draw do
       resources :accessions, only: %i[index]
     end
 
-    resources :accessions, only: %i[show], param: :number, constraints: {number: %r{[^/]+}}
+    # `index` here is the cross-submission one — the nested route above
+    # answers for a single submission. Both reach the same controller,
+    # because the only difference is which entries are in scope.
+    resources :accessions, only: %i[index show], param: :number, constraints: {number: %r{[^/]+}}
 
     resources :stats, only: %i[index]
   end
