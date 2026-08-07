@@ -1,14 +1,25 @@
-<nav aria-label="breadcrumb">
-  <ol class="breadcrumb">
-    <% items.each_with_index do |item, i| %>
-      <% last = i == items.size - 1 %>
-      <li class="breadcrumb-item <%= 'active' if last %>" <%= 'aria-current="page"'.html_safe if last %>>
-        <% if item[:path] && !last %>
-          <%= link_to item[:label], item[:path] %>
-        <% else %>
-          <%= item[:label] %>
-        <% end %>
-      </li>
-    <% end %>
-  </ol>
-</nav>
+<%# locals: (items:) %>
+<%# Nothing for a trail of one. A breadcrumb answers "how did I get here
+    and how do I get back", and one item answers neither — it is "you are
+    here", which the <h1> under it already says, word for word on every
+    page that had one, with the navbar marking the same entry active.
+
+    The rule lives here rather than in the callers so that a page which
+    gains a parent later starts drawing one without anybody remembering
+    to, and one that loses its parent stops. %>
+<% if items.size > 1 %>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <% items.each_with_index do |item, i| %>
+        <% last = i == items.size - 1 %>
+        <li class="breadcrumb-item <%= 'active' if last %>" <%= 'aria-current="page"'.html_safe if last %>>
+          <% if item[:path] && !last %>
+            <%= link_to item[:label], item[:path] %>
+          <% else %>
+            <%= item[:label] %>
+          <% end %>
+        </li>
+      <% end %>
+    </ol>
+  </nav>
+<% end %>

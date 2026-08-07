@@ -201,3 +201,29 @@ class StateColumnSystemTest < ApplicationSystemTestCase
     assert_selector '[data-test-curation] .text-bg-secondary', text: 'private'
   end
 end
+
+# A breadcrumb is a way back. Where there is nowhere to go back to it was
+# a single item repeating the heading directly under it, on six screens.
+class BreadcrumbSystemTest < ApplicationSystemTestCase
+  setup do
+    sign_in_as users(:bob)
+  end
+
+  test 'a screen with no parent shows no trail, and does not say its name twice' do
+    visit admin_submission_requests_path
+
+    assert_selector 'h1', text: 'All requests'
+    assert_no_selector 'nav[aria-label=breadcrumb]', wait: 0
+  end
+
+  test 'a screen with a parent shows the way back to it' do
+    request = submission_requests(:bioproject)
+
+    visit admin_submission_request_path(request)
+
+    within 'nav[aria-label=breadcrumb]' do
+      assert_link 'All requests', href: admin_submission_requests_path
+      assert_text "##{request.id}"
+    end
+  end
+end
