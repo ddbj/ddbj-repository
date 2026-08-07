@@ -118,6 +118,98 @@ class RecordOutlineTest < ActiveSupport::TestCase
     assert_not RecordOutline.new({'project' => {'title' => 'x'}}).elided?
   end
 
+  # The card offers the Samples tab off the back of one section, so it has
+  # to be able to ask about that one rather than about the record.
+  test 'a section can be looked up by key' do
+    outline = RecordOutline.new({
+      'samples'   => Array.new(3) { {'alias' => 'S'} },
+      'sequences' => {'entries' => [{'features' => Array.new(21) { {'name' => 'f'} }}]}
+    })
+
+    assert_not outline.section('samples').node.truncated?, 'a cut deeper in the record is not a cut here'
+    assert_nil outline.section('relations'), 'a key the record does not carry has no section'
+  end
+
+  # By size, not by name. A `samples` of three rows is not worth folding
+  # and a `sequences` of forty is, and neither fact is about the key.
+  test 'a section is folded by how tall it draws' do
+    sections = RecordOutline.new({
+      'project'   => {'title' => 'A study'},
+      'samples'   => Array.new(3)  {|i| {'alias' => "S#{i}"} },
+      'sequences' => Array.new(40) {|i| {'alias' => "E#{i}", 'organism' => 'x'} }
+    }).sections.index_by(&:key)
+
+    assert_not sections['project'].folded?
+    assert_not sections['samples'].folded?
+    assert     sections['sequences'].folded?
+  end
+
+  # Height, not node count. Forty scalars draw the same twenty lines as a
+  # 20x2 table and cost half as many nodes; counting nodes folded one and
+  # left the other open at the same height, which has no reason a reader
+  # could see.
+  test 'two sections of the same height are folded alike however wide their rows' do
+    outline = RecordOutline.new({
+      'relations' => Array.new(40) {|i| "PRJDB#{i}" },
+      'samples'   => Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'x'} }
+    }).sections.index_by(&:key)
+
+    assert outline['relations'].folded?
+    assert outline['samples'].folded?
+  end
+
+  # A row is as tall as its tallest cell, so a table of nested hashes is
+  # taller than its row count suggests.
+  test 'a cell holding several fields makes its row taller' do
+    flat   = RecordOutline.new({'x' => Array.new(6) { {'a' => '1'} }}).sections.sole.node
+    nested = RecordOutline.new({'x' => Array.new(6) { {'a' => {'b' => '1', 'c' => '2', 'd' => '3'}} }}).sections.sole.node
+
+    assert_equal 7,  flat.height
+    assert_equal 19, nested.height
+  end
+
+  # The one value given room to breathe, so the one whose length shows.
+  test 'a long string is counted as the lines it wraps to' do
+    short = RecordOutline.new({'project' => {'title' => 'A study'}}).sections.sole.node
+    long  = RecordOutline.new({'project' => {'description' => 'x' * 500}}).sections.sole.node
+
+    assert_equal 1, short.height
+    assert_equal 5, long.height
+  end
+
+  # Closing a section must not also hide what it is: without the count the
+  # reader has to open it to learn whether it was worth opening.
+  test 'a node says what it holds in one line' do
+    outline = RecordOutline.new({
+      'samples'   => Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'x'} },
+      'relations' => %w[PRJDB1 PRJDB2],
+      'project'   => {'title' => 'x', 'hold_date' => 'y'}
+    }).sections.index_by(&:key)
+
+    assert_equal '40 rows × 2 columns', outline['samples'].node.precis
+    assert_equal '2 items',             outline['relations'].node.precis
+    assert_equal '2 fields',            outline['project'].node.precis
+  end
+
+  # A scalar long enough to fold is the shape this class is least likely
+  # to have been told about, and a fold with nothing on it says less than
+  # no fold at all.
+  test 'a long string says how long it is' do
+    node = RecordOutline.new({'project' => 'x' * 2_500}).sections.sole.node
+
+    assert_equal '2,500 characters', node.precis
+  end
+
+  # The record is full of one-key containers — `sequences` is
+  # `{entries: [...]}` — and "1 field" is true of every one of them.
+  test 'a one-key container is described by what it holds' do
+    node = RecordOutline.new({
+      'sequences' => {'entries' => Array.new(40) {|i| {'entry_id' => "E#{i}", 'organism' => 'x'} }}
+    }).sections.sole.node
+
+    assert_equal 'entries: 40 rows × 2 columns', node.precis
+  end
+
   # The view asks twice — whether there is anything, then for each.
   test 'sections are built once' do
     outline = RecordOutline.new({'project' => {'title' => 'x'}})

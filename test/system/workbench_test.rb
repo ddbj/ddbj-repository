@@ -451,8 +451,8 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
     end
   end
 
-  test 'repeated records are a table, and a long one says what it is not showing' do
-    samples = Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
+  test 'repeated records are a table' do
+    samples = Array.new(8) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
 
     with_record({'samples' => samples}) do
       visit record_admin_submission_request_path(@request)
@@ -461,9 +461,29 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
         assert_selector 'th', text: 'alias'
         assert_selector 'th', text: 'organism'
         assert_text 'S0'
+      end
+    end
+  end
 
-        # Twenty rows out of forty look like forty unless it says so.
-        assert_selector '[data-test-record-truncated]', text: 'Showing 20 of 40'
+  # The card sits above the editors and the patch chain, so a section that
+  # costs a screenful to draw is a screenful scrolled past on the way to
+  # them. Folded by size — folding `samples` by name would be shorter and
+  # would give this screen the field knowledge it exists to do without,
+  # missing a `sequences` just as tall and folding a `samples` of three.
+  test 'a section too big to read past starts folded, and says what is in it' do
+    small = {'title' => 'A study'}
+    big   = Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
+
+    with_record({'project' => small, 'samples' => big}) do
+      visit record_admin_submission_request_path(@request)
+
+      assert_selector '[data-test-record-section="project"][open]'
+      assert_no_selector '[data-test-record-section="samples"][open]'
+
+      # A fold that hides the count leaves the reader to open it to find
+      # out whether it was worth opening.
+      within '[data-test-record-section="samples"]' do
+        assert_selector '[data-test-record-precis]', text: '40 rows'
       end
     end
   end
@@ -511,14 +531,110 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
     end
   end
 
-  # Browser search answers "not here" for a value that is in the record
-  # and not on the page, so the omission has to carry its destination
-  # where the reader is rather than only at the top of the card.
-  test 'a truncated collection says where the rest is' do
+  # The JSON is the destination that is always true. The truncation line
+  # said "the tabs above" for a while, which is right for a BS
+  # submission's samples and wrong for every other collection — a
+  # BioProject record's `relations` has no tab behind it.
+  test 'a record whose collections have no screen of their own is not sent to one' do
     with_record({'samples' => Array.new(40) {|i| {'alias' => "S#{i}"} }}) do
       visit record_admin_submission_request_path(@request)
 
-      assert_selector '[data-test-record-truncated]', text: 'in the tabs above or in the JSON below'
+      assert_no_selector '[data-test-record-samples-hint]', wait: 0
     end
+  end
+
+  # The exception to the rule above: one collection does have a screen,
+  # and the card can say so because it is not standing next to a
+  # particular omission claiming to be its destination.
+  test 'a submission whose samples have a screen of their own says so, once there is a reason to' do
+    request    = submission_requests(:biosample)
+    submission = request.submission
+
+    # Including a sample carrying more than fits: a cut somewhere in the
+    # record is not a cut in the list the tab would show.
+    submission.append_update!({
+      'samples' => Array.new(3) {|i| {'alias' => "S#{i}", 'comments' => Array.new(21) { 'note' }} }
+    }, actor: 'test')
+
+    visit record_admin_submission_request_path(request)
+
+    assert_no_selector '[data-test-record-samples-hint]', wait: 0
+
+    submission.append_update!({'samples' => Array.new(40) {|i| {'alias' => "S#{i}"} }}, actor: 'test')
+    visit record_admin_submission_request_path(request)
+
+    within '[data-test-record-samples-hint]' do
+      assert_link 'Samples', href: samples_admin_submission_request_path(request)
+    end
+  end
+end
+
+# What folding does once somebody works it: opening a section, and being
+# taken to one by the Carries row above it.
+class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
+  setup do
+    sign_in_as users(:bob)
+
+    @request = submission_requests(:bioproject)
+  end
+
+  # Every truncated collection is folded, because twenty rows is what
+  # makes a section too tall to read past in the first place. So the
+  # summary carries the total and the line inside carries the rest.
+  test 'opening a folded collection shows what it is not showing' do
+    @request.submission.append_update!({'relations' => Array.new(40) {|i| "PRJDB#{i}" }}, actor: 'test')
+
+    visit record_admin_submission_request_path(@request)
+
+    within '[data-test-record-section="relations"]' do
+      assert_selector '[data-test-record-precis]', text: '40 items'
+
+      find('summary').click
+
+      # Twenty rows out of forty look like forty unless it says so.
+      assert_selector '[data-test-record-truncated]', text: 'Showing 20 of 40 — 20 more in the JSON below'
+    end
+  end
+
+  # Turbo does not treat a same-page fragment as same-page: left to it,
+  # the link fetches the URL and replaces the body, so the section opens
+  # on a page where every other one has closed again.
+  test 'jumping to a section leaves open the ones the curator opened' do
+    @request.submission.append_update!({
+      'relations' => Array.new(40) {|i| "PRJDB#{i}" },
+      'samples'   => Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
+    }, actor: 'test')
+
+    visit record_admin_submission_request_path(@request)
+
+    within('[data-test-record-section="relations"]') { find('summary').click }
+
+    assert_selector '[data-test-record-section="relations"][open]'
+
+    within('[data-test-record-carries]') { click_link 'samples' }
+
+    assert_selector '[data-test-record-section="samples"][open]'
+    assert_selector '[data-test-record-section="relations"][open]'
+  end
+
+  # Browser search opens a closed <details> by itself; fragment navigation
+  # does not, and a link that scrolls to a heading and reveals nothing
+  # reads as broken rather than as closed.
+  test 'a link in the Carries row opens the section it points at' do
+    @request.submission.append_update!({
+      'project' => {'title' => 'A study'},
+      'samples' => Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
+    }, actor: 'test')
+
+    visit record_admin_submission_request_path(@request)
+
+    assert_no_selector '[data-test-record-section="samples"][open]'
+
+    within '[data-test-record-carries]' do
+      click_link 'samples'
+    end
+
+    assert_selector '[data-test-record-section="samples"][open]'
+    assert_text 'S0'
   end
 end

@@ -102,12 +102,20 @@
 <%# Where the omission happened, because that is where somebody is
     reading — and browser search will not tell them. Ctrl+F answers "not
     here" for a value that is in the record and not on the page, so the
-    line has to carry its own destination rather than rely on a note at
-    the top of the card. %>
+    line has to say so itself rather than rely on a note at the top of
+    the card.
+
+    The destination it names is the JSON, which is the one that is always
+    true. It said "the tabs above" for a while, which is right for a BS
+    submission's samples and wrong for every other collection — a BP
+    record's `relations` running past the limit has no tab behind it. A
+    better destination exists for exactly one section and naming it here
+    would mean knowing which section that is; the card says it instead,
+    where being approximate is not a promise. %>
 <% if node.truncated? %>
   <p class="small text-body-secondary mb-0" data-test-record-truncated>
     Showing <%= number_with_delimiter(node.shown) %> of
     <%= number_with_delimiter(node.total) %> —
-    <%= number_with_delimiter(node.hidden) %> more, in the tabs above or in the JSON below.
+    <%= number_with_delimiter(node.hidden) %> more in the JSON below.
   </p>
 <% end %>

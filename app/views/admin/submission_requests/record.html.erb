@@ -29,7 +29,7 @@
         need to see exactly what is stored, and there is no reason to take
         it away. %>
     <% if @outline || @materialised %>
-      <section class="card mb-4" data-test-record-outline>
+      <section class="card mb-4" data-test-record-outline data-controller="record-sections">
         <div class="card-body">
           <h2 class="h6 card-title">Record</h2>
 
@@ -39,6 +39,25 @@
               (limit <%= number_to_human_size(Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT) %>).
               A record this size is a bag of samples or entries, and those have their own
               screens; the JSON below is the whole of it.
+            </p>
+          <% end %>
+
+          <%# The one collection with a screen of its own. A fact about
+              this workbench rather than about the record, which is why it
+              is a `biosample_db?` and not a look at the record's keys —
+              and why it sits on the card rather than on the line reporting
+              an omission, where it would read as a promise about whichever
+              collection was cut. Only where the samples themselves were
+              cut: with every sample already on the page there is nothing
+              to go and see, and the tab is at the top of the screen
+              either way. Asking whether anything anywhere was cut was
+              the same sentence for a record of four samples, one of
+              which carried a long attribute bag. %>
+          <% if @submission.biosample_db? && (@outline.nil? || @outline.section('samples')&.node&.truncated?) %>
+            <p class="text-body-secondary small" data-test-record-samples-hint>
+              The whole list of samples is on the
+              <%= link_to 'Samples', samples_admin_submission_request_path(@request) %>
+              tab, paginated and searchable.
             </p>
           <% end %>
 
@@ -63,7 +82,8 @@
             <p class="small mb-3" data-test-record-carries>
               <span class="text-body-secondary">Carries</span>
               <% sections.each do |section| %>
-                <a href="#record-<%= section.key %>" class="badge text-bg-light border text-decoration-none"><%= section.key %></a>
+                <a href="#record-<%= section.key %>" class="badge text-bg-light border text-decoration-none"
+                   data-action="record-sections#jump"><%= section.key %></a>
               <% end %>
               <span class="text-body-secondary ms-1">
                 <%= sections.size %> of the <%= RecordOutline.schema_key_count %> v3 keys
@@ -71,6 +91,17 @@
             </p>
           <% end %>
 
+          <%# Big sections start folded. The card sits above the editors
+              and the patch chain, and a table of samples is a screenful to
+              scroll past on the way to them every time.
+
+              Folded by height, not by name — see
+              RecordOutline::FOLD_HEIGHT.
+              A closed section still says what it holds, because a fold
+              that hides the count leaves the reader to open it to find
+              out whether it was worth opening. Browser search opens a
+              closed one on a match, so nothing here is beyond Ctrl+F;
+              fragment links do not, which is what the controller is for. %>
           <% sections.each do |section| %>
             <%# The section heading is the page's skeleton and was drawn
                 weaker than the body it introduces, so the joins
@@ -78,11 +109,18 @@
                 make it a structural label — but it takes the body colour,
                 a rule above, and more room above than below, because a
                 heading belongs to what follows it. %>
-            <div class="mt-4 pt-3 border-top" id="record-<%= section.key %>" data-test-record-section="<%= section.key %>">
-              <h3 class="small fw-semibold text-uppercase mb-2" style="letter-spacing: 0.08em;"><%= section.key %></h3>
+            <details class="record-section mt-4 pt-3 border-top" id="record-<%= section.key %>"
+                     data-test-record-section="<%= section.key %>" <%= 'open' unless section.folded? %>>
+              <summary class="mb-2" style="cursor: pointer;">
+                <h3 class="small fw-semibold text-uppercase d-inline mb-0" style="letter-spacing: 0.08em;"><%= section.key %></h3>
+
+                <% if section.folded? && section.node.precis %>
+                  <span class="small text-body-secondary ms-1" data-test-record-precis><%= section.node.precis %></span>
+                <% end %>
+              </summary>
 
               <%= render 'record_node', node: section.node %>
-            </div>
+            </details>
           <% end %>
         </div>
       </section>

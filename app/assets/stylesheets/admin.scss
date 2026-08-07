@@ -1,5 +1,12 @@
 @use 'bootstrap';
 
+// How far down the page the sticky summary and tab strip reach. Anything
+// that positions itself below them — a pinned rail, an anchor's landing
+// place — measures from here, so there is one number to change.
+:root {
+  --workbench-sticky: 14rem;
+}
+
 // --- Curator workbench -------------------------------------------------
 // Identity, state and the primary action stay pinned while the curator
 // scrolls a 50-row sample table, so "what am I looking at" never leaves
@@ -102,7 +109,7 @@
 // Right-hand curation rail on Overview. Clears the sticky summary above it.
 .workbench-rail {
   position: sticky;
-  top: 14rem;
+  top: var(--workbench-sticky);
 }
 
 // Confirmations that open over the page they were pressed on. Native
@@ -156,4 +163,26 @@ textarea.form-control.textarea-autogrow-tall {
 // at the size of the thing being edited rather than at a composer's.
 textarea.form-control.textarea-autogrow-tall {
   min-height: 14lh;
+}
+
+// A section of the record, addressable by the Carries row above it.
+//
+// Landing on one means landing under the sticky summary without this: the
+// browser scrolls the heading to the top of the viewport, which is behind
+// the bar that never moves. True of the sections that are open as much as
+// of the ones a link has to unfold first.
+// The gutter is for the disclosure marker. The headings are <summary>, so
+// the marker sits in front of them and would push each heading a marker's
+// width right of the body it introduces — a ragged left edge down the
+// whole card. Giving the section its own gutter and hanging the marker in
+// it keeps heading and rows on one line, and leaves the marker a margin
+// from the card's edge rather than against it. The rule above each
+// section is the box's border, so it stays full width.
+.record-section {
+  scroll-margin-top: var(--workbench-sticky);
+  padding-left: 1.05rem;
+}
+
+.record-section > summary {
+  margin-left: -1.05rem;
 }
