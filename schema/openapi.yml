@@ -907,6 +907,14 @@ paths:
         Paginated 1000 at a time rather than the usual 20: a page of this
         is read by a script keeping a copy in step, not by a person.
 
+        Walked with a cursor rather than a page number. Offset pagination
+        is wrong for a walk rather than merely slow: a row that disappears
+        from a page already read pulls every later row back one place, and
+        the row on the far side of the boundary is never returned. Pass
+        the `Next-Page` header of the previous response back as `page`;
+        its absence means there is nothing after this page. There is no
+        total.
+
       tags:
         - Submissions
 
@@ -929,15 +937,19 @@ paths:
         - name: page
           in: query
 
+          description: Opaque cursor from the previous response's `Next-Page` header. Omit for the first page.
+
           schema:
-            type: number
+            type: string
 
       responses:
         '200':
           description: Returns the list of accessions.
 
           headers:
-            Total-Pages:
+            Next-Page:
+              description: Cursor for the next page. Absent on the last one.
+
               schema:
                 type: string
 

@@ -148,7 +148,55 @@ class AccessionsTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 200
     assert_equal submission.entries.count, response.parsed_body.size
-    assert_equal '1', response.headers['Total-Pages']
+
+    # The flat list is walked, not numbered: there is no total to count
+    # down to, and the absence of a cursor is how a client knows to stop.
+    assert_nil response.headers['Total-Pages']
+    assert_nil response.headers['Next-Page']
+  end
+
+  # Offset pagination is wrong for a walk rather than merely slow: a row
+  # disappearing from a page already read shifts every later row back by
+  # one, and the row that crosses the page boundary is never returned. A
+  # sync that silently skips a row is the failure this endpoint exists to
+  # avoid.
+  #
+  # Inserts are not the hazard here — ids ascend, so a new row lands
+  # after the cursor and cannot disturb what came before it. Deletions
+  # are, and a submission destroyed mid-walk takes all of its entries.
+  test 'walking the flat list misses nothing when rows disappear mid-walk' do
+    submission = submissions(:st26)
+
+    2.upto(2 * AccessionsController::SYNC_LIMIT) do |i|
+      submission.entries.create! accession: format('ACC_%05d', i), entry_id: "SEQ|#{i}",
+                                 locus_date: Date.new(2026, 1, 15)
+    end
+
+    seen    = []
+    deleted = []
+    cursor  = nil
+
+    loop do
+      get accessions_path(page: cursor)
+
+      assert_conform_schema 200
+      seen.concat response.parsed_body.pluck('accession')
+
+      # A row on a page already read, removed before the next request. An
+      # offset walk closes the gap by pulling everything after it back one
+      # place, so the row on the far side of the boundary is stepped over.
+      if (gone = submission.entries.order(:id).find { seen.include?(it.accession) && !deleted.include?(it.accession) })
+        deleted << gone.accession
+        gone.destroy!
+      end
+
+      break unless (cursor = response.headers['Next-Page'])
+    end
+
+    remaining = submission.entries.pluck(:accession)
+
+    assert_empty remaining - seen, 'every row still there at the end was returned'
+    assert_equal seen.uniq, seen, 'and none of them twice'
   end
 
   test 'index requires authentication' do

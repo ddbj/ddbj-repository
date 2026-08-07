@@ -6,10 +6,11 @@ class AccessionsController < ApplicationController
   def index
     scope = scoped_entries
     scope = filter_by_status(scope, params[:status]) if params[:status].present?
+    scope = scope.order(:id)
 
-    pagy, @accessions = pagy(scope.order(:id), **pagination)
+    return offset_page(scope) if nested_submission_id
 
-    response.headers.merge! pagy.headers_hash
+    keyset_page(scope)
   end
 
   def show
@@ -17,6 +18,12 @@ class AccessionsController < ApplicationController
   end
 
   private
+
+  # From the path, not from `params`: a `?submission_id=` in the query
+  # string would otherwise switch the flat endpoint to nested semantics —
+  # scoping the list, dropping the page size to 20, and 404ing on an id
+  # the caller does not own, none of which /accessions declares.
+  def nested_submission_id = request.path_parameters[:submission_id]
 
   # Nested under a submission it is that submission's entries; on its own
   # it is every entry the caller has.
@@ -28,13 +35,6 @@ class AccessionsController < ApplicationController
   # so it has to hear about a retraction it did not make. Asking that
   # submission by submission is hundreds of thousands of requests for an
   # answer that is usually a handful of rows.
-
-  # From the path, not from `params`: a `?submission_id=` in the query
-  # string would otherwise switch the flat endpoint to nested semantics —
-  # scoping the list, dropping the page size to 20, and 404ing on an id
-  # the caller does not own, none of which /accessions declares.
-  def nested_submission_id = request.path_parameters[:submission_id]
-
   def scoped_entries
     return owned_entries unless nested_submission_id
 
@@ -45,12 +45,38 @@ class AccessionsController < ApplicationController
     Entry.joins(:submission).merge(current_user.submissions)
   end
 
-  # A page of the nested list is read by a person, a page of the flat one
-  # by a script keeping a local copy in step. Twenty rows at a time is
-  # right for the first and is tens of thousands of requests for the
-  # second when a whole submission has been retracted at once.
-  def pagination
-    nested_submission_id ? {} : {limit: SYNC_LIMIT}
+  # A page of the nested list is read by a person: they want to know how
+  # many there are and to jump about, so it is numbered and counted.
+  def offset_page(scope)
+    pagy, @accessions = pagy(scope)
+
+    response.headers.merge! pagy.headers_hash
+  end
+
+  # A page of the flat list is read by a script walking the whole set to
+  # keep a local copy in step, and offset pagination is wrong for that
+  # rather than merely slow: a row that disappears from a page already
+  # read pulls every later row back one place, so the row on the far side
+  # of the boundary is stepped over — the one thing a sync must not do.
+  # Destroying a submission takes all of its entries at once, which is
+  # that hazard several thousand times over.
+  #
+  # Inserts are not the hazard: ids ascend, so a new row lands after the
+  # cursor and cannot disturb what came before it. Seeking past the last
+  # id read is immune to both regardless.
+  #
+  # It also drops a COUNT over millions of rows per request and a
+  # progressively larger OFFSET.
+  #
+  # `page` carries an opaque cursor rather than a number. `Next-Page` is
+  # absent on the last page, which is how a client knows to stop —
+  # there is no total to count down to.
+  def keyset_page(scope)
+    pagy = Pagy::Keyset.new(scope, limit: SYNC_LIMIT, page: params[:page])
+
+    @accessions = pagy.records
+
+    response.headers['Next-Page'] = pagy.next if pagy.next
   end
 
   def filter_by_status(scope, raw)

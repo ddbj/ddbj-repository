@@ -934,12 +934,20 @@ export interface paths {
          *
          *     Paginated 1000 at a time rather than the usual 20: a page of this
          *     is read by a script keeping a copy in step, not by a person.
+         *
+         *     Walked with a cursor rather than a page number. Offset pagination
+         *     is wrong for a walk rather than merely slow: a row landing between
+         *     two requests shifts every later page back by one, and the row
+         *     pushed across the boundary is never returned. Pass the `Next-Page`
+         *     header of the previous response back as `page`; its absence means
+         *     there is nothing after this page. There is no total.
          */
         get: {
             parameters: {
                 query?: {
                     "status[]"?: components["schemas"]["CurationStatus"][];
-                    page?: number;
+                    /** @description Opaque cursor from the previous response's `Next-Page` header. Omit for the first page. */
+                    page?: string;
                 };
                 header?: never;
                 path?: never;
@@ -950,7 +958,8 @@ export interface paths {
                 /** @description Returns the list of accessions. */
                 200: {
                     headers: {
-                        "Total-Pages"?: string;
+                        /** @description Cursor for the next page. Absent on the last one. */
+                        "Next-Page"?: string;
                         [name: string]: unknown;
                     };
                     content: {
