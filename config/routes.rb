@@ -85,7 +85,11 @@ Rails.application.routes.draw do
       resource :assignment, only: %i[create]
 
       member do
+        # One tab, two kinds of row: a BioSample submission's samples, an
+        # ST.26 submission's entries. Separate paths because the URL
+        # should say which one you are looking at.
         get :samples
+        get :entries
         get :messages
         get :record
       end
@@ -117,6 +121,10 @@ Rails.application.routes.draw do
         # carry 100K samples and content edits go through the TSV
         # round-trip.
         post :bulk_update_samples
+
+        # The same, for an ST.26 submission's entries. Retracting one —
+        # canceled or withdrawn — is what keeps it out of the flatfile.
+        post :bulk_update_entries
       end
 
       # One curation state per submission — status, assignee, hold date and

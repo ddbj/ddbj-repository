@@ -104,6 +104,34 @@ module Admin
       redirect_to admin_submission_request_path(submission.request), alert: "Cannot apply: #{e.message}"
     end
 
+    # The Entries tab's bulk, which is the Samples tab's bulk over a
+    # different table. Retracting an entry — canceled or withdrawn — is
+    # what keeps it out of the flatfile, so this is the screen that
+    # decides what goes out.
+    def bulk_update_entries
+      submission = Submission.find(params[:id])
+      return head :not_found unless submission.st26_db?
+
+      back = submission_return_path(submission)
+      raw  = bulk_row_params
+
+      return redirect_to back, alert: 'No entries selected.' if empty_selection?
+      return redirect_to back, alert: 'No changes specified (status left as-is).' if raw[:status].blank?
+
+      unless Entry.statuses.key?(raw[:status])
+        return redirect_to back, alert: "Unknown status: #{raw[:status].inspect}."
+      end
+
+      affected = (target_rows(submission) || submission.entries)
+                 .update_all(status: Entry.statuses.fetch(raw[:status]), updated_at: Time.current)
+
+      participate!(submission.request)
+
+      redirect_to back, notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} entry/entries."
+    rescue RowTargeting::UnknownScope => e
+      redirect_to admin_submission_request_path(submission.request), alert: "Cannot apply: #{e.message}"
+    end
+
     # Cross-submission bulk: apply (status, assignee) to many submissions
     # in one form post from the index. The two land in different places —
     # status on the curation rows (the BP Project, every BS Sample),

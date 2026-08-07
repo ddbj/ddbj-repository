@@ -9,7 +9,7 @@ module Admin
     include SubmissionDetail
     include RequestSearch
 
-    before_action :load_workbench, only: %i[show samples messages record]
+    before_action :load_workbench, only: %i[show samples entries messages record]
 
     # Ordered by last touched, not by id. On a ledger the question is
     # almost always "what moved", and creation order answers that only for
@@ -73,6 +73,20 @@ module Admin
       @matching_count         = @samples_pagy.count
 
       redirect_out_of_range_page(@samples_pagy, key: :samples_page)
+    end
+
+    # The same tab for an ST.26 submission. An entry is a row of the
+    # submission the way a sample is: it has a status a curator sets, and
+    # retracting it keeps it out of the flatfile.
+    def entries
+      return redirect_to admin_submission_request_path(@request) unless @submission&.st26_db?
+
+      @search = EntrySearch.new(@submission.entries, params)
+
+      @entries_pagy, @entries = pagy(@search.scope.order(:id), page_key: 'entries_page', limit: 50)
+      @matching_count         = @entries_pagy.count
+
+      redirect_out_of_range_page(@entries_pagy, key: :entries_page)
     end
 
     # Opening the tab records nothing. It used to mark the thread read for

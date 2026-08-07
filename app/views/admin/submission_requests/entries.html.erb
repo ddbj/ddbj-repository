@@ -1,0 +1,140 @@
+<% content_for :title, "##{@request.id} — Entries" %>
+
+<%= render layout: 'workbench', locals: {tab: :samples} do %>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 mb-0">
+      Entries
+      <span class="text-body-secondary fw-normal"><%= number_with_delimiter(@submission.entries.size) %></span>
+    </h2>
+  </div>
+
+  <%# Said here rather than discovered by a curator who retracted an entry %>
+  <%# and went looking for it in the flatfile. Both halves matter: the %>
+  <%# record keeps it, because the record is the account of what was %>
+  <%# submitted. %>
+  <p class="text-body-secondary small">
+    Canceled and withdrawn entries are left out of the flatfile the next time it
+    is generated. They stay in the record.
+  </p>
+
+  <%# Filter (GET), the same shape as the Samples tab: the curator narrows %>
+  <%# to the group they are fixing, and the bulk bar below acts on exactly %>
+  <%# that group. An ST.26 submission can carry 27K entries. %>
+  <%= form_with url: entries_admin_submission_request_path(@request), method: :get, local: true,
+                class: 'row g-2 align-items-end bg-body-tertiary border rounded p-3 mb-3' do %>
+    <div class="col-md-5">
+      <%= label_tag :q, 'Search', class: 'form-label form-label-sm' %>
+      <%= search_field_tag :q, @search.q, class: 'form-control form-control-sm',
+                           placeholder: 'entry ID, accession' %>
+    </div>
+
+    <div class="col-md-3">
+      <%= label_tag :status, 'Status', class: 'form-label form-label-sm' %>
+      <%= select_tag :status,
+                     options_for_select(Entry.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] }, @search.statuses.first),
+                     include_blank: 'Any', class: 'form-select form-select-sm' %>
+    </div>
+
+    <div class="col-md-4 d-flex gap-2">
+      <%= submit_tag 'Filter', class: 'btn btn-primary btn-sm', name: nil %>
+
+      <% if @search.active? %>
+        <%= link_to 'Clear', entries_admin_submission_request_path(@request), class: 'btn btn-link btn-sm' %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%= form_with url:                bulk_update_entries_admin_submission_path(@submission, @search.to_params),
+                method:             :post,
+                scope:              :bulk_row,
+                local:              true,
+                authenticity_token: form_authenticity_token,
+                data:               {controller: 'bulk-select'} do |f| %>
+    <table class="table border align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 1rem;">
+            <input type="checkbox" class="form-check-input" data-bulk-select-target="toggle" aria-label="Select all on this page">
+          </th>
+          <th>Accession</th>
+          <th>Entry ID</th>
+          <th>Version</th>
+          <th>LOCUS date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% @entries.each do |entry| %>
+          <tr>
+            <td>
+              <%= f.check_box :ids,
+                              {multiple: true, class: 'form-check-input', data: {bulk_select_target: 'row'}, 'aria-label': "Select #{entry.entry_id}"},
+                              entry.id, nil %>
+            </td>
+            <td><%= tag.code entry.number %></td>
+            <td class="font-monospace small"><%= entry.entry_id %></td>
+            <td class="text-body-secondary"><%= entry.version %></td>
+            <td class="text-body-secondary"><%= entry.locus_date %></td>
+            <td>
+              <span class="badge text-bg-<%= Admin::ViewHelpers::CURATION_STATUS_COLORS.fetch(entry.status, 'secondary') %> text-capitalize">
+                <%= entry.status.tr('_', ' ') %>
+              </span>
+            </td>
+          </tr>
+        <% end %>
+
+        <% if @entries.empty? %>
+          <tr>
+            <td colspan="6">
+              <%# A submission with no entries at all is not a filter %>
+              <%# problem, and saying it is sends the reader looking for a %>
+              <%# filter to clear. %>
+              <% if @search.active? %>
+                <%= empty_state :filtered, 'No entries match this filter.',
+                                @search.to_params.map { |key, value| "#{key.to_s.capitalize}: #{Array(value).join(', ')}" }.join(' · ') do %>
+                  <%= link_to 'Clear filters', entries_admin_submission_request_path(@request),
+                              class: 'btn btn-sm btn-outline-secondary' %>
+                <% end %>
+              <% else %>
+                <%= empty_state :first_run, 'This submission has no entries.' %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+
+    <%= render 'admin/shared/pagy_nav', pagy: @entries_pagy %>
+
+    <% if @matching_count.positive? %>
+      <div class="bulk-bar bg-dark text-white rounded-3 p-3 d-flex align-items-center gap-3 flex-wrap">
+        <div class="d-flex align-items-center gap-3">
+          <div class="form-check mb-0">
+            <%= f.radio_button :scope, 'selected', checked: true, class: 'form-check-input' %>
+            <%= f.label :scope_selected, class: 'form-check-label text-nowrap' do %>
+              <span data-bulk-select-target="counter">0</span> selected on this page
+            <% end %>
+          </div>
+
+          <div class="form-check mb-0">
+            <%= f.radio_button :scope, 'filtered', class: 'form-check-input' %>
+            <%= f.label :scope_filtered, "All #{number_with_delimiter(@matching_count)} matching the filter",
+                        class: 'form-check-label text-nowrap' %>
+          </div>
+        </div>
+
+        <span class="flex-fill"></span>
+
+        <%= f.select :status,
+                     Entry.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                     {include_blank: 'Status — leave as-is'},
+                     class: 'form-select form-select-sm w-auto' %>
+
+        <%# Reversible — the flatfile is regenerated from the statuses, so %>
+        <%# setting one back puts the entry back. No confirmation. %>
+        <%= f.submit 'Apply', class: 'btn btn-outline-light btn-sm' %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>

@@ -108,14 +108,23 @@
                       path:  admin_submission_request_path(@request),
                       active: overview %>
 
-    <%# BP has a single Project and ST.26 has no curation rows at all, so %>
-    <%# there is no sample workbench to offer — and no count to imply one. %>
-    <% biosample = @submission&.biosample_db? %>
-    <%= render 'tab', label: workbench_tab_label(:samples),
-                      path:  samples_admin_submission_request_path(@request),
+    <%# One slot, named for what the submission's rows are: a BioSample %>
+    <%# submission has samples, an ST.26 one has entries. BioProject has %>
+    <%# a single Project and no bag of anything, so the slot is disabled %>
+    <%# and carries no count to imply one. %>
+    <% rows =
+         if @submission&.biosample_db?
+           {label: 'Samples', path: samples_admin_submission_request_path(@request), count: @state.row_count}
+         elsif @submission&.st26_db?
+           {label: 'Entries', path: entries_admin_submission_request_path(@request), count: @submission.entries.size}
+         else
+           {label: workbench_tab_label(:samples), path: samples_admin_submission_request_path(@request)}
+         end %>
+    <%= render 'tab', label: rows[:label],
+                      path:  rows[:path],
                       active: tab == :samples,
-                      count: (@state.row_count if biosample),
-                      disabled: !biosample %>
+                      count: rows[:count],
+                      disabled: rows[:count].nil? %>
 
     <%= render 'tab', label: workbench_tab_label(:messages),
                       path:  messages_admin_submission_request_path(@request),
