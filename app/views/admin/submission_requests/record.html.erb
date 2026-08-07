@@ -7,18 +7,16 @@
       record and no history.
     </p>
   <% else %>
-    <%# Record content editors. These write v3 fields through the patch %>
-    <%# chain, so they belong with the record rather than with the %>
-    <%# operational state on Overview. %>
-    <% if @materialised && @materialisation_error.nil? %>
-      <% if @submission.bioproject_db? %>
-        <%= render 'admin/project_records/curator_edit', submission: @submission %>
-      <% end %>
+    <%# The record itself, laid out for reading — first, because the tab
+        is called Record & history and because reading precedes editing.
+        It also shows the fields the editors below do not cover (grants,
+        relations, anything a later schema adds), so it is the map for
+        the rest of the tab.
 
-      <%= render 'admin/submitters/curator_edit', submission: @submission %>
-    <% end %>
-
-    <%# The record itself, laid out for reading.
+        Not on Overview: that screen answers "what state is this in and
+        what is the next move", with `next_action` at the top for exactly
+        that reason, and a whole record above the fold would push the move
+        out of sight — the arrangement the task-axis rebuild took apart.
 
         Curators were being given the raw JSON, which is the whole record
         and unreadable. A curated subset would be readable and not the
@@ -89,6 +87,18 @@
         </div>
       </section>
     <% end %>
+
+    <%# Record content editors. These write v3 fields through the patch %>
+    <%# chain, so they belong with the record rather than with the %>
+    <%# operational state on Overview. %>
+    <% if @materialised && @materialisation_error.nil? %>
+      <% if @submission.bioproject_db? %>
+        <%= render 'admin/project_records/curator_edit', submission: @submission %>
+      <% end %>
+
+      <%= render 'admin/submitters/curator_edit', submission: @submission %>
+    <% end %>
+
 
     <h2 class="h5 mt-4">
       Patch chain
