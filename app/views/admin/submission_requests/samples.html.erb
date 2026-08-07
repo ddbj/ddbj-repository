@@ -76,7 +76,7 @@
   <%# per-form one — see admin/submission_requests/_request_list for both. %>
   <%= form_with url:                bulk_update_samples_admin_submission_path(@submission, @search.to_params),
                 method:             :post,
-                scope:              :bulk_sample,
+                scope:              :bulk_row,
                 local:              true,
                 authenticity_token: form_authenticity_token,
                 data:               {controller: 'bulk-select'} do |f| %>
@@ -98,7 +98,7 @@
         <% @samples.each do |sample| %>
           <tr>
             <td>
-              <%= f.check_box :sample_ids,
+              <%= f.check_box :ids,
                               {multiple: true, class: 'form-check-input', data: {bulk_select_target: 'row'}, 'aria-label': "Select #{sample.sample_name}"},
                               sample.id, nil %>
             </td>

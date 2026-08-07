@@ -1,14 +1,10 @@
-# Narrows a BS submission's samples down to "the group I am fixing right
-# now". A submission can carry 100K samples, so the Samples screen is
-# useless without this: the curator never wants the whole bag, they want
-# the un-accessioned ones, or the ones still being curated, or the ones
-# whose name matches something.
-#
-# The same object backs the list and the bulk action, so "apply to all
-# rows matching the filter" re-derives the target set server-side from the
-# posted filter rather than trusting a client-supplied id list — which is
-# the only way that button can mean what it says at 100K rows.
-class SampleSearch
+# A BioSample submission's samples. Adds the one filter that is a
+# sample's alone: whether it has an accession yet. An ST.26 entry always
+# has one — the number is what the row is created with — so there is
+# nothing there to ask about.
+class SampleSearch < SubmissionRowSearch
+  search_columns :sample_name, :organism, :accession
+
   FILTER_KEYS = %i[q status accession].freeze
 
   ACCESSION_STATES = {
@@ -16,46 +12,17 @@ class SampleSearch
     'not_issued' => 'Not issued'
   }.freeze
 
-  def initialize(relation, params)
-    @relation = relation
-    @params   = params
-  end
-
-  def scope
-    [:search, :by_status, :by_accession].reduce(@relation) {|scope, step| send(step, scope) }
-  end
-
-  def q = @params[:q].to_s.strip
-
-  def statuses = @statuses ||= Array(@params[:status]).map(&:to_s) & Sample.statuses.keys
-
   def accession_state
     ACCESSION_STATES.key?(@params[:accession]) ? @params[:accession] : nil
   end
 
-  def active?
-    q.present? || statuses.any? || accession_state
-  end
+  def active? = super || accession_state.present?
 
-  # The current filter as query params, so pagination links and the bulk
-  # form carry the selection forward.
-  def to_params
-    {q: q.presence, status: statuses.presence, accession: accession_state}.compact
-  end
+  def to_params = super.merge({accession: accession_state}.compact)
 
   private
 
-  def search(scope)
-    return scope if q.blank?
-
-    pattern = "%#{ActiveRecord::Base.sanitize_sql_like(q)}%"
-
-    scope.where('sample_name ILIKE :pattern OR organism ILIKE :pattern OR accession ILIKE :pattern', pattern:)
-  end
-
-  def by_status(scope)
-    statuses.any? ? scope.where(status: statuses) : scope
-  end
+  def steps = super + %i[by_accession]
 
   def by_accession(scope)
     case accession_state

@@ -83,9 +83,9 @@
           <%= hidden_field_tag 'bulk[submission_ids][]', id %>
         <% end %>
 
-        <% @passthrough&.dig('bulk_sample')&.each do |key, value| %>
+        <% @passthrough&.dig('bulk_row')&.each do |key, value| %>
           <% Array(value).each do |v| %>
-            <%= hidden_field_tag "bulk_sample[#{key}]#{'[]' if value.is_a?(Array)}", v %>
+            <%= hidden_field_tag "bulk_row[#{key}]#{'[]' if value.is_a?(Array)}", v %>
           <% end %>
         <% end %>
 

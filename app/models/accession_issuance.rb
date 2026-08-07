@@ -79,13 +79,18 @@ class AccessionIssuance < ApplicationRecord
 
   # Which samples the curator asked for, as the Samples screen expressed
   # it. Resolved rather than stored so a filtered scope means what it
-  # says at the time the job runs — see SampleTargeting.
+  # says at the time the job runs — see RowTargeting.
+  #
+  # `sample_ids` is the stored key and stays that way: the form param it
+  # came from was renamed when the Entries tab started sharing the
+  # concern, but rows written before that are still in the table, and a
+  # `selected` issuance that reads the wrong key targets nothing.
   #
   # nil means "every sample in the submission", which is what the
   # workbench's own button wants. An unrecognised scope must NOT mean
   # that: widening a handful of checked rows into all 100K is the
   # irreversible direction once the Sequence has moved.
-  def target_samples
+  def target_rows
     return nil unless submission.biosample_db?
 
     scope = targeting.with_indifferent_access
@@ -94,7 +99,7 @@ class AccessionIssuance < ApplicationRecord
     when nil        then nil
     when 'selected' then submission.samples.where(id: scope[:sample_ids])
     when 'filtered' then SampleSearch.new(submission.samples, scope.fetch(:filter, {})).scope
-    else                 raise Admin::SampleTargeting::UnknownScope, "Unknown target: #{scope[:scope].inspect}."
+    else                 raise Admin::RowTargeting::UnknownScope, "Unknown target: #{scope[:scope].inspect}."
     end
   end
 end

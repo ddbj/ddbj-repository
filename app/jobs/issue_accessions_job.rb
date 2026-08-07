@@ -40,7 +40,7 @@ class IssueAccessionsJob < ApplicationJob
     result = AccessionIssue.call(
       submission: issuance.submission,
       actor:      issuance.actor,
-      samples:    issuance.target_samples,
+      samples:    issuance.target_rows,
       issuance:
     )
 

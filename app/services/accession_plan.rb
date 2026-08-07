@@ -87,7 +87,7 @@ class AccessionPlan
   def skip_reason_for(rows)
     pending = rows.where(accession: nil)
 
-    # An empty target set is not "all done": a stale sample_ids list from
+    # An empty target set is not "all done": a stale ids list from
     # a page rendered before somebody else moved the rows resolves to
     # nothing, and reporting that as already-accessioned is a different
     # claim entirely.
@@ -109,6 +109,6 @@ class AccessionPlan
   def targeted(submission)
     return nil if @targeting.blank? || !submission.biosample_db?
 
-    AccessionIssuance.new(submission:, targeting: @targeting).target_samples
+    AccessionIssuance.new(submission:, targeting: @targeting).target_rows
   end
 end

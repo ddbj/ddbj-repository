@@ -36,7 +36,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     submission = submissions(:biosample)
 
     post admin_submission_accessions_path(submission),
-         params: {status: 'private', bulk_sample: {scope: 'filtered'}}
+         params: {status: 'private', bulk_row: {scope: 'filtered'}}
 
     targeting = submission.accession_issuances.sole.targeting
 
@@ -44,16 +44,22 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     assert_equal({'status' => %w[private]}, targeting['filter'])
   end
 
+  # The form param and the stored key are not the same name and must not
+  # be made to match: rows written before the Entries tab renamed the
+  # param are still in the table, and reading the wrong key targets
+  # nothing at all.
   test 'a checkbox selection is stored as the ids that were ticked' do
     submission = submissions(:biosample)
 
     post admin_submission_accessions_path(submission),
-         params: {bulk_sample: {scope: 'selected', sample_ids: [samples(:first).id]}}
+         params: {bulk_row: {scope: 'selected', ids: [samples(:first).id]}}
 
     targeting = submission.accession_issuances.sole.targeting
 
     assert_equal 'selected',           targeting['scope']
     assert_equal [samples(:first).id], targeting['sample_ids']
+    assert_equal [samples(:first).id],
+                 AccessionIssuance.new(submission:, targeting:).send(:target_rows).ids
   end
 
   # A garbled scope would otherwise widen a handful of checked rows into
@@ -63,7 +69,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     submission = submissions(:biosample)
 
     assert_no_enqueued_jobs only: IssueAccessionsJob do
-      post admin_submission_accessions_path(submission), params: {bulk_sample: {scope: 'everything'}}
+      post admin_submission_accessions_path(submission), params: {bulk_row: {scope: 'everything'}}
     end
 
     assert_match(/Cannot issue accession/, flash[:alert])
@@ -73,7 +79,7 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     submission = submissions(:biosample)
 
     assert_no_enqueued_jobs only: IssueAccessionsJob do
-      post admin_submission_accessions_path(submission), params: {bulk_sample: {scope: 'selected', sample_ids: []}}
+      post admin_submission_accessions_path(submission), params: {bulk_row: {scope: 'selected', ids: []}}
     end
 
     assert_match(/No samples selected/, flash[:alert])

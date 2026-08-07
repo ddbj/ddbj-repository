@@ -5,7 +5,7 @@ module Admin
   # UI lives on SubmissionRequestsController (the request is the unit);
   # a bare submission link redirects there.
   class SubmissionsController < ApplicationController
-    include SampleTargeting
+    include RowTargeting
 
     # The submission detail is now rendered inside the request-keyed show
     # (admin/submission_requests#show), so the request stays the single
@@ -65,7 +65,7 @@ module Admin
 
     # Bulk-apply status to the samples the Samples screen targeted — the
     # checkboxed rows, or every row matching the current filter (see
-    # SampleTargeting). Assignment is not here: it belongs to the request
+    # RowTargeting). Assignment is not here: it belongs to the request
     # as a whole, so there is nothing to apply per sample.
     #
     # Uses `update_all` (1 SQL) so the 100K-sample case stays interactive,
@@ -79,7 +79,7 @@ module Admin
 
       back    = submission_return_path(submission)
       attrs   = {}
-      raw     = bulk_sample_params
+      raw     = bulk_row_params
 
       return redirect_to back, alert: 'No samples selected.' if empty_selection?
 
@@ -94,13 +94,13 @@ module Admin
       return redirect_to back, alert: 'No changes specified (status left as-is).' if attrs.empty?
 
       attrs[:updated_at] = Time.current
-      affected = (target_samples(submission) || submission.samples).update_all(attrs)
+      affected = (target_rows(submission) || submission.samples).update_all(attrs)
 
       record_curation_event(submission, affected, raw)
       participate!(submission.request)
 
       redirect_to back, notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} sample(s)."
-    rescue SampleTargeting::UnknownScope => e
+    rescue RowTargeting::UnknownScope => e
       redirect_to admin_submission_request_path(submission.request), alert: "Cannot apply: #{e.message}"
     end
 
@@ -349,8 +349,8 @@ module Admin
       User.find_by(id: raw)&.uid
     end
 
-    def bulk_sample_params
-      params.expect(bulk_sample: [:status, :scope, {sample_ids: []}])
+    def bulk_row_params
+      params.expect(bulk_row: [:status, :scope, {ids: []}])
     end
 
     def bulk_cross_params

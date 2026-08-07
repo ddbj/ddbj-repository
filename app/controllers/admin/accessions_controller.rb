@@ -5,14 +5,14 @@ module Admin
   #
   # BP: 1 PRJDB, stamped onto the Project row and the record. BS: a SAMD
   # for the targeted samples — every un-accessioned one by default, or the
-  # subset the Samples screen picked (see SampleTargeting).
+  # subset the Samples screen picked (see RowTargeting).
   #
   # The work runs in IssueAccessionsJob rather than here: the Sequence row
   # lock is held until the surrounding transaction commits, and that
   # transaction replays the patch chain and uploads a blob. See the
   # accession_issuances migration.
   class AccessionsController < ApplicationController
-    include SampleTargeting
+    include RowTargeting
 
     def show
       @submission = Submission.find(params[:submission_id])
@@ -39,8 +39,8 @@ module Admin
       # targeting here and handing it to `create` as a new shape would
       # add a second thing to trust; this way `create` reads exactly what
       # it read before the confirmation existed.
-      @passthrough = params.slice(:bulk_sample).permit(bulk_sample: [:scope, {sample_ids: []}]).to_h
-    rescue SampleTargeting::UnknownScope => e
+      @passthrough = params.slice(:bulk_row).permit(bulk_row: [:scope, {ids: []}]).to_h
+    rescue RowTargeting::UnknownScope => e
       redirect_to submission_return_path(submission), alert: "Cannot issue accession: #{e.message}"
     end
 
@@ -77,7 +77,7 @@ module Admin
       IssueAccessionsJob.perform_later(issuance_id: issuance.id)
 
       redirect_to admin_accession_issuance_run_path(run)
-    rescue SampleTargeting::UnknownScope => e
+    rescue RowTargeting::UnknownScope => e
       redirect_to submission_return_path(submission), alert: "Cannot issue accession: #{e.message}"
     end
 
@@ -96,11 +96,11 @@ module Admin
     def targeting_for(submission)
       return {} unless submission.biosample_db?
 
-      case params.dig(:bulk_sample, :scope).presence
+      case params.dig(:bulk_row, :scope).presence
       when nil        then {}
-      when 'selected' then {scope: 'selected', sample_ids: selected_sample_ids}
+      when 'selected' then {scope: 'selected', sample_ids: selected_row_ids}
       when 'filtered' then {scope: 'filtered', filter: SampleSearch.new(submission.samples, params).to_params}
-      else                 raise SampleTargeting::UnknownScope, "Unknown target: #{params.dig(:bulk_sample, :scope).inspect}."
+      else                 raise RowTargeting::UnknownScope, "Unknown target: #{params.dig(:bulk_row, :scope).inspect}."
       end
     end
   end
