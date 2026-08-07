@@ -10,7 +10,7 @@ class Submission < ApplicationRecord
   has_one :request, dependent: :destroy, class_name: 'SubmissionRequest'
 
   has_many :updates,    dependent: :destroy, class_name: 'SubmissionUpdate'
-  has_many :accessions, dependent: :destroy
+  has_many :entries, dependent: :destroy
 
   has_one  :project, dependent: :destroy
   has_many :samples, dependent: :destroy
@@ -59,8 +59,8 @@ class Submission < ApplicationRecord
   end
 
   # [first_accession, count] for list display, reading the right source
-  # per DB: BP → its Project, BS → its Samples, ST.26 → the accessions
-  # table. For BS the caller passes the preloaded [first, count] aggregate
+  # per DB: BP → its Project, BS → its Samples, ST.26 → its Entries. For
+  # BS the caller passes the preloaded [first, count] aggregate
   # as `bs_accession` (one grouped query for the whole page) to avoid an
   # N+1; without it a BS submission reports "not loaded" (0) rather than
   # silently firing per-row queries.
@@ -71,7 +71,7 @@ class Submission < ApplicationRecord
     elsif biosample_db?
       bs_accession || [nil, 0]
     else
-      records = accessions.to_a
+      records = entries.to_a
       [records.min_by(&:id)&.number, records.size]
     end
   end

@@ -16,7 +16,7 @@ module Admin
     private
 
     def load_requests(scope)
-      @pagy, @requests   = pagy(scope.includes(:user, :assignee, submission: %i[project accessions]))
+      @pagy, @requests   = pagy(scope.includes(:user, :assignee, submission: %i[project entries]))
       @sample_aggregates = sample_aggregates_for(@requests.filter_map(&:submission))
     end
 

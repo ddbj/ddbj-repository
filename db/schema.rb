@@ -10,18 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_06_160000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_07_100001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
-
-  create_table "accession_histories", force: :cascade do |t|
-    t.bigint "accession_id", null: false
-    t.string "action", null: false
-    t.datetime "created_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["accession_id"], name: "index_accession_histories_on_accession_id"
-    t.index ["user_id"], name: "index_accession_histories_on_user_id"
-  end
 
   create_table "accession_issuance_runs", force: :cascade do |t|
     t.string "actor", null: false
@@ -48,19 +39,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160000) do
     t.datetime "updated_at", null: false
     t.index ["run_id"], name: "index_accession_issuances_on_run_id"
     t.index ["submission_id", "started_at"], name: "index_accession_issuances_on_submission_id_and_started_at"
-  end
-
-  create_table "accessions", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "entry_id", null: false
-    t.date "locus_date", default: -> { "CURRENT_TIMESTAMP" }, null: false
-    t.string "number", null: false
-    t.bigint "submission_id", null: false
-    t.datetime "updated_at", null: false
-    t.integer "version", default: 1, null: false
-    t.index ["number", "entry_id", "version"], name: "index_accessions_on_number_and_entry_id_and_version", unique: true
-    t.index ["number"], name: "index_accessions_on_number", unique: true
-    t.index ["submission_id"], name: "index_accessions_on_submission_id"
   end
 
   create_table "active_storage_attachments", force: :cascade do |t|
@@ -121,6 +99,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160000) do
     t.datetime "created_at", null: false
     t.string "subject", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "entries", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "entry_id", null: false
+    t.date "locus_date", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "number", null: false
+    t.integer "status", default: 5300, null: false
+    t.bigint "submission_id", null: false
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.index ["number", "entry_id", "version"], name: "index_entries_on_number_and_entry_id_and_version", unique: true
+    t.index ["number"], name: "index_entries_on_number", unique: true
+    t.index ["submission_id"], name: "index_entries_on_submission_id"
+  end
+
+  create_table "entry_histories", force: :cascade do |t|
+    t.string "action", null: false
+    t.datetime "created_at", null: false
+    t.bigint "entry_id", null: false
+    t.bigint "user_id", null: false
+    t.index ["entry_id"], name: "index_entry_histories_on_entry_id"
+    t.index ["user_id"], name: "index_entry_histories_on_user_id"
   end
 
   create_table "migration_runs", force: :cascade do |t|
@@ -420,16 +421,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_06_160000) do
     t.index ["subject_type", "subject_id"], name: "index_validations_on_subject"
   end
 
-  add_foreign_key "accession_histories", "accessions"
-  add_foreign_key "accession_histories", "users"
   add_foreign_key "accession_issuances", "accession_issuance_runs", column: "run_id"
   add_foreign_key "accession_issuances", "submissions"
-  add_foreign_key "accessions", "submissions"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "curation_events", "submission_updates", on_delete: :nullify
   add_foreign_key "curation_events", "submissions"
   add_foreign_key "distribution_notices", "users"
+  add_foreign_key "entries", "submissions"
+  add_foreign_key "entry_histories", "entries"
+  add_foreign_key "entry_histories", "users"
   add_foreign_key "project_links", "projects", column: "child_project_id"
   add_foreign_key "project_links", "projects", column: "parent_project_id"
   add_foreign_key "projects", "submissions"

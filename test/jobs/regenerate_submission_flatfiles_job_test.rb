@@ -44,29 +44,29 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     failure = run.failures.sole
 
     assert_equal @submission,                        failure.submission
-    assert_equal @submission.accessions.first.number, failure.label
+    assert_equal @submission.entries.first.number, failure.label
     assert_match(/not yet implemented for v3/,        failure.message)
   end
 
   test 'force: true regenerates even when flatfiles would be identical' do
     run = new_run
 
-    assert_difference 'AccessionHistory.where(action: "regenerate").count', @submission.accessions.count do
+    assert_difference 'EntryHistory.where(action: "regenerate").count', @submission.entries.count do
       RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1), force: true
     end
 
-    @submission.accessions.each do |acc|
+    @submission.entries.each do |acc|
       assert_equal Date.new(2026, 7, 1), acc.reload.locus_date
     end
   end
 
   test 'does nothing when flatfiles would be identical' do
-    original_locus_dates = @submission.accessions.pluck(:id, :locus_date).to_h
+    original_locus_dates = @submission.entries.pluck(:id, :locus_date).to_h
     original_na_blob_id  = @submission.flatfile_na.blob.id
 
     run = new_run
 
-    assert_no_difference 'AccessionHistory.count' do
+    assert_no_difference 'EntryHistory.count' do
       RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2099, 1, 1)
     end
 
@@ -74,7 +74,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
 
     assert_equal original_na_blob_id, @submission.flatfile_na.blob.id
 
-    @submission.accessions.each do |acc|
+    @submission.entries.each do |acc|
       assert_equal original_locus_dates[acc.id], acc.locus_date
     end
 
@@ -99,7 +99,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     assert @submission.flatfile_na.attached?
     assert_match /01-JUL-2026/, @submission.flatfile_na.download
 
-    @submission.accessions.each do |acc|
+    @submission.entries.each do |acc|
       assert_equal Date.new(2026, 7, 1), acc.locus_date
     end
   end
@@ -112,9 +112,9 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
 
     RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
 
-    histories = AccessionHistory.where(accession: @submission.accessions, action: 'regenerate')
+    histories = EntryHistory.where(entry: @submission.entries, action: 'regenerate')
 
-    assert_equal @submission.accessions.count, histories.count
+    assert_equal @submission.entries.count, histories.count
     assert histories.all? { it.user == @admin }
   end
 

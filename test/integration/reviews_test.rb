@@ -67,7 +67,7 @@ class ReviewsTest < ActionDispatch::IntegrationTest
   end
 
   test 'GET accessions returns the submission accessions' do
-    @submission_request.submission.accessions.create!(number: 'ACC_REVIEW1', entry_id: 'E|1', version: 1)
+    @submission_request.submission.entries.create!(number: 'ACC_REVIEW1', entry_id: 'E|1', version: 1)
 
     get review_accessions_path(@access.token)
 

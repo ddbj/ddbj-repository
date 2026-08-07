@@ -137,7 +137,7 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     bs   = body.find { it['id'] == submission_requests(:biosample).id }
 
     # ST.26: the accessions table (two rows) — first is the lowest id.
-    assert_equal submissions(:st26).accessions.order(:id).first.number, st26['first_accession']
+    assert_equal submissions(:st26).entries.order(:id).first.number, st26['first_accession']
     assert_equal 2, st26['accession_count']
 
     # BP: the Project's accession.

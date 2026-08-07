@@ -29,7 +29,7 @@ class MyQueue
 
     # Oldest first: a queue is a working order, not a newsfeed.
     def requests
-      scope.reorder(updated_at: :asc).includes(:user, :assignee, submission: %i[project accessions])
+      scope.reorder(updated_at: :asc).includes(:user, :assignee, submission: %i[project entries])
     end
   end
 

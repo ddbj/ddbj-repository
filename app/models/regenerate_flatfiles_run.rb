@@ -36,7 +36,7 @@ class RegenerateFlatfilesRun < ApplicationRecord
 
   # What a second press has to wait for. Two runs over the same
   # submission put two workers on the same record: both rewrite the
-  # flatfile, both overwrite `accessions.locus_date`, and both write an
+  # flatfile, both overwrite `entries.locus_date`, and both write an
   # accession history entry. The stale bound is the escape — a run that
   # reports nothing for an hour stops blocking later ones, or one dead
   # worker would close the tool for good.
@@ -162,7 +162,7 @@ class RegenerateFlatfilesRun < ApplicationRecord
   def self.label_for(submission)
     return 'unknown submission' unless submission
 
-    submission.accessions.order(:id).first&.number.presence ||
+    submission.entries.order(:id).first&.number.presence ||
       submission.source_id.presence ||
       "submission ##{submission.id}"
   end

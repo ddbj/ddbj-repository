@@ -31,7 +31,7 @@ module Admin
         EXISTS (SELECT 1 FROM submissions WHERE submissions.id           = submission_requests.submission_id AND submissions.source_id ILIKE :pattern) OR
         EXISTS (SELECT 1 FROM projects    WHERE projects.submission_id   = submission_requests.submission_id AND projects.accession    ILIKE :pattern) OR
         EXISTS (SELECT 1 FROM samples     WHERE samples.submission_id    = submission_requests.submission_id AND samples.accession     ILIKE :pattern) OR
-        EXISTS (SELECT 1 FROM accessions  WHERE accessions.submission_id = submission_requests.submission_id AND accessions.number     ILIKE :pattern)
+        EXISTS (SELECT 1 FROM entries  WHERE entries.submission_id = submission_requests.submission_id AND entries.number     ILIKE :pattern)
       SQL
     end
   end

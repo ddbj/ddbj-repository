@@ -13,7 +13,7 @@ class ReviewsController < ApplicationController
   def accessions
     submission = reviewed_request.submission or raise ActiveRecord::RecordNotFound
 
-    pagy, @accessions = pagy(submission.accessions.order(:id))
+    pagy, @accessions = pagy(submission.entries.order(:id))
     response.headers.merge! pagy.headers_hash
 
     render 'accessions/index'

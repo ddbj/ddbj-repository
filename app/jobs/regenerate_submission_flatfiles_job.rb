@@ -33,9 +33,9 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     regenerating = force || changed?(submission, record)
 
     if regenerating
-      submission.accessions.update_all(locus_date: date) if date
+      submission.entries.update_all(locus_date: date) if date
 
-      entries             = build_entries(record, submission.accessions.reload)
+      entries             = build_entries(record, submission.entries.reload)
       record_with_entries = record.with(sequences: record.sequences.with(entries:))
 
       generate_outputs record_with_entries, entries, **{
@@ -45,9 +45,9 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
         submission.update! updates
       end
 
-      AccessionHistory.insert_all! submission.accessions.ids.map {|id|
+      EntryHistory.insert_all! submission.entries.ids.map {|id|
         {
-          accession_id: id,
+          entry_id: id,
           user_id:      user.id,
           action:       'regenerate'
         }
@@ -104,7 +104,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   end
 
   def changed?(submission, record)
-    entries             = build_entries(record, submission.accessions)
+    entries             = build_entries(record, submission.entries)
     record_with_entries = record.with(sequences: record.sequences.with(entries:))
 
     result = false
@@ -122,11 +122,11 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     result
   end
 
-  def build_entries(record, accessions)
-    accessions_by_entry_id = accessions.index_by(&:entry_id)
+  def build_entries(record, rows)
+    rows_by_entry_id = rows.index_by(&:entry_id)
 
     record.sequences.entries.map {|entry|
-      acc = accessions_by_entry_id.fetch(entry.id)
+      acc = rows_by_entry_id.fetch(entry.id)
 
       entry.with(
         accession:    acc.number,

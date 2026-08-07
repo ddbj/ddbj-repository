@@ -12,7 +12,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
 
     attach_submission_files submission
 
-    accession = submission.accessions.first
+    accession = submission.entries.first
 
     get accession_path(accession.number)
 
@@ -37,7 +37,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     default_headers['Authorization'] = "Bearer #{users(:carol).api_key}"
 
     with_exceptions_app do
-      get accession_path(submissions(:st26).accessions.first.number)
+      get accession_path(submissions(:st26).entries.first.number)
     end
 
     assert_conform_schema 404

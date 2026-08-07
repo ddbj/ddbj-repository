@@ -62,7 +62,7 @@ class ApplySubmissionRequestJob < ApplicationJob
       entry_accessions = {}
       conn             = ActiveRecord::Base.connection.raw_connection
 
-      conn.copy_data('COPY accessions (number, entry_id, submission_id, version, locus_date, created_at, updated_at) FROM STDIN') do
+      conn.copy_data('COPY entries (number, entry_id, submission_id, version, locus_date, created_at, updated_at) FROM STDIN') do
         entry_metas.each do |meta|
           number = (meta[:is_aa] ? aa_nums : na_nums).shift
 
@@ -72,9 +72,9 @@ class ApplySubmissionRequestJob < ApplicationJob
         end
       end
 
-      AccessionHistory.insert_all! submission.accessions.ids.map {|id|
+      EntryHistory.insert_all! submission.entries.ids.map {|id|
         {
-          accession_id: id,
+          entry_id: id,
           user_id:      request.user_id,
           action:       'create'
         }

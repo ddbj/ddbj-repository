@@ -55,7 +55,7 @@ class RegenerationScope
       case target
       when 'all'   then self.class.regeneratable
       when 'retry' then self.class.regeneratable.where(id: retry_of.failures.select(:submission_id))
-      else              self.class.regeneratable.where(id: Accession.where(number: numbers).select(:submission_id))
+      else              self.class.regeneratable.where(id: Entry.where(number: numbers).select(:submission_id))
       end
   end
 
@@ -132,6 +132,6 @@ class RegenerationScope
   end
 
   def matched_numbers
-    @matched_numbers ||= Accession.where(number: numbers, submission: self.class.regeneratable).pluck(:number)
+    @matched_numbers ||= Entry.where(number: numbers, submission: self.class.regeneratable).pluck(:number)
   end
 end
