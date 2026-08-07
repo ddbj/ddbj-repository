@@ -35,23 +35,3 @@ accessories:
     options:
       mount:
         - type=bind,source=/home/w3const/volumes/repository-staging/seaweedfs,target=/data
-
-  virtuoso:
-    host: repository-staging
-
-    options:
-      mount:
-        - type=bind,source=/home/w3const/volumes/repository-staging/virtuoso,target=/database
-
-  validator:
-    host: repository-staging
-
-    env:
-      clear:
-        DDBJ_VALIDATOR_APP_POSTGRES_HOST: a012
-
-    options:
-      mount:
-        - type=bind,source=/home/w3const/volumes/repository-staging/validator/conf/pub,target=/usr/src/ddbj_validator/conf/pub
-        - type=bind,source=/home/w3const/volumes/repository-staging/validator/conf/coll_dump,target=/usr/src/ddbj_validator/conf/coll_dump
-        - type=bind,source=/home/w3const/volumes/repository-staging/validator/logs,target=/usr/src/ddbj_validator/logs

@@ -1,6 +1,3 @@
-[submodule "validator/conf/pub"]
-	path = validator/conf/pub
-	url = https://github.com/ddbj/pub.git
 [submodule "vendor/ddbj-record-specifications"]
 	path = vendor/ddbj-record-specifications
 	url = https://github.com/ddbj/ddbj-record-specifications.git

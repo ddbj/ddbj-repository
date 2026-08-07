@@ -10,7 +10,7 @@ C4Container
 Person(user, "User")
 
 System_Ext(accounts, "accounts.ddbj.nig.ac.jp")
-System_Ext(ddbj_validator, "DDBJ Validator")
+System_Ext(ddbj_validator, "DDBJ Validator (ddbj/ddbj-validator)")
 
 Container_Boundary(repository, "DDBJ Repository") {
     ContainerDb(schema, "API Schema", "OpenAPI")

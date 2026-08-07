@@ -2,7 +2,6 @@ development:
   app_url:                <%= ENV.fetch('APP_URL', 'http://localhost:3000') %>
   mass_dir_path_template: <%= Rails.root.join('storage/mass/{user}') %>
   repository_dir:         <%= Rails.root.join('storage/repository') %>
-  validator_url:          http://localhost:3001/api
   account_url:            https://cloakman.localhost
   web_url:                <%= ENV.fetch('WEB_URL', 'http://localhost:4200') %>
 
@@ -22,7 +21,6 @@ test:
   app_url:                http://repository.example.com:3000
   mass_dir_path_template: <%= Rails.root.join('spec/fixtures/files/submission/{user}') %>
   repository_dir:         <%= Rails.root.join('tmp/storage/repository') %>
-  validator_url:          http://validator.example.com/api
   account_url:            https://accounts.example.com/
   web_url:                http://repository.example.com:4200
 
@@ -44,7 +42,6 @@ production: &production
   mail_allowed_domains:   [ddbj.nig.ac.jp, ursm.jp]
   repository_dir:         <%= Rails.root.join('storage/repository') %>
   sentry_dsn:             https://7060cd8e48b01bfc7c294852533bdc83@o4506770361024512.ingest.sentry.io/4506778643333120
-  validator_url:          http://repository-validator:3000/api
   account_url:            https://accounts.ddbj.nig.ac.jp/
   web_url:                https://repository.ddbj.nig.ac.jp
 
