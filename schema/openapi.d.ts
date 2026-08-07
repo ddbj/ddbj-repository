@@ -167,8 +167,8 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    db?: components["schemas"]["Db"][];
-                    status?: components["schemas"]["SubmissionOperationStatus"][];
+                    "db[]"?: components["schemas"]["Db"][];
+                    "status[]"?: components["schemas"]["SubmissionOperationStatus"][];
                     source_id?: string;
                     accession?: string;
                     phase?: "unfinished" | "finished" | "all";

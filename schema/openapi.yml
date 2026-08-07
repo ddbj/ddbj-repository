@@ -150,7 +150,14 @@ paths:
         - Submission Requests
 
       parameters:
-        - name: db
+        # `db[]` and `status[]`, not `db` and `status`: Rails reads a
+        # repeated key as an array only in that form, and OpenAPI's
+        # default serialisation of an array parameter is `db=a&db=b`,
+        # which Rack collapses to the last value. The in-repo client
+        # brackets them and was never affected; a client generated from
+        # this document would have got a 200 quietly filtered to one
+        # value.
+        - name: db[]
           in: query
 
           schema:
@@ -159,7 +166,7 @@ paths:
             items:
               $ref: '#/components/schemas/Db'
 
-        - name: status
+        - name: status[]
           in: query
 
           schema:
