@@ -126,8 +126,10 @@
 
         <span class="flex-fill"></span>
 
+        <%# Settable, not every status: the pipeline writes the rest, and %>
+        <%# offering one would report a bulk update that changed nothing. %>
         <%= f.select :status,
-                     Entry.statuses.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                     Entry::SETTABLE_STATUSES.map {|s| [s.tr('_', ' ').capitalize, s] },
                      {include_blank: 'Status — leave as-is'},
                      class: 'form-select form-select-sm w-auto' %>
 

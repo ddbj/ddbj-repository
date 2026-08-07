@@ -77,8 +77,18 @@ class Submission < ApplicationRecord
   end
 
   # The rows that carry curation state (status / assignee / accession) for
-  # this submission: the single BP Project, or every BS Sample. ST.26 has
-  # none — it is not curated through the workbench. Returned as a relation
+  # this submission: the single BP Project, or every BS Sample.
+  #
+  # ST.26 is still nil here, and should not stay that way: its entries now
+  # carry a status of their own, so they are a curated set and everything
+  # counted from this — the progress steps, the ledger's cross-submission
+  # bulk, CurationState#row_count — is wrong for ST.26 until they are
+  # included. What blocks it is that callers read `accession` off a
+  # curation row and an Entry's is `number`, and that `accession_summary`
+  # orders by id where a grouped MIN would not. Both want fixing on their
+  # own rather than in passing.
+  #
+  # Returned as a relation
   # in both cases so callers can aggregate, filter and `update_all`
   # without branching on the database, which matters at 100K samples.
   def curation_rows
@@ -90,9 +100,14 @@ class Submission < ApplicationRecord
   end
 
   # What a curation row is called here: BP reads "1 project", BS "1,842
-  # samples". Used wherever a message has to name the thing being acted on.
+  # samples", ST.26 "1,842 entries". Used wherever a message has to name
+  # the thing being acted on.
   def curation_row_noun
-    bioproject_db? ? 'project' : 'sample'
+    case db
+    when 'bioproject' then 'project'
+    when 'biosample'  then 'sample'
+    else                   'entry'
+    end
   end
 
   # True while this chain still holds a root snapshot written before

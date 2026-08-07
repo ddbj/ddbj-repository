@@ -4,10 +4,17 @@
 <%# moves between tabs, so "where am I and what do I do next" never %>
 <%# scrolls away. %>
 <% overview = tab == :overview %>
+
+<%# The rows slot is named for what the submission's rows are, so the %>
+<%# breadcrumb has to read it the same way the tab strip does — it said %>
+<%# "Samples" over a page headed Entries otherwise. %>
+<% rows_label = @submission&.st26_db? ? 'Entries' : 'Samples' %>
+<% tab_label  = tab == :samples ? rows_label : workbench_tab_label(tab) %>
+
 <%= render 'admin/shared/breadcrumb', items: [
   {label: 'All requests', path: admin_submission_requests_path},
   {label: "##{@request.id}", path: (admin_submission_request_path(@request) unless overview)},
-  *(overview ? [] : [{label: workbench_tab_label(tab)}])
+  *(overview ? [] : [{label: tab_label}])
 ] %>
 
 <%# The horizontal padding sits on an inner wrapper, not on the box, so %>
@@ -114,11 +121,11 @@
     <%# and carries no count to imply one. %>
     <% rows =
          if @submission&.biosample_db?
-           {label: 'Samples', path: samples_admin_submission_request_path(@request), count: @state.row_count}
+           {label: rows_label, path: samples_admin_submission_request_path(@request), count: @state.row_count}
          elsif @submission&.st26_db?
-           {label: 'Entries', path: entries_admin_submission_request_path(@request), count: @submission.entries.size}
+           {label: rows_label, path: entries_admin_submission_request_path(@request), count: @state.row_count}
          else
-           {label: workbench_tab_label(:samples), path: samples_admin_submission_request_path(@request)}
+           {label: rows_label, path: samples_admin_submission_request_path(@request)}
          end %>
     <%= render 'tab', label: rows[:label],
                       path:  rows[:path],

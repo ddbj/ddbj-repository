@@ -9,7 +9,8 @@
 # byte-identical.
 class AddStatusToEntries < ActiveRecord::Migration[8.1]
   def change
-    add_column :entries, :status, :integer, null: false,
-               default: Lifecycleable::STATUSES.fetch('accession_issued')
+    # The literal, not Lifecycleable::STATUSES — a migration has to write
+    # what it wrote on the day it ran, whatever the constant says later.
+    add_column :entries, :status, :integer, null: false, default: 5300
   end
 end

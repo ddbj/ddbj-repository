@@ -118,13 +118,16 @@ module Admin
       return redirect_to back, alert: 'No entries selected.' if empty_selection?
       return redirect_to back, alert: 'No changes specified (status left as-is).' if raw[:status].blank?
 
-      unless Entry.statuses.key?(raw[:status])
+      unless Entry::SETTABLE_STATUSES.include?(raw[:status])
         return redirect_to back, alert: "Unknown status: #{raw[:status].inspect}."
       end
 
       affected = (target_rows(submission) || submission.entries)
                  .update_all(status: Entry.statuses.fetch(raw[:status]), updated_at: Time.current)
 
+      # Withdrawing entries is what takes them out of what goes out, so it
+      # is the last thing that should happen without a name against it.
+      record_curation_event(submission, affected, raw)
       participate!(submission.request)
 
       redirect_to back, notice: "Bulk-updated #{helpers.number_with_delimiter(affected)} entry/entries."
