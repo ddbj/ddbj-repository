@@ -19,7 +19,10 @@
     <%# mail-restriction banner — reads as attached to the bar rather than %>
     <%# floating in the gap with the page crowding it from below. %>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container">
+      <%# Same container as <main>, so the brand starts where the page's %>
+      <%# own content does. They were `container` and `container-xxl`, %>
+      <%# which put the header's left edge 46px inside the page's. %>
+      <div class="container-xxl">
         <%= link_to admin_root_path, class: 'navbar-brand' do %>
           DDBJ Repository <span class="opacity-50 fw-normal">Admin</span>
         <% end %>
