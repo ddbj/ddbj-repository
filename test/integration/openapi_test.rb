@@ -33,4 +33,32 @@ class OpenapiTest < ActionDispatch::IntegrationTest
       model_values.call.each { assert_equal it, published }
     end
   end
+
+  # An array query parameter has to be named `foo[]`, because that is the
+  # only form Rails reads as an array. Declared as `foo`, OpenAPI's
+  # default serialisation is `foo=a&foo=b`, which Rack collapses to the
+  # last value — so a client generated from this document gets a 200
+  # filtered to one of the values it asked for, with nothing to say so.
+  #
+  # Nothing else catches it: the in-repo client brackets them itself, so
+  # the request tests, the web tests and the schema validator all pass
+  # while only a generated client is wrong.
+  test 'every array query parameter is named for the form Rails parses' do
+    document = YAML.safe_load(Rails.root.join('schema/openapi.yml').read, aliases: true)
+
+    unbracketed = document.fetch('paths').flat_map {|path, operations|
+      operations.filter_map {|verb, operation|
+        next unless operation.is_a?(Hash)
+
+        names = Array(operation['parameters']).select {|parameter|
+          parameter['in'] == 'query' && parameter.dig('schema', 'type') == 'array'
+        }.map { it['name'] }.reject { it.end_with?('[]') }
+
+        "#{verb.upcase} #{path}: #{names.join(', ')}" if names.any?
+      }
+    }
+
+    assert_empty unbracketed
+  end
 end
+
