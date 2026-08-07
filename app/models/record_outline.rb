@@ -10,7 +10,7 @@
 #   anything else               → the value
 #
 # Nothing here names a field. That is the point: v3 spans every database
-# in one 14-key shape (a BioProject record is one whose `samples` and
+# in one shape (a BioProject record is one whose `samples` and
 # `sequences` are simply absent), and the schema is still moving. A
 # renderer that knows the fields has to be revised on every revision; one
 # that reads the shape shows a new field the day it appears.
@@ -123,8 +123,9 @@ class RecordOutline
   end
 
   # How many keys v3 gives every database, read off the schema rather than
-  # written down — the count is the only thing about the shape this class
-  # knows, and it is what makes "4 of 14" mean anything.
+  # written down: the count is the only thing about the shape this class
+  # knows, and writing it down is how "4 of 14" becomes a lie the day a
+  # fifteenth key lands.
   def self.schema_key_count = DDBJRecord::V3::Root.members.size
 
   # The top-level keys this record carries. v3 gives every database the
@@ -149,7 +150,7 @@ class RecordOutline
   def section(key) = sections.find { it.key == key }
 
   # Only what the record actually carries. A key whose value is nil is not
-  # a section: v3 gives every database the same 14 keys, so an absent one
+  # a section: v3 gives every database the same keys, so an absent one
   # is "this database has no such thing" rather than "this is empty".
   #
   # Memoised because the view asks twice — whether there is anything, and

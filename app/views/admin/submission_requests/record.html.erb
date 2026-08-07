@@ -42,22 +42,12 @@
             </p>
           <% end %>
 
-          <%# The one collection with a screen of its own. A fact about
-              this workbench rather than about the record, which is why it
-              is a `biosample_db?` and not a look at the record's keys —
-              and why it sits on the card rather than on the line reporting
-              an omission, where it would read as a promise about whichever
-              collection was cut. Only where the samples themselves were
-              cut: with every sample already on the page there is nothing
-              to go and see, and the tab is at the top of the screen
-              either way. Asking whether anything anywhere was cut was
-              the same sentence for a record of four samples, one of
-              which carried a long attribute bag. %>
-          <% if @submission.biosample_db? && (@outline.nil? || @outline.section('samples')&.node&.truncated?) %>
+          <%# Laid out, the pointer belongs beside the omission it answers
+              (below); with nothing laid out there is no omission to sit
+              beside, and this paragraph is where the reader is. %>
+          <% if @outline.nil? && @submission.biosample_db? %>
             <p class="text-body-secondary small" data-test-record-samples-hint>
-              The whole list of samples is on the
-              <%= link_to 'Samples', samples_admin_submission_request_path(@request) %>
-              tab, paginated and searchable.
+              <%= render 'samples_elsewhere' %>
             </p>
           <% end %>
 
@@ -75,9 +65,11 @@
           <% end %>
 
           <%# Which of the v3 keys this record has is itself an answer. Every
-              database shares the same fourteen, so an absent one means "no
-              such thing here" — and "does this record have sequences?" is
-              otherwise a question you answer by scrolling. %>
+              database shares the same set, so an absent one means "no such
+              thing here" — and "does this record have sequences?" is
+              otherwise a question you answer by scrolling. The denominator
+              is read off the schema, so a fifteenth key changes it without
+              anyone remembering to. %>
           <% if sections.any? %>
             <p class="small mb-3" data-test-record-carries>
               <span class="text-body-secondary">Carries</span>
@@ -120,6 +112,24 @@
               </summary>
 
               <%= render 'record_node', node: section.node %>
+
+              <%# The one collection with a screen of its own — a fact
+                  about this workbench rather than about the record, which
+                  is why the condition is `biosample_db?` and a key rather
+                  than something RecordOutline knows.
+
+                  Here rather than at the top of the card: somebody reading
+                  "Showing 20 of 100,000 — 99,980 more in the JSON below"
+                  has scrolled well past the top, and the destination in
+                  front of them is a 40 MB file. Only where the samples
+                  themselves were cut — with every sample on the page there
+                  is nothing to go and see, and the tab is at the top of
+                  the screen either way. %>
+              <% if @submission.biosample_db? && section.key == 'samples' && section.node.truncated? %>
+                <p class="text-body-secondary small mt-2 mb-0" data-test-record-samples-hint>
+                  <%= render 'samples_elsewhere' %>
+                </p>
+              <% end %>
             </details>
           <% end %>
         </div>

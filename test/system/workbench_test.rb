@@ -543,24 +543,15 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
     end
   end
 
-  # The exception to the rule above: one collection does have a screen,
-  # and the card can say so because it is not standing next to a
-  # particular omission claiming to be its destination.
-  test 'a submission whose samples have a screen of their own says so, once there is a reason to' do
-    request    = submission_requests(:biosample)
-    submission = request.submission
+  # With nothing laid out there is no omission for the pointer to stand
+  # beside, and this paragraph is where the reader is instead.
+  test 'a record too large to lay out still points at the screen its samples have' do
+    request = submission_requests(:biosample)
 
-    # Including a sample carrying more than fits: a cut somewhere in the
-    # record is not a cut in the list the tab would show.
-    submission.append_update!({
-      'samples' => Array.new(3) {|i| {'alias' => "S#{i}", 'comments' => Array.new(21) { 'note' }} }
+    request.submission.append_update!({
+      'project' => {'description' => 'x' * (Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT + 1024)}
     }, actor: 'test')
 
-    visit record_admin_submission_request_path(request)
-
-    assert_no_selector '[data-test-record-samples-hint]', wait: 0
-
-    submission.append_update!({'samples' => Array.new(40) {|i| {'alias' => "S#{i}"} }}, actor: 'test')
     visit record_admin_submission_request_path(request)
 
     within '[data-test-record-samples-hint]' do
@@ -615,6 +606,42 @@ class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
 
     assert_selector '[data-test-record-section="samples"][open]'
     assert_selector '[data-test-record-section="relations"][open]'
+  end
+
+  # Where the pointer has to be: at the top of the card it never reaches
+  # somebody who has scrolled to "99,980 more in the JSON below", and the
+  # destination in front of them there is a 40 MB file.
+  test 'a cut list of samples points at the screen that has the rest' do
+    request = submission_requests(:biosample)
+
+    request.submission.append_update!({'samples' => Array.new(40) {|i| {'alias' => "S#{i}"} }}, actor: 'test')
+
+    visit record_admin_submission_request_path(request)
+
+    within('[data-test-record-section="samples"]') do
+      find('summary').click
+
+      within '[data-test-record-samples-hint]' do
+        assert_link 'Samples', href: samples_admin_submission_request_path(request)
+      end
+    end
+  end
+
+  # A cut somewhere in the record is not a cut in the list the tab would
+  # show: four samples, one of them carrying a long attribute bag, are
+  # still four samples all of which are on the page.
+  test 'samples that all fit are not sent anywhere, whatever else was cut' do
+    request = submission_requests(:biosample)
+
+    request.submission.append_update!({
+      'samples' => Array.new(3) {|i| {'alias' => "S#{i}", 'comments' => Array.new(21) { 'note' }} }
+    }, actor: 'test')
+
+    visit record_admin_submission_request_path(request)
+
+    within('[data-test-record-section="samples"]') { find('summary').click }
+
+    assert_no_selector '[data-test-record-samples-hint]', wait: 0
   end
 
   # Browser search opens a closed <details> by itself; fragment navigation

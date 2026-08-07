@@ -8,7 +8,12 @@
     cell, and a 4/8 grid in the narrow one puts the key column at 50px
     where it wraps — taking the value with it and stretching every row.
     Set when recursing from :table and :list, so it follows the width
-    rather than the field. %>
+    rather than the field.
+
+    Set from :fields too, because the grid spends the card's width in one
+    go: a hash inside a hash started its own 220px key column at 220px,
+    and a third at 440px, walking the values off the right of the card.
+    One grid, and everything below it reads as `key: value` lines. %>
 
 <% case node.kind %>
 <% when :value %>
@@ -48,7 +53,7 @@
     <dl class="mb-0 small" style="display: grid; grid-template-columns: 220px 1fr; column-gap: 1rem;">
       <% node.rows.each do |key, child| %>
         <dt class="fw-normal text-body-secondary" style="overflow-wrap: anywhere;"><%= key %></dt>
-        <dd class="mb-1"><%= render 'record_node', node: child, dense: %></dd>
+        <dd class="mb-1"><%= render 'record_node', node: child, dense: true %></dd>
       <% end %>
     </dl>
   <% end %>
