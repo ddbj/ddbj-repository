@@ -61,4 +61,3 @@ class OpenapiTest < ActionDispatch::IntegrationTest
     assert_empty unbracketed
   end
 end
-
