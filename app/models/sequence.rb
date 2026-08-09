@@ -33,6 +33,8 @@ class Sequence < ApplicationRecord
           start   = seq.next
           avail   = max_val - start + 1
 
+          # 使い切った prefix から次へ送るのはここだけ。まだ採番が残っているのに次が無い
+          # ときだけ Exhausted になる。
           if avail <= 0
             raise Exhausted if i + 1 >= list.size
 
@@ -50,16 +52,11 @@ class Sequence < ApplicationRecord
           out.concat format_range(seq.prefix, start, stop, digits, pad)
           count -= take
 
-          if stop == max_val
-            raise Exhausted if i + 1 >= list.size
-
-            seq.update!(
-              prefix: list[i + 1][:prefix],
-              next:   1
-            )
-          else
-            seq.update! next: stop + 1
-          end
+          # 使い切った場合は next が max_val + 1 になり、次の周回（あるいは次の呼び出し）が
+          # 上で送る。ここで送ろうとすると、最後の prefix の最終番号でぴったり終わった採番が
+          # 「次の prefix が無い」という理由で Exhausted になり、全件成功しているのに
+          # ロールバックされる。その番号は永久に払い出せなくなる。
+          seq.update! next: stop + 1
         end
 
         out
