@@ -198,14 +198,24 @@ module DDBJRecord
         # blob — so this is what lets the ~18,000 submissions applied before the
         # rename still be read for the date they were published with.
         #
-        # **Removing it would not break the output; it would stop the output
-        # being checked.** RegenerateSubmissionFlatfilesJob's guard reads a
+        # **Removing it would stop the output being checked, and on one path
+        # would break it.** RegenerateSubmissionFlatfilesJob's guard reads a
         # record with no date as nothing to compare against
         # (`entry.locus_date.blank?`), so those submissions would render from
         # the column unverified rather than refuse. The column is backfilled and
         # very likely right — but on the ones the backfill deliberately skipped
         # (already regenerated, or a date it could not read) that comparison is
         # the last thing that would catch a wrong one.
+        #
+        # The path that breaks is ingest rather than the archive: apply reads
+        # the record the client uploaded, and a checkout of submission-bulk-st26
+        # from before its own rename still sends the old key. Without this the
+        # date would be unreadable, apply would stamp its own date into the
+        # column and the record alike, and the guard would see the two agree —
+        # the 62-entry incident, at the point of ingest. Nothing on this side
+        # pins the client's version. (A request validated before the rename is
+        # not the same worry: one may only be applied within a day of being
+        # validated, so that window closes on its own.)
         #
         # Making that guard refuse a blank instead is not the way out: the only
         # escape from it is naming the accession with a date, so every one of
@@ -217,8 +227,8 @@ module DDBJRecord
         # Regenerating a submission rewrites its record under the new name, so
         # the population shrinks on its own, and disappears for free on the day
         # something else calls for an archive-wide regeneration. It does not
-        # need forcing. Two tests in apply_submission_request_job_test.rb fail
-        # if the fallback goes early, and they say why.
+        # need forcing. `apply_submission_request_job_test.rb` fails if the
+        # fallback goes early — one test, named for the reason.
         #
         # submission-bulk-st26 carries the same fallback on its reading side
         # (`lib/st26/submission.rb`, `persist_artifacts`), for these same
