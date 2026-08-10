@@ -4,7 +4,7 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
   # Minimal valid v2 record carrying a single entry. The sequence and its
   # mol_type are injected by the caller so each test can exercise a specific
   # shape (nucleotide vs protein).
-  def attach_record(request, sequence, mol_type: 'genomic DNA', location: nil, length: :measured, features: [])
+  def attach_record(request, sequence, mol_type: 'genomic DNA')
     record = {
       schema_version: 'v2',
       provenance:     {source_format: 'ST26'},
@@ -35,13 +35,13 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
             type:     'other',
             topology: 'linear',
             sequence:,
-            length:   (length == :measured ? sequence.length : length),
+            length:   sequence.length,
             tax_id:   9606,
 
             source_features: [
               {
                 id:       'source_1',
-                location: location || "1..#{sequence.length}",
+                location: "1..#{sequence.length}",
 
                 source: {
                   organism:   'Homo sapiens',
@@ -54,7 +54,7 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
         ]
       },
 
-      features:
+      features: []
     }
 
     request.ddbj_record.attach(
@@ -103,184 +103,6 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
     end
   end
 
-  # INSDC-3468 / PATENT-386: JPO ST.26 files carried source locations that
-  # overran the sequence (1..21 over 20 bases), and the flatfile printed the
-  # disagreement twice — the source location and the REFERENCE span. Refused
-  # rather than corrected, so the producer fixes the file.
-  test 'source location that overruns the sequence is refused' do
-    assert_includes validate_sequence('acgtacgtac', location: '1..11'), 'TRD_R0013'
-  end
-
-  test 'source location shorter than the sequence is refused' do
-    assert_includes validate_sequence('acgtacgtac', location: '1..9'), 'TRD_R0013'
-  end
-
-  test 'source location matching the sequence passes' do
-    refute_includes validate_sequence('acgtacgtac', location: '1..10'), 'TRD_R0013'
-  end
-
-  # Notation, not length: a single base may be written either way, and the
-  # span is what the flatfile prints.
-  test 'bare position on a single-base sequence passes' do
-    refute_includes validate_sequence('a', location: '1'), 'TRD_R0013'
-  end
-
-  test 'split location covering the whole sequence passes' do
-    refute_includes validate_sequence('acgtacgtac', location: 'join(1..4,5..10)'), 'TRD_R0013'
-  end
-
-  test 'unreadable source location is refused rather than raised' do
-    codes = validate_sequence('acgtacgtac', location: 'garbage!!')
-
-    assert_includes codes, 'TRD_R0013'
-    refute_includes codes, 'TRD_R9999', 'a bad location must not surface as the catch-all'
-  end
-
-  # `1..E` is the MSS end-of-sequence form. Flatfile::Entry#location_span
-  # raises on it, so such a record cannot be rendered today and fails at
-  # apply as the catch-all — refusing it here is where the submitter can
-  # read it. Trad migration will have to teach both ends about it.
-  test 'MSS end-of-sequence location is refused for now' do
-    assert_includes validate_sequence('acgtacgtac', location: '1..E'), 'TRD_R0013'
-  end
-
-  test 'source feature with no location is refused' do
-    request = submission_requests(:st26)
-    attach_record request, 'acgtacgtac', location: ''
-
-    DDBJRecordValidator.validate request
-
-    assert_includes codes(request), 'TRD_R0013'
-    assert_match 'no location', request.validation.details.find_by(code: 'TRD_R0013').message
-  end
-
-  # The length attribute is what LOCUS prints, so a length that disagrees
-  # with the sequence ships the same defect one step earlier — and a
-  # location measured against it would look correct all the way through.
-  test 'declared length that disagrees with the sequence is refused' do
-    request = submission_requests(:st26)
-    attach_record request, 'acgtacgtac', length: 11, location: '1..11'
-
-    DDBJRecordValidator.validate request
-
-    detail = request.validation.details.find_by(code: 'TRD_R0013')
-
-    assert_match 'declared length 11', detail.message
-    assert_equal 1, request.validation.details.where(code: 'TRD_R0013').count,
-                 'the location is not reported separately when the length it would be measured against is itself wrong'
-  end
-
-  # `length` is a v2 server extension and older records omit it. Falling back
-  # to the sequence keeps the check running rather than silently disabling it.
-  test 'missing declared length falls back to measuring the sequence' do
-    assert_includes validate_sequence('acgtacgtac', length: nil, location: '1..11'), 'TRD_R0013'
-    refute_includes validate_sequence('acgtacgtac', length: nil, location: '1..10'), 'TRD_R0013'
-  end
-
-  # A JSON string where a number belongs used to make every comparison fail
-  # and print `spans 1..10 but the sequence is 10 long`.
-  test 'declared length carried as a string is read as a number' do
-    refute_includes validate_sequence('acgtacgtac', length: '10', location: '1..10'), 'TRD_R0013'
-  end
-
-  # The full-length rule is the patent one. Several sources dividing one entry
-  # is what the v2 schema's own comment on SourceFeature describes, and a
-  # genome record built that way must not be refused — only a location that
-  # leaves the sequence is wrong everywhere.
-  test 'partial source location is accepted outside the patent database' do
-    request = SubmissionRequest.new(user: users(:alice), db: 'biosample')
-    attach_record request, 'acgtacgtac', location: '1..5'
-    request.save!
-
-    DDBJRecordValidator.validate request
-
-    refute_includes codes(request), 'TRD_R0013'
-  end
-
-  test 'source location leaving the sequence is refused outside the patent database too' do
-    request = SubmissionRequest.new(user: users(:alice), db: 'biosample')
-    attach_record request, 'acgtacgtac', location: '1..11'
-    request.save!
-
-    DDBJRecordValidator.validate request
-
-    assert_includes codes(request), 'TRD_R0013'
-  end
-
-  # `Bio::Locations#span` is not normalised — `10..1` comes back as [10, 1] —
-  # so the bound checks passed it while the REFERENCE line would render
-  # "bases 10 to 1".
-  test 'backwards source location is refused' do
-    codes = validate_sequence('acgtacgtac', location: '10..1')
-
-    assert_includes codes, 'TRD_R0013'
-    refute_includes codes, 'TRD_R9999'
-  end
-
-  test 'backwards location is refused outside the patent database too' do
-    request = SubmissionRequest.new(user: users(:alice), db: 'biosample')
-    attach_record request, 'acgtacgtac', location: '10..1'
-    request.save!
-
-    DDBJRecordValidator.validate request
-
-    assert_includes codes(request), 'TRD_R0013'
-  end
-
-  # An ordinary feature's location ships in the flatfile the same way a
-  # source's does, so one that leaves the sequence carries the same defect.
-  # Never full-length though: covering part of the entry is what features are
-  # for.
-  test 'feature location leaving the sequence is refused' do
-    request = submission_requests(:st26)
-    attach_record request, 'acgtacgtac', features: [{type: 'CDS', location: '1..11', sequence_id: 'SEQ|JP|2026123456|A|1', qualifiers: {}}]
-
-    DDBJRecordValidator.validate request
-
-    detail = request.validation.details.find_by(code: 'TRD_R0013')
-
-    assert_match 'feature=CDS', detail.message
-  end
-
-  test 'feature location inside the sequence passes' do
-    request = submission_requests(:st26)
-    attach_record request, 'acgtacgtac', features: [{type: 'CDS', location: '2..5', sequence_id: 'SEQ|JP|2026123456|A|1', qualifiers: {}}]
-
-    DDBJRecordValidator.validate request
-
-    refute_includes codes(request), 'TRD_R0013'
-  end
-
-  # Nothing to measure against, and a feature naming an entry that is not
-  # there is a different complaint than this code makes.
-  test 'feature naming an unknown sequence is not measured' do
-    request = submission_requests(:st26)
-    attach_record request, 'acgtacgtac', features: [{type: 'CDS', location: '1..999', sequence_id: 'nonexistent', qualifiers: {}}]
-
-    DDBJRecordValidator.validate request
-
-    refute_includes codes(request), 'TRD_R0013'
-  end
-
-  # v3 makes SourceFeature#location optional, so a v3 record that omits it is
-  # schema-legal and must not be refused. v2 requires it.
-  test 'v3 source feature without a location is accepted' do
-    json = {
-      'schema_version' => 'v3',
-
-      'sequences' => {
-        'common_source' => {'mol_type' => 'genomic DNA'},
-        'entries'       => [{'alias' => 'chr1', 'sequence' => 'acgtacgtac', 'source_features' => [{}]}]
-      }
-    }.to_json
-
-    request = build_request_from_json(json)
-
-    DDBJRecordValidator.validate request
-
-    refute_includes codes(request), 'TRD_R0013'
-  end
-
   # The following tests pin the v2 vs v3 routing plus several specific
   # failure modes the code review surfaced. The smoke fixtures are valid
   # enough to flow through end-to-end — no TRD_R9999 catch-all should fire.
@@ -304,11 +126,24 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
            "v3 path produced TRD_R9999: #{request.validation.details.where(code: 'TRD_R9999').first&.message}"
     refute request.validation.details.exists?(code: 'TRD_R0010'),
            'v3 fixture has common_source.mol_type set; TRD_R0010 is a false positive'
-    # (TRD_R0005 and TRD_R0013 fire legitimately because the vendored
-    # fixture uses a `...(N bp)...` placeholder string in the sequence
-    # field — so the characters are invalid and the sequence is far
-    # shorter than the source location claims. A fixture quality issue,
-    # not a validator bug.)
+    # (TRD_R0005 fires legitimately because the vendored fixture uses
+    # a `...(N bp)...` placeholder string in the sequence field — that
+    # is a fixture quality issue, not a validator bug.)
+  end
+
+  # The parse-error branch used to write `code: nil` into a NOT NULL column.
+  # That did not fail there — it failed the insert in the `ensure`, which
+  # poisoned the transaction, so the outer rescue's `validation_failed!` died
+  # of PG::InFailedSqlTransaction as well and the request stayed at
+  # `validating` with nothing recorded. Truncated JSON is the most ordinary way
+  # in, and it wedged the request the outer rescue exists to release.
+  test 'malformed JSON reaches a terminal status with a detail to read' do
+    request = build_request_from_json('{"schema_version": "v2", ')
+
+    DDBJRecordValidator.validate request
+
+    assert_predicate request.reload, :validation_failed?
+    assert_includes codes(request), 'TRD_R0013'
   end
 
   test 'v2 record missing sequences block still fails loudly via TRD_R9999 (regression guard)' do
@@ -339,10 +174,10 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
 
   private
 
-  def validate_sequence(sequence, mol_type: 'genomic DNA', location: nil, length: :measured)
+  def validate_sequence(sequence, mol_type: 'genomic DNA')
     request = submission_requests(:st26)
     request.ddbj_record.purge if request.ddbj_record.attached?
-    attach_record(request, sequence, mol_type:, location:, length:)
+    attach_record(request, sequence, mol_type:)
     DDBJRecordValidator.validate request
     codes request
   end

@@ -56,12 +56,6 @@ module DDBJRecordValidator
     record  = subject.ddbj_record.open { DDBJRecord.parse(it) }
     v3      = record.is_a?(DDBJRecord::V3::Root)
 
-    # Only the patent database gets the single-full-length-source rule; see
-    # validate_source_location. Taken from the subject rather than from
-    # `provenance.source_format`, which a producer fills in and which a record
-    # assembled by anything other than submission-bulk-st26 may not carry.
-    patent = subject.db == 'st26'
-
     # ST26 application identification — v2: submission.application_identification,
     # v3: submission.st26.application (per v3 St26Meta).
     app_node   = v3 ? record.submission&.st26&.application : record.submission&.application_identification
@@ -134,11 +128,6 @@ module DDBJRecordValidator
     # silencing that would let a malformed v2 record reach ready_to_apply.
     entries = v3 ? Array(record.sequences&.entries) : record.sequences.entries
 
-    # Sequence length per entry, filled as the entries are walked and read
-    # again by the features loop below — a feature's location is measured
-    # against the entry it names.
-    lengths = {}
-
     entries.each do |entry|
       # v2 Entry has :id (server-extension); v3 Entry uses :alias as the
       # curator-facing identifier and falls back to :accession when alias
@@ -204,50 +193,6 @@ module DDBJRecordValidator
           message:  'Invalid characters found in nucleotide sequence'
         }
       end
-
-      # An entry states its length twice over: `length`, which LOCUS prints,
-      # and the source locations, which the source lines and the REFERENCE
-      # span print (Flatfile::Entry#location_span). NCBI reported the
-      # disagreement as INSDC-3468 — a 20-base sequence whose source said
-      # 1..21, so the flatfile claimed both.
-      #
-      # Refused rather than quietly corrected, in every case below. Three
-      # things could be the wrong one and only the producer knows which; a
-      # correction here would make the record disagree with the ST.26 file it
-      # came from without anybody being told.
-      #
-      # `length` is a v2 server extension — v3 Entry has no such member, so
-      # there the sequence is the only measure.
-      declared = v3 ? nil : entry.length&.to_i
-      measured = seq.size
-
-      if declared && declared != measured
-        # Checked before the locations, and instead of them: measuring a
-        # location against a length that is itself wrong produces a second
-        # error naming the wrong quantity.
-        details << {
-          entry_id:,
-          code:     'TRD_R0013',
-          severity: 'error',
-          message:  "declared length #{declared} does not match the #{measured}-long sequence"
-        }
-      elsif measured.positive?
-        # Measured, not declared: the branch above has established that they
-        # agree wherever `declared` exists at all.
-        lengths[entry_id] = measured
-
-        Array(entry.source_features).each do |sf|
-          details.concat validate_location(sf.location, **{
-            length:   measured,
-            entry_id:,
-            label:    'source feature',
-            optional: v3,
-
-            # The whole sequence exactly, for patents only.
-            strict:   patent
-          })
-        end
-      end
     end
 
     features = v3 ? Array(record.features) : record.features
@@ -265,24 +210,6 @@ module DDBJRecordValidator
         }
       end
 
-      # Any feature's location ships in the flatfile the same way a source's
-      # does (Flatfile::Feature renders it verbatim), so one that leaves the
-      # sequence is the INSDC-3468 defect wearing a different key, and one that
-      # cannot be parsed escapes to `apply` as the TRD_R9999 catch-all. Never
-      # `strict`: a feature covering part of its entry is the ordinary case.
-      #
-      # Skipped when the sequence it names is not in this record — there is
-      # nothing to measure against, and a feature naming a missing entry is a
-      # different complaint than this code makes.
-      if (length = lengths[entry_id])
-        details.concat validate_location(feature.location, **{
-          length:,
-          entry_id:,
-          label:    "feature=#{fkey}",
-          optional: v3
-        })
-      end
-
       details.concat validate_qualifiers(feature.qualifiers || {}, entry_id:, feature: fkey)
     end
   # Oj::ParseError is raised by the v2 SAJ Handler on malformed JSON.
@@ -292,88 +219,20 @@ module DDBJRecordValidator
   # detail rather than letting them escape into the outer rescue =>
   # TRD_R9999 catch-all.
   rescue Oj::ParseError, TypeError => e
+    # `code` is NOT NULL, and a nil here did not fail this insert — it failed
+    # the one in the `ensure` below, which poisoned the transaction, so the
+    # outer rescue's `validation_failed!` died of PG::InFailedSqlTransaction
+    # too and the request stayed at `validating` with no details at all. A
+    # malformed upload is the most ordinary reason to reach this branch, and
+    # it wedged the request the outer rescue exists to release.
     details << {
       entry_id: nil,
-      code:     nil,
+      code:     'TRD_R0013',
       severity: 'error',
       message:  e.message
     }
   ensure
     subject.validation.details.insert_all! details
-  end
-
-  # Two rules, and which one applies is a property of the database.
-  #
-  # Everywhere: a location may not leave the sequence. That is the defect NCBI
-  # reported, and it is wrong in any database — the source line would name
-  # bases that are not there.
-  #
-  # ST.26 only: the location must be the whole sequence exactly. PATENT-386
-  # records that a patent source is a single full-length one and that anything
-  # else violates the ST.26 text. Elsewhere a partial source is ordinary — the
-  # v2 schema's own comment on SourceFeature describes several sources dividing
-  # one entry, and a genome record carrying `1..500` and `501..1000` is
-  # perfectly well formed. Applying the patent rule to those would refuse
-  # valid records as Trad migration brings them in.
-  #
-  # Checked per source feature rather than only on the one REFERENCE is taken
-  # from, because the flatfile prints a source line for each of them; and on
-  # ordinary features too, which carry locations of their own.
-  #
-  # The span, not the string: `1` and `1..1` describe the same single base,
-  # and rejecting one of them would be a rule about notation rather than
-  # about length. `join(1..10,11..20)` over 20 bases passes for the same
-  # reason — every line of the flatfile then agrees.
-  def validate_location(location, length:, entry_id:, label:, optional:, strict: false)
-    if location.blank?
-      # v3 makes location optional (SourceFeature / Feature in the vendored
-      # schema); v2 requires it, and the renderer has nothing to print
-      # without it.
-      return [] if optional
-
-      return [refusal(entry_id, "#{label} has no location")]
-    end
-
-    span  = Bio::Locations.new(location.to_s).span
-    first = span.min
-    last  = span.max
-
-    # `span` is not normalised: `10..1` comes back as [10, 1], which passes
-    # every bound check below while the REFERENCE line renders as
-    # "bases 10 to 1".
-    if span.first > span.last
-      return [refusal(entry_id, %(#{label} location "#{location}" runs backwards))]
-    end
-
-    return [] if first == 1 && last == length
-
-    if first < 1 || last > length
-      return [refusal(entry_id, %(#{label} location "#{location}" spans #{first}..#{last} but the sequence is #{length} long))]
-    end
-
-    return [] unless strict
-
-    [refusal(entry_id, %(#{label} location "#{location}" covers #{first}..#{last} of a #{length}-long sequence; an ST.26 patent source covers all of it))]
-  rescue StandardError => e
-    # bio-ruby cannot read it, and neither can the flatfile renderer:
-    # Flatfile::Entry#location_span raises on the same input, so today such a
-    # record reaches `apply` and fails there as the TRD_R9999 catch-all.
-    # Reported here instead, where the message reaches the submitter.
-    #
-    # This is what refuses the MSS `1..E` form. That notation has no support
-    # anywhere in this system — the renderer raises on it — so refusing it is
-    # not a new restriction. Trad migration will have to teach both the
-    # renderer and this check about it.
-    [refusal(entry_id, %(#{label} location "#{location}" could not be read: #{e.message}))]
-  end
-
-  def refusal(entry_id, message)
-    {
-      entry_id:,
-      code:     'TRD_R0013',
-      severity: 'error',
-      message:
-    }
   end
 
   def pluck_en_texts(array)
