@@ -126,8 +126,13 @@ namespace :st26 do
       # A date is work of its own, so "nothing to correct" no longer ends the run
       # when one was given. The locations may well be right already — this task
       # shipped before the date option existed, so an earlier run having fixed
-      # them is the likely order of events — and there is no other route to a
-      # per-entry date.
+      # them is the likely order of events.
+      #
+      # A date and nothing else is better asked of the Regenerate screen, which
+      # also writes it to the accessions it is given and nothing else, and does
+      # regenerate the flatfiles. This route rewrites the DDBJ Record only, so
+      # the published flatfile goes on printing the old LOCUS date until
+      # something regenerates it.
       if correctable.empty? && locus_date.nil?
         puts 'Nothing to correct.'
         next

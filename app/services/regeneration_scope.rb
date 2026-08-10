@@ -62,25 +62,31 @@ class RegenerationScope
 
   def total = @total ||= submissions.count
 
-  # The numbers whose LOCUS date the run may rewrite, or nil for "every
-  # entry of every submission covered".
+  # Whether the run has an opinion about which entries take the date.
   #
   # A flatfile belongs to a submission, so any of these runs rewrites
-  # whole files; the date belongs to the entry, and only the run that
-  # named entries has an opinion about which ones. A retry of an
-  # every-submission run has no numbers and lands on nil, which is what
-  # that run did.
-  def named_accessions = all_target? ? nil : numbers.presence
+  # whole files; the date belongs to the entry, and only a run that named
+  # entries knows which ones are meant. A retry of an every-submission
+  # run has no numbers to carry, and dating every entry is what that run
+  # did.
+  def naming_accessions? = !all_target? && numbers.any?
 
   # Which of the named numbers this submission holds — the argument that
-  # tells its job whose dates to move.
-  def accessions_for(submission) = named_accessions && numbers_by_submission[submission.id]
+  # tells its job whose dates to move. Nil is every entry, and only the
+  # scope that named nothing may say it: a submission that holds none of
+  # the named numbers takes an empty list, not a licence to date the lot.
+  # The two cannot diverge on the accessions target, where the
+  # submissions come from these very numbers, but a retry's submissions
+  # come from what failed and nothing keeps the two in step.
+  def accessions_for(submission)
+    numbers_by_submission.fetch(submission.id, []) if naming_accessions?
+  end
 
   # Whose dates move, in the words of the choice that decided it.
   def dated_label
-    named = named_accessions
+    return 'every entry' unless naming_accessions?
 
-    named ? "the #{named.size} #{'accession'.pluralize(named.size)} named" : 'every entry'
+    "the #{numbers.size} #{'accession'.pluralize(numbers.size)} named"
   end
 
   def setting_date? = date_mode == 'set'
@@ -107,7 +113,7 @@ class RegenerationScope
     end
   end
 
-  def unmatched = numbers - matched_numbers - out_of_scope
+  def unmatched = @unmatched ||= numbers - matched_numbers - out_of_scope
 
   # Everything standing between this form and a run, in the order a
   # curator would fix it. The number-shaped ones are silent unless the
@@ -161,7 +167,7 @@ class RegenerationScope
       Entry.where(accession: numbers, submission: self.class.regeneratable)
            .pluck(:submission_id, :accession)
            .group_by(&:first)
-           .transform_values {|rows| rows.map(&:last) }
+           .transform_values { it.map(&:last) }
   end
 
   def matched_numbers = @matched_numbers ||= numbers_by_submission.values.flatten

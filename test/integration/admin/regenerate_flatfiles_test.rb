@@ -44,7 +44,7 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   # date moves, and the entries beside them in the same submission keep
   # theirs.
   test 'create forwards the accessions each job is to date' do
-    accession = submissions(:st26).entries.first.accession
+    accession = named_accession
 
     post admin_regenerate_flatfiles_path, params: {target: 'accessions', numbers: accession,
                                                    date_mode: 'set', date: '2026-07-01'}
@@ -79,14 +79,8 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   end
 
   test 'a retry covers what failed, with the options that failed' do
-    accession = submissions(:st26).entries.first.accession
-
-    previous = RegenerateFlatfilesRun.create!(
-      actor: 'admin:someone', target: 'accessions', total: 1, numbers: accession,
-      locus_date: Date.new(2026, 7, 1), started_at: 1.hour.ago, finished_at: 1.hour.ago, failed: 1
-    )
-
-    previous.failures.create!(submission: submissions(:st26), label: 'X00001', message: 'boom')
+    accession = named_accession
+    previous  = failed_run(target: 'accessions', numbers: accession, locus_date: Date.new(2026, 7, 1))
 
     post admin_regenerate_flatfiles_path, params: {retry_of: previous.id, date_mode: 'keep', numbers: ''}
 
@@ -109,12 +103,7 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   # A retry of an every-submission run has no list, and dating every
   # entry is what that run did.
   test 'a retry of an every-submission run still dates every entry' do
-    previous = RegenerateFlatfilesRun.create!(
-      actor: 'admin:someone', target: 'all', total: 1,
-      locus_date: Date.new(2026, 7, 1), started_at: 1.hour.ago, finished_at: 1.hour.ago, failed: 1
-    )
-
-    previous.failures.create!(submission: submissions(:st26), label: 'X00001', message: 'boom')
+    previous = failed_run(target: 'all', locus_date: Date.new(2026, 7, 1))
 
     post admin_regenerate_flatfiles_path, params: {retry_of: previous.id}
 
@@ -179,6 +168,18 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def named_accession = submissions(:st26).entries.first.accession
+
+  # A finished run with one failure to retry, so each test shows only the
+  # axis it is about.
+  def failed_run(**attrs)
+    RegenerateFlatfilesRun.create!(
+      actor: 'admin:someone', total: 1, started_at: 1.hour.ago, finished_at: 1.hour.ago, failed: 1, **attrs
+    ).tap {
+      it.failures.create!(submission: submissions(:st26), label: 'X00001', message: 'boom')
+    }
+  end
 
   def enqueued_argument(key)
     job = ActiveJob::Base.queue_adapter.enqueued_jobs.find { it['job_class'] == 'RegenerateSubmissionFlatfilesJob' }

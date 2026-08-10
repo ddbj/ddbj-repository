@@ -28,9 +28,17 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     # handing the submission over — a second run in the same process
     # otherwise reads the statuses and dates left by the first.
     rows    = submission.entries.reload.to_a
-    redated = date ? rows.select { accessions.nil? || accessions.include?(it.accession) } : []
+    named   = accessions&.to_set
+    redated = date ? rows.select { named.nil? || named.include?(it.accession) } : []
 
-    entries             = build_entries(record, rows, date:, redated: redated.map(&:entry_id).to_set)
+    # Dated in memory first, so there is one account of what this run
+    # means to write: the file is rendered from these rows and the UPDATE
+    # below is made from the same ones. Entries left out keep the date
+    # they have, so one file can carry two — which is what naming
+    # accessions is for.
+    redated.each { it.locus_date = date }
+
+    entries             = build_entries(record, rows)
     record_with_entries = record.with(sequences: record.sequences.with(entries:))
 
     regenerated = false
@@ -46,13 +54,25 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       # the runs this tool exists for, is all of them.
       next unless changed?(submission, updates)
 
-      # The dates and the files that print them, together. Written apart,
-      # a job that died between them left a flatfile saying one date and
-      # the row behind it saying another — and the next run would read
-      # the file as already correct, generate the same bytes, and skip,
-      # so the two would never be brought back together.
+      # The dates, the attachments that print them, and the history, in
+      # one commit. Written apart, a job that died between them left a
+      # flatfile saying one date and the row behind it saying another —
+      # and the next run would read the file as already correct, generate
+      # the same bytes, and skip, so the two would never be brought back
+      # together.
+      #
+      # The bytes are not in it: Active Storage defers the upload to
+      # after_commit, so a storage failure still leaves rows pointing at
+      # blobs that were never written — and the checksum on the row makes
+      # the next run skip them. Submission#prime_cache! is the shape that
+      # closes that (upload first, swap the pointer under the lock);
+      # ApplySubmissionRequestJob writes its outputs the same way this
+      # does, so it belongs in SubmissionOutputWriter rather than here.
       ActiveRecord::Base.transaction do
-        Entry.where(id: redated.map(&:id)).update_all(locus_date: date) if redated.any?
+        # By id when the run named accessions, and by submission when it
+        # did not — the whole-submission case would otherwise send every
+        # entry id back as an IN list.
+        (accessions ? Entry.where(id: redated.map(&:id)) : submission.entries).update_all(locus_date: date) if date
 
         submission.update! updates
 
@@ -152,11 +172,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   # `changed?` notice and regenerate rather than skip.
   def retracted_entry_ids(rows) = rows.select(&:retracted?).map(&:entry_id).to_set
 
-  # `redated` is the entry ids taking `date`; the rest keep the date they
-  # have. Both go into the same file, so one submission's entries can
-  # disagree about their LOCUS date — which is what naming accessions is
-  # for.
-  def build_entries(record, rows, date:, redated:)
+  def build_entries(record, rows)
     rows_by_entry_id = rows.index_by(&:entry_id)
 
     record.sequences.entries.map {|entry|
@@ -166,7 +182,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
         accession:    acc.accession,
         locus:        acc.accession,
         version:      acc.version,
-        last_updated: (redated.include?(entry.id) ? date : acc.locus_date).to_s
+        last_updated: acc.locus_date.to_s
       )
     }
   end

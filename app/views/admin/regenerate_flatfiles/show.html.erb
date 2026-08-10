@@ -30,8 +30,7 @@
                                                                'aria-label': 'Accession numbers' %>
               <div class="form-text">
                 One per line or comma-separated. The submission that owns each accession is regenerated in
-                full — a flatfile holds all of its entries — but a new LOCUS date goes only to the numbers
-                listed here.
+                full — a flatfile holds all of its entries.
               </div>
             </div>
           </div>
@@ -76,7 +75,8 @@
 
           <div class="form-text">
             Overwrites <code>entries.locus_date</code> on the accessions listed above, or on every entry when
-            the run covers every submission. Entries of the same submission may end up with different dates.
+            the run covers every submission — so entries of the same submission may end up with different
+            dates. The file is rewritten whole either way.
           </div>
         </fieldset>
       </div>

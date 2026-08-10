@@ -116,31 +116,23 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     assert_equal 0, run.regenerated
   end
 
-  test 'regenerates flatfiles with new locus date when content changed' do
+  # The comparison is against what is attached, so a file that is not
+  # there is a difference like any other — and the one the tool is
+  # reached for when a flatfile has gone missing rather than stale.
+  test 'a missing flatfile is a change' do
     @submission.flatfile_na.purge
     @submission.flatfile_aa.purge if @submission.flatfile_aa.attached?
 
     run = new_run
 
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, nil
 
-    @submission.reload
-
-    assert @submission.flatfile_na.attached?
-    assert_match /01-JUL-2026/, @submission.flatfile_na.download
-
-    @submission.entries.each do |acc|
-      assert_equal Date.new(2026, 7, 1), acc.locus_date
-    end
+    assert_equal 1, run.reload.regenerated
+    assert @submission.reload.flatfile_na.attached?
   end
 
-  test 'records accession history when content changed' do
-    @submission.flatfile_na.purge
-    @submission.flatfile_aa.purge if @submission.flatfile_aa.attached?
-
-    run = new_run
-
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
+  test 'the history names the user who asked for the run' do
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 7, 1)
 
     histories = EntryHistory.where(entry: @submission.entries, action: 'regenerate')
 
