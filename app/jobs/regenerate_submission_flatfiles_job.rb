@@ -150,10 +150,10 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   # nothing to say about a submission leaves its blobs, and its history,
   # alone — a new date is a change like any other, and reaches here as
   # one, because the outputs were built with it already applied.
-  def changed?(submission, updates)
-    attachment_changed?(submission.ddbj_record, updates[:ddbj_record]) ||
-      attachment_changed?(submission.flatfile_na, updates[:flatfile_na]) ||
-      attachment_changed?(submission.flatfile_aa, updates[:flatfile_aa])
+  def changed?(submission, outputs)
+    attachment_changed?(submission.ddbj_record, outputs[:ddbj_record]) ||
+      attachment_changed?(submission.flatfile_na, outputs[:flatfile_na]) ||
+      attachment_changed?(submission.flatfile_aa, outputs[:flatfile_aa])
   end
 
   # Retracting an entry changes the flatfile, so this is also what makes
@@ -197,11 +197,11 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     }
   end
 
-  def attachment_changed?(attachment, payload)
-    if payload.nil?
+  def attachment_changed?(attachment, output)
+    if output.nil?
       attachment.attached?
     elsif attachment.attached?
-      Digest::MD5.file(payload[:io].path).base64digest != attachment.blob.checksum
+      Digest::MD5.file(output[:io].path).base64digest != attachment.blob.checksum
     else
       true
     end

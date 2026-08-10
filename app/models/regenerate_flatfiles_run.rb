@@ -11,6 +11,13 @@ class RegenerateFlatfilesRun < ApplicationRecord
   # last time" — it cannot be re-derived from a list of numbers.
   TARGETS = %w[accessions all retry].freeze
 
+  # How long a run may report nothing before it stops being believed.
+  #
+  # It is deliberately not read as "the workers are gone": a run queued
+  # behind a long migration has never touched its row either, and saying
+  # its jobs are lost would invite a second run over the same
+  # submissions. What it does is stop the screen polling for ever, and
+  # stop one silent run blocking every later one.
   STALE_AFTER = 1.hour
 
   belongs_to :retry_of, class_name: 'RegenerateFlatfilesRun', optional: true

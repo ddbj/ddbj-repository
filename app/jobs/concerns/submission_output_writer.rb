@@ -11,24 +11,45 @@ module SubmissionOutputWriter
   # skips. The byteless blob is then permanent, and nothing says so: the
   # LocusDateDisagreement guard reads dates, and here the dates are right.
   #
-  # Uploading first means a failure there raises before anything is written, and
-  # a failure in the transaction leaves blobs nobody points at — purged, the way
-  # Submission#prime_cache! does it.
+  # Uploading first means a failure there raises before anything is written.
   #
   # `nil` for an output is preserved: it means "there is no such file", and
   # assigning nil is what detaches the one that is there (an AA flatfile that no
   # longer has any AA entries).
+  #
+  # Two things about the purge, both of which cost bytes rather than risk them:
+  #
+  # - It only runs on a rollback. `transaction` calls `after_commit` callbacks
+  #   after the COMMIT has succeeded but still inside its own call, and re-raises
+  #   anything they throw — Active Storage enqueues an AnalyzeJob there, so a
+  #   blip in the queue's database would arrive here as an exception with the row
+  #   already committed and pointing at these blobs. Purging then would delete
+  #   the bytes of a correct row: the very failure this exists to prevent, from
+  #   the other side. Reasoned rather than tested: transactional fixtures make
+  #   the job's transaction a savepoint, so `after_commit` never runs in a test
+  #   and there is nothing there to raise.
+  # - `committed` is set at the end of the block rather than after COMMIT, so a
+  #   COMMIT that itself fails leaves the blobs behind instead of purging them.
+  #   Orphan bytes are recoverable — PurgeUnattachedUploadsJob collects them —
+  #   and deleting the bytes of a live record is not.
   def write_outputs!(submission, outputs)
-    blobs = outputs.transform_values { it && ActiveStorage::Blob.create_and_upload!(**it) }
+    blobs     = {}
+    committed = false
 
     begin
+      # Accumulated as they go, so a failure part-way through still knows what it
+      # has already uploaded.
+      outputs.each {|name, payload| blobs[name] = payload && ActiveStorage::Blob.create_and_upload!(**payload) }
+
       ActiveRecord::Base.transaction do
         yield if block_given?
 
         submission.update! blobs
+
+        committed = true
       end
     rescue StandardError
-      blobs.each_value { it&.purge_later }
+      blobs.each_value { it&.purge_later } unless committed
 
       raise
     end

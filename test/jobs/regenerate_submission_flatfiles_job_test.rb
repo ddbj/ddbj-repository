@@ -199,6 +199,31 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
                  'the date moved although the file it prints was never written'
   end
 
+  # upload の途中で落ちた場合、それまでに上げた分を残さない。1 回目で落とす
+  # テストではこの経路を通らない。
+  test 'a failure part-way through the upload purges what it had already uploaded' do
+    uploaded = []
+    real     = ActiveStorage::Blob.method(:create_and_upload!)
+
+    stub = ->(**kwargs) {
+      raise Errno::ECONNREFUSED, 'seaweedfs' if uploaded.any?
+
+      real.call(**kwargs).tap { uploaded << it }
+    }
+
+    assert_raises Errno::ECONNREFUSED do
+      ActiveStorage::Blob.stub :create_and_upload!, stub do
+        RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1)
+      end
+    end
+
+    assert_equal 1, uploaded.size, 'this pins nothing unless exactly one upload got through'
+
+    perform_enqueued_jobs
+
+    assert_not ActiveStorage::Blob.exists?(uploaded.sole.id), 'the blob uploaded before the failure was left behind'
+  end
+
   # 反対側: upload は成功したがコミットが落ちた場合、誰も指していない blob を
   # 残さない。
   test 'a failed commit purges the blobs it had already uploaded' do
