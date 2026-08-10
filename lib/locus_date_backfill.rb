@@ -140,14 +140,21 @@ module LocusDateBackfill
   # Checked per statement rather than per submission: a total lets one group's
   # over-write cancel another's under-write.
   def apply!(changes)
+    # Unprepared: every distinct slice size is a distinct statement, so an
+    # archive-wide run would PREPARE up to BATCH variants — past the adapter's
+    # 1,000 statement limit it starts DEALLOCATEing them again, and the plans it
+    # keeps carry up to BATCH parameters each. These are one-off writes; there is
+    # nothing for a cached plan to pay back.
     Entry.transaction do
-      changes.group_by { [it.from, it.to] }.each do |(from, to), group|
-        # Sliced so one enormous submission cannot build an IN list of tens of
-        # thousands of ids.
-        group.each_slice(BATCH) do |slice|
-          hit = Entry.where(id: slice.map { it.entry.id }, locus_date: from).update_all(locus_date: to, updated_at: Time.current)
+      Entry.connection.unprepared_statement do
+        changes.group_by { [it.from, it.to] }.each do |(from, to), group|
+          # Sliced so one enormous submission cannot build an IN list of tens of
+          # thousands of ids.
+          group.each_slice(BATCH) do |slice|
+            hit = Entry.where(id: slice.map { it.entry.id }, locus_date: from).update_all(locus_date: to, updated_at: Time.current)
 
-          raise "submission ##{slice.first.entry.submission_id}: #{slice.size} #{'entry'.pluralize(slice.size)} to move off #{from}, #{hit} moved — the dates changed since they were read" unless hit == slice.size
+            raise "submission ##{slice.first.entry.submission_id}: #{slice.size} #{'entry'.pluralize(slice.size)} to move off #{from}, #{hit} moved — the dates changed since they were read" unless hit == slice.size
+          end
         end
       end
     end

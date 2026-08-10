@@ -36,52 +36,75 @@ class LocusDateBackfillTest < ActiveSupport::TestCase
 
     assert_equal 2, changes.size
 
-    queries = []
-    sub     = ->(_, _, _, _, payload) { queries << payload[:sql] if payload[:sql].start_with?('UPDATE') }
+    updates = []
 
-    ActiveSupport::Notifications.subscribed(sub, 'sql.active_record') do
-      LocusDateBackfill.apply! changes
-    end
+    capture_updates(updates) { LocusDateBackfill.apply! changes }
 
-    assert_equal 1, queries.size, "expected one UPDATE, got #{queries.size}"
+    assert_equal 1, updates.size, "expected one UPDATE, got #{updates.size}"
     assert_equal [Date.new(2026, 7, 11)], @submission.entries.reload.distinct.pluck(:locus_date)
   end
 
-  # The dangerous shape: an entry held back for a reason that has nothing to do
-  # with its date, so it still carries the apply stamp and shares it with the
-  # entries being moved. Naming the submission and the date in the WHERE — and
-  # trusting a row count to prove identity — would sweep it in. The ids are what
-  # make that impossible.
-  test 'a held-back entry sharing the same date is not swept into the batch' do
-    @request.ddbj_record.purge
-    attach_record @request, ['2026-07-11', '2026-8-13'] # the second cannot be read
+  # The shape the ids exist for. Three entries sharing the apply stamp: A and B
+  # are to be moved, C is held back because its request names no date at all. A
+  # then moves off that date before the write.
+  #
+  # Naming the submission and the date in the WHERE, and trusting a row count to
+  # prove identity, would find two rows on the date — B and C — count them equal
+  # to the two it meant to write, and overwrite C. Silently, and reported as
+  # success. With the ids in the WHERE only B is hit, the count no longer matches,
+  # and nothing is written.
+  test 'a change set that no longer matches the rows writes none of them' do
+    submission = seed_submission(['2026-07-11', '2026-07-11', nil])
+    a, b, c    = submission.entries.order(:accession).to_a
+    stamp      = a.locus_date
+    changes    = outcome(submission).changes
 
-    held    = @submission.entries.order(:accession).last
-    changes = outcome.changes
+    assert_equal [a.id, b.id], changes.map { it.entry.id }
+    assert_equal stamp, c.locus_date, 'C has to share the date being moved off for this to be the real case'
 
-    assert_equal 1, changes.size
-    assert_equal held.locus_date, changes.sole.from, 'the held-back entry shares the date being moved off'
+    a.update! locus_date: Date.new(2026, 9, 1)
 
-    LocusDateBackfill.apply! changes
+    assert_raises RuntimeError do
+      LocusDateBackfill.apply! changes
+    end
 
-    assert_equal Date.new(2026, 7, 11), @submission.entries.order(:accession).first.reload.locus_date
-    assert_equal held.locus_date,       held.reload.locus_date, 'the held-back entry was overwritten'
+    assert_equal Date.new(2026, 9, 1), a.reload.locus_date
+    assert_equal stamp,                b.reload.locus_date, 'B was written although the change set no longer held'
+    assert_equal stamp,                c.reload.locus_date, 'C was swept in by the batch'
   end
 
-  # And the same, one layer down: whatever moves under it between the read and
-  # the write, only the rows that were read can be touched.
-  test 'a row that moved onto the date since it was read is left alone' do
-    changes = outcome.changes
-    moved   = @submission.entries.order(:accession).last
+  # An entry held back for a reason that has nothing to do with its date still
+  # carries the apply stamp and shares it with the ones being moved.
+  test 'a held-back entry sharing the same date is not written' do
+    submission = seed_submission(['2026-07-11', nil])
+    moved, held = submission.entries.order(:accession).to_a
+    stamp       = held.locus_date
+    changes     = outcome(submission).changes
 
-    # The audit read both; take one out of the change set, and move it away and
-    # back so the count would still match a submission-and-date WHERE.
-    changes = changes.reject { it.entry.id == moved.id }
+    assert_equal [moved.id], changes.map { it.entry.id }
+    assert_equal stamp, changes.sole.from
 
     LocusDateBackfill.apply! changes
 
-    assert_equal Date.new(2026, 7, 11), @submission.entries.order(:accession).first.reload.locus_date
-    assert_equal changes.sole.from,     moved.reload.locus_date, 'a row outside the change set was written'
+    assert_equal Date.new(2026, 7, 11), moved.reload.locus_date
+    assert_equal stamp,                 held.reload.locus_date, 'the held-back entry was written'
+  end
+
+  # BATCH is 2,000 and a fixture has a handful of entries, so nothing would
+  # otherwise cross a slice boundary.
+  test 'a change set larger than one slice is written in several statements' do
+    changes = outcome.changes
+
+    assert_equal 2, changes.size
+
+    updates = []
+
+    with_batch 1 do
+      capture_updates(updates) { LocusDateBackfill.apply! changes }
+    end
+
+    assert_equal 2, updates.size, 'expected one statement per slice'
+    assert_equal [Date.new(2026, 7, 11)], @submission.entries.reload.distinct.pluck(:locus_date)
   end
 
   # An entry whose date was set on purpose no longer carries the apply stamp, and
@@ -200,7 +223,45 @@ class LocusDateBackfillTest < ActiveSupport::TestCase
   # the "still bears the apply stamp" test has to compare against created_at.
   def apply_date = @submission.entries.first.created_at.to_date
 
-  def outcome(**) = LocusDateBackfill.each_submission(**).find { it.submission == @submission }
+  def outcome(submission = @submission, **) = LocusDateBackfill.each_submission(**).find { it.submission == submission }
+
+  # A submission whose request names one date per entry (nil for "no date"),
+  # applied and then put into the legacy shape: the column carrying the apply
+  # date, which is what the job wrote before it read the record.
+  def seed_submission(dates)
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+    record  = JSON.parse(file_fixture('ddbj_record/example.json').read)
+    entry   = record['sequences']['entries'].first
+
+    record['sequences']['entries'] = dates.each_with_index.map {|date, i|
+      entry.merge('id' => "SEQ|JP|2026123456|B|#{i + 1}", 'locus_date' => date)
+    }
+
+    request.ddbj_record.attach(io: StringIO.new(JSON.generate(record)), filename: 'example.json', content_type: 'application/json')
+    request.save!
+
+    ApplySubmissionRequestJob.perform_now request
+
+    request.reload.submission.tap {|s| s.entries.update_all(locus_date: s.entries.first.created_at.to_date) }
+  end
+
+  def capture_updates(into, &)
+    listener = ->(_, _, _, _, payload) { into << payload[:sql] if payload[:sql].start_with?('UPDATE') }
+
+    ActiveSupport::Notifications.subscribed(listener, 'sql.active_record', &)
+  end
+
+  def with_batch(size)
+    original = LocusDateBackfill::BATCH
+
+    LocusDateBackfill.send :remove_const, :BATCH
+    LocusDateBackfill.const_set :BATCH, size
+
+    yield
+  ensure
+    LocusDateBackfill.send :remove_const, :BATCH
+    LocusDateBackfill.const_set :BATCH, original
+  end
 
   def build_request(locus_date)
     SubmissionRequest.new(user: users(:alice), db: 'st26').tap do |request|
