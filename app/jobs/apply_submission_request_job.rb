@@ -1,8 +1,26 @@
 class ApplySubmissionRequestJob < ApplicationJob
   include SubmissionOutputWriter
 
+  # 分類できた失敗だけがコードを持ち、残りは catch-all になる。増やすときはここに 1 行
+  # 足して README の表に書く。クライアントは知らないコードを catch-all と同じに扱えば
+  # よいので、追加は常に additive。
+  #
+  # error_message の方は人間向けで、文言は予告なく変わる。**機械的な判断はコードで
+  # 行うこと。**
+  ERROR_CODES = {
+    Sequence::Exhausted => 'TRD_R0012'
+  }.freeze
+
+  UNEXPECTED_ERROR_CODE = 'TRD_R9999'
+
   def perform(request)
-    request.applying!
+    # 前回の失敗の痕跡を残さない。コードは機械的な判断に使われるので、古い値が
+    # 残っていると「今まさに失敗している」と読まれる。
+    request.update!(
+      status:        :applying,
+      error_code:    nil,
+      error_message: nil
+    )
 
     apply request
   rescue Exception => e # rubocop:disable Lint/RescueException
@@ -13,6 +31,7 @@ class ApplySubmissionRequestJob < ApplicationJob
 
     request.update!(
       status:        :application_failed,
+      error_code:    error_code_for(e),
       error_message: e.message
     )
 
@@ -22,6 +41,12 @@ class ApplySubmissionRequestJob < ApplicationJob
   end
 
   private
+
+  def error_code_for(error)
+    _, code = ERROR_CODES.find {|klass, _| error.is_a?(klass) }
+
+    code || UNEXPECTED_ERROR_CODE
+  end
 
   def apply(request)
     request.ddbj_record.open do |file|

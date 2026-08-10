@@ -41,6 +41,7 @@ module('Acceptance | submission request', function (hooks) {
       id: 42,
       db: 'st26',
       status: 'waiting_validation',
+      error_code: null,
       error_message: null,
       created_at: now,
       closed_at: null,

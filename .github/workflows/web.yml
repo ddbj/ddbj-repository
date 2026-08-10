@@ -31,6 +31,37 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
 
+  # openapi.d.ts is generated from openapi.yml and typechecks the whole web
+  # client. Nothing else notices when it goes stale: `pnpm lint` typechecks
+  # against whatever is committed, so a schema change without a regenerate
+  # leaves the client agreeing with a server contract that no longer exists.
+  schema:
+    name: Schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: schema
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6.0.9
+        with:
+          package_json_file: schema/package.json
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: schema/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm generate
+      - name: Check openapi.d.ts is up to date
+        run: git diff --exit-code openapi.d.ts
+
   test:
     name: Test
     runs-on: ubuntu-latest

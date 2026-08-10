@@ -104,9 +104,14 @@ Two-pass streaming:
 1. Collect entry IDs and NA/AA classification → allocate accessions
 2. Stream entries → write JSON (StreamingWriter) + flatfiles (StreamingRenderer) simultaneously
 
-### Validation Codes
+### Result Codes
 
-Defined in `DDBJRecordValidator`. Reference in README.md.
+One flat `TRD_R` series over both phases, tabulated in README.md. Validation
+codes live in `DDBJRecordValidator` and land per finding in
+`validation_details.code`; application codes live in
+`ApplySubmissionRequestJob::ERROR_CODES` and land once per request in
+`submission_requests.error_code`. A new code goes in whichever of those two
+places matches its phase, plus a row in the README table.
 
 ## Admin Screen Conventions
 
@@ -187,6 +192,10 @@ until dismissed, not in a flash.
 
 ## File Conventions
 
+- `schema/openapi.yml` — the API contract. `schema/openapi.d.ts` is generated
+  from it (`pnpm --dir schema generate`) and is what typechecks the web client,
+  so a change to the yml means regenerating and committing both. The `Schema`
+  CI job fails if they have drifted.
 - `config/seaweedfs.yml` — S3 credentials per environment
 - `config/storage.yml` — ActiveStorage config (quotes ERB values to prevent YAML type coercion)
 - `docker/seaweedfs/` — entrypoint.sh, s3 config JSON for dev/production

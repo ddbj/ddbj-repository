@@ -7,6 +7,7 @@ payload = {
     :id,
     :db,
     :status,
+    :error_code,
     :error_message,
     :created_at,
     :closed_at

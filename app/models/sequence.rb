@@ -59,11 +59,10 @@ class Sequence < ApplicationRecord
       # 使い切った prefix から次へ送るのはここだけ。まだ採番が残っているのに次が無い
       # ときだけ Exhausted になる。
       #
-      # **この文言は submission-bulk-st26 が読んでいる**（`Submission::SEQUENCE_EXHAUSTED`
-      # が `/no numbers left/` で見る）。ApplySubmissionRequestJob が message をそのまま
-      # error_message に載せるので、それが「採番が尽きた」と分かる唯一の手がかりになって
-      # いる。文言を変えると向こうは静かに検出をやめ、残容量に収まる小さいファイルだけが
-      # 通って採番の切れ目が散らばる。変えるときは向こうも一緒に直すこと。
+      # **この例外はクライアントが分岐に使う。** ApplySubmissionRequestJob::ERROR_CODES が
+      # TRD_R0012 に対応づけ、submission_requests.error_code に載せている（README の表）。
+      # クラスを変えたり別の例外に差し替えたりするときは、あちらも一緒に直すこと。
+      # 文言の方は人間向けなので自由に変えてよい。
       if avail <= 0
         raise Exhausted, "#{scope}: no numbers left after #{prefix} (wanted #{count} more)" if i + 1 >= prefixes.size
 

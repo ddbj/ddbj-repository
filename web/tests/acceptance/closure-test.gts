@@ -21,6 +21,7 @@ function failedRequest(attrs: Partial<SubmissionRequest> = {}): SubmissionReques
     id: 42,
     db: 'st26',
     status: 'validation_failed',
+    error_code: null,
     error_message: null,
     created_at: now,
     closed_at: null,
