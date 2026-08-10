@@ -30,7 +30,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     # AND re-raises: the queue still records a failed job, and the run
     # still reaches a result instead of hanging at loading?.
     assert_raises DDBJRecord::V3NotImplementedError do
-      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1), force: true
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
     end
 
     run.reload
@@ -48,16 +48,45 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     assert_match(/not yet implemented for v3/,        failure.message)
   end
 
-  test 'force: true regenerates even when flatfiles would be identical' do
+  # A date is a change like any other. It used to be applied only to
+  # submissions the comparison had already called changed — which the
+  # date itself could not make them — so asking for one and nothing else
+  # rewrote nothing.
+  test 'a new date is a change, and reaches the file that had no other' do
     run = new_run
 
     assert_difference 'EntryHistory.where(action: "regenerate").count', @submission.entries.count do
-      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1), force: true
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
     end
+
+    assert_equal 1, run.reload.regenerated
 
     @submission.entries.each do |acc|
       assert_equal Date.new(2026, 7, 1), acc.reload.locus_date
     end
+
+    assert_match /01-JUL-2026/, @submission.reload.flatfile_na.download
+  end
+
+  # Naming accessions is naming whose dates move. The rest of the
+  # submission is in the same file and is rewritten with it, but keeps
+  # the date it had — so one file can carry two.
+  test 'only the named accessions take the new date' do
+    named, untouched = @submission.entries.order(:id).first(2)
+    before           = untouched.locus_date
+
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 7, 1),
+                                                accessions: [named.accession]
+
+    assert_equal Date.new(2026, 7, 1), named.reload.locus_date
+    assert_equal before,               untouched.reload.locus_date
+
+    # Both entries are still in the file the run rewrote — the list
+    # chooses dates, not what gets written.
+    flatfile = @submission.reload.flatfile_na.download
+
+    assert_includes flatfile, named.accession
+    assert_includes flatfile, untouched.accession
   end
 
   test 'does nothing when flatfiles would be identical' do
@@ -66,8 +95,9 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
 
     run = new_run
 
+    # The date they already have: asked for, and still nothing to do.
     assert_no_difference 'EntryHistory.count' do
-      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2099, 1, 1)
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, @submission.entries.first.locus_date
     end
 
     @submission.reload
@@ -79,38 +109,30 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     end
 
     # Skipped, not regenerated. The distinction is the whole reading of a
-    # run made with the rewrite option off.
+    # run that found nothing to do.
     run.reload
 
     assert_equal 1, run.skipped
     assert_equal 0, run.regenerated
   end
 
-  test 'regenerates flatfiles with new locus date when content changed' do
+  # The comparison is against what is attached, so a file that is not
+  # there is a difference like any other — and the one the tool is
+  # reached for when a flatfile has gone missing rather than stale.
+  test 'a missing flatfile is a change' do
     @submission.flatfile_na.purge
     @submission.flatfile_aa.purge if @submission.flatfile_aa.attached?
 
     run = new_run
 
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, nil
 
-    @submission.reload
-
-    assert @submission.flatfile_na.attached?
-    assert_match /01-JUL-2026/, @submission.flatfile_na.download
-
-    @submission.entries.each do |acc|
-      assert_equal Date.new(2026, 7, 1), acc.locus_date
-    end
+    assert_equal 1, run.reload.regenerated
+    assert @submission.reload.flatfile_na.attached?
   end
 
-  test 'records accession history when content changed' do
-    @submission.flatfile_na.purge
-    @submission.flatfile_aa.purge if @submission.flatfile_aa.attached?
-
-    run = new_run
-
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
+  test 'the history names the user who asked for the run' do
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 7, 1)
 
     histories = EntryHistory.where(entry: @submission.entries, action: 'regenerate')
 
@@ -149,7 +171,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
   test 'counts what it did, and closes the run when the last job lands' do
     run = new_run
 
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1), force: true
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, run, Date.new(2026, 7, 1)
 
     run.reload
 

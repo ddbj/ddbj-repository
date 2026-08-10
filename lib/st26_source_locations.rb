@@ -203,11 +203,13 @@ module St26SourceLocations
 
   # The LOCUS date, on the entries named and nowhere else.
   #
-  # Not through the Regenerate screen's date option: that resolves accessions to
-  # submissions and then does `submission.entries.update_all(locus_date:)`, so
-  # setting the date for PATENT-386's five entries there would have moved it on
-  # the 62 siblings sharing their four submissions. The renderer reads each
-  # entry's own column, so a per-entry date is all it takes.
+  # Here rather than through the Regenerate screen because this correction is
+  # one act: the locations and the date go into the same run, and the screen
+  # cannot rewrite a location. The screen used to be unable to date one entry
+  # without dating its submission's others too — the reason this was written —
+  # but it now writes a date to the accessions it is given and nothing else, so
+  # a date wanted on its own belongs there. It also regenerates the flatfiles,
+  # which `rewrite!` below does not; see the caveat on the task.
   #
   # Keyed on `accession`, the uniquely indexed column — `entries` has no unique
   # index on (submission_id, entry_id), so keying on that could redate two rows

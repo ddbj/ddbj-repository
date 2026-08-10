@@ -25,10 +25,15 @@
         <dd class="mb-0"><%= scope.locus_date ? "set to #{scope.locus_date}" : 'unchanged' %></dd>
       </div>
 
-      <div class="d-flex justify-content-between border-top py-1">
-        <dt class="fw-normal text-body-secondary">Identical flatfiles</dt>
-        <dd class="mb-0"><%= scope.force ? 'rewritten' : 'skipped' %></dd>
-      </div>
+      <%# Only when there is a date to place. The file is rewritten %>
+      <%# whole whatever this says — it is the date that lands on some %>
+      <%# entries and not others. %>
+      <% if scope.locus_date %>
+        <div class="d-flex justify-content-between border-top py-1">
+          <dt class="fw-normal text-body-secondary">Written to</dt>
+          <dd class="mb-0"><%= scope.dated_label %></dd>
+        </div>
+      <% end %>
 
       <%# Asked before every heavy action, and answered the same way %>
       <%# each time — a curator should never have to remember which %>

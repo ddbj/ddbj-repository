@@ -11,6 +11,16 @@ class RegenerateFlatfilesRun < ApplicationRecord
   # last time" — it cannot be re-derived from a list of numbers.
   TARGETS = %w[accessions all retry].freeze
 
+  # `force` is a retired option: runs made before dates were written by
+  # accession could be told to rewrite files whose content had not
+  # changed, because a date was applied only to what the comparison had
+  # already called changed — so setting one without it did nothing.
+  #
+  # Nothing reads the column, and nothing ever set it but that option, so
+  # it is only the `true` rows that still say anything. It is kept for
+  # them; the column is a candidate for dropping once they stop being
+  # interesting.
+
   # How long a run may report nothing before it stops being believed.
   #
   # It is deliberately not read as "the workers are gone": a run queued

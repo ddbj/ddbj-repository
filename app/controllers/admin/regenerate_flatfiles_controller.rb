@@ -88,12 +88,17 @@ module Admin
     end
 
     def start(scope)
+      # The numbers are recorded for a retry to read back, so the rule
+      # for which runs have any is the scope's — a list left in the box
+      # under the every-submission option is a draft, and storing it
+      # would have the retry date only those. Stored as the parsed list
+      # rather than the paste, so the run and the form that made it count
+      # the same numbers.
       run = RegenerateFlatfilesRun.create!(
         actor:      current_actor,
         target:     scope.target,
-        numbers:    (scope.numbers_text if scope.accessions_target?),
+        numbers:    (scope.numbers.join("\n") if scope.naming_accessions?),
         locus_date: scope.locus_date,
-        force:      scope.force,
         total:      scope.total,
         started_at: Time.current,
         retry_of:   scope.retry_of
@@ -104,9 +109,12 @@ module Admin
       # kind of allocation that only shows up on the day someone uses it.
       enqueued = 0
 
-      scope.submissions.find_in_batches(batch_size: 500) do |submissions|
+      # Only the id is ever read — the job carries a GlobalID — and the
+      # every-submission scope is the whole table.
+      scope.submissions.select(:id).find_in_batches(batch_size: 500) do |submissions|
         ActiveJob.perform_all_later submissions.map {|submission|
-          RegenerateSubmissionFlatfilesJob.new(submission, current_user, run, scope.locus_date, force: scope.force)
+          RegenerateSubmissionFlatfilesJob.new(submission, current_user, run, scope.locus_date,
+                                               accessions: scope.accessions_for(submission))
         }
 
         enqueued += submissions.size

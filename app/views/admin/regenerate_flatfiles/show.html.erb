@@ -29,7 +29,8 @@
               <%= text_area_tag :numbers, @scope.numbers_text, rows: 4, class: 'form-control font-monospace',
                                                                'aria-label': 'Accession numbers' %>
               <div class="form-text">
-                One per line or comma-separated. The submission that owns each accession is regenerated in full.
+                One per line or comma-separated. The submission that owns each accession is regenerated in
+                full — a flatfile holds all of its entries.
               </div>
             </div>
           </div>
@@ -49,50 +50,35 @@
           </div>
         </fieldset>
 
-        <div class="row g-4">
-          <div class="col-md-6">
-            <fieldset>
-              <legend class="form-label fs-6 fw-semibold">LOCUS date</legend>
+        <%# The only other question there is. Whether an unchanged file %>
+        <%# is rewritten used to be a third one, and it was really this %>
+        <%# one asked badly: it decided whether a date was applied at %>
+        <%# all, so setting a date and leaving it off did nothing. %>
+        <fieldset>
+          <legend class="form-label fs-6 fw-semibold">LOCUS date</legend>
 
-              <div class="form-check">
-                <%= radio_button_tag :date_mode, 'keep', !@scope.setting_date?, class: 'form-check-input' %>
-                <%= label_tag :date_mode_keep, 'Keep existing dates', class: 'form-check-label' %>
-              </div>
-
-              <div class="form-check">
-                <%= radio_button_tag :date_mode, 'set', @scope.setting_date?, class: 'form-check-input',
-                                                                              data: {scope_preview_target: 'setDate'} %>
-                <%= label_tag :date_mode_set, 'Set every regenerated flatfile to', class: 'form-check-label' %>
-
-                <%# Filling this in is choosing to set a date; leaving %>
-                <%# the radio behind would discard it without saying so. %>
-                <%= date_field_tag :date, @scope.date_input, class: 'form-control mt-2', 'aria-label': 'LOCUS date',
-                                                             data: {action: 'input->scope-preview#dateEntered'} %>
-              </div>
-
-              <div class="form-text">
-                Setting a date overwrites <code>entries.locus_date</code> on every regenerated flatfile.
-              </div>
-            </fieldset>
+          <div class="form-check">
+            <%= radio_button_tag :date_mode, 'keep', !@scope.setting_date?, class: 'form-check-input' %>
+            <%= label_tag :date_mode_keep, 'Keep existing dates', class: 'form-check-label' %>
           </div>
 
-          <div class="col-md-6">
-            <fieldset>
-              <legend class="form-label fs-6 fw-semibold">Unchanged content</legend>
+          <div class="form-check">
+            <%= radio_button_tag :date_mode, 'set', @scope.setting_date?, class: 'form-check-input',
+                                                                          data: {scope_preview_target: 'setDate'} %>
+            <%= label_tag :date_mode_set, 'Set to', class: 'form-check-label' %>
 
-              <%# Named by what it does to the records, not by the flag: %>
-              <%# "Force regenerate" says how it is implemented. %>
-              <div class="form-check">
-                <%= check_box_tag :force, '1', @scope.force, class: 'form-check-input' %>
-                <%= label_tag :force, 'Rewrite even if identical', class: 'form-check-label' %>
-              </div>
-
-              <div class="form-text">
-                Off: submissions whose flatfile would not change are skipped.
-              </div>
-            </fieldset>
+            <%# Filling this in is choosing to set a date; leaving %>
+            <%# the radio behind would discard it without saying so. %>
+            <%= date_field_tag :date, @scope.date_input, class: 'form-control mt-2', 'aria-label': 'LOCUS date',
+                                                         data: {action: 'input->scope-preview#dateEntered'} %>
           </div>
-        </div>
+
+          <div class="form-text">
+            Overwrites <code>entries.locus_date</code> on the accessions listed above, or on every entry when
+            the run covers every submission — so entries of the same submission may end up with different
+            dates. The file is rewritten whole either way.
+          </div>
+        </fieldset>
       </div>
     </div>
   </div>

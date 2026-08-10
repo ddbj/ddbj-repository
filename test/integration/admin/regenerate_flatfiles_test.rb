@@ -1,9 +1,9 @@
 require 'test_helper'
 
 # What pressing Regenerate actually starts: one job per submission that
-# can produce a flatfile, carrying the date and the rewrite flag, and a
-# run row recording who asked for it and what they asked for. The screen
-# itself is test/system/tools_test.rb.
+# can produce a flatfile, carrying the date and the accessions it goes
+# to, and a run row recording who asked for it and what they asked for.
+# The screen itself is test/system/tools_test.rb.
 #
 # This is the most destructive action in the admin, and none of what it
 # enqueues is visible from the page it redirects back to.
@@ -33,15 +33,25 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     assert_equal Date.new(2026, 7, 1),  run.locus_date
 
     assert_equal Date.new(2026, 7, 1).to_s, enqueued_argument('value')
-    assert_equal false,                     enqueued_argument('force')
+
+    # Every submission is covered, so every entry takes the date and
+    # there is no list to carry.
+    assert_nil enqueued_argument('accessions')
+    assert_nil RegenerateFlatfilesRun.sole.numbers
   end
 
-  test 'create forwards the rewrite flag' do
-    post admin_regenerate_flatfiles_path, params: {target: 'all', confirm: 'all', force: '1'}
+  # The list is the job's, not just the scope's: it decides whose LOCUS
+  # date moves, and the entries beside them in the same submission keep
+  # theirs.
+  test 'create forwards the accessions each job is to date' do
+    accession = named_accession
+
+    post admin_regenerate_flatfiles_path, params: {target: 'accessions', numbers: accession,
+                                                   date_mode: 'set', date: '2026-07-01'}
 
     assert_redirected_to admin_regenerate_flatfiles_path
-    assert_equal true, enqueued_argument('force')
-    assert RegenerateFlatfilesRun.sole.force
+    assert_equal [accession], enqueued_argument('accessions')
+    assert_equal accession,   RegenerateFlatfilesRun.sole.numbers
   end
 
   # The dialog disables a button; a disabled button is a courtesy. The
@@ -69,14 +79,10 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   end
 
   test 'a retry covers what failed, with the options that failed' do
-    previous = RegenerateFlatfilesRun.create!(
-      actor: 'admin:someone', target: 'all', total: 1, force: true,
-      locus_date: Date.new(2026, 7, 1), started_at: 1.hour.ago, finished_at: 1.hour.ago, failed: 1
-    )
+    accession = named_accession
+    previous  = failed_run(target: 'accessions', numbers: accession, locus_date: Date.new(2026, 7, 1))
 
-    previous.failures.create!(submission: submissions(:st26), label: 'X00001', message: 'boom')
-
-    post admin_regenerate_flatfiles_path, params: {retry_of: previous.id, force: '0'}
+    post admin_regenerate_flatfiles_path, params: {retry_of: previous.id, date_mode: 'keep', numbers: ''}
 
     run = RegenerateFlatfilesRun.recent.first
 
@@ -84,11 +90,25 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     assert_equal previous, run.retry_of
     assert_equal 1,        run.total
 
-    # The form said force off; the run it is retrying said on. What
-    # failed is re-run as it was, not as the page happened to look.
-    assert_equal true,                      run.force
-    assert_equal true,                      enqueued_argument('force')
+    # The form had been cleared; the run it is retrying named a date and
+    # an accession. What failed is re-run as it was, not as the page
+    # happened to look — a retry that dated every entry of the submission
+    # would move dates the original deliberately left alone.
+    assert_equal Date.new(2026, 7, 1),      run.locus_date
+    assert_equal accession,                 run.numbers
     assert_equal Date.new(2026, 7, 1).to_s, enqueued_argument('value')
+    assert_equal [accession],               enqueued_argument('accessions')
+  end
+
+  # A retry of an every-submission run has no list, and dating every
+  # entry is what that run did.
+  test 'a retry of an every-submission run still dates every entry' do
+    previous = failed_run(target: 'all', locus_date: Date.new(2026, 7, 1))
+
+    post admin_regenerate_flatfiles_path, params: {retry_of: previous.id}
+
+    assert_nil enqueued_argument('accessions')
+    assert_nil RegenerateFlatfilesRun.recent.first.numbers
   end
 
   # Two runs over one submission would have two workers rewriting one
@@ -148,6 +168,18 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def named_accession = submissions(:st26).entries.first.accession
+
+  # A finished run with one failure to retry, so each test shows only the
+  # axis it is about.
+  def failed_run(**attrs)
+    RegenerateFlatfilesRun.create!(
+      actor: 'admin:someone', total: 1, started_at: 1.hour.ago, finished_at: 1.hour.ago, failed: 1, **attrs
+    ).tap {
+      it.failures.create!(submission: submissions(:st26), label: 'X00001', message: 'boom')
+    }
+  end
 
   def enqueued_argument(key)
     job = ActiveJob::Base.queue_adapter.enqueued_jobs.find { it['job_class'] == 'RegenerateSubmissionFlatfilesJob' }

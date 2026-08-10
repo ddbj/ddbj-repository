@@ -273,10 +273,27 @@ class RegenerateFlatfilesSystemTest < ApplicationSystemTestCase
       assert_text '1 submission'
       assert_text 'every ST.26 submission with a stored record'
       assert_text 'LOCUS dates unchanged'
-      assert_text 'Identical flatfiles skipped'
       assert_text 'Submitters notified no'
 
       assert_link 'Regenerate 1 submission…'
+    end
+  end
+
+  # Whose dates a date moves is the difference between the two scopes,
+  # and it is not readable from the count — both say "1 submission".
+  test 'the summary says whose LOCUS dates a date would move' do
+    visit admin_regenerate_flatfiles_path(target: 'all', date_mode: 'set', date: '2026-07-01')
+
+    within '[data-test-scope-summary]' do
+      assert_text 'LOCUS dates set to 2026-07-01'
+      assert_text 'Written to every entry'
+    end
+
+    visit admin_regenerate_flatfiles_path(numbers: submissions(:st26).entries.first.accession,
+                                          date_mode: 'set', date: '2026-07-01')
+
+    within '[data-test-scope-summary]' do
+      assert_text 'Written to the 1 accession named'
     end
   end
 
