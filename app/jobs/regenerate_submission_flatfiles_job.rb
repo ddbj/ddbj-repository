@@ -201,8 +201,8 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
               "Submission ##{acc.submission_id}: #{entry.id} has LOCUS date #{entry.locus_date} in its record and " \
               "#{acc.locus_date} in entries.locus_date. Regenerating would publish the latter. " \
               'If the column is the date you meant, name it in this run and it will be written to both. ' \
-              'If you have not touched it, the submission predates the apply job reading the date from the ' \
-              'record: run `rake locus_date:backfill` first.'
+              'If you have not touched it, something has written the column without the record — the two are ' \
+              'kept together by the apply job and by this one, so find out what did before regenerating.'
       end
 
       entry.with(
