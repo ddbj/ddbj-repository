@@ -42,6 +42,11 @@ module LocusDateBackfill
   ALREADY_REGENERATED = 'already regenerated: its record and its published flatfile carry the apply date, so redate it ' \
                         'with `Regenerate flatfiles` naming the date — this cannot fix it'.freeze
 
+  # How many ids go into one UPDATE's WHERE. Big enough that a 550-entry
+  # submission is one statement, small enough that the 27,000-entry ones are a
+  # handful rather than one enormous string.
+  BATCH = 2_000
+
   Change = Data.define(:entry, :from, :to)
 
   # One submission's worth of work, and everything about it a person has to see.
@@ -114,22 +119,47 @@ module LocusDateBackfill
     Outcome.new(submission:, changes:, unexamined: nil, unreadable:, deliberate:)
   end
 
-  # Per submission, so a long run can be stopped and resumed, and each entry is
-  # written with its expected current value in the WHERE clause: the read and the
-  # write are separate, and a date that moved in between is one this no longer
-  # knows the truth about.
+  # Per submission, so a long run can be stopped and resumed, and always with the
+  # expected current date in the WHERE clause: the read and the write are
+  # separate, and a date that moved in between is one this no longer knows the
+  # truth about.
+  #
+  # One statement per date, and the ids of the entries it read in the WHERE. The
+  # archive is 9.8 million entries over 17,999 submissions — 550 apiece, not the
+  # handful the first cut assumed — so a statement each would be nine million
+  # round trips.
+  #
+  # The ids are what make that safe. Naming the submission and the date instead,
+  # and checking the row count matched, was identity by proxy: between the read
+  # and the write one member can move off that date while a held-back entry
+  # moves onto it, the count still matches, and the held-back one is overwritten
+  # — the destruction this exists to prevent, reported as success. With the ids
+  # in the WHERE, a row that was not read cannot be touched however the table
+  # moves underneath.
+  #
+  # Checked per statement rather than per submission: a total lets one group's
+  # over-write cancel another's under-write.
   def apply!(changes)
-    written = 0
-
+    # Unprepared: every distinct slice size is a distinct statement, so an
+    # archive-wide run would PREPARE up to BATCH variants — past the adapter's
+    # 1,000 statement limit it starts DEALLOCATEing them again, and the plans it
+    # keeps carry up to BATCH parameters each. These are one-off writes; there is
+    # nothing for a cached plan to pay back.
     Entry.transaction do
-      changes.each do |c|
-        written += Entry.where(id: c.entry.id, locus_date: c.from).update_all(locus_date: c.to, updated_at: Time.current)
-      end
+      Entry.connection.unprepared_statement do
+        changes.group_by { [it.from, it.to] }.each do |(from, to), group|
+          # Sliced so one enormous submission cannot build an IN list of tens of
+          # thousands of ids.
+          group.each_slice(BATCH) do |slice|
+            hit = Entry.where(id: slice.map { it.entry.id }, locus_date: from).update_all(locus_date: to, updated_at: Time.current)
 
-      raise "submission ##{changes.first.entry.submission_id}: expected to redate #{changes.size} #{'entry'.pluralize(changes.size)}, redated #{written} — the dates moved since they were read" unless written == changes.size
+            raise "submission ##{slice.first.entry.submission_id}: #{slice.size} #{'entry'.pluralize(slice.size)} to move off #{from}, #{hit} moved — the dates changed since they were read" unless hit == slice.size
+          end
+        end
+      end
     end
 
-    written
+    changes.size
   end
 
   def describe(outcome)
