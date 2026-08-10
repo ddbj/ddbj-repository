@@ -179,6 +179,15 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       # Refused per submission. `rescue_from` turns it into a failure row, so a
       # run reports exactly which submissions are not ready and rewrites none of
       # them.
+      #
+      # A record with no date at all is nothing to compare against, so it
+      # passes. That is also what makes the old-name fallback in
+      # DDBJRecord::Builders worth keeping rather than merely harmless: without
+      # it every pre-rename record would arrive here blank, and the ~18,000
+      # submissions this guard was written for would stop being compared. The
+      # comment there says when the fallback can go. Refusing a blank instead is
+      # not an option — the only escape below is naming the accession with a
+      # date, and a run carries one date for all of them.
       unless dated.include?(acc) || entry.locus_date.blank? || entry.locus_date == acc.locus_date.to_s
         raise LocusDateDisagreement,
               "Submission ##{acc.submission_id}: #{entry.id} has LOCUS date #{entry.locus_date} in its record and " \
