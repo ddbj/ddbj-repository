@@ -11,10 +11,11 @@ Monorepo with Rails backend at the root and Ember.js frontend in `web/`.
 ```
 app/              Rails application
 web/              Ember.js frontend
-schema/           OpenAPI schema
+schema/           OpenAPI schema + canonicalization registries
 docker/           SeaweedFS configuration
 test/             Minitest tests
 data/             Qualifier/feature reference data
+doc/              Format specifications (canonical JSON)
 ```
 
 ## Tech Stack
@@ -75,9 +76,17 @@ nothing a user can see.
 
 ## CI
 
-Two workflows on push:
-- **API** (`api.yml`): `bin/rails test`, `brakeman`, `rubocop`
-- **Web** (`web.yml`): `pnpm lint`, `pnpm test`
+Three workflows on push:
+- **API** (`api.yml`): `bin/rails test:all`, `brakeman`, `rubocop`
+- **Web** (`web.yml`): `pnpm lint`, `pnpm test`, and a `Schema` job that
+  regenerates `openapi.d.ts` and fails if it differs from the committed one
+- **Canon** (`canon.yml`): the canonicalization gates — see below
+
+Canon overlaps `api.yml` on the Ruby tests by design; what only it does is
+run `canon:fields_check` / `canon:registry_completeness`, and install
+Python `rfc8785` so `cross_lang_jcs_test.rb` actually runs instead of
+skipping. Keeping the Python toolchain out of the API test job is the
+reason it is a separate workflow.
 
 ## Key Architecture
 
@@ -103,6 +112,20 @@ For small files, the same code path works — `sc_parse` handles both minified a
 Two-pass streaming:
 1. Collect entry IDs and NA/AA classification → allocate accessions
 2. Stream entries → write JSON (StreamingWriter) + flatfiles (StreamingRenderer) simultaneously
+
+### Canonical JSON (`ddbj-canon`)
+
+`doc/canonical-json.md` is the wire-format spec — deterministic byte-identical
+serialization of a v3 record, which is what makes SHAs content-addressable and
+RFC 6902 patch chains replayable. `DDBJRecord::Canonicalizer` implements it;
+`schema/canon/array-modes.yml` and `v3-fields.yml` are the registries it reads.
+
+The spec is versioned (`Canonicalizer::VERSION`, currently `ddbj-canon/v2`) and
+frozen on first use: changing a sort rule, the strip list, or string
+normalization means a version bump plus a migration for records already
+written. `submissions.canonical_version` records which version a record was
+written under, so cite section numbers from the doc when touching any of this
+rather than inferring the rule from the code.
 
 ### Result Codes
 

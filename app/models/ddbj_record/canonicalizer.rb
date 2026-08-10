@@ -4,7 +4,7 @@ require 'digest'
 require 'hana'
 require 'json-diff'
 
-# DDBJ Record JSON canonicalization. See tmp/data-migration/canonical-json.md.
+# DDBJ Record JSON canonicalization. See doc/canonical-json.md.
 # The Ruby namespace is rooted under DDBJRecord because canonicalization is a
 # property of the DDBJ Record format, not of any organisation.
 module DDBJRecord
@@ -33,7 +33,7 @@ module DDBJRecord
     MUTATING_OPS = %w[add remove replace move copy].freeze
 
     class << self
-      # Canonical UTF-8 bytes per ddbj-canon/v1. Pass `for_diff: true` to
+      # Canonical UTF-8 bytes per `VERSION`. Pass `for_diff: true` to
       # strip volatile sub-trees (provenance, server-assigned accessions,
       # etc.) before normalisation so the resulting hash represents the
       # curator-meaningful content only.

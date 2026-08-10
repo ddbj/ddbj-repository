@@ -1,7 +1,7 @@
 require 'test_helper'
 
 # Per schema/canon/array-modes.yml `floats:`, exactly TWO JSON pointer
-# paths are permitted to carry a Float in ddbj-canon/v1:
+# paths are permitted to carry a Float in ddbj-canon/v2:
 #
 #   /features/*/score
 #   /experiments/*/library/nominal_sdev

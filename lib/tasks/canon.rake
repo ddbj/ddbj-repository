@@ -27,8 +27,8 @@ namespace :canon do
 
   desc 'Verify schema/canon/array-modes.yml covers every path promised by canonical-json.md'
   task registry_completeness: :environment do
-    # Expected paths drawn from tmp/data-migration/canonical-json.md, frozen
-    # at ddbj-canon/v1. Each entry is a concrete JSON Pointer (wildcards in
+    # Expected paths drawn from doc/canonical-json.md, frozen at
+    # ddbj-canon/v2. Each entry is a concrete JSON Pointer (wildcards in
     # the registry are exercised by a representative concrete pointer) and
     # the expected classification.
     #

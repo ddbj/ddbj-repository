@@ -1,7 +1,7 @@
 # DDBJ Record Canonical JSON v2 — array mode + string class + volatile path registry.
 #
 # Derived from ddbj-record-specifications @ bdcdb8d8 (2026-04-13) and
-# tmp/data-migration/canonical-json.md §3 / §4 / §6.
+# doc/canonical-json.md §3 / §4 / §6.
 #
 # DO NOT modify after first use. Changes require a canonical_version bump
 # and a plan for records written under the previous version.

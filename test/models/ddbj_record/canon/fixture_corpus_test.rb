@@ -4,9 +4,13 @@ require 'test_helper'
 # values frozen in expected_shas.json. Any drift in Canonicalizer or its
 # registry will surface here as a focused per-fixture failure.
 #
-# See tmp/data-migration/canonical-json.md for the wire-format spec
-# (ddbj-canon/v1). The corpus is real BS records across smp_001931 /
-# smp_015788 / smp_019635 / smp_020637 / smp_024372.
+# See doc/canonical-json.md for the wire-format spec. The corpus is real
+# BS records across smp_001931 / smp_015788 / smp_019635 / smp_020637 /
+# smp_024372.
+#
+# The expected SHAs were frozen under ddbj-canon/v1 and still hold under
+# v2: these are `for_diff: false` canonicalisations, and the v1 → v2 delta
+# is confined to the strip list, which only `for_diff: true` consults.
 module DDBJRecord::Canon; end
 
 class DDBJRecord::Canon::FixtureCorpusTest < ActiveSupport::TestCase
