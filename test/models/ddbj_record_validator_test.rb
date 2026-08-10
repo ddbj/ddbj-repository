@@ -183,6 +183,49 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
     refute_includes validate_sequence('acgtacgtac', length: '10', location: '1..10'), 'TRD_R0013'
   end
 
+  # The full-length rule is the patent one. Several sources dividing one entry
+  # is what the v2 schema's own comment on SourceFeature describes, and a
+  # genome record built that way must not be refused — only a location that
+  # leaves the sequence is wrong everywhere.
+  test 'partial source location is accepted outside the patent database' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'biosample')
+    attach_record request, 'acgtacgtac', location: '1..5'
+    request.save!
+
+    DDBJRecordValidator.validate request
+
+    refute_includes codes(request), 'TRD_R0013'
+  end
+
+  test 'source location leaving the sequence is refused outside the patent database too' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'biosample')
+    attach_record request, 'acgtacgtac', location: '1..11'
+    request.save!
+
+    DDBJRecordValidator.validate request
+
+    assert_includes codes(request), 'TRD_R0013'
+  end
+
+  # v3 makes SourceFeature#location optional, so a v3 record that omits it is
+  # schema-legal and must not be refused. v2 requires it.
+  test 'v3 source feature without a location is accepted' do
+    json = {
+      'schema_version' => 'v3',
+
+      'sequences' => {
+        'common_source' => {'mol_type' => 'genomic DNA'},
+        'entries'       => [{'alias' => 'chr1', 'sequence' => 'acgtacgtac', 'source_features' => [{}]}]
+      }
+    }.to_json
+
+    request = build_request_from_json(json)
+
+    DDBJRecordValidator.validate request
+
+    refute_includes codes(request), 'TRD_R0013'
+  end
+
   # The following tests pin the v2 vs v3 routing plus several specific
   # failure modes the code review surfaced. The smoke fixtures are valid
   # enough to flow through end-to-end — no TRD_R9999 catch-all should fire.

@@ -56,6 +56,12 @@ module DDBJRecordValidator
     record  = subject.ddbj_record.open { DDBJRecord.parse(it) }
     v3      = record.is_a?(DDBJRecord::V3::Root)
 
+    # Only the patent database gets the single-full-length-source rule; see
+    # validate_source_location. Taken from the subject rather than from
+    # `provenance.source_format`, which a producer fills in and which a record
+    # assembled by anything other than submission-bulk-st26 may not carry.
+    patent = subject.db == 'st26'
+
     # ST26 application identification — v2: submission.application_identification,
     # v3: submission.st26.application (per v3 St26Meta).
     app_node   = v3 ? record.submission&.st26&.application : record.submission&.application_identification
@@ -225,7 +231,12 @@ module DDBJRecordValidator
         # — the two are equal by the branch above, so this only decides which
         # number the message quotes.
         Array(entry.source_features).each do |sf|
-          details.concat validate_source_location(sf.location, length: declared || measured, entry_id:)
+          details.concat validate_source_location(sf.location, **{
+            length:   declared || measured,
+            entry_id:,
+            optional: v3,
+            strict:   patent
+          })
         end
       end
     end
@@ -264,27 +275,58 @@ module DDBJRecordValidator
     subject.validation.details.insert_all! details
   end
 
-  # Applied to every source feature, not only the one REFERENCE is taken
-  # from: the flatfile prints a source line per feature, so any of them can
-  # be the one that overruns the sequence. An ST.26 patent source is a single
-  # full-length one in the first place — PATENT-386 records that a multiple
-  # or partial source is a violation of the ST.26 text, which is the question
-  # this check leaves to that text rather than deciding itself.
+  # Two rules, and which one applies is a property of the database.
+  #
+  # Everywhere: a location may not leave the sequence. That is the defect NCBI
+  # reported, and it is wrong in any database — the source line would name
+  # bases that are not there.
+  #
+  # ST.26 only: the location must be the whole sequence exactly. PATENT-386
+  # records that a patent source is a single full-length one and that anything
+  # else violates the ST.26 text. Elsewhere a partial source is ordinary — the
+  # v2 schema's own comment on SourceFeature describes several sources dividing
+  # one entry, and a genome record carrying `1..500` and `501..1000` is
+  # perfectly well formed. Applying the patent rule to those would refuse
+  # valid records as Trad migration brings them in.
+  #
+  # Checked per feature rather than only on the one REFERENCE is taken from,
+  # because the flatfile prints a source line for each of them.
   #
   # The span, not the string: `1` and `1..1` describe the same single base,
   # and rejecting one of them would be a rule about notation rather than
   # about length. `join(1..10,11..20)` over 20 bases passes for the same
   # reason — every line of the flatfile then agrees.
-  def validate_source_location(location, length:, entry_id:)
+  def validate_source_location(location, length:, entry_id:, optional:, strict:)
+    if location.blank?
+      # v3 makes location optional (SourceFeature in the vendored schema); v2
+      # requires it, and the renderer has nothing to print without it.
+      return [] if optional
+
+      return [{
+        entry_id:,
+        code:     'TRD_R0013',
+        severity: 'error',
+        message:  'source feature has no location'
+      }]
+    end
+
     span = Bio::Locations.new(location.to_s).span
 
     return [] if span == [1, length]
+
+    outside = span.first < 1 || span.last > length
+
+    return [] unless outside || strict
 
     [{
       entry_id:,
       code:     'TRD_R0013',
       severity: 'error',
-      message:  %(source feature location "#{location}" spans #{span.join('..')} but the sequence is #{length} long)
+      message:  if outside
+                  %(source feature location "#{location}" spans #{span.join('..')} but the sequence is #{length} long)
+                else
+                  %(source feature location "#{location}" covers #{span.join('..')} of a #{length}-long sequence; an ST.26 patent source covers all of it)
+                end
     }]
   rescue StandardError => e
     # bio-ruby cannot read it, and neither can the flatfile renderer:
@@ -300,7 +342,7 @@ module DDBJRecordValidator
       entry_id:,
       code:     'TRD_R0013',
       severity: 'error',
-      message:  (location.presence ? %(source feature location "#{location}" could not be read: #{e.message}) : 'source feature has no location')
+      message:  %(source feature location "#{location}" could not be read: #{e.message})
     }]
   end
 

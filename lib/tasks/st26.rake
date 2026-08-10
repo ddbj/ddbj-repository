@@ -16,7 +16,18 @@ namespace :st26 do
 
       ST26SourceLocations.report result
 
-      puts result.findings.empty? ? 'OK: every source location spans its sequence.' : "#{result.findings.size} disagreeing #{'location'.pluralize(result.findings.size)}."
+      if result.findings.any?
+        puts "#{result.findings.size} #{'disagreement'.pluralize(result.findings.size)}."
+      elsif result.unreadable.empty?
+        puts 'OK: every source location spans its sequence.'
+      end
+
+      # A record that could not be read is not a record that is clean, and the
+      # distinction has to survive being reduced to an exit status: anything
+      # reading the tail of this output would otherwise take an unreadable
+      # archive for a clean one. Findings themselves exit 0 — they are the
+      # report this task exists to produce.
+      abort "#{result.unreadable.size} #{'submission'.pluralize(result.unreadable.size)} could not be read, so this is not a clean bill of health." if result.unreadable.any?
     end
 
     desc 'Rewrite disagreeing source locations to 1..<length> (ACCESSIONS= required, APPLY=1 to write)'
@@ -38,8 +49,11 @@ namespace :st26 do
       # accession would rewrite every disagreeing sibling alongside it.
       correctable, rest = result.named.partition(&:correctable?)
 
-      if rest.any?
-        puts "\nRefusing to rewrite #{rest.size} unreadable #{'location'.pluralize(rest.size)} — a location bio-ruby cannot parse carries information this task would destroy. Fix those by hand."
+      # Named by reason. Both are refusals, but they are refusals to answer
+      # different questions, and "unreadable" said of a length disagreement
+      # sends the reader looking for a malformed location that is not there.
+      rest.group_by(&:reason).each do |reason, group|
+        puts "\n#{ST26SourceLocations::REFUSALS.fetch(reason).call(group.size)} Fix #{group.size == 1 ? 'it' : 'them'} by hand."
       end
 
       abort "#{result.unmatched.size} #{'accession'.pluralize(result.unmatched.size)} matched no ST.26 entry — nothing was written." if result.unmatched.any?
@@ -56,15 +70,25 @@ namespace :st26 do
 
       ST26SourceLocations.correct! correctable
 
-      remaining = ST26SourceLocations.audit(accessions)
+      remaining = ST26SourceLocations.audit(accessions).named
 
-      if remaining.named.none?(&:correctable?)
-        puts "\nCorrected. Every named source location now spans its sequence."
-        puts 'The flatfiles still hold the old spans — regenerate them from Admin → Regenerate flatfiles for these accessions.'
-      else
-        ST26SourceLocations.report remaining
+      unless remaining.none?(&:correctable?)
+        ST26SourceLocations.report ST26SourceLocations.audit(accessions)
+
         abort 'Locations still disagree after the rewrite.'
       end
+
+      # Says what was written rather than that everything is now well: the
+      # refused set is still wrong, and claiming otherwise on the line right
+      # after refusing it is how a known problem gets forgotten.
+      puts "\nRewrote #{correctable.size} #{'location'.pluralize(correctable.size)}."
+      puts "#{remaining.size} named #{'location'.pluralize(remaining.size)} still #{remaining.size == 1 ? 'needs' : 'need'} fixing by hand." if remaining.any?
+      puts 'The flatfiles still hold the old spans — regenerate them from Admin → Regenerate flatfiles for these accessions.'
+
+      # The request keeps the file as it arrived, which is the point of it —
+      # but that makes it disagree with the corrected submission, and it is
+      # downloadable from both the admin screen and the API.
+      puts "The submitter's uploaded copy on the request is deliberately left as received, so it still shows the old spans."
     end
   end
 end
@@ -80,10 +104,18 @@ module ST26SourceLocations
   # and then trip the count guard — after earlier submissions in the batch had
   # already been written.
   Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :location, :expected, :reason) do
-    # An unreadable location has no `1..length` to be rewritten *to* without
-    # discarding whatever it was trying to say.
+    # Only a numeric mismatch is. An unreadable location has no `1..length` to
+    # be rewritten *to* without discarding whatever it was trying to say, and a
+    # declared length that disagrees with its sequence is a question about
+    # which of the two was meant — neither is this task's to answer.
     def correctable? = reason == :mismatch
   end
+
+  # What `fix` says when it will not rewrite something, per reason.
+  REFUSALS = {
+    unreadable:     ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed." },
+    declared_length: ->(n) { "Refusing to touch #{n} #{'entry'.pluralize(n)} whose declared length disagrees with its sequence: which of the two was meant is not this task's to decide." }
+  }.freeze
 
   Unreadable = Data.define(:submission, :error)
 
@@ -134,7 +166,7 @@ module ST26SourceLocations
         f.submission.id,
         f.entry_id,
         f.location.presence || '(none)',
-        f.correctable? ? f.expected : "UNREADABLE (#{f.reason})"
+        f.correctable? ? f.expected : "NOT REWRITTEN (#{f.reason})"
       )
     end
 
@@ -160,12 +192,15 @@ module ST26SourceLocations
   # re-serialised from the parsed Data objects: the blob is the archived
   # record, and a round trip through the parser would rewrite fields this
   # correction has no business touching.
+  # Every record is read and checked before any of them is written. The count
+  # guard used to fire mid-loop, so a batch whose third submission tripped it
+  # aborted with the first two already rewritten — "nothing was written" was
+  # what the message implied and not what had happened.
   def correct!(findings)
-    findings.group_by(&:submission).each do |submission, group|
+    prepared = findings.group_by(&:submission).map {|submission, group|
       wanted = group.to_h { [[it.entry_index, it.source_index], it.expected] }
 
-      json = submission.ddbj_record.open { Oj.load(it.read, mode: :strict) }
-
+      json      = submission.ddbj_record.open { Oj.load(it.read, mode: :strict) }
       rewritten = 0
 
       Array(json.dig('sequences', 'entries')).each_with_index do |entry, i|
@@ -177,8 +212,12 @@ module ST26SourceLocations
         end
       end
 
-      raise "submission ##{submission.id}: expected to rewrite #{group.size} #{'location'.pluralize(group.size)}, rewrote #{rewritten}" unless rewritten == group.size
+      raise "submission ##{submission.id}: expected to rewrite #{group.size} #{'location'.pluralize(group.size)}, found #{rewritten} — nothing has been written" unless rewritten == group.size
 
+      [submission, json, rewritten]
+    }
+
+    prepared.each do |submission, json, rewritten|
       submission.ddbj_record.attach(
         io:           StringIO.new(Oj.dump(json, mode: :strict)),
         filename:     submission.ddbj_record.filename.to_s,
@@ -207,23 +246,44 @@ module ST26SourceLocations
       findings = []
 
       DDBJRecord::StreamingParser.new(file.path).each_entry.with_index do |entry, i|
-        length = entry.length.to_i
+        # Measured from the sequence, the same as TRD_R0013 — not from the
+        # declared `length`. The v2 schema has no length field at all (it is a
+        # server extension this system adds), so measuring by it skipped every
+        # record that lacks one, and where the length was the wrong half of the
+        # disagreement it pronounced the entry clean while the validator
+        # refused it.
+        measured = entry.sequence.to_s.size
+        declared = entry.length&.to_i
 
-        next unless length.positive?
+        next unless measured.positive?
 
-        Array(entry.source_features).each_with_index do |sf, j|
-          reason = disagreement(sf.location, length) or next
-
+        add = ->(source_index, location, reason) {
           findings << Finding.new(
             submission:,
-            accession:    accessions_by_entry[entry.id],
-            entry_id:     entry.id,
-            entry_index:  i,
-            source_index: j,
-            location:     sf.location,
-            expected:     "1..#{length}",
+            accession:   accessions_by_entry[entry.id],
+            entry_id:    entry.id,
+            entry_index: i,
+            source_index:,
+            location:,
+            expected:    "1..#{measured}",
             reason:
           )
+        }
+
+        # Reported against the entry rather than a single source feature, and
+        # never rewritten: correcting the locations to match a wrong length
+        # would leave the record still failing TRD_R0013 while this task's own
+        # re-audit called it clean.
+        if declared && declared != measured
+          add.call nil, "declared length #{declared}", :declared_length
+
+          next
+        end
+
+        Array(entry.source_features).each_with_index do |sf, j|
+          reason = disagreement(sf.location, measured) or next
+
+          add.call j, sf.location, reason
         end
       end
 
@@ -231,9 +291,9 @@ module ST26SourceLocations
     end
   end
 
-  # nil when the location is fine. Distinguishes the two failures because they
-  # get different treatment: a numeric mismatch can be rewritten to the full
-  # span, an unparseable location cannot.
+  # nil when the location is fine. Distinguishes the failures because they get
+  # different treatment: a numeric mismatch can be rewritten to the full span,
+  # an unparseable location cannot.
   def disagreement(location, length)
     span = Bio::Locations.new(location.to_s).span
 
