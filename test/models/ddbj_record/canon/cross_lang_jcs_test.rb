@@ -42,6 +42,17 @@ class DDBJRecord::Canon::CrossLangJcsTest < ActiveSupport::TestCase
     false
   end
 
+  # Whether an unusable interpreter is a skip or a failure depends on where
+  # it came from. A developer without the venv is expected: DEFAULT_PYTHON is
+  # a convenience, and skipping keeps `bin/rails test` usable for them.
+  # `DDBJ_CANON_PY` being set is a claim that this gate is meant to run here —
+  # canon.yml sets it — so an interpreter that cannot import rfc8785 means a
+  # broken gate rather than an absent one, and a broken gate that reports
+  # itself as skipped is indistinguishable in CI from one that passed.
+  def self.python_pinned?
+    ENV.key?('DDBJ_CANON_PY')
+  end
+
   SKIP_REASON = 'rfc8785 not available — install rfc8785==0.1.4 in a venv ' \
                 '(set DDBJ_CANON_PY or use tmp/data-migration/spike-0-3/.venv)'.freeze
 
@@ -49,7 +60,16 @@ class DDBJRecord::Canon::CrossLangJcsTest < ActiveSupport::TestCase
     name = File.basename(path, '.json')
 
     define_method("test_jcs_byte_identity_#{name}") do
-      skip SKIP_REASON unless self.class.rfc8785_available?
+      unless self.class.rfc8785_available?
+        flunk <<~MESSAGE.squish if self.class.python_pinned?
+          DDBJ_CANON_PY is set to #{self.class.python_bin.inspect} but
+          `import rfc8785` failed there, so the cross-language gate cannot run.
+          Install rfc8785==0.1.4 into that interpreter, or unset DDBJ_CANON_PY
+          to skip.
+        MESSAGE
+
+        skip SKIP_REASON
+      end
 
       raw    = File.read(path, encoding: Encoding::UTF_8)
       parsed = JSON.parse(raw)
