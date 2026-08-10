@@ -16,18 +16,28 @@ namespace :st26 do
 
       ST26SourceLocations.report result
 
+      unexamined = result.unreadable.size + result.skipped.size
+
       if result.findings.any?
         puts "#{result.findings.size} #{'disagreement'.pluralize(result.findings.size)}."
-      elsif result.unreadable.empty?
+      elsif unexamined.zero?
         puts 'OK: every source location spans its sequence.'
       end
 
-      # A record that could not be read is not a record that is clean, and the
+      # A record that was not examined is not a record that is clean, and the
       # distinction has to survive being reduced to an exit status: anything
-      # reading the tail of this output would otherwise take an unreadable
-      # archive for a clean one. Findings themselves exit 0 — they are the
-      # report this task exists to produce.
-      abort "#{result.unreadable.size} #{'submission'.pluralize(result.unreadable.size)} could not be read, so this is not a clean bill of health." if result.unreadable.any?
+      # reading the tail of this output would otherwise take an unreadable or
+      # skipped archive for a clean one. Findings themselves exit 0 — they are
+      # the report this task exists to produce.
+      #
+      # Flushed first because `abort` writes to stderr, which is unbuffered:
+      # a redirected run would otherwise show this line before the report it
+      # is talking about.
+      if unexamined.positive?
+        $stdout.flush
+
+        abort "#{unexamined} #{'submission'.pluralize(unexamined)} could not be examined, so this is not a clean bill of health."
+      end
     end
 
     desc 'Rewrite disagreeing source locations to 1..<length> (ACCESSIONS= required, APPLY=1 to write)'
@@ -57,6 +67,13 @@ namespace :st26 do
       end
 
       abort "#{result.unmatched.size} #{'accession'.pluralize(result.unmatched.size)} matched no ST.26 entry — nothing was written." if result.unmatched.any?
+
+      # A named record that could not be read is not a record that needs
+      # nothing: its finding never got as far as being one, so without this the
+      # task would print "Nothing to correct." over a missing blob.
+      unexamined = result.unreadable.size + result.skipped.size
+
+      abort "#{unexamined} named #{'submission'.pluralize(unexamined)} could not be examined — nothing was written." if unexamined.positive?
 
       if correctable.empty?
         puts 'Nothing to correct.'
@@ -104,22 +121,24 @@ module ST26SourceLocations
   # and then trip the count guard — after earlier submissions in the batch had
   # already been written.
   Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :location, :expected, :reason) do
-    # Only a numeric mismatch is. An unreadable location has no `1..length` to
-    # be rewritten *to* without discarding whatever it was trying to say, and a
-    # declared length that disagrees with its sequence is a question about
-    # which of the two was meant — neither is this task's to answer.
-    def correctable? = reason == :mismatch
+    # Only an overrun is: see ST26SourceLocations.disagreement. Everything
+    # else is a question about what was meant, and this task does not get to
+    # answer those — it would be inventing coverage, or discarding what a
+    # location was trying to say.
+    def correctable? = reason == :overrun
   end
 
   # What `fix` says when it will not rewrite something, per reason.
   REFUSALS = {
-    unreadable:     ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed." },
+    unreadable:      ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed." },
+    ambiguous:       ->(n) { "Refusing to widen #{n} #{'location'.pluralize(n)} covering less than the whole sequence, or covering it in several pieces: rewriting to the full span would invent coverage nobody declared." },
+    missing:         ->(n) { "Refusing to fill in #{n} absent #{'location'.pluralize(n)}: a source feature with none at all is a different repair from this one." },
     declared_length: ->(n) { "Refusing to touch #{n} #{'entry'.pluralize(n)} whose declared length disagrees with its sequence: which of the two was meant is not this task's to decide." }
   }.freeze
 
   Unreadable = Data.define(:submission, :error)
 
-  Result = Data.define(:findings, :unreadable, :unmatched, :requested) do
+  Result = Data.define(:findings, :unreadable, :skipped, :unmatched, :requested) do
     # Split so `fix` can act on what was asked for while the operator still
     # sees the rest: a sibling entry in the same submission is worth knowing
     # about, but rewriting it was not what anybody asked for.
@@ -130,23 +149,27 @@ module ST26SourceLocations
 
   module_function
 
-  def audit(accessions = nil, &progress)
+  def audit(accessions = nil)
     requested = accessions.to_s.split(/[\s,]+/).reject(&:blank?).uniq
     scope     = Submission.st26_db.where.associated(:ddbj_record_attachment)
     scope     = scope.where(id: Entry.where(accession: requested).select(:submission_id)) if requested.any?
 
     findings   = []
     unreadable = []
+    skipped    = []
     matched    = []
 
     scope.find_each do |submission|
-      progress&.call submission
-
       accessions_by_entry = submission.entries.pluck(:entry_id, :accession).to_h
       matched.concat accessions_by_entry.values
 
       begin
-        findings.concat scan(submission, accessions_by_entry)
+        found = scan(submission, accessions_by_entry)
+
+        # `scan` returns nil for a record it declined to read rather than an
+        # empty list, so that "nothing wrong here" and "not looked at" cannot
+        # be confused downstream.
+        found ? findings.concat(found) : skipped << submission
       rescue StandardError => e
         # One missing blob used to abort the whole scan and print nothing, so
         # every finding gathered before it was lost. Reported as its own line
@@ -155,18 +178,30 @@ module ST26SourceLocations
       end
     end
 
-    Result.new(findings:, unreadable:, unmatched: requested - matched, requested: requested.to_set)
+    Result.new(findings:, unreadable:, skipped:, unmatched: requested - matched, requested: requested.to_set)
   end
 
   def report(result)
+    # The last column is what will happen to this row, so a sibling has to say
+    # so there rather than in a footnote: it is a disagreement that will be
+    # left alone, and reading `-> 1..20` against it promises a rewrite that is
+    # not coming.
+    siblings = result.siblings.to_set
+
     result.findings.each do |f|
       puts format(
-        '%-12s submission #%-6d %-40s %-16s -> %s',
+        '%-12s submission #%-6d %-40s %-20s -> %s',
         f.accession || '(no accession)',
         f.submission.id,
         f.entry_id,
         f.location.presence || '(none)',
-        f.correctable? ? f.expected : "NOT REWRITTEN (#{f.reason})"
+        if siblings.include?(f)
+          'NOT REWRITTEN (not named)'
+        elsif f.correctable?
+          f.expected
+        else
+          "NOT REWRITTEN (#{f.reason})"
+        end
       )
     end
 
@@ -174,10 +209,8 @@ module ST26SourceLocations
       puts format('%-12s submission #%-6d could not be read: %s', '(unreadable)', u.submission.id, u.error.message)
     end
 
-    if (siblings = result.siblings).any?
-      named = siblings.map(&:accession).uniq
-
-      puts "\nAlso disagreeing in the same submissions, not named and so not corrected: #{named.take(5).join(', ')}#{'…' if named.size > 5}"
+    result.skipped.each do |submission|
+      puts format('%-12s submission #%-6d not examined: v3 record', '(skipped)', submission.id)
     end
 
     return if result.unmatched.empty?
@@ -217,14 +250,27 @@ module ST26SourceLocations
       [submission, json, rewritten]
     }
 
-    prepared.each do |submission, json, rewritten|
-      submission.ddbj_record.attach(
-        io:           StringIO.new(Oj.dump(json, mode: :strict)),
-        filename:     submission.ddbj_record.filename.to_s,
-        content_type: submission.ddbj_record.content_type
-      )
+    # `update!` and not `attach`: Attached::One#attach swallows a failed save
+    # and returns nil, and Submission validates ddbj_record's content type on
+    # update — so a submission whose stored blob carries a different one would
+    # have been reported as rewritten while nothing was written.
+    #
+    # One transaction for the batch, so a failure part-way through does not
+    # leave some records corrected and others not. The uploads themselves are
+    # not transactional; a rollback leaves orphan blobs behind, which is the
+    # same trade the rest of this system already makes.
+    Submission.transaction do
+      prepared.each do |submission, json, rewritten|
+        submission.update!(
+          ddbj_record: {
+            io:           StringIO.new(Oj.dump(json, mode: :strict)),
+            filename:     submission.ddbj_record.filename.to_s,
+            content_type: submission.ddbj_record.content_type
+          }
+        )
 
-      puts "submission ##{submission.id}: rewrote #{rewritten} #{'location'.pluralize(rewritten)}"
+        puts "submission ##{submission.id}: rewrote #{rewritten} #{'location'.pluralize(rewritten)}"
+      end
     end
   end
 
@@ -237,11 +283,10 @@ module ST26SourceLocations
       file.rewind
 
       # v3 entries carry no `length`, and no v3 record reaches the flatfile
-      # renderer yet. Named rather than skipped silently.
-      if major == '3'
-        warn "submission ##{submission.id}: skipped, v3 record"
-        next []
-      end
+      # renderer yet. nil rather than an empty list, so the caller can tell
+      # "not examined" from "nothing wrong here" — this used to warn to stderr
+      # while the summary went on to call the archive clean.
+      next nil if major == '3'
 
       findings = []
 
@@ -291,13 +336,27 @@ module ST26SourceLocations
     end
   end
 
-  # nil when the location is fine. Distinguishes the failures because they get
-  # different treatment: a numeric mismatch can be rewritten to the full span,
-  # an unparseable location cannot.
+  # nil when the location is fine, otherwise why it is not — and only one of
+  # those reasons is something this task will rewrite.
+  #
+  # `:overrun` is the JPO defect and nothing else: one plain forward range that
+  # starts at 1 and runs past the end, where `1..<length>` is what was plainly
+  # meant. Every other disagreement would have coverage invented for it — a
+  # location covering 1..500 of 1000 bases, or `join(1..4,6..9)` with its gap
+  # at 5, does not become correct by being widened to the whole sequence, it
+  # becomes a different claim.
   def disagreement(location, length)
-    span = Bio::Locations.new(location.to_s).span
+    return :missing if location.blank?
 
-    :mismatch unless span == [1, length]
+    locations = Bio::Locations.new(location.to_s)
+    span      = locations.span
+
+    return nil if span == [1, length]
+
+    only  = locations.locations.size == 1 ? locations.locations.first : nil
+    plain = only && only.strand == 1 && only.from == 1 && only.to.to_i > length
+
+    plain ? :overrun : :ambiguous
   rescue StandardError
     :unreadable
   end

@@ -4,7 +4,7 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
   # Minimal valid v2 record carrying a single entry. The sequence and its
   # mol_type are injected by the caller so each test can exercise a specific
   # shape (nucleotide vs protein).
-  def attach_record(request, sequence, mol_type: 'genomic DNA', location: nil, length: :measured)
+  def attach_record(request, sequence, mol_type: 'genomic DNA', location: nil, length: :measured, features: [])
     record = {
       schema_version: 'v2',
       provenance:     {source_format: 'ST26'},
@@ -54,7 +54,7 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
         ]
       },
 
-      features: []
+      features:
     }
 
     request.ddbj_record.attach(
@@ -205,6 +205,61 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
     DDBJRecordValidator.validate request
 
     assert_includes codes(request), 'TRD_R0013'
+  end
+
+  # `Bio::Locations#span` is not normalised — `10..1` comes back as [10, 1] —
+  # so the bound checks passed it while the REFERENCE line would render
+  # "bases 10 to 1".
+  test 'backwards source location is refused' do
+    codes = validate_sequence('acgtacgtac', location: '10..1')
+
+    assert_includes codes, 'TRD_R0013'
+    refute_includes codes, 'TRD_R9999'
+  end
+
+  test 'backwards location is refused outside the patent database too' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'biosample')
+    attach_record request, 'acgtacgtac', location: '10..1'
+    request.save!
+
+    DDBJRecordValidator.validate request
+
+    assert_includes codes(request), 'TRD_R0013'
+  end
+
+  # An ordinary feature's location ships in the flatfile the same way a
+  # source's does, so one that leaves the sequence carries the same defect.
+  # Never full-length though: covering part of the entry is what features are
+  # for.
+  test 'feature location leaving the sequence is refused' do
+    request = submission_requests(:st26)
+    attach_record request, 'acgtacgtac', features: [{type: 'CDS', location: '1..11', sequence_id: 'SEQ|JP|2026123456|A|1', qualifiers: {}}]
+
+    DDBJRecordValidator.validate request
+
+    detail = request.validation.details.find_by(code: 'TRD_R0013')
+
+    assert_match 'feature=CDS', detail.message
+  end
+
+  test 'feature location inside the sequence passes' do
+    request = submission_requests(:st26)
+    attach_record request, 'acgtacgtac', features: [{type: 'CDS', location: '2..5', sequence_id: 'SEQ|JP|2026123456|A|1', qualifiers: {}}]
+
+    DDBJRecordValidator.validate request
+
+    refute_includes codes(request), 'TRD_R0013'
+  end
+
+  # Nothing to measure against, and a feature naming an entry that is not
+  # there is a different complaint than this code makes.
+  test 'feature naming an unknown sequence is not measured' do
+    request = submission_requests(:st26)
+    attach_record request, 'acgtacgtac', features: [{type: 'CDS', location: '1..999', sequence_id: 'nonexistent', qualifiers: {}}]
+
+    DDBJRecordValidator.validate request
+
+    refute_includes codes(request), 'TRD_R0013'
   end
 
   # v3 makes SourceFeature#location optional, so a v3 record that omits it is

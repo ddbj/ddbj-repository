@@ -134,6 +134,11 @@ module DDBJRecordValidator
     # silencing that would let a malformed v2 record reach ready_to_apply.
     entries = v3 ? Array(record.sequences&.entries) : record.sequences.entries
 
+    # Sequence length per entry, filled as the entries are walked and read
+    # again by the features loop below — a feature's location is measured
+    # against the entry it names.
+    lengths = {}
+
     entries.each do |entry|
       # v2 Entry has :id (server-extension); v3 Entry uses :alias as the
       # curator-facing identifier and falls back to :accession when alias
@@ -227,14 +232,18 @@ module DDBJRecordValidator
           message:  "declared length #{declared} does not match the #{measured}-long sequence"
         }
       elsif measured.positive?
-        # `declared` where it exists, per the length being what LOCUS prints
-        # — the two are equal by the branch above, so this only decides which
-        # number the message quotes.
+        # Measured, not declared: the branch above has established that they
+        # agree wherever `declared` exists at all.
+        lengths[entry_id] = measured
+
         Array(entry.source_features).each do |sf|
-          details.concat validate_source_location(sf.location, **{
-            length:   declared || measured,
+          details.concat validate_location(sf.location, **{
+            length:   measured,
             entry_id:,
+            label:    'source feature',
             optional: v3,
+
+            # The whole sequence exactly, for patents only.
             strict:   patent
           })
         end
@@ -254,6 +263,24 @@ module DDBJRecordValidator
           severity: 'warning',
           message:  %(Undefined feature key "#{fkey}")
         }
+      end
+
+      # Any feature's location ships in the flatfile the same way a source's
+      # does (Flatfile::Feature renders it verbatim), so one that leaves the
+      # sequence is the INSDC-3468 defect wearing a different key, and one that
+      # cannot be parsed escapes to `apply` as the TRD_R9999 catch-all. Never
+      # `strict`: a feature covering part of its entry is the ordinary case.
+      #
+      # Skipped when the sequence it names is not in this record — there is
+      # nothing to measure against, and a feature naming a missing entry is a
+      # different complaint than this code makes.
+      if (length = lengths[entry_id])
+        details.concat validate_location(feature.location, **{
+          length:,
+          entry_id:,
+          label:    "feature=#{fkey}",
+          optional: v3
+        })
       end
 
       details.concat validate_qualifiers(feature.qualifiers || {}, entry_id:, feature: fkey)
@@ -289,45 +316,44 @@ module DDBJRecordValidator
   # perfectly well formed. Applying the patent rule to those would refuse
   # valid records as Trad migration brings them in.
   #
-  # Checked per feature rather than only on the one REFERENCE is taken from,
-  # because the flatfile prints a source line for each of them.
+  # Checked per source feature rather than only on the one REFERENCE is taken
+  # from, because the flatfile prints a source line for each of them; and on
+  # ordinary features too, which carry locations of their own.
   #
   # The span, not the string: `1` and `1..1` describe the same single base,
   # and rejecting one of them would be a rule about notation rather than
   # about length. `join(1..10,11..20)` over 20 bases passes for the same
   # reason — every line of the flatfile then agrees.
-  def validate_source_location(location, length:, entry_id:, optional:, strict:)
+  def validate_location(location, length:, entry_id:, label:, optional:, strict: false)
     if location.blank?
-      # v3 makes location optional (SourceFeature in the vendored schema); v2
-      # requires it, and the renderer has nothing to print without it.
+      # v3 makes location optional (SourceFeature / Feature in the vendored
+      # schema); v2 requires it, and the renderer has nothing to print
+      # without it.
       return [] if optional
 
-      return [{
-        entry_id:,
-        code:     'TRD_R0013',
-        severity: 'error',
-        message:  'source feature has no location'
-      }]
+      return [refusal(entry_id, "#{label} has no location")]
     end
 
-    span = Bio::Locations.new(location.to_s).span
+    span  = Bio::Locations.new(location.to_s).span
+    first = span.min
+    last  = span.max
 
-    return [] if span == [1, length]
+    # `span` is not normalised: `10..1` comes back as [10, 1], which passes
+    # every bound check below while the REFERENCE line renders as
+    # "bases 10 to 1".
+    if span.first > span.last
+      return [refusal(entry_id, %(#{label} location "#{location}" runs backwards))]
+    end
 
-    outside = span.first < 1 || span.last > length
+    return [] if first == 1 && last == length
 
-    return [] unless outside || strict
+    if first < 1 || last > length
+      return [refusal(entry_id, %(#{label} location "#{location}" spans #{first}..#{last} but the sequence is #{length} long))]
+    end
 
-    [{
-      entry_id:,
-      code:     'TRD_R0013',
-      severity: 'error',
-      message:  if outside
-                  %(source feature location "#{location}" spans #{span.join('..')} but the sequence is #{length} long)
-                else
-                  %(source feature location "#{location}" covers #{span.join('..')} of a #{length}-long sequence; an ST.26 patent source covers all of it)
-                end
-    }]
+    return [] unless strict
+
+    [refusal(entry_id, %(#{label} location "#{location}" covers #{first}..#{last} of a #{length}-long sequence; an ST.26 patent source covers all of it))]
   rescue StandardError => e
     # bio-ruby cannot read it, and neither can the flatfile renderer:
     # Flatfile::Entry#location_span raises on the same input, so today such a
@@ -338,12 +364,16 @@ module DDBJRecordValidator
     # anywhere in this system — the renderer raises on it — so refusing it is
     # not a new restriction. Trad migration will have to teach both the
     # renderer and this check about it.
-    [{
+    [refusal(entry_id, %(#{label} location "#{location}" could not be read: #{e.message}))]
+  end
+
+  def refusal(entry_id, message)
+    {
       entry_id:,
       code:     'TRD_R0013',
       severity: 'error',
-      message:  %(source feature location "#{location}" could not be read: #{e.message})
-    }]
+      message:
+    }
   end
 
   def pluck_en_texts(array)
