@@ -16,11 +16,13 @@ namespace :st26 do
     # cover part of an entry — a qualifier can even lift the expectation that
     # other features sit inside it.
 
-    desc 'Report ST.26 entries whose source location disagrees with the sequence length (ACCESSIONS= to scope)'
+    desc 'Report ST.26 entries whose source location disagrees with the sequence length (ACCESSIONS= to scope, LENGTHEN= to preview)'
     task audit: :environment do
       result = St26SourceLocations.audit(ENV['ACCESSIONS'])
 
-      St26SourceLocations.report result
+      # LENGTHEN is honoured here too, so `audit` can be asked what the `fix`
+      # that follows it would do rather than only what a bare one would.
+      St26SourceLocations.report result, St26SourceLocations.plan_from(ENV['LENGTHEN'])
 
       # An accession that matched nothing counts here too: it is a question
       # this run did not answer, exactly like a record it could not read, and
@@ -49,7 +51,7 @@ namespace :st26 do
       end
     end
 
-    desc 'Set plain source locations to 1..<length> (ACCESSIONS= required, INCLUDE=short to also lengthen, APPLY=1 to write)'
+    desc 'Set plain source locations to 1..<length> (ACCESSIONS= required, LENGTHEN= to also lengthen those, APPLY=1 to write)'
     task fix: :environment do
       accessions = ENV['ACCESSIONS'].to_s
 
@@ -68,22 +70,23 @@ namespace :st26 do
 
       result = St26SourceLocations.audit(accessions)
 
-      St26SourceLocations.report result
-
-      # Only what was named, and only the reasons this run is allowed to act on.
+      # Only what was named, and only what this run is allowed to act on.
       # Resolving accessions reaches whole submissions — a JPO request can carry
       # sixty entries — so without the first restriction, naming one accession
       # would rewrite every disagreeing sibling alongside it.
-      allowed = St26SourceLocations.actionable_reasons(ENV['INCLUDE'])
-      act     = ->(f) { allowed.include?(f.reason) }
+      plan = St26SourceLocations.plan_from(ENV['LENGTHEN'])
 
-      correctable, rest = result.named.partition(&act)
+      St26SourceLocations.report result, plan
+
+      correctable, rest = result.named.partition { plan.actionable?(it) }
 
       # Named by reason. Both are refusals, but they are refusals to answer
       # different questions, and "unreadable" said of a length disagreement
       # sends the reader looking for a malformed location that is not there.
+      # Each refusal says what to do about itself: `:short` has an answer on the
+      # command line, the rest are dead ends where by hand is the only route.
       rest.group_by(&:reason).each do |reason, group|
-        puts "\n#{St26SourceLocations::REFUSALS.fetch(reason).call(group.size)} Fix #{group.size == 1 ? 'it' : 'them'} by hand."
+        puts "\n#{St26SourceLocations::REFUSALS.fetch(reason).call(group.size)}"
       end
 
       abort "#{result.unmatched.size} #{'accession'.pluralize(result.unmatched.size)} matched no ST.26 entry — nothing was written." if result.unmatched.any?
@@ -115,8 +118,8 @@ namespace :st26 do
       # `remaining` empty and this check trivially satisfied — reporting the
       # rewrite as verified on the strength of not having looked. The
       # pre-checks above refuse the same situation for the same reason.
-      unless remaining.none?(&act) && after.unreadable.empty? && after.skipped.empty?
-        St26SourceLocations.report after
+      unless remaining.none? { plan.actionable?(it) } && after.unreadable.empty? && after.skipped.empty?
+        St26SourceLocations.report after, plan
 
         abort 'The rewrite could not be confirmed: run the audit again.'
       end

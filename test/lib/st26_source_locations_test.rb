@@ -9,7 +9,7 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
   # Only a plain forward range from base 1 is repairable, and the two directions
   # are told apart: an overrun names bases the sequence does not have, while a
   # shortfall might be the boundary slip PATENT-386 found or might be coverage
-  # somebody meant, so `fix` needs INCLUDE=short for it.
+  # somebody meant, so lengthening has to be asked for per accession.
   #
   # The notation cases are the ones that matter. bio-ruby flattens `1..(5.10)`
   # to from=1/to=10 and `1.5` to 1..1, with none of its markers set, so a check
@@ -19,6 +19,8 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     '1..20'             => nil,
     'join(1..4,6..20)'  => nil,       # covers the whole sequence, gap and all
     '1..21'             => :overrun,  # names a base that is not there
+    '1..21 '            => :overrun,  # lifted from XML, stray space and all
+    ' 1..21'            => :overrun,
     '1..19'             => :short,    # PATENT-386 has both directions
     '1..5'              => :short,
     '1'                 => :ambiguous, # not a range
@@ -36,7 +38,7 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     '1..E'              => :unreadable,
     'garbage!!'         => :unreadable
   }.each do |location, expected|
-    test "#{location.presence || '(blank)'} over 20 bases is #{expected.inspect}" do
+    test "#{location.inspect} over 20 bases is #{expected.inspect}" do
       actual = St26SourceLocations.disagreement(location, 20)
 
       expected.nil? ? assert_nil(actual) : assert_equal(expected, actual)
@@ -127,17 +129,40 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
 
     result = St26SourceLocations.audit
 
-    assert_equal %i[ambiguous ambiguous], result.findings.map(&:reason)
-    assert_empty result.findings.select(&:repairable?)
+    # The first is the one that could have been lengthened — it is a plain range
+    # from base 1 stopping short. The second does not start at base 1, so it was
+    # never a candidate.
+    assert_equal %i[multiple_sources ambiguous], result.findings.map(&:reason)
+    assert_empty result.findings.select { St26SourceLocations.plan_from('ACC_000001').actionable?(it) }
   end
 
-  # `:short` is repairable but not acted on by default: the operator says so on
-  # the command line, which is where PATENT-386's answer to that question came
-  # from.
-  test 'only overruns are actionable unless short is asked for' do
-    assert_equal %i[overrun],        St26SourceLocations.actionable_reasons(nil)
-    assert_equal %i[overrun short],  St26SourceLocations.actionable_reasons('short')
-    assert_equal %i[overrun],        St26SourceLocations.actionable_reasons('something-else')
+  # `:short` is repairable but acted on only where a person named the accession.
+  # Per accession and not per run: PATENT-386's answer came from somebody
+  # looking at two specific entries, and a run-wide switch would carry it to
+  # every short row in the batch.
+  test 'lengthening applies only to the accessions named in the plan' do
+    seed '1..21', '1..19'
+
+    findings = St26SourceLocations.audit.findings
+    overrun  = findings.find { it.reason == :overrun }
+    short    = findings.find { it.reason == :short }
+
+    bare    = St26SourceLocations.plan_from(nil)
+    someone = St26SourceLocations.plan_from('ACC_000002')
+    other   = St26SourceLocations.plan_from('ACC_000009')
+
+    assert bare.actionable?(overrun),      'an overrun needs no permission'
+    refute bare.actionable?(short)
+    assert someone.actionable?(short),     'named in LENGTHEN'
+    refute other.actionable?(short),       'a different accession is not permission for this one'
+  end
+
+  # Shrinking an overrun cannot swallow a sibling's span, so the sources guard
+  # applies to lengthening only — and refusing it as `ambiguous` would have
+  # blamed a notation problem that is not there.
+  test 'an overrun is still repaired when another source divides the entry' do
+    assert_equal :overrun, St26SourceLocations.disagreement('1..21', 20, sources: 2)
+    assert_equal :multiple_sources, St26SourceLocations.disagreement('1..19', 20, sources: 2)
   end
 
   test 'a submission with no record is skipped rather than passed over' do
