@@ -4,7 +4,7 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
   # Minimal valid v2 record carrying a single entry. The sequence and its
   # mol_type are injected by the caller so each test can exercise a specific
   # shape (nucleotide vs protein).
-  def attach_record(request, sequence, mol_type: 'genomic DNA', location: nil)
+  def attach_record(request, sequence, mol_type: 'genomic DNA', location: nil, length: :measured)
     record = {
       schema_version: 'v2',
       provenance:     {source_format: 'ST26'},
@@ -35,7 +35,7 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
             type:     'other',
             topology: 'linear',
             sequence:,
-            length:   sequence.length,
+            length:   (length == :measured ? sequence.length : length),
             tax_id:   9606,
 
             source_features: [
@@ -136,6 +136,53 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
     refute_includes codes, 'TRD_R9999', 'a bad location must not surface as the catch-all'
   end
 
+  # `1..E` is the MSS end-of-sequence form. Flatfile::Entry#location_span
+  # raises on it, so such a record cannot be rendered today and fails at
+  # apply as the catch-all — refusing it here is where the submitter can
+  # read it. Trad migration will have to teach both ends about it.
+  test 'MSS end-of-sequence location is refused for now' do
+    assert_includes validate_sequence('acgtacgtac', location: '1..E'), 'TRD_R0013'
+  end
+
+  test 'source feature with no location is refused' do
+    request = submission_requests(:st26)
+    attach_record request, 'acgtacgtac', location: ''
+
+    DDBJRecordValidator.validate request
+
+    assert_includes codes(request), 'TRD_R0013'
+    assert_match 'no location', request.validation.details.find_by(code: 'TRD_R0013').message
+  end
+
+  # The length attribute is what LOCUS prints, so a length that disagrees
+  # with the sequence ships the same defect one step earlier — and a
+  # location measured against it would look correct all the way through.
+  test 'declared length that disagrees with the sequence is refused' do
+    request = submission_requests(:st26)
+    attach_record request, 'acgtacgtac', length: 11, location: '1..11'
+
+    DDBJRecordValidator.validate request
+
+    detail = request.validation.details.find_by(code: 'TRD_R0013')
+
+    assert_match 'declared length 11', detail.message
+    assert_equal 1, request.validation.details.where(code: 'TRD_R0013').count,
+                 'the location is not reported separately when the length it would be measured against is itself wrong'
+  end
+
+  # `length` is a v2 server extension and older records omit it. Falling back
+  # to the sequence keeps the check running rather than silently disabling it.
+  test 'missing declared length falls back to measuring the sequence' do
+    assert_includes validate_sequence('acgtacgtac', length: nil, location: '1..11'), 'TRD_R0013'
+    refute_includes validate_sequence('acgtacgtac', length: nil, location: '1..10'), 'TRD_R0013'
+  end
+
+  # A JSON string where a number belongs used to make every comparison fail
+  # and print `spans 1..10 but the sequence is 10 long`.
+  test 'declared length carried as a string is read as a number' do
+    refute_includes validate_sequence('acgtacgtac', length: '10', location: '1..10'), 'TRD_R0013'
+  end
+
   # The following tests pin the v2 vs v3 routing plus several specific
   # failure modes the code review surfaced. The smoke fixtures are valid
   # enough to flow through end-to-end — no TRD_R9999 catch-all should fire.
@@ -194,10 +241,10 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
 
   private
 
-  def validate_sequence(sequence, mol_type: 'genomic DNA', location: nil)
+  def validate_sequence(sequence, mol_type: 'genomic DNA', location: nil, length: :measured)
     request = submission_requests(:st26)
     request.ddbj_record.purge if request.ddbj_record.attached?
-    attach_record(request, sequence, mol_type:, location:)
+    attach_record(request, sequence, mol_type:, location:, length:)
     DDBJRecordValidator.validate request
     codes request
   end

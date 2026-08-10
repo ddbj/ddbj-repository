@@ -194,24 +194,38 @@ module DDBJRecordValidator
         }
       end
 
-      # A source location that does not cover the sequence is what NCBI
-      # reported as INSDC-3468: the flatfile takes LOCUS from the length and
-      # both the source location and the REFERENCE span from this location
-      # (Flatfile::Entry#location_span), so a disagreement ships as a record
-      # claiming two different lengths.
+      # An entry states its length twice over: `length`, which LOCUS prints,
+      # and the source locations, which the source lines and the REFERENCE
+      # span print (Flatfile::Entry#location_span). NCBI reported the
+      # disagreement as INSDC-3468 — a 20-base sequence whose source said
+      # 1..21, so the flatfile claimed both.
       #
-      # Refused rather than quietly corrected. The producer is the only party
-      # that knows whether the sequence or the location is the wrong one, and
-      # a correction here would make the record disagree with the ST.26 file
-      # it came from without anybody being told.
+      # Refused rather than quietly corrected, in every case below. Three
+      # things could be the wrong one and only the producer knows which; a
+      # correction here would make the record disagree with the ST.26 file it
+      # came from without anybody being told.
       #
-      # v2 carries the server-extension `length`; v3 Entry has no such member,
-      # so the sequence is all there is to measure.
-      length = v3 ? seq.size : entry.length
+      # `length` is a v2 server extension — v3 Entry has no such member, so
+      # there the sequence is the only measure.
+      declared = v3 ? nil : entry.length&.to_i
+      measured = seq.size
 
-      if length.to_i.positive?
+      if declared && declared != measured
+        # Checked before the locations, and instead of them: measuring a
+        # location against a length that is itself wrong produces a second
+        # error naming the wrong quantity.
+        details << {
+          entry_id:,
+          code:     'TRD_R0013',
+          severity: 'error',
+          message:  "declared length #{declared} does not match the #{measured}-long sequence"
+        }
+      elsif measured.positive?
+        # `declared` where it exists, per the length being what LOCUS prints
+        # — the two are equal by the branch above, so this only decides which
+        # number the message quotes.
         Array(entry.source_features).each do |sf|
-          details.concat validate_source_location(sf.location, length:, entry_id:)
+          details.concat validate_source_location(sf.location, length: declared || measured, entry_id:)
         end
       end
     end
@@ -250,12 +264,17 @@ module DDBJRecordValidator
     subject.validation.details.insert_all! details
   end
 
+  # Applied to every source feature, not only the one REFERENCE is taken
+  # from: the flatfile prints a source line per feature, so any of them can
+  # be the one that overruns the sequence. An ST.26 patent source is a single
+  # full-length one in the first place — PATENT-386 records that a multiple
+  # or partial source is a violation of the ST.26 text, which is the question
+  # this check leaves to that text rather than deciding itself.
+  #
   # The span, not the string: `1` and `1..1` describe the same single base,
   # and rejecting one of them would be a rule about notation rather than
   # about length. `join(1..10,11..20)` over 20 bases passes for the same
-  # reason — every line of the flatfile then agrees. Whether a patent source
-  # may be split or complemented at all is a separate question, and one the
-  # ST.26 text answers rather than this check.
+  # reason — every line of the flatfile then agrees.
   def validate_source_location(location, length:, entry_id:)
     span = Bio::Locations.new(location.to_s).span
 
@@ -268,14 +287,20 @@ module DDBJRecordValidator
       message:  %(source feature location "#{location}" spans #{span.join('..')} but the sequence is #{length} long)
     }]
   rescue StandardError => e
-    # An unparseable location is the same defect wearing a different hat, and
-    # the flatfile renderer would raise on it later — reported here, where the
-    # message reaches the submitter, rather than during application.
+    # bio-ruby cannot read it, and neither can the flatfile renderer:
+    # Flatfile::Entry#location_span raises on the same input, so today such a
+    # record reaches `apply` and fails there as the TRD_R9999 catch-all.
+    # Reported here instead, where the message reaches the submitter.
+    #
+    # This is what refuses the MSS `1..E` form. That notation has no support
+    # anywhere in this system — the renderer raises on it — so refusing it is
+    # not a new restriction. Trad migration will have to teach both the
+    # renderer and this check about it.
     [{
       entry_id:,
       code:     'TRD_R0013',
       severity: 'error',
-      message:  %(source feature location "#{location}" could not be read: #{e.message})
+      message:  (location.presence ? %(source feature location "#{location}" could not be read: #{e.message}) : 'source feature has no location')
     }]
   end
 
