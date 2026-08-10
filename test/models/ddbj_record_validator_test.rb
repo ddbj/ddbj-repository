@@ -4,7 +4,7 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
   # Minimal valid v2 record carrying a single entry. The sequence and its
   # mol_type are injected by the caller so each test can exercise a specific
   # shape (nucleotide vs protein).
-  def attach_record(request, sequence, mol_type: 'genomic DNA')
+  def attach_record(request, sequence, mol_type: 'genomic DNA', location: nil)
     record = {
       schema_version: 'v2',
       provenance:     {source_format: 'ST26'},
@@ -41,7 +41,7 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
             source_features: [
               {
                 id:       'source_1',
-                location: "1..#{sequence.length}",
+                location: location || "1..#{sequence.length}",
 
                 source: {
                   organism:   'Homo sapiens',
@@ -103,6 +103,39 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
     end
   end
 
+  # INSDC-3468 / PATENT-386: JPO ST.26 files carried source locations that
+  # overran the sequence (1..21 over 20 bases), and the flatfile printed the
+  # disagreement twice — the source location and the REFERENCE span. Refused
+  # rather than corrected, so the producer fixes the file.
+  test 'source location that overruns the sequence is refused' do
+    assert_includes validate_sequence('acgtacgtac', location: '1..11'), 'TRD_R0013'
+  end
+
+  test 'source location shorter than the sequence is refused' do
+    assert_includes validate_sequence('acgtacgtac', location: '1..9'), 'TRD_R0013'
+  end
+
+  test 'source location matching the sequence passes' do
+    refute_includes validate_sequence('acgtacgtac', location: '1..10'), 'TRD_R0013'
+  end
+
+  # Notation, not length: a single base may be written either way, and the
+  # span is what the flatfile prints.
+  test 'bare position on a single-base sequence passes' do
+    refute_includes validate_sequence('a', location: '1'), 'TRD_R0013'
+  end
+
+  test 'split location covering the whole sequence passes' do
+    refute_includes validate_sequence('acgtacgtac', location: 'join(1..4,5..10)'), 'TRD_R0013'
+  end
+
+  test 'unreadable source location is refused rather than raised' do
+    codes = validate_sequence('acgtacgtac', location: 'garbage!!')
+
+    assert_includes codes, 'TRD_R0013'
+    refute_includes codes, 'TRD_R9999', 'a bad location must not surface as the catch-all'
+  end
+
   # The following tests pin the v2 vs v3 routing plus several specific
   # failure modes the code review surfaced. The smoke fixtures are valid
   # enough to flow through end-to-end — no TRD_R9999 catch-all should fire.
@@ -126,9 +159,11 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
            "v3 path produced TRD_R9999: #{request.validation.details.where(code: 'TRD_R9999').first&.message}"
     refute request.validation.details.exists?(code: 'TRD_R0010'),
            'v3 fixture has common_source.mol_type set; TRD_R0010 is a false positive'
-    # (TRD_R0005 fires legitimately because the vendored fixture uses
-    # a `...(N bp)...` placeholder string in the sequence field — that
-    # is a fixture quality issue, not a validator bug.)
+    # (TRD_R0005 and TRD_R0013 fire legitimately because the vendored
+    # fixture uses a `...(N bp)...` placeholder string in the sequence
+    # field — so the characters are invalid and the sequence is far
+    # shorter than the source location claims. A fixture quality issue,
+    # not a validator bug.)
   end
 
   test 'v2 record missing sequences block still fails loudly via TRD_R9999 (regression guard)' do
@@ -159,10 +194,10 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
 
   private
 
-  def validate_sequence(sequence, mol_type: 'genomic DNA')
+  def validate_sequence(sequence, mol_type: 'genomic DNA', location: nil)
     request = submission_requests(:st26)
     request.ddbj_record.purge if request.ddbj_record.attached?
-    attach_record(request, sequence, mol_type:)
+    attach_record(request, sequence, mol_type:, location:)
     DDBJRecordValidator.validate request
     codes request
   end

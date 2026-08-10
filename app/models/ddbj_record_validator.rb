@@ -193,6 +193,27 @@ module DDBJRecordValidator
           message:  'Invalid characters found in nucleotide sequence'
         }
       end
+
+      # A source location that does not cover the sequence is what NCBI
+      # reported as INSDC-3468: the flatfile takes LOCUS from the length and
+      # both the source location and the REFERENCE span from this location
+      # (Flatfile::Entry#location_span), so a disagreement ships as a record
+      # claiming two different lengths.
+      #
+      # Refused rather than quietly corrected. The producer is the only party
+      # that knows whether the sequence or the location is the wrong one, and
+      # a correction here would make the record disagree with the ST.26 file
+      # it came from without anybody being told.
+      #
+      # v2 carries the server-extension `length`; v3 Entry has no such member,
+      # so the sequence is all there is to measure.
+      length = v3 ? seq.size : entry.length
+
+      if length.to_i.positive?
+        Array(entry.source_features).each do |sf|
+          details.concat validate_source_location(sf.location, length:, entry_id:)
+        end
+      end
     end
 
     features = v3 ? Array(record.features) : record.features
@@ -227,6 +248,35 @@ module DDBJRecordValidator
     }
   ensure
     subject.validation.details.insert_all! details
+  end
+
+  # The span, not the string: `1` and `1..1` describe the same single base,
+  # and rejecting one of them would be a rule about notation rather than
+  # about length. `join(1..10,11..20)` over 20 bases passes for the same
+  # reason — every line of the flatfile then agrees. Whether a patent source
+  # may be split or complemented at all is a separate question, and one the
+  # ST.26 text answers rather than this check.
+  def validate_source_location(location, length:, entry_id:)
+    span = Bio::Locations.new(location.to_s).span
+
+    return [] if span == [1, length]
+
+    [{
+      entry_id:,
+      code:     'TRD_R0013',
+      severity: 'error',
+      message:  %(source feature location "#{location}" spans #{span.join('..')} but the sequence is #{length} long)
+    }]
+  rescue StandardError => e
+    # An unparseable location is the same defect wearing a different hat, and
+    # the flatfile renderer would raise on it later — reported here, where the
+    # message reaches the submitter, rather than during application.
+    [{
+      entry_id:,
+      code:     'TRD_R0013',
+      severity: 'error',
+      message:  %(source feature location "#{location}" could not be read: #{e.message})
+    }]
   end
 
   def pluck_en_texts(array)
