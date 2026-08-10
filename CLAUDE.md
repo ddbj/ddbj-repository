@@ -121,13 +121,15 @@ It lives in three places, and they hold the same value by construction:
 | Place | Role |
 |---|---|
 | the record's `sequences.entries[].locus_date` | how it arrives, and what the archived record states |
-| `entries.locus_date` | the queryable copy — API, admin, and per-entry edits |
+| `entries.locus_date` | the queryable copy — API, admin, and where a redate is written |
 | the flatfile's LOCUS line | rendered from the record field the renderer is handed |
 
 `ApplySubmissionRequestJob` takes the date from the record and writes both,
 falling back to the apply date only when the record names none.
-`RegenerateSubmissionFlatfilesJob` renders from the column, so a per-entry date
-change is made by writing the column and regenerating.
+`RegenerateSubmissionFlatfilesJob` renders from the column, so redating an entry
+means writing the column and regenerating. There is no screen for that yet: the
+Regenerate form's date option writes **every entry of the submission**
+(`update_all`), so it is the wrong tool for redating some of them.
 
 This was three different dates until 2026-08: the column held the apply date,
 the record field was called `last_updated` and held the operator's date, and the
@@ -136,8 +138,16 @@ regeneration silently pulled published LOCUS dates back to the apply date —
 which is what happened to 62 entries while fixing PATENT-386. Records written
 before the rename still say `last_updated`, and `Builders` reads both keys.
 
-The Regenerate screen's date option writes the column for **every entry of the
-submission**, so it is the wrong tool for redating some of them.
+Two consequences of that history, both one-off:
+
+- Submissions applied before the change still have the apply date in the column.
+  `rake locus_date:backfill` reads each request's record — the upload, which no
+  regeneration rewrites — and puts the column back. **It has to have been run
+  before any bulk regeneration**, or that regeneration prints the apply date.
+- The key rename makes a re-serialised legacy record differ from its stored
+  blob, so `changed?` is true for every one of them. The first regeneration after
+  this deploy therefore rewrites the record and reports nothing skipped; that is
+  the rename passing through, not a substantive change.
 
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 

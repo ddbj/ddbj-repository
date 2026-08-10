@@ -7,11 +7,22 @@ class ApplySubmissionRequestJob < ApplicationJob
   #
   # error_message の方は人間向けで、文言は予告なく変わる。**機械的な判断はコードで
   # 行うこと。**
+  class MalformedLocusDate < StandardError; end
+
   ERROR_CODES = {
-    Sequence::Exhausted => 'TRD_R0012'
+    Sequence::Exhausted => 'TRD_R0012',
+    MalformedLocusDate  => 'TRD_R0014'
   }.freeze
 
   UNEXPECTED_ERROR_CODE = 'TRD_R9999'
+
+  # `YYYY-MM-DD` and nothing else. `String#to_date` is `Date.parse`, which
+  # guesses: `8/13` becomes the 13th of August *of whichever year the job ran
+  # in*, `Aug 2026` becomes the 1st, `2026-225` an ordinal day. This date is
+  # printed on the LOCUS line of a published flatfile, so a guess is worse than
+  # a refusal — and refusing here costs nothing, because pass 1 runs before any
+  # accession is allocated.
+  LOCUS_DATE_FORMAT = /\A\d{4}-\d{2}-\d{2}\z/
 
   def perform(request)
     # 前回の失敗の痕跡を残さない。コードは機械的な判断に使われるので、古い値が
@@ -41,6 +52,20 @@ class ApplySubmissionRequestJob < ApplicationJob
   end
 
   private
+
+  # The date the publication operator put on this entry, or `fallback` when the
+  # record names none. Refused rather than guessed — see LOCUS_DATE_FORMAT.
+  def locus_date_for(entry, fallback)
+    given = entry.locus_date.presence or return fallback
+
+    raise MalformedLocusDate, %(#{entry.id}: locus_date "#{given}" is not written as YYYY-MM-DD) unless given.match?(LOCUS_DATE_FORMAT)
+
+    begin
+      Date.iso8601(given)
+    rescue Date::Error
+      raise MalformedLocusDate, %(#{entry.id}: locus_date "#{given}" is not a real date)
+    end
+  end
 
   def error_code_for(error)
     _, code = ERROR_CODES.find {|klass, _| error.is_a?(klass) }
@@ -81,10 +106,9 @@ class ApplySubmissionRequestJob < ApplicationJob
       # record is where it comes from.
       #
       # Normalised to a Date once, so the column and the record cannot spell the
-      # same day two ways. An unparseable value raises here instead of further
-      # down in `format_date`, which is where it used to surface.
+      # same day two ways.
       entry_metas = parser.each_entry.map {|entry|
-        {id: entry.id, is_aa: aa?(entry), locus_date: entry.locus_date.presence&.to_date || today}
+        {id: entry.id, is_aa: aa?(entry), locus_date: locus_date_for(entry, today)}
       }
 
       na_count = entry_metas.count { !it[:is_aa] }

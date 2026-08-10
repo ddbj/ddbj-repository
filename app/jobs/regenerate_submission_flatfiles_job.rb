@@ -179,14 +179,17 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       acc = rows_by_entry_id.fetch(entry.id)
 
       entry.with(
-        accession:    acc.accession,
-        locus:        acc.accession,
-        version:      acc.version,
-        # From the column, which is the queryable copy of what the record
-        # already says — equal by construction since the apply job started
-        # taking the date from the record. Where they are not equal, the column
-        # wins: it is what a curator's per-entry edit and this run's own date
-        # option write to.
+        accession:  acc.accession,
+        locus:      acc.accession,
+        version:    acc.version,
+        # From the column: it is what this run's date option writes, and what a
+        # per-entry redate would write.
+        #
+        # For submissions applied before the apply job started taking the date
+        # from the record, the column holds the apply date while the record
+        # holds the operator's — so regenerating one of those moves its printed
+        # LOCUS date. `rake locus_date:backfill` settles that per entry, and has
+        # to have been run before any bulk regeneration.
         locus_date: acc.locus_date.to_s
       )
     }
