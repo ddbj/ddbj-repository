@@ -565,6 +565,8 @@ paths:
       tags:
         - Submission Requests
 
+      security: []
+
       responses:
         '200':
           description: Returns the submission request.
@@ -591,6 +593,8 @@ paths:
 
       tags:
         - Submission Requests
+
+      security: []
 
       parameters:
         - name: page
@@ -1018,6 +1022,85 @@ paths:
 
         '404':
           $ref: '#/components/responses/NotFound'
+
+  /stats:
+    get:
+      description: |
+        How much of each accession space has been handed out, and the state
+        of the loaded taxonomy. No authentication: these are counts, not
+        anybody's data.
+
+      tags:
+        - Stats
+
+      security: []
+
+      responses:
+        '200':
+          description: Returns the sequence and taxdump counters.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [sequences, taxdump]
+
+                properties:
+                  sequences:
+                    type: array
+
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [scope, next, total, used, remaining]
+
+                      properties:
+                        # Deliberately not an enum. The set of spaces grows
+                        # as databases are migrated in, and a client that
+                        # rejects an unfamiliar scope would break on the
+                        # release that adds one rather than ignore it.
+                        scope:
+                          type: string
+
+                        next:
+                          description: |
+                            The number the next allocation will hand out.
+                            `null` once every prefix in the space is used
+                            up, which is also when `remaining` reaches 0.
+                          type:
+                            - string
+                            - 'null'
+
+                        total:
+                          type: number
+
+                        used:
+                          type: number
+
+                        remaining:
+                          type: number
+
+                  taxdump:
+                    type: object
+                    additionalProperties: false
+                    required: [names_count, nodes_count, loaded_at]
+
+                    properties:
+                      names_count:
+                        type: number
+
+                      nodes_count:
+                        type: number
+
+                      loaded_at:
+                        description: '`null` before the first load.'
+
+                        type:
+                          - string
+                          - 'null'
+
+                        format: date-time
 
 components:
   schemas:
