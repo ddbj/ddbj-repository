@@ -50,7 +50,6 @@ namespace :st26 do
     desc 'Rewrite disagreeing source locations to 1..<length> (ACCESSIONS= required, APPLY=1 to write)'
     task fix: :environment do
       accessions = ENV['ACCESSIONS'].to_s
-      result     = St26SourceLocations.audit(accessions)
 
       # A blanket rewrite is refused. The correction is only ever right for
       # records already known to be wrong, and the audit is how they become
@@ -60,8 +59,12 @@ namespace :st26 do
       # Gated on the parsed list and not on the string: `ACCESSIONS=","` is not
       # `blank?` but parses to nothing, so `ACCESSIONS="$LIST," APPLY=1` with
       # `$LIST` unset used to run unscoped and rewrite every overrun in the
-      # archive — the exact thing this guard is here to prevent.
-      abort 'ACCESSIONS is required: name the accessions to correct, comma or space separated.' if result.requested.empty?
+      # archive — the exact thing this guard is here to prevent. Checked before
+      # the audit, so that case does not first stream the whole archive out of
+      # object storage only to be refused.
+      abort 'ACCESSIONS is required: name the accessions to correct, comma or space separated.' if St26SourceLocations.requested_from(accessions).empty?
+
+      result = St26SourceLocations.audit(accessions)
 
       St26SourceLocations.report result
 
@@ -98,12 +101,18 @@ namespace :st26 do
 
       St26SourceLocations.correct! correctable
 
-      remaining = St26SourceLocations.audit(accessions).named
+      after     = St26SourceLocations.audit(accessions)
+      remaining = after.named
 
-      unless remaining.none?(&:correctable?)
-        St26SourceLocations.report St26SourceLocations.audit(accessions)
+      # The re-audit has to have *examined* what it is pronouncing on. A record
+      # that could not be re-read lands in `unreadable`, which would leave
+      # `remaining` empty and this check trivially satisfied — reporting the
+      # rewrite as verified on the strength of not having looked. The
+      # pre-checks above refuse the same situation for the same reason.
+      unless remaining.none?(&:correctable?) && after.unreadable.empty? && after.skipped.empty?
+        St26SourceLocations.report after
 
-        abort 'Locations still disagree after the rewrite.'
+        abort 'The rewrite could not be confirmed: run the audit again.'
       end
 
       # Says what was written rather than that everything is now well: the

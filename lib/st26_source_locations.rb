@@ -42,8 +42,13 @@ module St26SourceLocations
 
   module_function
 
+  # The accession list as the audit will read it. Exposed so a caller that
+  # demands a scope can refuse an empty one *before* the audit streams every
+  # record in the archive out of object storage.
+  def requested_from(accessions) = accessions.to_s.split(/[\s,]+/).reject(&:blank?).uniq
+
   def audit(accessions = nil)
-    requested = accessions.to_s.split(/[\s,]+/).reject(&:blank?).uniq
+    requested = requested_from(accessions)
 
     # Not `where.associated(:ddbj_record_attachment)`: a submission with no
     # record at all was then invisible, so an unscoped audit pronounced the
@@ -61,7 +66,11 @@ module St26SourceLocations
 
     scope.find_each do |submission|
       accessions_by_entry = submission.entries.pluck(:entry_id, :accession).to_h
-      matched.concat accessions_by_entry.values
+
+      # Only when there is something to match against. Unscoped — the audit
+      # task's normal use — this held every accession in the archive for the
+      # length of the run to compute `[] - matched`.
+      matched.concat accessions_by_entry.values if requested.any?
 
       unless submission.ddbj_record.attached?
         skipped << Skipped.new(submission:, why: 'no record attached')
@@ -167,8 +176,11 @@ module St26SourceLocations
   # so a record that had changed shape since the audit could be rewritten at
   # positions that now meant something else.
   def verify!(submission, group)
-    present = Array(scan(submission, {})).to_set { [it.entry_index, it.source_index, it.location] }
-    wanted  = group.to_set { [it.entry_index, it.source_index, it.location] }
+    # `expected` is in the key as well as `location`: it carries the sequence
+    # length the audit measured, so a sequence that changed since then would
+    # otherwise pass this check and be rewritten to a span that no longer fits.
+    present = Array(scan(submission, {})).to_set { [it.entry_index, it.source_index, it.location, it.expected] }
+    wanted  = group.to_set { [it.entry_index, it.source_index, it.location, it.expected] }
     missing = wanted - present
 
     return if missing.empty?
@@ -193,6 +205,17 @@ module St26SourceLocations
   # returns nil, and Submission validates ddbj_record's content type on update —
   # so a submission whose stored blob carries a different one would have been
   # reported as rewritten while nothing was written.
+  #
+  # The bytes are uploaded through `create_and_upload!` before the attachment is
+  # switched, rather than by handing an `io:` to the setter. The setter uploads
+  # in an `after_commit`, and replacing the attachment purges the old blob — so
+  # a storage failure at that point would leave the record pointing at a file
+  # that was never written, with the only readable copy already gone. Uploading
+  # first means such a failure raises while the old record is still attached.
+  #
+  # The old blob is still purged once the switch commits. What makes the
+  # correction reversible is the report: it names every location's previous text
+  # against its accession and entry, and the rewrite touches nothing else.
   def rewrite!(submission, group)
     submission.with_lock do
       wanted = group.to_h { [[it.entry_index, it.source_index], it] }
@@ -212,13 +235,13 @@ module St26SourceLocations
 
       raise "submission ##{submission.id}: expected to rewrite #{group.size} #{'location'.pluralize(group.size)}, found #{done}" unless done == group.size
 
-      submission.update!(
-        ddbj_record: {
-          io:           StringIO.new(Oj.dump(json, mode: :strict)),
-          filename:     submission.ddbj_record.filename.to_s,
-          content_type: submission.ddbj_record.content_type
-        }
+      blob = ActiveStorage::Blob.create_and_upload!(
+        io:           StringIO.new(Oj.dump(json, mode: :strict)),
+        filename:     submission.ddbj_record.filename.to_s,
+        content_type: submission.ddbj_record.content_type
       )
+
+      submission.update! ddbj_record: blob
 
       "submission ##{submission.id}: rewrote #{done} #{'location'.pluralize(done)}"
     end
