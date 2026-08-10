@@ -2,21 +2,16 @@ class StatsController < ApplicationController
   skip_before_action :authenticate!
 
   def index
-    config = Rails.application.config_for(:sequence)
-
     render json: {
+      # 番号の組み立ても残量の計算も Sequence 側。ここで写すと、払い出しが実際に出す
+      # 番号と表示がずれる（pad の有無、prefix の送り待ち）。
       sequences: Sequence.order(:id).map {|seq|
-        prefixes = config.fetch(seq.scope.to_sym)
-        total    = prefixes.sum { 10 ** it[:digits] - 1 }
-        i        = prefixes.index { it[:prefix] == seq.prefix }
-        used     = prefixes.take(i).sum { 10 ** it[:digits] - 1 } + (seq.next - 1)
-
         {
           scope:     seq.scope,
-          next:      "#{seq.prefix}#{seq.next.to_s.rjust(prefixes[i][:digits], '0')}",
-          total:,
-          used:,
-          remaining: total - used
+          next:      seq.peek,
+          total:     seq.total,
+          used:      seq.used,
+          remaining: seq.remaining
         }
       },
 
