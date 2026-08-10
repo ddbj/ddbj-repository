@@ -66,9 +66,7 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
 
     plan = St26SourceLocations.plan_from('ACC_000002')
 
-    capture_io do
-      St26SourceLocations.correct! St26SourceLocations.audit.findings.select { plan.actionable?(it) }
-    end
+    St26SourceLocations.correct! St26SourceLocations.audit.findings.select { plan.actionable?(it) }
 
     after = record_of(submission)
 
@@ -81,26 +79,32 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
   # else. The Regenerate screen's date option resolves accessions to whole
   # submissions, so using it for PATENT-386's five entries would have moved the
   # date on the 62 siblings sharing their four submissions.
-  test 'correct! redates only the entries it rewrote' do
-    seed '1..21', '1..20'
+  test 'redate! moves the named entries and no sibling' do
+    was = entries(:two).locus_date
 
-    before = entries(:two).locus_date
-
-    capture_io do
-      St26SourceLocations.correct! St26SourceLocations.audit.findings, locus_date: Date.new(2026, 8, 13)
-    end
+    lines = St26SourceLocations.redate!('ACC_000001', locus_date: Date.new(2026, 8, 13))
 
     assert_equal Date.new(2026, 8, 13), entries(:one).reload.locus_date
-    assert_equal before, entries(:two).reload.locus_date,
+    assert_equal was, entries(:two).reload.locus_date,
                  'a sibling entry in the same submission was redated'
+    assert_equal ["ACC_000001: LOCUS date #{was} -> 2026-08-13"], lines,
+                 'the date it replaced has to be in the output, or the change is not reversible from it'
   end
 
-  test 'correct! leaves the dates alone when none is given' do
+  # Named, not found: the count assertion is what the location rewrite has and
+  # what an `update_all` would otherwise do without.
+  test 'redate! refuses when an accession has no entry' do
+    assert_raises RuntimeError do
+      St26SourceLocations.redate! 'ACC_000001, NOPE_000009', locus_date: Date.new(2026, 8, 13)
+    end
+  end
+
+  test 'correct! leaves the dates alone' do
     seed '1..21'
 
     before = entries(:one).locus_date
 
-    capture_io { St26SourceLocations.correct! St26SourceLocations.audit.findings }
+    St26SourceLocations.correct! St26SourceLocations.audit.findings
 
     assert_equal before, entries(:one).reload.locus_date
   end

@@ -55,15 +55,19 @@ namespace :st26 do
     task fix: :environment do
       accessions = ENV['ACCESSIONS'].to_s
 
-      # ISO 8601 only. `Date.parse` would take `8/13` and decide for itself
-      # which half is the month, and a LOCUS date is printed into a published
-      # flatfile.
+      # `YYYY-MM-DD` and nothing else. `Date.parse` would take `8/13` and decide
+      # for itself which half is the month; `Date.iso8601` alone is little
+      # better, reading `2026-08` as the 1st, `2026-225` as an ordinal day and
+      # `2026-W33-4` as a week date — so a truncated `LOCUS_DATE=2026-08` would
+      # be accepted and 1 August printed into a published flatfile.
       locus_date =
         if (given = ENV['LOCUS_DATE'].presence)
+          abort "LOCUS_DATE=#{given} is not a date: write it as YYYY-MM-DD." unless given.match?(/\A\d{4}-\d{2}-\d{2}\z/)
+
           begin
             Date.iso8601(given)
           rescue Date::Error
-            abort "LOCUS_DATE=#{given} is not a date: write it as YYYY-MM-DD."
+            abort "LOCUS_DATE=#{given} is not a real date."
           end
         end
 
@@ -119,21 +123,42 @@ namespace :st26 do
 
       abort "#{unexamined} named #{'submission'.pluralize(unexamined)} could not be examined — nothing was written." if unexamined.positive?
 
-      if correctable.empty?
+      # A date is work of its own, so "nothing to correct" no longer ends the run
+      # when one was given. The locations may well be right already — this task
+      # shipped before the date option existed, so an earlier run having fixed
+      # them is the likely order of events — and there is no other route to a
+      # per-entry date.
+      if correctable.empty? && locus_date.nil?
         puts 'Nothing to correct.'
         next
       end
 
+      intent = [
+        ("rewrite #{correctable.size} #{'location'.pluralize(correctable.size)}" if correctable.any?),
+        ("set the LOCUS date of #{result.requested.size} #{'entry'.pluralize(result.requested.size)} to #{locus_date}" if locus_date)
+      ].compact.to_sentence
+
       unless ENV['APPLY'] == '1'
-        puts "\nDry run. Re-run with APPLY=1 to rewrite #{correctable.size} #{'location'.pluralize(correctable.size)}#{" and set their LOCUS date to #{locus_date}" if locus_date}."
+        puts "\nDry run. Re-run with APPLY=1 to #{intent}."
         next
       end
 
-      # Written out rather than as the `locus_date:` shorthand: with the value
-      # omitted at the end of a statement, Ruby keeps looking for one past the
-      # newline and takes the next expression — here the re-audit below, which
-      # arrived as the date and blew up inside the query.
-      St26SourceLocations.correct! correctable, locus_date: locus_date
+      # Both halves in one transaction, and both reported only once it has
+      # committed: a rollback would otherwise have already said the records were
+      # rewritten.
+      #
+      # `locus_date: locus_date` written out rather than as the shorthand: with
+      # the value omitted at the end of a statement, Ruby keeps looking for one
+      # past the newline and takes the next expression — which is how the
+      # re-audit below once arrived as the date and blew up inside the query.
+      done = []
+
+      Submission.transaction do
+        done.concat St26SourceLocations.correct!(correctable) if correctable.any?
+        done.concat St26SourceLocations.redate!(accessions, locus_date: locus_date) if locus_date
+      end
+
+      done.each { puts it }
 
       after     = St26SourceLocations.audit(accessions)
       remaining = after.named
@@ -152,9 +177,16 @@ namespace :st26 do
       # Says what was written rather than that everything is now well: the
       # refused set is still wrong, and claiming otherwise on the line right
       # after refusing it is how a known problem gets forgotten.
-      puts "\nRewrote #{correctable.size} #{'location'.pluralize(correctable.size)}#{" and redated #{correctable.size == 1 ? 'that entry' : 'those entries'}" if locus_date}."
+      puts "\nDone: #{intent}."
       puts "#{remaining.size} named #{'location'.pluralize(remaining.size)} still #{remaining.size == 1 ? 'needs' : 'need'} fixing by hand." if remaining.any?
-      puts 'The flatfiles still hold the old spans — regenerate them from Admin → Regenerate flatfiles for these accessions.'
+
+      # The screen named here can undo the date this task just set: its own date
+      # option runs `submission.entries.update_all(locus_date:)` over the whole
+      # submission. It defaults to keeping them, which is why the default is
+      # worth saying out loud rather than leaving to be noticed.
+      keep = ', keeping the existing LOCUS dates' if locus_date
+
+      puts "The flatfiles still hold the old spans — regenerate them from Admin → Regenerate flatfiles for these accessions#{keep}."
 
       # The request keeps the file as it arrived, which is the point of it —
       # but that makes it disagree with the corrected submission, and it is

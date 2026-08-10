@@ -184,14 +184,10 @@ module St26SourceLocations
   # each, would put the whole batch in memory at once. The rewrite still needs
   # one whole document, so memory is bounded by the largest single record.
   #
-  # `locus_date` is set on exactly the entries whose locations were rewritten,
-  # in the same transaction. Not through the Regenerate screen's date option:
-  # that resolves accessions to submissions and then does
-  # `submission.entries.update_all(locus_date:)`, so setting the date for
-  # PATENT-386's five entries there would have moved it on the 62 siblings
-  # sharing their four submissions. The renderer reads each entry's own column,
-  # so a per-entry date is all it takes.
-  def correct!(findings, locus_date: nil)
+  # Returns the lines describing what it did rather than printing them, so the
+  # caller can hold them until its transaction has committed — a rollback would
+  # otherwise have already said the records were rewritten.
+  def correct!(findings)
     by_submission = findings.group_by(&:submission)
 
     by_submission.each { verify! it.first, it.last }
@@ -200,25 +196,38 @@ module St26SourceLocations
     # leave some records corrected and others not. The uploads themselves are
     # not transactional; a rollback leaves orphan blobs behind, which is the
     # same trade the rest of this system already makes.
-    #
-    # Printed after it commits, not inside: a rollback would otherwise have
-    # already told the operator that records were rewritten.
-    written = []
-
     Submission.transaction do
-      by_submission.each do |submission, group|
-        written << rewrite!(submission, group)
-
-        next unless locus_date
-
-        dated = Entry.where(submission:, entry_id: group.map(&:entry_id).uniq)
-                     .update_all(locus_date:, updated_at: Time.current)
-
-        written << "submission ##{submission.id}: set LOCUS date to #{locus_date} on #{dated} #{'entry'.pluralize(dated)}"
-      end
+      by_submission.map { rewrite! it.first, it.last }
     end
+  end
 
-    written.each { puts it }
+  # The LOCUS date, on the entries named and nowhere else.
+  #
+  # Not through the Regenerate screen's date option: that resolves accessions to
+  # submissions and then does `submission.entries.update_all(locus_date:)`, so
+  # setting the date for PATENT-386's five entries there would have moved it on
+  # the 62 siblings sharing their four submissions. The renderer reads each
+  # entry's own column, so a per-entry date is all it takes.
+  #
+  # Keyed on `accession`, the uniquely indexed column — `entries` has no unique
+  # index on (submission_id, entry_id), so keying on that could redate two rows
+  # for one finding, a small version of the splash this exists to avoid.
+  #
+  # Reports the date it replaced as well as the one it wrote: the rest of this
+  # correction is reversible from its own output, and a date that only appears
+  # as its new value would be the exception.
+  def redate!(accessions, locus_date:)
+    names = requested_from(accessions)
+    rows  = Entry.where(accession: names).order(:accession).to_a
+    lines = rows.map { "#{it.accession}: LOCUS date #{it.locus_date} -> #{locus_date}" }
+
+    raise "expected #{names.size} #{'entry'.pluralize(names.size)} to redate, found #{rows.size}" unless rows.size == names.size
+
+    changed = Entry.where(id: rows.map(&:id)).update_all(locus_date:, updated_at: Time.current)
+
+    raise "expected to redate #{rows.size} #{'entry'.pluralize(rows.size)}, redated #{changed}" unless changed == rows.size
+
+    lines
   end
 
   # That the audited disagreement is still in the record, in the same place and
