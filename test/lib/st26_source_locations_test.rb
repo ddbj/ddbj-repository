@@ -11,15 +11,15 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
   #
   # `<1..>21` and `J00194.1:1..21` matter most — bio-ruby keeps the partiality
   # markers and the cross-referenced accession beside the numbers, so a check
-  # reading only `from` and `to` calls them overruns and rewriting throws them
-  # away.
+  # reading only `from` and `to` calls them plain ranges and rewriting throws
+  # them away.
   {
     '1..20'             => nil,
-    'join(1..4,6..20)'  => nil,      # covers the whole sequence, gap and all
-    '1..21'             => :overrun, # the JPO defect
-    '1'                 => :ambiguous, # one base of twenty, not a repair to guess at
-    '1..19'             => :ambiguous,
-    '5..21'             => :ambiguous,
+    'join(1..4,6..20)'  => nil,        # covers the whole sequence, gap and all
+    '1..21'             => :wrong_end, # runs one past the end
+    '1..19'             => :wrong_end, # stops one short — PATENT-386 has both
+    '1'                 => :wrong_end,
+    '5..21'             => :ambiguous, # does not start at base 1
     '10..1'             => :ambiguous,
     '<1..>21'           => :ambiguous,
     '<1..21'            => :ambiguous,
@@ -43,14 +43,15 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     result = St26SourceLocations.audit
 
     assert_equal %w[ACC_000001 ACC_000002], result.findings.map(&:accession)
-    assert_equal %i[overrun ambiguous], result.findings.map(&:reason)
+    assert_equal %i[wrong_end wrong_end], result.findings.map(&:reason)
     assert_empty result.unreadable
     assert_empty result.skipped
     assert_equal submission, result.findings.first.submission
   end
 
-  test 'correct! rewrites the overrun and touches nothing else' do
-    submission = seed('1..21', '1..19', '1..20')
+  # Both directions land on the sequence length, and nothing else moves.
+  test 'correct! sets the wrong-ended locations to the full span' do
+    submission = seed('1..21', '1..19', '1..20', '5..21')
     before     = record_of(submission)
 
     capture_io do
@@ -59,7 +60,7 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
 
     after = record_of(submission)
 
-    assert_equal %w[1..20 1..19 1..20], locations_of(after)
+    assert_equal %w[1..20 1..20 1..20 5..21], locations_of(after)
     assert_equal blind_to_locations(before), blind_to_locations(after),
                  'the correction rewrote something other than a location'
   end
@@ -131,6 +132,17 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     result = St26SourceLocations.audit('ACC_000001, NOPE_000009')
 
     assert_equal %w[NOPE_000009], result.unmatched
+  end
+
+  # The number the decision turns on. PATENT-386 needed it for two refused
+  # rows and it was not on the line, so it had to be looked up by hand.
+  test 'the report prints the sequence length on refused rows too' do
+    seed 'join(1..4,6..25)'
+
+    out, = capture_io { St26SourceLocations.report St26SourceLocations.audit }
+
+    assert_match(/sequence=20/, out)
+    assert_match(/NOT REWRITTEN \(ambiguous\)/, out)
   end
 
   # Naming one accession must not drag its siblings into the rewrite.

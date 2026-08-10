@@ -47,7 +47,7 @@ namespace :st26 do
       end
     end
 
-    desc 'Rewrite disagreeing source locations to 1..<length> (ACCESSIONS= required, APPLY=1 to write)'
+    desc 'Set plain source locations to 1..<length> (ACCESSIONS= required, APPLY=1 to write)'
     task fix: :environment do
       accessions = ENV['ACCESSIONS'].to_s
 

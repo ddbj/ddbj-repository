@@ -9,18 +9,18 @@ module St26SourceLocations
   # one entry can share a nil id. Keying the rewrite on that would rewrite both
   # and then trip the count guard — after earlier submissions in the batch had
   # already been written.
-  Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :location, :expected, :reason) do
-    # Only an overrun is: see St26SourceLocations.disagreement. Everything
+  Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :measured, :location, :expected, :reason) do
+    # Only `:wrong_end` is: see St26SourceLocations.disagreement. Everything
     # else is a question about what was meant, and this task does not get to
-    # answer those — it would be inventing coverage, or discarding what a
-    # location was trying to say.
-    def correctable? = reason == :overrun
+    # answer those — it would be discarding what a location was trying to say,
+    # or deciding which of two lengths a record meant.
+    def correctable? = reason == :wrong_end
   end
 
   # What `fix` says when it will not rewrite something, per reason.
   REFUSALS = {
     unreadable:      ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed." },
-    ambiguous:       ->(n) { "Refusing to widen #{n} #{'location'.pluralize(n)} covering less than the whole sequence, or covering it in several pieces: rewriting to the full span would invent coverage nobody declared." },
+    ambiguous:       ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} that #{n == 1 ? 'is' : 'are'} not a plain forward range from base 1: split, complemented, partial (<1..>N) and cross-referenced locations all say something that setting the full span would throw away." },
     missing:         ->(n) { "Refusing to fill in #{n} absent #{'location'.pluralize(n)}: a source feature with none at all is a different repair from this one." },
     no_sequence:     ->(n) { "Refusing to measure #{n} #{'entry'.pluralize(n)} with no sequence: there is no length for a location to agree with." },
     declared_length: ->(n) { "Refusing to touch #{n} #{'entry'.pluralize(n)} whose declared length disagrees with its sequence: which of the two was meant is not this task's to decide." }
@@ -103,17 +103,23 @@ module St26SourceLocations
     # not coming.
     siblings = result.siblings.to_set
 
+    # The sequence length is on every row, refused ones included. It is the
+    # number the decision turns on — whether a location falls short or runs
+    # past, and by how much — and printing it only against rows that were going
+    # to be rewritten anyway meant looking it up by hand for the ones that
+    # actually needed a judgement.
     result.findings.each do |f|
       puts format(
-        '%-12s submission #%-6d %-40s %-20s -> %s',
+        '%-12s submission #%-6d %-40s %-20s sequence=%-7d %s',
         f.accession || '(no accession)',
         f.submission.id,
         f.entry_id,
         f.location.presence || '(none)',
+        f.measured,
         if siblings.include?(f)
           'NOT REWRITTEN (not named)'
         elsif f.correctable?
-          f.expected
+          "-> #{f.expected}"
         else
           "NOT REWRITTEN (#{f.reason})"
         end
@@ -279,6 +285,7 @@ module St26SourceLocations
             entry_id:    entry.id,
             entry_index: i,
             source_index:,
+            measured:,
             location:,
             expected:    "1..#{measured}",
             reason:
@@ -319,12 +326,18 @@ module St26SourceLocations
   # nil when the location is fine, otherwise why it is not — and only one of
   # those reasons is something this task will rewrite.
   #
-  # `:overrun` is the JPO defect and nothing else: one plain forward range that
-  # starts at 1 and runs past the end, where `1..<length>` is what was plainly
-  # meant. Every other disagreement would have coverage invented for it — a
-  # location covering 1..500 of 1000 bases, or `join(1..4,6..9)` with its gap
-  # at 5, does not become correct by being widened to the whole sequence, it
-  # becomes a different claim.
+  # `:wrong_end` is one plain forward range starting at base 1 that stops
+  # somewhere other than the last base. Both directions: PATENT-386's five
+  # records include three running one base past the end (`1..449` over 448) and
+  # two stopping short (`1..315` over 316). An ST.26 patent source covers the
+  # whole sequence — that is the premise the ticket's own FF spec is built on,
+  # and submission-bulk-st26 pins the location to `1..<length>` in either
+  # direction — so `1..<length>` is what such a range meant.
+  #
+  # Everything else keeps its shape. A split, complemented, partial (`<1..>21`)
+  # or cross-referenced location, or one that does not start at base 1, says
+  # something that setting the full span would throw away, and no premise about
+  # patent sources tells us which part of it was the mistake.
   def disagreement(location, length)
     return :missing if location.blank?
 
@@ -343,10 +356,9 @@ module St26SourceLocations
     plain = only &&
             only.strand == 1 &&
             [only.lt, only.gt, only.xref_id, only.carat].all?(&:nil?) &&
-            only.from == 1 &&
-            only.to.to_i > length
+            only.from == 1
 
-    plain ? :overrun : :ambiguous
+    plain ? :wrong_end : :ambiguous
   rescue StandardError
     :unreadable
   end
