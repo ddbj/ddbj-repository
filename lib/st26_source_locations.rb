@@ -9,21 +9,20 @@ module St26SourceLocations
   # one entry can share a nil id. Keying the rewrite on that would rewrite both
   # and then trip the count guard — after earlier submissions in the batch had
   # already been written.
-  Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :location, :expected, :reason) do
-    # Only an overrun is: see St26SourceLocations.disagreement. Everything
-    # else is a question about what was meant, and this task does not get to
-    # answer those — it would be inventing coverage, or discarding what a
-    # location was trying to say.
-    def correctable? = reason == :overrun
-  end
+  # Whether a finding will be acted on is Plan's to say and nothing else's — a
+  # second predicate here would be a second copy of the same classification,
+  # free to drift from it.
+  Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :measured, :location, :expected, :reason)
 
   # What `fix` says when it will not rewrite something, per reason.
   REFUSALS = {
-    unreadable:      ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed." },
-    ambiguous:       ->(n) { "Refusing to widen #{n} #{'location'.pluralize(n)} covering less than the whole sequence, or covering it in several pieces: rewriting to the full span would invent coverage nobody declared." },
-    missing:         ->(n) { "Refusing to fill in #{n} absent #{'location'.pluralize(n)}: a source feature with none at all is a different repair from this one." },
-    no_sequence:     ->(n) { "Refusing to measure #{n} #{'entry'.pluralize(n)} with no sequence: there is no length for a location to agree with." },
-    declared_length: ->(n) { "Refusing to touch #{n} #{'entry'.pluralize(n)} whose declared length disagrees with its sequence: which of the two was meant is not this task's to decide." }
+    unreadable:       ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    short:            ->(n) { "Not lengthening #{n} #{'location'.pluralize(n)} that #{n == 1 ? 'stops' : 'stop'} short of the sequence. Read the sequence= column, decide per record, and name the ones you have confirmed in LENGTHEN — this cannot tell a boundary slip of two residues from a deliberate partial coverage of five hundred." },
+    multiple_sources: ->(n) { "Not lengthening #{n} #{'location'.pluralize(n)} in #{n == 1 ? 'an entry' : 'entries'} carrying more than one source: widening one would swallow the next one's span. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    ambiguous:        ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} that #{n == 1 ? 'is' : 'are'} not a plain forward range from base 1: split, complemented, partial (<1..>N), fuzzy (1..(5.10)) and cross-referenced locations all say something that setting the full span would throw away. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    missing:          ->(n) { "Refusing to fill in #{n} absent #{'location'.pluralize(n)}: a source feature with none at all is a different repair from this one. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    no_sequence:      ->(n) { "Refusing to measure #{n} #{'entry'.pluralize(n)} with no sequence: there is no length for a location to agree with. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    declared_length:  ->(n) { "Refusing to touch #{n} #{'entry'.pluralize(n)} whose declared length disagrees with its sequence: which of the two was meant is not this task's to decide. Fix #{n == 1 ? 'it' : 'them'} by hand." }
   }.freeze
 
   Unreadable = Data.define(:submission, :error)
@@ -46,6 +45,30 @@ module St26SourceLocations
   # demands a scope can refuse an empty one *before* the audit streams every
   # record in the archive out of object storage.
   def requested_from(accessions) = accessions.to_s.split(/[\s,]+/).reject(&:blank?).uniq
+
+  # What a run will act on, shared by `report` and `fix` so the column that says
+  # what will happen and the code that makes it happen cannot disagree.
+  #
+  # An overrun is repaired unconditionally: a location cannot name bases the
+  # sequence does not have, whatever the amount, and setting the full span only
+  # ever shrinks it.
+  #
+  # A shortfall is repaired only for an accession named in `LENGTHEN`. Per
+  # accession and not per run, because the judgement is per record — a slip of
+  # two residues and a deliberate coverage of five hundred look identical here,
+  # and PATENT-386's answer came from a person looking at two specific entries.
+  # A run-wide switch would carry that answer to every short row in the batch.
+  Plan = Data.define(:lengthen) do
+    def actionable?(finding)
+      case finding.reason
+      when :overrun then true
+      when :short   then lengthen.include?(finding.accession)
+      else               false
+      end
+    end
+  end
+
+  def plan_from(lengthen) = Plan.new(lengthen: requested_from(lengthen).to_set)
 
   def audit(accessions = nil)
     requested = requested_from(accessions)
@@ -96,24 +119,36 @@ module St26SourceLocations
     Result.new(findings:, unreadable:, skipped:, unmatched: requested - matched, requested: requested.to_set)
   end
 
-  def report(result)
-    # The last column is what will happen to this row, so a sibling has to say
-    # so there rather than in a footnote: it is a disagreement that will be
-    # left alone, and reading `-> 1..20` against it promises a rewrite that is
-    # not coming.
+  def report(result, plan = plan_from(nil))
+    # The last column is what will happen to this row, so it has to be read
+    # against the run that is about to happen: `plan` is what tells a short row
+    # authorised by LENGTHEN from one that is not, and a sibling from a target.
+    # A footnote would not do — reading `-> 1..20` on a row that is going to be
+    # left alone promises a rewrite that is not coming, and the inverse hides
+    # one that is.
     siblings = result.siblings.to_set
 
+    # The sequence length is on every row, refused ones included. It is the
+    # number the decision turns on — whether a location falls short or runs
+    # past, and by how much — and printing it only against rows that were going
+    # to be rewritten anyway meant looking it up by hand for the ones that
+    # actually needed a judgement.
     result.findings.each do |f|
       puts format(
-        '%-12s submission #%-6d %-40s %-20s -> %s',
+        '%-12s submission #%-6d %-40s %-20s sequence=%-7d %s',
         f.accession || '(no accession)',
         f.submission.id,
         f.entry_id,
         f.location.presence || '(none)',
+        f.measured,
         if siblings.include?(f)
           'NOT REWRITTEN (not named)'
-        elsif f.correctable?
-          f.expected
+        elsif plan.actionable?(f)
+          "-> #{f.expected}"
+        elsif f.reason == :short && f.accession
+          "-> #{f.expected} only if you name it in LENGTHEN"
+        elsif f.reason == :short
+          'NOT REWRITTEN (short, and no accession to name it by)'
         else
           "NOT REWRITTEN (#{f.reason})"
         end
@@ -176,11 +211,16 @@ module St26SourceLocations
   # so a record that had changed shape since the audit could be rewritten at
   # positions that now meant something else.
   def verify!(submission, group)
-    # `expected` is in the key as well as `location`: it carries the sequence
-    # length the audit measured, so a sequence that changed since then would
-    # otherwise pass this check and be rewritten to a span that no longer fits.
-    present = Array(scan(submission, {})).to_set { [it.entry_index, it.source_index, it.location, it.expected] }
-    wanted  = group.to_set { [it.entry_index, it.source_index, it.location, it.expected] }
+    # `expected` and `reason` are in the key as well as `location`. `expected`
+    # carries the sequence length the audit measured, so a sequence that changed
+    # since then cannot pass. `reason` carries everything else the
+    # classification depends on: an entry that gained a second source feature
+    # between audit and rewrite scores `:multiple_sources` where it scored
+    # `:short`, with position, text and length all unchanged — so without it,
+    # the very case the sources guard exists for would slip through.
+    key     = ->(f) { [f.entry_index, f.source_index, f.location, f.expected, f.reason] }
+    present = Array(scan(submission, {})).to_set(&key)
+    wanted  = group.to_set(&key)
     missing = wanted - present
 
     return if missing.empty?
@@ -227,6 +267,12 @@ module St26SourceLocations
           finding = wanted[[i, j]] or next
 
           raise "submission ##{submission.id}: #{finding.entry_id} source #{j} now reads #{sf['location'].inspect}, not #{finding.location.inspect}" unless sf['location'] == finding.location
+
+          # `verify!` ran before this lock was taken, so the entry could have
+          # gained a source feature in between — and lengthening one source of
+          # two is what the classification refuses. Counted again here, where
+          # the write actually happens.
+          raise "submission ##{submission.id}: #{finding.entry_id} now carries #{Array(entry['source_features']).size} source features; lengthening one of several would swallow the next one's span" if finding.reason == :short && Array(entry['source_features']).size != 1
 
           sf['location'] = finding.expected
           done          += 1
@@ -279,6 +325,7 @@ module St26SourceLocations
             entry_id:    entry.id,
             entry_index: i,
             source_index:,
+            measured:,
             location:,
             expected:    "1..#{measured}",
             reason:
@@ -305,8 +352,10 @@ module St26SourceLocations
           next
         end
 
-        Array(entry.source_features).each_with_index do |sf, j|
-          reason = disagreement(sf.location, measured) or next
+        sources = Array(entry.source_features)
+
+        sources.each_with_index do |sf, j|
+          reason = disagreement(sf.location, measured, sources: sources.size) or next
 
           add.call j, sf.location, reason
         end
@@ -316,37 +365,58 @@ module St26SourceLocations
     end
   end
 
-  # nil when the location is fine, otherwise why it is not — and only one of
-  # those reasons is something this task will rewrite.
+  # nil when the location is fine, otherwise why it is not. Two of the reasons
+  # carry a value this task knows how to write (`:overrun`, `:short`); see Plan
+  # for which of those a given run will act on.
   #
-  # `:overrun` is the JPO defect and nothing else: one plain forward range that
-  # starts at 1 and runs past the end, where `1..<length>` is what was plainly
-  # meant. Every other disagreement would have coverage invented for it — a
-  # location covering 1..500 of 1000 bases, or `join(1..4,6..9)` with its gap
-  # at 5, does not become correct by being widened to the whole sequence, it
-  # becomes a different claim.
-  def disagreement(location, length)
+  # PATENT-386's five records disagree in both directions: three run one base
+  # past the end (`1..449` over 448) and two stop short (`1..315` over 316). An
+  # ST.26 patent source covers the whole sequence — the premise the ticket's own
+  # FF spec is built on, and submission-bulk-st26 pins the location to
+  # `1..<length>` either way — so that is what such a range meant.
+  #
+  # Everything else keeps its shape. A split, complemented, partial (`<1..>21`),
+  # fuzzy (`1..(5.10)`) or cross-referenced location, or one that does not start
+  # at base 1, says something that setting the full span would throw away, and
+  # no premise about patent sources tells us which part of it was the mistake.
+  def disagreement(location, length, sources: 1)
     return :missing if location.blank?
 
-    locations = Bio::Locations.new(location.to_s)
-    span      = locations.span
+    span = Bio::Locations.new(location.to_s).span
 
     return nil if span == [1, length]
 
-    only = locations.locations.size == 1 ? locations.locations.first : nil
+    # Matched against the text, not against bio-ruby's numbers. It flattens a
+    # fuzzy bound — `1..(5.10)` comes back as from=1/to=10 and `1.5` as 1..1,
+    # both with every marker nil — so a check reading `from` and `to` takes
+    # those for plain ranges and would rewrite the notation away. One regexp
+    # also excludes `<1..>21`, `J00194.1:1..21`, `complement(…)`, `join(…)` and
+    # a bare `1`, each of which says something the full span does not.
+    #
+    # Whitespace is tolerated because these strings are lifted verbatim out of
+    # XML, which is where a stray space comes from; `expected` is the normalised
+    # `1..<length>` either way. Refusing them would blame the notation for a
+    # defect that is plainly the numbers.
+    m = /\A\s*(\d+)\s*\.\.\s*(\d+)\s*\z/.match(location.to_s)
 
-    # Plain means plain: `<1..>21` carries 5'/3' partiality and
-    # `J00194.1:1..21` points into another accession, and both of those would
-    # be thrown away by rewriting the string to `1..<length>`. bio-ruby keeps
-    # them as `lt` / `gt` / `xref_id` / `carat` beside the numbers, so a check
-    # that reads only `from` and `to` cannot see them.
-    plain = only &&
-            only.strand == 1 &&
-            [only.lt, only.gt, only.xref_id, only.carat].all?(&:nil?) &&
-            only.from == 1 &&
-            only.to.to_i > length
+    return :ambiguous unless m
 
-    plain ? :overrun : :ambiguous
+    from = m[1].to_i
+    to   = m[2].to_i
+
+    # Compared as numbers, so `01..21` is the overrun it plainly is rather than
+    # a notation complaint; and `to >= from`, so `1..0` is not read as a range
+    # that merely stops early.
+    return :ambiguous unless from == 1 && to >= from
+
+    return :overrun if to > length
+
+    # Only the widening direction is affected: the premise that a patent source
+    # covers the whole sequence is a statement about an entry with one source,
+    # and where several divide an entry — which the v2 schema provides for —
+    # lengthening the first would swallow the next one's span. Shrinking an
+    # overrun above cannot do that, so it is not gated here.
+    sources == 1 ? :short : :multiple_sources
   rescue StandardError
     :unreadable
   end

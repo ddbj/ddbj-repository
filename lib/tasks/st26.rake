@@ -1,10 +1,12 @@
 namespace :st26 do
   namespace :source_locations do
     # INSDC-3468 / PATENT-386. JPO ST.26 files carried source feature locations
-    # taken verbatim from the XML, which overran the sequence (1..21 over 20
-    # bases). The flatfile prints LOCUS from the length and both the source
-    # location and the REFERENCE span from the location, so those records ship
-    # claiming two different lengths.
+    # taken verbatim from the XML, which disagreed with the sequence in both
+    # directions — three of the five records run one base past the end
+    # (`1..449` over 448) and two stop short (`1..315` over 316). The flatfile
+    # prints LOCUS from the length and both the source location and the
+    # REFERENCE span from the location, so those records ship claiming two
+    # different lengths.
     #
     # submission-bulk-st26 now pins the location to 1..<length> as it builds the
     # record (PAT_R0024), so this is only for the records that landed before it
@@ -14,11 +16,13 @@ namespace :st26 do
     # cover part of an entry — a qualifier can even lift the expectation that
     # other features sit inside it.
 
-    desc 'Report ST.26 entries whose source location disagrees with the sequence length (ACCESSIONS= to scope)'
+    desc 'Report ST.26 entries whose source location disagrees with the sequence length (ACCESSIONS= to scope, LENGTHEN= to preview)'
     task audit: :environment do
       result = St26SourceLocations.audit(ENV['ACCESSIONS'])
 
-      St26SourceLocations.report result
+      # LENGTHEN is honoured here too, so `audit` can be asked what the `fix`
+      # that follows it would do rather than only what a bare one would.
+      St26SourceLocations.report result, St26SourceLocations.plan_from(ENV['LENGTHEN'])
 
       # An accession that matched nothing counts here too: it is a question
       # this run did not answer, exactly like a record it could not read, and
@@ -47,7 +51,7 @@ namespace :st26 do
       end
     end
 
-    desc 'Rewrite disagreeing source locations to 1..<length> (ACCESSIONS= required, APPLY=1 to write)'
+    desc 'Set plain source locations to 1..<length> (ACCESSIONS= required, LENGTHEN= to also lengthen those, APPLY=1 to write)'
     task fix: :environment do
       accessions = ENV['ACCESSIONS'].to_s
 
@@ -66,21 +70,35 @@ namespace :st26 do
 
       result = St26SourceLocations.audit(accessions)
 
-      St26SourceLocations.report result
+      # Only what was named, and only what this run is allowed to act on.
+      # Resolving accessions reaches whole submissions — a JPO request can carry
+      # sixty entries — so without the first restriction, naming one accession
+      # would rewrite every disagreeing sibling alongside it.
+      plan = St26SourceLocations.plan_from(ENV['LENGTHEN'])
 
-      # Only what was named. Resolving accessions reaches whole submissions —
-      # a JPO request can carry sixty entries — so without this, naming one
-      # accession would rewrite every disagreeing sibling alongside it.
-      correctable, rest = result.named.partition(&:correctable?)
+      St26SourceLocations.report result, plan
+
+      correctable, rest = result.named.partition { plan.actionable?(it) }
 
       # Named by reason. Both are refusals, but they are refusals to answer
       # different questions, and "unreadable" said of a length disagreement
       # sends the reader looking for a malformed location that is not there.
+      # Each refusal says what to do about itself: `:short` has an answer on the
+      # command line, the rest are dead ends where by hand is the only route.
       rest.group_by(&:reason).each do |reason, group|
-        puts "\n#{St26SourceLocations::REFUSALS.fetch(reason).call(group.size)} Fix #{group.size == 1 ? 'it' : 'them'} by hand."
+        puts "\n#{St26SourceLocations::REFUSALS.fetch(reason).call(group.size)}"
       end
 
       abort "#{result.unmatched.size} #{'accession'.pluralize(result.unmatched.size)} matched no ST.26 entry — nothing was written." if result.unmatched.any?
+
+      # LENGTHEN gets the same treatment as ACCESSIONS. A name that matches no
+      # finding — a typo, the wrong case, an accession outside ACCESSIONS —
+      # would otherwise leave the rows it was meant to authorise untouched while
+      # the run reported success on the others, which is the situation the
+      # unmatched check above exists to prevent.
+      stray = plan.lengthen - result.named.filter_map(&:accession)
+
+      abort "#{stray.size} LENGTHEN #{'accession'.pluralize(stray.size)} matched none of the findings: #{stray.to_a.join(', ')} — nothing was written." if stray.any?
 
       # A named record that could not be read is not a record that needs
       # nothing: its finding never got as far as being one, so without this the
@@ -109,8 +127,8 @@ namespace :st26 do
       # `remaining` empty and this check trivially satisfied — reporting the
       # rewrite as verified on the strength of not having looked. The
       # pre-checks above refuse the same situation for the same reason.
-      unless remaining.none?(&:correctable?) && after.unreadable.empty? && after.skipped.empty?
-        St26SourceLocations.report after
+      unless remaining.none? { plan.actionable?(it) } && after.unreadable.empty? && after.skipped.empty?
+        St26SourceLocations.report after, plan
 
         abort 'The rewrite could not be confirmed: run the audit again.'
       end

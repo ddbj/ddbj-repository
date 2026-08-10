@@ -6,31 +6,41 @@ require 'test_helper'
 # guard has to fire before anything is written, and a record that was not
 # examined must not be reported as a clean one.
 class St26SourceLocationsTest < ActiveSupport::TestCase
-  # The whole point of the classification: only the JPO defect is repaired
-  # automatically, because only there is `1..<length>` plainly what was meant.
+  # Only a plain forward range from base 1 is repairable, and the two directions
+  # are told apart: an overrun names bases the sequence does not have, while a
+  # shortfall might be the boundary slip PATENT-386 found or might be coverage
+  # somebody meant, so lengthening has to be asked for per accession.
   #
-  # `<1..>21` and `J00194.1:1..21` matter most — bio-ruby keeps the partiality
-  # markers and the cross-referenced accession beside the numbers, so a check
-  # reading only `from` and `to` calls them overruns and rewriting throws them
-  # away.
+  # The notation cases are the ones that matter. bio-ruby flattens `1..(5.10)`
+  # to from=1/to=10 and `1.5` to 1..1, with none of its markers set, so a check
+  # reading `from` and `to` calls them plain ranges and the rewrite throws the
+  # notation away — which is why the guard is a regexp over the text.
   {
     '1..20'             => nil,
-    'join(1..4,6..20)'  => nil,      # covers the whole sequence, gap and all
-    '1..21'             => :overrun, # the JPO defect
-    '1'                 => :ambiguous, # one base of twenty, not a repair to guess at
-    '1..19'             => :ambiguous,
-    '5..21'             => :ambiguous,
+    'join(1..4,6..20)'  => nil,       # covers the whole sequence, gap and all
+    '1..21'             => :overrun,  # names a base that is not there
+    '1..21 '            => :overrun,  # lifted from XML, stray space and all
+    ' 1..21'            => :overrun,
+    '1..19'             => :short,    # PATENT-386 has both directions
+    '1..5'              => :short,
+    '01..21'            => :overrun,  # zero-padded, still plainly the overrun
+    '1..0'              => :ambiguous, # not a forward range at all
+    '1'                 => :ambiguous, # not a range
+    '1.5'               => :ambiguous, # fuzzy bound, flattened by bio-ruby to 1..1
+    '1..(5.10)'         => :ambiguous, # fuzzy bound, flattened to 1..10
+    '5..21'             => :ambiguous, # does not start at base 1
     '10..1'             => :ambiguous,
     '<1..>21'           => :ambiguous,
     '<1..21'            => :ambiguous,
     'J00194.1:1..21'    => :ambiguous,
     'complement(1..25)' => :ambiguous,
+    'join(1..25)'       => :ambiguous, # one member, but still not a plain range
     'join(1..4,6..25)'  => :ambiguous,
     ''                  => :missing,
     '1..E'              => :unreadable,
     'garbage!!'         => :unreadable
   }.each do |location, expected|
-    test "#{location.presence || '(blank)'} over 20 bases is #{expected.inspect}" do
+    test "#{location.inspect} over 20 bases is #{expected.inspect}" do
       actual = St26SourceLocations.disagreement(location, 20)
 
       expected.nil? ? assert_nil(actual) : assert_equal(expected, actual)
@@ -43,23 +53,26 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     result = St26SourceLocations.audit
 
     assert_equal %w[ACC_000001 ACC_000002], result.findings.map(&:accession)
-    assert_equal %i[overrun ambiguous], result.findings.map(&:reason)
+    assert_equal %i[overrun short], result.findings.map(&:reason)
     assert_empty result.unreadable
     assert_empty result.skipped
     assert_equal submission, result.findings.first.submission
   end
 
-  test 'correct! rewrites the overrun and touches nothing else' do
-    submission = seed('1..21', '1..19', '1..20')
+  # Both directions land on the sequence length, and nothing else moves.
+  test 'correct! sets a repairable location to the full span' do
+    submission = seed('1..21', '1..19', '1..20', '5..21')
     before     = record_of(submission)
 
+    plan = St26SourceLocations.plan_from('ACC_000002')
+
     capture_io do
-      St26SourceLocations.correct! St26SourceLocations.audit.findings.select(&:correctable?)
+      St26SourceLocations.correct! St26SourceLocations.audit.findings.select { plan.actionable?(it) }
     end
 
     after = record_of(submission)
 
-    assert_equal %w[1..20 1..19 1..20], locations_of(after)
+    assert_equal %w[1..20 1..20 1..20 5..21], locations_of(after)
     assert_equal blind_to_locations(before), blind_to_locations(after),
                  'the correction rewrote something other than a location'
   end
@@ -102,7 +115,58 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     result = St26SourceLocations.audit
 
     assert_equal %i[no_sequence], result.findings.map(&:reason)
-    refute_predicate result.findings.first, :correctable?
+    refute St26SourceLocations.plan_from('ACC_000001').actionable?(result.findings.first)
+  end
+
+  # "A patent source covers the whole sequence" is a statement about an entry
+  # with one source. Where two divide an entry, widening the first would swallow
+  # the second's span and turn a coherent record into overlapping sources.
+  test 'a source is not lengthened when another one divides the same entry' do
+    seed_entries [
+      {
+        'id'              => 'SEQ|JP|2026123456|A|1',
+        'sequence'        => 'acgt' * 5,
+        'length'          => 20,
+        'source_features' => [{'location' => '1..10'}, {'location' => '11..20'}]
+      }
+    ]
+
+    result = St26SourceLocations.audit
+
+    # The first is the one that could have been lengthened — it is a plain range
+    # from base 1 stopping short. The second does not start at base 1, so it was
+    # never a candidate.
+    assert_equal %i[multiple_sources ambiguous], result.findings.map(&:reason)
+    assert_empty result.findings.select { St26SourceLocations.plan_from('ACC_000001').actionable?(it) }
+  end
+
+  # `:short` is repairable but acted on only where a person named the accession.
+  # Per accession and not per run: PATENT-386's answer came from somebody
+  # looking at two specific entries, and a run-wide switch would carry it to
+  # every short row in the batch.
+  test 'lengthening applies only to the accessions named in the plan' do
+    seed '1..21', '1..19'
+
+    findings = St26SourceLocations.audit.findings
+    overrun  = findings.find { it.reason == :overrun }
+    short    = findings.find { it.reason == :short }
+
+    bare    = St26SourceLocations.plan_from(nil)
+    someone = St26SourceLocations.plan_from('ACC_000002')
+    other   = St26SourceLocations.plan_from('ACC_000009')
+
+    assert bare.actionable?(overrun),      'an overrun needs no permission'
+    refute bare.actionable?(short)
+    assert someone.actionable?(short),     'named in LENGTHEN'
+    refute other.actionable?(short),       'a different accession is not permission for this one'
+  end
+
+  # Shrinking an overrun cannot swallow a sibling's span, so the sources guard
+  # applies to lengthening only — and refusing it as `ambiguous` would have
+  # blamed a notation problem that is not there.
+  test 'an overrun is still repaired when another source divides the entry' do
+    assert_equal :overrun, St26SourceLocations.disagreement('1..21', 20, sources: 2)
+    assert_equal :multiple_sources, St26SourceLocations.disagreement('1..19', 20, sources: 2)
   end
 
   test 'a submission with no record is skipped rather than passed over' do
@@ -131,6 +195,17 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     result = St26SourceLocations.audit('ACC_000001, NOPE_000009')
 
     assert_equal %w[NOPE_000009], result.unmatched
+  end
+
+  # The number the decision turns on. PATENT-386 needed it for two refused
+  # rows and it was not on the line, so it had to be looked up by hand.
+  test 'the report prints the sequence length on refused rows too' do
+    seed 'join(1..4,6..25)'
+
+    out, = capture_io { St26SourceLocations.report St26SourceLocations.audit }
+
+    assert_match(/sequence=20/, out)
+    assert_match(/NOT REWRITTEN \(ambiguous\)/, out)
   end
 
   # Naming one accession must not drag its siblings into the rewrite.
