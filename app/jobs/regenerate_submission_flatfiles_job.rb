@@ -5,6 +5,11 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   # and what went wrong, in words a curator can act on. Re-raised so the
   # queue still records a failed job and Sentry still sees it — the run
   # screen is where the failure is read, not where it is reported.
+  # Not a bare RuntimeError: a pre-backfill run over the archive would otherwise
+  # produce thousands of failure rows indistinguishable from a bug, and this one
+  # means "not ready" rather than "broken".
+  class LocusDateDisagreement < StandardError; end
+
   rescue_from StandardError do |error|
     run, submission, label = failed_target
 
@@ -192,9 +197,12 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       # run reports exactly which submissions are not ready and rewrites none of
       # them.
       unless dated.include?(acc) || entry.locus_date.blank? || entry.locus_date == acc.locus_date.to_s
-        raise "Submission ##{acc.submission_id}: #{entry.id} has LOCUS date #{entry.locus_date} in its record and " \
+        raise LocusDateDisagreement,
+              "Submission ##{acc.submission_id}: #{entry.id} has LOCUS date #{entry.locus_date} in its record and " \
               "#{acc.locus_date} in entries.locus_date. Regenerating would publish the latter. " \
-              'Run `rake locus_date:backfill` first, or name it in a run that sets a date.'
+              'If the column is the date you meant, name it in this run and it will be written to both. ' \
+              'If you have not touched it, the submission predates the apply job reading the date from the ' \
+              'record: run `rake locus_date:backfill` first.'
       end
 
       entry.with(

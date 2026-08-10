@@ -140,7 +140,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
 
     before = @submission.flatfile_na.download
 
-    assert_raises RuntimeError do
+    assert_raises RegenerateSubmissionFlatfilesJob::LocusDateDisagreement do
       RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, nil
     end
 
@@ -156,7 +156,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     @submission.entries.update_all(locus_date: Date.new(2026, 8, 13))
 
     # 名指ししなかった kept は依然として食い違っているので、まだ止まる。
-    assert_raises RuntimeError do
+    assert_raises RegenerateSubmissionFlatfilesJob::LocusDateDisagreement do
       RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1), accessions: [redated.accession]
     end
 

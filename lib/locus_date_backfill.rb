@@ -19,7 +19,9 @@
 #   longer carries the apply stamp, so somebody set it on purpose — PATENT-386's
 #   five, redated to 2026-08-13, are why this matters — and restoring "what the
 #   request asked for" over that would undo their work. No list of exceptions to
-#   remember.
+#   remember. (Reported only when it also differs from the request's date: after
+#   the apply job started reading the record, a correctly dated new submission
+#   has a column that differs from its `created_at` too.)
 # - A submission that has already been regenerated. Its record was rewritten with
 #   the column's apply date, so the two agree today, and moving only the column
 #   would put them into the disagreement the guard refuses — leaving the
@@ -92,7 +94,17 @@ module LocusDateBackfill
 
       was = wanted[entry.entry_id]
 
-      next deliberate << entry.accession unless entry.locus_date == entry.created_at.to_date
+      unless entry.locus_date == entry.created_at.to_date
+        # Named only when it is also not the date the request asked for. After
+        # this deploy every correctly dated new submission has a column that
+        # differs from its `created_at` — the operator dates a batch days ahead —
+        # so naming all of those would bury the ones somebody really did redate
+        # (PATENT-386's five) in routine data.
+        next deliberate << entry.accession if was.is_a?(Date) && was != entry.locus_date
+
+        next
+      end
+
       next unreadable << entry.accession if was == :unreadable
       next if was.nil? || was == entry.locus_date
 
@@ -127,7 +139,7 @@ module LocusDateBackfill
 
     outcome.changes.map { format('%-12s submission #%-6d LOCUS date %s -> %s', it.entry.accession, id, it.from, it.to) } +
       outcome.unreadable.map { format('%-12s submission #%-6d its request spells the date in a way this will not guess at', it, id) } +
-      outcome.deliberate.map { format('%-12s submission #%-6d left alone: dated by hand since it was applied', it, id) }
+      outcome.deliberate.map { format('%-12s submission #%-6d left alone: its date was set after it was applied, and is not the one its request asked for', it, id) }
   end
 
   # Which of the named accessions the run never saw. A typo, the wrong case, or a

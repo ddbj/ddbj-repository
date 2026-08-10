@@ -41,7 +41,11 @@ namespace :locus_date do
       puts 'Re-run with APPLY=1 to write.'
     end
 
-    unmatched = LocusDateBackfill.unmatched(ENV['ACCESSIONS'], seen)
+    # Only when the run saw the whole of what was named. Scoped by LIMIT or
+    # resumed from AFTER, an accession the run simply has not reached yet is
+    # indistinguishable from one that does not exist, and reporting it as missing
+    # reads as a typo.
+    unmatched = ENV['LIMIT'].present? || ENV['AFTER'].present? ? Set.new : LocusDateBackfill.unmatched(ENV['ACCESSIONS'], seen)
 
     problems = [
       ("#{unmatched.size} #{'accession'.pluralize(unmatched.size)} matched no ST.26 entry: #{unmatched.to_a.join(', ')}" if unmatched.any?),

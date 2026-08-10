@@ -16,10 +16,6 @@ class ApplySubmissionRequestJob < ApplicationJob
 
   UNEXPECTED_ERROR_CODE = 'TRD_R9999'
 
-  # Refusing costs nothing here: pass 1 runs before any accession is allocated.
-  # The format itself is DDBJRecord::LOCUS_DATE_FORMAT, shared with the
-  # Regenerate form and the backfill so one rule covers every way a LOCUS date
-  # can be set.
 
   def perform(request)
     # 前回の失敗の痕跡を残さない。コードは機械的な判断に使われるので、古い値が
@@ -51,7 +47,12 @@ class ApplySubmissionRequestJob < ApplicationJob
   private
 
   # The date the publication operator put on this entry, or `fallback` when the
-  # record names none. Refused rather than guessed — see LOCUS_DATE_FORMAT.
+  # record names none.
+  #
+  # Refused rather than guessed, against DDBJRecord::LOCUS_DATE_FORMAT — the rule
+  # the Regenerate form and the backfill are held to as well, so one format
+  # covers every way a LOCUS date can be set. Refusing costs nothing here: pass 1
+  # runs before any accession is allocated.
   def locus_date_for(entry, fallback)
     given = entry.locus_date.presence or return fallback
 
