@@ -1,6 +1,6 @@
 # Derived from ddbj-record-specifications @ bdcdb8d8 (2026-04-13)
 # vendor/ddbj-record-specifications/docs/v3-schema.md
-# canonical_version: ddbj-canon/v1
+# canonical_version: ddbj-canon/v2
 #
 # Used by `bundle exec rake canon:fields_check` to detect drift between
 # the V3 Data classes and the spec.
