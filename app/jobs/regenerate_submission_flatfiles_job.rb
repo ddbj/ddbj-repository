@@ -13,12 +13,80 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     raise error
   end
 
-  def perform(submission, user, run, date, force: false)
-    # Detect v3 BEFORE parsing — v3 ddbj_records can be multi-GB and
-    # V3::Parser is full-document (Oj.load on the whole blob). Eating
-    # that allocation just to raise V3NotImplementedError would burn RAM
-    # and IO with no value. The detector peeks 64KB of head bytes.
-    record = submission.ddbj_record.open do |file|
+  # `accessions` names the entries `date` is written to; nil writes it to
+  # every entry of the submission.
+  #
+  # The file is the submission's — naming one accession still rewrites
+  # the whole of the file that holds it — so the list decides only whose
+  # date moves. A curator who lists numbers has already decided which
+  # ones they are, and dating the rest of the file along with them would
+  # move dates on records that merely share a submission.
+  def perform(submission, user, run, date, accessions: nil)
+    record = read_record(submission)
+
+    # `reload`, because the caller may have loaded the association before
+    # handing the submission over — a second run in the same process
+    # otherwise reads the statuses and dates left by the first.
+    rows    = submission.entries.reload.to_a
+    redated = date ? rows.select { accessions.nil? || accessions.include?(it.accession) } : []
+
+    entries             = build_entries(record, rows, date:, redated: redated.map(&:entry_id).to_set)
+    record_with_entries = record.with(sequences: record.sequences.with(entries:))
+
+    regenerated = false
+
+    generate_outputs record_with_entries, entries, **{
+      filename:       submission.ddbj_record.filename,
+      content_type:   submission.ddbj_record.content_type,
+      flatfile_omits: retracted_entry_ids(rows)
+    } do |updates|
+      # Written once, from the outputs the comparison was made against.
+      # Generating a second time to write what was just compared doubled
+      # the cost of every submission a run actually changed — which, on
+      # the runs this tool exists for, is all of them.
+      next unless changed?(submission, updates)
+
+      # The dates and the files that print them, together. Written apart,
+      # a job that died between them left a flatfile saying one date and
+      # the row behind it saying another — and the next run would read
+      # the file as already correct, generate the same bytes, and skip,
+      # so the two would never be brought back together.
+      ActiveRecord::Base.transaction do
+        Entry.where(id: redated.map(&:id)).update_all(locus_date: date) if redated.any?
+
+        submission.update! updates
+
+        # Every entry of the submission, not only the redated ones: the
+        # action is the rewrite of the file, and the file is theirs too.
+        # Which dates moved is recorded on the run.
+        EntryHistory.insert_all! rows.map {
+          {
+            entry_id: it.id,
+            user_id:  user.id,
+            action:   'regenerate'
+          }
+        }
+      end
+
+      regenerated = true
+    end
+
+    # Counted apart, because the two outcomes answer different questions:
+    # a run that skipped everything did nothing, and a run that
+    # regenerated everything rewrote the lot. The old single `processed`
+    # counter could not tell them apart, so a run that changed nothing
+    # produced a result nobody could read.
+    run.count! (regenerated ? :regenerated : :skipped), submission
+  end
+
+  private
+
+  # Detect v3 BEFORE parsing — v3 ddbj_records can be multi-GB and
+  # V3::Parser is full-document (Oj.load on the whole blob). Eating that
+  # allocation just to raise V3NotImplementedError would burn RAM and IO
+  # with no value. The detector peeks 64KB of head bytes.
+  def read_record(submission)
+    submission.ddbj_record.open do |file|
       major, = DDBJRecord::SchemaVersionDetector.detect(file)
       file.rewind
 
@@ -29,42 +97,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
 
       DDBJRecord.parse(file)
     end
-
-    regenerating = force || changed?(submission, record)
-
-    if regenerating
-      submission.entries.update_all(locus_date: date) if date
-
-      rows                = submission.entries.reload.to_a
-      entries             = build_entries(record, rows)
-      record_with_entries = record.with(sequences: record.sequences.with(entries:))
-
-      generate_outputs record_with_entries, entries, **{
-        filename:       submission.ddbj_record.filename,
-        content_type:   submission.ddbj_record.content_type,
-        flatfile_omits: retracted_entry_ids(rows)
-      } do |updates|
-        submission.update! updates
-      end
-
-      EntryHistory.insert_all! submission.entries.ids.map {|id|
-        {
-          entry_id: id,
-          user_id:      user.id,
-          action:       'regenerate'
-        }
-      }
-    end
-
-    # Counted apart, because the two outcomes answer different questions:
-    # a run that skipped everything did nothing, and a run that
-    # regenerated everything rewrote the lot. The old single `processed`
-    # counter could not tell them apart, so turning the rewrite option
-    # off produced a result nobody could read.
-    run.count! (regenerating ? :regenerated : :skipped), submission
   end
-
-  private
 
   # Which run to report to, and which submission the report is about.
   #
@@ -105,36 +138,25 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     gid ? "#{klass.name.underscore.humanize} ##{gid.split('/').last}" : 'unknown submission'
   end
 
-  def changed?(submission, record)
-    # `reload`, because the caller may have loaded the association before
-    # handing the submission over — a second run in the same process
-    # otherwise compares against the statuses of the first, and a
-    # retraction that changed the flatfile is reported as no change.
-    rows                = submission.entries.reload.to_a
-    entries             = build_entries(record, rows)
-    record_with_entries = record.with(sequences: record.sequences.with(entries:))
-
-    result = false
-
-    generate_outputs record_with_entries, entries, **{
-      filename:       submission.ddbj_record.filename,
-      content_type:   submission.ddbj_record.content_type,
-      flatfile_omits: retracted_entry_ids(rows)
-    } do |updates|
-      result =
-        attachment_changed?(submission.ddbj_record, updates[:ddbj_record]) ||
-        attachment_changed?(submission.flatfile_na, updates[:flatfile_na]) ||
-        attachment_changed?(submission.flatfile_aa, updates[:flatfile_aa])
-    end
-
-    result
+  # Whether writing these outputs would change anything. A run with
+  # nothing to say about a submission leaves its blobs, and its history,
+  # alone — a new date is a change like any other, and reaches here as
+  # one, because the outputs were built with it already applied.
+  def changed?(submission, updates)
+    attachment_changed?(submission.ddbj_record, updates[:ddbj_record]) ||
+      attachment_changed?(submission.flatfile_na, updates[:flatfile_na]) ||
+      attachment_changed?(submission.flatfile_aa, updates[:flatfile_aa])
   end
 
   # Retracting an entry changes the flatfile, so this is also what makes
   # `changed?` notice and regenerate rather than skip.
   def retracted_entry_ids(rows) = rows.select(&:retracted?).map(&:entry_id).to_set
 
-  def build_entries(record, rows)
+  # `redated` is the entry ids taking `date`; the rest keep the date they
+  # have. Both go into the same file, so one submission's entries can
+  # disagree about their LOCUS date — which is what naming accessions is
+  # for.
+  def build_entries(record, rows, date:, redated:)
     rows_by_entry_id = rows.index_by(&:entry_id)
 
     record.sequences.entries.map {|entry|
@@ -144,7 +166,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
         accession:    acc.accession,
         locus:        acc.accession,
         version:      acc.version,
-        last_updated: acc.locus_date.to_s
+        last_updated: (redated.include?(entry.id) ? date : acc.locus_date).to_s
       )
     }
   end

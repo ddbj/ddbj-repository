@@ -88,12 +88,15 @@ module Admin
     end
 
     def start(scope)
+      # The numbers are recorded for the retry to read back, so they are
+      # kept for a retry too — and left off the every-submission scope,
+      # where a list in the box is a draft rather than a scope, and
+      # storing it would have the retry date only those.
       run = RegenerateFlatfilesRun.create!(
         actor:      current_actor,
         target:     scope.target,
-        numbers:    (scope.numbers_text if scope.accessions_target?),
+        numbers:    (scope.numbers_text.presence unless scope.all_target?),
         locus_date: scope.locus_date,
-        force:      scope.force,
         total:      scope.total,
         started_at: Time.current,
         retry_of:   scope.retry_of
@@ -106,7 +109,8 @@ module Admin
 
       scope.submissions.find_in_batches(batch_size: 500) do |submissions|
         ActiveJob.perform_all_later submissions.map {|submission|
-          RegenerateSubmissionFlatfilesJob.new(submission, current_user, run, scope.locus_date, force: scope.force)
+          RegenerateSubmissionFlatfilesJob.new(submission, current_user, run, scope.locus_date,
+                                               accessions: scope.accessions_for(submission))
         }
 
         enqueued += submissions.size

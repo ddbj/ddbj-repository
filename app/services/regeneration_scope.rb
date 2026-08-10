@@ -10,7 +10,7 @@
 class RegenerationScope
   DATE_MODES = %w[keep set].freeze
 
-  attr_reader :numbers_text, :date_mode, :date_input, :force, :retry_of
+  attr_reader :numbers_text, :date_mode, :date_input, :retry_of
 
   # Flatfiles are rendered from v1/v2 DDBJ Records, and every BioProject
   # and BioSample record in this system is v3 —
@@ -27,8 +27,12 @@ class RegenerationScope
   # it, rather than silently.
   def self.regeneratable = Submission.st26_db.where.associated(:ddbj_record_attachment)
 
+  # The numbers come along too, so a retry dates what the run it is
+  # retrying dated. Without them a retry of a run named by accession
+  # would fall back to "every entry", and quietly move dates the original
+  # had deliberately left alone.
   def self.retrying(run)
-    new({date_mode: run.locus_date ? 'set' : 'keep', date: run.locus_date&.to_s, force: run.force}, retry_of: run)
+    new({date_mode: run.locus_date ? 'set' : 'keep', date: run.locus_date&.to_s, numbers: run.numbers}, retry_of: run)
   end
 
   def initialize(params = {}, retry_of: nil)
@@ -37,14 +41,11 @@ class RegenerationScope
     @numbers_text = params[:numbers].to_s
     @date_mode    = params[:date_mode].to_s.presence_in(DATE_MODES) || 'keep'
     @date_input   = params[:date].to_s
-    @force        = ActiveModel::Type::Boolean.new.cast(params[:force]) || false
   end
 
   def target = retry_of ? 'retry' : @target
 
   def all_target? = target == 'all'
-
-  def retry_target? = target == 'retry'
 
   def accessions_target? = target == 'accessions'
 
@@ -60,6 +61,27 @@ class RegenerationScope
   end
 
   def total = @total ||= submissions.count
+
+  # The numbers whose LOCUS date the run may rewrite, or nil for "every
+  # entry of every submission covered".
+  #
+  # A flatfile belongs to a submission, so any of these runs rewrites
+  # whole files; the date belongs to the entry, and only the run that
+  # named entries has an opinion about which ones. A retry of an
+  # every-submission run has no numbers and lands on nil, which is what
+  # that run did.
+  def named_accessions = all_target? ? nil : numbers.presence
+
+  # Which of the named numbers this submission holds — the argument that
+  # tells its job whose dates to move.
+  def accessions_for(submission) = named_accessions && numbers_by_submission[submission.id]
+
+  # Whose dates move, in the words of the choice that decided it.
+  def dated_label
+    named = named_accessions
+
+    named ? "the #{named.size} #{'accession'.pluralize(named.size)} named" : 'every entry'
+  end
 
   def setting_date? = date_mode == 'set'
 
@@ -116,7 +138,7 @@ class RegenerationScope
   # is a bulk paste of thousands of numbers, and the confirmation is
   # reached by a GET.
   def to_params
-    {target: @target, date_mode:, date: date_input, force: force ? '1' : '0'}.tap {|params|
+    {target: @target, date_mode:, date: date_input}.tap {|params|
       params[:numbers] = numbers_text if accessions_target?
     }
   end
@@ -131,7 +153,16 @@ class RegenerationScope
     ]
   end
 
-  def matched_numbers
-    @matched_numbers ||= Entry.where(accession: numbers, submission: self.class.regeneratable).pluck(:accession)
+  # Which of the named numbers each submission holds. One query for the
+  # whole run, rather than one per job enqueued — a bulk paste is
+  # thousands of numbers, and they arrive as one list.
+  def numbers_by_submission
+    @numbers_by_submission ||=
+      Entry.where(accession: numbers, submission: self.class.regeneratable)
+           .pluck(:submission_id, :accession)
+           .group_by(&:first)
+           .transform_values {|rows| rows.map(&:last) }
   end
+
+  def matched_numbers = @matched_numbers ||= numbers_by_submission.values.flatten
 end
