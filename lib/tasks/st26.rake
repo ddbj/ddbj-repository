@@ -185,13 +185,15 @@ namespace :st26 do
       puts "\nDone: #{intent}."
       puts "#{remaining.size} named #{'location'.pluralize(remaining.size)} still #{remaining.size == 1 ? 'needs' : 'need'} fixing by hand." if remaining.any?
 
-      # The screen named here can undo the date this task just set: its own date
-      # option runs `submission.entries.update_all(locus_date:)` over the whole
-      # submission. It defaults to keeping them, which is why the default is
-      # worth saying out loud rather than leaving to be noticed.
-      keep = ', keeping the existing LOCUS dates' if locus_date
+      # Naming the date in that run, not leaving it to the column. This task
+      # writes `entries.locus_date` and deliberately leaves the record alone, so
+      # a run that names no date finds the two disagreeing and refuses the
+      # submission — the guard that stops a regeneration publishing a date
+      # nobody chose. Naming it writes the column, the record and the file
+      # together, and for exactly these accessions.
+      there = locus_date ? ", naming #{locus_date} as the LOCUS date there too" : ''
 
-      puts "The flatfiles still hold the old spans — regenerate them from Admin → Regenerate flatfiles for these accessions#{keep}."
+      puts "The flatfiles still hold the old spans — regenerate these accessions from Admin → Regenerate flatfiles#{there}."
 
       # The request keeps the file as it arrived, which is the point of it —
       # but that makes it disagree with the corrected submission, and it is

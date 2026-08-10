@@ -1,11 +1,11 @@
 namespace :locus_date do
   desc 'Put entries.locus_date back to the date the publication operator chose (LIMIT=/AFTER=/ACCESSIONS= to scope, APPLY=1 to write)'
   task backfill: :environment do
-    applying = ENV['APPLY'] == '1'
-    redated  = 0
-    seen     = Set.new
-    scanned  = 0
-    skipped  = []
+    applying  = ENV['APPLY'] == '1'
+    attention = []
+    redated   = 0
+    scanned   = 0
+    seen      = Set.new
 
     # Reported as each submission is dealt with, and written in the same pass:
     # a run over the archive that collected first would hold every change in
@@ -13,11 +13,14 @@ namespace :locus_date do
     # 300 submissions it had already committed when the 301st raised.
     LocusDateBackfill.each_submission(limit: ENV['LIMIT'], after: ENV['AFTER'], accessions: ENV['ACCESSIONS']) do |outcome|
       scanned += 1
-      seen.merge outcome.submission.entries.pluck(:accession)
+
+      # Only when there is a list to check against: on an archive-wide pass this
+      # would be a query per submission for a set nothing reads.
+      seen.merge outcome.submission.entries.pluck(:accession) if ENV['ACCESSIONS'].present?
 
       LocusDateBackfill.describe(outcome).each { puts it }
 
-      skipped << outcome unless outcome.examined?
+      attention << outcome if outcome.needs_attention?
 
       next unless applying && outcome.changes.any?
 
@@ -29,10 +32,10 @@ namespace :locus_date do
     if applying
       puts "Redated #{redated} #{'entry'.pluralize(redated)}."
 
-      # Deliberately not regenerated. The column is now right, and the published
-      # flatfiles already print these dates — they were only ever wrong in the
-      # column. Regenerating is a publication decision, and it rewrites every
-      # entry of a submission.
+      # Deliberately not regenerated, and nothing needs to be: the published
+      # flatfiles of these submissions already print the operator's date — it was
+      # only ever the column that was wrong. (A submission whose file prints the
+      # apply date has been regenerated, and this refuses those.)
       puts 'The flatfiles are untouched, and now agree with the column.' if redated.positive?
     else
       puts 'Re-run with APPLY=1 to write.'
@@ -42,7 +45,7 @@ namespace :locus_date do
 
     problems = [
       ("#{unmatched.size} #{'accession'.pluralize(unmatched.size)} matched no ST.26 entry: #{unmatched.to_a.join(', ')}" if unmatched.any?),
-      ("#{skipped.size} #{'submission'.pluralize(skipped.size)} could not be examined" if skipped.any?)
+      ("#{attention.size} #{'submission'.pluralize(attention.size)} need attention rather than a backfill" if attention.any?)
     ].compact
 
     next if problems.empty?

@@ -94,8 +94,12 @@ class RegenerationScope
   def locus_date
     return nil unless setting_date?
 
+    # The same rule the record and the rake options are held to: `Date.parse`
+    # would read `8/13` as this year's 13 August, and the form writes this value
+    # onto published flatfiles. The field is a date picker, so a browser sends
+    # `YYYY-MM-DD` anyway — this is about everything that is not one.
     @locus_date ||= begin
-      Date.parse(date_input)
+      Date.iso8601(date_input) if date_input.match?(DDBJRecord::LOCUS_DATE_FORMAT)
     rescue Date::Error
       nil
     end

@@ -16,13 +16,10 @@ class ApplySubmissionRequestJob < ApplicationJob
 
   UNEXPECTED_ERROR_CODE = 'TRD_R9999'
 
-  # `YYYY-MM-DD` and nothing else. `String#to_date` is `Date.parse`, which
-  # guesses: `8/13` becomes the 13th of August *of whichever year the job ran
-  # in*, `Aug 2026` becomes the 1st, `2026-225` an ordinal day. This date is
-  # printed on the LOCUS line of a published flatfile, so a guess is worse than
-  # a refusal — and refusing here costs nothing, because pass 1 runs before any
-  # accession is allocated.
-  LOCUS_DATE_FORMAT = /\A\d{4}-\d{2}-\d{2}\z/
+  # Refusing costs nothing here: pass 1 runs before any accession is allocated.
+  # The format itself is DDBJRecord::LOCUS_DATE_FORMAT, shared with the
+  # Regenerate form and the backfill so one rule covers every way a LOCUS date
+  # can be set.
 
   def perform(request)
     # 前回の失敗の痕跡を残さない。コードは機械的な判断に使われるので、古い値が
@@ -60,7 +57,7 @@ class ApplySubmissionRequestJob < ApplicationJob
 
     # `to_s`, so a JSON number (`"locus_date": 20260813`) is refused with this
     # code rather than raising NoMethodError into the TRD_R9999 catch-all.
-    raise MalformedLocusDate, %(#{entry.id}: locus_date "#{given}" is not written as YYYY-MM-DD) unless given.to_s.match?(LOCUS_DATE_FORMAT)
+    raise MalformedLocusDate, %(#{entry.id}: locus_date "#{given}" is not written as YYYY-MM-DD) unless given.to_s.match?(DDBJRecord::LOCUS_DATE_FORMAT)
 
     begin
       Date.iso8601(given)
