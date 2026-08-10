@@ -9,22 +9,20 @@ module St26SourceLocations
   # one entry can share a nil id. Keying the rewrite on that would rewrite both
   # and then trip the count guard — after earlier submissions in the batch had
   # already been written.
-  Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :measured, :location, :expected, :reason) do
-    # Whether `expected` is a value this task could write. Whether it *will* is
-    # the Plan's: `:overrun` always, `:short` only where a person has said so
-    # for that accession.
-    def repairable? = %i[overrun short].include?(reason)
-  end
+  # Whether a finding will be acted on is Plan's to say and nothing else's — a
+  # second predicate here would be a second copy of the same classification,
+  # free to drift from it.
+  Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :measured, :location, :expected, :reason)
 
   # What `fix` says when it will not rewrite something, per reason.
   REFUSALS = {
-    unreadable:      ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed." },
-    short:           ->(n) { "Not lengthening #{n} #{'location'.pluralize(n)} that #{n == 1 ? 'stops' : 'stop'} short of the sequence. Read the sequence= column, decide per record, and name the ones you have confirmed in LENGTHEN — this cannot tell a boundary slip of two residues from a deliberate partial coverage of five hundred." },
-    multiple_sources: ->(n) { "Not lengthening #{n} #{'location'.pluralize(n)} in #{'an entry'.pluralize(n)} carrying more than one source: widening one would swallow the next one's span. Fix #{n == 1 ? 'it' : 'them'} by hand." },
-    ambiguous:       ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} that #{n == 1 ? 'is' : 'are'} not a plain forward range from base 1: split, complemented, partial (<1..>N), fuzzy (1..(5.10)) and cross-referenced locations all say something that setting the full span would throw away. Fix #{n == 1 ? 'it' : 'them'} by hand." },
-    missing:         ->(n) { "Refusing to fill in #{n} absent #{'location'.pluralize(n)}: a source feature with none at all is a different repair from this one. Fix #{n == 1 ? 'it' : 'them'} by hand." },
-    no_sequence:     ->(n) { "Refusing to measure #{n} #{'entry'.pluralize(n)} with no sequence: there is no length for a location to agree with. Fix #{n == 1 ? 'it' : 'them'} by hand." },
-    declared_length: ->(n) { "Refusing to touch #{n} #{'entry'.pluralize(n)} whose declared length disagrees with its sequence: which of the two was meant is not this task's to decide. Fix #{n == 1 ? 'it' : 'them'} by hand." }
+    unreadable:       ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    short:            ->(n) { "Not lengthening #{n} #{'location'.pluralize(n)} that #{n == 1 ? 'stops' : 'stop'} short of the sequence. Read the sequence= column, decide per record, and name the ones you have confirmed in LENGTHEN — this cannot tell a boundary slip of two residues from a deliberate partial coverage of five hundred." },
+    multiple_sources: ->(n) { "Not lengthening #{n} #{'location'.pluralize(n)} in #{n == 1 ? 'an entry' : 'entries'} carrying more than one source: widening one would swallow the next one's span. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    ambiguous:        ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} that #{n == 1 ? 'is' : 'are'} not a plain forward range from base 1: split, complemented, partial (<1..>N), fuzzy (1..(5.10)) and cross-referenced locations all say something that setting the full span would throw away. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    missing:          ->(n) { "Refusing to fill in #{n} absent #{'location'.pluralize(n)}: a source feature with none at all is a different repair from this one. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    no_sequence:      ->(n) { "Refusing to measure #{n} #{'entry'.pluralize(n)} with no sequence: there is no length for a location to agree with. Fix #{n == 1 ? 'it' : 'them'} by hand." },
+    declared_length:  ->(n) { "Refusing to touch #{n} #{'entry'.pluralize(n)} whose declared length disagrees with its sequence: which of the two was meant is not this task's to decide. Fix #{n == 1 ? 'it' : 'them'} by hand." }
   }.freeze
 
   Unreadable = Data.define(:submission, :error)
@@ -147,8 +145,10 @@ module St26SourceLocations
           'NOT REWRITTEN (not named)'
         elsif plan.actionable?(f)
           "-> #{f.expected}"
-        elsif f.reason == :short
+        elsif f.reason == :short && f.accession
           "-> #{f.expected} only if you name it in LENGTHEN"
+        elsif f.reason == :short
+          'NOT REWRITTEN (short, and no accession to name it by)'
         else
           "NOT REWRITTEN (#{f.reason})"
         end
@@ -267,6 +267,12 @@ module St26SourceLocations
           finding = wanted[[i, j]] or next
 
           raise "submission ##{submission.id}: #{finding.entry_id} source #{j} now reads #{sf['location'].inspect}, not #{finding.location.inspect}" unless sf['location'] == finding.location
+
+          # `verify!` ran before this lock was taken, so the entry could have
+          # gained a source feature in between — and lengthening one source of
+          # two is what the classification refuses. Counted again here, where
+          # the write actually happens.
+          raise "submission ##{submission.id}: #{finding.entry_id} now carries #{Array(entry['source_features']).size} source features; lengthening one of several would swallow the next one's span" if finding.reason == :short && Array(entry['source_features']).size != 1
 
           sf['location'] = finding.expected
           done          += 1
@@ -393,9 +399,17 @@ module St26SourceLocations
     # defect that is plainly the numbers.
     m = /\A\s*(\d+)\s*\.\.\s*(\d+)\s*\z/.match(location.to_s)
 
-    return :ambiguous unless m && m[1] == '1'
+    return :ambiguous unless m
 
-    return :overrun if m[2].to_i > length
+    from = m[1].to_i
+    to   = m[2].to_i
+
+    # Compared as numbers, so `01..21` is the overrun it plainly is rather than
+    # a notation complaint; and `to >= from`, so `1..0` is not read as a range
+    # that merely stops early.
+    return :ambiguous unless from == 1 && to >= from
+
+    return :overrun if to > length
 
     # Only the widening direction is affected: the premise that a patent source
     # covers the whole sequence is a statement about an entry with one source,

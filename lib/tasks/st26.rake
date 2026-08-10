@@ -91,6 +91,15 @@ namespace :st26 do
 
       abort "#{result.unmatched.size} #{'accession'.pluralize(result.unmatched.size)} matched no ST.26 entry — nothing was written." if result.unmatched.any?
 
+      # LENGTHEN gets the same treatment as ACCESSIONS. A name that matches no
+      # finding — a typo, the wrong case, an accession outside ACCESSIONS —
+      # would otherwise leave the rows it was meant to authorise untouched while
+      # the run reported success on the others, which is the situation the
+      # unmatched check above exists to prevent.
+      stray = plan.lengthen - result.named.filter_map(&:accession)
+
+      abort "#{stray.size} LENGTHEN #{'accession'.pluralize(stray.size)} matched none of the findings: #{stray.to_a.join(', ')} — nothing was written." if stray.any?
+
       # A named record that could not be read is not a record that needs
       # nothing: its finding never got as far as being one, so without this the
       # task would print "Nothing to correct." over a missing blob.

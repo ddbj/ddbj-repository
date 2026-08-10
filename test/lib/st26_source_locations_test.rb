@@ -23,6 +23,8 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     ' 1..21'            => :overrun,
     '1..19'             => :short,    # PATENT-386 has both directions
     '1..5'              => :short,
+    '01..21'            => :overrun,  # zero-padded, still plainly the overrun
+    '1..0'              => :ambiguous, # not a forward range at all
     '1'                 => :ambiguous, # not a range
     '1.5'               => :ambiguous, # fuzzy bound, flattened by bio-ruby to 1..1
     '1..(5.10)'         => :ambiguous, # fuzzy bound, flattened to 1..10
@@ -62,8 +64,10 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     submission = seed('1..21', '1..19', '1..20', '5..21')
     before     = record_of(submission)
 
+    plan = St26SourceLocations.plan_from('ACC_000002')
+
     capture_io do
-      St26SourceLocations.correct! St26SourceLocations.audit.findings.select(&:repairable?)
+      St26SourceLocations.correct! St26SourceLocations.audit.findings.select { plan.actionable?(it) }
     end
 
     after = record_of(submission)
@@ -111,7 +115,7 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     result = St26SourceLocations.audit
 
     assert_equal %i[no_sequence], result.findings.map(&:reason)
-    refute_predicate result.findings.first, :repairable?
+    refute St26SourceLocations.plan_from('ACC_000001').actionable?(result.findings.first)
   end
 
   # "A patent source covers the whole sequence" is a statement about an entry
