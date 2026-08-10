@@ -5,6 +5,11 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   # and what went wrong, in words a curator can act on. Re-raised so the
   # queue still records a failed job and Sentry still sees it — the run
   # screen is where the failure is read, not where it is reported.
+  # Not a bare RuntimeError: a pre-backfill run over the archive would otherwise
+  # produce thousands of failure rows indistinguishable from a bug, and this one
+  # means "not ready" rather than "broken".
+  class LocusDateDisagreement < StandardError; end
+
   rescue_from StandardError do |error|
     run, submission, label = failed_target
 
@@ -38,7 +43,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     # accessions is for.
     redated.each { it.locus_date = date }
 
-    entries             = build_entries(record, rows)
+    entries             = build_entries(record, rows, redated:)
     record_with_entries = record.with(sequences: record.sequences.with(entries:))
 
     regenerated = false
@@ -172,17 +177,39 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   # `changed?` notice and regenerate rather than skip.
   def retracted_entry_ids(rows) = rows.select(&:retracted?).map(&:entry_id).to_set
 
-  def build_entries(record, rows)
+  def build_entries(record, rows, redated: [])
     rows_by_entry_id = rows.index_by(&:entry_id)
+    dated            = redated.to_set
 
     record.sequences.entries.map {|entry|
       acc = rows_by_entry_id.fetch(entry.id)
 
+      # An entry this run is dating takes the run's date; the rest are rendered
+      # from the column, and for those the column has to already agree with the
+      # record. It does not on any submission applied before the apply job
+      # started taking the date from the record: those hold the operator's date
+      # in the record and the apply date in the column, so rendering from the
+      # column moves the printed date. That is how 62 entries lost their
+      # published dates while PATENT-386 was being fixed, and a comment saying
+      # "run the backfill first" is not what stops it happening again.
+      #
+      # Refused per submission. `rescue_from` turns it into a failure row, so a
+      # run reports exactly which submissions are not ready and rewrites none of
+      # them.
+      unless dated.include?(acc) || entry.locus_date.blank? || entry.locus_date == acc.locus_date.to_s
+        raise LocusDateDisagreement,
+              "Submission ##{acc.submission_id}: #{entry.id} has LOCUS date #{entry.locus_date} in its record and " \
+              "#{acc.locus_date} in entries.locus_date. Regenerating would publish the latter. " \
+              'If the column is the date you meant, name it in this run and it will be written to both. ' \
+              'If you have not touched it, the submission predates the apply job reading the date from the ' \
+              'record: run `rake locus_date:backfill` first.'
+      end
+
       entry.with(
-        accession:    acc.accession,
-        locus:        acc.accession,
-        version:      acc.version,
-        last_updated: acc.locus_date.to_s
+        accession:  acc.accession,
+        locus:      acc.accession,
+        version:    acc.version,
+        locus_date: acc.locus_date.to_s
       )
     }
   end

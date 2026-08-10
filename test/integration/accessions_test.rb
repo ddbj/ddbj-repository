@@ -98,7 +98,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
   test 'the flat list is the caller\'s own entries and nobody else\'s' do
     mine   = submissions(:st26).entries.first
     theirs = Submission.create!(user: users(:carol), db: 'st26')
-                       .entries.create!(accession: 'ACC_CAROL1', entry_id: 'C|1', version: 1)
+                       .entries.create!(accession: 'ACC_CAROL1', entry_id: 'C|1', version: 1, locus_date: Date.new(2026, 1, 15))
 
     get accessions_path
 

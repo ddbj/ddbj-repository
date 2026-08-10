@@ -5,6 +5,13 @@ module DDBJRecord
   # leaving progress counters stuck and request rows wedged in :applying).
   class V3NotImplementedError < StandardError; end
 
+  # The one way a LOCUS date may be written, wherever it comes from — the
+  # record, the Regenerate form, or a rake option. `Date.parse` would take
+  # `8/13` and fill in whichever year it ran in, `Aug 2026` as the 1st, and
+  # `2026-225` as an ordinal day; this value is printed on the LOCUS line of a
+  # published flatfile, so a guess is worse than a refusal.
+  LOCUS_DATE_FORMAT = /\A\d{4}-\d{2}-\d{2}\z/
+
   Qualifier = Data.define(
     :id,
     :value
@@ -170,7 +177,16 @@ module DDBJRecord
     :accession,
     :locus,
     :version,
-    :last_updated
+
+    # The date printed on the LOCUS line. Chosen by whoever performs the
+    # publication (submission-bulk-st26's `--date`), so neither the submitted
+    # XML nor this server can derive it; it arrives with the record and is
+    # mirrored into `entries.locus_date`, which is the queryable copy.
+    #
+    # Named `last_updated` until 2026-08: that name said nothing about what the
+    # value was for, and the column, the record and the flatfile drifted into
+    # three different dates as a result.
+    :locus_date
   )
 
   Feature = Data.define(

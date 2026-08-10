@@ -107,6 +107,55 @@ For small files, the same code path works — `sc_parse` handles both minified a
 - `Flatfile::StreamingRenderer` — entry-by-entry renderer for large files, reuses the same ERB template
 - `Flatfile::TaxIdCache` — lazy-loading taxonomy cache for streaming
 
+#### The LOCUS date
+
+One date, three places that must agree, and one person who owns it.
+
+**`locus_date` is the date printed on the LOCUS line.** It is chosen by whoever
+performs the publication — for ST.26 that is DDBJ's own operator running
+`submission-bulk-st26 --date`, not the submitter and not this server, which is
+why neither the JPO XML nor an apply-time clock can supply it.
+
+It lives in three places, and they hold the same value by construction:
+
+| Place | Role |
+|---|---|
+| the record's `sequences.entries[].locus_date` | how it arrives, and what the archived record states |
+| `entries.locus_date` | the queryable copy — API, admin, and where a redate is written |
+| the flatfile's LOCUS line | rendered from the record field the renderer is handed |
+
+`ApplySubmissionRequestJob` takes the date from the record and writes both,
+falling back to the apply date only when the record names none.
+`RegenerateSubmissionFlatfilesJob` renders from the column and writes the date to
+the entries the run names — so redating some entries of a submission is what the
+Regenerate screen's accession list is for. The file is the submission's, so the
+whole of it is rewritten either way; the list decides only whose date moves.
+
+A run that names no date renders every entry from the column and **refuses** if
+the column and the record disagree, rather than publishing the column's value.
+That is the guard the 62-entry incident cost.
+
+This was three different dates until 2026-08: the column held the apply date,
+the record field was called `last_updated` and held the operator's date, and the
+flatfile printed the record's. Regeneration renders from the column, so any
+regeneration silently pulled published LOCUS dates back to the apply date —
+which is what happened to 62 entries while fixing PATENT-386. Records written
+before the rename still say `last_updated`, and `Builders` reads both keys.
+
+Two consequences of that history, both one-off:
+
+- Submissions applied before the change still have the apply date in the column.
+  `rake locus_date:backfill` reads each request's record — the upload, which no
+  regeneration rewrites — and puts the column back. **It has to have been run
+  before any bulk regeneration**, and the guard above is what makes that
+  unskippable rather than remembered. It only touches entries that still carry
+  the apply stamp (`locus_date == created_at.to_date`), so a date somebody set on
+  purpose is left where it is.
+- The key rename makes a re-serialised legacy record differ from its stored
+  blob, so `changed?` is true for every one of them. The first regeneration after
+  this deploy therefore rewrites the record and reports nothing skipped; that is
+  the rename passing through, not a substantive change.
+
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 
 Two-pass streaming:

@@ -94,8 +94,12 @@ class RegenerationScope
   def locus_date
     return nil unless setting_date?
 
+    # The same rule the record and the rake options are held to: `Date.parse`
+    # would read `8/13` as this year's 13 August, and the form writes this value
+    # onto published flatfiles. The field is a date picker, so a browser sends
+    # `YYYY-MM-DD` anyway — this is about everything that is not one.
     @locus_date ||= begin
-      Date.parse(date_input)
+      Date.iso8601(date_input) if date_input.match?(DDBJRecord::LOCUS_DATE_FORMAT)
     rescue Date::Error
       nil
     end
@@ -121,12 +125,22 @@ class RegenerationScope
   # every-submission option is chosen is not a problem, it is a draft.
   def problems
     [
-      ('Pick a LOCUS date, or keep the existing ones.' if setting_date? && locus_date.nil?),
+      date_problem,
       *(numbers_problems if accessions_target?)
     ].compact
   end
 
   def ready? = total.positive? && !(setting_date? && locus_date.nil?)
+
+  # Telling "you have not picked one" from "the one you typed is not a date this
+  # will guess at" — the second used to be reported as the first, which sends a
+  # curator looking for an empty field they had already filled in.
+  def date_problem
+    return nil unless setting_date? && locus_date.nil?
+    return 'Pick a LOCUS date, or keep the existing ones.' if date_input.blank?
+
+    "Write the LOCUS date as YYYY-MM-DD: #{date_input} is not one this will guess at."
+  end
 
   def source_label
     case target

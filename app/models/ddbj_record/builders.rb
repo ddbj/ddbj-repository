@@ -191,7 +191,17 @@ module DDBJRecord
         accession:       h['accession'],
         locus:           h['locus'],
         version:         h['version'],
-        last_updated:    h['last_updated']
+
+        # `last_updated` is what this field was called before 2026-08, and
+        # reading it is not only about the archive: submission-bulk-st26 still
+        # writes that key (`lib/st26/submission.rb`), so it is a live ingest
+        # path. Dropping it before the client is updated would blank the LOCUS
+        # date on every *new* submission as well as every stored one.
+        #
+        # `.presence`, because `''` is truthy: a record carrying an empty
+        # `locus_date` beside a real `last_updated` would otherwise lose the date
+        # to the empty one and fall back to the apply date.
+        locus_date:      h['locus_date'].presence || h['last_updated']
       )
     end
 
