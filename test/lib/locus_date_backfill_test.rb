@@ -29,6 +29,61 @@ class LocusDateBackfillTest < ActiveSupport::TestCase
     assert_equal [Date.new(2026, 7, 11)], @submission.entries.reload.distinct.pluck(:locus_date)
   end
 
+  # 9.8M entries means a statement each is nine million round trips. Written in
+  # one go when the group is every entry of the submission carrying that date.
+  test 'a whole submission is redated in one statement' do
+    changes = outcome.changes
+
+    assert_equal 2, changes.size
+
+    queries = []
+    sub     = ->(_, _, _, _, payload) { queries << payload[:sql] if payload[:sql].start_with?('UPDATE') }
+
+    ActiveSupport::Notifications.subscribed(sub, 'sql.active_record') do
+      LocusDateBackfill.apply! changes
+    end
+
+    assert_equal 1, queries.size, "expected one UPDATE, got #{queries.size}"
+    assert_equal [Date.new(2026, 7, 11)], @submission.entries.reload.distinct.pluck(:locus_date)
+  end
+
+  # The dangerous shape: an entry held back for a reason that has nothing to do
+  # with its date, so it still carries the apply stamp and shares it with the
+  # entries being moved. Naming the submission and the date in the WHERE — and
+  # trusting a row count to prove identity — would sweep it in. The ids are what
+  # make that impossible.
+  test 'a held-back entry sharing the same date is not swept into the batch' do
+    @request.ddbj_record.purge
+    attach_record @request, ['2026-07-11', '2026-8-13'] # the second cannot be read
+
+    held    = @submission.entries.order(:accession).last
+    changes = outcome.changes
+
+    assert_equal 1, changes.size
+    assert_equal held.locus_date, changes.sole.from, 'the held-back entry shares the date being moved off'
+
+    LocusDateBackfill.apply! changes
+
+    assert_equal Date.new(2026, 7, 11), @submission.entries.order(:accession).first.reload.locus_date
+    assert_equal held.locus_date,       held.reload.locus_date, 'the held-back entry was overwritten'
+  end
+
+  # And the same, one layer down: whatever moves under it between the read and
+  # the write, only the rows that were read can be touched.
+  test 'a row that moved onto the date since it was read is left alone' do
+    changes = outcome.changes
+    moved   = @submission.entries.order(:accession).last
+
+    # The audit read both; take one out of the change set, and move it away and
+    # back so the count would still match a submission-and-date WHERE.
+    changes = changes.reject { it.entry.id == moved.id }
+
+    LocusDateBackfill.apply! changes
+
+    assert_equal Date.new(2026, 7, 11), @submission.entries.order(:accession).first.reload.locus_date
+    assert_equal changes.sole.from,     moved.reload.locus_date, 'a row outside the change set was written'
+  end
+
   # An entry whose date was set on purpose no longer carries the apply stamp, and
   # restoring "what the request asked for" over it would undo that decision —
   # PATENT-386's five, redated to 2026-08-13, are why this matters. No list of
@@ -154,10 +209,12 @@ class LocusDateBackfillTest < ActiveSupport::TestCase
     end
   end
 
+  # `locus_date` may be one value for every entry, or one per entry in order.
   def attach_record(request, locus_date)
     record = JSON.parse(file_fixture('ddbj_record/example.json').read)
+    dates  = Array(locus_date)
 
-    record['sequences']['entries'].each { it['locus_date'] = locus_date }
+    record['sequences']['entries'].each_with_index {|entry, i| entry['locus_date'] = dates[i] || dates.first }
 
     request.ddbj_record.attach(
       io:           StringIO.new(JSON.generate(record)),
