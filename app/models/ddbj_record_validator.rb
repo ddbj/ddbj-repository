@@ -219,9 +219,15 @@ module DDBJRecordValidator
   # detail rather than letting them escape into the outer rescue =>
   # TRD_R9999 catch-all.
   rescue Oj::ParseError, TypeError => e
+    # `code` is NOT NULL, and a nil here did not fail this insert — it failed
+    # the one in the `ensure` below, which poisoned the transaction, so the
+    # outer rescue's `validation_failed!` died of PG::InFailedSqlTransaction
+    # too and the request stayed at `validating` with no details at all. A
+    # malformed upload is the most ordinary reason to reach this branch, and
+    # it wedged the request the outer rescue exists to release.
     details << {
       entry_id: nil,
-      code:     nil,
+      code:     'TRD_R0013',
       severity: 'error',
       message:  e.message
     }

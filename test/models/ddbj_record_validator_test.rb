@@ -131,6 +131,21 @@ class DDBJRecordValidatorTest < ActiveSupport::TestCase
     # is a fixture quality issue, not a validator bug.)
   end
 
+  # The parse-error branch used to write `code: nil` into a NOT NULL column.
+  # That did not fail there — it failed the insert in the `ensure`, which
+  # poisoned the transaction, so the outer rescue's `validation_failed!` died
+  # of PG::InFailedSqlTransaction as well and the request stayed at
+  # `validating` with nothing recorded. Truncated JSON is the most ordinary way
+  # in, and it wedged the request the outer rescue exists to release.
+  test 'malformed JSON reaches a terminal status with a detail to read' do
+    request = build_request_from_json('{"schema_version": "v2", ')
+
+    DDBJRecordValidator.validate request
+
+    assert_predicate request.reload, :validation_failed?
+    assert_includes codes(request), 'TRD_R0013'
+  end
+
   test 'v2 record missing sequences block still fails loudly via TRD_R9999 (regression guard)' do
     # The v3 port wraps record.sequences&.entries in Array() — a v2
     # record with a missing `sequences` key must still surface as an
