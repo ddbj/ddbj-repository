@@ -192,11 +192,38 @@ module DDBJRecord
         locus:           h['locus'],
         version:         h['version'],
 
-        # `last_updated` is what this field was called before 2026-08, and
-        # reading it is not only about the archive: submission-bulk-st26 still
-        # writes that key (`lib/st26/submission.rb`), so it is a live ingest
-        # path. Dropping it before the client is updated would blank the LOCUS
-        # date on every *new* submission as well as every stored one.
+        # `last_updated` is what this field was called before 2026-08-10. Every
+        # record stored before then still spells it that way — the backfill put
+        # the operator's date back into `entries.locus_date` and never touched a
+        # blob — so this is what lets the ~18,000 submissions applied before the
+        # rename still be read for the date they were published with.
+        #
+        # **Removing it would not break the output; it would stop the output
+        # being checked.** RegenerateSubmissionFlatfilesJob's guard reads a
+        # record with no date as nothing to compare against
+        # (`entry.locus_date.blank?`), so those submissions would render from
+        # the column unverified rather than refuse. The column is backfilled and
+        # very likely right — but on the ones the backfill deliberately skipped
+        # (already regenerated, or a date it could not read) that comparison is
+        # the last thing that would catch a wrong one.
+        #
+        # Making that guard refuse a blank instead is not the way out: the only
+        # escape from it is naming the accession with a date, so every one of
+        # these submissions would need a date to be regenerated at all — and a
+        # run carries one date, which cannot reproduce dates that differ per
+        # entry.
+        #
+        # **When this can go: when nothing spells it the old way any more.**
+        # Regenerating a submission rewrites its record under the new name, so
+        # the population shrinks on its own, and disappears for free on the day
+        # something else calls for an archive-wide regeneration. It does not
+        # need forcing. Two tests in apply_submission_request_job_test.rb fail
+        # if the fallback goes early, and they say why.
+        #
+        # submission-bulk-st26 carries the same fallback on its reading side
+        # (`lib/st26/submission.rb`, `persist_artifacts`), for these same
+        # records — its `reconcile` downloads these very blobs. One population,
+        # two fallbacks: they retire together, not one at a time.
         #
         # `.presence`, because `''` is truthy: a record carrying an empty
         # `locus_date` beside a real `last_updated` would otherwise lose the date
