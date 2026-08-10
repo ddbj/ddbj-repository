@@ -1,27 +1,6 @@
 name: repository
 
 services:
-  validator:
-    image: ghcr.io/ddbj/ddbj_validator:main
-    container_name: repository-validator
-    ports:
-      - 3001:3000
-    volumes:
-      - ./validator/logs:/usr/src/ddbj_validator/logs
-      - ./validator/conf/pub:/usr/src/ddbj_validator/conf/pub
-      - ./validator/conf/coll_dump:/usr/src/ddbj_validator/conf/coll_dump
-    environment:
-      DDBJ_VALIDATOR_APP_VIRTUOSO_ENDPOINT_MASTER: http://repository-virtuoso:8890/sparql
-      DDBJ_VALIDATOR_APP_NAMED_GRAPHE_URI_TAXONOMY: http://ddbj.nig.ac.jp/ontologies/taxonomy-private
-    depends_on:
-      - virtuoso
-
-  virtuoso:
-    image: openlink/virtuoso-opensource-7:7.2.6-r1-g0a3336c
-    container_name: repository-virtuoso
-    volumes:
-      - ./validator/virtuoso/database:/database
-
   seaweedfs:
     image: chrislusf/seaweedfs
     container_name: repository-seaweedfs
