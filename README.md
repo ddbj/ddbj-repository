@@ -75,6 +75,7 @@ erDiagram
         bigint user_id FK
         bigint submission_id FK "nullable"
         integer status "enum: waiting_validation..no_change"
+        string error_code "nullable, see Result Codes"
         string error_message "nullable"
         datetime created_at
         datetime updated_at
