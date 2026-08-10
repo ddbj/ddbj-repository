@@ -183,7 +183,15 @@ module St26SourceLocations
   # a parsed copy of every submission in the batch, plus a serialised String of
   # each, would put the whole batch in memory at once. The rewrite still needs
   # one whole document, so memory is bounded by the largest single record.
-  def correct!(findings)
+  #
+  # `locus_date` is set on exactly the entries whose locations were rewritten,
+  # in the same transaction. Not through the Regenerate screen's date option:
+  # that resolves accessions to submissions and then does
+  # `submission.entries.update_all(locus_date:)`, so setting the date for
+  # PATENT-386's five entries there would have moved it on the 62 siblings
+  # sharing their four submissions. The renderer reads each entry's own column,
+  # so a per-entry date is all it takes.
+  def correct!(findings, locus_date: nil)
     by_submission = findings.group_by(&:submission)
 
     by_submission.each { verify! it.first, it.last }
@@ -200,6 +208,13 @@ module St26SourceLocations
     Submission.transaction do
       by_submission.each do |submission, group|
         written << rewrite!(submission, group)
+
+        next unless locus_date
+
+        dated = Entry.where(submission:, entry_id: group.map(&:entry_id).uniq)
+                     .update_all(locus_date:, updated_at: Time.current)
+
+        written << "submission ##{submission.id}: set LOCUS date to #{locus_date} on #{dated} #{'entry'.pluralize(dated)}"
       end
     end
 

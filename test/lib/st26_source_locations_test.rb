@@ -77,6 +77,34 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
                  'the correction rewrote something other than a location'
   end
 
+  # The date goes on the entries whose locations were rewritten and nowhere
+  # else. The Regenerate screen's date option resolves accessions to whole
+  # submissions, so using it for PATENT-386's five entries would have moved the
+  # date on the 62 siblings sharing their four submissions.
+  test 'correct! redates only the entries it rewrote' do
+    seed '1..21', '1..20'
+
+    before = entries(:two).locus_date
+
+    capture_io do
+      St26SourceLocations.correct! St26SourceLocations.audit.findings, locus_date: Date.new(2026, 8, 13)
+    end
+
+    assert_equal Date.new(2026, 8, 13), entries(:one).reload.locus_date
+    assert_equal before, entries(:two).reload.locus_date,
+                 'a sibling entry in the same submission was redated'
+  end
+
+  test 'correct! leaves the dates alone when none is given' do
+    seed '1..21'
+
+    before = entries(:one).locus_date
+
+    capture_io { St26SourceLocations.correct! St26SourceLocations.audit.findings }
+
+    assert_equal before, entries(:one).reload.locus_date
+  end
+
   # The guard used to fire in the middle of the loop, so a batch whose later
   # submission tripped it aborted with the earlier ones already rewritten.
   test 'correct! writes nothing when a finding does not line up with the record' do

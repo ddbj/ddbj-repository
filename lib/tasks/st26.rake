@@ -51,9 +51,21 @@ namespace :st26 do
       end
     end
 
-    desc 'Set plain source locations to 1..<length> (ACCESSIONS= required, LENGTHEN= to also lengthen those, APPLY=1 to write)'
+    desc 'Set plain source locations to 1..<length> (ACCESSIONS= required, LENGTHEN= to also lengthen those, LOCUS_DATE=YYYY-MM-DD to redate them, APPLY=1 to write)'
     task fix: :environment do
       accessions = ENV['ACCESSIONS'].to_s
+
+      # ISO 8601 only. `Date.parse` would take `8/13` and decide for itself
+      # which half is the month, and a LOCUS date is printed into a published
+      # flatfile.
+      locus_date =
+        if (given = ENV['LOCUS_DATE'].presence)
+          begin
+            Date.iso8601(given)
+          rescue Date::Error
+            abort "LOCUS_DATE=#{given} is not a date: write it as YYYY-MM-DD."
+          end
+        end
 
       # A blanket rewrite is refused. The correction is only ever right for
       # records already known to be wrong, and the audit is how they become
@@ -113,11 +125,15 @@ namespace :st26 do
       end
 
       unless ENV['APPLY'] == '1'
-        puts "\nDry run. Re-run with APPLY=1 to rewrite #{correctable.size} #{'location'.pluralize(correctable.size)}."
+        puts "\nDry run. Re-run with APPLY=1 to rewrite #{correctable.size} #{'location'.pluralize(correctable.size)}#{" and set their LOCUS date to #{locus_date}" if locus_date}."
         next
       end
 
-      St26SourceLocations.correct! correctable
+      # Written out rather than as the `locus_date:` shorthand: with the value
+      # omitted at the end of a statement, Ruby keeps looking for one past the
+      # newline and takes the next expression — here the re-audit below, which
+      # arrived as the date and blew up inside the query.
+      St26SourceLocations.correct! correctable, locus_date: locus_date
 
       after     = St26SourceLocations.audit(accessions)
       remaining = after.named
@@ -136,7 +152,7 @@ namespace :st26 do
       # Says what was written rather than that everything is now well: the
       # refused set is still wrong, and claiming otherwise on the line right
       # after refusing it is how a known problem gets forgotten.
-      puts "\nRewrote #{correctable.size} #{'location'.pluralize(correctable.size)}."
+      puts "\nRewrote #{correctable.size} #{'location'.pluralize(correctable.size)}#{" and redated #{correctable.size == 1 ? 'that entry' : 'those entries'}" if locus_date}."
       puts "#{remaining.size} named #{'location'.pluralize(remaining.size)} still #{remaining.size == 1 ? 'needs' : 'need'} fixing by hand." if remaining.any?
       puts 'The flatfiles still hold the old spans — regenerate them from Admin → Regenerate flatfiles for these accessions.'
 
