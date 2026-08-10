@@ -1,42 +1,56 @@
 namespace :locus_date do
-  desc 'Put entries.locus_date back to the date the publication operator chose (LIMIT=/AFTER=/ACCESSIONS=/EXCEPT= to scope, APPLY=1 to write)'
+  desc 'Put entries.locus_date back to the date the publication operator chose (LIMIT=/AFTER=/ACCESSIONS= to scope, APPLY=1 to write)'
   task backfill: :environment do
-    # `EXCEPT` is the one option worth reading twice. An entry whose date was
-    # deliberately set to something other than what the operator first asked for
-    # — PATENT-386's five, redated to 2026-08-13 — would otherwise be pulled
-    # back to what its request said. The dry run prints every move, so read it.
-    result = LocusDateBackfill.audit(
-      limit:      ENV['LIMIT'],
-      after:      ENV['AFTER'],
-      accessions: ENV['ACCESSIONS'],
-      except:     ENV['EXCEPT']
-    )
+    applying = ENV['APPLY'] == '1'
+    redated  = 0
+    seen     = Set.new
+    scanned  = 0
+    skipped  = []
 
-    LocusDateBackfill.report result
+    # Reported as each submission is dealt with, and written in the same pass:
+    # a run over the archive that collected first would hold every change in
+    # memory, and one that printed only at the end would say nothing about the
+    # 300 submissions it had already committed when the 301st raised.
+    LocusDateBackfill.each_submission(limit: ENV['LIMIT'], after: ENV['AFTER'], accessions: ENV['ACCESSIONS']) do |outcome|
+      scanned += 1
+      seen.merge outcome.submission.entries.pluck(:accession)
 
-    puts "\nscanned #{result.scanned} #{'submission'.pluralize(result.scanned)}."
+      LocusDateBackfill.describe(outcome).each { puts it }
 
-    if result.changes.empty?
-      puts 'Nothing to redate.'
-    elsif ENV['APPLY'] == '1'
-      LocusDateBackfill.apply!(result.changes).each { puts it }
+      skipped << outcome unless outcome.examined?
 
-      puts "\nRedated #{result.changes.size} #{'entry'.pluralize(result.changes.size)} across #{result.submissions.size} #{'submission'.pluralize(result.submissions.size)}."
+      next unless applying && outcome.changes.any?
 
-      # Deliberately not regenerated here. The column is now right; whether the
-      # published flatfiles should be rebuilt — and when — is a publication
-      # decision, and rebuilding one rewrites every entry of its submission.
-      puts 'The flatfiles are untouched: regenerate the ones that need republishing, keeping the existing LOCUS dates.'
-    else
-      puts "\nDry run. Re-run with APPLY=1 to redate #{result.changes.size} #{'entry'.pluralize(result.changes.size)}."
+      redated += LocusDateBackfill.apply!(outcome.changes)
     end
 
-    # A submission this could not read is not a submission that agrees. Findings
-    # themselves exit 0 — they are the report.
-    next if result.unexamined.empty?
+    puts "\nscanned #{scanned} #{'submission'.pluralize(scanned)}."
 
+    if applying
+      puts "Redated #{redated} #{'entry'.pluralize(redated)}."
+
+      # Deliberately not regenerated. The column is now right, and the published
+      # flatfiles already print these dates — they were only ever wrong in the
+      # column. Regenerating is a publication decision, and it rewrites every
+      # entry of a submission.
+      puts 'The flatfiles are untouched, and now agree with the column.' if redated.positive?
+    else
+      puts 'Re-run with APPLY=1 to write.'
+    end
+
+    unmatched = LocusDateBackfill.unmatched(ENV['ACCESSIONS'], seen)
+
+    problems = [
+      ("#{unmatched.size} #{'accession'.pluralize(unmatched.size)} matched no ST.26 entry: #{unmatched.to_a.join(', ')}" if unmatched.any?),
+      ("#{skipped.size} #{'submission'.pluralize(skipped.size)} could not be examined" if skipped.any?)
+    ].compact
+
+    next if problems.empty?
+
+    # Neither is a clean bill of health: one is most likely a typo, the other is
+    # a submission this run has said nothing about.
     $stdout.flush
 
-    abort "#{result.unexamined.size} #{'submission'.pluralize(result.unexamined.size)} could not be examined, so this is not a clean bill of health."
+    abort problems.join('. ') << '.'
   end
 end

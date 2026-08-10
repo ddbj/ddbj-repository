@@ -147,7 +147,10 @@ Two consequences of that history, both one-off:
 - Submissions applied before the change still have the apply date in the column.
   `rake locus_date:backfill` reads each request's record — the upload, which no
   regeneration rewrites — and puts the column back. **It has to have been run
-  before any bulk regeneration**, or that regeneration prints the apply date.
+  before any bulk regeneration**, and the guard above is what makes that
+  unskippable rather than remembered. It only touches entries that still carry
+  the apply stamp (`locus_date == created_at.to_date`), so a date somebody set on
+  purpose is left where it is.
 - The key rename makes a re-serialised legacy record differ from its stored
   blob, so `changed?` is true for every one of them. The first regeneration after
   this deploy therefore rewrites the record and reports nothing skipped; that is

@@ -58,7 +58,9 @@ class ApplySubmissionRequestJob < ApplicationJob
   def locus_date_for(entry, fallback)
     given = entry.locus_date.presence or return fallback
 
-    raise MalformedLocusDate, %(#{entry.id}: locus_date "#{given}" is not written as YYYY-MM-DD) unless given.match?(LOCUS_DATE_FORMAT)
+    # `to_s`, so a JSON number (`"locus_date": 20260813`) is refused with this
+    # code rather than raising NoMethodError into the TRD_R9999 catch-all.
+    raise MalformedLocusDate, %(#{entry.id}: locus_date "#{given}" is not written as YYYY-MM-DD) unless given.to_s.match?(LOCUS_DATE_FORMAT)
 
     begin
       Date.iso8601(given)
