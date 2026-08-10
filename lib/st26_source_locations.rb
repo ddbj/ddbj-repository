@@ -10,16 +10,18 @@ module St26SourceLocations
   # and then trip the count guard — after earlier submissions in the batch had
   # already been written.
   Finding = Data.define(:submission, :accession, :entry_id, :entry_index, :source_index, :measured, :location, :expected, :reason) do
-    # Only `:wrong_end` is: see St26SourceLocations.disagreement. Everything
-    # else is a question about what was meant, and this task does not get to
-    # answer those — it would be discarding what a location was trying to say,
-    # or deciding which of two lengths a record meant.
-    def correctable? = reason == :wrong_end
+    # Whether `expected` is a value this task could write. Whether it *will* is
+    # the caller's: `:overrun` is repaired by default and `:short` only when the
+    # operator asks for it, because a location stopping short might be a
+    # boundary slip or might be a deliberate partial coverage, and this code
+    # cannot tell a shortfall of two residues from one of five hundred.
+    def repairable? = %i[overrun short].include?(reason)
   end
 
   # What `fix` says when it will not rewrite something, per reason.
   REFUSALS = {
     unreadable:      ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed." },
+    short:           ->(n) { "Refusing to lengthen #{n} #{'location'.pluralize(n)} stopping short of the sequence: pass INCLUDE=short to accept that a patent source covers all of it. Read the sequence= column first — this cannot tell a boundary slip from deliberate partial coverage." },
     ambiguous:       ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} that #{n == 1 ? 'is' : 'are'} not a plain forward range from base 1: split, complemented, partial (<1..>N) and cross-referenced locations all say something that setting the full span would throw away." },
     missing:         ->(n) { "Refusing to fill in #{n} absent #{'location'.pluralize(n)}: a source feature with none at all is a different repair from this one." },
     no_sequence:     ->(n) { "Refusing to measure #{n} #{'entry'.pluralize(n)} with no sequence: there is no length for a location to agree with." },
@@ -46,6 +48,14 @@ module St26SourceLocations
   # demands a scope can refuse an empty one *before* the audit streams every
   # record in the archive out of object storage.
   def requested_from(accessions) = accessions.to_s.split(/[\s,]+/).reject(&:blank?).uniq
+
+  # Reasons `fix` will act on. `:overrun` always — a location cannot name bases
+  # the sequence does not have, whatever the amount. `:short` only when asked
+  # for, because the shortfall might be the boundary slip PATENT-386 found or
+  # might be coverage somebody meant.
+  def actionable_reasons(include_env)
+    %i[overrun] + (include_env.to_s.split(/[\s,]+/).include?('short') ? %i[short] : [])
+  end
 
   def audit(accessions = nil)
     requested = requested_from(accessions)
@@ -118,8 +128,10 @@ module St26SourceLocations
         f.measured,
         if siblings.include?(f)
           'NOT REWRITTEN (not named)'
-        elsif f.correctable?
+        elsif f.reason == :overrun
           "-> #{f.expected}"
+        elsif f.reason == :short
+          "-> #{f.expected} (only with INCLUDE=short)"
         else
           "NOT REWRITTEN (#{f.reason})"
         end
@@ -312,8 +324,10 @@ module St26SourceLocations
           next
         end
 
-        Array(entry.source_features).each_with_index do |sf, j|
-          reason = disagreement(sf.location, measured) or next
+        sources = Array(entry.source_features)
+
+        sources.each_with_index do |sf, j|
+          reason = disagreement(sf.location, measured, sources: sources.size) or next
 
           add.call j, sf.location, reason
         end
@@ -338,27 +352,30 @@ module St26SourceLocations
   # or cross-referenced location, or one that does not start at base 1, says
   # something that setting the full span would throw away, and no premise about
   # patent sources tells us which part of it was the mistake.
-  def disagreement(location, length)
+  def disagreement(location, length, sources: 1)
     return :missing if location.blank?
 
-    locations = Bio::Locations.new(location.to_s)
-    span      = locations.span
+    span = Bio::Locations.new(location.to_s).span
 
     return nil if span == [1, length]
 
-    only = locations.locations.size == 1 ? locations.locations.first : nil
+    # Matched against the text, not against bio-ruby's numbers. It flattens a
+    # fuzzy bound — `1..(5.10)` comes back as from=1/to=10 and `1.5` as 1..1,
+    # both with every marker nil — so a check reading `from` and `to` takes
+    # those for plain ranges and would rewrite the notation away. One regexp
+    # also excludes `<1..>21`, `J00194.1:1..21`, `complement(…)`, `join(…)` and
+    # a bare `1`, each of which says something the full span does not.
+    m = /\A(\d+)\.\.(\d+)\z/.match(location.to_s)
 
-    # Plain means plain: `<1..>21` carries 5'/3' partiality and
-    # `J00194.1:1..21` points into another accession, and both of those would
-    # be thrown away by rewriting the string to `1..<length>`. bio-ruby keeps
-    # them as `lt` / `gt` / `xref_id` / `carat` beside the numbers, so a check
-    # that reads only `from` and `to` cannot see them.
-    plain = only &&
-            only.strand == 1 &&
-            [only.lt, only.gt, only.xref_id, only.carat].all?(&:nil?) &&
-            only.from == 1
+    return :ambiguous unless m && m[1] == '1'
 
-    plain ? :wrong_end : :ambiguous
+    # The premise is that a patent source covers the whole sequence, and that is
+    # a statement about an entry with one source. Where several divide an entry
+    # — which the v2 schema provides for — widening the first would swallow the
+    # next one's span and turn a coherent record into overlapping sources.
+    return :ambiguous unless sources == 1
+
+    m[2].to_i > length ? :overrun : :short
   rescue StandardError
     :unreadable
   end

@@ -1,10 +1,12 @@
 namespace :st26 do
   namespace :source_locations do
     # INSDC-3468 / PATENT-386. JPO ST.26 files carried source feature locations
-    # taken verbatim from the XML, which overran the sequence (1..21 over 20
-    # bases). The flatfile prints LOCUS from the length and both the source
-    # location and the REFERENCE span from the location, so those records ship
-    # claiming two different lengths.
+    # taken verbatim from the XML, which disagreed with the sequence in both
+    # directions — three of the five records run one base past the end
+    # (`1..449` over 448) and two stop short (`1..315` over 316). The flatfile
+    # prints LOCUS from the length and both the source location and the
+    # REFERENCE span from the location, so those records ship claiming two
+    # different lengths.
     #
     # submission-bulk-st26 now pins the location to 1..<length> as it builds the
     # record (PAT_R0024), so this is only for the records that landed before it
@@ -47,7 +49,7 @@ namespace :st26 do
       end
     end
 
-    desc 'Set plain source locations to 1..<length> (ACCESSIONS= required, APPLY=1 to write)'
+    desc 'Set plain source locations to 1..<length> (ACCESSIONS= required, INCLUDE=short to also lengthen, APPLY=1 to write)'
     task fix: :environment do
       accessions = ENV['ACCESSIONS'].to_s
 
@@ -68,10 +70,14 @@ namespace :st26 do
 
       St26SourceLocations.report result
 
-      # Only what was named. Resolving accessions reaches whole submissions —
-      # a JPO request can carry sixty entries — so without this, naming one
-      # accession would rewrite every disagreeing sibling alongside it.
-      correctable, rest = result.named.partition(&:correctable?)
+      # Only what was named, and only the reasons this run is allowed to act on.
+      # Resolving accessions reaches whole submissions — a JPO request can carry
+      # sixty entries — so without the first restriction, naming one accession
+      # would rewrite every disagreeing sibling alongside it.
+      allowed = St26SourceLocations.actionable_reasons(ENV['INCLUDE'])
+      act     = ->(f) { allowed.include?(f.reason) }
+
+      correctable, rest = result.named.partition(&act)
 
       # Named by reason. Both are refusals, but they are refusals to answer
       # different questions, and "unreadable" said of a length disagreement
@@ -109,7 +115,7 @@ namespace :st26 do
       # `remaining` empty and this check trivially satisfied — reporting the
       # rewrite as verified on the strength of not having looked. The
       # pre-checks above refuse the same situation for the same reason.
-      unless remaining.none?(&:correctable?) && after.unreadable.empty? && after.skipped.empty?
+      unless remaining.none?(&act) && after.unreadable.empty? && after.skipped.empty?
         St26SourceLocations.report after
 
         abort 'The rewrite could not be confirmed: run the audit again.'

@@ -6,25 +6,31 @@ require 'test_helper'
 # guard has to fire before anything is written, and a record that was not
 # examined must not be reported as a clean one.
 class St26SourceLocationsTest < ActiveSupport::TestCase
-  # The whole point of the classification: only the JPO defect is repaired
-  # automatically, because only there is `1..<length>` plainly what was meant.
+  # Only a plain forward range from base 1 is repairable, and the two directions
+  # are told apart: an overrun names bases the sequence does not have, while a
+  # shortfall might be the boundary slip PATENT-386 found or might be coverage
+  # somebody meant, so `fix` needs INCLUDE=short for it.
   #
-  # `<1..>21` and `J00194.1:1..21` matter most — bio-ruby keeps the partiality
-  # markers and the cross-referenced accession beside the numbers, so a check
-  # reading only `from` and `to` calls them plain ranges and rewriting throws
-  # them away.
+  # The notation cases are the ones that matter. bio-ruby flattens `1..(5.10)`
+  # to from=1/to=10 and `1.5` to 1..1, with none of its markers set, so a check
+  # reading `from` and `to` calls them plain ranges and the rewrite throws the
+  # notation away — which is why the guard is a regexp over the text.
   {
     '1..20'             => nil,
-    'join(1..4,6..20)'  => nil,        # covers the whole sequence, gap and all
-    '1..21'             => :wrong_end, # runs one past the end
-    '1..19'             => :wrong_end, # stops one short — PATENT-386 has both
-    '1'                 => :wrong_end,
+    'join(1..4,6..20)'  => nil,       # covers the whole sequence, gap and all
+    '1..21'             => :overrun,  # names a base that is not there
+    '1..19'             => :short,    # PATENT-386 has both directions
+    '1..5'              => :short,
+    '1'                 => :ambiguous, # not a range
+    '1.5'               => :ambiguous, # fuzzy bound, flattened by bio-ruby to 1..1
+    '1..(5.10)'         => :ambiguous, # fuzzy bound, flattened to 1..10
     '5..21'             => :ambiguous, # does not start at base 1
     '10..1'             => :ambiguous,
     '<1..>21'           => :ambiguous,
     '<1..21'            => :ambiguous,
     'J00194.1:1..21'    => :ambiguous,
     'complement(1..25)' => :ambiguous,
+    'join(1..25)'       => :ambiguous, # one member, but still not a plain range
     'join(1..4,6..25)'  => :ambiguous,
     ''                  => :missing,
     '1..E'              => :unreadable,
@@ -43,19 +49,19 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     result = St26SourceLocations.audit
 
     assert_equal %w[ACC_000001 ACC_000002], result.findings.map(&:accession)
-    assert_equal %i[wrong_end wrong_end], result.findings.map(&:reason)
+    assert_equal %i[overrun short], result.findings.map(&:reason)
     assert_empty result.unreadable
     assert_empty result.skipped
     assert_equal submission, result.findings.first.submission
   end
 
   # Both directions land on the sequence length, and nothing else moves.
-  test 'correct! sets the wrong-ended locations to the full span' do
+  test 'correct! sets a repairable location to the full span' do
     submission = seed('1..21', '1..19', '1..20', '5..21')
     before     = record_of(submission)
 
     capture_io do
-      St26SourceLocations.correct! St26SourceLocations.audit.findings.select(&:correctable?)
+      St26SourceLocations.correct! St26SourceLocations.audit.findings.select(&:repairable?)
     end
 
     after = record_of(submission)
@@ -103,7 +109,35 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     result = St26SourceLocations.audit
 
     assert_equal %i[no_sequence], result.findings.map(&:reason)
-    refute_predicate result.findings.first, :correctable?
+    refute_predicate result.findings.first, :repairable?
+  end
+
+  # "A patent source covers the whole sequence" is a statement about an entry
+  # with one source. Where two divide an entry, widening the first would swallow
+  # the second's span and turn a coherent record into overlapping sources.
+  test 'a source is not lengthened when another one divides the same entry' do
+    seed_entries [
+      {
+        'id'              => 'SEQ|JP|2026123456|A|1',
+        'sequence'        => 'acgt' * 5,
+        'length'          => 20,
+        'source_features' => [{'location' => '1..10'}, {'location' => '11..20'}]
+      }
+    ]
+
+    result = St26SourceLocations.audit
+
+    assert_equal %i[ambiguous ambiguous], result.findings.map(&:reason)
+    assert_empty result.findings.select(&:repairable?)
+  end
+
+  # `:short` is repairable but not acted on by default: the operator says so on
+  # the command line, which is where PATENT-386's answer to that question came
+  # from.
+  test 'only overruns are actionable unless short is asked for' do
+    assert_equal %i[overrun],        St26SourceLocations.actionable_reasons(nil)
+    assert_equal %i[overrun short],  St26SourceLocations.actionable_reasons('short')
+    assert_equal %i[overrun],        St26SourceLocations.actionable_reasons('something-else')
   end
 
   test 'a submission with no record is skipped rather than passed over' do
