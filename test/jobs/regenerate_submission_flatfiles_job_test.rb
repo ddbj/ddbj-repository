@@ -131,6 +131,47 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     assert @submission.reload.flatfile_na.attached?
   end
 
+  # 列と record が食い違ったまま日付を指定せずに走らせると、列の日付が公開されて
+  # しまう。2026-08-10、これで PATENT-386 の 5 件を直す regenerate が兄弟 62
+  # entry の LOCUS 日付を apply 日へ 4〜10 日巻き戻した。**コメントではなく、
+  # 走らせたら止まることで防ぐ。**
+  test 'refuses to regenerate while the column and the record disagree about the date' do
+    @submission.entries.update_all(locus_date: Date.new(2026, 8, 13))
+
+    before = @submission.flatfile_na.download
+
+    assert_raises RuntimeError do
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, nil
+    end
+
+    assert_equal before, @submission.reload.flatfile_na.download,
+                 'the flatfile was rewritten despite the refusal'
+  end
+
+  # 日付を入れる entry については列が正なので、食い違っていても進む。名指しの
+  # redate もこの経路を通る。
+  test 'a date settles the disagreement for the entries it is written to' do
+    kept, redated = @submission.entries.order(:accession).to_a
+
+    @submission.entries.update_all(locus_date: Date.new(2026, 8, 13))
+
+    # 名指ししなかった kept は依然として食い違っているので、まだ止まる。
+    assert_raises RuntimeError do
+      RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1), accessions: [redated.accession]
+    end
+
+    # 両方に日付を入れれば通り、両方がその日付で印字される。
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1),
+                                                accessions: [kept.accession, redated.accession]
+
+    assert_match(/01-SEP-2026/, @submission.reload.flatfile_na.download)
+
+    # 一度通れば record と列が揃うので、以後は日付なしの run でも止まらない。
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, nil
+
+    assert_match(/01-SEP-2026/, @submission.reload.flatfile_na.download)
+  end
+
   test 'the history names the user who asked for the run' do
     RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 7, 1)
 

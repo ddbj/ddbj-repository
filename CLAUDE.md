@@ -126,10 +126,14 @@ It lives in three places, and they hold the same value by construction:
 
 `ApplySubmissionRequestJob` takes the date from the record and writes both,
 falling back to the apply date only when the record names none.
-`RegenerateSubmissionFlatfilesJob` renders from the column, so redating an entry
-means writing the column and regenerating. There is no screen for that yet: the
-Regenerate form's date option writes **every entry of the submission**
-(`update_all`), so it is the wrong tool for redating some of them.
+`RegenerateSubmissionFlatfilesJob` renders from the column and writes the date to
+the entries the run names — so redating some entries of a submission is what the
+Regenerate screen's accession list is for. The file is the submission's, so the
+whole of it is rewritten either way; the list decides only whose date moves.
+
+A run that names no date renders every entry from the column and **refuses** if
+the column and the record disagree, rather than publishing the column's value.
+That is the guard the 62-entry incident cost.
 
 This was three different dates until 2026-08: the column held the apply date,
 the record field was called `last_updated` and held the operator's date, and the

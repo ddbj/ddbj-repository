@@ -38,7 +38,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     # accessions is for.
     redated.each { it.locus_date = date }
 
-    entries             = build_entries(record, rows)
+    entries             = build_entries(record, rows, redated:)
     record_with_entries = record.with(sequences: record.sequences.with(entries:))
 
     regenerated = false
@@ -172,24 +172,35 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   # `changed?` notice and regenerate rather than skip.
   def retracted_entry_ids(rows) = rows.select(&:retracted?).map(&:entry_id).to_set
 
-  def build_entries(record, rows)
+  def build_entries(record, rows, redated: [])
     rows_by_entry_id = rows.index_by(&:entry_id)
+    dated            = redated.to_set
 
     record.sequences.entries.map {|entry|
       acc = rows_by_entry_id.fetch(entry.id)
+
+      # An entry this run is dating takes the run's date; the rest are rendered
+      # from the column, and for those the column has to already agree with the
+      # record. It does not on any submission applied before the apply job
+      # started taking the date from the record: those hold the operator's date
+      # in the record and the apply date in the column, so rendering from the
+      # column moves the printed date. That is how 62 entries lost their
+      # published dates while PATENT-386 was being fixed, and a comment saying
+      # "run the backfill first" is not what stops it happening again.
+      #
+      # Refused per submission. `rescue_from` turns it into a failure row, so a
+      # run reports exactly which submissions are not ready and rewrites none of
+      # them.
+      unless dated.include?(acc) || entry.locus_date.blank? || entry.locus_date == acc.locus_date.to_s
+        raise "Submission ##{acc.submission_id}: #{entry.id} has LOCUS date #{entry.locus_date} in its record and " \
+              "#{acc.locus_date} in entries.locus_date. Regenerating would publish the latter. " \
+              'Run `rake locus_date:backfill` first, or name it in a run that sets a date.'
+      end
 
       entry.with(
         accession:  acc.accession,
         locus:      acc.accession,
         version:    acc.version,
-        # From the column: it is what this run's date option writes, and what a
-        # per-entry redate would write.
-        #
-        # For submissions applied before the apply job started taking the date
-        # from the record, the column holds the apply date while the record
-        # holds the operator's — so regenerating one of those moves its printed
-        # LOCUS date. `rake locus_date:backfill` settles that per entry, and has
-        # to have been run before any bulk regeneration.
         locus_date: acc.locus_date.to_s
       )
     }
