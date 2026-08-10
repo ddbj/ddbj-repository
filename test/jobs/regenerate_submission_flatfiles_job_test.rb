@@ -1,6 +1,8 @@
 require 'test_helper'
 
 class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
+  include ActiveJob::TestHelper
+
   setup do
     request = SubmissionRequest.new(user: users(:alice), db: 'st26')
 
@@ -45,7 +47,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
 
     assert_equal @submission,                        failure.submission
     assert_equal @submission.entries.first.accession, failure.label
-    assert_match(/not yet implemented for v3/,        failure.message)
+    assert_match(/v3 records are not implemented yet/, failure.message)
   end
 
   # A date is a change like any other. It used to be applied only to
@@ -170,6 +172,81 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
     RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, nil
 
     assert_match(/01-SEP-2026/, @submission.reload.flatfile_na.download)
+  end
+
+  # upload を after_commit に任せていたときは、コミット後にストレージ書き込みが
+  # 落ちると行だけが残った。しかも行は「あるべきバイト列」の checksum を持つので、
+  # 次のランは同じものを生成して一致と判断し skip する。実体のない blob が永久に
+  # 残り、それを知らせるものは何も無い (日付のガードは日付しか見ない)。
+  test 'a storage failure leaves the record and the flatfiles as they were' do
+    before_record   = @submission.ddbj_record.blob.id
+    before_flatfile = @submission.flatfile_na.blob.id
+    before_date     = @submission.entries.first.locus_date
+
+    boom = ->(*) { raise Errno::ECONNREFUSED, 'seaweedfs' }
+
+    assert_raises Errno::ECONNREFUSED do
+      ActiveStorage::Blob.stub :create_and_upload!, boom do
+        RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1)
+      end
+    end
+
+    @submission.reload
+
+    assert_equal before_record,   @submission.ddbj_record.blob.id
+    assert_equal before_flatfile, @submission.flatfile_na.blob.id
+    assert_equal before_date,     @submission.entries.first.reload.locus_date,
+                 'the date moved although the file it prints was never written'
+  end
+
+  # upload の途中で落ちた場合、それまでに上げた分を残さない。1 回目で落とす
+  # テストではこの経路を通らない。
+  test 'a failure part-way through the upload purges what it had already uploaded' do
+    uploaded = []
+    real     = ActiveStorage::Blob.method(:create_and_upload!)
+
+    stub = ->(**kwargs) {
+      raise Errno::ECONNREFUSED, 'seaweedfs' if uploaded.any?
+
+      real.call(**kwargs).tap { uploaded << it }
+    }
+
+    assert_raises Errno::ECONNREFUSED do
+      ActiveStorage::Blob.stub :create_and_upload!, stub do
+        RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1)
+      end
+    end
+
+    assert_equal 1, uploaded.size, 'this pins nothing unless exactly one upload got through'
+
+    perform_enqueued_jobs
+
+    assert_not ActiveStorage::Blob.exists?(uploaded.sole.id), 'the blob uploaded before the failure was left behind'
+  end
+
+  # 反対側: upload は成功したがコミットが落ちた場合、誰も指していない blob を
+  # 残さない。
+  test 'a failed commit purges the blobs it had already uploaded' do
+    uploaded = []
+
+    real = ActiveStorage::Blob.method(:create_and_upload!)
+    stub = ->(**kwargs) { real.call(**kwargs).tap { uploaded << it } }
+
+    assert_raises ActiveRecord::RecordInvalid do
+      ActiveStorage::Blob.stub :create_and_upload!, stub do
+        EntryHistory.stub :insert_all!, ->(*) { raise ActiveRecord::RecordInvalid.new(Entry.new) } do
+          RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1)
+        end
+      end
+    end
+
+    assert_predicate uploaded, :any?, 'nothing was uploaded, so this pins nothing'
+
+    perform_enqueued_jobs
+
+    uploaded.each do |blob|
+      assert_not ActiveStorage::Blob.exists?(blob.id), "blob ##{blob.id} was left behind"
+    end
   end
 
   test 'the history names the user who asked for the run' do

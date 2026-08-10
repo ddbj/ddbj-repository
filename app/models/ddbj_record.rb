@@ -213,6 +213,27 @@ module DDBJRecord
     :features
   )
 
+  # Refuses a v3 record before anything reads its body.
+  #
+  # Two consumers cannot handle one — the flatfile renderer and
+  # StreamingParser are both v2-shaped — and each used to detect the version,
+  # rewind and compose the message itself. Version detection belongs to the
+  # thing that knows about versions, so a third consumer does not have to be
+  # told the procedure.
+  #
+  # Detected rather than parsed: a v3 record can be multi-GB and V3::Parser
+  # reads the whole document, so eating that allocation only to refuse would
+  # burn RAM and IO for nothing. The detector peeks at 64KB of head bytes.
+  def self.refuse_v3!(io, subject)
+    major, = SchemaVersionDetector.detect(io)
+
+    io.rewind
+
+    return unless major == '3'
+
+    raise V3NotImplementedError, "#{subject}: v3 records are not implemented yet (Phase 6+)"
+  end
+
   # Dispatch on `schema_version`. v2 streams through SAJ (memory bound by the
   # largest single entry — see CLAUDE.md / streaming_parser.rb); v3 currently
   # buffers the full document because V3::Parser is non-streaming. The IO
@@ -220,11 +241,9 @@ module DDBJRecord
   # streaming path.
   #
   # The v3 path returns a `DDBJRecord::V3::Root`, which is structurally
-  # distinct from `DDBJRecord::Root`. As of Phase 2, downstream consumers
-  # (DDBJRecordValidator, RegenerateSubmissionFlatfilesJob, the flatfile
-  # template) still expect the v2 shape and will raise `NoMethodError` on
-  # v3 input. No production producer emits v3 yet; consumer porting is
-  # tracked in Phase 3 of tmp/data-migration/implementation-plan.md.
+  # distinct from `DDBJRecord::Root`, and consumers that cannot take one call
+  # `refuse_v3!` above rather than discovering it as a `NoMethodError`. No
+  # production producer emits v3 yet.
   def self.parse(io)
     unless io.respond_to?(:rewind)
       raise ArgumentError, "DDBJRecord.parse requires a rewindable IO; got #{io.class}"

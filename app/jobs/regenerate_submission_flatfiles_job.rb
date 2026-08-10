@@ -52,34 +52,25 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       filename:       submission.ddbj_record.filename,
       content_type:   submission.ddbj_record.content_type,
       flatfile_omits: retracted_entry_ids(rows)
-    } do |updates|
+    } do |outputs|
       # Written once, from the outputs the comparison was made against.
       # Generating a second time to write what was just compared doubled
       # the cost of every submission a run actually changed — which, on
       # the runs this tool exists for, is all of them.
-      next unless changed?(submission, updates)
+      next unless changed?(submission, outputs)
 
-      # The dates, the attachments that print them, and the history, in
-      # one commit. Written apart, a job that died between them left a
-      # flatfile saying one date and the row behind it saying another —
-      # and the next run would read the file as already correct, generate
-      # the same bytes, and skip, so the two would never be brought back
-      # together.
-      #
-      # The bytes are not in it: Active Storage defers the upload to
-      # after_commit, so a storage failure still leaves rows pointing at
-      # blobs that were never written — and the checksum on the row makes
-      # the next run skip them. Submission#prime_cache! is the shape that
-      # closes that (upload first, swap the pointer under the lock);
-      # ApplySubmissionRequestJob writes its outputs the same way this
-      # does, so it belongs in SubmissionOutputWriter rather than here.
-      ActiveRecord::Base.transaction do
+      # The dates, the attachments that print them, and the history, in one
+      # commit — and the bytes uploaded before it opens. Written apart, a job
+      # that died between them left a flatfile saying one date and the row
+      # behind it saying another, and the next run would read the file as
+      # already correct, generate the same bytes, and skip, so the two would
+      # never be brought back together. `write_outputs!` is where the upload
+      # ordering lives, so ApplySubmissionRequestJob gets it too.
+      write_outputs! submission, outputs do
         # By id when the run named accessions, and by submission when it
         # did not — the whole-submission case would otherwise send every
         # entry id back as an IN list.
         (accessions ? Entry.where(id: redated.map(&:id)) : submission.entries).update_all(locus_date: date) if date
-
-        submission.update! updates
 
         # Every entry of the submission, not only the redated ones: the
         # action is the rewrite of the file, and the file is theirs too.
@@ -106,19 +97,11 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
 
   private
 
-  # Detect v3 BEFORE parsing — v3 ddbj_records can be multi-GB and
-  # V3::Parser is full-document (Oj.load on the whole blob). Eating that
-  # allocation just to raise V3NotImplementedError would burn RAM and IO
-  # with no value. The detector peeks 64KB of head bytes.
   def read_record(submission)
     submission.ddbj_record.open do |file|
-      major, = DDBJRecord::SchemaVersionDetector.detect(file)
-      file.rewind
-
-      if major == '3'
-        raise DDBJRecord::V3NotImplementedError,
-              "Submission ##{submission.id}: flatfile regeneration not yet implemented for v3 records (Phase 6+)"
-      end
+      # The flatfile renderer is v2-shaped, so a v3 record cannot be
+      # regenerated. Refused before the body is read.
+      DDBJRecord.refuse_v3! file, "Submission ##{submission.id}"
 
       DDBJRecord.parse(file)
     end
@@ -167,10 +150,10 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
   # nothing to say about a submission leaves its blobs, and its history,
   # alone — a new date is a change like any other, and reaches here as
   # one, because the outputs were built with it already applied.
-  def changed?(submission, updates)
-    attachment_changed?(submission.ddbj_record, updates[:ddbj_record]) ||
-      attachment_changed?(submission.flatfile_na, updates[:flatfile_na]) ||
-      attachment_changed?(submission.flatfile_aa, updates[:flatfile_aa])
+  def changed?(submission, outputs)
+    attachment_changed?(submission.ddbj_record, outputs[:ddbj_record]) ||
+      attachment_changed?(submission.flatfile_na, outputs[:flatfile_na]) ||
+      attachment_changed?(submission.flatfile_aa, outputs[:flatfile_aa])
   end
 
   # Retracting an entry changes the flatfile, so this is also what makes
@@ -214,11 +197,11 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
     }
   end
 
-  def attachment_changed?(attachment, payload)
-    if payload.nil?
+  def attachment_changed?(attachment, output)
+    if output.nil?
       attachment.attached?
     elsif attachment.attached?
-      Digest::MD5.file(payload[:io].path).base64digest != attachment.blob.checksum
+      Digest::MD5.file(output[:io].path).base64digest != attachment.blob.checksum
     else
       true
     end

@@ -149,7 +149,7 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
 
     request.reload
     assert request.application_failed?
-    assert_match(/v3 record application not yet implemented/, request.error_message)
+    assert_match(/v3 records are not implemented yet/, request.error_message)
   end
 
   private
