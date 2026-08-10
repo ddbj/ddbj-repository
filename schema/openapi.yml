@@ -1206,6 +1206,7 @@ components:
       required:
         - id
         - status
+        - error_code
         - error_message
         - processing
 
@@ -1215,6 +1216,16 @@ components:
 
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        error_code:
+          description: |
+            Machine-readable reason the application failed. Null until it does.
+            Branch on this rather than on `error_message`, whose wording changes
+            without notice. An unknown code means an unexpected internal error;
+            treat it like `TRD_R9999`.
+          type:
+            - string
+            - 'null'
 
         error_message:
           type:
@@ -1232,6 +1243,7 @@ components:
         - id
         - db
         - status
+        - error_code
         - error_message
         - created_at
         - closed_at
@@ -1253,6 +1265,16 @@ components:
 
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        error_code:
+          description: |
+            Machine-readable reason the application failed. Null until it does.
+            Branch on this rather than on `error_message`, whose wording changes
+            without notice. An unknown code means an unexpected internal error;
+            treat it like `TRD_R9999`.
+          type:
+            - string
+            - 'null'
 
         error_message:
           type:
@@ -1325,6 +1347,7 @@ components:
         - id
         - db
         - status
+        - error_code
         - error_message
         - created_at
         - closed_at
@@ -1343,6 +1366,16 @@ components:
 
         status:
           $ref: '#/components/schemas/SubmissionOperationStatus'
+
+        error_code:
+          description: |
+            Machine-readable reason the application failed. Null until it does.
+            Branch on this rather than on `error_message`, whose wording changes
+            without notice. An unknown code means an unexpected internal error;
+            treat it like `TRD_R9999`.
+          type:
+            - string
+            - 'null'
 
         error_message:
           type:

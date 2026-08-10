@@ -2,6 +2,7 @@
   **@request.slice(
     :id,
     :status,
+    :error_code,
     :error_message
   ),
 

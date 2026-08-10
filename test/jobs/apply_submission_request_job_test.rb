@@ -51,8 +51,66 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     request.reload
 
     assert request.application_failed?
+    assert_equal 'TRD_R9999', request.error_code
     assert_equal 'stack level too deep', request.error_message
     assert_not request.processing?
+  end
+
+  # 採番が尽きたことは、クライアントがランを打ち切るかどうかの判断に使う。
+  # 文言ではなくコードで分岐できるようにしておく。
+  test 'records TRD_R0012 when the accession numbers run out' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+
+    request.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+
+    request.save!
+
+    Sequence.ensure_records!
+    Sequence.find_by!(scope: 'jpo_na').update!(
+      prefix: Sequence.config.fetch(:jpo_na).last[:prefix],
+      next:   1000000
+    )
+
+    ApplySubmissionRequestJob.perform_now request
+
+    request.reload
+
+    assert request.application_failed?
+    assert_equal 'TRD_R0012', request.error_code
+    assert_match(/no numbers left/, request.error_message)
+
+    # 尽きたときは 1 件も消費しないので、prefix を足せばそのまま適用できる。
+    assert_nil request.submission
+  end
+
+  # 前回の失敗の痕跡が残っていると、成功しているのに「今まさに失敗している」と読まれる。
+  test 'clears the previous failure before applying' do
+    request = SubmissionRequest.new(
+      user:          users(:alice),
+      db:            'st26',
+      error_code:    'TRD_R0012',
+      error_message: 'jpo_na: no numbers left after QX (wanted 3 more)'
+    )
+
+    request.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+
+    request.save!
+
+    ApplySubmissionRequestJob.perform_now request
+
+    request.reload
+
+    assert request.applied?
+    assert_nil request.error_code
+    assert_nil request.error_message
   end
 
   test 'refuses v3 records, transitions request to application_failed cleanly' do

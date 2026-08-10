@@ -142,22 +142,31 @@ erDiagram
     validations ||--o{ validation_details : "has many"
 ```
 
-## Validation Codes
+## Result Codes
 
-| Code | Severity | Description |
-|------|----------|-------------|
-| TRD_R0001 | error | ApplicationNumberText contains invalid characters (only alphanumeric, hyphen, and slash are allowed) |
-| TRD_R0002 | error | Sequence length is zero |
-| TRD_R0003 | error | N-only nucleotide sequence |
-| TRD_R0004 | error | X-only amino acid sequence |
-| TRD_R0005 | error | Invalid characters in nucleotide sequence |
-| TRD_R0006 | warning | Undefined feature key |
-| TRD_R0007 | warning | Undefined qualifier key |
-| TRD_R0008 | error | Invalid presence of qualifier value (missing value for non-boolean qualifier, or value present for boolean qualifier) |
-| TRD_R0009 | error | ST.26 fields (applicant/inventor names, invention titles) contain non-ASCII characters |
-| TRD_R0010 | error | No source feature with mol_type found |
-| TRD_R0011 | warning | ApplicationNumberText is not in the expected format of yyyy-nnnnnn |
-| TRD_R9999 | error | Unexpected internal error during validation |
+One flat `TRD_R` series covering both phases. Validation codes appear per finding
+in `validation_details.code`; application codes appear once per request in
+`submission_requests.error_code`. `TRD_R9999` is the catch-all for either.
+
+Branch on the code rather than on the accompanying message, whose wording changes
+without notice, and treat an unrecognised code the same as `TRD_R9999` — codes are
+added as failures are classified, so the set grows.
+
+| Code | Phase | Severity | Description |
+|------|-------|----------|-------------|
+| TRD_R0001 | validation | error | ApplicationNumberText contains invalid characters (only alphanumeric, hyphen, and slash are allowed) |
+| TRD_R0002 | validation | error | Sequence length is zero |
+| TRD_R0003 | validation | error | N-only nucleotide sequence |
+| TRD_R0004 | validation | error | X-only amino acid sequence |
+| TRD_R0005 | validation | error | Invalid characters in nucleotide sequence |
+| TRD_R0006 | validation | warning | Undefined feature key |
+| TRD_R0007 | validation | warning | Undefined qualifier key |
+| TRD_R0008 | validation | error | Invalid presence of qualifier value (missing value for non-boolean qualifier, or value present for boolean qualifier) |
+| TRD_R0009 | validation | error | ST.26 fields (applicant/inventor names, invention titles) contain non-ASCII characters |
+| TRD_R0010 | validation | error | No source feature with mol_type found |
+| TRD_R0011 | validation | warning | ApplicationNumberText is not in the expected format of yyyy-nnnnnn |
+| TRD_R0012 | application | error | No accession numbers left in the scope; extend its prefix list in `config/sequence.yml`. Nothing was consumed, so the request can be applied again once it is extended |
+| TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack
 
