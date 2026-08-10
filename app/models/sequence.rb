@@ -58,6 +58,12 @@ class Sequence < ApplicationRecord
 
       # 使い切った prefix から次へ送るのはここだけ。まだ採番が残っているのに次が無い
       # ときだけ Exhausted になる。
+      #
+      # **この文言は submission-bulk-st26 が読んでいる**（`Submission::SEQUENCE_EXHAUSTED`
+      # が `/no numbers left/` で見る）。ApplySubmissionRequestJob が message をそのまま
+      # error_message に載せるので、それが「採番が尽きた」と分かる唯一の手がかりになって
+      # いる。文言を変えると向こうは静かに検出をやめ、残容量に収まる小さいファイルだけが
+      # 通って採番の切れ目が散らばる。変えるときは向こうも一緒に直すこと。
       if avail <= 0
         raise Exhausted, "#{scope}: no numbers left after #{prefix} (wanted #{count} more)" if i + 1 >= prefixes.size
 
