@@ -75,15 +75,9 @@ class ApplySubmissionRequestJob < ApplicationJob
 
   def apply(request)
     request.ddbj_record.open do |file|
-      # v3 streaming + apply path is unimplemented — refuse explicitly
-      # to prevent silent NoMethodError downstream when
-      # DDBJRecord::StreamingParser (v2 SAJ-only) hits v3 input.
-      major, = DDBJRecord::SchemaVersionDetector.detect(file)
-      file.rewind
-      if major == '3'
-        raise DDBJRecord::V3NotImplementedError,
-              "SubmissionRequest ##{request.id}: v3 record application not yet implemented (Phase 6+)"
-      end
+      # StreamingParser is v2-shaped (SAJ only) and would fail downstream as a
+      # NoMethodError.
+      DDBJRecord.refuse_v3! file, "SubmissionRequest ##{request.id}"
 
       parser             = DDBJRecord::StreamingParser.new(file.path)
       metadata           = parser.metadata
@@ -165,8 +159,8 @@ class ApplySubmissionRequestJob < ApplicationJob
       generate_outputs record, entries, **{
         filename:     request.ddbj_record.filename,
         content_type: request.ddbj_record.content_type
-      } do |updates|
-        submission.update! updates
+      } do |outputs|
+        write_outputs! submission, outputs
       end
     end
   end

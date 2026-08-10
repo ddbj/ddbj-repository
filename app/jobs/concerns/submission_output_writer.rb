@@ -1,6 +1,39 @@
 module SubmissionOutputWriter
   private
 
+  # The outputs, uploaded, and then the pointers swapped inside the caller's
+  # transaction.
+  #
+  # Handing the payloads to `update!` instead put the upload in an
+  # `after_commit`, so a storage failure left the row pointing at a blob whose
+  # bytes were never written — and because the row carries the checksum of what
+  # *should* be there, the next run generates the same bytes, compares equal, and
+  # skips. The byteless blob is then permanent, and nothing says so: the
+  # LocusDateDisagreement guard reads dates, and here the dates are right.
+  #
+  # Uploading first means a failure there raises before anything is written, and
+  # a failure in the transaction leaves blobs nobody points at — purged, the way
+  # Submission#prime_cache! does it.
+  #
+  # `nil` for an output is preserved: it means "there is no such file", and
+  # assigning nil is what detaches the one that is there (an AA flatfile that no
+  # longer has any AA entries).
+  def write_outputs!(submission, outputs)
+    blobs = outputs.transform_values { it && ActiveStorage::Blob.create_and_upload!(**it) }
+
+    begin
+      ActiveRecord::Base.transaction do
+        yield if block_given?
+
+        submission.update! blobs
+      end
+    rescue StandardError
+      blobs.each_value { it&.purge_later }
+
+      raise
+    end
+  end
+
   # `flatfile_omits` is entry ids the flatfile leaves out — canceled and
   # withdrawn entries. They stay in the DDBJ Record, which is the account
   # of what was submitted; the flatfile is what goes out, and a withdrawn
