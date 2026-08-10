@@ -16,60 +16,93 @@ class Sequence < ApplicationRecord
     def allocate!(scope, count)
       ensure_records!
 
-      list = config.fetch(scope)
+      transaction {
+        lock.find_by!(scope:).allocate!(count)
+      }
+    end
+  end
 
-      transaction do
-        seq = lock.find_by!(scope:)
-        out = []
+  # scope に割り当てられた prefix の一覧。先頭から順に使い切っていく。
+  def prefixes = self.class.config.fetch(scope.to_sym)
 
-        while count > 0
-          unless i = list.index { it[:prefix] == seq.prefix }
-            raise "Prefix #{seq.prefix} not found in scope #{scope}"
-          end
+  # 次に払い出される番号。使い切っていれば nil。
+  #
+  # allocate! は使い切った prefix を送る仕事を次の呼び出しに残すので、`next` が
+  # 今の prefix の最大値を超えたまま休んでいることがある。表示する側はそれを
+  # 解決してからでないと、桁の合わない番号（QP1000000）を名乗ってしまう。
+  def peek
+    i, value = position
 
-          digits  = list[i][:digits]
-          pad     = list[i].fetch(:pad, true)
-          max_val = (10 ** digits) - 1
-          start   = seq.next
-          avail   = max_val - start + 1
+    i && format_number(prefixes[i], value)
+  end
 
-          if avail <= 0
-            raise Exhausted if i + 1 >= list.size
+  def total = prefixes.sum { max_value(it) }
 
-            seq.update!(
-              prefix: list[i + 1][:prefix],
-              next:   1
-            )
+  # 送りを解決する必要はない。next が最大値を超えていても、それは今の prefix を
+  # 使い切ったという意味で、消費数としては正しい。
+  def used = prefixes.take(current_index).sum { max_value(it) } + (self.next - 1)
 
-            next
-          end
+  def remaining = total - used
 
-          take = [count, avail].min
-          stop = start + take - 1
+  # count 個を払い出して番号の配列を返す。足りなければ 1 個も払い出さない
+  # （呼び出し側がトランザクションを張っているので、raise でここの update! も巻き戻る）。
+  def allocate!(count)
+    out = []
 
-          out.concat format_range(seq.prefix, start, stop, digits, pad)
-          count -= take
+    while count > 0
+      i       = current_index
+      entry   = prefixes[i]
+      max_val = max_value(entry)
+      start   = self.next
+      avail   = max_val - start + 1
 
-          if stop == max_val
-            raise Exhausted if i + 1 >= list.size
+      # 使い切った prefix から次へ送るのはここだけ。まだ採番が残っているのに次が無い
+      # ときだけ Exhausted になる。
+      if avail <= 0
+        raise Exhausted, "#{scope}: no numbers left after #{prefix} (wanted #{count} more)" if i + 1 >= prefixes.size
 
-            seq.update!(
-              prefix: list[i + 1][:prefix],
-              next:   1
-            )
-          else
-            seq.update! next: stop + 1
-          end
-        end
+        update!(
+          prefix: prefixes[i + 1][:prefix],
+          next:   1
+        )
 
-        out
+        next
       end
+
+      take = [count, avail].min
+      stop = start + take - 1
+
+      out.concat (start..stop).map { format_number(entry, it) }
+      count -= take
+
+      # 使い切った場合は next が max_val + 1 になり、次の周回（あるいは次の呼び出し）が
+      # 上で送る。ここで送ろうとすると、最後の prefix の最終番号でぴったり終わった採番が
+      # 「次の prefix が無い」という理由で Exhausted になり、全件成功しているのに
+      # ロールバックされる。その番号は永久に払い出せなくなる。
+      update! next: stop + 1
     end
 
-    private
+    out
+  end
 
-    def format_range(prefix, from, to, digits, pad)
-      (from..to).map { "#{prefix}#{pad ? it.to_s.rjust(digits, '0') : it.to_s}" }
-    end
+  private
+
+  def current_index
+    prefixes.index { it[:prefix] == prefix } or raise "Prefix #{prefix} not found in scope #{scope}"
+  end
+
+  # 送りを解決した [prefix の位置, 番号]。使い切っていれば nil。
+  def position
+    i = current_index
+
+    return [i, self.next] if self.next <= max_value(prefixes[i])
+
+    [i + 1, 1] if i + 1 < prefixes.size
+  end
+
+  def max_value(entry) = (10 ** entry[:digits]) - 1
+
+  def format_number(entry, value)
+    entry.fetch(:pad, true) ? "#{entry[:prefix]}#{value.to_s.rjust(entry[:digits], '0')}" : "#{entry[:prefix]}#{value}"
   end
 end
