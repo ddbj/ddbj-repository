@@ -65,9 +65,26 @@ class ApplySubmissionRequestJob < ApplicationJob
       features_by_seq_id = parser.features_by_sequence_id
       all_features       = features_by_seq_id.values.flatten
 
-      # Pass 1: Collect entry IDs and types (sequences are discarded by GC)
+      now   = Time.current
+      today = now.to_date
+      ts    = now.utc.iso8601(6)
+
+      # Pass 1: Collect entry IDs, types and LOCUS dates (sequences are
+      # discarded by GC)
+      #
+      # `today` is only a stand-in for a record that names no date. It used to be
+      # written unconditionally into `entries.locus_date` while the flatfile
+      # printed the record's own date, so the column and the flatfile disagreed
+      # from the moment a submission was applied — and any later regeneration,
+      # which renders from the column, pulled the printed date back to the apply
+      # date. The date belongs to whoever performed the publication, so the
+      # record is where it comes from.
+      #
+      # Normalised to a Date once, so the column and the record cannot spell the
+      # same day two ways. An unparseable value raises here instead of further
+      # down in `format_date`, which is where it used to surface.
       entry_metas = parser.each_entry.map {|entry|
-        {id: entry.id, is_aa: aa?(entry)}
+        {id: entry.id, is_aa: aa?(entry), locus_date: entry.locus_date.presence&.to_date || today}
       }
 
       na_count = entry_metas.count { !it[:is_aa] }
@@ -81,10 +98,8 @@ class ApplySubmissionRequestJob < ApplicationJob
         ]
       }
 
-      now              = Time.current
-      today            = now.to_date
-      ts               = now.utc.iso8601(6)
       entry_accessions = {}
+      entry_dates      = {}
       conn             = ActiveRecord::Base.connection.raw_connection
 
       conn.copy_data('COPY entries (accession, entry_id, submission_id, version, locus_date, created_at, updated_at) FROM STDIN') do
@@ -92,8 +107,9 @@ class ApplySubmissionRequestJob < ApplicationJob
           number = (meta[:is_aa] ? aa_nums : na_nums).shift
 
           entry_accessions[meta[:id]] = number
+          entry_dates[meta[:id]]      = meta[:locus_date]
 
-          conn.put_copy_data "#{number}\t#{meta[:id]}\t#{submission.id}\t1\t#{today}\t#{ts}\t#{ts}\n"
+          conn.put_copy_data "#{number}\t#{meta[:id]}\t#{submission.id}\t1\t#{meta[:locus_date]}\t#{ts}\t#{ts}\n"
         end
       end
 
@@ -111,11 +127,14 @@ class ApplySubmissionRequestJob < ApplicationJob
       entries = parser.each_entry.lazy.map {|entry|
         accession = entry_accessions.fetch(entry.id)
 
+        # The same date that went into the column, not the record's own string:
+        # one value, normalised once, so the flatfile and `entries.locus_date`
+        # cannot come apart.
         entry.with(
           accession:,
-          locus:        accession,
-          version:      1,
-          last_updated: entry.last_updated || today.to_s
+          locus:      accession,
+          version:    1,
+          locus_date: entry_dates.fetch(entry.id).to_s
         )
       }
 

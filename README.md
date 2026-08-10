@@ -97,7 +97,7 @@ erDiagram
         string accession UK "e.g. LC000001"
         string entry_id
         integer version "default: 1"
-        date locus_date
+        date locus_date "date printed on the LOCUS line"
         integer status "Lifecycleable, default: 5300"
         datetime created_at
         datetime updated_at

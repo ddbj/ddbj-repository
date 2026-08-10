@@ -26,6 +26,47 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert histories.all? { it.action == 'create' && it.user == request.user }
   end
 
+  # LOCUS date は公開作業を行う人が決める値で、record に入って届く。列にも
+  # flatfile にも同じ日付が入らなければならない: 列に apply 日を入れて
+  # flatfile には record の日付を印字していたため、apply した瞬間から両者が
+  # 食い違い、後の regenerate が印字済みの日付を apply 日へ引き戻していた。
+  test 'takes the LOCUS date from the record, into both the column and the flatfile' do
+    request = build_request('ddbj_record/example.json') {|record|
+      record['sequences']['entries'].each { it['locus_date'] = '2026-08-13' }
+    }
+
+    ApplySubmissionRequestJob.perform_now request
+
+    submission = request.reload.submission
+
+    assert_equal ['2026-08-13'], submission.entries.distinct.pluck(:locus_date).map(&:to_s)
+    assert_includes submission.flatfile_na.download, '13-AUG-2026'
+  end
+
+  # `last_updated` は 2026-08 までのこのフィールドの名前で、既存の record は
+  # すべてその名前で書かれている。読めなくなると LOCUS 行の日付が全部空になる。
+  test 'still reads the date from a record written under the old name' do
+    request = build_request('ddbj_record/example.json') {|record|
+      record['sequences']['entries'].each { it['last_updated'] = '2026-08-13' }
+    }
+
+    ApplySubmissionRequestJob.perform_now request
+
+    submission = request.reload.submission
+
+    assert_equal ['2026-08-13'], submission.entries.distinct.pluck(:locus_date).map(&:to_s)
+    assert_includes submission.flatfile_na.download, '13-AUG-2026'
+  end
+
+  # 日付を言わない record のときだけ apply 日が立つ。
+  test 'falls back to the apply date when the record names none' do
+    request = build_request('ddbj_record/example.json')
+
+    ApplySubmissionRequestJob.perform_now request
+
+    assert_equal [Date.current], request.reload.submission.entries.distinct.pluck(:locus_date)
+  end
+
   # SystemStackError は StandardError ではないので、rescue を取り違えると
   # request が applying のまま取り残され、クライアントが status を永久に
   # ポーリングし続ける。終端状態 (application_failed) に落ちることを保証する。
@@ -132,5 +173,26 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     request.reload
     assert request.application_failed?
     assert_match(/v3 record application not yet implemented/, request.error_message)
+  end
+
+  private
+
+  # A request carrying a fixture record, with the parsed JSON handed to the
+  # block first so a test can say what it needs the record to contain.
+  def build_request(fixture)
+    record = JSON.parse(file_fixture(fixture).read)
+
+    yield record if block_given?
+
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+
+    request.ddbj_record.attach(
+      io:           StringIO.new(JSON.generate(record)),
+      filename:     File.basename(fixture),
+      content_type: 'application/json'
+    )
+
+    request.save!
+    request
   end
 end

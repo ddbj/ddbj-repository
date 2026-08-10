@@ -191,7 +191,12 @@ module DDBJRecord
         accession:       h['accession'],
         locus:           h['locus'],
         version:         h['version'],
-        last_updated:    h['last_updated']
+
+        # `last_updated` is what this field was called before 2026-08. Records
+        # written under that name are the whole archive as it stands, so the old
+        # key is still read — dropping it would render every stored record with
+        # a blank LOCUS date.
+        locus_date:      h['locus_date'] || h['last_updated']
       )
     end
 

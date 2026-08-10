@@ -13,10 +13,10 @@ class FlatfileTest < ActiveSupport::TestCase
 
     entries = record.sequences.entries.map.with_index(1) {|entry, i|
       entry.with(
-        accession:    "AB00000#{i}",
-        locus:        "AB00000#{i}",
-        version:      1,
-        last_updated: '2026-06-01'
+        accession:  "AB00000#{i}",
+        locus:      "AB00000#{i}",
+        version:    1,
+        locus_date: '2026-06-01'
       )
     }
 
@@ -38,10 +38,10 @@ class FlatfileTest < ActiveSupport::TestCase
 
     entries = record.sequences.entries.map.with_index(1) {|entry, i|
       entry.with(
-        accession:    "AB00000#{i}",
-        locus:        "AB00000#{i}",
-        version:      1,
-        last_updated: '2026-06-01'
+        accession:  "AB00000#{i}",
+        locus:      "AB00000#{i}",
+        version:    1,
+        locus_date: '2026-06-01'
       )
     }
 

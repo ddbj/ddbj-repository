@@ -182,7 +182,12 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
         accession:    acc.accession,
         locus:        acc.accession,
         version:      acc.version,
-        last_updated: acc.locus_date.to_s
+        # From the column, which is the queryable copy of what the record
+        # already says — equal by construction since the apply job started
+        # taking the date from the record. Where they are not equal, the column
+        # wins: it is what a curator's per-entry edit and this run's own date
+        # option write to.
+        locus_date: acc.locus_date.to_s
       )
     }
   end

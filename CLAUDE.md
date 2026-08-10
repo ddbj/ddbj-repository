@@ -107,6 +107,38 @@ For small files, the same code path works — `sc_parse` handles both minified a
 - `Flatfile::StreamingRenderer` — entry-by-entry renderer for large files, reuses the same ERB template
 - `Flatfile::TaxIdCache` — lazy-loading taxonomy cache for streaming
 
+#### The LOCUS date
+
+One date, three places that must agree, and one person who owns it.
+
+**`locus_date` is the date printed on the LOCUS line.** It is chosen by whoever
+performs the publication — for ST.26 that is DDBJ's own operator running
+`submission-bulk-st26 --date`, not the submitter and not this server, which is
+why neither the JPO XML nor an apply-time clock can supply it.
+
+It lives in three places, and they hold the same value by construction:
+
+| Place | Role |
+|---|---|
+| the record's `sequences.entries[].locus_date` | how it arrives, and what the archived record states |
+| `entries.locus_date` | the queryable copy — API, admin, and per-entry edits |
+| the flatfile's LOCUS line | rendered from the record field the renderer is handed |
+
+`ApplySubmissionRequestJob` takes the date from the record and writes both,
+falling back to the apply date only when the record names none.
+`RegenerateSubmissionFlatfilesJob` renders from the column, so a per-entry date
+change is made by writing the column and regenerating.
+
+This was three different dates until 2026-08: the column held the apply date,
+the record field was called `last_updated` and held the operator's date, and the
+flatfile printed the record's. Regeneration renders from the column, so any
+regeneration silently pulled published LOCUS dates back to the apply date —
+which is what happened to 62 entries while fixing PATENT-386. Records written
+before the rename still say `last_updated`, and `Builders` reads both keys.
+
+The Regenerate screen's date option writes the column for **every entry of the
+submission**, so it is the wrong tool for redating some of them.
+
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 
 Two-pass streaming:

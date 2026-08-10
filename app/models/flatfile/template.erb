@@ -1,8 +1,8 @@
 <%- entries.each do |entry| -%>
 <%- if entry.na? -%>
-LOCUS       <%= entry.locus.to_s.ljust(16) %> <%= entry.length.to_s.rjust(11) %> bp    <%= mol_type_label(entry.mol_type).ljust(6) %>  <%= entry.topology.ljust(8) %> <%= record.submission.division %> <%= format_date(entry.last_updated) %>
+LOCUS       <%= entry.locus.to_s.ljust(16) %> <%= entry.length.to_s.rjust(11) %> bp    <%= mol_type_label(entry.mol_type).ljust(6) %>  <%= entry.topology.ljust(8) %> <%= record.submission.division %> <%= format_date(entry.locus_date) %>
 <%- else -%>
-LOCUS       <%= entry.locus.to_s.ljust(16) %> <%= entry.length.to_s.rjust(11) %> aa    <%= 'PRT'.ljust(7) %>          <%= record.submission.division %> <%= format_date(entry.last_updated) %>
+LOCUS       <%= entry.locus.to_s.ljust(16) %> <%= entry.length.to_s.rjust(11) %> aa    <%= 'PRT'.ljust(7) %>          <%= record.submission.division %> <%= format_date(entry.locus_date) %>
 <%- end -%>
 DEFINITION  <%= entry.definition %>
 ACCESSION   <%= entry.accession %>

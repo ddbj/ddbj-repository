@@ -170,7 +170,16 @@ module DDBJRecord
     :accession,
     :locus,
     :version,
-    :last_updated
+
+    # The date printed on the LOCUS line. Chosen by whoever performs the
+    # publication (submission-bulk-st26's `--date`), so neither the submitted
+    # XML nor this server can derive it; it arrives with the record and is
+    # mirrored into `entries.locus_date`, which is the queryable copy.
+    #
+    # Named `last_updated` until 2026-08: that name said nothing about what the
+    # value was for, and the column, the record and the flatfile drifted into
+    # three different dates as a result.
+    :locus_date
   )
 
   Feature = Data.define(
