@@ -77,6 +77,34 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
     assert_equal %w[1..21], locations_of(record_of(submission))
   end
 
+  # The check is on what the location says, not just on how many index pairs
+  # were hit: a record that changed shape between the audit and the rewrite
+  # would otherwise be rewritten at positions now meaning something else.
+  test 'correct! writes nothing when the record changed since the audit' do
+    submission = seed('1..21')
+    finding    = St26SourceLocations.audit.findings.first
+
+    seed '1..25' # same position, different location
+
+    assert_raises RuntimeError do
+      St26SourceLocations.correct! [finding]
+    end
+
+    assert_equal %w[1..25], locations_of(record_of(submission))
+  end
+
+  # An entry with no sequence has no length for a location to agree with, and
+  # used to be passed over silently — so the audit could call the archive clean
+  # over an entry it had not examined.
+  test 'an entry with no sequence is reported rather than passed over' do
+    seed_entries [{'id' => 'SEQ|JP|2026123456|A|1', 'sequence' => '', 'length' => 0, 'source_features' => [{'location' => '1..20'}]}]
+
+    result = St26SourceLocations.audit
+
+    assert_equal %i[no_sequence], result.findings.map(&:reason)
+    refute_predicate result.findings.first, :correctable?
+  end
+
   test 'a submission with no record is skipped rather than passed over' do
     submission = seed('1..20')
     submission.ddbj_record.purge
@@ -120,11 +148,9 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
   # One ST.26 submission whose entries carry the given source locations, using
   # the two accessions the entries fixture already names.
   def seed(*locations)
-    submission = submissions(:st26)
-
     # Every entry is twenty bases, so a location in a test reads against the
     # same length whichever entry it lands on.
-    entries = locations.each_with_index.map {|location, i|
+    seed_entries locations.each_with_index.map {|location, i|
       sequence = 'acgt' * 5
 
       {
@@ -137,6 +163,10 @@ class St26SourceLocationsTest < ActiveSupport::TestCase
         'source_features' => [{'id' => "source_#{i}", 'location' => location, 'source' => {'organism' => 'synthetic construct', 'mol_type' => 'other DNA', 'qualifiers' => {}}}]
       }
     }
+  end
+
+  def seed_entries(entries)
+    submission = submissions(:st26)
 
     record = {
       'schema_version' => 'v2',

@@ -50,14 +50,18 @@ namespace :st26 do
     desc 'Rewrite disagreeing source locations to 1..<length> (ACCESSIONS= required, APPLY=1 to write)'
     task fix: :environment do
       accessions = ENV['ACCESSIONS'].to_s
+      result     = St26SourceLocations.audit(accessions)
 
       # A blanket rewrite is refused. The correction is only ever right for
       # records already known to be wrong, and the audit is how they become
       # known — a bare `rake st26:source_locations:fix` would otherwise rewrite
       # the archive on the strength of a typo.
-      abort 'ACCESSIONS is required: name the accessions to correct, comma or space separated.' if accessions.blank?
-
-      result = St26SourceLocations.audit(accessions)
+      #
+      # Gated on the parsed list and not on the string: `ACCESSIONS=","` is not
+      # `blank?` but parses to nothing, so `ACCESSIONS="$LIST," APPLY=1` with
+      # `$LIST` unset used to run unscoped and rewrite every overrun in the
+      # archive — the exact thing this guard is here to prevent.
+      abort 'ACCESSIONS is required: name the accessions to correct, comma or space separated.' if result.requested.empty?
 
       St26SourceLocations.report result
 

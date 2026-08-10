@@ -22,6 +22,7 @@ module St26SourceLocations
     unreadable:      ->(n) { "Refusing to rewrite #{n} #{'location'.pluralize(n)} bio-ruby cannot parse: whatever #{n == 1 ? 'it was' : 'they were'} trying to say would be destroyed." },
     ambiguous:       ->(n) { "Refusing to widen #{n} #{'location'.pluralize(n)} covering less than the whole sequence, or covering it in several pieces: rewriting to the full span would invent coverage nobody declared." },
     missing:         ->(n) { "Refusing to fill in #{n} absent #{'location'.pluralize(n)}: a source feature with none at all is a different repair from this one." },
+    no_sequence:     ->(n) { "Refusing to measure #{n} #{'entry'.pluralize(n)} with no sequence: there is no length for a location to agree with." },
     declared_length: ->(n) { "Refusing to touch #{n} #{'entry'.pluralize(n)} whose declared length disagrees with its sequence: which of the two was meant is not this task's to decide." }
   }.freeze
 
@@ -126,56 +127,100 @@ module St26SourceLocations
     puts "\n#{result.unmatched.size} #{'accession'.pluralize(result.unmatched.size)} matched no ST.26 entry: #{result.unmatched.join(', ')}"
   end
 
-  # Rewrites the stored record in place. The raw JSON is mutated rather than
-  # re-serialised from the parsed Data objects: the blob is the archived
-  # record, and a round trip through the parser would rewrite fields this
-  # correction has no business touching.
-  # Every record is read and checked before any of them is written. The count
-  # guard used to fire mid-loop, so a batch whose third submission tripped it
-  # aborted with the first two already rewritten — "nothing was written" was
-  # what the message implied and not what had happened.
+  # Two passes. The first re-reads every named record and checks that what the
+  # audit found is still there; only then is anything written. The check used to
+  # fire mid-loop, so a batch whose third submission tripped it aborted with the
+  # first two already rewritten — "nothing was written" was what the message
+  # implied and not what had happened.
+  #
+  # The first pass streams and keeps nothing: an ST.26 submission can carry tens
+  # of thousands of entries (see Submission#accession_summary), which is why
+  # `scan` and the flatfile renderer stream rather than hold a document. Holding
+  # a parsed copy of every submission in the batch, plus a serialised String of
+  # each, would put the whole batch in memory at once. The rewrite still needs
+  # one whole document, so memory is bounded by the largest single record.
   def correct!(findings)
-    prepared = findings.group_by(&:submission).map {|submission, group|
-      wanted = group.to_h { [[it.entry_index, it.source_index], it.expected] }
+    by_submission = findings.group_by(&:submission)
 
-      json      = submission.ddbj_record.open { Oj.load(it.read, mode: :strict) }
-      rewritten = 0
+    by_submission.each { verify! it.first, it.last }
 
-      Array(json.dig('sequences', 'entries')).each_with_index do |entry, i|
-        Array(entry['source_features']).each_with_index do |sf, j|
-          expected = wanted[[i, j]] or next
-
-          sf['location'] = expected
-          rewritten     += 1
-        end
-      end
-
-      raise "submission ##{submission.id}: expected to rewrite #{group.size} #{'location'.pluralize(group.size)}, found #{rewritten} — nothing has been written" unless rewritten == group.size
-
-      [submission, json, rewritten]
-    }
-
-    # `update!` and not `attach`: Attached::One#attach swallows a failed save
-    # and returns nil, and Submission validates ddbj_record's content type on
-    # update — so a submission whose stored blob carries a different one would
-    # have been reported as rewritten while nothing was written.
-    #
     # One transaction for the batch, so a failure part-way through does not
     # leave some records corrected and others not. The uploads themselves are
     # not transactional; a rollback leaves orphan blobs behind, which is the
     # same trade the rest of this system already makes.
-    Submission.transaction do
-      prepared.each do |submission, json, rewritten|
-        submission.update!(
-          ddbj_record: {
-            io:           StringIO.new(Oj.dump(json, mode: :strict)),
-            filename:     submission.ddbj_record.filename.to_s,
-            content_type: submission.ddbj_record.content_type
-          }
-        )
+    #
+    # Printed after it commits, not inside: a rollback would otherwise have
+    # already told the operator that records were rewritten.
+    written = []
 
-        puts "submission ##{submission.id}: rewrote #{rewritten} #{'location'.pluralize(rewritten)}"
+    Submission.transaction do
+      by_submission.each do |submission, group|
+        written << rewrite!(submission, group)
       end
+    end
+
+    written.each { puts it }
+  end
+
+  # That the audited disagreement is still in the record, in the same place and
+  # with the same text. The old check only counted how many index pairs it hit,
+  # so a record that had changed shape since the audit could be rewritten at
+  # positions that now meant something else.
+  def verify!(submission, group)
+    present = Array(scan(submission, {})).to_set { [it.entry_index, it.source_index, it.location] }
+    wanted  = group.to_set { [it.entry_index, it.source_index, it.location] }
+    missing = wanted - present
+
+    return if missing.empty?
+
+    raise "submission ##{submission.id}: #{missing.size} of #{group.size} audited #{'location'.pluralize(group.size)} " \
+          'no longer look as they did — the record changed since the audit. Nothing has been written; run the audit again.'
+  end
+
+  # Rewrites the stored record in place. The raw JSON is mutated rather than
+  # re-serialised from the parsed Data objects: the blob is the archived record,
+  # and a round trip through the parser would rewrite fields this correction has
+  # no business touching.
+  #
+  # `with_lock` because this is a read-modify-write of the blob and so is
+  # RegenerateSubmissionFlatfilesJob — two of them interleaving would silently
+  # drop one. Submission#append_update! takes the same lock for the same
+  # reason. It does not serialise against a regenerate run, which takes no
+  # lock; what it does do is stop two corrections from racing, and leave a
+  # record of the intent where anybody adding a third writer will see it.
+  #
+  # `update!` and not `attach`: Attached::One#attach swallows a failed save and
+  # returns nil, and Submission validates ddbj_record's content type on update —
+  # so a submission whose stored blob carries a different one would have been
+  # reported as rewritten while nothing was written.
+  def rewrite!(submission, group)
+    submission.with_lock do
+      wanted = group.to_h { [[it.entry_index, it.source_index], it] }
+      json   = submission.ddbj_record.open { Oj.load(it.read, mode: :strict) }
+      done   = 0
+
+      Array(json.dig('sequences', 'entries')).each_with_index do |entry, i|
+        Array(entry['source_features']).each_with_index do |sf, j|
+          finding = wanted[[i, j]] or next
+
+          raise "submission ##{submission.id}: #{finding.entry_id} source #{j} now reads #{sf['location'].inspect}, not #{finding.location.inspect}" unless sf['location'] == finding.location
+
+          sf['location'] = finding.expected
+          done          += 1
+        end
+      end
+
+      raise "submission ##{submission.id}: expected to rewrite #{group.size} #{'location'.pluralize(group.size)}, found #{done}" unless done == group.size
+
+      submission.update!(
+        ddbj_record: {
+          io:           StringIO.new(Oj.dump(json, mode: :strict)),
+          filename:     submission.ddbj_record.filename.to_s,
+          content_type: submission.ddbj_record.content_type
+        }
+      )
+
+      "submission ##{submission.id}: rewrote #{done} #{'location'.pluralize(done)}"
     end
   end
 
@@ -204,8 +249,6 @@ module St26SourceLocations
         measured = entry.sequence.to_s.size
         declared = entry.length&.to_i
 
-        next unless measured.positive?
-
         add = ->(source_index, location, reason) {
           findings << Finding.new(
             submission:,
@@ -218,6 +261,16 @@ module St26SourceLocations
             reason:
           )
         }
+
+        # An entry with no sequence has no length to measure a location
+        # against. Reported rather than passed over: this used to be a bare
+        # `next`, so the audit could call the archive clean over an entry it had
+        # not examined.
+        if measured.zero?
+          add.call nil, '(no sequence)', :no_sequence
+
+          next
+        end
 
         # Reported against the entry rather than a single source feature, and
         # never rewritten: correcting the locations to match a wrong length
