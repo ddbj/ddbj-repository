@@ -22,6 +22,7 @@ function requestWith(details: Detail[]): SubmissionRequest {
     id: 42,
     db: 'biosample',
     status: 'validation_failed',
+    error_code: null,
     error_message: null,
     created_at: now,
     closed_at: null,

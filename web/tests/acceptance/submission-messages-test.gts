@@ -18,6 +18,7 @@ const request: components['schemas']['SubmissionRequest'] = {
   id: 1,
   db: 'st26',
   status: 'applied',
+  error_code: null,
   error_message: null,
   created_at: now,
   closed_at: null,

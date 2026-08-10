@@ -1126,6 +1126,13 @@ export interface components {
         SubmissionRequestStatus: {
             id: number;
             status: components["schemas"]["SubmissionOperationStatus"];
+            /**
+             * @description Machine-readable reason the application failed. Null until it does.
+             *     Branch on this rather than on `error_message`, whose wording changes
+             *     without notice. An unknown code means an unexpected internal error;
+             *     treat it like `TRD_R9999`.
+             */
+            error_code: string | null;
             error_message: string | null;
             processing: boolean;
         };
@@ -1133,6 +1140,13 @@ export interface components {
             id: number;
             db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
+            /**
+             * @description Machine-readable reason the application failed. Null until it does.
+             *     Branch on this rather than on `error_message`, whose wording changes
+             *     without notice. An unknown code means an unexpected internal error;
+             *     treat it like `TRD_R9999`.
+             */
+            error_code: string | null;
             error_message: string | null;
             /** Format: date-time */
             created_at: string;
@@ -1174,6 +1188,13 @@ export interface components {
             id: number;
             db: components["schemas"]["Db"];
             status: components["schemas"]["SubmissionOperationStatus"];
+            /**
+             * @description Machine-readable reason the application failed. Null until it does.
+             *     Branch on this rather than on `error_message`, whose wording changes
+             *     without notice. An unknown code means an unexpected internal error;
+             *     treat it like `TRD_R9999`.
+             */
+            error_code: string | null;
             error_message: string | null;
             /** Format: date-time */
             created_at: string;

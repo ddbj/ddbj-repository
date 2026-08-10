@@ -165,7 +165,7 @@ added as failures are classified, so the set grows.
 | TRD_R0009 | validation | error | ST.26 fields (applicant/inventor names, invention titles) contain non-ASCII characters |
 | TRD_R0010 | validation | error | No source feature with mol_type found |
 | TRD_R0011 | validation | warning | ApplicationNumberText is not in the expected format of yyyy-nnnnnn |
-| TRD_R0012 | application | error | No accession numbers left in the scope; extend its prefix list in `config/sequence.yml`. Nothing was consumed, so the request can be applied again once it is extended |
+| TRD_R0012 | application | error | No accession numbers left in the scope; extend its prefix list in `config/sequence.yml`. Nothing was consumed — no accession was burned and no submission created — so once it is extended the file can be submitted afresh |
 | TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack
