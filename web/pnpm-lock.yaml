@@ -187,8 +187,8 @@ importers:
         specifier: ^13.5.0
         version: 13.5.0(@typescript-eslint/parser@8.66.0(eslint@10.8.1)(typescript@6.0.3))(eslint@10.8.1)(typescript@6.0.3)
       eslint-plugin-n:
-        specifier: ^18.2.2
-        version: 18.2.2(eslint@10.8.1)(typescript@6.0.3)
+        specifier: ^18.3.0
+        version: 18.3.0(eslint@10.8.1)(typescript@6.0.3)
       eslint-plugin-qunit:
         specifier: ^8.2.6
         version: 8.2.6(eslint@10.8.1)
@@ -1047,15 +1047,6 @@ packages:
   '@embroider/core@4.6.3':
     resolution: {integrity: sha512-BdUDoifoB6YDJz30H+GNvQcEAB6a8/3OQinS+5wP3LlTCfPQjHChtZxdMwqvzReOSU1qVi2WGDx4xJh/0OREjg==}
     engines: {node: '>= 20.19.*'}
-
-  '@embroider/macros@1.20.5':
-    resolution: {integrity: sha512-JjIynmob1HbOwVG5uvwrOWecf48Vf9dltKL5C9x5Q6gEoLZJln6iG8D9YBM9EO24Oi8Ftw+oS7IJjA7TFvMLCA==}
-    engines: {node: 12.* || 14.* || >= 16}
-    peerDependencies:
-      '@glint/template': ^1.0.0
-    peerDependenciesMeta:
-      '@glint/template':
-        optional: true
 
   '@embroider/macros@1.20.6':
     resolution: {integrity: sha512-6XwqG4WepXzLtiMbs+mOLFjNzeCFg6hMi+02xQgtW7zsI86/mThAB+1nrhnrugg/Y4Hcl3y1/vLTWx0i8eLN5Q==}
@@ -1967,6 +1958,7 @@ packages:
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -3328,8 +3320,8 @@ packages:
     peerDependencies:
       eslint: '>=8'
 
-  eslint-plugin-n@18.2.2:
-    resolution: {integrity: sha512-gOO0lIqwEjZ750kv9/SptCWArUoAZXJoBr0vYWTO2dCBxctHUXlBIigiC8xuxxr/NKqgIT6Ehz1xRcilj8a5cA==}
+  eslint-plugin-n@18.3.0:
+    resolution: {integrity: sha512-cPVguuDe6DrIPb/qUXHf8P89MaVTUmiYWwpt5gX5AILsvRIiZAxMFXcFR6QHYBksqKJpjfUBlL/RleCJUWcD7w==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
     peerDependencies:
       eslint: '>=8.57.1'
@@ -3750,8 +3742,8 @@ packages:
     resolution: {integrity: sha512-w9UMqWwJxHNOvoNzSJ2oPF5wvYcvP7jUvYzhp67yEhTi17ZDBBC1z9pTdGuzjD+EFIqLSYRweZjqfiPzQ06Ebg==}
     engines: {node: '>= 0.4'}
 
-  get-tsconfig@4.14.0:
-    resolution: {integrity: sha512-yTb+8DXzDREzgvYmh6s9vHsSVCHeC0G3PI5bEXNBHtmshPnO+S5O7qgLEOn0I5QvMy6kpZN8K1NKGyilLb93wA==}
+  get-tsconfig@4.14.2:
+    resolution: {integrity: sha512-XpwZALwwl/BaKTAyC6+c5T8y6kCg2jk+XGqOVrKIQmW49pNypYLMRjCUXqa28tQgJlhS2RlzP7sc+Rx7W6qsfw==}
 
   git-hooks-list@3.2.0:
     resolution: {integrity: sha512-ZHG9a1gEhUMX1TvGrLdyWb9kDopCBbTnI8z4JgRMYxsijWipgjSEYoPWqBuIB0DnRnvqlQSEeVmzpeuPm7NdFQ==}
@@ -7543,22 +7535,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@embroider/macros@1.20.5(@babel/core@7.29.7)(@glint/template@1.8.0)':
-    dependencies:
-      '@embroider/shared-internals': 3.1.1
-      assert-never: 1.4.0
-      babel-import-util: 3.0.1
-      ember-cli-babel: 8.3.1(@babel/core@7.29.7)
-      find-up: 5.0.0
-      lodash: 4.18.1
-      resolve: 1.22.12
-      semver: 7.8.5
-    optionalDependencies:
-      '@glint/template': 1.8.0
-    transitivePeerDependencies:
-      - '@babel/core'
-      - supports-color
-
   '@embroider/macros@1.20.6(@babel/core@7.29.7)(@glint/template@1.8.0)':
     dependencies:
       '@embroider/shared-internals': 3.1.1
@@ -10327,13 +10303,13 @@ snapshots:
       eslint: 10.8.1
       eslint-compat-utils: 0.5.1(eslint@10.8.1)
 
-  eslint-plugin-n@18.2.2(eslint@10.8.1)(typescript@6.0.3):
+  eslint-plugin-n@18.3.0(eslint@10.8.1)(typescript@6.0.3):
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@10.8.1)
       enhanced-resolve: 5.24.5
       eslint: 10.8.1
       eslint-plugin-es-x: 7.8.0(eslint@10.8.1)
-      get-tsconfig: 4.14.0
+      get-tsconfig: 4.14.2
       globals: 15.15.0
       globrex: 0.1.2
       ignore: 5.3.2
@@ -10889,7 +10865,7 @@ snapshots:
       es-errors: 1.3.0
       get-intrinsic: 1.3.0
 
-  get-tsconfig@4.14.0:
+  get-tsconfig@4.14.2:
     dependencies:
       resolve-pkg-maps: 1.0.0
 
