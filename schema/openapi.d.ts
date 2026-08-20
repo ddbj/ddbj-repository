@@ -2061,7 +2061,18 @@ export interface components {
         };
         Attachment: {
             filename: string;
-            /** Format: uri */
+            /**
+             * Format: uri
+             * @description Where to fetch the file. Good for one fetch, soon: it redirects to
+             *     a storage URL that expires in minutes, and the redirect itself is
+             *     authorised when it is followed — by the same rule that let you read
+             *     the record it hangs off.
+             *
+             *     So it is not a thing to store. A link kept from yesterday's listing
+             *     does not work, and one handed to somebody else does not work for
+             *     them, which is what makes access that has been taken away actually
+             *     gone.
+             */
             url: string;
         };
         /**
@@ -2072,6 +2083,17 @@ export interface components {
         AttachedFile: {
             filename: string;
             byte_size: number;
+            /**
+             * @description Where to fetch the file. Good for one fetch, soon: it redirects to
+             *     a storage URL that expires in minutes, and the redirect itself is
+             *     authorised when it is followed — by the same rule that let you read
+             *     the record it hangs off.
+             *
+             *     So it is not a thing to store. A link kept from yesterday's listing
+             *     does not work, and one handed to somebody else does not work for
+             *     them, which is what makes access that has been taken away actually
+             *     gone.
+             */
             url: string;
         };
         Message: {

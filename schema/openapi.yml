@@ -2580,6 +2580,16 @@ components:
           type: string
 
         url:
+          description: |
+            Where to fetch the file. Good for one fetch, soon: it redirects to
+            a storage URL that expires in minutes, and the redirect itself is
+            authorised when it is followed — by the same rule that let you read
+            the record it hangs off.
+
+            So it is not a thing to store. A link kept from yesterday's listing
+            does not work, and one handed to somebody else does not work for
+            them, which is what makes access that has been taken away actually
+            gone.
           type: string
           format: uri
 
@@ -2604,6 +2614,16 @@ components:
           type: number
 
         url:
+          description: |
+            Where to fetch the file. Good for one fetch, soon: it redirects to
+            a storage URL that expires in minutes, and the redirect itself is
+            authorised when it is followed — by the same rule that let you read
+            the record it hangs off.
+
+            So it is not a thing to store. A link kept from yesterday's listing
+            does not work, and one handed to somebody else does not work for
+            them, which is what makes access that has been taken away actually
+            gone.
           type: string
 
     Message:

@@ -45,6 +45,24 @@ module Repository
     config.active_storage.variant_processor = :disabled
     config.time_zone                        = 'Asia/Tokyo'
 
+    # Active Storage's own blob routes are off. `/rails/active_storage/
+    # blobs/redirect/:signed_id` takes a signed blob id and nothing else:
+    # no session, no owner, and — since `urls_expire_in` is unset by
+    # default — no expiry. Whoever holds one has the file for ever,
+    # whatever has happened to their access since, which made "take them
+    # out of the set and they lose it" untrue of the files.
+    #
+    # Downloads go through this application's own routes instead, where
+    # the record the route names is what authorises the read and every
+    # request re-asks. See AttachmentDownload.
+    #
+    # What is redrawn below (config/routes.rb) is the two things turning
+    # these off would otherwise take with them: direct uploads, which
+    # every upload in the application depends on, and the Disk service's
+    # own endpoints, which are how `blob.url` resolves wherever the
+    # service is Disk rather than S3 — the test environment.
+    config.active_storage.draw_routes = false
+
     # Use the project-owned MailDeliveryJob subclass so mail-only retry
     # (Net::OpenTimeout → polynomial backoff) doesn't leak onto every
     # other ApplicationJob descendant. See app/jobs/mail_delivery_job.rb.

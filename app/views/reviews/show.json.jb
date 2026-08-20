@@ -3,7 +3,18 @@
 # where they do. No viewer — a share-link holder is not authenticated,
 # and must not learn that a curator asked something, when the thread was
 # last touched, or who else is working on this.
+#
+# The file URLs carry the share token, so revoking the share revokes the
+# files with it. `submission_record` rather than `ddbj_record` for the
+# applied one, so the two uploads a reviewer can see are not one word
+# apart.
 render(
   partial: 'submission_requests/submission_request',
-  locals:  {submission_request: @request, viewer: nil}
+
+  locals: {
+    submission_request:  @request,
+    viewer:              nil,
+    request_file_url:    ->(_name) { review_file_url(params[:token], 'ddbj_record') },
+    submission_file_url: ->(name) { review_file_url(params[:token], name == 'ddbj_record' ? 'submission_record' : name) }
+  }
 )

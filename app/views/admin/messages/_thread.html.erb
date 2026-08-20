@@ -53,7 +53,7 @@
               <ul class="list-unstyled mb-0 mt-2 small">
                 <% m.files.each do |file| %>
                   <li>
-                    <%= link_to file.filename.to_s, rails_blob_path(file, disposition: :attachment) %>
+                    <%= link_to file.filename.to_s, admin_message_file_path(m, file.id, disposition: 'attachment') %>
                     <span class="text-body-secondary"><%= number_to_human_size(file.byte_size) %></span>
                   </li>
                 <% end %>
@@ -93,7 +93,8 @@
     <%# never comes into it. %>
     <div class="mb-3">
       <%= label_tag :files, 'Attach files', class: 'form-label' %>
-      <%= file_field_tag 'files[]', multiple: true, direct_upload: true, class: 'form-control' %>
+      <%# `direct_upload: true` would point at Active Storage's own route, which is off — see config/application.rb. %>
+      <%= file_field_tag 'files[]', multiple: true, class: 'form-control', data: {direct_upload_url: admin_direct_uploads_path} %>
     </div>
 
     <%# What a curator does in mail without thinking about it. Without %>

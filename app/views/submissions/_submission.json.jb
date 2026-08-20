@@ -1,4 +1,9 @@
-# locals: (submission:)
+# locals: (submission:, file_url:)
+#
+# `file_url` is a lambda taking the attachment's name, because the route
+# that serves it depends on who is reading — the submitter and a reviewer
+# reach the same file by different doors, and the door is what authorises
+# it. See AttachmentDownload.
 
 {
   **submission.slice(
@@ -10,7 +15,7 @@
 
   accessions_count: submission.entries.count,
 
-  ddbj_record: render('attachment', attachment: submission.ddbj_record),
-  flatfile_na: render('attachment', attachment: submission.flatfile_na),
-  flatfile_aa: render('attachment', attachment: submission.flatfile_aa)
+  ddbj_record: render('attachment', attachment: submission.ddbj_record, url: file_url.call('ddbj_record')),
+  flatfile_na: render('attachment', attachment: submission.flatfile_na, url: file_url.call('flatfile_na')),
+  flatfile_aa: render('attachment', attachment: submission.flatfile_aa, url: file_url.call('flatfile_aa'))
 }

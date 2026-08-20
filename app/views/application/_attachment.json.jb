@@ -1,6 +1,12 @@
-# locals: (attachment:)
+# locals: (attachment:, url:)
+#
+# `url` is handed in rather than built here. There is no one URL for a
+# file any more: the same upload is reached by its owner through the
+# request, by a reviewer through their share token, and by a curator
+# through the admin session — and which of those is asking is what
+# authorises the read. See AttachmentDownload.
 
 attachment.attached? ? {
   filename: attachment.filename,
-  url:      rails_blob_url(attachment)
+  url:      url
 } : nil
