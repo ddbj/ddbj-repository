@@ -13,17 +13,15 @@ class SubmissionSetInclusionsTest < ActionDispatch::IntegrationTest
     @submission_request = submission_requests(:bioproject) # owned by :alice
   end
 
-  # 204, not 201: the answer carries no body, and 204 is the status that
-  # says so. The web client's fetch layer parses every other status as
-  # JSON, so a 201 with an empty body reaches it as a parse error.
-  test 'adding says only that it is added' do
+  test 'adding answers with what happened' do
     assert_difference 'SubmissionSetInclusion.count', 1 do
       post set_submissions_path(@set),
-           params:  {submission: {submission_request_id: @submission_request.id}}.to_json,
+           params:  {submission_request_ids: [@submission_request.id]}.to_json,
            headers: JSON_HEADERS
     end
 
-    assert_conform_schema 204
+    assert_conform_schema 200
+    assert_equal({'added' => 1, 'already_in_set' => 0}, response.parsed_body)
 
     get set_path(@set)
 
@@ -42,7 +40,7 @@ class SubmissionSetInclusionsTest < ActionDispatch::IntegrationTest
 
     with_exceptions_app do
       post set_submissions_path(@set),
-           params:  {submission: {submission_request_id: carols.id}}.to_json,
+           params:  {submission_request_ids: [carols.id]}.to_json,
            headers: JSON_HEADERS
     end
 
@@ -59,7 +57,7 @@ class SubmissionSetInclusionsTest < ActionDispatch::IntegrationTest
 
     with_exceptions_app do
       post set_submissions_path(carols_own),
-           params:  {submission: {submission_request_id: @submission_request.id}}.to_json,
+           params:  {submission_request_ids: [@submission_request.id]}.to_json,
            headers: JSON_HEADERS
     end
 
@@ -110,5 +108,87 @@ class SubmissionSetInclusionsTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 200
     assert_equal 1, response.parsed_body['submissions'].sole['submission']['unread_curator_message_count']
+  end
+
+  # Ten checkboxes where three are already there is an ordinary press,
+  # not a failure. Refusing the lot — which is what the unique index does
+  # on its own — would make the submitter work out which three and try
+  # again without them.
+  test 'adding several counts the ones that were already there rather than refusing' do
+    others = 2.times.map {
+      @alice.submission_requests.create!(db: 'bioproject', status: :applied, migration_run_id: SecureRandom.uuid)
+    }
+
+    @set.inclusions.create!(submission_request: @submission_request, added_by: @alice)
+
+    ids = [@submission_request, *others].map(&:id)
+
+    assert_difference 'SubmissionSetInclusion.count', 2 do
+      post set_submissions_path(@set), params: {submission_request_ids: ids}.to_json, headers: JSON_HEADERS
+    end
+
+    assert_conform_schema 200
+    assert_equal({'added' => 2, 'already_in_set' => 1}, response.parsed_body)
+  end
+
+  test 'adding a list where every one is already there is not an error' do
+    @set.inclusions.create!(submission_request: @submission_request, added_by: @alice)
+
+    assert_no_difference 'SubmissionSetInclusion.count' do
+      post set_submissions_path(@set),
+           params:  {submission_request_ids: [@submission_request.id]}.to_json,
+           headers: JSON_HEADERS
+    end
+
+    assert_conform_schema 200
+    assert_equal({'added' => 0, 'already_in_set' => 1}, response.parsed_body)
+  end
+
+  # Silently adding fewer than they asked for is the worse answer: the
+  # screen would report a number nobody can account for.
+  test 'one id you do not own refuses the whole list' do
+    theirs = @carol.submission_requests.create!(db: 'bioproject', status: :applied, migration_run_id: SecureRandom.uuid)
+
+    assert_no_difference 'SubmissionSetInclusion.count' do
+      with_exceptions_app do
+        post set_submissions_path(@set),
+             params:  {submission_request_ids: [@submission_request.id, theirs.id]}.to_json,
+             headers: JSON_HEADERS
+      end
+    end
+
+    assert_conform_schema 404
+  end
+
+  # Both of these are requests the contract already forbids (`minItems`
+  # and `maxItems`), so they are asserted on the status rather than
+  # against the schema — the point is that the server guards them too
+  # instead of trusting a client to have read it.
+  test 'an empty list, and more than a screenful, are both refused' do
+    with_exceptions_app do
+      post set_submissions_path(@set), params: {submission_request_ids: []}.to_json, headers: JSON_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_equal 'No submissions were named.', response.parsed_body['error']
+
+    with_exceptions_app do
+      post set_submissions_path(@set),
+           params:  {submission_request_ids: (1..(SetSubmissionsController::MAX_PER_CALL + 1)).to_a}.to_json,
+           headers: JSON_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_match(/Too many at once/, response.parsed_body['error'])
+  end
+
+  test 'the same id twice in one list counts once' do
+    id = @submission_request.id
+
+    assert_difference 'SubmissionSetInclusion.count', 1 do
+      post set_submissions_path(@set), params: {submission_request_ids: [id, id]}.to_json, headers: JSON_HEADERS
+    end
+
+    assert_equal({'added' => 1, 'already_in_set' => 0}, response.parsed_body)
   end
 end

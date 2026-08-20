@@ -81,7 +81,7 @@ module('Acceptance | putting a submission in a set', function (hooks) {
       http.post('/sets/{set_id}/submissions', ({ response }) => {
         added = true;
 
-        return response(204).empty();
+        return response(200).json({ added: 1, already_in_set: 0 });
       }),
     );
 

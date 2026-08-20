@@ -1,0 +1,10 @@
+# Counts rather than the set itself: answering with the set would mean
+# loading a page of it — a progress block and an accession summary per row
+# — for a body the client re-reads anyway.
+#
+# Both numbers, because "8 added" alone leaves somebody who checked ten
+# wondering what happened to the other two.
+{
+  added:          @added,
+  already_in_set: @already_in_set
+}

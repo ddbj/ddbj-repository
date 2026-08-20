@@ -122,20 +122,20 @@ module('Acceptance | home', function (hooks) {
     assert.dom('tbody tr').exists({ count: 2 });
 
     const firstRow = 'tbody tr:nth-child(1)';
-    assert.dom(`${firstRow} td:nth-child(1)`).includesText('#7');
-    assert.dom(`${firstRow} td:nth-child(2)`).hasText('BioSample');
+    assert.dom(`${firstRow} [data-test-id]`).includesText('#7');
+    assert.dom(`${firstRow} [data-test-db]`).hasText('BioSample');
     // Where it is now, in the submitter's words rather than the enum's.
-    assert.dom(`${firstRow} td:nth-child(3) .badge`).hasText('A curator has a question');
-    assert.dom(`${firstRow} td:nth-child(4)`).hasText('SSUB000123');
-    assert.dom(`${firstRow} td:nth-child(5)`).includesText('SAMD00000001');
-    assert.dom(`${firstRow} td:nth-child(5)`).includesText('(3)');
+    assert.dom(`${firstRow} [data-test-state] .badge`).hasText('A curator has a question');
+    assert.dom(`${firstRow} [data-test-source-id]`).hasText('SSUB000123');
+    assert.dom(`${firstRow} [data-test-accession]`).includesText('SAMD00000001');
+    assert.dom(`${firstRow} [data-test-accession]`).includesText('(3)');
 
     const secondRow = 'tbody tr:nth-child(2)';
-    assert.dom(`${secondRow} td:nth-child(1)`).hasText('#3');
-    assert.dom(`${secondRow} td:nth-child(2)`).hasText('BioProject');
-    assert.dom(`${secondRow} td:nth-child(3) .badge`).hasText('Being checked');
-    assert.dom(`${secondRow} td:nth-child(4)`).hasText('-');
-    assert.dom(`${secondRow} td:nth-child(5)`).hasText('-');
+    assert.dom(`${secondRow} [data-test-id]`).hasText('#3');
+    assert.dom(`${secondRow} [data-test-db]`).hasText('BioProject');
+    assert.dom(`${secondRow} [data-test-state] .badge`).hasText('Being checked');
+    assert.dom(`${secondRow} [data-test-source-id]`).hasText('-');
+    assert.dom(`${secondRow} [data-test-accession]`).hasText('-');
   });
 
   // The point of the split: released records must not push the moving
@@ -157,12 +157,12 @@ module('Acceptance | home', function (hooks) {
 
     assert.dom('[data-test-phase="unfinished"]').hasClass('active').includesText('1');
     assert.dom('[data-test-phase="finished"]').includesText('1');
-    assert.dom('tbody tr td:nth-child(1)').includesText('#7');
+    assert.dom('tbody tr [data-test-id]').includesText('#7');
 
     await click('[data-test-phase="finished"]');
 
     assert.strictEqual(currentURL(), '/?phase=finished');
-    assert.dom('tbody tr td:nth-child(1)').includesText('#1');
+    assert.dom('tbody tr [data-test-id]').includesText('#1');
   });
 
   test('the attention band narrows the list to what is waiting on the submitter', async function (assert) {
@@ -252,7 +252,7 @@ module('Acceptance | home', function (hooks) {
     await click('form button[type="submit"]');
     assert.dom('#db-bioproject').isNotChecked();
     assert.dom('tbody tr').exists({ count: 1 });
-    assert.dom('tbody tr td:nth-child(2)').hasText('BioSample');
+    assert.dom('tbody tr [data-test-db]').hasText('BioSample');
 
     // Clear filters restores the full list with every box checked again.
     // (`:not(.p-0)` distinguishes it from the Select all / Deselect all links.)
@@ -284,7 +284,7 @@ module('Acceptance | home', function (hooks) {
     await click('form button[type="submit"]');
 
     assert.dom('tbody tr').exists({ count: 1 });
-    assert.dom('tbody tr td:nth-child(5)').includesText('SAMD00000001');
+    assert.dom('tbody tr [data-test-accession]').includesText('SAMD00000001');
   });
 
   test('Select all / Deselect all toggle a whole facet', async function (assert) {

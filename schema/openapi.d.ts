@@ -1438,9 +1438,18 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description Put one of your submissions in the set, which is what lets the
-         *     set's members read it. Yours only — reading somebody else's
-         *     through a shared set does not carry the right to hand it on.
+         * @description Put submissions of yours in the set, which is what lets the set's
+         *     members read them. Yours only — reading somebody else's through a
+         *     shared set does not carry the right to hand it on, and an id you do
+         *     not own answers 404 rather than being quietly dropped.
+         *
+         *     Always a list; one submission is a list of one. The submitter's list
+         *     screen adds a page's worth in a press, and splitting that into one
+         *     request each would leave nobody holding the answer to what actually
+         *     went in.
+         *
+         *     Ones already in the set are counted, not refused: ten checkboxes
+         *     where three are already there is an ordinary press.
          */
         post: {
             parameters: {
@@ -1454,24 +1463,28 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        submission: {
-                            submission_request_id: number;
-                        };
+                        submission_request_ids: number[];
                     };
                 };
             };
             responses: {
                 /**
-                 * @description Added. No body: answering with the set would mean loading a page of
-                 *     it — a progress block and an accession summary per row — for
-                 *     something the client re-reads anyway. 204 rather than 201 because
-                 *     204 is the status that says there is no body to read.
+                 * @description What happened, as counts. Not the set itself: answering with that
+                 *     would mean loading a page of it — a progress block and an accession
+                 *     summary per row — for something the client re-reads anyway. Both
+                 *     numbers, because "8 added" alone leaves somebody who checked ten
+                 *     wondering about the other two.
                  */
-                204: {
+                200: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            added: number;
+                            already_in_set: number;
+                        };
+                    };
                 };
                 401: components["responses"]["Unauthorized"];
                 /** @description Sets cannot be changed while acting as another account. */
