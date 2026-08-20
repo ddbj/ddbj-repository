@@ -1,7 +1,11 @@
 using PathnameContain
 
 class Validation < ApplicationRecord
-  class UnprocessableContent < StandardError; end
+  # Raised with a sentence for the submitter, so it is answered rather
+  # than swallowed into a bare status.
+  class UnprocessableContent < StandardError
+    include PublicError
+  end
 
   belongs_to :subject, polymorphic: true
 

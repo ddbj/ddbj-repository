@@ -29,6 +29,9 @@ function requestWith(details: Detail[]): SubmissionRequest {
     closable: true,
     processing: false,
     last_message_at: null,
+    sets: [],
+    owned: true,
+    owner_uid: 'test-user',
     unread_curator_message_count: 0,
     ddbj_record: { filename: 'test.json', url: 'http://example.com/test.json' },
     validation: {
@@ -163,7 +166,7 @@ module('Acceptance | validation report', function (hooks) {
     assert.dom('details').doesNotIncludeText('Validation report');
   });
 
-  // A group mixing file-level and entry-level findings collects fewer
+  // A set mixing file-level and entry-level findings collects fewer
   // than three ids, and without this reads as though those were all of
   // them.
   test('the examples say when they are only some of the records', async function (assert) {

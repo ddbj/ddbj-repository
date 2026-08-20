@@ -1,3 +1,6 @@
+# `status_in_words` is Rambulance's status symbol — `unprocessable_content`,
+# not a sentence. Where it stands in for a message it is what somebody
+# reads, so it is written the way they read it.
 {
-  error: exception.message == exception.class.to_s ? status_in_words : exception.message
+  error: PublicError.message_for(exception, fallback: status_in_words.to_s.humanize)
 }

@@ -9,6 +9,15 @@ class Submission < ApplicationRecord
 
   has_one :request, dependent: :destroy, class_name: 'SubmissionRequest'
 
+  # Everything this person may read: their own, plus whatever has been
+  # shared into a set they have joined. The rule lives on
+  # SubmissionRequest — the request is the unit — and this follows it, so
+  # the two cannot drift apart and leave a set member holding a
+  # submission id that answers 404.
+  scope :readable_by, ->(user) {
+    where(id: SubmissionRequest.readable_by(user).select(:submission_id))
+  }
+
   has_many :updates,    dependent: :destroy, class_name: 'SubmissionUpdate'
   has_many :entries, dependent: :destroy
 

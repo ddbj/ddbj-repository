@@ -92,3 +92,10 @@ textarea.form-control.textarea-autogrow {
   min-height: 4lh;
   max-height: 20lh;
 }
+
+/* The reason a set cannot be deleted yet, under the button that is
+   asking to. A sentence, not a label — measured so it wraps rather than
+   stretching the header row it sits in. */
+.delete-hint {
+  max-width: 20rem;
+}

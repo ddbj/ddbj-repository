@@ -1,0 +1,1 @@
+render('set_members/member', member: @member, set: @member.set, viewer: @viewer, submission_counts: {})

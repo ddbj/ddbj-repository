@@ -1,1 +1,7 @@
-render('exception')
+# Never the exception's own words. A fault is by definition something we
+# did not write a sentence for, and Rails' message for one carries
+# whatever produced it — a SQL statement, a file path, a credential in a
+# connection string.
+{
+  error: status_in_words.to_s.humanize
+}

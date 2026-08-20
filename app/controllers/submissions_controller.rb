@@ -9,8 +9,13 @@ class SubmissionsController < ApplicationController
     response.headers.merge! pagy.headers_hash
   end
 
+  # Readable, not owned — following the request's own screen, which now
+  # opens for a set's members. Nothing new is disclosed by it: what
+  # this returns is the same `submission` object already embedded in the
+  # request payload they can read. `index` above stays "mine", because a
+  # list of my submissions is what it says it is.
   def show
-    @submission = current_user.submissions.find(params.expect(:id))
+    @submission = Submission.readable_by(current_user).find(params.expect(:id))
   end
 
   def create

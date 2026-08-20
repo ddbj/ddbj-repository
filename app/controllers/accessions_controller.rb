@@ -13,8 +13,10 @@ class AccessionsController < ApplicationController
     keyset_page(scope)
   end
 
+  # Readable, like the list it is reached from. `owned_entries` below is
+  # the flat synchronisation walk and stays "mine".
   def show
-    @accession = owned_entries.find_by!(accession: params[:number])
+    @accession = readable_entries.find_by!(accession: params[:number])
   end
 
   private
@@ -38,11 +40,21 @@ class AccessionsController < ApplicationController
   def scoped_entries
     return owned_entries unless nested_submission_id
 
-    current_user.submissions.find(nested_submission_id).entries
+    # Readable, not owned. The nested list is what the submission's own
+    # screen shows, and that screen now opens for a set's members — the
+    # accessions are a large part of why somebody looks at a colleague's
+    # submission at all. The flat list below stays "mine": it is a
+    # synchronisation walk, and widening it would put other people's rows
+    # into a local copy that is meant to be one submitter's.
+    Submission.readable_by(current_user).find(nested_submission_id).entries
   end
 
   def owned_entries
     Entry.joins(:submission).merge(current_user.submissions)
+  end
+
+  def readable_entries
+    Entry.joins(:submission).merge(Submission.readable_by(current_user))
   end
 
   # A page of the nested list is read by a person: they want to know how

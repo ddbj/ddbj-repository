@@ -14,6 +14,10 @@ type Me = paths['/me']['get']['responses']['200']['content']['application/json']
 
 export class LoginError extends Error {}
 
+// Long enough for an OAuth round trip that includes making an account,
+// short enough that an abandoned one does not redirect a login tomorrow.
+const RETURN_TO_TTL = 30 * 60 * 1000;
+
 export default class CurrentUserService extends Service {
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
@@ -91,11 +95,38 @@ export default class CurrentUserService extends Service {
   expireSession() {
     if (this.sessionExpired) return;
 
-    localStorage.setItem('returnTo', this.router.currentURL ?? '/');
+    this.rememberReturn();
     localStorage.removeItem('token');
 
     this.clear();
     this.sessionExpired = true;
+  }
+
+  // Where to come back to after a full page load takes us out to the
+  // identity provider. Stamped, because the round trip is one somebody
+  // can simply abandon — close the tab, give up and go make an account —
+  // and an address left in storage would otherwise hijack an unrelated
+  // login days later, landing it on a page that may not even exist any
+  // more.
+  rememberReturn(url: string = this.router.currentURL ?? '/') {
+    localStorage.setItem('returnTo', JSON.stringify({ url, at: Date.now() }));
+  }
+
+  takeReturn(): string | undefined {
+    const raw = localStorage.getItem('returnTo');
+    localStorage.removeItem('returnTo');
+
+    if (!raw) return undefined;
+
+    try {
+      const { url, at } = JSON.parse(raw) as { url?: string; at?: number };
+
+      if (!url || !at || Date.now() - at > RETURN_TO_TTL) return undefined;
+
+      return url;
+    } catch {
+      return undefined;
+    }
   }
 
   async login(token: string, proxyUid?: string) {
@@ -112,8 +143,7 @@ export default class CurrentUserService extends Service {
       this.startProxy(proxyUid);
     }
 
-    const returnTo = localStorage.getItem('returnTo');
-    localStorage.removeItem('returnTo');
+    const returnTo = this.takeReturn();
 
     if (this.previousTransition) {
       this.previousTransition.retry();

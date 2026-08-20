@@ -67,6 +67,9 @@ module('Acceptance | submission request', function (hooks) {
 
       unread_curator_message_count: 0,
       last_message_at: null,
+      sets: [],
+      owned: true,
+      owner_uid: 'test-user',
     };
 
     worker.use(

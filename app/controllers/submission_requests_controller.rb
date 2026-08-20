@@ -1,6 +1,7 @@
 class SubmissionRequestsController < ApplicationController
   include SourceIdFilterable
   include AccessionFilterable
+  include AccessionSummaries
   include EnumFilterable
 
   # The submitter's list, organised around "where is this now".
@@ -54,8 +55,12 @@ class SubmissionRequestsController < ApplicationController
     response.headers['Finished-Count']   = owned.finished.count.to_s
   end
 
+  # Wider than the list above, which is "mine". A set's members can read
+  # each other's submissions, and this is where they do it — the payload
+  # says which of the two the reader is (`owned`), and withholds the
+  # conversation either way.
   def show
-    @request = current_user.submission_requests.find(params.expect(:id))
+    @request = SubmissionRequest.readable_by(current_user).find(params.expect(:id))
   end
 
   def create
@@ -102,25 +107,6 @@ class SubmissionRequestsController < ApplicationController
     when 'all'      then scope
     else                 scope.unfinished
     end
-  end
-
-  # {submission_id => [first_accession, count]} for BS submissions, via one
-  # grouped MIN / COUNT over sample accessions.
-  # BioSample samples and ST.26 entries both, so neither list loads a bag
-  # of rows to print one accession and one count.
-  def sample_accession_summaries(submissions)
-    summarise(Sample, submissions.select(&:biosample_db?).map(&:id))
-      .merge(summarise(Entry, submissions.select(&:st26_db?).map(&:id)))
-  end
-
-  def summarise(model, ids)
-    return {} if ids.empty?
-
-    model
-      .where(submission_id: ids)
-      .group(:submission_id)
-      .pluck(:submission_id, Arel.sql('MIN(accession)'), Arel.sql('COUNT(accession)'))
-      .to_h {|sid, first, count| [sid, [first, count]] }
   end
 
   def request_params

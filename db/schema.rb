@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_10_145311) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_20_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -346,6 +346,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_10_145311) do
     t.index ["user_id"], name: "index_submission_requests_on_user_id"
   end
 
+  create_table "submission_set_inclusions", force: :cascade do |t|
+    t.bigint "added_by_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "submission_request_id", null: false
+    t.bigint "submission_set_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["added_by_id"], name: "index_submission_set_inclusions_on_added_by_id"
+    t.index ["submission_request_id"], name: "index_submission_set_inclusions_on_submission_request_id"
+    t.index ["submission_set_id", "submission_request_id"], name: "idx_on_submission_set_id_submission_request_id_93e2b1c68d", unique: true
+    t.index ["submission_set_id"], name: "index_submission_set_inclusions_on_submission_set_id"
+  end
+
+  create_table "submission_set_members", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email"
+    t.datetime "invitation_expires_at"
+    t.string "invitation_token"
+    t.bigint "invited_by_id", null: false
+    t.datetime "joined_at"
+    t.bigint "submission_set_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index "submission_set_id, lower((email)::text)", name: "index_submission_set_members_on_set_and_lower_email", unique: true
+    t.index ["invitation_token"], name: "index_submission_set_members_on_invitation_token", unique: true, where: "(invitation_token IS NOT NULL)"
+    t.index ["invited_by_id"], name: "index_submission_set_members_on_invited_by_id"
+    t.index ["submission_set_id", "user_id"], name: "index_submission_set_members_on_submission_set_id_and_user_id", unique: true, where: "(user_id IS NOT NULL)"
+    t.index ["submission_set_id"], name: "index_submission_set_members_on_submission_set_id"
+    t.index ["user_id"], name: "index_submission_set_members_on_user_id"
+    t.check_constraint "user_id IS NULL AND joined_at IS NULL AND email IS NOT NULL AND invitation_token IS NOT NULL AND invitation_expires_at IS NOT NULL OR user_id IS NOT NULL AND joined_at IS NOT NULL", name: "submission_set_members_state_exclusivity"
+  end
+
+  create_table "submission_sets", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "owner_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_id"], name: "index_submission_sets_on_owner_id"
+  end
+
   create_table "submission_updates", force: :cascade do |t|
     t.string "actor"
     t.datetime "created_at", null: false
@@ -450,6 +489,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_10_145311) do
   add_foreign_key "submission_requests", "submissions"
   add_foreign_key "submission_requests", "users"
   add_foreign_key "submission_requests", "users", column: "assignee_id"
+  add_foreign_key "submission_set_inclusions", "submission_requests"
+  add_foreign_key "submission_set_inclusions", "submission_sets"
+  add_foreign_key "submission_set_inclusions", "users", column: "added_by_id"
+  add_foreign_key "submission_set_members", "submission_sets"
+  add_foreign_key "submission_set_members", "users"
+  add_foreign_key "submission_set_members", "users", column: "invited_by_id"
+  add_foreign_key "submission_sets", "users", column: "owner_id"
   add_foreign_key "submission_updates", "submissions"
   add_foreign_key "submissions", "submission_updates", column: "cached_at_update_id", on_delete: :nullify
   add_foreign_key "submissions", "users"

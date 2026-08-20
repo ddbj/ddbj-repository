@@ -139,9 +139,11 @@ export default class ReviewerAccess extends Component<Signature> {
   }
 
   <template>
-    <section class="mt-4">
-      <h2 class="h4">Reviewer access</h2>
-
+    {{! No heading, for the same reason as the Sets panel beside it — and
+    here it was worse than repetition: the summary says "Share with a
+    reviewer" and this said "Reviewer access", leaving the reader to
+    wonder which one names the thing. }}
+    <section>
       <p class="text-body-secondary small">
         Share a read-only link that lets a reviewer view this request without logging in. Messages are not shown to
         reviewers.
@@ -201,7 +203,10 @@ export default class ReviewerAccess extends Component<Signature> {
 
         {{#if this.enabled}}
           <div class="col-auto">
-            <button type="button" class="btn btn-outline-danger" disabled={{this.busy}} {{on "click" this.disable}}>
+            {{! Amber, not red. Red says something about the data — this
+            failed, this is overdue — and a control that competes with
+            that reading wins the attention without carrying the meaning. }}
+            <button type="button" class="btn btn-warning" disabled={{this.busy}} {{on "click" this.disable}}>
               Disable
             </button>
           </div>

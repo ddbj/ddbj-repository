@@ -19,5 +19,5 @@ state = states[submission_request.id] || CurationState.new(submission_request)
   processing:                   submission_request.processing?,
   unread_curator_message_count: unread_counts.fetch(submission_request.id, 0),
 
-  progress: render('progress', state: state)
+  progress: render('submission_requests/progress', state: state)
 }

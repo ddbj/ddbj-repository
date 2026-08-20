@@ -274,4 +274,38 @@ class SubmissionRequestTest < ActiveSupport::TestCase
 
     assert_includes SubmissionRequest.unfinished, request
   end
+
+  test 'readable_by covers your own and whatever a set has shared with you' do
+    alice = users(:alice)
+    carol = users(:carol)
+
+    mine   = submission_requests(:bioproject) # alice's
+    theirs = carol.submission_requests.create!(db: 'bioproject', status: :applied, migration_run_id: SecureRandom.uuid)
+
+    assert_not_includes SubmissionRequest.readable_by(alice), theirs
+
+    set = SubmissionSet.create!(name: 'Deep sea study', owner: alice)
+    set.members.create!(user: carol, invited_by: alice, joined_at: Time.current)
+    set.inclusions.create!(submission_request: theirs, added_by: carol)
+
+    assert_includes SubmissionRequest.readable_by(alice), theirs
+    assert_includes SubmissionRequest.readable_by(alice), mine
+
+    # Ownership is what it always was. Sharing does not widen it, which is
+    # what keeps `user.submission_requests` safe to write through.
+    assert_not_includes alice.submission_requests, theirs
+  end
+
+  test 'an invitation nobody has walked through shares nothing' do
+    alice = users(:alice)
+    carol = users(:carol)
+
+    theirs = carol.submission_requests.create!(db: 'bioproject', status: :applied, migration_run_id: SecureRandom.uuid)
+
+    set = SubmissionSet.create!(name: 'Deep sea study', owner: carol)
+    set.members.create!(email: 'alice@example.com', invited_by: carol)
+    set.inclusions.create!(submission_request: theirs, added_by: carol)
+
+    assert_not_includes SubmissionRequest.readable_by(alice), theirs
+  end
 end

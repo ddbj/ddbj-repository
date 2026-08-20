@@ -1,0 +1,27 @@
+render('sets/set_summary', set: @set, viewer: @viewer, counts: @counts).merge(
+  # Whether it can go, and if not, why — said by the side that holds the
+  # rule. A screen that expresses it by hiding the button leaves an owner
+  # with one forgotten invitation looking at a set with, apparently, no
+  # way to get rid of it.
+  deletable:             @set.deletable?,
+  delete_blocked_reason: @set.delete_blocked_reason,
+
+  members: render(
+    partial:    'set_members/member',
+    collection: @set.members.includes(:user, :invited_by),
+    as:         :member,
+    locals:     {set: @set, viewer: @viewer, submission_counts: @submission_counts}
+  ),
+
+  submissions: render(
+    partial:    'sets/set_submission',
+    collection: @inclusions,
+    as:         :inclusion,
+    locals:     {
+      viewer:                 @viewer,
+      states:                 @states,
+      unread_counts:          @unread_counts,
+      bs_accession_summaries: @bs_accession_summaries
+    }
+  )
+)

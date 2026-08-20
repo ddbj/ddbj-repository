@@ -24,7 +24,10 @@ module EnumFilterable
   # script looping on a stale filter value is a client mistake reported
   # to the client — turning each one into an error event would bury the
   # faults that are ours.
-  class UnknownFilterValue < ActionController::BadRequest; end
+  class UnknownFilterValue < ActionController::BadRequest
+    # The message names the value the caller sent and what was expected.
+    include PublicError
+  end
 
   # What of the client's input is quoted back. The parameter is not
   # necessarily the small list of strings it is supposed to be —

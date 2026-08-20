@@ -11,6 +11,14 @@ class User < ApplicationRecord
   # Named ledger filters. Personal, so they go when the account does.
   has_many :saved_views, dependent: :destroy
 
+  # Sets this account belongs to. No `dependent` on either: a set is
+  # shared work rather than one person's, so an account cannot take one
+  # with it — the foreign key refuses the deletion, which is the honest
+  # answer until somebody decides what handing a set over looks like.
+  has_many :submission_set_members, dependent: nil
+  has_many :submission_sets, through: :submission_set_members
+  has_many :owned_submission_sets, class_name: 'SubmissionSet', inverse_of: :owner, foreign_key: :owner_id, dependent: nil
+
   belongs_to :notes_updated_by, class_name: 'User', optional: true
 
   scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }

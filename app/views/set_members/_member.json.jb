@@ -1,0 +1,53 @@
+# locals: (member:, set:, viewer:, submission_counts: {})
+
+owner = member.user_id == set.owner_id
+you   = member.user_id == viewer.id
+
+{
+  id:     member.id,
+  email:  member.email,
+  uid:    member.user&.uid,
+  # One vocabulary for the roster and for the invitation page, so the
+  # two cannot describe the same row differently.
+  status: member.invitation_state,
+
+  owner:      owner,
+  you:        you,
+  invited_by: member.invited_by.uid,
+  joined_at:  member.joined_at&.iso8601,
+
+  invitation_expires_at: member.invitation_expires_at&.iso8601,
+
+  # The rule, rather than the client re-deriving it. It cannot: leaving,
+  # removing somebody, and taking back an invitation you sent are three
+  # different permissions, and under a proxy login the account the client
+  # thinks it is is not the account the server is acting as.
+  #
+  # The owner's own row is never removable — nobody else may remove them,
+  # and they cannot walk out of a set that would then have nobody to
+  # rename or delete it. Deleting it is the way out.
+  removable: !owner && (you || set.owned_by?(viewer) || (member.pending? && member.invited_by_id == viewer.id)),
+
+  # What goes with them if they are removed. Counted over the whole
+  # set, not over the page the reader happens to be on.
+  submission_count: submission_counts.fetch(member.user_id, 0),
+
+  # Whether the account that walked through the invitation is registered
+  # at the address it went to: 'same', 'different', or 'unknown' when the
+  # account carries no address at all. Null where the question does not
+  # arise — the creator's own row, which was never invited. This is the
+  # whole of the audit that pays for not binding the token to the
+  # address; see SubmissionSetMember.
+  invited_address_match: member.invited_address_match,
+
+  # An outstanding invitation, as a link. Two reasons it is here rather
+  # than only in the mail: every deployed environment restricts outgoing
+  # mail while sending to real submitters is switched off, so the mail
+  # may have reached nobody; and mail goes missing. Handing it to a
+  # member grants nothing they did not already have — they can invite
+  # whoever they like.
+  invitation_url: member.pending? ? member.invitation_url : nil,
+
+  # Whether that mail actually left the building.
+  mail_deliverable: member.pending? ? member.deliverable? : nil
+}
