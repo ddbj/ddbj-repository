@@ -123,7 +123,10 @@ module('Acceptance | submission messages', function (hooks) {
 
     assert.dom('[data-test-messages]').includesText('samples.tsv');
     assert.dom('[data-test-messages]').includesText('2.0 KB', 'the size answers "which file is this"');
-    assert.dom('[data-test-messages] a[download]').hasAttribute('href', 'http://example.com/samples.tsv');
+    // A button, not an anchor: the address refuses a request carrying no
+    // credentials, and a browser navigation carries none. See
+    // DownloadsService.
+    assert.dom('[data-test-messages] [data-test-download]').hasText('samples.tsv');
   });
 
   // "Here is the corrected file" needs no prose, and the textarea's

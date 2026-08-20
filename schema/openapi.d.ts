@@ -1650,6 +1650,363 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submission_requests/{submission_request_id}/files/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_request_id: number;
+                name: "ddbj_record";
+            };
+            cookie?: never;
+        };
+        /**
+         * @description The file as uploaded. Readable by its submitter, by the members of any
+         *     set it has been put in, and by nobody else — asked on every request,
+         *     so access that has been taken away is a download that has stopped.
+         *
+         *     The attachment is named by the path rather than carried as an opaque
+         *     blob id, so one record's id cannot be presented with another record's
+         *     file, and an attachment no path names cannot be addressed at all.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description `url` answers with the address as JSON instead of redirecting to it.
+                     *     A browser cannot put an `Authorization` header on an anchor and this
+                     *     API takes no cookies, so the web client asks for the address and
+                     *     navigates to it itself. Everything else follows the redirect.
+                     */
+                    as?: "url";
+                    disposition?: "inline" | "attachment";
+                };
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                    name: "ddbj_record";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /**
+                 * @description The address, when `as=url` was asked for. A storage URL good for a
+                 *     few minutes — not a thing to store, and not usable by anybody the
+                 *     request was not authorised for.
+                 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uri */
+                            url: string;
+                        };
+                    };
+                };
+                /**
+                 * @description A redirect to storage. The `Location` expires in minutes; the
+                 *     authorisation happened here, on this request.
+                 */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submission_requests/{submission_request_id}/messages/{message_id}/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_request_id: number;
+                message_id: number;
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description A file attached to a message. The request's owner only — the
+         *     conversation is between one submitter and DDBJ, and reading their
+         *     submission through a shared set is not being party to it.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description `url` answers with the address as JSON instead of redirecting to it.
+                     *     A browser cannot put an `Authorization` header on an anchor and this
+                     *     API takes no cookies, so the web client asks for the address and
+                     *     navigates to it itself. Everything else follows the redirect.
+                     */
+                    as?: "url";
+                    disposition?: "inline" | "attachment";
+                };
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                    message_id: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /**
+                 * @description The address, when `as=url` was asked for. A storage URL good for a
+                 *     few minutes — not a thing to store, and not usable by anybody the
+                 *     request was not authorised for.
+                 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uri */
+                            url: string;
+                        };
+                    };
+                };
+                /**
+                 * @description A redirect to storage. The `Location` expires in minutes; the
+                 *     authorisation happened here, on this request.
+                 */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submissions/{submission_id}/files/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: number;
+                name: "ddbj_record" | "flatfile_na" | "flatfile_aa";
+            };
+            cookie?: never;
+        };
+        /** @description The applied record, and the flatfiles rendered from it. */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description `url` answers with the address as JSON instead of redirecting to it.
+                     *     A browser cannot put an `Authorization` header on an anchor and this
+                     *     API takes no cookies, so the web client asks for the address and
+                     *     navigates to it itself. Everything else follows the redirect.
+                     */
+                    as?: "url";
+                    disposition?: "inline" | "attachment";
+                };
+                header?: never;
+                path: {
+                    submission_id: number;
+                    name: "ddbj_record" | "flatfile_na" | "flatfile_aa";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /**
+                 * @description The address, when `as=url` was asked for. A storage URL good for a
+                 *     few minutes — not a thing to store, and not usable by anybody the
+                 *     request was not authorised for.
+                 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uri */
+                            url: string;
+                        };
+                    };
+                };
+                /**
+                 * @description A redirect to storage. The `Location` expires in minutes; the
+                 *     authorisation happened here, on this request.
+                 */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reviews/{token}/files/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                /**
+                 * @description `submission_record` is the applied record, as against `ddbj_record`
+                 *     which is what was uploaded — one word apart everywhere else, which is
+                 *     why they are not here.
+                 */
+                name: "ddbj_record" | "submission_record" | "flatfile_na" | "flatfile_aa";
+            };
+            cookie?: never;
+        };
+        /**
+         * @description Files on the share token, like the rest of the reviewer's view — so
+         *     revoking or expiring the share revokes these with it.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /**
+                     * @description `url` answers with the address as JSON instead of redirecting to it.
+                     *     A browser cannot put an `Authorization` header on an anchor and this
+                     *     API takes no cookies, so the web client asks for the address and
+                     *     navigates to it itself. Everything else follows the redirect.
+                     */
+                    as?: "url";
+                    disposition?: "inline" | "attachment";
+                };
+                header?: never;
+                path: {
+                    token: string;
+                    /**
+                     * @description `submission_record` is the applied record, as against `ddbj_record`
+                     *     which is what was uploaded — one word apart everywhere else, which is
+                     *     why they are not here.
+                     */
+                    name: "ddbj_record" | "submission_record" | "flatfile_na" | "flatfile_aa";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /**
+                 * @description The address, when `as=url` was asked for. A storage URL good for a
+                 *     few minutes — not a thing to store, and not usable by anybody the
+                 *     request was not authorised for.
+                 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uri */
+                            url: string;
+                        };
+                    };
+                };
+                /**
+                 * @description A redirect to storage. The `Location` expires in minutes; the
+                 *     authorisation happened here, on this request.
+                 */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/direct_uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Reserve a place in storage and get a URL to PUT the bytes to. The
+         *     request and response shapes are Active Storage's contract with
+         *     `@rails/activestorage` in the browser, not this application's, so they
+         *     are not pinned here.
+         *
+         *     Authenticated, unlike Active Storage's own endpoint: it mints a row and
+         *     a presigned PUT to whoever asks, which is defensible as a framework
+         *     route and not as one we redraw.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description The blob, including `signed_id` and where to PUT the bytes. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": Record<string, never>;
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stats": {
         parameters: {
             query?: never;

@@ -33,9 +33,23 @@ module AttachmentDownload
 
     raise ActiveRecord::RecordNotFound unless blob
 
-    expires_in ActiveStorage.service_urls_expire_in
+    # Never cached. Caching the redirect for as long as the URL it points
+    # at is valid would mean a second click inside that window is served
+    # from the browser without coming back here — and coming back here is
+    # the entire point. A membership revoked a minute ago has to be a
+    # download that stops, not one that stops in five minutes.
+    expires_now
 
-    redirect_to blob.url(disposition:), allow_other_host: true
+    url = blob.url(disposition:)
+
+    # A browser cannot put an `Authorization` header on an anchor, and
+    # this API takes no cookies — so the web client asks for the address
+    # instead of following the redirect, and navigates to it itself.
+    # Everything else (curl, the bulk client, the admin screens) follows
+    # the redirect as before.
+    return render json: {url:} if params[:as] == 'url'
+
+    redirect_to url, allow_other_host: true
   end
 
   # `inline` unless asked otherwise, matching Active Storage's own

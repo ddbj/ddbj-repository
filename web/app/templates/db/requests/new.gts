@@ -11,6 +11,7 @@ import Breadcrumb from 'repository/components/breadcrumb';
 import SubmissionSteps from 'repository/components/submission-steps';
 import dbLabel from 'repository/helpers/db-label';
 
+import type CurrentUserService from 'repository/services/current-user';
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type { Blob } from '@rails/activestorage';
@@ -25,6 +26,7 @@ interface Signature {
 }
 
 export default class extends Component<Signature> {
+  @service declare currentUser: CurrentUserService;
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
 
@@ -42,7 +44,10 @@ export default class extends Component<Signature> {
     if (!this.file) return;
 
     const { db } = this.args.model;
-    const upload = new DirectUpload(this.file, ENV.directUploadURL);
+    // The endpoint authenticates now (it mints a blob row and a presigned
+    // PUT, which is not something to leave open), and @rails/activestorage
+    // sends only its own headers unless it is given more.
+    const upload = new DirectUpload(this.file, ENV.directUploadURL, undefined, this.currentUser.authorizationHeader);
 
     const blob = await new Promise<Blob>((resolve, reject) => {
       upload.create((err, blob) => (err ? reject(err) : resolve(blob!)));

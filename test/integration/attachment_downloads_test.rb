@@ -181,4 +181,32 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert response.parsed_body['signed_id'].present?
   end
+
+  # Caching the redirect for as long as the URL it points at is valid
+  # would mean a second click inside that window never comes back here —
+  # and coming back here is the whole point. A membership revoked a
+  # minute ago has to be a download that stops, not one that stops in
+  # five minutes.
+  test 'the redirect is never cached' do
+    get submission_request_file_path(@submission_request, 'ddbj_record')
+
+    assert_response :redirect
+    assert_match(/no-cache|no-store/, response.headers['Cache-Control'].to_s)
+  end
+
+  # A browser cannot put an Authorization header on an anchor and this
+  # API takes no cookies, so the web client asks for the address instead
+  # of following the redirect. Same check either way.
+  test 'the address can be asked for instead of followed' do
+    get submission_request_file_path(@submission_request, 'ddbj_record', as: 'url')
+
+    assert_response :success
+    assert_match %r{/rails/active_storage/disk/}, response.parsed_body.fetch('url')
+
+    default_headers['Authorization'] = "Bearer #{@carol.api_key}"
+
+    with_exceptions_app { get submission_request_file_path(@submission_request, 'ddbj_record', as: 'url') }
+
+    assert_response :not_found
+  end
 end

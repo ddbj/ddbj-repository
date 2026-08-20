@@ -10,10 +10,8 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       methods: %i[get post put patch delete options head]
     }
 
-    resource '/rails/active_storage/direct_uploads', **{
-      headers: :any,
-      methods: %i[post]
-    }
+    # Direct upload lives under /api now (see config/application.rb), so
+    # the rule above already covers it.
   end
 
   allow do

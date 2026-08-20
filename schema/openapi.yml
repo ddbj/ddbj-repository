@@ -1593,6 +1593,357 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /submission_requests/{submission_request_id}/files/{name}:
+    parameters:
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: name
+        in: path
+        required: true
+
+        schema:
+          type: string
+          enum: [ddbj_record]
+
+    get:
+      description: |
+        The file as uploaded. Readable by its submitter, by the members of any
+        set it has been put in, and by nobody else — asked on every request,
+        so access that has been taken away is a download that has stopped.
+
+        The attachment is named by the path rather than carried as an opaque
+        blob id, so one record's id cannot be presented with another record's
+        file, and an attachment no path names cannot be addressed at all.
+
+      tags:
+        - Submission Requests
+
+      parameters:
+        - name: as
+          in: query
+          description: |
+            `url` answers with the address as JSON instead of redirecting to it.
+            A browser cannot put an `Authorization` header on an anchor and this
+            API takes no cookies, so the web client asks for the address and
+            navigates to it itself. Everything else follows the redirect.
+
+          schema:
+            type: string
+            enum: [url]
+
+        - name: disposition
+          in: query
+
+          schema:
+            type: string
+            enum: [inline, attachment]
+
+      responses:
+        '200':
+          description: |
+            The address, when `as=url` was asked for. A storage URL good for a
+            few minutes — not a thing to store, and not usable by anybody the
+            request was not authorised for.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [url]
+
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+        '302':
+          description: |
+            A redirect to storage. The `Location` expires in minutes; the
+            authorisation happened here, on this request.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submission_requests/{submission_request_id}/messages/{message_id}/files/{id}:
+    parameters:
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: message_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    get:
+      description: |
+        A file attached to a message. The request's owner only — the
+        conversation is between one submitter and DDBJ, and reading their
+        submission through a shared set is not being party to it.
+
+      tags:
+        - Submission Requests
+
+      parameters:
+        - name: as
+          in: query
+          description: |
+            `url` answers with the address as JSON instead of redirecting to it.
+            A browser cannot put an `Authorization` header on an anchor and this
+            API takes no cookies, so the web client asks for the address and
+            navigates to it itself. Everything else follows the redirect.
+
+          schema:
+            type: string
+            enum: [url]
+
+        - name: disposition
+          in: query
+
+          schema:
+            type: string
+            enum: [inline, attachment]
+
+      responses:
+        '200':
+          description: |
+            The address, when `as=url` was asked for. A storage URL good for a
+            few minutes — not a thing to store, and not usable by anybody the
+            request was not authorised for.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [url]
+
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+        '302':
+          description: |
+            A redirect to storage. The `Location` expires in minutes; the
+            authorisation happened here, on this request.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /submissions/{submission_id}/files/{name}:
+    parameters:
+      - name: submission_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: name
+        in: path
+        required: true
+
+        schema:
+          type: string
+          enum: [ddbj_record, flatfile_na, flatfile_aa]
+
+    get:
+      description: The applied record, and the flatfiles rendered from it.
+
+      tags:
+        - Submissions
+
+      parameters:
+        - name: as
+          in: query
+          description: |
+            `url` answers with the address as JSON instead of redirecting to it.
+            A browser cannot put an `Authorization` header on an anchor and this
+            API takes no cookies, so the web client asks for the address and
+            navigates to it itself. Everything else follows the redirect.
+
+          schema:
+            type: string
+            enum: [url]
+
+        - name: disposition
+          in: query
+
+          schema:
+            type: string
+            enum: [inline, attachment]
+
+      responses:
+        '200':
+          description: |
+            The address, when `as=url` was asked for. A storage URL good for a
+            few minutes — not a thing to store, and not usable by anybody the
+            request was not authorised for.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [url]
+
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+        '302':
+          description: |
+            A redirect to storage. The `Location` expires in minutes; the
+            authorisation happened here, on this request.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /reviews/{token}/files/{name}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+
+        schema:
+          type: string
+
+      - name: name
+        in: path
+        required: true
+        description: |
+          `submission_record` is the applied record, as against `ddbj_record`
+          which is what was uploaded — one word apart everywhere else, which is
+          why they are not here.
+
+        schema:
+          type: string
+          enum: [ddbj_record, submission_record, flatfile_na, flatfile_aa]
+
+    get:
+      description: |
+        Files on the share token, like the rest of the reviewer's view — so
+        revoking or expiring the share revokes these with it.
+
+      security: []
+
+      tags:
+        - Submission Requests
+
+      parameters:
+        - name: as
+          in: query
+          description: |
+            `url` answers with the address as JSON instead of redirecting to it.
+            A browser cannot put an `Authorization` header on an anchor and this
+            API takes no cookies, so the web client asks for the address and
+            navigates to it itself. Everything else follows the redirect.
+
+          schema:
+            type: string
+            enum: [url]
+
+        - name: disposition
+          in: query
+
+          schema:
+            type: string
+            enum: [inline, attachment]
+
+      responses:
+        '200':
+          description: |
+            The address, when `as=url` was asked for. A storage URL good for a
+            few minutes — not a thing to store, and not usable by anybody the
+            request was not authorised for.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [url]
+
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+        '302':
+          description: |
+            A redirect to storage. The `Location` expires in minutes; the
+            authorisation happened here, on this request.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /direct_uploads:
+    post:
+      description: |
+        Reserve a place in storage and get a URL to PUT the bytes to. The
+        request and response shapes are Active Storage's contract with
+        `@rails/activestorage` in the browser, not this application's, so they
+        are not pinned here.
+
+        Authenticated, unlike Active Storage's own endpoint: it mints a row and
+        a presigned PUT to whoever asks, which is defensible as a framework
+        route and not as one we redraw.
+
+      tags:
+        - Submission Requests
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+
+      responses:
+        '200':
+          description: The blob, including `signed_id` and where to PUT the bytes.
+
+          content:
+            application/json:
+              schema:
+                type: object
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /stats:
     get:
       description: |
