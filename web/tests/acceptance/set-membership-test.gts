@@ -64,6 +64,7 @@ module('Acceptance | putting a submission in a set', function (hooks) {
   // it had failed.
   test('adding it says so, and does not report a failure', async function (assert) {
     let added = false;
+    let posted: unknown;
 
     worker.use(
       http.get('/sets', ({ response }) => {
@@ -78,8 +79,9 @@ module('Acceptance | putting a submission in a set', function (hooks) {
         return response(200).json(request(added ? [{ id: 7, name: 'Deep sea study' }] : []));
       }),
 
-      http.post('/sets/{set_id}/submissions', ({ response }) => {
+      http.post('/sets/{set_id}/submissions', async ({ request, response }) => {
         added = true;
+        posted = await request.json();
 
         return response(200).json({ added: 1, already_in_set: 0 });
       }),
@@ -90,6 +92,13 @@ module('Acceptance | putting a submission in a set', function (hooks) {
     await click('[data-test-sets] button');
 
     assert.true(added, 'the submission was posted to the set');
+
+    // The body, not just that a request happened. Stubbing only the
+    // response is how this shipped broken once: the endpoint moved to a
+    // list and this caller kept sending the old shape, and the suite
+    // stayed green over a panel that answered "No submissions were
+    // named." to every press.
+    assert.deepEqual(posted, { submission_request_ids: [42] });
     assert.dom('[data-test-sets] [data-test-error]').doesNotExist();
     assert.dom('[data-test-sets]').includesText('Deep sea study');
   });

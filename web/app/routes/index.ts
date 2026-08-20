@@ -3,6 +3,7 @@ import { service } from '@ember/service';
 
 import { DB_OPTIONS } from 'repository/controllers/index';
 
+import type IndexController from 'repository/controllers/index';
 import type CurrentUser from 'repository/services/current-user';
 import type { Phase } from 'repository/controllers/index';
 import type { RequestManager } from '@warp-drive/core';
@@ -84,5 +85,14 @@ export default class IndexRoute extends Route {
       unfinishedCount: Number(response?.headers?.get('Unfinished-Count')) || 0,
       finishedCount: Number(response?.headers?.get('Finished-Count')) || 0,
     };
+  }
+
+  // Every model resolution means a different set of rows on screen — a
+  // page, a filter, a tab. Whatever was ticked was ticked against rows
+  // that are no longer there.
+  setupController(controller: IndexController, model: unknown, transition: Transition) {
+    super.setupController(controller, model, transition);
+
+    controller.clearSelection();
   }
 }

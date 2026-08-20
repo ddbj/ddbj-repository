@@ -3,6 +3,10 @@ import { visit, click, settled } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
+import { HttpResponse, http as mswHttp } from 'msw';
+
+import ENV from 'repository/config/environment';
+
 import { http } from '../msw/http';
 import { worker } from '../msw/worker';
 
@@ -150,6 +154,49 @@ module('Acceptance | adding several submissions to a set at once', function (hoo
 
     assert.dom('[data-test-bulk-add] [data-test-error]').includesText('Too many at once');
     assert.dom('.modal.show').doesNotExist();
+  });
+
+  // Ticking is scoped to the rows on screen, and "on screen" changes
+  // when the list is re-fetched. Without this, paging away and back
+  // brings the old ticks with it — the forgotten selection the scope
+  // exists to prevent.
+  test('changing the list drops what was ticked against the old rows', async function (assert) {
+    stubList();
+
+    await visit('/');
+    await click('[aria-label="Select submission #1"]');
+
+    assert.dom('[data-test-bulk-add]').includesText('1 selected on this page');
+
+    await click('[data-test-phase="finished"]');
+
+    assert.dom('[data-test-bulk-add]').doesNotExist();
+
+    await click('[data-test-phase="unfinished"]');
+
+    assert.dom('[data-test-bulk-add]').doesNotExist();
+  });
+
+  // A set list that could not be read must not leave an empty bordered
+  // box above the table.
+  test('a failed set list shows nothing rather than an empty card', async function (assert) {
+    worker.use(
+      http.get('/submission_requests', ({ response }) => {
+        return response(200).json(rows, listHeaders);
+      }),
+
+      // Raw, not typed: the contract does not declare a 500 on this
+      // endpoint, and the point here is what the screen does when one
+      // arrives anyway.
+      mswHttp.get(`${ENV.apiURL}/sets`, () => {
+        return HttpResponse.json({ error: 'Internal server error' }, { status: 500 });
+      }),
+    );
+
+    await visit('/');
+    await click('[aria-label="Select submission #1"]');
+
+    assert.dom('[data-test-bulk-add]').doesNotExist();
   });
 });
 

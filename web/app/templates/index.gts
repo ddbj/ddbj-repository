@@ -53,12 +53,13 @@ export default class extends Component<Signature> {
     this.filtersOpen = !this.showFilters;
   }
 
-  // Which rows are ticked. Held as ids rather than as rows so the set
-  // survives a re-render, and intersected with what is on screen
-  // whenever it is read — a page or filter change then drops what is no
-  // longer visible, which is what "the ones you can see" means and what
-  // stops somebody acting on rows they have forgotten about.
-  @tracked ticked = new Set<number>();
+  // The selection lives on the controller, so the route can drop it every
+  // time the rows are re-fetched — see IndexRoute#setupController. Read
+  // through the visible ids as well, so a row that has gone cannot be
+  // acted on even within one page of results.
+  get ticked() {
+    return this.args.controller.ticked;
+  }
 
   get visibleIds() {
     return (this.args.model?.requests ?? []).map((request) => request.id);
@@ -84,7 +85,7 @@ export default class extends Component<Signature> {
       next.delete(id);
     }
 
-    this.ticked = next;
+    this.args.controller.ticked = next;
   }
 
   @action
@@ -99,12 +100,7 @@ export default class extends Component<Signature> {
       }
     }
 
-    this.ticked = next;
-  }
-
-  @action
-  clearSelection() {
-    this.ticked = new Set();
+    this.args.controller.ticked = next;
   }
 
   get tabs() {
@@ -261,12 +257,12 @@ export default class extends Component<Signature> {
       {{/if}}
 
       {{#if @model.requests.length}}
-        <BulkAddToSet @submissionRequestIds={{this.selectedIds}} @onDone={{this.clearSelection}} />
+        <BulkAddToSet @submissionRequestIds={{this.selectedIds}} @onDone={{@controller.clearSelection}} />
 
         <table class="table border align-middle">
           <thead class="table-light">
             <tr>
-              <th class="w-1">
+              <th>
                 <input
                   type="checkbox"
                   class="form-check-input"

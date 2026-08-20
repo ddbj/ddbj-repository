@@ -108,54 +108,55 @@ export default class BulkAddToSet extends Component<Signature> {
   }
 
   <template>
-    {{#if this.count}}
+    {{! `loaded` gates the card itself, not its contents: a set list that
+    could not be fetched would otherwise put an empty bordered box above
+    the table saying nothing. }}
+    {{#if (and this.count this.loaded)}}
       <div class="card mb-3" data-test-bulk-add>
         <div class="card-body py-2">
-          {{#if this.loaded}}
-            {{#if this.mine.length}}
-              <div class="row g-2 align-items-center">
-                <div class="col-auto fw-semibold">
-                  {{this.count}}
-                  selected on this page
-                </div>
-
-                <div class="col-auto">
-                  {{#let (uniqueId) as |id|}}
-                    <label for={{id}} class="visually-hidden">Add them to</label>
-
-                    <select id={{id}} class="form-select form-select-sm" {{on "change" this.updateSelected}}>
-                      <option value="">Add them to a set…</option>
-
-                      {{#each this.mine as |set|}}
-                        <option value={{set.id}} selected={{eq (concat set.id) this.selected}}>{{set.name}}</option>
-                      {{/each}}
-                    </select>
-                  {{/let}}
-                </div>
-
-                <div class="col-auto">
-                  <button
-                    type="button"
-                    class="btn btn-primary btn-sm"
-                    disabled={{this.addDisabled}}
-                    {{on "click" this.add}}
-                  >
-                    Add
-                  </button>
-                </div>
-
-                <div class="col-auto">
-                  <button type="button" class="btn btn-link btn-sm" {{on "click" @onDone}}>Clear</button>
-                </div>
-              </div>
-            {{else}}
-              <div class="small text-body-secondary">
+          {{#if this.mine.length}}
+            <div class="row g-2 align-items-center">
+              <div class="col-auto fw-semibold">
                 {{this.count}}
-                selected on this page.
-                <LinkTo @route="sets">Create a set</LinkTo>
-                to put them in one.
+                selected on this page
               </div>
-            {{/if}}
+
+              <div class="col-auto">
+                {{#let (uniqueId) as |id|}}
+                  <label for={{id}} class="visually-hidden">Add them to</label>
+
+                  <select id={{id}} class="form-select form-select-sm" {{on "change" this.updateSelected}}>
+                    <option value="">Add them to a set…</option>
+
+                    {{#each this.mine as |set|}}
+                      <option value={{set.id}} selected={{eq (concat set.id) this.selected}}>{{set.name}}</option>
+                    {{/each}}
+                  </select>
+                {{/let}}
+              </div>
+
+              <div class="col-auto">
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  disabled={{this.addDisabled}}
+                  {{on "click" this.add}}
+                >
+                  Add
+                </button>
+              </div>
+
+              <div class="col-auto">
+                <button type="button" class="btn btn-link btn-sm" {{on "click" @onDone}}>Clear</button>
+              </div>
+            </div>
+          {{else}}
+            <div class="small text-body-secondary">
+              {{this.count}}
+              selected on this page.
+              <LinkTo @route="sets">Create a set</LinkTo>
+              to put them in one.
+            </div>
           {{/if}}
 
           {{#if this.error}}

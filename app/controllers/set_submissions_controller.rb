@@ -24,9 +24,17 @@ class SetSubmissionsController < ApplicationController
 
     refuse! 'No submissions were named.' unless raw.is_a?(Array) && raw.any?
 
-    ids = raw.map(&:to_i).uniq
+    # Before `uniq`, so the guard bounds the same thing the contract does
+    # (`maxItems`) — and so the work below is bounded before it is done
+    # rather than after.
+    refuse! "Too many at once — #{MAX_PER_CALL} is the maximum." if raw.size > MAX_PER_CALL
 
-    refuse! "Too many at once — #{MAX_PER_CALL} is the maximum." if ids.size > MAX_PER_CALL
+    # `to_i` on a nested object raises rather than answering, and a
+    # malformed body is a client mistake this method already has words
+    # for — it should not arrive as a 500 and a Sentry issue.
+    refuse! 'Submission ids must be numbers.' unless raw.all? { it.is_a?(Integer) || it.is_a?(String) }
+
+    ids = raw.map(&:to_i).uniq
 
     # Scoped to what the caller owns, so an id they merely read through
     # another set 404s rather than being quietly dropped: from here,
@@ -44,8 +52,23 @@ class SetSubmissionsController < ApplicationController
       already = @set.inclusions.where(submission_request_id: ids).pluck(:submission_request_id)
       fresh   = requests.to_a.reject { already.include?(it.id) }
 
-      fresh.each do |request|
-        @set.inclusions.create!(submission_request: request, added_by: current_user)
+      # One statement rather than two per row. A page of 200 through
+      # `create!` is 400 queries inside a lock that every other add,
+      # removal and invitation on this set waits behind.
+      #
+      # What the validations would have checked holds by construction and
+      # is spelled out because skipping them is otherwise a landmine:
+      # `addable_by_adder` wants the submission to belong to whoever is
+      # adding it, and `requests` is scoped to exactly that a few lines
+      # up; uniqueness is what `fresh` just filtered on, with the unique
+      # index behind it if two presses race.
+      if fresh.any?
+        SubmissionSetInclusion.insert_all!(
+          fresh.map {
+            {submission_set_id: @set.id, submission_request_id: it.id, added_by_id: current_user.id}
+          },
+          record_timestamps: true
+        )
       end
 
       @added          = fresh.size

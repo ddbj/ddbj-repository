@@ -191,4 +191,31 @@ class SubmissionSetInclusionsTest < ActionDispatch::IntegrationTest
 
     assert_equal({'added' => 1, 'already_in_set' => 0}, response.parsed_body)
   end
+
+  # A malformed body is a client mistake this endpoint has words for. It
+  # used to reach `to_i` and come back as a 500 and a Sentry issue.
+  test 'a list of things that are not ids is refused rather than crashing' do
+    [[{'a' => 1}], [[1]], [true]].each do |bad|
+      with_exceptions_app do
+        post set_submissions_path(@set), params: {submission_request_ids: bad}.to_json, headers: JSON_HEADERS
+      end
+
+      assert_response :unprocessable_content
+      assert_equal 'Submission ids must be numbers.', response.parsed_body['error']
+    end
+  end
+
+  # The cap bounds what the contract bounds — the array as submitted, not
+  # the deduplicated one. Otherwise a body the schema refuses is accepted
+  # here.
+  test 'the cap counts what was sent, not what was left after removing duplicates' do
+    over = Array.new(SetSubmissionsController::MAX_PER_CALL + 1) { @submission_request.id }
+
+    with_exceptions_app do
+      post set_submissions_path(@set), params: {submission_request_ids: over}.to_json, headers: JSON_HEADERS
+    end
+
+    assert_response :unprocessable_content
+    assert_match(/Too many at once/, response.parsed_body['error'])
+  end
 end
