@@ -112,7 +112,7 @@ export default class BulkAddToSet extends Component<Signature> {
     could not be fetched would otherwise put an empty bordered box above
     the table saying nothing. }}
     {{#if (and this.count this.loaded)}}
-      <div class="card mb-3" data-test-bulk-add>
+      <div class="card shadow-sm" data-test-bulk-add>
         <div class="card-body py-2">
           {{#if this.mine.length}}
             <div class="row g-2 align-items-center">

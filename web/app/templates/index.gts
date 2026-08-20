@@ -257,8 +257,6 @@ export default class extends Component<Signature> {
       {{/if}}
 
       {{#if @model.requests.length}}
-        <BulkAddToSet @submissionRequestIds={{this.selectedIds}} @onDone={{@controller.clearSelection}} />
-
         <table class="table border align-middle">
           <thead class="table-light">
             <tr>
@@ -326,6 +324,15 @@ export default class extends Component<Signature> {
             {{/each}}
           </tbody>
         </table>
+
+        {{! Below the table and pinned to the bottom of the screen, not
+        above it. A bar that appears above the rows pushes every row down
+        the moment the first one is ticked, and the next checkbox somebody
+        was aiming at is no longer where they were aiming. Here nothing
+        above it moves, and it follows them down a long page. }}
+        <div class="sticky-bottom pb-3">
+          <BulkAddToSet @submissionRequestIds={{this.selectedIds}} @onDone={{@controller.clearSelection}} />
+        </div>
 
         {{! LinkTo carries the route's other query params (phase, filters)
         through on its own — only `page` needs restating. }}
