@@ -596,9 +596,10 @@ export default class extends Component<Signature> {
           <p class="mb-1 fw-semibold">Nothing has been put in this set yet.</p>
 
           <p class="text-body-secondary small mb-0">
-            Open one of
+            Tick them on
             <LinkTo @route="index">your submissions</LinkTo>
-            and add it from there — putting a submission in a set is its owner's own decision.
+            and add them from there, or open one and add it from its own page. Putting a submission in a set is its
+            owner's own decision, so each person adds their own.
           </p>
         </div>
       {{/if}}

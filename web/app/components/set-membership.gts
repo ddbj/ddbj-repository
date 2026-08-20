@@ -101,7 +101,7 @@ export default class SetMembership extends Component<Signature> {
       await this.requestManager.request({
         url: `/sets/${this.selected}/submissions`,
         method: 'POST',
-        data: { submission: { submission_request_id: this.args.requestId } },
+        data: { submission_request_ids: [this.args.requestId] },
       });
 
       this.selected = '';

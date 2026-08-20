@@ -22,6 +22,20 @@ export const PHASE_TABS: { value: Phase; label: string }[] = [
 ];
 
 export default class extends Controller {
+  // Which rows are ticked, for the bulk "add to a set" bar.
+  //
+  // Held here rather than in the template component so the route can
+  // clear it whenever the rows are re-fetched — a page or filter change
+  // must not leave a selection behind for somebody to act on later
+  // without remembering it is there. Ids rather than rows, so it
+  // survives a re-render.
+  @tracked ticked = new Set<number>();
+
+  @action
+  clearSelection() {
+    this.ticked = new Set();
+  }
+
   queryParams = [
     'db',
     'sourceId',

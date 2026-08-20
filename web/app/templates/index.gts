@@ -2,11 +2,12 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { LinkTo } from '@ember/routing';
-import { fn } from '@ember/helper';
+import { concat, fn } from '@ember/helper';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { pageTitle } from 'ember-page-title';
 
+import BulkAddToSet from 'repository/components/bulk-add-to-set';
 import Pagination from 'repository/components/pagination';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
@@ -50,6 +51,56 @@ export default class extends Component<Signature> {
   @action
   toggleFilters() {
     this.filtersOpen = !this.showFilters;
+  }
+
+  // The selection lives on the controller, so the route can drop it every
+  // time the rows are re-fetched — see IndexRoute#setupController. Read
+  // through the visible ids as well, so a row that has gone cannot be
+  // acted on even within one page of results.
+  get ticked() {
+    return this.args.controller.ticked;
+  }
+
+  get visibleIds() {
+    return (this.args.model?.requests ?? []).map((request) => request.id);
+  }
+
+  get selectedIds() {
+    return this.visibleIds.filter((id) => this.ticked.has(id));
+  }
+
+  get allVisibleSelected() {
+    return this.visibleIds.length > 0 && this.selectedIds.length === this.visibleIds.length;
+  }
+
+  isSelected = (id: number) => this.ticked.has(id);
+
+  @action
+  toggle(id: number, e: Event) {
+    const next = new Set(this.ticked);
+
+    if ((e.target as HTMLInputElement).checked) {
+      next.add(id);
+    } else {
+      next.delete(id);
+    }
+
+    this.args.controller.ticked = next;
+  }
+
+  @action
+  toggleAll(e: Event) {
+    const next = new Set(this.ticked);
+
+    for (const id of this.visibleIds) {
+      if ((e.target as HTMLInputElement).checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+    }
+
+    this.args.controller.ticked = next;
   }
 
   get tabs() {
@@ -209,6 +260,17 @@ export default class extends Component<Signature> {
         <table class="table border align-middle">
           <thead class="table-light">
             <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  aria-label="Select every submission on this page"
+                  checked={{this.allVisibleSelected}}
+                  data-test-select-all
+                  {{on "change" this.toggleAll}}
+                />
+              </th>
+
               <th>ID</th>
               <th>Database</th>
               {{! Not the ingest status enum: `waiting_application` and
@@ -225,19 +287,29 @@ export default class extends Component<Signature> {
             {{#each @model.requests as |request|}}
               <tr>
                 <td>
+                  <input
+                    type="checkbox"
+                    class="form-check-input"
+                    aria-label={{concat "Select submission #" request.id}}
+                    checked={{this.isSelected request.id}}
+                    {{on "change" (fn this.toggle request.id)}}
+                  />
+                </td>
+
+                <td data-test-id>
                   <LinkTo @route="request" @model={{request.id}}>
                     #{{request.id}}
                   </LinkTo>
                 </td>
 
-                <td>{{dbLabel request.db}}</td>
+                <td data-test-db>{{dbLabel request.db}}</td>
 
-                <td>
+                <td data-test-state>
                   <span class="badge {{stateBadgeClass request}}">{{stateLabel request}}</span>
                 </td>
 
-                <td>{{or request.source_id "-"}}</td>
-                <td>
+                <td data-test-source-id>{{or request.source_id "-"}}</td>
+                <td data-test-accession>
                   {{#if request.accession_count}}
                     {{request.first_accession}}
                     {{#unless (eq request.accession_count 1)}}
@@ -247,11 +319,20 @@ export default class extends Component<Signature> {
                     -
                   {{/if}}
                 </td>
-                <td>{{formatDatetime request.created_at}}</td>
+                <td data-test-submitted>{{formatDatetime request.created_at}}</td>
               </tr>
             {{/each}}
           </tbody>
         </table>
+
+        {{! Below the table and pinned to the bottom of the screen, not
+        above it. A bar that appears above the rows pushes every row down
+        the moment the first one is ticked, and the next checkbox somebody
+        was aiming at is no longer where they were aiming. Here nothing
+        above it moves, and it follows them down a long page. }}
+        <div class="sticky-bottom pb-3">
+          <BulkAddToSet @submissionRequestIds={{this.selectedIds}} @onDone={{@controller.clearSelection}} />
+        </div>
 
         {{! LinkTo carries the route's other query params (phase, filters)
         through on its own — only `page` needs restating. }}
