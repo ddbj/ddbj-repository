@@ -1,5 +1,7 @@
 import ENV from 'repository/config/environment';
 
+import { accountURL, identityProviderHost } from 'repository/utils/runtime-config';
+
 import type { TOC } from '@ember/component/template-only';
 
 const authURL = ENV.authURL;
@@ -79,25 +81,3 @@ export default <template>
     </div>
   </div>
 </template> satisfies TOC<object>;
-
-// Both injected per environment by WebsController, and both absent in a
-// bare build — in which case the line and the link are simply not shown
-// rather than naming a host we are not sure about.
-function meta(name: string): string | undefined {
-  return document.querySelector(`meta[name="${name}"]`)?.getAttribute('content') || undefined;
-}
-
-function accountURL(): string | undefined {
-  return meta('account-url');
-}
-
-function identityProviderHost(): string | undefined {
-  const url = meta('identity-provider');
-  if (!url) return undefined;
-
-  try {
-    return new URL(url).host;
-  } catch {
-    return undefined;
-  }
-}

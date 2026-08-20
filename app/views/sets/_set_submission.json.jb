@@ -1,0 +1,25 @@
+# locals: (inclusion:, viewer:, states: {}, unread_counts: {}, bs_accession_summaries: {})
+
+submission_request = inclusion.submission_request
+
+{
+  # Whose it is, and since when. In every other list this is one person's
+  # work and goes without saying; here it is the first thing a reader
+  # needs.
+  owner_uid: submission_request.user.uid,
+  added_at:  inclusion.created_at.iso8601,
+
+  # Whether it is yours to take out. Said by the server for the same
+  # reason `removable` is: under a proxy login the account the client
+  # believes it is is not the account the server acts as, so comparing
+  # uids in the browser gets it backwards.
+  owned: submission_request.user_id == viewer.id,
+
+  submission: render(
+    'submission_requests/submission_request_summary',
+    submission_request:,
+    states:,
+    unread_counts:,
+    bs_accession_summaries:
+  )
+}

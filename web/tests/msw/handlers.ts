@@ -23,6 +23,13 @@ export const handlers = [
     return response(200).json({ requests: [] });
   }),
 
+  // The request detail page offers "add to a set", which needs to know
+  // which sets the reader is in; default to none so tests that don't
+  // care about sets don't have to stub it.
+  http.get('/sets', ({ response }) => {
+    return response(200).json([]);
+  }),
+
   // The request detail page loads the reviewer-access state; default to
   // disabled so tests that don't care about it don't have to stub it.
   http.get('/submission_requests/{submission_request_id}/reviewer_access', ({ response }) => {

@@ -44,6 +44,10 @@ export default class extends Component {
                 <LinkTo @route="index" class="nav-link">My submissions</LinkTo>
               </li>
 
+              <li class="nav-item">
+                <LinkTo @route="sets" class="nav-link">Sets</LinkTo>
+              </li>
+
               {{#if this.currentUser.user.isAdmin}}
                 <li class="nav-item">
                   <a href={{adminURL}} class="nav-link">Administration</a>

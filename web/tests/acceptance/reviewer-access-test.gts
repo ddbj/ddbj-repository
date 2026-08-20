@@ -34,6 +34,9 @@ const request: SubmissionRequest = {
   },
   unread_curator_message_count: 0,
   last_message_at: null,
+  sets: [],
+  owned: true,
+  owner_uid: 'test-user',
   submission: {
     id: 10,
     source_id: 'PSUB000042',
@@ -123,6 +126,6 @@ module('Acceptance | reviewer access (submitter side)', function (hooks) {
     await click(enable);
 
     assert.dom('input[readonly]').hasValue('http://example.com/web/reviews/generated-token');
-    assert.dom('button.btn-outline-danger').hasText('Disable');
+    assert.dom('button.btn-warning').hasText('Disable');
   });
 });

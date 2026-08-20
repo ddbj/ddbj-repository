@@ -1,0 +1,1 @@
+render(partial: 'set_summary', collection: @sets, as: :set, locals: {viewer: @viewer, counts: @counts})

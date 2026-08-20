@@ -1023,6 +1023,553 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /sets:
+    get:
+      description: Sets you belong to.
+
+      tags:
+        - Sets
+
+      responses:
+        '200':
+          description: Every set this account has joined. Outstanding invitations are not membership and do not appear here.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/SetSummary'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      description: Create a set. You become its owner and its first member.
+
+      tags:
+        - Sets
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [set]
+
+              properties:
+                set:
+                  type: object
+                  additionalProperties: false
+                  required: [name]
+
+                  properties:
+                    name:
+                      type: string
+
+      responses:
+        '201':
+          description: The new set.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Set'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          description: Sets cannot be changed while acting as another account.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+  /sets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    get:
+      description: |
+        One set: its roster and a page of the submissions in it. A set you
+        are not in answers 404 rather than 403 — from outside, it is not a
+        set you have an id for.
+
+        The roster comes whole (a set is people, and there are not many of
+        them); the submissions are paginated, because a study that ran for
+        three years is hundreds of them and each one renders a progress block.
+
+      tags:
+        - Sets
+
+      parameters:
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: The set.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Set'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      description: Rename a set. The owner's, not every member's.
+
+      tags:
+        - Sets
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [set]
+
+              properties:
+                set:
+                  type: object
+                  additionalProperties: false
+                  required: [name]
+
+                  properties:
+                    name:
+                      type: string
+
+      responses:
+        '200':
+          description: The renamed set.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Set'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+    delete:
+      description: |
+        Delete a set. The owner's, and only once everyone else has left and
+        every submission has been taken out — the submissions are their
+        owners' to remove, and the people are not the owner's to dissolve.
+
+      tags:
+        - Sets
+
+      responses:
+        '204':
+          description: Deleted.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          description: The set still has other members or submissions in it.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sets/{set_id}/members:
+    parameters:
+      - name: set_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Invite somebody by email. Any member may invite. The mail carries a
+        single-use link; what is checked on the way in is that link and not
+        the address, so the recipient may accept with an account registered
+        at a different address — the roster says so when they do.
+
+      tags:
+        - Sets
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [set_member]
+
+              properties:
+                set_member:
+                  type: object
+                  additionalProperties: false
+                  required: [email]
+
+                  properties:
+                    email:
+                      type: string
+
+      responses:
+        '201':
+          description: |
+            The invited member, with the invitation still outstanding. Check
+            `mail_deliverable`: where outgoing mail is restricted the invitation
+            is real but nobody was told, and `invitation_url` is what to send.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetMember'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          description: Sets cannot be changed while acting as another account.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+        '429':
+          description: Too many invitations in a short time.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sets/{set_id}/members/{id}:
+    parameters:
+      - name: set_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    delete:
+      description: |
+        Leave, take back an invitation you sent, or (as the owner) remove
+        somebody. Removing a member takes their submissions out of the set
+        with them: the set was the only thing letting the others read that
+        work.
+
+      tags:
+        - Sets
+
+      responses:
+        '204':
+          description: Removed.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          description: The owner cannot leave their own set.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sets/{set_id}/members/{member_id}/reminder:
+    parameters:
+      - name: set_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: member_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Send the invitation again. A fresh token and a fresh clock, so the
+        link that did not get used stops working.
+
+      tags:
+        - Sets
+
+      responses:
+        '201':
+          description: The member, with a new invitation outstanding.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetMember'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          description: Sets cannot be changed while acting as another account.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          description: That person has already joined.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sets/{set_id}/submissions:
+    parameters:
+      - name: set_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Put one of your submissions in the set, which is what lets the
+        set's members read it. Yours only — reading somebody else's
+        through a shared set does not carry the right to hand it on.
+
+      tags:
+        - Sets
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [submission]
+
+              properties:
+                submission:
+                  type: object
+                  additionalProperties: false
+                  required: [submission_request_id]
+
+                  properties:
+                    submission_request_id:
+                      type: number
+
+      responses:
+        '204':
+          description: |
+            Added. No body: answering with the set would mean loading a page of
+            it — a progress block and an accession summary per row — for
+            something the client re-reads anyway. 204 rather than 201 because
+            204 is the status that says there is no body to read.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          description: Sets cannot be changed while acting as another account.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+  /sets/{set_id}/submissions/{submission_request_id}:
+    parameters:
+      - name: set_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    delete:
+      description: Take your submission back out of the set.
+
+      tags:
+        - Sets
+
+      responses:
+        '204':
+          description: Removed.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /invitations/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+
+        schema:
+          type: string
+
+    get:
+      description: |
+        What an invitation link is for, readable without an account — the
+        person holding it may not have one yet. An expired invitation is
+        answered rather than hidden: the holder is the intended recipient,
+        and "ask them to send it again" is the only thing that unsticks them.
+
+      security: []
+
+      tags:
+        - Sets
+
+      responses:
+        '200':
+          description: The invitation.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /invitations/{invitation_token}/acceptance:
+    parameters:
+      - name: invitation_token
+        in: path
+        required: true
+
+        schema:
+          type: string
+
+    post:
+      description: Walk through the invitation and join the set.
+
+      tags:
+        - Sets
+
+      responses:
+        '201':
+          description: |
+            The set you have joined — or were already in, if this invitation
+            was a second one sent to the same person, in which case it is simply
+            spent.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetSummary'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          description: The invitation has expired, or somebody has already used it.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /stats:
     get:
       description: |
@@ -1155,8 +1702,13 @@ components:
           format: date-time
 
         submission_id:
-          type: number
-          nullable: true
+          # `type: [number, 'null']`, not OpenAPI 3.0's `nullable: true` —
+          # this document is 3.1, where `nullable` is not a keyword at all
+          # and was silently declaring the field non-null. Every request
+          # that has not been applied yet sends null here.
+          type:
+            - number
+            - 'null'
 
         source_id:
           type:
@@ -1180,6 +1732,317 @@ components:
 
         progress:
           $ref: '#/components/schemas/Progress'
+
+    SetSummary:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - name
+        - owner_uid
+        - owned
+        - created_at
+        - member_count
+        - invited_count
+        - submission_count
+
+      properties:
+        id:
+          type: number
+
+        name:
+          type: string
+
+        owner_uid:
+          type: string
+
+        owned:
+          description: You created it, so renaming and deleting it are yours.
+          type: boolean
+
+        created_at:
+          type: string
+          format: date-time
+
+        member_count:
+          description: People who have accepted.
+          type: number
+
+        invited_count:
+          description: Invitations still outstanding.
+          type: number
+
+        submission_count:
+          type: number
+
+    Set:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - name
+        - owner_uid
+        - owned
+        - created_at
+        - member_count
+        - invited_count
+        - submission_count
+        - deletable
+        - delete_blocked_reason
+        - members
+        - submissions
+
+      properties:
+        id:
+          type: number
+
+        name:
+          type: string
+
+        owner_uid:
+          type: string
+
+        owned:
+          type: boolean
+
+        created_at:
+          type: string
+          format: date-time
+
+        member_count:
+          type: number
+
+        invited_count:
+          type: number
+
+        submission_count:
+          type: number
+
+        deletable:
+          description: |
+            Whether the set can be deleted now — only once everyone else has
+            left and every submission has been taken out. Deleting is the
+            owner's; this says nothing about who you are.
+          type: boolean
+
+        delete_blocked_reason:
+          description: |
+            Why it cannot be, in words. Null when it can. Served rather than
+            re-worded by the client, so the rule and its wording stay together.
+          type:
+            - string
+            - 'null'
+
+        members:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/SetMember'
+
+        submissions:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/SetSubmission'
+
+    SetMember:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - email
+        - uid
+        - status
+        - owner
+        - you
+        - invited_by
+        - joined_at
+        - invitation_expires_at
+        - removable
+        - submission_count
+        - invited_address_match
+        - invitation_url
+        - mail_deliverable
+
+      properties:
+        id:
+          type: number
+
+        email:
+          description: The address the invitation was sent to. Null on the creator's own row, who was never invited.
+          type:
+            - string
+            - 'null'
+
+        uid:
+          description: The account that accepted. Null while the invitation is still out.
+          type:
+            - string
+            - 'null'
+
+        status:
+          description: |
+            `accepted` — they are in. `open` — the invitation is out and live.
+            `expired` — it lapsed; any member can send it again. The same three
+            words the invitation page uses, so the roster and the link cannot
+            describe one row differently.
+          type: string
+
+          enum:
+            - open
+            - expired
+            - accepted
+
+        owner:
+          type: boolean
+
+        you:
+          type: boolean
+
+        invited_by:
+          type: string
+
+        joined_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+        invitation_expires_at:
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+        removable:
+          description: |
+            Whether you may take this row off the roster — by leaving, by
+            removing somebody as the owner, or by taking back an invitation you
+            sent. Stated by the server because the three are different
+            permissions and, under a proxy login, the account the client
+            believes it is is not the account the server acts as.
+          type: boolean
+
+        submission_count:
+          description: |
+            How many of this set's submissions are theirs, and would therefore
+            be taken out of it with them. Counted over the whole set, not over
+            the page of submissions being shown.
+          type: number
+
+        invited_address_match:
+          description: |
+            Whether the account that walked through the invitation is registered
+            at the address it was sent to. `unknown` when that account carries
+            no address at all — most accounts imported from D-way have never
+            signed in. Null where the question does not arise: the creator's own
+            row, which was never invited.
+
+            A forwarded invitation is a real thing people do, so this is
+            reported rather than refused — it is the whole of the audit that
+            pays for not binding the token to the address.
+          type:
+            - string
+            - 'null'
+
+          enum:
+            - same
+            - different
+            - unknown
+            - null
+
+        invitation_url:
+          description: |
+            The link an outstanding invitation was mailed as. Null once it has
+            been walked through. Offered to members so they can send it by hand
+            when the mail did not arrive — which includes every environment
+            where outgoing mail is restricted (see `mail_deliverable`).
+          type:
+            - string
+            - 'null'
+
+        mail_deliverable:
+          description: |
+            Whether the invitation mail actually leaves the building. False in a
+            deployed environment whose outgoing mail is restricted to DDBJ
+            addresses, in which case the invitation exists and works but nobody
+            was told about it — hand them `invitation_url` instead. Null once
+            the invitation has been walked through.
+          type:
+            - boolean
+            - 'null'
+
+    SetSubmission:
+      type: object
+      additionalProperties: false
+
+      required:
+        - added_at
+        - owner_uid
+        - owned
+        - submission
+
+      properties:
+        added_at:
+          type: string
+          format: date-time
+
+        owner_uid:
+          description: Whose submission this is. In every other list it goes without saying; here it is the first thing a reader needs.
+          type: string
+
+        owned:
+          description: |
+            It is yours, so taking it out of the set is yours to do. Said by
+            the server for the same reason `removable` is on a member.
+          type: boolean
+
+        submission:
+          $ref: '#/components/schemas/SubmissionRequestSummary'
+
+    Invitation:
+      type: object
+      additionalProperties: false
+
+      required:
+        - set_name
+        - invited_by
+        - email
+        - expires_at
+        - status
+
+      properties:
+        set_name:
+          type: string
+
+        invited_by:
+          type: string
+
+        email:
+          type: string
+
+        expires_at:
+          description: Null once the invitation has been walked through.
+          type:
+            - string
+            - 'null'
+          format: date-time
+
+        status:
+          description: |
+            `open` — ready to be walked through. `expired` — ask a member of the
+            set to send it again. `accepted` — somebody has already used this
+            link; the token is kept after acceptance precisely so the page can
+            say so instead of answering with a 404.
+          type: string
+
+          enum:
+            - open
+            - expired
+            - accepted
 
     ReviewerAccess:
       type: object
@@ -1248,6 +2111,8 @@ components:
         - created_at
         - closed_at
         - closable
+        - owned
+        - owner_uid
         - processing
         - ddbj_record
         - validation
@@ -1255,6 +2120,7 @@ components:
         - progress
         - unread_curator_message_count
         - last_message_at
+        - sets
 
       properties:
         id:
@@ -1285,6 +2151,25 @@ components:
           type: string
           format: date-time
 
+        sets:
+          description: |
+            The sets this submission has been shared into. Withheld from the
+            reviewer view — somebody holding a share link is not party to who
+            else is working on this.
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+
+            properties:
+              id:
+                type: number
+
+              name:
+                type: string
+
         closed_at:
           description: |
             When the submitter put this request down. A request that failed
@@ -1298,9 +2183,25 @@ components:
 
         closable:
           description: |
-            Whether the submitter may close it now. True only while the request
-            is asking them for something (validation failed, or ready to apply).
+            Whether you may close it now. True only while the request is asking
+            its owner for something (validation failed, or ready to apply) —
+            and never for somebody reading it through a shared set.
           type: boolean
+
+        owned:
+          description: |
+            You are the submitter. False when you are reading this through a
+            set somebody else's submission was shared into, in which case
+            nothing on the page is yours to press and the conversation facts
+            are withheld.
+          type: boolean
+
+        owner_uid:
+          description: |
+            Whose submission this is. Yours when `owned`; otherwise the
+            colleague whose work you are reading through a shared set — the
+            page says so rather than addressing you as its submitter.
+          type: string
 
         processing:
           type: boolean

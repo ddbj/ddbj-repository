@@ -1,0 +1,10 @@
+# Unauthenticated. Only what the mail in the reader's hand already said,
+# plus which of its three states the link is in — see SubmissionSetMember for why
+# "already used" is answered rather than hidden.
+{
+  set_name: @member.set.name,
+  invited_by: @member.invited_by.uid,
+  email:      @member.email,
+  expires_at: @member.invitation_expires_at&.iso8601,
+  status:     @member.invitation_state
+}

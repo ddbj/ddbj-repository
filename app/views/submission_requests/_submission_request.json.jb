@@ -1,4 +1,4 @@
-# locals: (submission_request:, conversation: true, closure: true)
+# locals: (submission_request:, viewer: nil)
 
 state = CurationState.new(submission_request)
 
@@ -21,25 +21,50 @@ payload = {
   progress: render('submission_requests/progress', state: state)
 }
 
-# Whether the button is offered, rather than the client re-deriving the
-# rule from the status — the rule is "what is asking for something can be
-# put down", and only the server knows it. Withheld from the reviewer
-# view, which is read-only: `closed_at` is a fact about the request and
-# goes either way, but an affordance nobody there can use is noise.
-payload[:closable] = submission_request.closable? if closure
+# Everything below this line is for somebody who is signed in.
+#
+# The reviewer view renders this same body through an unauthenticated
+# share token and passes no viewer — that is what `viewer: nil` means
+# here, and it is the whole of the difference between the two. It must
+# not disclose that a curator ↔ submitter conversation exists, nor who
+# else is working on this.
+if viewer
+  # A set's members can read each other's submissions. Owning one is
+  # what says whether the controls on the page are yours to press.
+  owned = submission_request.user_id == viewer.id
 
-# The reviewer view renders this same body through an unauthenticated share
-# token, and must not disclose that a curator ↔ submitter conversation
-# exists — not its unread count, not when it was last touched. That is the
-# `conversation: false` case; see reviews/show.json.jb and the
-# `ReviewerSubmissionRequest` schema.
-if conversation
-  payload[:unread_curator_message_count] = submission_request.messages.curator_role.unread.count
+  payload[:owned] = owned
+
+  # Whose it is. Needed because the page reads differently for somebody
+  # who is not the submitter — every sentence on it is written in the
+  # second person, and "your file is ready to submit" over an empty
+  # button row is worse than not showing it.
+  payload[:owner_uid] = submission_request.user.uid
+
+  # Whether the button is offered, rather than the client re-deriving the
+  # rule from the status — the rule is "what is asking for something can
+  # be put down", and only the server knows it.
+  payload[:closable] = owned && submission_request.closable?
+
+  # Only the sets this reader is in. For the owner that is every set it
+  # belongs to (a submission can only be put in a set by its owner, who
+  # has to be a member to do it); for anybody else it is the one they
+  # share, and the other collaborations stay theirs to know about.
+  payload[:sets] = submission_request.sets.merge(SubmissionSet.joined_by(viewer)).order(:name).map {
+    {id: it.id, name: it.name}
+  }
+
+  # The conversation is between one submitter and DDBJ. Being able to
+  # read somebody's submission through a shared set is not being party
+  # to that, so a member who does not own it is told what a reviewer is
+  # told: nothing. (Set-wide conversation is its own thing and does not
+  # come through here.)
+  payload[:unread_curator_message_count] = owned ? submission_request.messages.curator_role.unread.count : 0
 
   # Dates the conversation for the submitter's status card ("last message
   # 07-29"). Deliberately a fact rather than an expectation — how long a
   # reply takes is not something this system knows.
-  payload[:last_message_at] = submission_request.messages.maximum(:created_at)&.iso8601
+  payload[:last_message_at] = owned ? submission_request.messages.maximum(:created_at)&.iso8601 : nil
 end
 
 payload

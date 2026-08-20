@@ -40,6 +40,9 @@ function failedRequest(attrs: Partial<SubmissionRequest> = {}): SubmissionReques
     },
     unread_curator_message_count: 0,
     last_message_at: null,
+    sets: [],
+    owned: true,
+    owner_uid: 'test-user',
     ...attrs,
   };
 }

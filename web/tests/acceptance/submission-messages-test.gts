@@ -37,6 +37,9 @@ const request: components['schemas']['SubmissionRequest'] = {
   },
   unread_curator_message_count: 0,
   last_message_at: '2025-01-02T09:30:00.000Z',
+  sets: [],
+  owned: true,
+  owner_uid: 'test-user',
   submission: {
     id: 10,
     source_id: null,

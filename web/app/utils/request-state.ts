@@ -15,9 +15,24 @@ export interface RequestState {
   tone: Tone;
   // Short enough for a table cell: "Ready for you to submit".
   label: string;
+
+  // The same fact about somebody else's submission. Every word on this
+  // screen is written to the submitter, which reads as an instruction
+  // when a colleague is the one looking — see `stateLabel`. Absent where
+  // the label says nothing about who is being addressed.
+  sharedLabel?: string;
+
   badge: string;
   heading: string;
   body: string;
+}
+
+// "Ready for you to submit" over a colleague's row is a lie about whose
+// move it is.
+export function stateLabel(request: StatefulRequest, { owned }: { owned: boolean }) {
+  const state = requestState(request);
+
+  return owned ? state.label : (state.sharedLabel ?? state.label);
 }
 
 const TONE_CLASSES: Record<Tone, { border: string; badge: string }> = {
@@ -53,6 +68,7 @@ export function requestState(request: StatefulRequest): RequestState {
     return {
       tone: 'waiting',
       label: 'You closed this',
+      sharedLabel: 'Closed by the submitter',
       badge: 'Closed by you',
       heading: 'You closed this request',
       body: 'It is kept, with its validation report and any messages, but it is no longer waiting on you. Reopen it if you want it back.',
@@ -98,6 +114,7 @@ export function requestState(request: StatefulRequest): RequestState {
     return {
       tone: 'action',
       label: 'Ready for you to submit',
+      sharedLabel: 'Ready to submit',
       badge: 'Action needed',
       heading: 'Your file passed validation and is ready to submit',
       body: 'Review the validation report below, then press Apply to hand it to DDBJ.',

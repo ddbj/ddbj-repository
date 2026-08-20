@@ -10,10 +10,11 @@ import ValidityBadge from 'repository/components/validity-badge';
 import ValidationReport from 'repository/components/validation-report';
 import SubmissionMessages from 'repository/components/submission-messages';
 import ReviewerAccess from 'repository/components/reviewer-access';
+import SetMembership from 'repository/components/set-membership';
 import autoRefresh from 'repository/modifiers/auto-refresh';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
-import { requestState, toneClasses } from 'repository/utils/request-state';
+import { requestState, stateLabel, toneClasses } from 'repository/utils/request-state';
 
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
@@ -103,7 +104,14 @@ export default class extends Component<Signature> {
 
   <template>
     <div {{autoRefresh while=@model.processing interval=1000}}>
-      <Breadcrumb @items={{array (hash label="My submissions" route="index") (hash label=(concat "#" @model.id))}} />
+      {{! "My submissions" is where the reader's own list is. Somebody
+      reading this through a shared set did not come from there and
+      would not find it there either. }}
+      {{#if @model.owned}}
+        <Breadcrumb @items={{array (hash label="My submissions" route="index") (hash label=(concat "#" @model.id))}} />
+      {{else}}
+        <Breadcrumb @items={{array (hash label="Sets" route="sets") (hash label=(concat "#" @model.id))}} />
+      {{/if}}
 
       <div class="d-flex align-items-baseline gap-2 flex-wrap mb-4">
         <h1 class="display-6 mb-0">#{{@model.id}}</h1>
@@ -122,84 +130,123 @@ export default class extends Component<Signature> {
         <span class="text-body-secondary">· submitted {{formatDatetime @model.created_at}}</span>
       </div>
 
-      <section class="border rounded-3 p-4 mb-4 {{this.tone.border}}" data-test-state>
-        <div class="d-flex align-items-center gap-2 mb-2">
-          <span class="badge rounded-pill {{this.tone.badge}}">{{this.state.badge}}</span>
+      {{! Every sentence in the panel below is written to the submitter —
+      "your file is ready", "we will email you". Over an empty button
+      row, read by a colleague, that is worse than saying nothing: the
+      amber "Action needed" badge would tell them something is on them
+      when nothing is. They get the same facts stated about somebody
+      else, and the progress steps underneath say the rest. }}
+      {{#unless @model.owned}}
+        <section class="border rounded-3 p-4 mb-4" data-test-shared-state>
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge rounded-pill text-bg-light border">Shared with you</span>
+          </div>
 
-          {{! When the thread was last touched — a fact. How long a reply
+          <h2 class="h4">{{@model.owner_uid}}'s submission</h2>
+
+          <p class="prose mb-1">
+            You can see this because it is in a set you are both in. It is theirs to send, to answer questions on and to
+            take back out of the set.
+          </p>
+
+          {{! Where it has got to, said about somebody rather than to them. }}
+          <p class="text-body-secondary mb-0">{{stateLabel @model owned=false}}.</p>
+        </section>
+      {{/unless}}
+
+      {{#if @model.owned}}
+        <section class="border rounded-3 p-4 mb-4 {{this.tone.border}}" data-test-state>
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge rounded-pill {{this.tone.badge}}">{{this.state.badge}}</span>
+
+            {{! When the thread was last touched — a fact. How long a reply
           takes is not something this system knows, so it does not say. }}
-          {{#if @model.last_message_at}}
-            <span class="small text-body-secondary">
-              last message
-              {{formatDatetime @model.last_message_at}}
-            </span>
-          {{/if}}
-        </div>
+            {{#if @model.last_message_at}}
+              <span class="small text-body-secondary">
+                last message
+                {{formatDatetime @model.last_message_at}}
+              </span>
+            {{/if}}
+          </div>
 
-        <h2 class="h4">{{this.state.heading}}</h2>
-        <p class="prose mb-3">{{this.state.body}}</p>
+          <h2 class="h4">{{this.state.heading}}</h2>
+          <p class="prose mb-3">{{this.state.body}}</p>
 
-        <div class="d-flex gap-2 flex-wrap">
-          {{! Everything that acts on the request is withheld once it is
+          <div class="d-flex gap-2 flex-wrap">
+            {{! Everything that acts on the request is withheld once it is
           closed. The status does not change when a request is put down,
           so a button gated on status alone stays on offer and then fails
           against a server that will not act on a closed request — and
           "Apply" beside "no longer waiting on you" is a contradiction
           before it is a broken button. Reopen is the way back, and it is
           what the panel above tells them to use. }}
-          {{#unless @model.closed_at}}
-            {{! "Send to DDBJ", not "Apply". There are two buttons in this
+            {{#unless @model.closed_at}}
+              {{! "Send to DDBJ", not "Apply". There are two buttons in this
             flow and only one of them hands anything over; naming them
             after what they do to DDBJ rather than after the endpoint is
             what makes which is which readable. }}
-            {{#if (eq @model.status "ready_to_apply")}}
-              <button type="button" class="btn btn-primary" data-test-send {{on "click" this.apply}}>Send to DDBJ</button>
-            {{/if}}
+              {{#if (eq @model.status "ready_to_apply")}}
+                <button type="button" class="btn btn-primary" data-test-send {{on "click" this.apply}}>Send to DDBJ</button>
+              {{/if}}
 
-            {{! Only where there is nothing else to do with the file. On a
+              {{! Only where there is nothing else to do with the file. On a
             request that validated, the next step is Apply, and a second
             primary button offering a fresh upload would compete with it. }}
-            {{#if (eq @model.status "validation_failed")}}
-              <button
-                type="button"
-                class="btn btn-primary"
-                data-test-close-and-resubmit
-                {{on "click" this.closeAndResubmit}}
-              >Close and submit a corrected file</button>
-            {{/if}}
+              {{#if (eq @model.status "validation_failed")}}
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  data-test-close-and-resubmit
+                  {{on "click" this.closeAndResubmit}}
+                >Close and submit a corrected file</button>
+              {{/if}}
 
-            {{! A failed attempt cannot be advanced — a corrected file is a
+              {{! A failed attempt cannot be advanced — a corrected file is a
             new request — so without this it asks to be dealt with for ever
             and crowds out the live one. Quiet, because it is the lesser of
             the two things on offer when both are. }}
-            {{#if @model.closable}}
-              <button type="button" class="btn btn-outline-secondary" data-test-close {{on "click" this.close}}>Close
-                this request</button>
-            {{/if}}
-          {{/unless}}
+              {{#if @model.closable}}
+                <button type="button" class="btn btn-outline-secondary" data-test-close {{on "click" this.close}}>Close
+                  this request</button>
+              {{/if}}
+            {{/unless}}
 
-          {{#if @model.closed_at}}
-            <button
-              type="button"
-              class="btn btn-outline-secondary"
-              data-test-reopen
-              {{on "click" this.reopen}}
-            >Reopen</button>
-          {{/if}}
-        </div>
-      </section>
+            {{#if @model.closed_at}}
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                data-test-reopen
+                {{on "click" this.reopen}}
+              >Reopen</button>
+            {{/if}}
+          </div>
+        </section>
+      {{/if}}
 
       {{! A failed check is the one thing on this screen worth reading, so
       it is not folded away with the reference material at the bottom. A
       report that has to be opened before it says anything is a report
       nobody reads twice. }}
-      {{#if this.failedCheck}}
-        <ValidationReport @validation={{this.failedCheck}} />
+      {{! Its opening line is "this is still your draft — fix what is below",
+      which is an instruction to the wrong person when a colleague is the
+      one reading. What is on the screen for them is the state panel above
+      and the steps below, both of which say what happened without telling
+      them to do anything about it. }}
+      {{#if @model.owned}}
+        {{#if this.failedCheck}}
+          <ValidationReport @validation={{this.failedCheck}} />
+        {{/if}}
       {{/if}}
 
       <ProgressSteps @progress={{@model.progress}} />
 
-      <SubmissionMessages @requestId={{@model.id}} />
+      {{! The conversation is between one submitter and DDBJ. Reading
+      somebody's submission through a shared set is not being party to
+      it — the server withholds the messages, and offering the box would
+      only produce a 404. }}
+      {{#if @model.owned}}
+        <SubmissionMessages @requestId={{@model.id}} />
+      {{/if}}
 
       {{! Reference material. Present, but not in the way of the answer. }}
       {{! no-nested-interactive treats <details> as interactive and so
@@ -207,14 +254,19 @@ export default class extends Component<Signature> {
       to inside <summary>) are valid HTML and reachable by keyboard once
       the disclosure is open, which is exactly what these are. }}
       {{! template-lint-disable no-nested-interactive }}
-      <div class="mt-4 border-top">
+      {{! A list group rather than a border utility on each row: Bootstrap's
+      flush variant already draws the line between items and drops it
+      after the last one, so the stack keeps its separators however many
+      of these are on screen. Which varies — the sharing controls are the
+      submitter's, and somebody reading through a set sees neither. }}
+      <div class="mt-4 border-top list-group list-group-flush">
         {{! Only while the check passed. A failed one is reported above,
         said as work, and it carries this same table folded underneath
         itself — listing the findings twice on one screen makes the
         reader wonder which is the real one. }}
         {{#unless this.failedCheck}}
           {{#if @model.validation}}
-            <details class="py-3 border-bottom">
+            <details class="list-group-item px-0 py-3">
               <summary>
                 Validation report
                 <span class="text-body-secondary ms-2">
@@ -252,7 +304,7 @@ export default class extends Component<Signature> {
         {{/unless}}
 
         {{#if @model.submission}}
-          <details class="py-3 border-bottom">
+          <details class="list-group-item px-0 py-3">
             <summary>
               Accessions
               <span class="text-body-secondary ms-2">{{@model.submission.accessions_count}}</span>
@@ -264,7 +316,7 @@ export default class extends Component<Signature> {
           </details>
         {{/if}}
 
-        <details class="py-3 border-bottom">
+        <details class="list-group-item px-0 py-3">
           <summary>Files &amp; downloads</summary>
 
           <dl class="horizontal mt-3">
@@ -320,11 +372,22 @@ export default class extends Component<Signature> {
           </dl>
         </details>
 
-        <details class="py-3">
-          <summary>Share with a reviewer</summary>
+        {{! Where a submission is shared, and who it is shared with, are the
+        submitter's decisions. Somebody reading through a set sees the
+        set they share on the set's own page. }}
+        {{#if @model.owned}}
+          <details class="list-group-item px-0 py-3">
+            <summary>Sets</summary>
 
-          <ReviewerAccess @requestId={{@model.id}} />
-        </details>
+            <SetMembership @requestId={{@model.id}} @sets={{@model.sets}} />
+          </details>
+
+          <details class="list-group-item px-0 py-3">
+            <summary>Share with a reviewer</summary>
+
+            <ReviewerAccess @requestId={{@model.id}} />
+          </details>
+        {{/if}}
       </div>
     </div>
   </template>

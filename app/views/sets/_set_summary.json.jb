@@ -1,0 +1,16 @@
+# locals: (set:, viewer:, counts:)
+
+{
+  id:         set.id,
+  name:       set.name,
+  owner_uid:  set.owner.uid,
+  owned:      set.owner_id == viewer.id,
+  created_at: set.created_at.iso8601,
+
+  # Counted in SQL and handed in, never derived from a loaded
+  # association: there is no ceiling on what a set holds, and these
+  # three integers must not be what loads it.
+  member_count:     counts.fetch(:members).fetch(set.id, 0),
+  invited_count:    counts.fetch(:invited).fetch(set.id, 0),
+  submission_count: counts.fetch(:submissions).fetch(set.id, 0)
+}

@@ -51,6 +51,34 @@ Rails.application.routes.draw do
     # because the only difference is which entries are in scope.
     resources :accessions, only: %i[index show], param: :number, constraints: {number: %r{[^/]+}}
 
+    # A set is submissions that belong together, and the people they
+    # belong to — two lists that meet only here. See SubmissionSet for
+    # why the permission story has no third place to live.
+    resources :sets, only: %i[index show create update destroy] do
+      resources :members, only: %i[create destroy], controller: 'set_members' do
+        # Sending the invitation again mints a new token, so the link that
+        # did not get used stops working. Creating a reminder, not
+        # updating the member: what happens is that a mail goes out.
+        resource :reminder, only: %i[create], controller: 'set_member_reminders'
+      end
+
+      # Keyed by the submission's own id rather than by the join row's:
+      # from the client's side the thing being taken out of the set is
+      # the submission, and the row that records it has no other use.
+      resources :submissions,
+                only:       %i[create destroy],
+                controller: 'set_submissions',
+                param:      :submission_request_id
+    end
+
+    # Where an invitation link lands. `show` is unauthenticated — the
+    # person holding it may not have an account yet, and the page has to
+    # be able to say what they are being invited to before it asks them
+    # to make one.
+    resources :invitations, only: %i[show], param: :token do
+      resource :acceptance, only: %i[create], controller: 'invitation_acceptances'
+    end
+
     resources :stats, only: %i[index]
   end
 

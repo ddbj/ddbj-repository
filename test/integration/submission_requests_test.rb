@@ -346,4 +346,65 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
   def sign_in_as_user(user)
     default_headers['Authorization'] = "Bearer #{user.api_key}"
   end
+
+  test 'show marks your own as yours' do
+    request = submission_requests(:bioproject)
+    attach_ddbj_record request
+    attach_submission_files request.submission
+
+    get submission_request_path(request)
+
+    assert_conform_schema 200
+    assert_equal true, response.parsed_body['owned']
+  end
+
+  test 'a set member can read a submission shared into it, but not its conversation' do
+    carol  = users(:carol)
+    theirs = carol.submission_requests.create!(db: 'bioproject', status: :applied, migration_run_id: SecureRandom.uuid)
+    attach_ddbj_record theirs
+
+    theirs.messages.create!(user: users(:bob), author_role: :curator, body: 'Please check the organism.')
+
+    with_exceptions_app do
+      get submission_request_path(theirs)
+    end
+
+    assert_conform_schema 404
+
+    set = SubmissionSet.create!(name: 'Deep sea study', owner: @user)
+    set.members.create!(user: carol, invited_by: @user, joined_at: Time.current)
+    set.inclusions.create!(submission_request: theirs, added_by: carol)
+
+    get submission_request_path(theirs)
+
+    assert_conform_schema 200
+
+    body = response.parsed_body
+
+    assert_equal false,          body['owned']
+    assert_equal false,          body['closable']
+    assert_equal 0,              body['unread_curator_message_count']
+    assert_nil                   body['last_message_at']
+    assert_equal ['Deep sea study'], body['sets'].map { it['name'] }
+  end
+
+  test 'the sets a submission is in are only the ones you are also in' do
+    carol  = users(:carol)
+    theirs = carol.submission_requests.create!(db: 'bioproject', status: :applied, migration_run_id: SecureRandom.uuid)
+    attach_ddbj_record theirs
+
+    shared = SubmissionSet.create!(name: 'Shared study', owner: @user)
+    shared.members.create!(user: carol, invited_by: @user, joined_at: Time.current)
+    shared.inclusions.create!(submission_request: theirs, added_by: carol)
+
+    # Carol's other collaboration, which alice is not part of. That the
+    # same submission is in it is not alice's to know.
+    elsewhere = SubmissionSet.create!(name: 'Another study', owner: carol)
+    elsewhere.inclusions.create!(submission_request: theirs, added_by: carol)
+
+    get submission_request_path(theirs)
+
+    assert_conform_schema 200
+    assert_equal ['Shared study'], response.parsed_body['sets'].map { it['name'] }
+  end
 end

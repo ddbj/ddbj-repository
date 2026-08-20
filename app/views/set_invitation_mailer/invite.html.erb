@@ -1,0 +1,26 @@
+<p>Hello,</p>
+
+<p><%= @inviter.uid %> has invited you to the set “<%= @set.name %>” on DDBJ Repository.</p>
+
+<p>
+  A set is submissions that belong together — the ones behind a paper, a study, a
+  piece of work. Everyone in the set can see what the others have put in it and how
+  far along it is. Which of your own submissions go in stays your decision, and you
+  can take them back out at any time.
+</p>
+
+<p><%= link_to 'Open the invitation', @member.invitation_url %></p>
+
+<p>It is valid until <%= I18n.l(@member.invitation_expires_at.to_date, format: :long) %>.</p>
+
+<p>
+  If you do not have a DDBJ Account yet, that page will point you at the form to create
+  one and bring you back afterwards.
+</p>
+
+<p>
+  If you were not expecting this, you can ignore this mail — nothing is shared with you
+  until you open the link.
+</p>
+
+<p>Regards,<br>DDBJ Repository</p>

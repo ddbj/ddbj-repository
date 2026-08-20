@@ -32,4 +32,18 @@ Router.map(function () {
   this.route('review', { path: 'reviews/:token' }, function () {
     this.route('accessions');
   });
+
+  this.route('sets');
+  this.route('set', { path: 'sets/:set_id' });
+
+  // Where an invitation mail lands. Readable without a session — the
+  // person holding it may not have an account yet.
+  this.route('invitation', { path: 'invitations/:token' });
+
+  // Where DDBJ Account sends somebody back after they create one. It
+  // carries no token: an invitation token is a bearer credential, and
+  // handing it to a second application puts it in that application's
+  // logs and in the Referer of every link on its pages. The token waits
+  // here instead, and this route picks it up again.
+  this.route('invitation-resume', { path: 'invitation' });
 });

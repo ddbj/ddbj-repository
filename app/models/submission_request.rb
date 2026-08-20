@@ -34,7 +34,24 @@ class SubmissionRequest < ApplicationRecord
 
   has_one :reviewer_access, dependent: :destroy
 
+  # Which collaborations this submission has been shared into. Many,
+  # because a BioProject is a hub: the sets hanging off one are
+  # different studies rather than one.
+  has_many :set_inclusions, class_name: 'SubmissionSetInclusion', dependent: :destroy
+  has_many :sets, through: :set_inclusions, source: :set
+
   has_one_attached :ddbj_record
+
+  # Everything this person may read: their own, plus whatever has been
+  # shared into a set they have joined. Distinct from
+  # `user.submission_requests`, which stays what it says — ownership,
+  # and the only thing that grants writing.
+  scope :readable_by, ->(user) {
+    mine   = SubmissionSetMember.joined.where(user_id: user.id).select(:submission_set_id)
+    shared = SubmissionSetInclusion.where(submission_set_id: mine)
+
+    where(user_id: user.id).or(where(id: shared.select(:submission_request_id)))
+  }
 
   scope :assigned_to, ->(user) { where(assignee_id: user.id) }
   scope :unassigned,  -> { where(assignee_id: nil) }
