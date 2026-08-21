@@ -1,5 +1,5 @@
 import { module, test } from 'qunit';
-import { visit, fillIn, click, triggerEvent, waitUntil } from '@ember/test-helpers';
+import { visit, fillIn, click, triggerEvent, waitUntil, settled } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
@@ -227,6 +227,14 @@ module('Acceptance | submission messages', function (hooks) {
     // until it has — `resetHandlers` runs the moment this test body
     // ends, and anything still in flight then lands on the real network.
     await waitUntil(() => posted);
+
+    // And then the rest of it. Posting refreshes the route and the
+    // attention banner, which are issued after the POST resolves: on a
+    // slower machine those land after the test body has finished, on
+    // handlers that no longer exist and an owner that has been torn
+    // down. `waitUntil` returns at the POST, so it is not enough on its
+    // own.
+    await settled();
 
     assert.strictEqual(authorization, 'Bearer test-token', 'the token went with the upload');
     assert.true(put, 'and the bytes went to storage');

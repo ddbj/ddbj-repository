@@ -138,6 +138,29 @@ class SubmissionSet < ApplicationRecord
     SQL
   }
 
+  # Who already holds the submissions in each set — the assignees, not
+  # the owners.
+  #
+  # A question about a whole bundle is usually answered by whoever is
+  # already curating most of it, and when that is split between people,
+  # the split is the thing worth seeing: it is the difference between
+  # "this is obviously mine" and "somebody has to agree who takes it".
+  # `nil` is unassigned, which is a real answer rather than a gap.
+  #
+  # One grouped query for the whole page. {set_id => {assignee_id => n}}.
+  def self.assignee_counts(ids)
+    return {} if Array(ids).empty?
+
+    SubmissionSetInclusion
+      .where(submission_set_id: ids)
+      .joins(:submission_request)
+      .group(:submission_set_id, 'submission_requests.assignee_id')
+      .count
+      .each_with_object({}) {|((set_id, assignee_id), count), acc|
+        (acc[set_id] ||= {})[assignee_id] = count
+      }
+  end
+
   # The three integers every list of sets prints, counted in SQL for the
   # whole page. There is no ceiling on what a set holds, and these must
   # not be what loads it.

@@ -50,6 +50,12 @@ module Admin
       @counts     = SubmissionSet.counts_for(ids)
       @unread     = SubmissionSet.curator_unread_counts(current_user, ids)
       @last_posts = SubmissionSetMessage.where(submission_set_id: ids).group(:submission_set_id).maximum(:created_at)
+
+      # Who is already curating what is in each set — see
+      # ViewHelpers#assignee_breakdown for why this belongs next to the
+      # conversation rather than on the submissions.
+      @assignees     = SubmissionSet.assignee_counts(ids)
+      @assignee_uids = assignee_uids(@assignees)
     end
 
 
@@ -65,13 +71,22 @@ module Admin
       # study is hundreds of submissions. The member's own view of the
       # same list paginates for the same reason.
       @pagy, @inclusions = pagy(
-        @set.inclusions.includes(submission_request: [:user, {submission: :project}]).order(:created_at, :id)
+        @set.inclusions
+              .includes(submission_request: [:user, :assignee, {submission: :project}])
+              .order(:created_at, :id)
       )
 
       redirect_out_of_range_page(@pagy)
     end
 
     private
+
+    # One lookup for every name any of the rows will print.
+    def assignee_uids(counts)
+      ids = counts.values.flat_map(&:keys).compact.uniq
+
+      User.where(id: ids).pluck(:id, :uid).to_h
+    end
 
     # Unrecognised values mean nothing rather than something: a `filter`
     # the screen does not know used to render the whole list with no

@@ -77,9 +77,14 @@
           <div class="d-flex justify-content-between align-items-baseline gap-2 flex-wrap">
             <span>
               <strong><%= set.name %></strong>
+              <%# Who is already curating what is in it. Usually the answer %>
+              <%# to "is this mine?" — and where it is split, the split is %>
+              <%# the thing that has to be seen rather than assumed. %>
+              <% breakdown = assignee_breakdown(@set_assignees[set.id], uids: @assignee_uids) %>
+
               <span class="text-body-secondary small">
                 <%= pluralize(@set_counts.fetch(:submissions).fetch(set.id, 0), 'submission') %>,
-                <%= pluralize(@set_counts.fetch(:members).fetch(set.id, 0), 'member') %>
+                <%= pluralize(@set_counts.fetch(:members).fetch(set.id, 0), 'member') %><%= " — #{breakdown}" if breakdown %>
               </span>
             </span>
 

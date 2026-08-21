@@ -70,7 +70,15 @@
             <td><%= link_to set.name, admin_set_path(set) %></td>
             <td><code><%= set.owner.uid %></code></td>
             <td class="text-end"><%= number_with_delimiter(@counts.fetch(:members).fetch(set.id, 0)) %></td>
-            <td class="text-end"><%= number_with_delimiter(@counts.fetch(:submissions).fetch(set.id, 0)) %></td>
+            <td class="text-end">
+              <%= number_with_delimiter(@counts.fetch(:submissions).fetch(set.id, 0)) %>
+
+              <% breakdown = assignee_breakdown(@assignees[set.id], uids: @assignee_uids) %>
+
+              <% if breakdown %>
+                <div class="small text-body-secondary"><%= breakdown %></div>
+              <% end %>
+            </td>
 
             <%# Relative, because the question a queue asks is "has this %>
             <%# been sitting?" — the absolute value rides along in the %>

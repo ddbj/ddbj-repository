@@ -59,6 +59,10 @@
     <section>
       <h2 class="h6">Submissions</h2>
 
+      <%# The arrow in each row, said once: whose work it is, and which %>
+      <%# of us is curating it. %>
+      <p class="small text-body-tertiary mb-1">submitter → curator</p>
+
       <% if @inclusions.empty? %>
         <%# Not `:clear`: an empty set is not an outcome anybody wanted, %>
         <%# it is a set nobody has put anything in yet. %>
@@ -75,9 +79,17 @@
                 <span class="text-body-secondary"><%= request.submission&.source_id %></span>
               </span>
 
-              <%# Whose it is. On this screen it is the first thing a %>
-              <%# reader needs — a set holds several people's work. %>
-              <code class="small"><%= request.user.uid %></code>
+              <%# Two different people, and the row needs both: whose work %>
+              <%# it is, and which of us is already curating it. %>
+              <span class="small text-body-secondary">
+                <code><%= request.user.uid %></code>
+                →
+                <% if request.assignee %>
+                  <code><%= request.assignee.uid %></code>
+                <% else %>
+                  unassigned
+                <% end %>
+              </span>
             </li>
           <% end %>
         </ul>
