@@ -20,6 +20,12 @@ Rambulance.setup do |config|
     # not reported as a fault of ours.
     'EnumFilterable::UnknownFilterValue'           => :bad_request,
 
+    # A signed id that does not verify is a bad request, not a fault of
+    # ours: it is a client sending something Active Storage did not mint,
+    # which is exactly what the message controllers say they refuse when
+    # they check the shape of `files`.
+    'ActiveSupport::MessageVerifier::InvalidSignature' => :bad_request,
+
     'Validation::UnprocessableContent'             => :unprocessable_content
   }
 end

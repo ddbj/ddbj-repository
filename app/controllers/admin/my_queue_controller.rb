@@ -18,7 +18,20 @@ module Admin
       queue = MyQueue.new(current_user)
 
       @sections = queue.sections.map { present(it) }
-      @total    = @sections.sum(&:count)
+      @requests = @sections.sum(&:count)
+
+      # The other axis. Not a section: the three above are one thing
+      # split by this curator's relationship to it, and a set has no
+      # assignee for that split to be about.
+      @sets       = queue.sets.limit(PER_SECTION).to_a
+      @set_count  = queue.set_count
+      @set_unread = SubmissionSet.curator_unread_counts(current_user, @sets.map(&:id))
+      @set_counts = SubmissionSet.counts_for(@sets.map(&:id))
+
+      # Since when, so the row and the order it is in are the same fact.
+      @waiting_since = SubmissionSet.waiting_since(@sets.map(&:id))
+
+      @total = @requests + @set_count
     end
 
     private

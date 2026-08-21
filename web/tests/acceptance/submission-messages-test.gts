@@ -233,6 +233,28 @@ module('Acceptance | submission messages', function (hooks) {
     assert.deepEqual(posted, ['signed-id'], 'the signed id is what the message carries');
   });
 
+  // The failure was recorded and never rendered: the button came back
+  // and nothing else happened, which is what a lost message looks like.
+  test('a send that fails says so', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+
+      // Raw, not typed: the contract does not declare a 500 here, and
+      // the point is what the screen does when one arrives anyway.
+      mswHttp.post(`${ENV.apiURL}/submission_requests/${request.id}/messages`, () =>
+        HttpResponse.json({ error: 'Internal server error' }, { status: 500 }),
+      ),
+    );
+
+    await visit(`/requests/${request.id}`);
+    await fillIn('[data-test-messages] textarea', 'Updated, please review.');
+    await click('[data-test-messages] button[type="submit"]');
+
+    assert.dom('[data-test-messages] [data-test-error]').exists();
+  });
+
   test('renders the thread and posts a reply', async function (assert) {
     const initial: Message[] = [
       {

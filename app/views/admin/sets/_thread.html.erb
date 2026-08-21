@@ -1,0 +1,85 @@
+<%# locals: (set:, messages:, unread: 0) %>
+<%# The set's own thread. Everyone on the roster is party to it, which is %>
+<%# the difference from the per-request thread and the reason the author %>
+<%# of each message is named. %>
+<section data-test-thread>
+  <div class="d-flex justify-content-between align-items-baseline mb-1">
+    <h2 class="h5 mb-0">Messages</h2>
+    <span class="text-body-secondary small"><%= pluralize(set.users.size, 'member') %></span>
+  </div>
+
+  <p class="text-body-secondary small">
+    Every post emails all the members of this set. An unanswered message stays
+    in your queue until you reply or mark it read — a colleague reading it does
+    not clear yours, though a colleague answering it does. Replying follows the
+    set from then on.
+  </p>
+
+  <%# Both controls carry the newest message on screen: one that lands %>
+  <%# while a reply is being typed has not been read by sending it. %>
+  <% newest = messages.last&.id %>
+
+  <% if unread.positive? %>
+    <div class="mb-3">
+      <%= button_to "Mark #{pluralize(unread, 'message')} as read",
+                    read_admin_set_messages_path(set, through_id: newest),
+                    method: :post,
+                    class:  'btn btn-outline-secondary btn-sm' %>
+    </div>
+  <% end %>
+
+  <% if messages.any? %>
+    <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
+      <% messages.each do |m| %>
+        <li class="d-flex gap-3 <%= 'ps-5' unless m.curator_role? %>">
+          <% if m.curator_role? %>
+            <span class="badge rounded-circle text-bg-dark d-flex align-items-center justify-content-center"
+                  style="width: 2rem; height: 2rem;" aria-hidden="true">DC</span>
+          <% end %>
+
+          <div class="flex-fill border rounded p-3 <%= m.curator_role? ? 'bg-body-tertiary' : 'bg-primary-subtle border-primary-subtle' %>">
+            <div class="d-flex justify-content-between small text-body-secondary mb-1">
+              <strong class="text-body"><%= m.user.uid %></strong>
+              <span><%= format_datetime(m.created_at) %></span>
+            </div>
+
+            <div style="white-space: pre-wrap;"><%= m.body %></div>
+
+            <% if m.files.attached? %>
+              <ul class="list-unstyled mb-0 mt-2 small">
+                <% m.files.each do |file| %>
+                  <li>
+                    <%= link_to file.filename.to_s, admin_set_message_file_path(m, file.id, disposition: 'attachment') %>
+                    <span class="text-body-secondary"><%= number_to_human_size(file.byte_size) %></span>
+                  </li>
+                <% end %>
+              </ul>
+            <% end %>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-body-secondary fst-italic">No messages yet.</p>
+  <% end %>
+
+  <%= form_with url: admin_set_messages_path(set), method: :post, scope: :submission_set_message, local: true do |f| %>
+    <%= hidden_field_tag :through_id, newest %>
+
+    <div class="mb-3">
+      <%= f.label :body, 'New message to the set', class: 'form-label' %>
+      <%= f.text_area :body, class: 'form-control textarea-autogrow' %>
+    </div>
+
+    <div class="mb-3">
+      <%# `for` has to name the input's real id: `file_field_tag 'files[]'` %>
+      <%# emits `files_`, so `label_tag :files` labelled nothing — the %>
+      <%# control was unreachable by name, for a screen reader and for a %>
+      <%# test alike. %>
+      <%= label_tag 'files_', 'Attach files', class: 'form-label' %>
+      <%= file_field_tag 'files[]', multiple: true, class: 'form-control', data: {direct_upload_url: admin_direct_uploads_path} %>
+    </div>
+
+    <%= f.submit 'Send message', class: 'btn btn-primary' %>
+  <% end %>
+</section>

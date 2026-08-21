@@ -1,21 +1,15 @@
-import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
-import { service } from '@ember/service';
-import { DirectUpload } from '@rails/activestorage';
+import { Textarea } from '@ember/component';
 
 import DownloadLink from 'repository/components/download-link';
+import MessageThread from 'repository/components/message-thread';
 import { uniqueId } from '@ember/helper';
 
 import formatDatetime from 'repository/helpers/format-datetime';
 import humanSize from 'repository/helpers/human-size';
-import ENV from 'repository/config/environment';
 
-import type AttentionService from 'repository/services/attention';
-import type CurrentUserService from 'repository/services/current-user';
-import type { RequestManager } from '@warp-drive/core';
-import type RouterService from '@ember/routing/router-service';
 import type { paths } from 'schema/openapi';
 
 type MessagesResponse =
@@ -32,24 +26,8 @@ interface Signature {
   };
 }
 
-export default class SubmissionMessages extends Component<Signature> {
-  @service declare attention: AttentionService;
-  @service declare currentUser: CurrentUserService;
-  @service declare requestManager: RequestManager;
-  @service declare router: RouterService;
-
+export default class SubmissionMessages extends MessageThread<Signature> {
   @tracked messages: Message[] = [];
-  @tracked draft = '';
-  @tracked files: File[] = [];
-
-  // The element itself, so it can be emptied after a send. Clearing
-  // `files` alone leaves the control still displaying the name of what
-  // was just sent, and the next message then goes out with nothing
-  // attached while the sender is looking at the filename they believe is
-  // on it.
-  fileInput?: HTMLInputElement;
-  @tracked posting = false;
-  @tracked error: string | null = null;
 
   constructor(owner: unknown, args: Signature['Args']) {
     // @ts-expect-error -- Glimmer Component owner typing
@@ -91,42 +69,6 @@ export default class SubmissionMessages extends Component<Signature> {
     await this.settle();
   }
 
-  // The panel above this thread is rendered from counts the route
-  // fetched, so discharging the thread has to send the route back for
-  // them — otherwise "A curator has a question … reply below" stays up
-  // over a thread that was just answered, and only the button vanishes.
-  async settle() {
-    await this.router.refresh();
-
-    void this.attention.refresh();
-  }
-
-  @action
-  updateDraft(e: Event) {
-    this.draft = (e.target as HTMLTextAreaElement).value;
-  }
-
-  @action
-  selectFiles(e: Event) {
-    this.fileInput = e.target as HTMLInputElement;
-    this.files = Array.from(this.fileInput.files ?? []);
-  }
-
-  // Straight to storage, the same path the submission upload itself
-  // takes. Nothing goes through the API request, so the files this
-  // conversation is about — submission files, large by nature — are not
-  // bounded by anything in front of Rails.
-  async upload(file: File) {
-    // The endpoint authenticates now (it mints a blob row and a presigned
-    // PUT, which is not something to leave open), and @rails/activestorage
-    // sends only its own headers unless it is given more.
-    const upload = new DirectUpload(file, ENV.directUploadURL, undefined, this.currentUser.authorizationHeader);
-
-    return new Promise<string>((resolve, reject) => {
-      upload.create((error, blob) => (error ? reject(error) : resolve(blob!.signed_id)));
-    });
-  }
-
   @action
   async submit(e: Event) {
     e.preventDefault();
@@ -141,7 +83,7 @@ export default class SubmissionMessages extends Component<Signature> {
     this.error = null;
 
     try {
-      const files = await Promise.all(this.files.map((file) => this.upload(file)));
+      const files = await this.uploadDraftFiles();
 
       const { content } = await this.requestManager.request<CreateMessageResponse>({
         url: `/submission_requests/${this.args.requestId}/messages`,
@@ -161,18 +103,11 @@ export default class SubmissionMessages extends Component<Signature> {
         content,
       ];
 
-      this.draft = '';
-      this.files = [];
-
-      if (this.fileInput) this.fileInput.value = '';
+      this.clearForm();
 
       await this.settle();
     } catch {
-      // Storage going away is not hypothetical here — a dev SeaweedFS
-      // crash-looped unnoticed for a fortnight — and the only signal a
-      // silent failure gives is that the button came back and nothing
-      // happened.
-      this.error = 'Could not send. The file may not have uploaded — check your connection and try again.';
+      this.error = SubmissionMessages.SEND_FAILED;
     } finally {
       this.posting = false;
     }
@@ -246,12 +181,10 @@ export default class SubmissionMessages extends Component<Signature> {
         <div class="mb-3">
           {{#let (uniqueId) as |id|}}
             <label for={{id}} class="form-label">Reply to the curator</label>
-            <textarea
-              id={{id}}
-              class="form-control font-monospace small textarea-autogrow"
-              value={{this.draft}}
-              {{on "input" this.updateDraft}}
-            ></textarea>
+            {{! `<Textarea @value>` rather than a bare element: an HTML
+            textarea whose content starts with a newline loses it, so a
+            draft beginning with a blank line comes back one line short. }}
+            <Textarea id={{id}} class="form-control font-monospace small textarea-autogrow" @value={{this.draft}} />
           {{/let}}
         </div>
 
@@ -265,6 +198,13 @@ export default class SubmissionMessages extends Component<Signature> {
         <button type="submit" class="btn btn-primary" disabled={{this.posting}}>
           {{if this.posting "Sending..." "Send message"}}
         </button>
+
+        {{! It was set and never shown: a failed send left the button
+        coming back and nothing else happening, which is exactly what a
+        lost message looks like from the sender's side. }}
+        {{#if this.error}}
+          <div class="alert alert-warning mt-3 mb-0" data-test-error>{{this.error}}</div>
+        {{/if}}
       </form>
     </section>
   </template>

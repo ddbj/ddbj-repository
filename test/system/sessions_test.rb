@@ -28,6 +28,15 @@ class SessionsSystemTest < ApplicationSystemTestCase
     assert_link href: WebApp.url_for
   end
 
+  # The same address, from inside. The SPA shares this origin only where a
+  # proxy puts it there — in development it is a dev server on another
+  # port, and the bare `/web/` this used to carry was a 404.
+  test 'the way back to the submitter view leaves the admin origin correctly' do
+    sign_in_as users(:bob)
+
+    assert_link 'Back to repository', href: WebApp.url_for
+  end
+
   # --- no curator access ---------------------------------------------------
 
   # A bare 403 tells somebody they are wrong without telling them what to

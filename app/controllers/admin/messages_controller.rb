@@ -5,6 +5,8 @@ module Admin
   # Redirects back to the Messages tab the form lives on, so sending a
   # reply does not bounce the curator off the thread they were reading.
   class MessagesController < ApplicationController
+    include AttachmentSignedIds
+
     # "I know about this." The other way a thread is discharged — a reply
     # a curator has read and does not need to answer would otherwise sit
     # in their queue for ever, which is the trap the old open-marks-read
@@ -81,16 +83,6 @@ module Admin
     # else in the params is dropped rather than refused: copying somebody
     # in is a courtesy on top of the message, and it must not be able to
     # stop the message being sent.
-    # Signed ids only. A malformed shape — `files[a]=b` arrives as
-    # Parameters rather than an Array — would otherwise reach the model
-    # write and come back as a 500, and an id that fails verification is
-    # a bad request rather than a fault.
-    def signed_ids(raw)
-      return [] unless raw.is_a?(Array)
-
-      raw.compact_blank.filter_map { it if it.is_a?(String) }
-    end
-
     def cc_users
       ids = Array(params[:cc_user_ids]).map(&:to_i)
 

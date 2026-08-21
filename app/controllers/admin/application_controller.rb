@@ -10,7 +10,7 @@ module Admin
 
     before_action :authenticate_admin!
 
-    helper_method :my_queue_count
+    helper_method :my_queue_count, :set_queue_count
 
     private
 
@@ -66,6 +66,14 @@ module Admin
     # add up without double-counting.
     def my_queue_count
       @my_queue_count ||= MyQueue.new(current_user).count
+    end
+
+    # The set axis's share of it, for the nav item that leads there. One
+    # more aggregate query on a screen that already runs four, and the
+    # alternative is a tab that says nothing about whether anybody is
+    # waiting behind it.
+    def set_queue_count
+      @set_queue_count ||= SubmissionSet.needing_curator(current_user).count
     end
   end
 end

@@ -7,6 +7,38 @@ class AttentionTest < ActionDispatch::IntegrationTest
     default_headers['Authorization'] = "Bearer #{@user.api_key}"
   end
 
+  # The set axis, as one number. A badge nothing tests can be zeroed by
+  # accident and nobody finds out — which is what happened to this one
+  # when a reviewer tried it.
+  test 'counts the sets whose conversation is waiting on this member' do
+    set = SubmissionSet.create!(name: 'Deep sea study', owner: @user)
+
+    get attention_path
+    assert_conform_schema 200
+    assert_equal 0, response.parsed_body.fetch('sets_waiting')
+
+    message = set.messages.create!(user: users(:bob), author_role: :curator, body: 'Which of these is the parent?')
+
+    get attention_path
+    assert_equal 1, response.parsed_body.fetch('sets_waiting'), 'a curator has asked and nobody has answered'
+
+    set.mark_read_by!(@user, as: :member, through: message.id)
+
+    get attention_path
+    assert_equal 0, response.parsed_body.fetch('sets_waiting'), 'marked read by this member'
+  end
+
+  # Somebody else's set is not this member's business, invitation or not.
+  test 'does not count a set you are only invited to' do
+    theirs = SubmissionSet.create!(name: 'Somebody else', owner: users(:carol))
+    theirs.members.create!(email: @user.email, invited_by: users(:carol))
+    theirs.messages.create!(user: users(:bob), author_role: :curator, body: 'Anyone?')
+
+    get attention_path
+
+    assert_equal 0, response.parsed_body.fetch('sets_waiting')
+  end
+
   test 'empty when nothing is waiting on the submitter' do
     get attention_path
 

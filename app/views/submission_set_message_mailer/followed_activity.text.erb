@@ -1,0 +1,12 @@
+<% app_url = Rails.application.config_for(:app).app_url! -%>
+<%= @message.user.uid %> replied on the set “<%= @set.name %>” (<%= @set.submission_requests.size %> submissions, <%= @set.users.size %> members):
+
+<% if @message.body.present? -%>
+<%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+<% end -%>
+<%= render 'files', message: @message -%>
+
+Open the thread in the admin UI:
+<%= File.join(app_url, 'admin', 'sets', @set.id.to_s) %>
+
+— DDBJ Repository

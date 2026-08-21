@@ -33,4 +33,10 @@ class Admin::FilesController < Admin::ApplicationController
 
     redirect_to_attachment message.files.find(params.expect(:id))
   end
+
+  def set_message
+    message = SubmissionSetMessage.find(params.expect(:message_id))
+
+    redirect_to_attachment message.files.find(params.expect(:id))
+  end
 end

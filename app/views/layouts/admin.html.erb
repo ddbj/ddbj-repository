@@ -50,6 +50,13 @@
                        active: controller_path == 'admin/submission_requests' %>
 
             <%= render 'layouts/admin_nav_item',
+                       label:  'Sets',
+                       path:   admin_sets_path,
+                       active: controller_path.in?(%w[admin/sets admin/set_messages]),
+                       badge:  set_queue_count,
+                       badge_class: set_queue_count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>
+
+            <%= render 'layouts/admin_nav_item',
                        label:  'Users',
                        path:   admin_users_path,
                        active: controller_path == 'admin/users' %>
@@ -79,7 +86,11 @@
               </button>
 
               <ul class="dropdown-menu dropdown-menu-end">
-                <li><%= link_to 'Back to repository', '/web/', class: 'dropdown-item', data: {turbo: false} %></li>
+                <%# `WebApp.url_for`, not a bare path: the SPA is only on the %>
+                <%# same origin where a proxy puts it there. In development %>
+                <%# it is served by its own dev server on another port, and %>
+                <%# a hard-coded /web/ lands on a Rails 404. %>
+                <li><%= link_to 'Back to repository', WebApp.url_for, class: 'dropdown-item', data: {turbo: false} %></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                   <%= button_to 'Logout', admin_session_path, method: :delete, class: 'dropdown-item', data: {turbo: false} %>

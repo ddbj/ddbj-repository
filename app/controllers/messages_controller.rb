@@ -1,4 +1,6 @@
 class MessagesController < ApplicationController
+  include AttachmentSignedIds
+
   before_action :load_submission_request
 
   # Reading the thread no longer marks it read. "I have seen this" and "I
@@ -52,14 +54,6 @@ class MessagesController < ApplicationController
   end
 
   private
-
-  # Signed ids only — see the admin controller for why the shape is
-  # checked rather than trusted.
-  def signed_ids(raw)
-    return [] unless raw.is_a?(Array)
-
-    raw.compact_blank.filter_map { it if it.is_a?(String) }
-  end
 
   # Cheap UPDATE — at most touches the un-stamped tail of the thread.
   #

@@ -1,0 +1,16 @@
+Hello,
+
+<%= @message.curator_role? ? "A DDBJ curator (#{@author.uid})" : @author.uid %> has posted a message on the set “<%= @set.name %>”:
+
+<% if @message.body.present? -%>
+<%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+<% end -%>
+<%= render 'files', message: @message -%>
+
+Open the set on the web UI to reply:
+<%= WebApp.url_for("/sets/#{@set.id}") %>
+
+Everyone in this set receives this message.
+
+Regards,
+DDBJ Repository

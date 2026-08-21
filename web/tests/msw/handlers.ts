@@ -20,7 +20,7 @@ export const handlers = [
   // application test hits this; default to "nothing waiting" and let the
   // tests that care override it.
   http.get('/attention', ({ response }) => {
-    return response(200).json({ requests: [] });
+    return response(200).json({ requests: [], sets_waiting: 0 });
   }),
 
   // The request detail page offers "add to a set", which needs to know
@@ -34,6 +34,13 @@ export const handlers = [
   // disabled so tests that don't care about it don't have to stub it.
   http.get('/submission_requests/{submission_request_id}/reviewer_access', ({ response }) => {
     return response(200).json({ enabled: false });
+  }),
+
+  // The set page renders the set's own thread; default to empty so the
+  // tests that are about the roster or the submissions do not have to
+  // stub a conversation.
+  http.get('/sets/{set_id}/messages', ({ response }) => {
+    return response(200).json([]);
   }),
 
   mswHttp.post(directUploadURL, () => {

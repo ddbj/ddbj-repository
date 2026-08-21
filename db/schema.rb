@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_20_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_21_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -365,6 +365,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_000001) do
     t.string "invitation_token"
     t.bigint "invited_by_id", null: false
     t.datetime "joined_at"
+    t.datetime "last_read_at"
     t.bigint "submission_set_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
@@ -375,6 +376,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_000001) do
     t.index ["submission_set_id"], name: "index_submission_set_members_on_submission_set_id"
     t.index ["user_id"], name: "index_submission_set_members_on_user_id"
     t.check_constraint "user_id IS NULL AND joined_at IS NULL AND email IS NOT NULL AND invitation_token IS NOT NULL AND invitation_expires_at IS NOT NULL OR user_id IS NOT NULL AND joined_at IS NOT NULL", name: "submission_set_members_state_exclusivity"
+  end
+
+  create_table "submission_set_messages", force: :cascade do |t|
+    t.string "author_role", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.bigint "submission_set_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["submission_set_id", "created_at", "id"], name: "idx_on_submission_set_id_created_at_id_070ddeb119"
+    t.index ["submission_set_id"], name: "index_submission_set_messages_on_submission_set_id"
+    t.index ["user_id"], name: "index_submission_set_messages_on_user_id"
+  end
+
+  create_table "submission_set_participants", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_read_at"
+    t.bigint "submission_set_id", null: false
+    t.datetime "unsubscribed_at"
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["submission_set_id", "user_id"], name: "index_set_participants_on_set_and_user", unique: true
+    t.index ["submission_set_id"], name: "index_submission_set_participants_on_submission_set_id"
+    t.index ["user_id"], name: "index_submission_set_participants_on_user_id"
   end
 
   create_table "submission_sets", force: :cascade do |t|
@@ -495,6 +520,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_20_000001) do
   add_foreign_key "submission_set_members", "submission_sets"
   add_foreign_key "submission_set_members", "users"
   add_foreign_key "submission_set_members", "users", column: "invited_by_id"
+  add_foreign_key "submission_set_messages", "submission_sets"
+  add_foreign_key "submission_set_messages", "users"
+  add_foreign_key "submission_set_participants", "submission_sets"
+  add_foreign_key "submission_set_participants", "users"
   add_foreign_key "submission_sets", "users", column: "owner_id"
   add_foreign_key "submission_updates", "submissions"
   add_foreign_key "submissions", "submission_updates", column: "cached_at_update_id", on_delete: :nullify

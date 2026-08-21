@@ -37,7 +37,7 @@ class InvitationAcceptancesController < ApplicationController
       member.accept!(current_user)
     end
 
-    @counts = self.class.set_counts([@set.id])
+    @counts = self.class.set_counts([@set.id], viewer: current_user)
 
     render status: :created
   end

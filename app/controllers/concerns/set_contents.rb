@@ -57,7 +57,7 @@ module SetContents
         .group(:submission_request_id)
         .count
 
-    @counts = self.class.set_counts([@set.id])
+    @counts = self.class.set_counts([@set.id], viewer: current_user)
 
     # How much goes with each member if they are removed. Counted here
     # rather than in the browser: the submissions on screen are one page
@@ -71,16 +71,11 @@ module SetContents
   end
 
   class_methods do
-    # Three COUNTs over however many sets are being rendered, rather
-    # than loading the rows to call `size` on them. Keyed by set id in
-    # both the one-set and the many-set case, so the partial that
-    # reads them does not have to know which it is looking at.
-    def set_counts(ids)
-      {
-        members:     SubmissionSetMember.joined.where(submission_set_id: ids).group(:submission_set_id).count,
-        invited:     SubmissionSetMember.pending.where(submission_set_id: ids).group(:submission_set_id).count,
-        submissions: SubmissionSetInclusion.where(submission_set_id: ids).group(:submission_set_id).count
-      }
+    # Kept here as one call so the partial that reads them does not have
+    # to know whether it is looking at one set or a page of them. The
+    # counting itself belongs to the model.
+    def set_counts(ids, viewer:)
+      SubmissionSet.counts_for(ids).merge(unread: SubmissionSet.member_unread_counts(viewer, ids))
     end
   end
 end

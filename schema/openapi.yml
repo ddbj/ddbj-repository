@@ -94,9 +94,18 @@ paths:
               schema:
                 type: object
                 additionalProperties: false
-                required: [requests]
+                required: [requests, sets_waiting]
 
                 properties:
+                  sets_waiting:
+                    description: |
+                      How many of the reader's sets have a conversation waiting on
+                      them — a curator has written, nobody in the set has answered,
+                      and this member has not marked it read. A count rather than a
+                      list: the banner is about the reader's own submissions, and
+                      this feeds the badge on the Sets link instead.
+                    type: number
+
                   requests:
                     type: array
 
@@ -859,10 +868,13 @@ paths:
                 submission_message:
                   type: object
                   additionalProperties: false
-                  required: [body]
 
                   properties:
                     body:
+                      description: |
+                        Optional: a message that is only an attachment is a real
+                        thing to send — "here is the corrected file" needs no
+                        prose. A message with neither is refused.
                       type: string
 
                     files:
@@ -1519,6 +1531,227 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /sets/{set_id}/messages:
+    parameters:
+      - name: set_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    get:
+      description: |
+        The set's own thread — the conversation about the bundle rather than
+        about any one submission in it. Every member reads and writes it.
+
+        It does not carry the per-submission threads. Those are between one
+        submitter and DDBJ, and being able to read somebody's submission
+        through a shared set is not being party to what they were asked about
+        it.
+
+      tags:
+        - Sets
+
+      responses:
+        '200':
+          description: The chronological list of messages.
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/SetMessage'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      description: Post to the set's thread. Notifies the curators following it.
+
+      tags:
+        - Sets
+
+      requestBody:
+        required: true
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [submission_set_message]
+
+              properties:
+                submission_set_message:
+                  type: object
+                  additionalProperties: false
+
+                  properties:
+                    body:
+                      description: |
+                        Optional: an attachment on its own is a real thing to
+                        send. A message with neither is refused.
+                      type: string
+
+                    files:
+                      description: |
+                        Signed ids from ActiveStorage direct upload — the bytes go
+                        to storage from the browser, so nothing here is bounded by
+                        this request.
+                      type: array
+
+                      items:
+                        type: string
+
+      responses:
+        '201':
+          description: The newly-created message.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetMessage'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
+  /sets/{set_id}/messages/read:
+    parameters:
+      - name: set_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Mark the curator's messages in this thread as read — "nothing to answer
+        here". Per member: a colleague reading speaks for nobody but themselves.
+
+        `through_id` is the newest message the client had in front of it; one
+        that arrives a moment later is not acknowledged by a press that could
+        not have taken it into account.
+
+      requestBody:
+        required: false
+
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+
+              properties:
+                through_id:
+                  type: number
+
+      tags:
+        - Sets
+
+      responses:
+        '204':
+          description: Marked read for this member.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /sets/{set_id}/messages/{message_id}/files/{id}:
+    parameters:
+      - name: set_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: message_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    get:
+      description: |
+        A file attached to a message in the set's thread. Readable by every
+        member — unlike a per-request thread's attachments, which stay with the
+        submission's owner.
+
+      tags:
+        - Sets
+
+      parameters:
+        - name: as
+          in: query
+          description: |
+            `url` answers with the address as JSON instead of redirecting to it.
+
+          schema:
+            type: string
+            enum: [url]
+
+        - name: disposition
+          in: query
+          description: |
+            `attachment` saves the file; `inline` (the default) leaves it to the
+            browser. A value outside this list is the default rather than an
+            error — a disposition is a preference, not an instruction.
+
+          schema:
+            type: string
+            enum: [inline, attachment]
+
+      responses:
+        '200':
+          description: The address, when `as=url` was asked for.
+
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [url]
+
+                properties:
+                  url:
+                    type: string
+                    format: uri
+
+        '302':
+          description: A redirect to storage.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /invitations/{token}:
     parameters:
       - name: token
@@ -2142,6 +2375,7 @@ components:
         - member_count
         - invited_count
         - submission_count
+        - unread_message_count
 
       properties:
         id:
@@ -2172,6 +2406,13 @@ components:
         submission_count:
           type: number
 
+        unread_message_count:
+          description: |
+            Messages in the set's own thread waiting on you — a curator message
+            nobody in the set has answered, that you have not marked read. Per
+            member: a colleague reading speaks for nobody but themselves.
+          type: number
+
     Set:
       type: object
       additionalProperties: false
@@ -2185,6 +2426,7 @@ components:
         - member_count
         - invited_count
         - submission_count
+        - unread_message_count
         - deletable
         - delete_blocked_reason
         - members
@@ -2214,6 +2456,13 @@ components:
           type: number
 
         submission_count:
+          type: number
+
+        unread_message_count:
+          description: |
+            Messages in the set's own thread waiting on you — a curator message
+            nobody in the set has answered, that you have not marked read. Per
+            member: a colleague reading speaks for nobody but themselves.
           type: number
 
         deletable:
@@ -2998,6 +3247,48 @@ components:
             them, which is what makes access that has been taken away actually
             gone.
           type: string
+
+    SetMessage:
+      type: object
+      additionalProperties: false
+
+      required:
+        - id
+        - body
+        - author_role
+        - author_uid
+        - created_at
+        - files
+
+      properties:
+        id:
+          type: number
+
+        body:
+          type: string
+
+        author_role:
+          type: string
+
+          enum:
+            - curator
+            - member
+
+        author_uid:
+          description: |
+            Which member wrote it. Named, unlike a request thread's, where every
+            non-curator message is by definition the owner's.
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
+
+        files:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/AttachedFile'
 
     Message:
       type: object

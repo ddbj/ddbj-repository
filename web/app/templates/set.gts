@@ -9,6 +9,7 @@ import { pageTitle } from 'ember-page-title';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 import Pagination from 'repository/components/pagination';
+import SetMessages from 'repository/components/set-messages';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 import { requestState, stateLabel, toneClasses } from 'repository/utils/request-state';
@@ -327,20 +328,26 @@ export default class extends Component<Signature> {
 
       {{#if this.submissionSet.owned}}
         <div class="text-end">
-          <button
-            type="button"
-            class="btn btn-warning"
-            disabled={{this.deleteDisabled}}
-            title={{this.deleteHint}}
-            data-test-delete
-            {{on "click" this.deleteSet}}
-          >
-            Delete set
-          </button>
+          {{#let (uniqueId) as |hintId|}}
+            {{! The reason is a description, not the button's name: with
+            it in `title` the control announced itself as a paragraph of
+            prose, and "Delete set" — the thing it does — was never
+            spoken. }}
+            <button
+              type="button"
+              class="btn btn-warning"
+              disabled={{this.deleteDisabled}}
+              aria-describedby={{if this.deleteHint hintId}}
+              data-test-delete
+              {{on "click" this.deleteSet}}
+            >
+              Delete set
+            </button>
 
-          {{#if this.deleteHint}}
-            <p class="form-text mb-0 delete-hint">{{this.deleteHint}}</p>
-          {{/if}}
+            {{#if this.deleteHint}}
+              <p id={{hintId}} class="form-text mb-0 delete-hint">{{this.deleteHint}}</p>
+            {{/if}}
+          {{/let}}
         </div>
       {{/if}}
     </div>
@@ -613,5 +620,9 @@ export default class extends Component<Signature> {
         </div>
       {{/if}}
     </section>
+
+    {{! The set's own conversation, below what it holds — the thread is
+    about the bundle, so it reads after the bundle. }}
+    <SetMessages @setId={{this.submissionSet.id}} @unreadCount={{this.submissionSet.unread_message_count}} />
   </template>
 }

@@ -33,6 +33,7 @@ module('Acceptance | attention banner', function (hooks) {
     worker.use(
       http.get('/attention', ({ response }) => {
         return response(200).json({
+          sets_waiting: 0,
           requests: [
             { id: 42, db: 'biosample', source_id: 'SSUB000123', reason: 'unread_message' },
             { id: 7, db: 'bioproject', source_id: null, reason: 'ready_to_apply' },
@@ -53,6 +54,7 @@ module('Acceptance | attention banner', function (hooks) {
     worker.use(
       http.get('/attention', ({ response }) => {
         return response(200).json({
+          sets_waiting: 0,
           requests: [{ id: 42, db: 'st26', source_id: null, reason: 'validation_failed' }],
         });
       }),
@@ -72,6 +74,7 @@ module('Acceptance | attention banner', function (hooks) {
     worker.use(
       http.get('/attention', ({ response }) => {
         return response(200).json({
+          sets_waiting: 0,
           requests: answered ? [] : [{ id: 42, db: 'st26', source_id: null, reason: 'unread_message' }],
         });
       }),
