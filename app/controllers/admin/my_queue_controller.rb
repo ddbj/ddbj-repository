@@ -12,31 +12,22 @@ module Admin
     # rows helps nobody — the tail becomes a link into the ledger.
     PER_SECTION = 25
 
-    Listing = Data.define(:section, :rows, :count, :overflow)
+    Listing = Data.define(:section, :rows, :sets, :count, :overflow)
 
     def show
-      queue = MyQueue.new(current_user)
+      @sections = MyQueue.new(current_user).sections.map { present(it) }
+      @total    = @sections.sum(&:count)
 
-      @sections = queue.sections.map { present(it) }
-      @requests = @sections.sum(&:count)
+      # Everything the set rows on this page print, asked once for the
+      # page rather than once per row.
+      sets = @sections.flat_map(&:sets)
+      ids  = sets.map(&:id)
 
-      # The other axis. Not a section: the three above are one thing
-      # split by this curator's relationship to it, and a set has no
-      # assignee for that split to be about.
-      @sets       = queue.sets.limit(PER_SECTION).to_a
-      @set_count  = queue.set_count
-      @set_unread = SubmissionSet.curator_unread_counts(current_user, @sets.map(&:id))
-      @set_counts = SubmissionSet.counts_for(@sets.map(&:id))
-
-      # Since when, so the row and the order it is in are the same fact.
-      @waiting_since = SubmissionSet.waiting_since(@sets.map(&:id))
-
-      # And who is already curating what is in it, which is usually what
-      # decides whether this question is the reader's to answer.
-      @set_assignees = SubmissionSet.assignee_counts(@sets.map(&:id))
+      @set_unread    = SubmissionSet.curator_unread_counts(current_user, ids)
+      @set_counts    = SubmissionSet.counts_for(ids)
+      @waiting_since = SubmissionSet.waiting_since(ids)
+      @set_assignees = SubmissionSet.assignee_counts(ids)
       @assignee_uids = assignee_uids(@set_assignees)
-
-      @total = @requests + @set_count
     end
 
     private
@@ -48,11 +39,20 @@ module Admin
       User.where(id: ids).pluck(:id, :uid).to_h
     end
 
+    # Both axes, each capped, so one long side cannot crowd the other out
+    # of the page. The overflow line names what is left of the pair.
     def present(section)
       count    = section.count
       requests = section.requests.limit(PER_SECTION).to_a
+      sets     = section.set_conversations.limit(PER_SECTION).to_a
 
-      Listing.new(section:, rows: rows_for(requests), count:, overflow: [count - PER_SECTION, 0].max)
+      Listing.new(
+        section:,
+        rows:     rows_for(requests),
+        sets:,
+        count:,
+        overflow: [count - requests.size - sets.size, 0].max
+      )
     end
 
     # Both per-row facts for the whole section at once. Two grouped

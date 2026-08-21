@@ -12,8 +12,7 @@
     <%= pluralize(@total, 'thing') %>
     <%= @total == 1 ? 'needs' : 'need' %> a curator:
     <%= mine %> <%= mine == 1 ? 'is' : 'are' %> yours or involve you,
-    <%= unclaimed %> unclaimed<%= ", #{pluralize(@set_count, 'set conversation')}" if @set_count.positive? %>.
-    Oldest first.
+    <%= unclaimed %> unclaimed. Oldest first.
   <% end %>
 </p>
 
@@ -33,7 +32,7 @@
       <span class="small text-body-tertiary"><%= listing.section.criterion %></span>
     </div>
 
-    <% if listing.rows.empty? %>
+    <% if listing.count.zero? %>
       <%# Empty is the point of a queue, so it reads as an outcome and %>
       <%# carries nothing to press — a button here would send somebody %>
       <%# looking for work the screen has just said there is none of. %>
@@ -43,6 +42,21 @@
         <% listing.rows.each do |row| %>
           <%= render 'row', row: row, section: listing.section %>
         <% end %>
+
+        <%# The other axis, in the same section. Kept together rather than %>
+        <%# interleaved: the two carry different facts in the same places, %>
+        <%# and a column of alternating shapes is harder to read than two %>
+        <%# short runs. %>
+        <% listing.sets.each do |set| %>
+          <%= render 'set_row',
+                     set:           set,
+                     section:       listing.section,
+                     unread:        @set_unread.fetch(set.id, 0),
+                     counts:        @set_counts,
+                     assignees:     @set_assignees,
+                     uids:          @assignee_uids,
+                     waiting_since: @waiting_since[set.id] %>
+        <% end %>
       </div>
 
       <% if listing.overflow.positive? %>
@@ -51,65 +65,6 @@
           <%= link_to 'open in All requests', admin_submission_requests_path %>.
         </p>
       <% end %>
-    <% end %>
-  </section>
-<% end %>
-
-<%# The other axis. Kept apart from the three above rather than made a %>
-<%# fourth of them: those three are one thing split by this curator's %>
-<%# relationship to it, and a set has no assignee for that split to be %>
-<%# about — only whether anybody has answered. %>
-<% if @set_count.positive? %>
-  <section class="mb-4" data-test-section="sets">
-    <div class="d-flex align-items-baseline gap-2 flex-wrap mb-2">
-      <h2 class="h6 mb-0">Set conversations</h2>
-      <span class="badge text-bg-danger"><%= number_with_delimiter(@set_count) %></span>
-      <span class="small text-body-tertiary">
-        A question about a bundle of submissions — asked once, answered once. Longest waiting first.
-      </span>
-    </div>
-
-    <div class="list-group">
-      <% @sets.each do |set| %>
-        <% unread = @set_unread.fetch(set.id, 0) %>
-
-        <%= link_to admin_set_path(set), class: 'list-group-item list-group-item-action', data: {test_set: set.id} do %>
-          <div class="d-flex justify-content-between align-items-baseline gap-2 flex-wrap">
-            <span>
-              <strong><%= set.name %></strong>
-              <%# Who is already curating what is in it. Usually the answer %>
-              <%# to "is this mine?" — and where it is split, the split is %>
-              <%# the thing that has to be seen rather than assumed. %>
-              <% breakdown = assignee_breakdown(@set_assignees[set.id], uids: @assignee_uids) %>
-
-              <span class="text-body-secondary small">
-                <%= pluralize(@set_counts.fetch(:submissions).fetch(set.id, 0), 'submission') %>,
-                <%= pluralize(@set_counts.fetch(:members).fetch(set.id, 0), 'member') %><%= " — #{breakdown}" if breakdown %>
-              </span>
-            </span>
-
-            <span class="d-flex align-items-baseline gap-2">
-              <% if unread.positive? %>
-                <span class="badge text-bg-danger"><%= pluralize(unread, 'message') %></span>
-              <% end %>
-
-              <%# How long the question has been sitting — the same value %>
-              <%# the section is ordered by. `updated_at` would say "just %>
-              <%# now" for a set somebody renamed this morning. %>
-              <span class="small text-body-secondary">
-                waiting <%= elapsed_time(@waiting_since[set.id]) %>
-              </span>
-            </span>
-          </div>
-        <% end %>
-      <% end %>
-    </div>
-
-    <% if @set_count > @sets.size %>
-      <p class="small text-body-secondary mt-2 mb-0">
-        <%= number_with_delimiter(@set_count - @sets.size) %> more —
-        <%= link_to 'open in Sets', admin_sets_path(filter: 'waiting') %>.
-      </p>
     <% end %>
   </section>
 <% end %>

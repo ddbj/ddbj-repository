@@ -8,16 +8,39 @@
 <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-1">
   <h1 class="display-6 mb-0"><%= @set.name %></h1>
 
-  <%# Following, not assignment. A set has no state to move through and %>
-  <%# nothing to hand over but the conversation, so who is dealing with %>
-  <%# it is who is listening to it. %>
-  <% if @set.following?(current_user) %>
-    <%= button_to 'Unfollow', admin_set_subscription_path(@set), method: :delete,
-                  class: 'btn btn-outline-secondary btn-sm' %>
-  <% else %>
-    <%= button_to 'Follow', admin_set_subscription_path(@set), method: :post,
-                  class: 'btn btn-outline-secondary btn-sm' %>
-  <% end %>
+  <div class="d-flex gap-2 align-items-center flex-wrap">
+    <%# Claiming the conversation, not the set: a set has no state to %>
+    <%# move through, and the only thing there is to hand over is who %>
+    <%# answers. Named as that, so nobody reads it as the start of a %>
+    <%# status column. %>
+    <% if @set.assignee %>
+      <span class="small text-body-secondary" data-test-answering>
+        Answering: <code><%= @set.assignee.uid %></code>
+      </span>
+
+      <% if @set.assignee_id == current_user.id %>
+        <%= button_to 'Release', admin_set_assignment_path(@set), method: :delete,
+                      class: 'btn btn-outline-secondary btn-sm' %>
+      <% else %>
+        <%= button_to 'Take over', admin_set_assignment_path(@set), method: :post,
+                      class: 'btn btn-outline-secondary btn-sm' %>
+      <% end %>
+    <% else %>
+      <%= button_to 'Answer this', admin_set_assignment_path(@set), method: :post,
+                    class: 'btn btn-primary btn-sm' %>
+    <% end %>
+
+    <%# Following is separate: replying subscribes you whether or not you %>
+    <%# hold it, and a colleague who wants to keep an eye on a set they %>
+    <%# are not answering needs a way to say so. %>
+    <% if @set.following?(current_user) %>
+      <%= button_to 'Unfollow', admin_set_subscription_path(@set), method: :delete,
+                    class: 'btn btn-outline-secondary btn-sm' %>
+    <% else %>
+      <%= button_to 'Follow', admin_set_subscription_path(@set), method: :post,
+                    class: 'btn btn-outline-secondary btn-sm' %>
+    <% end %>
+  </div>
 </div>
 
 <p class="text-body-secondary mb-4">

@@ -24,12 +24,21 @@ class MyQueue
   # one that blocks somebody else first.
   ISSUABLE_STATUS_IDS = -> { AccessionIssue::ISSUABLE_FROM.map { Lifecycleable::STATUSES.fetch(it) } }
 
-  Section = Data.define(:key, :title, :criterion, :scope) do
-    def count = scope.reorder(nil).count
+  # One relationship, two axes. A section holds the requests AND the set
+  # conversations that stand in that relationship to this curator: both
+  # are work waiting on them, and which of the two a given piece of work
+  # is says nothing about whether it is theirs — which is what the three
+  # sections are about.
+  Section = Data.define(:key, :title, :criterion, :scope, :sets) do
+    def count = scope.reorder(nil).count + sets.reorder(nil).count
 
     # Oldest first: a queue is a working order, not a newsfeed.
     def requests
       scope.reorder(updated_at: :asc).includes(:user, :assignee, submission: :project)
+    end
+
+    def set_conversations
+      sets.includes(:owner, :assignee).by_longest_waiting
     end
   end
 
@@ -86,7 +95,8 @@ class MyQueue
         key:       :assigned,
         title:     'Assigned to me',
         criterion: 'You took these on — assignment only changes when someone changes it.',
-        scope:     needing_curator(user).assigned_to(user)
+        scope:     needing_curator(user).assigned_to(user),
+        sets:      SubmissionSet.needing_curator(user).assigned_to(user)
       ),
       # IS DISTINCT FROM, not `!=`: SQL inequality is NULL for an
       # unassigned row, so `where.not(assignee_id: id)` silently drops
@@ -96,32 +106,30 @@ class MyQueue
       Section.new(
         key:       :involved,
         title:     "I'm involved",
-        criterion: 'You replied or edited here — someone else holds the assignment.',
-        scope:     needing_curator(user).involving(user).where('submission_requests.assignee_id IS DISTINCT FROM ?', user.id)
+        criterion: 'You replied or edited here — somebody else holds it, or nobody does.',
+        scope:     needing_curator(user).involving(user).where('submission_requests.assignee_id IS DISTINCT FROM ?', user.id),
+        sets:      SubmissionSet.needing_curator(user).followed_by(user)
+                                .where('submission_sets.assignee_id IS DISTINCT FROM ?', user.id)
       ),
       Section.new(
         key:       :unclaimed,
         title:     'Unclaimed',
         criterion: 'No assignee, nobody has replied — every curator sees this section identically.',
-        scope:     needing_curator.unclaimed
+        scope:     needing_curator.unclaimed,
+        sets:      SubmissionSet.needing_curator.unclaimed
       )
     ]
   end
 
-  # Requests and set conversations, which are two axes and one queue.
-  # A question about a bundle waits on a curator in exactly the way a
+  # Requests and set conversations, which are two axes and one queue. A
+  # question about a bundle waits on a curator in exactly the way a
   # question about one submission does, and a landing screen that
   # promises "everything waiting" cannot answer only for the axis it was
   # built on first.
-  def count = sections.sum(&:count) + set_count
+  def count = sections.sum(&:count)
 
-  # Oldest first, like the sections: a queue is a working order — and
-  # "oldest" means the question that has been sitting longest, not the
-  # set that was touched longest ago. `updated_at` moves for a rename as
-  # readily as for a message, which would send a five-day-old question to
-  # the back of the queue and relabel it as new.
-  def sets = SubmissionSet.needing_curator(user).includes(:owner).by_longest_waiting
-
+  # The set axis's own share, for the Sets tab's badge. Not a section:
+  # this one is "still unanswered by you", whoever is assigned.
   def set_count = SubmissionSet.needing_curator(user).count
 
   # Requests with something a curator can actually do. Kept as two plain

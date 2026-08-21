@@ -235,6 +235,10 @@ Rails.application.routes.draw do
       end
 
       resource :subscription, only: %i[create destroy], controller: 'set_subscriptions'
+
+      # Claiming the conversation. Singular, like the request's: what is
+      # created is this set's assignment, which has no id of its own.
+      resource :assignment, only: %i[create destroy], controller: 'set_assignments'
     end
 
     resources :users,               only: %i[index show update], param: :uid do
