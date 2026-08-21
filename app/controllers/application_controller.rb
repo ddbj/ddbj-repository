@@ -37,13 +37,14 @@ class ApplicationController < ActionController::API
   end
 
   # Acting as somebody else is for helping them with what they submitted.
-  # It does not extend to deciding who they collaborate with: a set
-  # membership and an invitation both record who did it, and under a
-  # proxy that record would name the person being helped rather than the
-  # curator doing the helping. Reading is untouched.
+  # It does not extend to deciding who they collaborate with, or to
+  # speaking in their name: a set membership, an invitation and a message
+  # all record who did it, and under a proxy that record would name the
+  # person being helped rather than the curator doing the helping.
+  # Reading is untouched.
   def refuse_proxy!
     return unless proxying?
 
-    forbid! 'Sets cannot be changed while acting as another account.'
+    forbid! 'A set cannot be written to while acting as another account.'
   end
 end

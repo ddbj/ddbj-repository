@@ -888,7 +888,12 @@ export interface paths {
                 content: {
                     "application/json": {
                         submission_message: {
-                            body: string;
+                            /**
+                             * @description Optional: a message that is only an attachment is a real
+                             *     thing to send — "here is the corrected file" needs no
+                             *     prose. A message with neither is refused.
+                             */
+                            body?: string;
                             /**
                              * @description Signed ids from ActiveStorage direct upload. The file goes
                              *     to storage from the browser, so nothing here is bounded by
@@ -1614,7 +1619,11 @@ export interface paths {
                 content: {
                     "application/json": {
                         submission_set_message: {
-                            body: string;
+                            /**
+                             * @description Optional: an attachment on its own is a real thing to
+                             *     send. A message with neither is refused.
+                             */
+                            body?: string;
                             /**
                              * @description Signed ids from ActiveStorage direct upload — the bytes go
                              *     to storage from the browser, so nothing here is bounded by

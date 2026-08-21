@@ -115,4 +115,103 @@ class MyQueueTest < ActiveSupport::TestCase
     assert_equal 0, req.unread_message_count_for(users(:bob))
     assert_not_includes MyQueue.unread_request_ids(users(:bob)).map(&:submission_request_id), req.id
   end
+
+  # --- the set axis -------------------------------------------------------
+  #
+  # Sets are the queue's second axis. The numbers behind the two badges
+  # and the queue's own total all come from here, and each of them was
+  # silently zeroable before these existed.
+
+  def waiting_set(author: users(:alice))
+    SubmissionSet.create!(name: 'Deep sea study', owner: users(:alice)).tap {
+      it.messages.create!(user: author, author_role: :member, body: 'Are these one submission or two?')
+    }
+  end
+
+  test 'a set with an unanswered question is in the queue, and its count is the badge' do
+    set = waiting_set
+
+    assert_equal [set], MyQueue.new(users(:bob)).sets.to_a
+    assert_equal 1,     MyQueue.new(users(:bob)).set_count
+  end
+
+  test 'the total counts both axes' do
+    unread_request
+    waiting_set
+
+    assert_equal 2, MyQueue.new(users(:bob)).count, 'one request and one set'
+  end
+
+  # Answering is the work, so it settles the set for every curator.
+  test 'a colleague answering takes it out of everybody queue' do
+    set = waiting_set
+
+    set.messages.create!(user: users(:dave), author_role: :curator, body: 'Two.')
+
+    assert_empty MyQueue.new(users(:bob)).sets.to_a
+    assert_empty MyQueue.new(users(:dave)).sets.to_a
+  end
+
+  # Reading is not answering, and it speaks for nobody else.
+  test 'marking read clears one curator and leaves the others' do
+    set     = waiting_set
+    message = set.messages.last
+
+    set.mark_read_by!(users(:bob), as: :curator, through: message.id)
+
+    assert_empty MyQueue.new(users(:bob)).sets.to_a
+    assert_equal [set], MyQueue.new(users(:dave)).sets.to_a
+  end
+
+  # The marker never moves backwards: a stale tab rendered when more was
+  # unread would otherwise resurrect everything already dealt with.
+  test 'a stale mark-read does not move the marker back' do
+    set   = waiting_set
+    first = set.messages.last
+
+    second = set.messages.create!(user: users(:alice), author_role: :member, body: 'And another thing')
+
+    set.mark_read_by!(users(:bob), as: :curator, through: second.id)
+    set.mark_read_by!(users(:bob), as: :curator, through: first.id)
+
+    assert_empty MyQueue.new(users(:bob)).sets.to_a, 'the older press must not undo the newer one'
+  end
+
+  # `through` bounds what a press can discharge to what was on screen.
+  test 'a message that landed after the page was drawn is not discharged by it' do
+    set  = waiting_set
+    seen = set.messages.last
+
+    set.messages.create!(user: users(:alice), author_role: :member, body: 'One more')
+    set.mark_read_by!(users(:bob), as: :curator, through: seen.id)
+
+    assert_equal [set], MyQueue.new(users(:bob)).sets.to_a
+  end
+
+  # Which side somebody acts from is the screen they pressed, not what
+  # their account is: a curator can be on a set's roster like anyone else.
+  test 'a curator who is also a member keeps two markers' do
+    set        = waiting_set
+    membership = set.members.create!(user: users(:bob), invited_by: users(:alice), joined_at: Time.current)
+
+    set.mark_read_by!(users(:bob), as: :member, through: set.messages.last.id)
+
+    assert_not_nil membership.reload.last_read_at, 'the member side is what a press on the member screen marks'
+    assert_equal [set], MyQueue.new(users(:bob)).sets.to_a,
+                 'and it must not discharge a curator queue entry they never saw as a curator'
+
+    set.mark_read_by!(users(:bob), as: :curator, through: set.messages.last.id)
+
+    assert_empty MyQueue.new(users(:bob)).sets.to_a
+  end
+
+  test 'the oldest question comes first' do
+    recent = waiting_set
+    older  = SubmissionSet.create!(name: 'Asked last week', owner: users(:alice))
+
+    older.messages.create!(user: users(:alice), author_role: :member, body: 'Still waiting', created_at: 7.days.ago)
+    older.touch
+
+    assert_equal [older, recent], MyQueue.new(users(:bob)).sets.to_a
+  end
 end

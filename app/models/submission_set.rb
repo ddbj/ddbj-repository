@@ -40,7 +40,6 @@ class SubmissionSet < ApplicationRecord
   # Curators who have worked in this thread. Members are not here: the
   # roster is what makes the thread theirs.
   has_many :participations, class_name: 'SubmissionSetParticipant', inverse_of: :set, dependent: :destroy
-  has_many :participants, through: :participations, source: :user
 
   has_many :followers, -> { merge(SubmissionSetParticipant.subscribed) },
            through: :participations, source: :user
@@ -110,6 +109,35 @@ class SubmissionSet < ApplicationRecord
       .where('submission_set_members.last_read_at IS NULL OR submission_set_messages.created_at > submission_set_members.last_read_at')
   end
 
+  # Since when a set has been waiting on a curator — the oldest message
+  # no curator has answered.
+  #
+  # NOT `updated_at`. That moves for a rename as readily as for a
+  # message, so a five-day-old question sorts as new the moment somebody
+  # touches the set, and the queue's promise of "oldest first" quietly
+  # becomes "oldest by whatever last happened".
+  def self.waiting_since(ids)
+    return {} if Array(ids).empty?
+
+    SubmissionSetMessage.unanswered.where(submission_set_id: ids).group(:submission_set_id).minimum(:created_at)
+  end
+
+  # The same value as a sort key, for the queue. A correlated subquery
+  # rather than a join so the scope composes with the rest.
+  scope :by_longest_waiting, -> {
+    order(Arel.sql(<<~SQL.squish))
+      (SELECT MIN(m.created_at) FROM submission_set_messages m
+        WHERE m.submission_set_id = submission_sets.id
+          AND m.author_role = 'member'
+          AND NOT EXISTS (
+            SELECT 1 FROM submission_set_messages later
+            WHERE later.submission_set_id = m.submission_set_id
+              AND later.author_role = 'curator'
+              AND (later.created_at, later.id) > (m.created_at, m.id)
+          )) ASC NULLS LAST
+    SQL
+  }
+
   # The three integers every list of sets prints, counted in SQL for the
   # whole page. There is no ceiling on what a set holds, and these must
   # not be what loads it.
@@ -155,14 +183,25 @@ class SubmissionSet < ApplicationRecord
   # the set would kill a link that is sitting in a mailbox, and would
   # do it silently; taking the invitation back is a thing the owner can
   # see and undo.
-  def deletable? = inclusions.none? && members.where.not(id: owner_membership).none?
+  def deletable? = inclusions.none? && messages.none? && members.where.not(id: owner_membership).none?
 
   # Said once, here, and served to the client rather than written out
   # again in the template that shows it — the rule and its wording belong
   # together, and two copies in two languages drift.
   EMPTY_FIRST = 'Take the submissions out and remove everyone else — including invitations nobody has used — first.'.freeze
 
-  def delete_blocked_reason = deletable? ? nil : EMPTY_FIRST
+  # A conversation is not the owner's to erase, and unlike the other two
+  # blockers there is nothing anybody can do to clear it: a thread is
+  # DDBJ's record of what was asked and answered, and the curator who
+  # answered has no copy anywhere else. Said as a fact rather than as an
+  # instruction, because there is no step that unblocks it.
+  CONVERSATION_KEPT = 'This set has a conversation with DDBJ on it, which is the record of what was asked and answered — so the set stays.'.freeze
+
+  def delete_blocked_reason
+    return CONVERSATION_KEPT if messages.exists?
+
+    deletable? ? nil : EMPTY_FIRST
+  end
 
   # Everything below mirrors SubmissionRequest's thread deliberately,
   # name for name: a curator moves between the two axes all day, and the
@@ -184,30 +223,35 @@ class SubmissionSet < ApplicationRecord
     scope.count
   end
 
-  # What is waiting on THIS member. The mirror image, and individual for
-  # the opposite reason to the curator side: answering settles the thread
-  # for the set, but a colleague having read something is not this person
-  # having read it.
-  def unread_message_count_for_member(user)
-    return 0 unless user
-
-    marker = members.find_by(user_id: user.id)&.last_read_at
-    scope  = messages.unanswered_by_members
-    scope  = scope.where('submission_set_messages.created_at > ?', marker) if marker
-
-    scope.count
-  end
-
   # "I have seen this thread, up to here." `through` is the newest
   # message the reader had in front of them, so a message that lands
   # while a reply is being typed is not discharged unseen.
-  def mark_read_by!(user, through: nil)
-    return unless user
+  #
+  # `as:` is passed rather than read off the account, and that is the
+  # whole of it: which side somebody is acting from is a fact about the
+  # screen they pressed the button on. A curator can be a member of a set
+  # like anybody else, and inferring the side from `admin?` gave that
+  # person a badge they could never clear — and, worse, let a press on
+  # the member's side dismiss a curator queue entry they had never seen
+  # as a curator.
+  #
+  # Returns whether anything moved, so a screen does not report having
+  # marked what it did not: a `through` naming a message from another set
+  # (a stale tab, a hand-edited form) marks nothing.
+  def mark_read_by!(user, as:, through: nil)
+    return false unless user
 
     at = through ? messages.where(id: through).pick(:created_at) : Time.current
-    return unless at
+    return false unless at
 
-    user.admin? ? mark_curator_read(user, at) : mark_member_read(user, at)
+    marked =
+      case as
+      when :curator then mark_curator_read(user, at)
+      when :member  then mark_member_read(user, at)
+      else raise ArgumentError, "unknown side: #{as.inspect}"
+      end
+
+    marked.positive?
   end
 
   # Who hears about a message here, apart from whoever wrote it. Asked by

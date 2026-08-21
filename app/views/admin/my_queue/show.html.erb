@@ -65,7 +65,7 @@
       <h2 class="h6 mb-0">Set conversations</h2>
       <span class="badge text-bg-danger"><%= number_with_delimiter(@set_count) %></span>
       <span class="small text-body-tertiary">
-        A question about a bundle of submissions — asked once, answered once.
+        A question about a bundle of submissions — asked once, answered once. Longest waiting first.
       </span>
     </div>
 
@@ -88,7 +88,12 @@
                 <span class="badge text-bg-danger"><%= pluralize(unread, 'message') %></span>
               <% end %>
 
-              <span class="small text-body-secondary"><%= elapsed_time(set.updated_at) %></span>
+              <%# How long the question has been sitting — the same value %>
+              <%# the section is ordered by. `updated_at` would say "just %>
+              <%# now" for a set somebody renamed this morning. %>
+              <span class="small text-body-secondary">
+                waiting <%= elapsed_time(@waiting_since[set.id]) %>
+              </span>
             </span>
           </div>
         <% end %>

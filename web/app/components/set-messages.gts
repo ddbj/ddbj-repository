@@ -1,20 +1,15 @@
-import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
-import { service } from '@ember/service';
+import { modifier } from 'ember-modifier';
 import { uniqueId } from '@ember/helper';
-import { DirectUpload } from '@rails/activestorage';
+import { Textarea } from '@ember/component';
 
 import DownloadLink from 'repository/components/download-link';
+import MessageThread from 'repository/components/message-thread';
 import formatDatetime from 'repository/helpers/format-datetime';
 import humanSize from 'repository/helpers/human-size';
-import ENV from 'repository/config/environment';
 
-import type AttentionService from 'repository/services/attention';
-import type CurrentUserService from 'repository/services/current-user';
-import type { RequestManager } from '@warp-drive/core';
-import type RouterService from '@ember/routing/router-service';
 import type { paths } from 'schema/openapi';
 
 type MessagesResponse = paths['/sets/{set_id}/messages']['get']['responses']['200']['content']['application/json'];
@@ -43,36 +38,35 @@ interface Signature {
 // and are on each submission's own page; being able to read somebody's
 // submission through a shared set is not being party to what they were
 // asked about it.
-export default class SetMessages extends Component<Signature> {
-  @service declare attention: AttentionService;
-  @service declare currentUser: CurrentUserService;
-  @service declare requestManager: RequestManager;
-  @service declare router: RouterService;
-
+export default class SetMessages extends MessageThread<Signature> {
   @tracked messages: Message[] = [];
-  @tracked draft = '';
-  @tracked files: File[] = [];
 
-  // The element itself, so it can be emptied after a send — clearing
-  // `files` alone leaves the control showing the name of what was just
-  // sent, and the next message goes out with nothing attached while the
-  // sender is looking at the filename they believe is on it.
-  fileInput?: HTMLInputElement;
-  @tracked posting = false;
-  @tracked error: string | null = null;
+  // Which set the messages on screen belong to. Ember reuses a component
+  // instance when the model changes under the same route, so loading
+  // once at construction would leave one set's thread rendered under
+  // another set's name — in a feature whose whole premise is who is
+  // party to which conversation.
+  #loaded?: number;
 
-  constructor(owner: unknown, args: Signature['Args']) {
-    // @ts-expect-error -- Glimmer Component owner typing
-    super(owner, args);
+  reload = modifier((_element: Element, [setId]: [number]) => {
+    if (this.#loaded === setId) return;
+
+    this.#loaded = setId;
+    this.messages = [];
+
     void this.load();
-  }
+  });
 
   async load() {
+    const setId = this.args.setId;
+
     const { content } = await this.requestManager.request<MessagesResponse>({
-      url: `/sets/${this.args.setId}/messages`,
+      url: `/sets/${setId}/messages`,
     });
 
-    this.messages = content;
+    // A slower answer for the set we have left must not land on the one
+    // we are looking at.
+    if (setId === this.args.setId) this.messages = content;
   }
 
   // Acknowledges what is on screen, not whatever has arrived since.
@@ -80,46 +74,34 @@ export default class SetMessages extends Component<Signature> {
     return this.messages.at(-1)?.id;
   }
 
+  get unreadShown() {
+    return Boolean(this.args.unreadCount) && Boolean(this.newestMessageId);
+  }
+
   @action
   async markRead() {
-    await this.requestManager.request({
-      url: `/sets/${this.args.setId}/messages/read`,
-      method: 'POST',
-      data: { through_id: this.newestMessageId },
-      options: { reportErrors: false },
-    });
+    // Nothing to acknowledge until the thread has arrived: without an id
+    // the server falls back to "now" and would discharge messages this
+    // reader has not seen — the exact thing `through_id` exists to stop.
+    if (!this.newestMessageId) return;
 
-    await this.settle();
-  }
+    this.error = null;
 
-  // The count above this thread comes from the route's copy of the set,
-  // so discharging the thread has to send the route back for it.
-  async settle() {
-    await this.router.refresh();
+    try {
+      await this.requestManager.request({
+        url: `/sets/${this.args.setId}/messages/read`,
+        method: 'POST',
+        data: { through_id: this.newestMessageId },
+        options: { reportErrors: false },
+      });
 
-    void this.attention.refresh();
-  }
-
-  @action
-  updateDraft(e: Event) {
-    this.draft = (e.target as HTMLTextAreaElement).value;
-  }
-
-  @action
-  selectFiles(e: Event) {
-    this.fileInput = e.target as HTMLInputElement;
-    this.files = Array.from(this.fileInput.files ?? []);
-  }
-
-  // Straight to storage, like every other upload here: the files this
-  // conversation is about are submission files, and nothing about them
-  // should be bounded by a request body.
-  async upload(file: File) {
-    const upload = new DirectUpload(file, ENV.directUploadURL, undefined, this.currentUser.authorizationHeader);
-
-    return new Promise<string>((resolve, reject) => {
-      upload.create((error, blob) => (error ? reject(error) : resolve(blob!.signed_id)));
-    });
+      // Both: the count above comes from the route, and anything posted
+      // while this page was open is still missing from the thread.
+      await this.load();
+      await this.settle();
+    } catch {
+      this.error = 'Could not mark it read. Try again.';
+    }
   }
 
   isMine = (m: Message) => m.author_role === 'member' && m.author_uid === this.currentUser.user?.uid;
@@ -137,7 +119,7 @@ export default class SetMessages extends Component<Signature> {
     this.error = null;
 
     try {
-      const files = await Promise.all(this.files.map((file) => this.upload(file)));
+      const files = await this.uploadDraftFiles();
 
       const { content } = await this.requestManager.request<CreateMessageResponse>({
         url: `/sets/${this.args.setId}/messages`,
@@ -148,28 +130,25 @@ export default class SetMessages extends Component<Signature> {
 
       this.messages = [...this.messages, content];
 
-      this.draft = '';
-      this.files = [];
-
-      if (this.fileInput) this.fileInput.value = '';
+      this.clearForm();
 
       await this.settle();
     } catch {
-      this.error = 'Could not send. The file may not have uploaded — check your connection and try again.';
+      this.error = SetMessages.SEND_FAILED;
     } finally {
       this.posting = false;
     }
   }
 
   <template>
-    <section class="mt-4" data-test-set-messages>
+    <section class="mt-4" data-test-set-messages {{this.reload @setId}}>
       <div class="d-flex align-items-baseline gap-3 flex-wrap">
         <h2 class="h5">Messages about this set</h2>
 
         {{! The other way to deal with a thread: a curator's note that
         needs no reply would otherwise sit here for ever. Per member —
         marking it read speaks for nobody else in the set. }}
-        {{#if @unreadCount}}
+        {{#if this.unreadShown}}
           <button
             type="button"
             class="btn btn-outline-secondary btn-sm"
@@ -241,12 +220,7 @@ export default class SetMessages extends Component<Signature> {
         <div class="mb-3">
           {{#let (uniqueId) as |id|}}
             <label for={{id}} class="form-label">Write to the set</label>
-            <textarea
-              id={{id}}
-              class="form-control font-monospace small textarea-autogrow"
-              value={{this.draft}}
-              {{on "input" this.updateDraft}}
-            ></textarea>
+            <Textarea id={{id}} class="form-control font-monospace small textarea-autogrow" @value={{this.draft}} />
           {{/let}}
         </div>
 

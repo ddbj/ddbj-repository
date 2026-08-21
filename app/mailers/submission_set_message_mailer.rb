@@ -2,22 +2,35 @@
 # web UI, as everywhere else here — these mails are notification only.
 #
 # The set-axis twin of SubmissionMessageMailer, with one difference worth
-# knowing about: a curator's message goes to **every member of the set**.
-# That is what "everyone in the set is party to this conversation" means
+# knowing about: a message reaches **everyone in the set**, whoever wrote
+# it. That is what "everyone here is party to this conversation" means
 # for mail, and it is the thing that stops scaling first — a set with a
 # dozen members is a mailing list. If that becomes a complaint, the fix
 # is a per-member setting, not narrowing who can see the thread.
 class SubmissionSetMessageMailer < ApplicationMailer
-  # Curator → the set.
+  # To the set: everyone on the roster except whoever wrote it.
+  #
+  # One action for both kinds of author. A member writing to the set is
+  # writing to the people in it as much as to DDBJ — the screen says so —
+  # and a thread where half the messages notify nobody would be a
+  # conversation that only works in one direction.
   def notify_members
     @message = params[:message]
     @set     = @message.set
-    @curator = @message.user
+    @author  = @message.user
 
-    recipients = @set.users.filter_map { recipient_for(it) }
+    recipients = @set.users.filter_map { recipient_for(it) unless it.id == @message.user_id }
     return if recipients.empty?
 
-    mail(to: recipients, subject: "[DDBJ Repository] New curator message on the set “#{@set.name}”")
+    # Bcc: the roster shows each member the address they were invited at,
+    # which is not necessarily the address their account carries. Putting
+    # the account addresses in To would hand every member something the
+    # set never asked them for.
+    mail(
+      to:      recipient_for_self,
+      bcc:     recipients,
+      subject: "[DDBJ Repository] New message on the set “#{@set.name}”"
+    )
   end
 
   # A member → the curators following this set. Nobody following means no
@@ -27,7 +40,7 @@ class SubmissionSetMessageMailer < ApplicationMailer
     @message = params[:message]
     @set     = @message.set
 
-    recipients = @set.followers.filter_map { recipient_for(it) }
+    recipients = @set.followers_to_notify(@message).filter_map { recipient_for(it) }
     return if recipients.empty?
 
     mail(to: recipients, subject: "[DDBJ Repository] #{@message.user.uid} wrote on the set “#{@set.name}”")
@@ -49,4 +62,11 @@ class SubmissionSetMessageMailer < ApplicationMailer
       subject: "[DDBJ Repository] #{@message.user.uid} replied on the set “#{@set.name}”"
     )
   end
+
+  private
+
+  # A Bcc-only mail still needs somewhere to be addressed, and the
+  # honest answer is us: this went to the set, and the copy in our own
+  # mailbox is the record that it did.
+  def recipient_for_self = self.class.default[:from]
 end

@@ -211,4 +211,21 @@ class GroupsTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 404
   end
+
+  # A thread is DDBJ's record of what was asked and answered, and the
+  # curator who answered has no copy anywhere else. Unlike the other two
+  # blockers there is no step that clears it, so the set stays.
+  test 'a set with a conversation on it cannot be deleted' do
+    @set.messages.create!(user: @alice, author_role: :member, body: 'A question')
+
+    get set_path(@set)
+
+    assert_equal false, response.parsed_body.fetch('deletable')
+    assert_match 'record of what was asked and answered', response.parsed_body.fetch('delete_blocked_reason')
+
+    with_exceptions_app { delete set_path(@set) }
+
+    assert_response :unprocessable_content
+    assert SubmissionSet.exists?(@set.id)
+  end
 end

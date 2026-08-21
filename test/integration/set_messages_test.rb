@@ -141,6 +141,66 @@ class SetMessagesTest < ActionDispatch::IntegrationTest
     assert_equal 0, response.parsed_body.sole['unread_message_count'], 'carol answered for the set'
   end
 
+  # A message reaches the people it is addressed to. The screen says
+  # everyone in the set gets it, and a thread where half the messages
+  # notify nobody would be a conversation working in one direction only.
+  test 'a member writing to the set tells the other members' do
+    @carol.update!(email: 'carol@example.com')
+
+    perform_enqueued_jobs do
+      assert_emails 1 do
+        post set_messages_path(@set),
+             params:  {submission_set_message: {body: 'I have fixed the metadata.'}}.to_json,
+             headers: JSON_HEADERS
+      end
+    end
+
+    mail = ActionMailer::Base.deliveries.last
+
+    assert_equal [@carol.email], mail.bcc, 'the other members, not the author'
+    assert_match @alice.uid, mail.parts.map(&:body).join, 'and it says who wrote it'
+  end
+
+  # Under a proxy the marker written is the member's own reminder, and
+  # discharging somebody's reminder while acting as them is not helping.
+  test 'a curator acting as a member can neither write nor mark read' do
+    admin = users(:bob)
+
+    default_headers['Authorization']  = "Bearer #{admin.api_key}"
+    default_headers['X-Dway-User-Id'] = @alice.uid
+
+    with_exceptions_app do
+      post set_messages_path(@set), params: {submission_set_message: {body: 'x'}}.to_json, headers: JSON_HEADERS
+    end
+
+    assert_response :forbidden
+
+    with_exceptions_app { post read_set_messages_path(@set), params: {}.to_json, headers: JSON_HEADERS }
+
+    assert_response :forbidden
+  ensure
+    default_headers.delete 'X-Dway-User-Id'
+  end
+
+  # `through_id` bounds a press to what was on screen; one naming another
+  # set's message marks nothing at all.
+  test 'a through_id from another thread marks nothing' do
+    @set.messages.create!(user: @bob, author_role: :curator, body: 'A question')
+
+    elsewhere = SubmissionSet.create!(name: 'Other', owner: @alice)
+    theirs    = elsewhere.messages.create!(user: @bob, author_role: :curator, body: 'Not this one')
+
+    post read_set_messages_path(@set), params: {through_id: theirs.id}.to_json, headers: JSON_HEADERS
+
+    assert_response :no_content
+
+    get sets_path
+
+    waiting = response.parsed_body.find { it['id'] == @set.id }
+
+    assert_equal 1, waiting.fetch('unread_message_count'), 'nothing was marked, so nothing was cleared'
+  end
+
   test 'a message with neither body nor file is refused' do
     with_exceptions_app do
       post set_messages_path(@set), params: {submission_set_message: {body: '   '}}.to_json, headers: JSON_HEADERS

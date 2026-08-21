@@ -52,7 +52,14 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
     # Both members hear about it. This is the thing that stops scaling
     # first, and it is deliberate: everybody in the set is party to the
     # conversation.
-    assert_equal [@alice.email, @carol.email].sort, ActionMailer::Base.deliveries.last.to.sort
+    #
+    # Bcc, not To: the roster shows each member the address they were
+    # invited at, and the addresses their accounts carry are not the
+    # set's to hand round.
+    mail = ActionMailer::Base.deliveries.last
+
+    assert_equal [@alice.email, @carol.email].sort, mail.bcc.sort
+    assert_equal ['repo@ddbj.nig.ac.jp'],           mail.to
 
     visit admin_my_queue_path
 
@@ -81,7 +88,7 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
   # The list is not a directory: a curator opens it to find the
   # conversations that are waiting.
   test 'the list filters to what is waiting and says so when nothing is' do
-    visit admin_sets_path(filter: 'waiting')
+    visit admin_sets_path(waiting: 1)
 
     within '[data-test-empty-state="clear"]' do
       assert_text 'Nothing waiting'
@@ -89,10 +96,49 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
 
     @set.messages.create!(user: @alice, author_role: :member, body: 'Anyone?')
 
-    visit admin_sets_path(filter: 'waiting')
+    visit admin_sets_path(waiting: 1)
 
     assert_selector "[data-test-set='#{@set.id}']", text: 'Deep sea study'
     assert_text '1 message'
+  end
+
+  # The two filters are different questions and combine. A single slot
+  # would answer "which of the ones I follow still need me?" with the
+  # wrong list rather than say it could not.
+  test 'waiting and following narrow together' do
+    @set.messages.create!(user: @alice, author_role: :member, body: 'Anyone?')
+
+    followed = SubmissionSet.create!(name: 'Followed but quiet', owner: @alice)
+    followed.subscribe! users(:bob)
+
+    visit admin_sets_path(waiting: 1)
+    assert_text 'Deep sea study'
+    assert_no_text 'Followed but quiet'
+
+    visit admin_sets_path(following: 1)
+    assert_text 'Followed but quiet'
+    assert_no_text 'Deep sea study'
+
+    visit admin_sets_path(waiting: 1, following: 1)
+
+    within '[data-test-empty-state="filtered"]' do
+      assert_text 'waiting on you and followed by you'
+    end
+
+    @set.subscribe! users(:bob)
+
+    visit admin_sets_path(waiting: 1, following: 1)
+    assert_text 'Deep sea study'
+    assert_no_text 'Followed but quiet'
+  end
+
+  # A page past the end used to render an empty table under a filter bar
+  # counting the rows that are there.
+  test 'a page past the end goes back to one that exists' do
+    visit admin_sets_path(page: 99)
+
+    assert_no_selector '[data-test-empty-state]'
+    assert_text 'Deep sea study'
   end
 
   # Posting follows it — including for a curator who had stopped, since
@@ -108,6 +154,36 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
     click_button 'Send message'
 
     assert_button 'Unfollow'
+  end
+
+  # The queue's order and the age it prints are the same fact: how long
+  # the question has been sitting. `updated_at` says "just now" for a set
+  # somebody renamed this morning, which would put a five-day-old
+  # question at the back under a heading promising the opposite.
+  test 'the queue is ordered by how long the question has been sitting' do
+    old_set = SubmissionSet.create!(name: 'Asked last week', owner: @alice)
+    old_set.messages.create!(user: @alice, author_role: :member, body: 'Still waiting', created_at: 7.days.ago)
+    old_set.update!(name: 'Asked last week, renamed just now')
+
+    @set.messages.create!(user: @alice, author_role: :member, body: 'Asked today')
+
+    visit admin_my_queue_path
+
+    within '[data-test-section="sets"]' do
+      names = all('.list-group-item strong').map(&:text)
+
+      assert_equal ['Asked last week, renamed just now', 'Deep sea study'], names
+      assert_text 'waiting 7d ago'
+    end
+  end
+
+  # An attachment control a label does not name cannot be reached by a
+  # screen reader or by a test.
+  test 'the file control on the curator form is named' do
+    visit admin_set_path(@set)
+
+    assert_selector 'label', text: 'Attach files'
+    assert_equal 'files_', find('label', text: 'Attach files')[:for]
   end
 
   # Both screens that list sets order by when the set was last touched,

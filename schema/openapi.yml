@@ -868,10 +868,13 @@ paths:
                 submission_message:
                   type: object
                   additionalProperties: false
-                  required: [body]
 
                   properties:
                     body:
+                      description: |
+                        Optional: a message that is only an attachment is a real
+                        thing to send — "here is the corrected file" needs no
+                        prose. A message with neither is refused.
                       type: string
 
                     files:
@@ -1588,10 +1591,12 @@ paths:
                 submission_set_message:
                   type: object
                   additionalProperties: false
-                  required: [body]
 
                   properties:
                     body:
+                      description: |
+                        Optional: an attachment on its own is a real thing to
+                        send. A message with neither is refused.
                       type: string
 
                     files:

@@ -28,6 +28,9 @@ module Admin
       @set_unread = SubmissionSet.curator_unread_counts(current_user, @sets.map(&:id))
       @set_counts = SubmissionSet.counts_for(@sets.map(&:id))
 
+      # Since when, so the row and the order it is in are the same fact.
+      @waiting_since = SubmissionSet.waiting_since(@sets.map(&:id))
+
       @total = @requests + @set_count
     end
 

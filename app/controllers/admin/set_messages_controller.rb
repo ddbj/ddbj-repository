@@ -2,6 +2,8 @@ module Admin
   # Curator side of a set's thread. Member side is the public API's
   # SetMessagesController.
   class SetMessagesController < ApplicationController
+    include AttachmentSignedIds
+
     before_action :load_set
 
     def create
@@ -29,7 +31,7 @@ module Admin
       # Answering is having dealt with what was asked, and it follows the
       # set from here on — including for a curator who had stopped.
       @set.subscribe!(current_user)
-      @set.mark_read_by!(current_user, through: params[:through_id])
+      @set.mark_read_by!(current_user, as: :curator, through: params[:through_id])
 
       redirect_to admin_set_path(@set), notice: "Message sent to the #{@set.users.size} members of this set."
     end
@@ -37,21 +39,19 @@ module Admin
     # "I know about this." A member's message a curator has read and does
     # not need to answer would otherwise sit in their queue for ever.
     def read
-      @set.mark_read_by!(current_user, through: params[:through_id])
-
-      redirect_to admin_set_path(@set), notice: 'Marked as read.'
+      # Reported from what actually happened: a `through_id` from a stale
+      # tab names a message that is not in this thread, which marks
+      # nothing — and saying "Marked as read." over a badge that is still
+      # there is worse than saying nothing.
+      if @set.mark_read_by!(current_user, as: :curator, through: params[:through_id])
+        redirect_to admin_set_path(@set), notice: 'Marked as read.'
+      else
+        redirect_to admin_set_path(@set), alert: 'Nothing was marked — this page was drawn before the thread moved. Reload and look again.'
+      end
     end
 
     private
 
     def load_set = @set = SubmissionSet.find(params.expect(:set_id))
-
-    # Signed ids only — a malformed shape is a bad request rather than a
-    # 500 at the model write.
-    def signed_ids(raw)
-      return [] unless raw.is_a?(Array)
-
-      raw.compact_blank.filter_map { it if it.is_a?(String) }
-    end
   end
 end

@@ -98,6 +98,10 @@ module('Acceptance | the conversation about a set', function (hooks) {
     assert.strictEqual(posted, 'Both, actually.');
     assert.dom('[data-test-set-messages]').includesText('Both, actually.');
     assert.dom('[data-test-set-messages] textarea').hasValue('');
+    // `fillIn` addresses by selector, so the name a person would use is
+    // asserted rather than used: without it the control is unlabelled
+    // for a screen reader and nothing here would notice.
+    assert.dom('[data-test-set-messages] label').hasText('Write to the set');
   });
 
   // Reading is not answering, and the count is the server's: a message
@@ -128,6 +132,57 @@ module('Acceptance | the conversation about a set', function (hooks) {
 
     assert.true(read);
     assert.dom('[data-test-set-messages] [data-test-mark-read]').doesNotExist();
+  });
+
+  // Ember reuses the component when the model changes under the same
+  // route. Without a re-fetch, one set's conversation stays on screen
+  // under another set's name — which, in a feature about who is party to
+  // which conversation, is the worst thing it could get wrong.
+  test("moving to another set fetches that set's thread", async function (assert) {
+    worker.use(
+      http.get('/sets/{id}', ({ params, response }) =>
+        response(200).json(set({ id: Number(params.id), name: `Set ${params.id}` })),
+      ),
+
+      http.get('/sets/{set_id}/messages', ({ params, response }) =>
+        response(200).json([message({ body: `thread for set ${params.set_id}` })]),
+      ),
+    );
+
+    await visit('/sets/7');
+
+    assert.dom('[data-test-set-messages]').includesText('thread for set 7');
+
+    await visit('/sets/8');
+
+    assert.dom('[data-test-set-messages]').includesText('thread for set 8');
+    assert.dom('[data-test-set-messages]').doesNotIncludeText('thread for set 7');
+  });
+
+  // Until the thread has arrived there is nothing to acknowledge: with
+  // no id the server falls back to "now" and would discharge messages
+  // the reader never saw.
+  test('the acknowledge button waits until it knows what is on screen', async function (assert) {
+    let sent: unknown;
+
+    worker.use(
+      http.get('/sets/{id}', ({ response }) => response(200).json(set({ unread_message_count: 1 }))),
+
+      http.get('/sets/{set_id}/messages', ({ response }) =>
+        response(200).json([message({ id: 42, author_role: 'curator', author_uid: 'bob' })]),
+      ),
+
+      http.post('/sets/{set_id}/messages/read', async ({ request, response }) => {
+        sent = (await request.json())?.through_id;
+
+        return response(204).empty();
+      }),
+    );
+
+    await visit('/sets/7');
+    await click('[data-test-set-messages] [data-test-mark-read]');
+
+    assert.strictEqual(sent, 42, 'it names the newest message it had in front of it');
   });
 
   // A badge on a row is only visible if that row is on the page in front

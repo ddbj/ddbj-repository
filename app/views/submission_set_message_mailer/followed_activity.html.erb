@@ -1,7 +1,7 @@
 <% thread_url = File.join(Rails.application.config_for(:app).app_url!, 'admin', 'sets', @set.id.to_s) %>
 
 <p>
-  <%= @message.user.uid %> replied to the set on the set “<%= @set.name %>”
+  <%= @message.user.uid %> replied on the set “<%= @set.name %>”
   (<%= @set.submission_requests.size %> submissions, <%= @set.users.size %> members):
 </p>
 

@@ -92,7 +92,11 @@
     <%# form, so the upstream body limit — which is not ours to raise — %>
     <%# never comes into it. %>
     <div class="mb-3">
-      <%= label_tag :files, 'Attach files', class: 'form-label' %>
+      <%# `for` has to name the input's real id: `file_field_tag 'files[]'` %>
+      <%# emits `files_`, so `label_tag :files` labelled nothing — the %>
+      <%# control was unreachable by name, for a screen reader and for a %>
+      <%# test alike. %>
+      <%= label_tag 'files_', 'Attach files', class: 'form-label' %>
       <%# `direct_upload: true` would point at Active Storage's own route, which is off — see config/application.rb. %>
       <%= file_field_tag 'files[]', multiple: true, class: 'form-control', data: {direct_upload_url: admin_direct_uploads_path} %>
     </div>

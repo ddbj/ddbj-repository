@@ -60,7 +60,10 @@
       <h2 class="h6">Submissions</h2>
 
       <% if @inclusions.empty? %>
-        <%= empty_state :clear, 'Nothing in it yet.' %>
+        <%# Not `:clear`: an empty set is not an outcome anybody wanted, %>
+        <%# it is a set nobody has put anything in yet. %>
+        <%= empty_state :first_run, 'Nothing in it yet.',
+                        'Submissions appear here as their owners add them — which only they can do.' %>
       <% else %>
         <ul class="list-group list-group-flush">
           <% @inclusions.each do |inclusion| %>
@@ -78,6 +81,8 @@
             </li>
           <% end %>
         </ul>
+
+        <%= render 'admin/shared/pagy_nav', pagy: @pagy %>
       <% end %>
     </section>
   </div>

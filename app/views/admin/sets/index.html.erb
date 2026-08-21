@@ -11,32 +11,39 @@
   submissions' own threads are elsewhere, on each request.
 </p>
 
-<%= form_with url: admin_sets_path, method: :get, local: true, class: 'mb-3' do %>
-  <div class="btn-group btn-group-sm" role="group">
-    <%# Filters in the URL, never in the session: a filtered view has to %>
-    <%# survive being sent to somebody else. %>
-    <%= link_to 'All', admin_sets_path,
-                class: "btn btn-outline-secondary#{' active' if params[:filter].blank?}" %>
+<%# Filters in the URL, never in the session: a filtered view has to %>
+<%# survive being sent to somebody else. Two independent toggles rather %>
+<%# than a three-way switch — "which of the ones I follow still need %>
+<%# me?" is the question this screen is for. %>
+<div class="d-flex gap-2 flex-wrap mb-3">
+  <%= link_to "Waiting on you (#{number_with_delimiter(@waiting)})",
+              admin_sets_path(waiting: waiting? ? nil : 1, following: following? ? 1 : nil),
+              class: "btn btn-sm btn-outline-secondary#{' active' if waiting?}",
+              data:  {test_filter: 'waiting'} %>
 
-    <%= link_to "Waiting on us (#{number_with_delimiter(@waiting)})", admin_sets_path(filter: 'waiting'),
-                class: "btn btn-outline-secondary#{' active' if params[:filter] == 'waiting'}",
-                data:  {test_filter: 'waiting'} %>
+  <%= link_to 'Following',
+              admin_sets_path(waiting: waiting? ? 1 : nil, following: following? ? nil : 1),
+              class: "btn btn-sm btn-outline-secondary#{' active' if following?}",
+              data:  {test_filter: 'following'} %>
 
-    <%= link_to 'Following', admin_sets_path(filter: 'following'),
-                class: "btn btn-outline-secondary#{' active' if params[:filter] == 'following'}" %>
-  </div>
-<% end %>
+  <% if waiting? || following? %>
+    <%= link_to 'Clear', admin_sets_path, class: 'btn btn-sm btn-link' %>
+  <% end %>
+</div>
 
 <% if @sets.empty? %>
   <% if @total.zero? %>
     <%= empty_state :first_run, 'No sets yet.',
                     'A set appears here when a submitter bundles submissions together and starts a conversation about them.' %>
-  <% elsif params[:filter] == 'waiting' %>
+  <% elsif waiting? && !following? %>
     <%# Empty is the goal here — every set has been answered — so it %>
     <%# reads as an outcome and offers nothing to press. %>
-    <%= empty_state :clear, 'Nothing waiting.', 'Every set thread has been answered or put aside.' %>
+    <%= empty_state :clear, 'Nothing waiting on you.', 'Every set thread has been answered or put aside.' %>
   <% else %>
-    <%= empty_state :filtered, 'No sets match.', "Showing #{params[:filter]} only." do %>
+    <%# Recites what is on, in the words the buttons use. %>
+    <% on = [('waiting on you' if waiting?), ('followed by you' if following?)].compact %>
+
+    <%= empty_state :filtered, 'No sets match.', "Showing sets #{on.to_sentence} only." do %>
       <%= link_to 'Clear', admin_sets_path, class: 'btn btn-outline-secondary btn-sm' %>
     <% end %>
   <% end %>

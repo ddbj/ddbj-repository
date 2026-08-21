@@ -7,8 +7,12 @@
 # one submitter and DDBJ (see MessageFilesController for the same line).
 class SetMessagesController < ApplicationController
   include SetContents
+  include AttachmentSignedIds
 
-  before_action :refuse_proxy!, only: %i[create]
+  # Both writes: `read` moves a marker on the member's own roster row,
+  # which is that person's reminder and not a curator's to discharge
+  # while acting as them.
+  before_action :refuse_proxy!, only: %i[create read]
   before_action :load_set
 
   def index
@@ -33,9 +37,14 @@ class SetMessagesController < ApplicationController
 
     # Writing is having dealt with what was there — the same rule as the
     # request thread, and only through what was already on screen.
-    @set.mark_read_by!(current_user, through: @message.id)
+    @set.mark_read_by!(current_user, as: :member, through: @message.id)
 
+    # Both directions. The curators following it are being asked
+    # something; the rest of the set is being told, because a message to
+    # a set is to the people in it as much as to DDBJ — which is what the
+    # screen promises when it says everyone here gets it.
     SubmissionSetMessageMailer.with(message: @message).notify_curators.deliver_later
+    SubmissionSetMessageMailer.with(message: @message).notify_members.deliver_later
 
     render :show, status: :created
   end
@@ -43,21 +52,12 @@ class SetMessagesController < ApplicationController
   # "Nothing to answer here." A curator's note that needs no reply would
   # otherwise sit in every member's queue for ever.
   def read
-    @set.mark_read_by!(current_user, through: params[:through_id])
+    @set.mark_read_by!(current_user, as: :member, through: params[:through_id])
 
     head :no_content
   end
 
   private
-
-  # Signed ids only — a malformed shape (`files[a]=b` arrives as
-  # Parameters rather than an Array) is a bad request rather than a 500
-  # at the model write.
-  def signed_ids(raw)
-    return [] unless raw.is_a?(Array)
-
-    raw.compact_blank.filter_map { it if it.is_a?(String) }
-  end
 
   # A set you are not in is not visible as a set you are not in.
   def load_set

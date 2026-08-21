@@ -1,5 +1,5 @@
 <% app_url = Rails.application.config_for(:app).app_url! -%>
-<%= @message.user.uid %> replied to the set on the set “<%= @set.name %>” (<%= @set.submission_requests.size %> submissions, <%= @set.users.size %> members):
+<%= @message.user.uid %> replied on the set “<%= @set.name %>” (<%= @set.submission_requests.size %> submissions, <%= @set.users.size %> members):
 
 <% if @message.body.present? -%>
 <%= @message.body.lines.map { "  #{it}" }.join.chomp %>

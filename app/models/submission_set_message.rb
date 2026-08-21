@@ -46,6 +46,12 @@ class SubmissionSetMessage < ApplicationRecord
 
   scope :chronological, -> { order(:created_at, :id) }
 
+  # Both scopes below compare `(created_at, id)` rather than `created_at`
+  # alone, matching the order the thread is read in. On `created_at` a
+  # question and its answer written in the same microsecond — reachable
+  # for seeded or imported rows — leave the thread waiting on both sides
+  # at once, while the screen renders them as asked-then-answered.
+
   # Member messages nobody on the curator side has answered — the same
   # collective rule the request thread uses, for the same reason:
   # answering is the work, so it settles the thread for every curator.
@@ -55,7 +61,7 @@ class SubmissionSetMessage < ApplicationRecord
         SELECT 1 FROM submission_set_messages later
         WHERE later.submission_set_id = submission_set_messages.submission_set_id
           AND later.author_role = 'curator'
-          AND later.created_at > submission_set_messages.created_at
+          AND (later.created_at, later.id) > (submission_set_messages.created_at, submission_set_messages.id)
       )
     SQL
   }
@@ -69,7 +75,7 @@ class SubmissionSetMessage < ApplicationRecord
         SELECT 1 FROM submission_set_messages later
         WHERE later.submission_set_id = submission_set_messages.submission_set_id
           AND later.author_role = 'member'
-          AND later.created_at > submission_set_messages.created_at
+          AND (later.created_at, later.id) > (submission_set_messages.created_at, submission_set_messages.id)
       )
     SQL
   }

@@ -16,18 +16,34 @@ module Admin
   class SetsController < ApplicationController
     include Pagy::Method
 
+    helper_method :waiting?, :following?
+
     # Two filters and no search. A set is found by the conversation it is
     # having — which is the only reason a curator is on this screen —
     # and there are not enough of them for a name to be the way in.
+    #
+    # The two are independent, not a three-way switch: "which of the ones
+    # I follow still need me?" is the obvious question to ask of this
+    # screen, and a single slot would answer it with the wrong list
+    # rather than say it cannot.
     def index
       @waiting = SubmissionSet.needing_curator(current_user).count
       @total   = SubmissionSet.count
 
+      # `where(id:)` twice rather than two `merge`s: merging relations
+      # that both constrain `id` REPLACES the first condition rather than
+      # narrowing it, so asking both questions used to silently answer
+      # only the second.
       scope = SubmissionSet.includes(:owner).order(updated_at: :desc)
-      scope = scope.merge(SubmissionSet.needing_curator(current_user)) if params[:filter] == 'waiting'
-      scope = scope.merge(SubmissionSet.followed_by(current_user))     if params[:filter] == 'following'
+      scope = scope.where(id: SubmissionSet.needing_curator(current_user).select(:id)) if waiting?
+      scope = scope.where(id: SubmissionSet.followed_by(current_user).select(:id))     if following?
 
       @pagy, @sets = pagy(scope)
+
+      # A page past the end renders an empty table under a filter bar
+      # counting the rows that are there — the screen contradicting
+      # itself. Reachable by hand and by carrying a page number back.
+      return if redirect_out_of_range_page(@pagy)
 
       ids = @sets.map(&:id)
 
@@ -36,14 +52,31 @@ module Admin
       @last_posts = SubmissionSetMessage.where(submission_set_id: ids).group(:submission_set_id).maximum(:created_at)
     end
 
+
     def show
       @set = SubmissionSet.includes(:owner).find(params.expect(:id))
 
       # The thread renders each message's attachments as well as its
       # author — `:user` alone leaves a pair of queries per message.
-      @messages   = @set.messages.includes(:user, files_attachments: :blob).to_a
-      @members    = @set.members.ordered.includes(:user, :invited_by).to_a
-      @inclusions = @set.inclusions.includes(submission_request: [:user, {submission: :project}]).order(:created_at)
+      @messages = @set.messages.includes(:user, files_attachments: :blob).to_a
+      @members  = @set.members.ordered.includes(:user, :invited_by).to_a
+
+      # Paginated: a set holds however much it holds, and a three-year
+      # study is hundreds of submissions. The member's own view of the
+      # same list paginates for the same reason.
+      @pagy, @inclusions = pagy(
+        @set.inclusions.includes(submission_request: [:user, {submission: :project}]).order(:created_at, :id)
+      )
+
+      redirect_out_of_range_page(@pagy)
     end
+
+    private
+
+    # Unrecognised values mean nothing rather than something: a `filter`
+    # the screen does not know used to render the whole list with no
+    # button lit, silently ignoring what it was asked for.
+    def waiting?   = params[:waiting].present?
+    def following? = params[:following].present?
   end
 end
