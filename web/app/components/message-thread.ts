@@ -84,7 +84,13 @@ export default class MessageThread<S, M extends { id: number }> extends Componen
   // The page before the oldest one on screen, prepended. `before_id`
   // rather than a page number: a page counted from the oldest message
   // moves under the reader every time somebody writes.
-  async loadEarlier(url: string) {
+  //
+  // `stillHere` is asked again on the way back. A component instance is
+  // reused when the model changes under the same route, so an answer for
+  // the thread we have left would otherwise be prepended to the one we
+  // are looking at — somebody else's conversation, under this one's
+  // name.
+  async loadEarlier(url: string, stillHere: () => boolean = () => true) {
     const oldest = this.messages[0]?.id;
     if (!oldest || this.loadingEarlier) return;
 
@@ -96,12 +102,31 @@ export default class MessageThread<S, M extends { id: number }> extends Componen
         options: { params: { before_id: oldest }, reportErrors: false },
       });
 
-      this.messages = [...content, ...this.messages];
+      if (stillHere()) this.messages = [...content, ...this.messages];
     } catch {
-      this.error = 'Could not load the earlier messages. Try again.';
+      if (stillHere()) this.error = 'Could not load the earlier messages. Try again.';
     } finally {
       this.loadingEarlier = false;
     }
+  }
+
+  // Appending, and saying so. `total` is what decides whether there is a
+  // beginning left to fetch, so a message added here has to count: with
+  // 51 messages and 50 on screen, one reply would otherwise make the
+  // lengths match and take "Show earlier messages" away with the first
+  // message still unread.
+  appendMessage(message: M) {
+    this.messages = [...this.messages, message];
+    this.total = Math.max(this.total + 1, this.messages.length);
+  }
+
+  // Starting again on a different thread: everything about the old one
+  // goes, including whether it was still loading.
+  resetThread() {
+    this.messages = [];
+    this.total = 0;
+    this.loadingEarlier = false;
+    this.error = null;
   }
 
   uploadDraftFiles() {

@@ -49,27 +49,38 @@ export default class SetMessages extends MessageThread<Signature, Message> {
     if (this.#loaded === setId) return;
 
     this.#loaded = setId;
-    this.messages = [];
+
+    this.resetThread();
 
     void this.load();
   });
+
+  // Whether the answer to a request we sent is still about the thread on
+  // screen.
+  //
+  // The initial load's use of this is covered ("moving to another set
+  // fetches that set's thread"); `showEarlier`'s is not, because holding
+  // a request open across a navigation deadlocks Ember's settledness —
+  // `visit` waits for the very request the test needs to be in flight.
+  // It is the same guard for the same reason.
+  stillHere = (setId: number) => () => setId === this.args.setId;
 
   get url() {
     return `/sets/${this.args.setId}/messages`;
   }
 
   async load() {
-    const setId = this.args.setId;
+    const here = this.stillHere(this.args.setId);
     const messages = await this.loadThread(this.url);
 
     // A slower answer for the set we have left must not land on the one
     // we are looking at.
-    if (setId === this.args.setId) this.messages = messages;
+    if (here()) this.messages = messages;
   }
 
   @action
   showEarlier() {
-    void this.loadEarlier(this.url);
+    void this.loadEarlier(this.url, this.stillHere(this.args.setId));
   }
 
   // Acknowledges what is on screen, not whatever has arrived since.
@@ -98,9 +109,10 @@ export default class SetMessages extends MessageThread<Signature, Message> {
         options: { reportErrors: false },
       });
 
-      // Both: the count above comes from the route, and anything posted
-      // while this page was open is still missing from the thread.
-      await this.load();
+      // The count above comes from the route, so that is what is fetched
+      // again. NOT the thread: reloading it would replace what is on
+      // screen with the newest page and throw away anything the reader
+      // had pulled in with "Show earlier messages".
       await this.settle();
     } catch {
       this.error = 'Could not mark it read. Try again.';
@@ -131,8 +143,7 @@ export default class SetMessages extends MessageThread<Signature, Message> {
         options: { reportErrors: false },
       });
 
-      this.messages = [...this.messages, content];
-
+      this.appendMessage(content);
       this.clearForm();
 
       await this.settle();

@@ -22,6 +22,14 @@ type Message = MessagesResponse[number];
 interface Signature {
   Args: {
     requestId: number;
+
+    // How many curator messages are waiting on the submitter, as the
+    // server counts them. Asked for rather than derived from the loaded
+    // messages: the thread arrives from its newest end, and a question
+    // older than that page would otherwise leave the reader with no way
+    // to discharge it — the lost reminder this whole design exists to
+    // prevent.
+    unreadCount: number;
   };
 }
 
@@ -46,10 +54,14 @@ export default class SubmissionMessages extends MessageThread<Signature, Message
   }
 
   // Reading is no longer what discharges the thread — see MessagesController.
-  // These two are, so both refresh the banner: it is rendered from a count
-  // the server keeps, and nothing else would go back for it.
+  // Replying and this do, so both refresh the banner: it is rendered from
+  // a count the server keeps, and nothing else would go back for it.
+  //
+  // There is nothing to acknowledge until the thread has arrived: with no
+  // id the server falls back to "now" and would discharge messages this
+  // reader has not seen.
   get unanswered() {
-    return this.messages.some((m) => m.author_role === 'curator' && !m.read_at);
+    return Boolean(this.args.unreadCount) && Boolean(this.newestMessageId);
   }
 
   // Acknowledges what is on screen, not whatever has arrived since: a
@@ -67,7 +79,10 @@ export default class SubmissionMessages extends MessageThread<Signature, Message
       data: { through_id: this.newestMessageId },
     });
 
-    await this.load();
+    // The count comes from the route, so that is what is fetched again.
+    // NOT the thread: reloading it would replace what is on screen with
+    // the newest page and throw away anything the reader had pulled in
+    // with "Show earlier messages".
     await this.settle();
   }
 
@@ -95,16 +110,10 @@ export default class SubmissionMessages extends MessageThread<Signature, Message
       });
 
       // Appended rather than re-fetched — saves a round trip and keeps
-      // the form snappy — but the curator's messages were just marked
-      // read server-side, so the copies held here have to learn that too
-      // or the button stays offering to do what replying already did.
-      this.messages = [
-        ...this.messages.map((m) =>
-          m.author_role === 'curator' && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m,
-        ),
-        content,
-      ];
-
+      // the form snappy. The unread count is the route's now, and
+      // `settle` sends it back for below, so nothing here has to fix up
+      // what the server just marked read.
+      this.appendMessage(content);
       this.clearForm();
 
       await this.settle();

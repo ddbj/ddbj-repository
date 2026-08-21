@@ -71,9 +71,12 @@ module Admin
       # three-year conversation is not a page to render by default.
       thread = @set.messages.includes(:user, files_attachments: :blob)
 
+      # `thread_page` sets `@thread_size`; the full render has to say what
+      # it is showing all of.
       @messages    = params[:full].present? ? thread.to_a : thread_page(thread)
-      @thread_size = @set.messages.count
-      @members  = @set.members.ordered.includes(:user, :invited_by).to_a
+      @thread_size ||= @messages.size
+
+      @members = @set.members.ordered.includes(:user, :invited_by).to_a
 
       # Paginated: a set holds however much it holds, and a three-year
       # study is hundreds of submissions. The member's own view of the

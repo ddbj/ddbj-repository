@@ -79,11 +79,14 @@ module('Acceptance | submission messages', function (hooks) {
     ];
 
     worker.use(
-      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
-
-      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) =>
-        response(200).json(read ? question.map((m) => ({ ...m, read_at: now })) : question),
+      // The count is the server's, not something derived from the loaded
+      // page: a question older than the newest page would otherwise
+      // leave the reader with no way to deal with it.
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json({ ...request, unread_curator_message_count: read ? 0 : 1 }),
       ),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json(question)),
 
       http.post('/submission_requests/{submission_request_id}/messages/read', ({ response }) => {
         read = true;

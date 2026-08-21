@@ -105,8 +105,10 @@ module Admin
       # recently.
       thread = @request.messages.includes(:user, files_attachments: :blob)
 
+      # `thread_page` sets `@thread_size`; the full render has to say what
+      # it is showing all of.
       @messages    = params[:full].present? ? thread.to_a : thread_page(thread)
-      @thread_size = @request.messages.count
+      @thread_size ||= @messages.size
     end
 
     def record

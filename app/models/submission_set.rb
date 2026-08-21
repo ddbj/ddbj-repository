@@ -298,10 +298,18 @@ class SubmissionSet < ApplicationRecord
     marked.positive?
   end
 
-  # Who hears about a message here, apart from whoever wrote it. Asked by
-  # the mailer and by the caller deciding whether there is anything to
-  # send, so the two cannot drift.
-  def followers_to_notify(message) = followers.reject { it.id == message.user_id }
+  # Who hears about a message here, apart from whoever wrote it and
+  # anyone being copied in on it — they get the more direct mail, and
+  # copying somebody in subscribes them, so without this they would be
+  # told twice about one message.
+  #
+  # Asked by the mailer and by the caller deciding whether there is
+  # anything to send, so the two cannot drift.
+  def followers_to_notify(message)
+    told = [message.user_id, *message.cc_user_ids]
+
+    followers.reject { told.include?(it.id) }
+  end
 
   def following?(user)
     return false unless user

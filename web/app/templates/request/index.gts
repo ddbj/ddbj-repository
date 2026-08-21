@@ -246,7 +246,7 @@ export default class extends Component<Signature> {
       it — the server withholds the messages, and offering the box would
       only produce a 404. }}
       {{#if @model.owned}}
-        <SubmissionMessages @requestId={{@model.id}} />
+        <SubmissionMessages @requestId={{@model.id}} @unreadCount={{@model.unread_curator_message_count}} />
       {{/if}}
 
       {{! Reference material. Present, but not in the way of the answer. }}

@@ -263,6 +263,13 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
 
     assert_not_nil copied
     assert_equal [users(:dave).email], copied.to
+
+    # Once, not twice. Copying somebody in subscribes them, so a
+    # follower list built after that would also mail them the "somebody
+    # replied on a set you follow" notice about the same message.
+    to_dave = ActionMailer::Base.deliveries.count { it.to.to_a.include?(users(:dave).email) }
+
+    assert_equal 1, to_dave, ActionMailer::Base.deliveries.map(&:subject).inspect
   end
 
   # Somebody already following is greyed rather than offered: there is

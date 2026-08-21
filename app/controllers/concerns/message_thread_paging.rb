@@ -16,17 +16,29 @@ module MessageThreadPaging
 
   private
 
-  # `before_id` is the oldest message the caller already has. Ids are
-  # sequential and `chronological` breaks ties by id, so the cursor and
-  # the reading order are the same order.
+  # `before_id` is the oldest message the caller already has.
+  #
+  # Paged by id and cut by id — one column for both, so the boundary is
+  # exact. `created_at` is stamped in Ruby and the id at INSERT, so two
+  # messages written at the same moment can disagree about which is
+  # older; paging by one and cutting by the other would then hand the
+  # same message out twice, and the thread renders it twice because
+  # nothing keys the list.
+  #
+  # Sets `@thread_size` as well as the header: the screens that render
+  # the page need the same number, and it is one COUNT either way.
   def thread_page(scope)
     # `reorder`, not `order`: the association carries `chronological`, and
     # appending to it leaves the oldest end first — so the page would be
     # the *beginning* of the thread, rendered backwards.
-    page = scope.reorder(created_at: :desc, id: :desc)
-    page = page.where(id: ...params[:before_id].to_i) if params[:before_id].present?
+    page   = scope.reorder(id: :desc)
+    before = params[:before_id].to_s.to_i
 
-    response.headers['Total-Count'] = scope.reorder(nil).count.to_s
+    page = page.where(id: ...before) if before.positive?
+
+    @thread_size = scope.reorder(nil).count
+
+    response.headers['Total-Count'] = @thread_size.to_s
 
     page.limit(PER_PAGE).to_a.reverse
   end

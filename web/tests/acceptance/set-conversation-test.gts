@@ -217,6 +217,30 @@ module('Acceptance | the conversation about a set', function (hooks) {
     assert.dom('[data-test-show-earlier]').doesNotExist('and there is no more of it');
   });
 
+  // Posting counts. With 51 messages and 50 on screen, one reply would
+  // otherwise make the lengths match and take "Show earlier messages"
+  // away with the first message still unread.
+  test('replying does not take the beginning of the thread away', async function (assert) {
+    worker.use(
+      http.get('/sets/{id}', ({ response }) => response(200).json(set())),
+
+      http.get('/sets/{set_id}/messages', ({ response }) =>
+        response(200).json([message({ id: 9 })], { headers: { 'Total-Count': '2' } }),
+      ),
+
+      http.post('/sets/{set_id}/messages', ({ response }) => response(201).json(message({ id: 10 }))),
+    );
+
+    await visit('/sets/7');
+
+    assert.dom('[data-test-show-earlier]').exists();
+
+    await fillIn('[data-test-set-messages] textarea', 'One more thing.');
+    await click('[data-test-set-messages] button[type="submit"]');
+
+    assert.dom('[data-test-show-earlier]').exists('the beginning is still there to fetch');
+  });
+
   // A thread that arrived whole must not offer to fetch what is not
   // there.
   test('a short thread offers nothing to load', async function (assert) {
