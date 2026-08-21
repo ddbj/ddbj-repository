@@ -130,6 +130,20 @@ export default class extends Component {
       </div>
     {{/if}}
 
+    {{! Not "signed out": the token is still good, we simply could not
+    ask. Telling somebody to log in again over a server that is down
+    sends them through an OAuth round trip that cannot help. }}
+    {{#if this.currentUser.serverUnreachable}}
+      <div class="alert alert-warning border-0 rounded-0 mb-0 py-2" role="alert" data-test-unreachable>
+        <div class="container d-flex align-items-center gap-3 flex-wrap">
+          <span>
+            <strong>Could not reach the server.</strong>
+            <span class="text-body-secondary">You are still signed in — try again in a moment.</span>
+          </span>
+        </div>
+      </div>
+    {{/if}}
+
     <AttentionBanner />
 
     {{#if this.loading.isLoading}}

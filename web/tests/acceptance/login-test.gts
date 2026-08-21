@@ -3,6 +3,10 @@ import { visit, currentURL } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
+import { HttpResponse, http as mswHttp } from 'msw';
+
+import ENV from 'repository/config/environment';
+
 import { http } from '../msw/http';
 import { worker } from '../msw/worker';
 
@@ -54,6 +58,32 @@ module('Acceptance | sign-in (authenticated)', function (hooks) {
 
     assert.strictEqual(currentURL(), '/');
     assert.dom('h1').hasText('My submissions');
+  });
+
+  // The token is the only copy of the session — getting another means the
+  // whole OAuth round trip — so it is discarded only when the server says
+  // it is no good. A dev server that is down, a proxy in the way, a
+  // laptop off the network: none of those are an answer about the token,
+  // and each of them used to sign the person out for the rest of the day.
+  test('a server that cannot answer does not sign anybody out', async function (assert) {
+    worker.use(
+      mswHttp.get(`${ENV.apiURL}/me`, () => HttpResponse.json({ error: 'Internal server error' }, { status: 500 })),
+    );
+
+    await visit('/');
+
+    assert.strictEqual(localStorage.getItem('token'), 'test-token', 'the token is still there');
+    assert.dom('[data-test-unreachable]').includesText('Could not reach the server');
+    assert.dom('[role="alert"]').doesNotIncludeText('You are signed out');
+  });
+
+  // 401 is an answer about the token, and the only one that discards it.
+  test('a 401 from /me does discard the token', async function (assert) {
+    worker.use(http.get('/me', ({ response }) => response(401).json({ error: 'Unauthorized' })));
+
+    await visit('/');
+
+    assert.strictEqual(localStorage.getItem('token'), null);
   });
 
   // 401 means the session ended somewhere else. A modal would cover the

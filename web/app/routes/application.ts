@@ -20,11 +20,17 @@ export default class ApplicationRoute extends Route {
     try {
       await this.currentUser.restore();
     } catch (err) {
-      if (err instanceof LoginError) {
-        this.router.transitionTo('index');
-      } else {
-        throw err;
-      }
+      // A token the server rejected is a token gone, and the routes that
+      // need one send their own visitor to the sign-in screen
+      // (`ensureLogin`) — so there is nothing to do here but let the
+      // transition carry on without a session.
+      if (err instanceof LoginError) return;
+
+      // Anything else means we could not ask, not that the answer was
+      // no. The service says so in a banner; the boot continues, because
+      // taking the whole page away over one request that failed leaves
+      // somebody with nothing to retry from.
+      if (!this.currentUser.serverUnreachable) throw err;
     }
   }
 
