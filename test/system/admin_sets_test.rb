@@ -46,7 +46,7 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
       click_button 'Send message'
     end
 
-    assert_text 'Message sent to the 2 members of this set.'
+    assert_text 'Message sent to 2 members of this set.'
     assert_text 'Two — one per organism.'
 
     # Both members hear about it. This is the thing that stops scaling

@@ -33,7 +33,7 @@ module Admin
       @set.subscribe!(current_user)
       @set.mark_read_by!(current_user, as: :curator, through: params[:through_id])
 
-      redirect_to admin_set_path(@set), notice: "Message sent to the #{@set.users.size} members of this set."
+      redirect_to admin_set_path(@set), notice: "Message sent to #{helpers.pluralize(@set.users.size, 'member')} of this set."
     end
 
     # "I know about this." A member's message a curator has read and does
