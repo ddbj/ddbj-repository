@@ -1679,6 +1679,11 @@ export interface paths {
                      *     navigates to it itself. Everything else follows the redirect.
                      */
                     as?: "url";
+                    /**
+                     * @description `attachment` saves the file; `inline` (the default) leaves it to the
+                     *     browser. A value outside this list is the default rather than an
+                     *     error — a disposition is a preference, not an instruction.
+                     */
                     disposition?: "inline" | "attachment";
                 };
                 header?: never;
@@ -1754,6 +1759,11 @@ export interface paths {
                      *     navigates to it itself. Everything else follows the redirect.
                      */
                     as?: "url";
+                    /**
+                     * @description `attachment` saves the file; `inline` (the default) leaves it to the
+                     *     browser. A value outside this list is the default rather than an
+                     *     error — a disposition is a preference, not an instruction.
+                     */
                     disposition?: "inline" | "attachment";
                 };
                 header?: never;
@@ -1825,6 +1835,11 @@ export interface paths {
                      *     navigates to it itself. Everything else follows the redirect.
                      */
                     as?: "url";
+                    /**
+                     * @description `attachment` saves the file; `inline` (the default) leaves it to the
+                     *     browser. A value outside this list is the default rather than an
+                     *     error — a disposition is a preference, not an instruction.
+                     */
                     disposition?: "inline" | "attachment";
                 };
                 header?: never;
@@ -1892,6 +1907,11 @@ export interface paths {
         /**
          * @description Files on the share token, like the rest of the reviewer's view — so
          *     revoking or expiring the share revokes these with it.
+         *
+         *     A revoked token, an expired one, and one that never existed are all a
+         *     404 alike: a reviewer cannot tell a share that was taken away from one
+         *     that was never given. No 401, because there is nothing to
+         *     authenticate — the token in the path is the whole credential.
          */
         get: {
             parameters: {
@@ -1903,6 +1923,11 @@ export interface paths {
                      *     navigates to it itself. Everything else follows the redirect.
                      */
                     as?: "url";
+                    /**
+                     * @description `attachment` saves the file; `inline` (the default) leaves it to the
+                     *     browser. A value outside this list is the default rather than an
+                     *     error — a disposition is a preference, not an instruction.
+                     */
                     disposition?: "inline" | "attachment";
                 };
                 header?: never;
@@ -1945,7 +1970,6 @@ export interface paths {
                     };
                     content?: never;
                 };
-                401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
         };

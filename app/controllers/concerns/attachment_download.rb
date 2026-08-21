@@ -33,12 +33,14 @@ module AttachmentDownload
 
     raise ActiveRecord::RecordNotFound unless blob
 
-    # Never cached. Caching the redirect for as long as the URL it points
-    # at is valid would mean a second click inside that window is served
-    # from the browser without coming back here — and coming back here is
-    # the entire point. A membership revoked a minute ago has to be a
+    # Never cached, and never stored. `expires_now` says `no-cache`,
+    # which permits keeping the answer as long as it is revalidated —
+    # but there is nothing to revalidate against here (no ETag, no
+    # Last-Modified), and what the answer holds is a signed URL that
+    # works for anyone. A second click has to come back here and be
+    # asked about again: a membership revoked a minute ago must be a
     # download that stops, not one that stops in five minutes.
-    expires_now
+    no_store
 
     url = blob.url(disposition:)
 

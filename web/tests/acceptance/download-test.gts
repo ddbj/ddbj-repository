@@ -7,6 +7,7 @@ import { http } from '../msw/http';
 import { worker } from '../msw/worker';
 
 import type DownloadsService from 'repository/services/downloads';
+import type ErrorModalService from 'repository/services/error-modal';
 import type { components } from 'schema/openapi';
 
 const now = '2025-01-01T00:00:00.000Z';
@@ -81,7 +82,10 @@ module('Acceptance | downloading a file', function (hooks) {
     assert.strictEqual(went, 'https://storage.example.com/signed');
   });
 
-  test('a refusal is reported rather than swallowed', async function (assert) {
+  // The message belongs beside the file it is about. A modal over the
+  // page saying the same thing hides the request the person was reading
+  // and has to be dismissed before they can try the next file.
+  test('a refusal is reported rather than swallowed, and only once', async function (assert) {
     worker.use(
       http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
 
@@ -95,6 +99,39 @@ module('Acceptance | downloading a file', function (hooks) {
     await visit('/requests/42');
     await click('[data-test-download]');
 
+    assert.dom('[data-test-error]').exists();
+
+    const errorModal = this.owner.lookup('service:error-modal') as ErrorModalService;
+
+    assert.strictEqual(errorModal.error, undefined, 'the modal was not also raised');
+  });
+
+  // An answer with no address in it is a failure however it was spelled.
+  // Navigating to `undefined` would leave the app on a 404 page with
+  // nothing to say what went wrong.
+  test('an answer carrying no address is a failure, not a navigation', async function (assert) {
+    let went: string | undefined;
+
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+
+      // Not the documented shape — which is the point.
+      http.get('/submission_requests/{submission_request_id}/files/{name}', ({ response }) => {
+        return response(200).json({} as { url: string });
+      }),
+    );
+
+    const downloads = this.owner.lookup('service:downloads') as DownloadsService;
+    downloads.navigate = (url: string) => {
+      went = url;
+    };
+
+    await visit('/requests/42');
+    await click('[data-test-download]');
+
+    assert.strictEqual(went, undefined, 'nowhere to go, so it did not go');
     assert.dom('[data-test-error]').exists();
   });
 });

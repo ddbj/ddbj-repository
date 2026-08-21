@@ -1,7 +1,11 @@
 import { module, test } from 'qunit';
-import { visit, fillIn, click } from '@ember/test-helpers';
+import { visit, fillIn, click, triggerEvent, waitUntil } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
+
+import { HttpResponse, http as mswHttp } from 'msw';
+
+import ENV from 'repository/config/environment';
 
 import { http } from '../msw/http';
 import { worker } from '../msw/worker';
@@ -157,6 +161,76 @@ module('Acceptance | submission messages', function (hooks) {
 
     // The form must not refuse to submit with an empty body.
     assert.true(document.querySelector('form')?.checkValidity(), 'the browser would not block this');
+  });
+
+  // The direct-upload endpoint authenticates now, and
+  // @rails/activestorage sends only its own headers unless it is handed
+  // more. Miss that and every attachment fails at the first request —
+  // which is exactly what happened when the endpoint moved.
+  test('an attachment is uploaded with the token on it', async function (assert) {
+    let authorization: string | null = null;
+    let posted: string[] | null = null;
+    let put = false;
+
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+
+      // Active Storage's own shape, so a raw handler: it is a contract
+      // with @rails/activestorage rather than one this API declares.
+      mswHttp.post(ENV.directUploadURL, ({ request: req }) => {
+        authorization = req.headers.get('Authorization');
+
+        return HttpResponse.json({
+          signed_id: 'signed-id',
+          direct_upload: { url: 'https://storage.example.com/put', headers: {} },
+        });
+      }),
+
+      mswHttp.put('https://storage.example.com/put', () => {
+        put = true;
+
+        return new HttpResponse(null, { status: 204 });
+      }),
+
+      http.post('/submission_requests/{submission_request_id}/messages', async ({ request: req, response }) => {
+        posted = ((await req.json()) as { submission_message: { files: string[] } }).submission_message.files;
+
+        return response(201).json({
+          id: 9,
+          body: '',
+          author_role: 'submitter',
+          author_uid: 'alice',
+          created_at: now,
+          read_at: null,
+          files: [],
+        });
+      }),
+    );
+
+    await visit(`/requests/${request.id}`);
+
+    const file = new File(['x'], 'samples.tsv', { type: 'text/tab-separated-values' });
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    input.files = transfer.files;
+
+    await triggerEvent(input, 'change');
+    await click('form button[type="submit"]');
+
+    // The upload is an XHR that Ember's settledness does not know about,
+    // so `click` returns before it has been through. Waiting here rather
+    // than asserting straight away is what keeps the stubs in place
+    // until it has — `resetHandlers` runs the moment this test body
+    // ends, and anything still in flight then lands on the real network.
+    await waitUntil(() => posted);
+
+    assert.strictEqual(authorization, 'Bearer test-token', 'the token went with the upload');
+    assert.true(put, 'and the bytes went to storage');
+    assert.deepEqual(posted, ['signed-id'], 'the signed id is what the message carries');
   });
 
   test('renders the thread and posts a reply', async function (assert) {

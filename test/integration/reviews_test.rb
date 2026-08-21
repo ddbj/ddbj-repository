@@ -20,6 +20,28 @@ class ReviewsTest < ActionDispatch::IntegrationTest
     assert_equal @submission_request.id, response.parsed_body['id']
   end
 
+  # The reviewer's links are plain anchors — the token in the path is the
+  # whole credential, so nothing has to put a header on them. That makes
+  # the disposition the server's business: without it a reviewer clicking
+  # a flatfile gets the browser trying to paint a multi-gigabyte record
+  # in a tab.
+  test 'the reviewer file links ask to be saved rather than rendered' do
+    get review_path(@access.token)
+
+    assert_response :ok
+
+    urls = [
+      response.parsed_body.dig('ddbj_record', 'url'),
+      *response.parsed_body.fetch('submission').values_at('ddbj_record', 'flatfile_na', 'flatfile_aa').compact.map { it.fetch('url') }
+    ]
+
+    assert_equal 4, urls.size
+
+    urls.each do |url|
+      assert_equal 'attachment', Rack::Utils.parse_query(URI.parse(url).query)['disposition'], url
+    end
+  end
+
   # The endpoint is unauthenticated, so "no messages" has to mean the
   # conversation is invisible — not merely that the bodies are withheld.
   # An unread count or a last-posted timestamp still tells a link holder

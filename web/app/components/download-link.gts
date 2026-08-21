@@ -40,7 +40,7 @@ export default class DownloadLink extends Component<Signature> {
     <button
       type="button"
       class="btn btn-link p-0 align-baseline"
-      data-test-download
+      data-test-download={{@filename}}
       {{on "click" this.open}}
       ...attributes
     >

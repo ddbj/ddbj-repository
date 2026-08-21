@@ -147,6 +147,7 @@ export default class SubmissionMessages extends Component<Signature> {
         url: `/submission_requests/${this.args.requestId}/messages`,
         method: 'POST',
         data: { submission_message: { body, files } },
+        options: { reportErrors: false },
       });
 
       // Appended rather than re-fetched — saves a round trip and keeps

@@ -20,17 +20,28 @@ export default class DownloadsService extends Service {
   @service declare requestManager: RequestManager;
 
   async open(url: string) {
-    const { content } = await this.requestManager.request<{ url: string }>({
+    const { content } = await this.requestManager.request<{ url?: string }>({
       url,
-      options: { params: { as: 'url', disposition: 'attachment' } },
+      // The failure belongs next to the file it is about — DownloadLink
+      // puts it there, so the modal stays out of it.
+      options: { params: { as: 'url', disposition: 'attachment' }, reportErrors: false },
     });
+
+    // Navigating to `undefined` would leave the app on a 404 with no
+    // sign of what went wrong. An answer that carries no address is a
+    // failure however it was spelled.
+    if (!content?.url) throw new Error('The server did not say where that file is.');
 
     this.navigate(content.url);
   }
 
-  // `location.assign` rather than a new tab: the answer carries
-  // `Content-Disposition: attachment`, so the browser saves the file and
-  // stays where it is. A tab opened for it would flash and close.
+  // `location.assign` rather than a new tab: the address is asked for
+  // with `disposition=attachment` above, so the answer saves the file
+  // and the page stays where it is. A tab opened for it would flash and
+  // close. The cost is that a storage error at this point — the answer
+  // arriving without that header — navigates away from the app; the URL
+  // is seconds old by then, which is what makes that unlikely rather
+  // than merely unhandled.
   //
   // Its own method because `window.location` is read-only and cannot be
   // stubbed — this is the seam a test watches to see where a download

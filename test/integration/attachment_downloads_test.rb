@@ -30,7 +30,7 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     get submission_request_file_path(@submission_request, 'ddbj_record')
 
     assert_response :redirect
-    assert_match %r{/rails/active_storage/disk/}, response.location
+    assert_storage_url response.location
   end
 
   test 'the submission files follow the same rule' do
@@ -182,6 +182,52 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     assert response.parsed_body['signed_id'].present?
   end
 
+  # The curator screens upload the same way, on the session cookie. Two
+  # things have to hold at once: a lapsed session is told to sign in
+  # rather than told 422 by the forgery check (which fails too, because
+  # the token it compares against lived in that session), and a signed-in
+  # non-curator is told 403, because signing in again changes nothing.
+  test 'the admin direct upload answers the uploader, not a page' do
+    body = {
+      blob: {
+        filename:     'x.json',
+        byte_size:    1,
+        checksum:     Digest::MD5.base64digest('x'),
+        content_type: 'application/json'
+      }
+    }
+
+    json = {'Content-Type' => 'application/json', 'Accept' => 'application/json'}
+
+    default_headers.delete('Authorization')
+
+    with_forgery_protection do
+      post admin_direct_uploads_path, params: body.to_json, headers: json
+
+      assert_response :unauthorized, 'no session at all'
+
+      sign_in_as users(:carol) # not a curator
+
+      post admin_direct_uploads_path, params: body.to_json, headers: json
+
+      assert_response :forbidden, 'signing in again would reach the same place'
+
+      sign_in_as users(:bob) # a curator
+
+      post admin_direct_uploads_path, params: body.to_json, headers: json.merge('X-CSRF-Token' => csrf_token)
+
+      assert_response :success
+      assert response.parsed_body['signed_id'].present?
+
+      # And the check it is guarded by is real: the same request without
+      # the header is refused, which is the reason a lapsed session had
+      # to be answered before reaching it.
+      post admin_direct_uploads_path, params: body.to_json, headers: json
+
+      assert_response :unprocessable_content
+    end
+  end
+
   # Caching the redirect for as long as the URL it points at is valid
   # would mean a second click inside that window never comes back here —
   # and coming back here is the whole point. A membership revoked a
@@ -191,7 +237,11 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     get submission_request_file_path(@submission_request, 'ddbj_record')
 
     assert_response :redirect
-    assert_match(/no-cache|no-store/, response.headers['Cache-Control'].to_s)
+
+    # `no-store`, not `no-cache`: the latter allows the answer to be kept
+    # as long as it is revalidated, and there is nothing here to
+    # revalidate against.
+    assert_match(/no-store/, response.headers['Cache-Control'].to_s)
   end
 
   # A browser cannot put an Authorization header on an anchor and this
@@ -201,12 +251,45 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     get submission_request_file_path(@submission_request, 'ddbj_record', as: 'url')
 
     assert_response :success
-    assert_match %r{/rails/active_storage/disk/}, response.parsed_body.fetch('url')
+    assert_storage_url response.parsed_body.fetch('url')
 
     default_headers['Authorization'] = "Bearer #{@carol.api_key}"
 
     with_exceptions_app { get submission_request_file_path(@submission_request, 'ddbj_record', as: 'url') }
 
     assert_response :not_found
+  end
+
+
+  private
+
+  # What matters is that the answer sends the caller somewhere else to do
+  # the actual reading — not which backend does it. The test environment
+  # stores blobs on disk; staging and production hand out signed
+  # SeaweedFS URLs, and this assertion has to hold for both.
+  def assert_storage_url(url)
+    uri = URI.parse(url)
+
+    assert uri.absolute?, "#{url} is not somewhere to go"
+    assert_not_equal request.path, uri.path, 'it pointed back at itself'
+  end
+
+  # What the layout hands the browser, which is where the uploader's own
+  # header comes from.
+  def csrf_token
+    get admin_root_path
+
+    response.body[/name="csrf-token" content="([^"]+)"/, 1] or raise 'no csrf token on the page'
+  end
+
+  # Forgery protection is off in the test environment, which would hide
+  # the ordering this is about.
+  def with_forgery_protection
+    was = ActionController::Base.allow_forgery_protection
+    ActionController::Base.allow_forgery_protection = true
+
+    yield
+  ensure
+    ActionController::Base.allow_forgery_protection = was
   end
 end

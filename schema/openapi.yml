@@ -1639,6 +1639,11 @@ paths:
         - name: disposition
           in: query
 
+          description: |
+            `attachment` saves the file; `inline` (the default) leaves it to the
+            browser. A value outside this list is the default rather than an
+            error — a disposition is a preference, not an instruction.
+
           schema:
             type: string
             enum: [inline, attachment]
@@ -1721,6 +1726,11 @@ paths:
         - name: disposition
           in: query
 
+          description: |
+            `attachment` saves the file; `inline` (the default) leaves it to the
+            browser. A value outside this list is the default rather than an
+            error — a disposition is a preference, not an instruction.
+
           schema:
             type: string
             enum: [inline, attachment]
@@ -1794,6 +1804,11 @@ paths:
         - name: disposition
           in: query
 
+          description: |
+            `attachment` saves the file; `inline` (the default) leaves it to the
+            browser. A value outside this list is the default rather than an
+            error — a disposition is a preference, not an instruction.
+
           schema:
             type: string
             enum: [inline, attachment]
@@ -1854,6 +1869,11 @@ paths:
         Files on the share token, like the rest of the reviewer's view — so
         revoking or expiring the share revokes these with it.
 
+        A revoked token, an expired one, and one that never existed are all a
+        404 alike: a reviewer cannot tell a share that was taken away from one
+        that was never given. No 401, because there is nothing to
+        authenticate — the token in the path is the whole credential.
+
       security: []
 
       tags:
@@ -1874,6 +1894,11 @@ paths:
 
         - name: disposition
           in: query
+
+          description: |
+            `attachment` saves the file; `inline` (the default) leaves it to the
+            browser. A value outside this list is the default rather than an
+            error — a disposition is a preference, not an instruction.
 
           schema:
             type: string
@@ -1903,9 +1928,6 @@ paths:
             A redirect to storage. The `Location` expires in minutes; the
             authorisation happened here, on this request.
 
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -1922,7 +1944,7 @@ paths:
         route and not as one we redraw.
 
       tags:
-        - Submission Requests
+        - Uploads
 
       requestBody:
         required: true
