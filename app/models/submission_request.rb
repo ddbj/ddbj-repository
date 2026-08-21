@@ -65,13 +65,19 @@ class SubmissionRequest < ApplicationRecord
   # notice — if the section is never empty, that is a staffing signal
   # rather than an individual's backlog.
   #
-  # Subscribed participations only: if everyone who touched it has since
-  # stopped following, nobody is watching it, and that is exactly what
-  # this section is for. Keying on the row's mere existence would leave
-  # such a request owned by nobody and visible to nobody.
-  scope :unclaimed, -> {
-    unassigned.where.not(id: SubmissionRequestParticipant.subscribed.select(:submission_request_id))
-  }
+  # Nobody has claimed it — and that is the whole of the rule.
+  #
+  # It used to exclude anything somebody was following, which made the
+  # pool depend on a fact nobody can see from the row: a curator who
+  # replied and later put the thread aside took it out of their own
+  # sections AND out of everybody's pool, leaving a submitter waiting on
+  # work that appeared in no queue at all. It also made "is this
+  # unclaimed?" a question with a two-part answer, which is not a
+  # question a screen can ask somebody to remember.
+  #
+  # Being unassigned is itself the anomaly. It is what the section is
+  # named after, and following is not a claim.
+  scope :unclaimed, -> { unassigned }
 
   # What is on the submitter rather than on us: a file that failed
   # validation, a validated file waiting for them to press Apply, or a

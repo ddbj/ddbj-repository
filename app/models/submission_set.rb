@@ -72,13 +72,10 @@ class SubmissionSet < ApplicationRecord
   scope :assigned_to, ->(user) { where(assignee_id: user.id) }
   scope :unassigned,  -> { where(assignee_id: nil) }
 
-  # Nobody has claimed it and nobody is listening — the same two
-  # conditions the request axis uses, for the same reason: a set that
-  # somebody stopped following is nobody's again, which is exactly what
-  # this section is for.
-  scope :unclaimed, -> {
-    unassigned.where.not(id: SubmissionSetParticipant.subscribed.select(:submission_set_id))
-  }
+  # Nobody has claimed it — the same one-part rule as the request axis,
+  # and for the same reason: following is not a claim, and a pool that
+  # depends on who happens to be following is a pool nobody can predict.
+  scope :unclaimed, -> { unassigned }
 
   # Sets whose thread is waiting on the curator side: a member has
   # written and no curator has written since.

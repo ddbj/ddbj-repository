@@ -98,23 +98,30 @@ class MyQueue
         scope:     needing_curator(user).assigned_to(user),
         sets:      SubmissionSet.needing_curator(user).assigned_to(user)
       ),
-      # IS DISTINCT FROM, not `!=`: SQL inequality is NULL for an
-      # unassigned row, so `where.not(assignee_id: id)` silently drops
-      # exactly the requests that are involved-but-unowned — and since
-      # `unclaimed` excludes anything with a participant, replying to a
-      # submitter made the request vanish from every curator's queue.
+      # Somebody else's, specifically. Anything nobody holds is Unclaimed
+      # whoever has touched it, which is what makes the three sections a
+      # partition of one fact — who holds this: me, somebody else, or
+      # nobody — rather than three overlapping questions.
+      #
+      # `where.not(assignee_id: nil)` first: SQL inequality is NULL for
+      # an unassigned row, so an `assignee_id != ?` on its own would
+      # silently drop every unassigned row from BOTH sections and lose
+      # them entirely. That has happened here before.
       Section.new(
         key:       :involved,
         title:     "I'm involved",
-        criterion: 'You replied or edited here — somebody else holds it, or nobody does.',
-        scope:     needing_curator(user).involving(user).where('submission_requests.assignee_id IS DISTINCT FROM ?', user.id),
+        criterion: 'You replied or edited here — someone else holds the assignment.',
+        scope:     needing_curator(user).involving(user)
+                                        .where.not(submission_requests: {assignee_id: nil})
+                                        .where.not(submission_requests: {assignee_id: user.id}),
         sets:      SubmissionSet.needing_curator(user).followed_by(user)
-                                .where('submission_sets.assignee_id IS DISTINCT FROM ?', user.id)
+                                .where.not(submission_sets: {assignee_id: nil})
+                                .where.not(submission_sets: {assignee_id: user.id})
       ),
       Section.new(
         key:       :unclaimed,
         title:     'Unclaimed',
-        criterion: 'No assignee, nobody has replied — every curator sees this section identically.',
+        criterion: 'Nobody has claimed these — every curator sees this section identically.',
         scope:     needing_curator.unclaimed,
         sets:      SubmissionSet.needing_curator.unclaimed
       )

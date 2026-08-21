@@ -54,21 +54,33 @@ class MyQueueTest < ActiveSupport::TestCase
     assert_includes section(:involved).scope, @req
   end
 
-  # SQL inequality is NULL for an unassigned row, so the obvious
-  # `where.not(assignee_id:)` dropped exactly this case — and since
-  # Unclaimed excludes anything with a participant, replying to a
-  # submitter made the request vanish from every curator's queue.
-  test 'a request I worked on that nobody owns is still in I am involved' do
-    unread_request.participate!(users(:bob))
+  # Unclaimed is one question — has anybody claimed this — and having
+  # replied is not a claim. The row stays in the pool until somebody
+  # takes it, wherever else it also appears.
+  test 'a request I worked on that nobody owns is in Unclaimed, not in I am involved' do
+    unread_request.subscribe!(users(:bob))
 
     assert_nil @req.assignee_id
-    assert_includes section(:involved).scope, @req
+    assert_includes     section(:unclaimed).scope, @req
+    assert_not_includes section(:involved).scope,  @req
   end
 
   test 'an untouched, unowned request is in Unclaimed' do
     unread_request
 
     assert_includes section(:unclaimed).scope, @req
+  end
+
+  # The hole the old rule left: a curator who followed something and
+  # then put it aside took it out of their own sections AND out of
+  # everybody's pool, leaving a submitter waiting on work that appeared
+  # in no queue at all.
+  test 'putting an unclaimed request aside does not take it out of the pool' do
+    unread_request.subscribe!(users(:bob))
+    @req.mark_read_by!(users(:bob), through: @req.messages.last.id)
+
+    assert_includes section(:unclaimed).scope,               @req
+    assert_includes section(:unclaimed, users(:dave)).scope, @req
   end
 
   # Somebody else's work is not this curator's queue.
@@ -170,6 +182,21 @@ class MyQueueTest < ActiveSupport::TestCase
 
     assert_equal :involved, section_of(set)
     assert_equal :assigned, section_of(set, users(:dave))
+  end
+
+  # Following is not claiming, on this axis either — and a follower who
+  # puts it aside must not take it out of the pool with them.
+  test 'a set nobody holds stays in the pool however many people follow it' do
+    set = waiting_set
+
+    set.subscribe! users(:bob)
+
+    assert_equal :unclaimed, section_of(set)
+
+    set.mark_read_by!(users(:bob), as: :curator, through: set.messages.last.id)
+
+    assert_equal :unclaimed, section_of(set)
+    assert_equal :unclaimed, section_of(set, users(:dave))
   end
 
   # Releasing puts it back where anybody can take it.

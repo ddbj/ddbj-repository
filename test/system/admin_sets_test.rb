@@ -80,10 +80,14 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
 
     visit admin_my_queue_path
 
-    # Unclaimed is the shared pool and is the same for everybody — the
-    # request axis's rule — so what a press puts aside is this curator's
-    # own count, on the Sets tab.
+    # Unclaimed is the shared pool: nobody has claimed this, so putting
+    # it aside is about this curator's own count on the Sets tab and not
+    # about whether anybody else can still find it.
     assert_selector '.navbar', text: 'Sets 0'
+
+    within '[data-test-section="unclaimed"]' do
+      assert_text 'Deep sea study'
+    end
 
     # A colleague still has it.
     assert_equal 1, SubmissionSet.needing_curator(users(:dave)).count
