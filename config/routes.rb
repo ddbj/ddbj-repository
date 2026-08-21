@@ -1,5 +1,8 @@
 Rails.application.routes.draw do
-  root to: redirect('/web/')
+  # Through WebApp rather than as a bare path: the SPA shares this origin
+  # only where a proxy puts it there. In development it is served by its
+  # own dev server on another port, so `/web/` is a Rails 404.
+  root to: redirect { WebApp.url_for }
 
   get 'auth/:provider/callback', to: 'sessions#create'
 

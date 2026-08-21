@@ -86,7 +86,11 @@
               </button>
 
               <ul class="dropdown-menu dropdown-menu-end">
-                <li><%= link_to 'Back to repository', '/web/', class: 'dropdown-item', data: {turbo: false} %></li>
+                <%# `WebApp.url_for`, not a bare path: the SPA is only on the %>
+                <%# same origin where a proxy puts it there. In development %>
+                <%# it is served by its own dev server on another port, and %>
+                <%# a hard-coded /web/ lands on a Rails 404. %>
+                <li><%= link_to 'Back to repository', WebApp.url_for, class: 'dropdown-item', data: {turbo: false} %></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>
                   <%= button_to 'Logout', admin_session_path, method: :delete, class: 'dropdown-item', data: {turbo: false} %>

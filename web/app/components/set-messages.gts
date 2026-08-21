@@ -159,8 +159,9 @@ export default class SetMessages extends MessageThread<Signature> {
       </div>
 
       <p class="text-body-secondary small">
-        Everyone in this set can read and write here, and every message is emailed to all of them. A question about one
-        submission belongs on that submission instead — those conversations stay between its owner and DDBJ.
+        Everyone in this set can read and write here, and every message is emailed to the others and to the DDBJ
+        curators following the set. A question about one submission belongs on that submission instead — those
+        conversations stay between its owner and DDBJ.
       </p>
 
       {{! Speaker by side and colour, as on a submission's thread: the
