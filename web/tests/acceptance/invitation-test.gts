@@ -27,6 +27,7 @@ const joined = {
   member_count: 2,
   invited_count: 0,
   submission_count: 0,
+  unread_message_count: 0,
 };
 
 // WebsController injects this into the shell per environment; a test

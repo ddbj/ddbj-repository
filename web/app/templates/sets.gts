@@ -80,8 +80,8 @@ export default class extends Component<Signature> {
 
     <p class="text-body-secondary prose mb-4">
       A set is submissions that belong together — the ones behind a paper, a study, a piece of work — and the people
-      they belong to. Everyone in a set can see the submissions in it and how far along they are. What goes in stays
-      each person's own decision.
+      they belong to. Everyone in a set can see the submissions in it and how far along they are, and each set has one
+      conversation with DDBJ about the whole of it. What goes in stays each person's own decision.
     </p>
 
     {{#if @model.length}}
@@ -90,7 +90,18 @@ export default class extends Component<Signature> {
           <LinkTo @route="set" @model={{set.id}} class="list-group-item list-group-item-action">
             <div class="d-flex justify-content-between align-items-start">
               <div>
-                <div class="fw-semibold">{{set.name}}</div>
+                <div class="fw-semibold">
+                  {{set.name}}
+
+                  {{! Red because it is a fact about the data — somebody
+                  is waiting on this set and nobody in it has answered. }}
+                  {{#if set.unread_message_count}}
+                    <span class="badge text-bg-danger ms-1" data-test-unread>
+                      {{set.unread_message_count}}
+                      {{if (eq set.unread_message_count 1) "message" "messages"}}
+                    </span>
+                  {{/if}}
+                </div>
 
                 <div class="small text-body-secondary">
                   Created by

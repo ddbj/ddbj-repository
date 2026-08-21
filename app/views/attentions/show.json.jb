@@ -4,6 +4,11 @@
 # (a curator can write while a file sits unapplied); the band names the
 # reason the submitter has to deal with first.
 {
+  # Sets whose conversation is waiting on this member — a count, not a
+  # list: the sets page shows which, and the band above the page is about
+  # submissions.
+  sets_waiting: @sets_waiting,
+
   requests: @requests.map {|request|
     reason =
       case request.status

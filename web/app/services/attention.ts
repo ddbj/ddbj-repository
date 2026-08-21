@@ -23,6 +23,12 @@ export default class AttentionService extends Service {
 
   @tracked requests: AttentionRequest[] = [];
 
+  // The set axis, as one number. Sets are not in the band — every word
+  // of it is about the reader's own submissions — but a conversation
+  // waiting on them has to be visible from wherever they are, which is
+  // what the badge on the Sets link is for.
+  @tracked setsWaiting = 0;
+
   // Two refreshes race on every visit to a request: one on navigation, one
   // after the thread fetch that marks its messages read. Whichever was
   // issued last is the one that saw the newest state, so an older response
@@ -38,17 +44,25 @@ export default class AttentionService extends Service {
 
     if (!this.currentUser.isLoggedIn) {
       this.requests = [];
+      this.setsWaiting = 0;
+
       return;
     }
 
     try {
       const { content } = await this.requestManager.request<Attention>({ url: '/attention' });
 
-      if (generation === this.#generation) this.requests = content.requests;
+      if (generation === this.#generation) {
+        this.requests = content.requests;
+        this.setsWaiting = content.sets_waiting;
+      }
     } catch {
       // A banner is an aid, not the task. Losing it must never take the
       // page down with it.
-      if (generation === this.#generation) this.requests = [];
+      if (generation === this.#generation) {
+        this.requests = [];
+        this.setsWaiting = 0;
+      }
     }
   }
 }

@@ -17,5 +17,12 @@ class AttentionsController < ApplicationController
       .needs_submitter_action
       .includes(:submission)
       .order(id: :desc)
+
+    # The set axis, as one number rather than as entries in the band.
+    # The band is about the submitter's own submissions and says so in
+    # every word of it; a set conversation is a different kind of thing
+    # and belongs where sets are — which is what the nav badge this feeds
+    # is for.
+    @sets_waiting = SubmissionSet.waiting_on_member(current_user).count
   end
 end

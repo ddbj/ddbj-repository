@@ -22,6 +22,7 @@ const summary: SetSummary = {
   member_count: 2,
   invited_count: 1,
   submission_count: 1,
+  unread_message_count: 0,
 };
 
 const set: Set = {

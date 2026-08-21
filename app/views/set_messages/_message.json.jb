@@ -1,0 +1,20 @@
+# locals: (message:)
+
+{
+  id:          message.id,
+  body:        message.body,
+  author_role: message.author_role,
+
+  # Shown, unlike the request thread's: there every member message is by
+  # definition the owner's, and here it is whichever of them wrote it.
+  author_uid: message.user.uid,
+  created_at: message.created_at.iso8601,
+
+  files: message.files.map {
+    render(
+      'application/attachment_file',
+      file: it,
+      url:  set_message_file_url(message.submission_set_id, message.id, it.id)
+    )
+  }
+}

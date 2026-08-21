@@ -9,6 +9,7 @@ import ENV from 'repository/config/environment';
 import AttentionBanner from 'repository/components/attention-banner';
 import ErrorMessage from 'repository/components/error-message';
 
+import type AttentionService from 'repository/services/attention';
 import type CurrentUserService from 'repository/services/current-user';
 import type ErrorModalService from 'repository/services/error-modal';
 import type LoadingService from 'repository/services/loading';
@@ -18,6 +19,7 @@ const adminURL = ENV.adminURL;
 const authURL = ENV.authURL;
 
 export default class extends Component {
+  @service declare attention: AttentionService;
   @service declare currentUser: CurrentUserService;
   @service declare errorModal: ErrorModalService;
   @service declare loading: LoadingService;
@@ -45,7 +47,19 @@ export default class extends Component {
               </li>
 
               <li class="nav-item">
-                <LinkTo @route="sets" class="nav-link">Sets</LinkTo>
+                <LinkTo @route="sets" class="nav-link">
+                  Sets
+
+                  {{! A conversation waiting on this member, from
+                  wherever they are. The band above the page is about
+                  their own submissions and says so in every word, so a
+                  set does not belong in it. }}
+                  {{#if this.attention.setsWaiting}}
+                    <span class="badge text-bg-danger ms-1" data-test-sets-waiting>
+                      {{this.attention.setsWaiting}}
+                    </span>
+                  {{/if}}
+                </LinkTo>
               </li>
 
               {{#if this.currentUser.user.isAdmin}}

@@ -1,0 +1,5 @@
+<%# locals: (message:) -%>
+<% if message.files.attached? -%>
+
+Attached: <%= message.files.map { it.filename.to_s }.to_sentence %>
+<% end -%>

@@ -108,7 +108,17 @@ class MyQueue
     ]
   end
 
-  def count = sections.sum(&:count)
+  # Requests and set conversations, which are two axes and one queue.
+  # A question about a bundle waits on a curator in exactly the way a
+  # question about one submission does, and a landing screen that
+  # promises "everything waiting" cannot answer only for the axis it was
+  # built on first.
+  def count = sections.sum(&:count) + set_count
+
+  # Oldest first, like the sections: a queue is a working order.
+  def sets = SubmissionSet.needing_curator(user).includes(:owner).order(updated_at: :asc)
+
+  def set_count = SubmissionSet.needing_curator(user).count
 
   # Requests with something a curator can actually do. Kept as two plain
   # `where`s so they can be OR-ed (`.or` refuses structurally different

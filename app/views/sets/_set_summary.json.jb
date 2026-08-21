@@ -12,5 +12,10 @@
   # three integers must not be what loads it.
   member_count:     counts.fetch(:members).fetch(set.id, 0),
   invited_count:    counts.fetch(:invited).fetch(set.id, 0),
-  submission_count: counts.fetch(:submissions).fetch(set.id, 0)
+  submission_count: counts.fetch(:submissions).fetch(set.id, 0),
+
+  # The set's own thread, waiting on this member. Not the submissions'
+  # threads — those are each their owner's, and the set page counts them
+  # per row.
+  unread_message_count: counts.fetch(:unread).fetch(set.id, 0)
 }

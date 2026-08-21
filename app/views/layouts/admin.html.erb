@@ -50,6 +50,13 @@
                        active: controller_path == 'admin/submission_requests' %>
 
             <%= render 'layouts/admin_nav_item',
+                       label:  'Sets',
+                       path:   admin_sets_path,
+                       active: controller_path.in?(%w[admin/sets admin/set_messages]),
+                       badge:  set_queue_count,
+                       badge_class: set_queue_count.positive? ? 'text-bg-danger' : 'text-bg-secondary' %>
+
+            <%= render 'layouts/admin_nav_item',
                        label:  'Users',
                        path:   admin_users_path,
                        active: controller_path == 'admin/users' %>

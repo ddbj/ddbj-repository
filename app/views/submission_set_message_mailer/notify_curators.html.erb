@@ -1,0 +1,18 @@
+<% thread_url = File.join(Rails.application.config_for(:app).app_url!, 'admin', 'sets', @set.id.to_s) %>
+
+<p>
+  <%= @message.user.uid %> has written on the set “<%= @set.name %>”
+  (<%= @set.submission_requests.size %> submissions, <%= @set.users.size %> members):
+</p>
+
+<% if @message.body.present? %>
+  <blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
+    <%= simple_format @message.body %>
+  </blockquote>
+<% end %>
+
+<%= render 'files', message: @message %>
+
+<p><a href="<%= thread_url %>">Open the thread in the admin UI.</a></p>
+
+<p>— DDBJ Repository</p>

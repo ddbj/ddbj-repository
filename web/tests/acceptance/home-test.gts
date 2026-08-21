@@ -170,7 +170,10 @@ module('Acceptance | home', function (hooks) {
 
     worker.use(
       http.get('/attention', ({ response }) =>
-        response(200).json({ requests: [{ id: 7, db: 'biosample', source_id: null, reason: 'ready_to_apply' }] }),
+        response(200).json({
+          sets_waiting: 0,
+          requests: [{ id: 7, db: 'biosample', source_id: null, reason: 'ready_to_apply' }],
+        }),
       ),
 
       http.get('/submission_requests', ({ request, response }) => {

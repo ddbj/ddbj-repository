@@ -1,0 +1,87 @@
+<% content_for :title, 'Sets' %>
+
+<h1 class="display-6 mb-1">Sets</h1>
+
+<%# What a set is, said here because a curator meets one for the first %>
+<%# time on this screen. The submissions in it are reached through the %>
+<%# rows, not through this list: what is here is the conversation. %>
+<p class="text-body-secondary mb-4">
+  Submissions their owners have bundled together, and one thread per bundle.
+  A question about a whole set is asked once and answered once — the
+  submissions' own threads are elsewhere, on each request.
+</p>
+
+<%= form_with url: admin_sets_path, method: :get, local: true, class: 'mb-3' do %>
+  <div class="btn-group btn-group-sm" role="group">
+    <%# Filters in the URL, never in the session: a filtered view has to %>
+    <%# survive being sent to somebody else. %>
+    <%= link_to 'All', admin_sets_path,
+                class: "btn btn-outline-secondary#{' active' if params[:filter].blank?}" %>
+
+    <%= link_to "Waiting on us (#{number_with_delimiter(@waiting)})", admin_sets_path(filter: 'waiting'),
+                class: "btn btn-outline-secondary#{' active' if params[:filter] == 'waiting'}",
+                data:  {test_filter: 'waiting'} %>
+
+    <%= link_to 'Following', admin_sets_path(filter: 'following'),
+                class: "btn btn-outline-secondary#{' active' if params[:filter] == 'following'}" %>
+  </div>
+<% end %>
+
+<% if @sets.empty? %>
+  <% if @total.zero? %>
+    <%= empty_state :first_run, 'No sets yet.',
+                    'A set appears here when a submitter bundles submissions together and starts a conversation about them.' %>
+  <% elsif params[:filter] == 'waiting' %>
+    <%# Empty is the goal here — every set has been answered — so it %>
+    <%# reads as an outcome and offers nothing to press. %>
+    <%= empty_state :clear, 'Nothing waiting.', 'Every set thread has been answered or put aside.' %>
+  <% else %>
+    <%= empty_state :filtered, 'No sets match.', "Showing #{params[:filter]} only." do %>
+      <%= link_to 'Clear', admin_sets_path, class: 'btn btn-outline-secondary btn-sm' %>
+    <% end %>
+  <% end %>
+<% else %>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Set</th>
+          <th>Owner</th>
+          <th class="text-end">Members</th>
+          <th class="text-end">Submissions</th>
+          <th>Last message</th>
+          <th>Waiting</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <% @sets.each do |set| %>
+          <% unread = @unread.fetch(set.id, 0) %>
+          <% last   = @last_posts[set.id] %>
+
+          <tr data-test-set="<%= set.id %>">
+            <td><%= link_to set.name, admin_set_path(set) %></td>
+            <td><code><%= set.owner.uid %></code></td>
+            <td class="text-end"><%= number_with_delimiter(@counts.fetch(:members).fetch(set.id, 0)) %></td>
+            <td class="text-end"><%= number_with_delimiter(@counts.fetch(:submissions).fetch(set.id, 0)) %></td>
+
+            <%# Relative, because the question a queue asks is "has this %>
+            <%# been sitting?" — the absolute value rides along in the %>
+            <%# title. %>
+            <td class="<%= 'text-danger' if stale?(last) && unread.positive? %>"><%= elapsed_time(last) %></td>
+
+            <td>
+              <% if unread.positive? %>
+                <span class="badge text-bg-danger"><%= pluralize(unread, 'message') %></span>
+              <% else %>
+                <span class="text-body-secondary">—</span>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%= render 'admin/shared/pagy_nav', pagy: @pagy %>
+<% end %>

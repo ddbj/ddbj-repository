@@ -118,6 +118,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /**
+                             * @description How many of the reader's sets have a conversation waiting on
+                             *     them — a curator has written, nobody in the set has answered,
+                             *     and this member has not marked it read. A count rather than a
+                             *     list: the banner is about the reader's own submissions, and
+                             *     this feeds the badge on the Sets link instead.
+                             */
+                            sets_waiting: number;
                             requests: {
                                 id: number;
                                 db: components["schemas"]["Db"];
@@ -1549,6 +1557,218 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sets/{set_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description The set's own thread — the conversation about the bundle rather than
+         *     about any one submission in it. Every member reads and writes it.
+         *
+         *     It does not carry the per-submission threads. Those are between one
+         *     submitter and DDBJ, and being able to read somebody's submission
+         *     through a shared set is not being party to what they were asked about
+         *     it.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The chronological list of messages. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SetMessage"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /** @description Post to the set's thread. Notifies the curators following it. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        submission_set_message: {
+                            body: string;
+                            /**
+                             * @description Signed ids from ActiveStorage direct upload — the bytes go
+                             *     to storage from the browser, so nothing here is bounded by
+                             *     this request.
+                             */
+                            files?: string[];
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description The newly-created message. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SetMessage"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sets/{set_id}/messages/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Mark the curator's messages in this thread as read — "nothing to answer
+         *     here". Per member: a colleague reading speaks for nobody but themselves.
+         *
+         *     `through_id` is the newest message the client had in front of it; one
+         *     that arrives a moment later is not acknowledged by a press that could
+         *     not have taken it into account.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        through_id?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Marked read for this member. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sets/{set_id}/messages/{message_id}/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+                message_id: number;
+                id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description A file attached to a message in the set's thread. Readable by every
+         *     member — unlike a per-request thread's attachments, which stay with the
+         *     submission's owner.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description `url` answers with the address as JSON instead of redirecting to it. */
+                    as?: "url";
+                    /**
+                     * @description `attachment` saves the file; `inline` (the default) leaves it to the
+                     *     browser. A value outside this list is the default rather than an
+                     *     error — a disposition is a preference, not an instruction.
+                     */
+                    disposition?: "inline" | "attachment";
+                };
+                header?: never;
+                path: {
+                    set_id: number;
+                    message_id: number;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The address, when `as=url` was asked for. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** Format: uri */
+                            url: string;
+                        };
+                    };
+                };
+                /** @description A redirect to storage. */
+                302: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/invitations/{token}": {
         parameters: {
             query?: never;
@@ -2134,6 +2354,12 @@ export interface components {
             /** @description Invitations still outstanding. */
             invited_count: number;
             submission_count: number;
+            /**
+             * @description Messages in the set's own thread waiting on you — a curator message
+             *     nobody in the set has answered, that you have not marked read. Per
+             *     member: a colleague reading speaks for nobody but themselves.
+             */
+            unread_message_count: number;
         };
         Set: {
             id: number;
@@ -2145,6 +2371,12 @@ export interface components {
             member_count: number;
             invited_count: number;
             submission_count: number;
+            /**
+             * @description Messages in the set's own thread waiting on you — a curator message
+             *     nobody in the set has answered, that you have not marked read. Per
+             *     member: a colleague reading speaks for nobody but themselves.
+             */
+            unread_message_count: number;
             /**
              * @description Whether the set can be deleted now — only once everyone else has
              *     left and every submission has been taken out. Deleting is the
@@ -2476,6 +2708,20 @@ export interface components {
              *     gone.
              */
             url: string;
+        };
+        SetMessage: {
+            id: number;
+            body: string;
+            /** @enum {string} */
+            author_role: "curator" | "member";
+            /**
+             * @description Which member wrote it. Named, unlike a request thread's, where every
+             *     non-curator message is by definition the owner's.
+             */
+            author_uid: string;
+            /** Format: date-time */
+            created_at: string;
+            files: components["schemas"]["AttachedFile"][];
         };
         Message: {
             id: number;

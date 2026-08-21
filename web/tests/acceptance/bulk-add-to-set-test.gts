@@ -50,6 +50,7 @@ const mine: SetSummary = {
   member_count: 1,
   invited_count: 0,
   submission_count: 0,
+  unread_message_count: 0,
 };
 
 const rows = [summary(1), summary(2), summary(3)];

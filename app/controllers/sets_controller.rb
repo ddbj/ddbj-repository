@@ -10,7 +10,7 @@ class SetsController < ApplicationController
     # Counted, not loaded. `preload` here would instantiate every join row
     # in every set the reader belongs to in order to print three
     # integers each.
-    @counts = self.class.set_counts(@sets.map(&:id))
+    @counts = self.class.set_counts(@sets.map(&:id), viewer: current_user)
   end
 
   def show

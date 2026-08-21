@@ -87,6 +87,16 @@ Rails.application.routes.draw do
         resource :reminder, only: %i[create], controller: 'set_member_reminders'
       end
 
+      # The set's own thread. Its own resource rather than something
+      # hanging off a submission: what is being talked about is the
+      # bundle, and every member is party to it.
+      resources :messages, only: %i[index create], controller: 'set_messages' do
+        # Opening the thread does not discharge it; saying so does.
+        post :read, on: :collection
+
+        resources :files, only: %i[show], controller: 'set_message_files'
+      end
+
       # Keyed by the submission's own id rather than by the join row's:
       # from the client's side the thing being taken out of the set is
       # the submission, and the row that records it has no other use.
@@ -213,6 +223,17 @@ Rails.application.routes.draw do
       end
     end
 
+    # The set axis. Only the conversation: a set has no state to move
+    # through, and what is in it is reached through the submissions
+    # themselves.
+    resources :sets, only: %i[index show] do
+      resources :messages, only: %i[create], controller: 'set_messages' do
+        post :read, on: :collection
+      end
+
+      resource :subscription, only: %i[create destroy], controller: 'set_subscriptions'
+    end
+
     resources :users,               only: %i[index show update], param: :uid do
       resource :proxy_login, only: %i[create]
     end
@@ -267,6 +288,8 @@ Rails.application.routes.draw do
         constraints: {name: /ddbj_record|flatfile_na|flatfile_aa/}
 
     get 'messages/:message_id/files/:id', to: 'files#message', as: :message_file
+
+    get 'set_messages/:message_id/files/:id', to: 'files#set_message', as: :set_message_file
 
     # Same story as the API's: authenticated, because redrawing Active
     # Storage's public one is not the same as leaving it where Rails put

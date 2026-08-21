@@ -1,0 +1,84 @@
+<% content_for :title, "Set — #{@set.name}" %>
+
+<%= render 'admin/shared/breadcrumb', items: [
+  {label: 'Sets', path: admin_sets_path},
+  {label: @set.name}
+] %>
+
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-1">
+  <h1 class="display-6 mb-0"><%= @set.name %></h1>
+
+  <%# Following, not assignment. A set has no state to move through and %>
+  <%# nothing to hand over but the conversation, so who is dealing with %>
+  <%# it is who is listening to it. %>
+  <% if @set.following?(current_user) %>
+    <%= button_to 'Unfollow', admin_set_subscription_path(@set), method: :delete,
+                  class: 'btn btn-outline-secondary btn-sm' %>
+  <% else %>
+    <%= button_to 'Follow', admin_set_subscription_path(@set), method: :post,
+                  class: 'btn btn-outline-secondary btn-sm' %>
+  <% end %>
+</div>
+
+<p class="text-body-secondary mb-4">
+  Owned by <code><%= @set.owner.uid %></code>, created <%= format_datetime(@set.created_at) %>.
+</p>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <%= render 'thread', set: @set, messages: @messages,
+               unread: @set.unread_message_count_for(current_user) %>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="mb-4">
+      <h2 class="h6">Members</h2>
+
+      <%# Every member reads and writes the thread above, which is what %>
+      <%# makes this list part of the conversation rather than reference %>
+      <%# material: it is who a message here reaches. %>
+      <ul class="list-group list-group-flush">
+        <% @members.each do |member| %>
+          <li class="list-group-item d-flex justify-content-between align-items-baseline gap-2 px-0">
+            <span>
+              <% if member.joined? %>
+                <code><%= member.user.uid %></code>
+              <% else %>
+                <span class="text-body-secondary"><%= member.email %></span>
+              <% end %>
+            </span>
+
+            <span class="small text-body-secondary">
+              <%= member.joined? ? "joined #{format_datetime(member.joined_at)}" : 'invited' %>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="h6">Submissions</h2>
+
+      <% if @inclusions.empty? %>
+        <%= empty_state :clear, 'Nothing in it yet.' %>
+      <% else %>
+        <ul class="list-group list-group-flush">
+          <% @inclusions.each do |inclusion| %>
+            <% request = inclusion.submission_request %>
+
+            <li class="list-group-item d-flex justify-content-between align-items-baseline gap-2 px-0">
+              <span>
+                <%= link_to "##{request.id}", admin_submission_request_path(request) %>
+                <span class="text-body-secondary"><%= request.submission&.source_id %></span>
+              </span>
+
+              <%# Whose it is. On this screen it is the first thing a %>
+              <%# reader needs — a set holds several people's work. %>
+              <code class="small"><%= request.user.uid %></code>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </section>
+  </div>
+</div>

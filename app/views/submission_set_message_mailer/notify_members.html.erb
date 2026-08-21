@@ -1,0 +1,25 @@
+<% thread_url = WebApp.url_for("/sets/#{@set.id}") %>
+
+<p>Dear member,</p>
+
+<p>
+  A DDBJ curator (<%= @curator.uid %>) has posted a message on the set
+  “<%= @set.name %>”:
+</p>
+
+<% if @message.body.present? %>
+  <blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
+    <%= simple_format @message.body %>
+  </blockquote>
+<% end %>
+
+<%= render 'files', message: @message %>
+
+<p>
+  <a href="<%= thread_url %>">Open the set on the web UI to reply.</a>
+</p>
+
+<p>
+  Regards,<br>
+  DDBJ Repository
+</p>
