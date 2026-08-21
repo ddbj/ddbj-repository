@@ -848,10 +848,19 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** @description Get the curator ↔ submitter message thread for a request. Marks any unread curator-authored messages as read. */
+        /**
+         * @description The curator ↔ submitter thread, newest end first: the most recent
+         *     messages in chronological order, with `Total-Count` saying how many
+         *     there are in all. `before_id` asks for the ones older than that —
+         *     a cursor rather than a page number, because a page counted from the
+         *     oldest message moves under the reader every time somebody writes.
+         */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description The oldest message the caller already has. */
+                    before_id?: number;
+                };
                 header?: never;
                 path: {
                     submission_request_id: number;
@@ -863,6 +872,8 @@ export interface paths {
                 /** @description Returns the chronological list of messages. */
                 200: {
                     headers: {
+                        /** @description How many messages the thread holds in all. */
+                        "Total-Count"?: string;
                         [name: string]: unknown;
                     };
                     content: {
@@ -1579,10 +1590,17 @@ export interface paths {
          *     submitter and DDBJ, and being able to read somebody's submission
          *     through a shared set is not being party to what they were asked about
          *     it.
+         *
+         *     Newest end first, like the per-request thread: the most recent
+         *     messages in chronological order, `Total-Count` saying how many there
+         *     are in all, and `before_id` asking for the ones older than that.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description The oldest message the caller already has. */
+                    before_id?: number;
+                };
                 header?: never;
                 path: {
                     set_id: number;
@@ -1594,6 +1612,8 @@ export interface paths {
                 /** @description The chronological list of messages. */
                 200: {
                     headers: {
+                        /** @description How many messages the thread holds in all. */
+                        "Total-Count"?: string;
                         [name: string]: unknown;
                     };
                     content: {

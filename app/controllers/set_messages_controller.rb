@@ -8,6 +8,7 @@
 class SetMessagesController < ApplicationController
   include SetContents
   include AttachmentSignedIds
+  include MessageThreadPaging
 
   # Both writes: `read` moves a marker on the member's own roster row,
   # which is that person's reminder and not a curator's to discharge
@@ -16,7 +17,7 @@ class SetMessagesController < ApplicationController
   before_action :load_set
 
   def index
-    @messages = @set.messages.includes(:user, files_attachments: :blob).to_a
+    @messages = thread_page(@set.messages.includes(:user, files_attachments: :blob))
   end
 
   def create

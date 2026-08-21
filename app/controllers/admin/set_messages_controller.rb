@@ -15,7 +15,24 @@ module Admin
         return
       end
 
-      message = @set.messages.create!(user: current_user, author_role: :curator, body:, files:)
+      cc = cc_users
+
+      message = @set.messages.create!(
+        user:        current_user,
+        author_role: :curator,
+        body:,
+        cc_user_ids: cc.map(&:id),
+        files:
+      )
+
+      # Copied-in curators follow it from here on, which is the whole of
+      # what copying somebody in does. Told now as well as followed: a
+      # set with nothing unanswered says nothing in a queue, so without a
+      # mail they would learn of it whenever a member next happened to
+      # write, which may be never.
+      cc.each { @set.subscribe!(it) }
+
+      SubmissionSetMessageMailer.with(message:).copied_in.deliver_later if cc.any?
 
       # Everyone in the set hears about it — see
       # SubmissionSetMessageMailer for what that costs at size.
@@ -33,7 +50,10 @@ module Admin
       @set.subscribe!(current_user)
       @set.mark_read_by!(current_user, as: :curator, through: params[:through_id])
 
-      redirect_to admin_set_path(@set), notice: "Message sent to #{helpers.pluralize(@set.users.size, 'member')} of this set."
+      notice = "Message sent to #{helpers.pluralize(@set.users.size, 'member')} of this set."
+      notice += " #{cc.map(&:uid).to_sentence} copied in." if cc.any?
+
+      redirect_to admin_set_path(@set), notice:
     end
 
     # "I know about this." A member's message a curator has read and does
@@ -53,5 +73,15 @@ module Admin
     private
 
     def load_set = @set = SubmissionSet.find(params.expect(:set_id))
+
+    # Admins other than the sender, from what the form offered. Anything
+    # else in the params is dropped rather than refused: copying somebody
+    # in is a courtesy on top of the message, and it must not be able to
+    # stop the message being sent.
+    def cc_users
+      ids = Array(params[:cc_user_ids]).map(&:to_i)
+
+      User.staff.where(id: ids).where.not(id: current_user.id).order(:uid).to_a
+    end
   end
 end

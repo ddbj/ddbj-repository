@@ -8,6 +8,7 @@ module Admin
     include RequestListing
     include SubmissionDetail
     include RequestSearch
+    include MessageThreadPaging
 
     before_action :load_workbench, only: %i[show samples entries messages record]
 
@@ -98,7 +99,16 @@ module Admin
       # The thread renders each message's attachments as well as its
       # author, and `:user` does not cover them — one pair of queries per
       # message otherwise.
-      @messages = @request.messages.includes(:user, files_attachments: :blob).to_a
+      #
+      # The newest page unless asked for the whole of it, as on the set
+      # axis: a curator opening a thread is looking at what was said
+      # recently.
+      thread = @request.messages.includes(:user, files_attachments: :blob)
+
+      # `thread_page` sets `@thread_size`; the full render has to say what
+      # it is showing all of.
+      @messages    = params[:full].present? ? thread.to_a : thread_page(thread)
+      @thread_size ||= @messages.size
     end
 
     def record

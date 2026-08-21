@@ -20,11 +20,19 @@ import type RouterService from '@ember/routing/router-service';
 // everyone in it, and they name their speakers, count their unread and
 // address their endpoints differently. What is shared is the plumbing
 // under that, which was copied once and would have drifted.
-export default class MessageThread<S> extends Component<S> {
+export default class MessageThread<S, M extends { id: number }> extends Component<S> {
   @service declare attention: AttentionService;
   @service declare currentUser: CurrentUserService;
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
+
+  @tracked messages: M[] = [];
+
+  // How many the thread holds in all, from `Total-Count`. A thread is
+  // read from its newest end, so what arrives is the last page of it —
+  // and this is how the screen knows whether to offer the rest.
+  @tracked total = 0;
+  @tracked loadingEarlier = false;
 
   @tracked draft = '';
   @tracked files: File[] = [];
@@ -58,6 +66,67 @@ export default class MessageThread<S> extends Component<S> {
     return new Promise<string>((resolve, reject) => {
       upload.create((error, blob) => (error ? reject(error) : resolve(blob!.signed_id)));
     });
+  }
+
+  get hasEarlier() {
+    return this.total > this.messages.length;
+  }
+
+  // The newest page, replacing whatever was on screen.
+  async loadThread(url: string) {
+    const { content, response } = await this.requestManager.request<M[]>({ url });
+
+    this.total = Number(response?.headers?.get('Total-Count')) || content.length;
+
+    return content;
+  }
+
+  // The page before the oldest one on screen, prepended. `before_id`
+  // rather than a page number: a page counted from the oldest message
+  // moves under the reader every time somebody writes.
+  //
+  // `stillHere` is asked again on the way back. A component instance is
+  // reused when the model changes under the same route, so an answer for
+  // the thread we have left would otherwise be prepended to the one we
+  // are looking at — somebody else's conversation, under this one's
+  // name.
+  async loadEarlier(url: string, stillHere: () => boolean = () => true) {
+    const oldest = this.messages[0]?.id;
+    if (!oldest || this.loadingEarlier) return;
+
+    this.loadingEarlier = true;
+
+    try {
+      const { content } = await this.requestManager.request<M[]>({
+        url,
+        options: { params: { before_id: oldest }, reportErrors: false },
+      });
+
+      if (stillHere()) this.messages = [...content, ...this.messages];
+    } catch {
+      if (stillHere()) this.error = 'Could not load the earlier messages. Try again.';
+    } finally {
+      this.loadingEarlier = false;
+    }
+  }
+
+  // Appending, and saying so. `total` is what decides whether there is a
+  // beginning left to fetch, so a message added here has to count: with
+  // 51 messages and 50 on screen, one reply would otherwise make the
+  // lengths match and take "Show earlier messages" away with the first
+  // message still unread.
+  appendMessage(message: M) {
+    this.messages = [...this.messages, message];
+    this.total = Math.max(this.total + 1, this.messages.length);
+  }
+
+  // Starting again on a different thread: everything about the old one
+  // goes, including whether it was still loading.
+  resetThread() {
+    this.messages = [];
+    this.total = 0;
+    this.loadingEarlier = false;
+    this.error = null;
   }
 
   uploadDraftFiles() {

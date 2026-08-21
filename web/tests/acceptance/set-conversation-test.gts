@@ -185,6 +185,78 @@ module('Acceptance | the conversation about a set', function (hooks) {
     assert.strictEqual(sent, 42, 'it names the newest message it had in front of it');
   });
 
+  // A long conversation arrives from its newest end. What is missing is
+  // the beginning, and asking for it must not depend on a page number
+  // that moves every time somebody writes.
+  test('the beginning of a long thread is asked for by cursor', async function (assert) {
+    let asked: string | null = null;
+
+    worker.use(
+      http.get('/sets/{id}', ({ response }) => response(200).json(set())),
+
+      http.get('/sets/{set_id}/messages', ({ request, response }) => {
+        asked = new URL(request.url).searchParams.get('before_id');
+
+        return asked
+          ? response(200).json([message({ id: 1, body: 'the first thing anybody said' })])
+          : response(200).json([message({ id: 9, body: 'the latest thing' })], {
+              headers: { 'Total-Count': '2' },
+            });
+      }),
+    );
+
+    await visit('/sets/7');
+
+    assert.dom('[data-test-set-messages]').includesText('the latest thing');
+    assert.dom('[data-test-show-earlier]').exists('the thread says it has a beginning');
+
+    await click('[data-test-show-earlier]');
+
+    assert.strictEqual(asked, '9', 'asked for what is older than the oldest on screen');
+    assert.dom('[data-test-set-messages]').includesText('the first thing anybody said');
+    assert.dom('[data-test-show-earlier]').doesNotExist('and there is no more of it');
+  });
+
+  // Posting counts. With 51 messages and 50 on screen, one reply would
+  // otherwise make the lengths match and take "Show earlier messages"
+  // away with the first message still unread.
+  test('replying does not take the beginning of the thread away', async function (assert) {
+    worker.use(
+      http.get('/sets/{id}', ({ response }) => response(200).json(set())),
+
+      http.get('/sets/{set_id}/messages', ({ response }) =>
+        response(200).json([message({ id: 9 })], { headers: { 'Total-Count': '2' } }),
+      ),
+
+      http.post('/sets/{set_id}/messages', ({ response }) => response(201).json(message({ id: 10 }))),
+    );
+
+    await visit('/sets/7');
+
+    assert.dom('[data-test-show-earlier]').exists();
+
+    await fillIn('[data-test-set-messages] textarea', 'One more thing.');
+    await click('[data-test-set-messages] button[type="submit"]');
+
+    assert.dom('[data-test-show-earlier]').exists('the beginning is still there to fetch');
+  });
+
+  // A thread that arrived whole must not offer to fetch what is not
+  // there.
+  test('a short thread offers nothing to load', async function (assert) {
+    worker.use(
+      http.get('/sets/{id}', ({ response }) => response(200).json(set())),
+
+      http.get('/sets/{set_id}/messages', ({ response }) =>
+        response(200).json([message()], { headers: { 'Total-Count': '1' } }),
+      ),
+    );
+
+    await visit('/sets/7');
+
+    assert.dom('[data-test-show-earlier]').doesNotExist();
+  });
+
   // A badge on a row is only visible if that row is on the page in front
   // of you. The nav carries it from wherever the member happens to be.
   test('a set waiting on you is visible from any screen', async function (assert) {

@@ -1,5 +1,4 @@
 import { action } from '@ember/object';
-import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { Textarea } from '@ember/component';
 
@@ -23,31 +22,46 @@ type Message = MessagesResponse[number];
 interface Signature {
   Args: {
     requestId: number;
+
+    // How many curator messages are waiting on the submitter, as the
+    // server counts them. Asked for rather than derived from the loaded
+    // messages: the thread arrives from its newest end, and a question
+    // older than that page would otherwise leave the reader with no way
+    // to discharge it — the lost reminder this whole design exists to
+    // prevent.
+    unreadCount: number;
   };
 }
 
-export default class SubmissionMessages extends MessageThread<Signature> {
-  @tracked messages: Message[] = [];
-
+export default class SubmissionMessages extends MessageThread<Signature, Message> {
   constructor(owner: unknown, args: Signature['Args']) {
     // @ts-expect-error -- Glimmer Component owner typing
     super(owner, args);
     void this.load();
   }
 
-  async load() {
-    const { content } = await this.requestManager.request<MessagesResponse>({
-      url: `/submission_requests/${this.args.requestId}/messages`,
-    });
+  get url() {
+    return `/submission_requests/${this.args.requestId}/messages`;
+  }
 
-    this.messages = content;
+  async load() {
+    this.messages = await this.loadThread(this.url);
+  }
+
+  @action
+  showEarlier() {
+    void this.loadEarlier(this.url);
   }
 
   // Reading is no longer what discharges the thread — see MessagesController.
-  // These two are, so both refresh the banner: it is rendered from a count
-  // the server keeps, and nothing else would go back for it.
+  // Replying and this do, so both refresh the banner: it is rendered from
+  // a count the server keeps, and nothing else would go back for it.
+  //
+  // There is nothing to acknowledge until the thread has arrived: with no
+  // id the server falls back to "now" and would discharge messages this
+  // reader has not seen.
   get unanswered() {
-    return this.messages.some((m) => m.author_role === 'curator' && !m.read_at);
+    return Boolean(this.args.unreadCount) && Boolean(this.newestMessageId);
   }
 
   // Acknowledges what is on screen, not whatever has arrived since: a
@@ -60,12 +74,15 @@ export default class SubmissionMessages extends MessageThread<Signature> {
   @action
   async markRead() {
     await this.requestManager.request({
-      url: `/submission_requests/${this.args.requestId}/messages/read`,
+      url: `${this.url}/read`,
       method: 'POST',
       data: { through_id: this.newestMessageId },
     });
 
-    await this.load();
+    // The count comes from the route, so that is what is fetched again.
+    // NOT the thread: reloading it would replace what is on screen with
+    // the newest page and throw away anything the reader had pulled in
+    // with "Show earlier messages".
     await this.settle();
   }
 
@@ -86,23 +103,17 @@ export default class SubmissionMessages extends MessageThread<Signature> {
       const files = await this.uploadDraftFiles();
 
       const { content } = await this.requestManager.request<CreateMessageResponse>({
-        url: `/submission_requests/${this.args.requestId}/messages`,
+        url: this.url,
         method: 'POST',
         data: { submission_message: { body, files } },
         options: { reportErrors: false },
       });
 
       // Appended rather than re-fetched — saves a round trip and keeps
-      // the form snappy — but the curator's messages were just marked
-      // read server-side, so the copies held here have to learn that too
-      // or the button stays offering to do what replying already did.
-      this.messages = [
-        ...this.messages.map((m) =>
-          m.author_role === 'curator' && !m.read_at ? { ...m, read_at: new Date().toISOString() } : m,
-        ),
-        content,
-      ];
-
+      // the form snappy. The unread count is the route's now, and
+      // `settle` sends it back for below, so nothing here has to fix up
+      // what the server just marked read.
+      this.appendMessage(content);
       this.clearForm();
 
       await this.settle();
@@ -139,6 +150,20 @@ export default class SubmissionMessages extends MessageThread<Signature> {
       eye has to read: the curator sits left with an avatar, you sit
       indented and tinted. }}
       {{#if this.messages.length}}
+        {{! A thread arrives from its newest end, so what is missing is
+        the beginning of it. }}
+        {{#if this.hasEarlier}}
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm mb-3"
+            disabled={{this.loadingEarlier}}
+            data-test-show-earlier
+            {{on "click" this.showEarlier}}
+          >
+            {{if this.loadingEarlier "Loading…" "Show earlier messages"}}
+          </button>
+        {{/if}}
+
         <ul class="list-unstyled mb-3 d-flex flex-column gap-3">
           {{#each this.messages as |m|}}
             <li class="d-flex gap-3 {{unless (isCurator m) 'ps-5'}}">

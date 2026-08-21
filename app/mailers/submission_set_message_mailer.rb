@@ -63,6 +63,27 @@ class SubmissionSetMessageMailer < ApplicationMailer
     )
   end
 
+  # Copied in by a colleague. A separate mail from the members', because
+  # the audience and the ask are different: the set is being answered,
+  # these curators are being shown something.
+  #
+  # It has to be a mail rather than only a subscription: a curator who
+  # has just answered leaves nothing unanswered, so the queue would say
+  # nothing about the set until a member writes back — which may be
+  # never, and is not when they were asked to look.
+  def copied_in
+    @message = params[:message]
+    @set     = @message.set
+
+    recipients = @message.cc_users.filter_map { recipient_for(it) }
+    return if recipients.empty?
+
+    mail(
+      to:      recipients,
+      subject: "[DDBJ Repository] #{@message.user.uid} copied you in on the set “#{@set.name}”"
+    )
+  end
+
   private
 
   # A Bcc-only mail still needs somewhere to be addressed, and the

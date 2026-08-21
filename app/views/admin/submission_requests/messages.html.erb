@@ -2,7 +2,8 @@
 
 <%= render layout: 'workbench', locals: {tab: :messages} do %>
   <%= render 'admin/messages/thread', request: @request, messages: @messages,
-             unread:     @request.unread_message_count_for(current_user),
-             colleagues: User.staff.where.not(id: current_user.id).order(:uid),
-             followers:  @request.followers.to_a %>
+             unread:      @request.unread_message_count_for(current_user),
+             colleagues:  User.staff.where.not(id: current_user.id).order(:uid),
+             followers:   @request.followers.to_a,
+             thread_size: @thread_size %>
 <% end %>

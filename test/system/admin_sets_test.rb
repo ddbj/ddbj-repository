@@ -237,6 +237,69 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
     assert_text 'Answering: bob'
   end
 
+  # Bringing a colleague in. Without it the only way is to tell them out
+  # of band, and then the thread stops being the record of who was asked.
+  test 'a curator copies a colleague in, and it says so on the message' do
+    @set.messages.create!(user: @alice, author_role: :member, body: 'Anyone?')
+
+    visit admin_set_path(@set)
+
+    check 'dave'
+    fill_in 'New message to the set', with: 'Looping dave in.'
+
+    perform_enqueued_jobs do
+      click_button 'Send message'
+    end
+
+    assert_text 'dave copied in'
+    assert_text 'copied in dave'
+
+    # Following from here on is the whole of what copying somebody in
+    # does — plus being told now, because a set with nothing unanswered
+    # says nothing in their queue.
+    assert @set.following?(users(:dave))
+
+    copied = ActionMailer::Base.deliveries.find { it.subject.to_s.include?('copied you in') }
+
+    assert_not_nil copied
+    assert_equal [users(:dave).email], copied.to
+
+    # Once, not twice. Copying somebody in subscribes them, so a
+    # follower list built after that would also mail them the "somebody
+    # replied on a set you follow" notice about the same message.
+    to_dave = ActionMailer::Base.deliveries.count { it.to.to_a.include?(users(:dave).email) }
+
+    assert_equal 1, to_dave, ActionMailer::Base.deliveries.map(&:subject).inspect
+  end
+
+  # Somebody already following is greyed rather than offered: there is
+  # nothing a tick could mean for them.
+  test 'a colleague who already follows the set is not offered again' do
+    @set.subscribe! users(:dave)
+
+    visit admin_set_path(@set)
+
+    assert_selector "input#cc_#{users(:dave).id}[disabled]"
+  end
+
+  # A curator opening a set is looking at what was said recently. The
+  # whole of a three-year conversation is a link away, not the default.
+  test 'a long thread renders its newest end, and offers the rest' do
+    messages = Array.new(MessageThreadPaging::PER_PAGE + 2) {
+      @set.messages.create!(user: @alice, author_role: :member, body: "message #{it}")
+    }
+
+    visit admin_set_path(@set)
+
+    assert_text messages.last.body
+    assert_no_text messages.first.body
+
+    click_link "Show all #{messages.size} messages"
+
+    assert_text messages.first.body
+    assert_text messages.last.body
+  end
+
   # Who is already curating what is in the set. This is what decides
   # whether a set-wide question is the reader's to answer, and it is the
   # one fact neither the set nor the thread carries.

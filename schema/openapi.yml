@@ -825,14 +825,34 @@ paths:
           type: number
 
     get:
-      description: Get the curator ↔ submitter message thread for a request. Marks any unread curator-authored messages as read.
+      description: |
+        The curator ↔ submitter thread, newest end first: the most recent
+        messages in chronological order, with `Total-Count` saying how many
+        there are in all. `before_id` asks for the ones older than that —
+        a cursor rather than a page number, because a page counted from the
+        oldest message moves under the reader every time somebody writes.
 
       tags:
         - Submission Requests
 
+      parameters:
+        - name: before_id
+          in: query
+          description: The oldest message the caller already has.
+
+          schema:
+            type: number
+
       responses:
         '200':
           description: Returns the chronological list of messages.
+
+          headers:
+            Total-Count:
+              description: How many messages the thread holds in all.
+
+              schema:
+                type: string
 
           content:
             application/json:
@@ -1550,12 +1570,31 @@ paths:
         through a shared set is not being party to what they were asked about
         it.
 
+        Newest end first, like the per-request thread: the most recent
+        messages in chronological order, `Total-Count` saying how many there
+        are in all, and `before_id` asking for the ones older than that.
+
       tags:
         - Sets
+
+      parameters:
+        - name: before_id
+          in: query
+          description: The oldest message the caller already has.
+
+          schema:
+            type: number
 
       responses:
         '200':
           description: The chronological list of messages.
+
+          headers:
+            Total-Count:
+              description: How many messages the thread holds in all.
+
+              schema:
+                type: string
 
           content:
             application/json:

@@ -14,6 +14,7 @@ module Admin
   # this" is answered by who is following it — which is a thing curators
   # already read on the request axis.
   class SetsController < ApplicationController
+    include MessageThreadPaging
     include Pagy::Method
 
     helper_method :waiting?, :following?
@@ -64,8 +65,18 @@ module Admin
 
       # The thread renders each message's attachments as well as its
       # author — `:user` alone leaves a pair of queries per message.
-      @messages = @set.messages.includes(:user, files_attachments: :blob).to_a
-      @members  = @set.members.ordered.includes(:user, :invited_by).to_a
+      #
+      # The newest page unless asked for the whole of it: a curator
+      # opening a set is looking at what was said recently, and a
+      # three-year conversation is not a page to render by default.
+      thread = @set.messages.includes(:user, files_attachments: :blob)
+
+      # `thread_page` sets `@thread_size`; the full render has to say what
+      # it is showing all of.
+      @messages    = params[:full].present? ? thread.to_a : thread_page(thread)
+      @thread_size ||= @messages.size
+
+      @members = @set.members.ordered.includes(:user, :invited_by).to_a
 
       # Paginated: a set holds however much it holds, and a three-year
       # study is hundreds of submissions. The member's own view of the

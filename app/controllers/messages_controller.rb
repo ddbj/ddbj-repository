@@ -1,5 +1,6 @@
 class MessagesController < ApplicationController
   include AttachmentSignedIds
+  include MessageThreadPaging
 
   before_action :load_submission_request
 
@@ -10,7 +11,7 @@ class MessagesController < ApplicationController
   # curator waiting on that answer saw nothing either, because their queue
   # tracks unread SUBMITTER messages. The conversation just went quiet.
   def index
-    @messages = @request.messages.includes(:user, files_attachments: :blob).to_a
+    @messages = thread_page(@request.messages.includes(:user, files_attachments: :blob))
   end
 
   def create

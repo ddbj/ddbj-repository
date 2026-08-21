@@ -1,4 +1,4 @@
-<%# locals: (request:, messages:, unread: 0, colleagues: [], followers: []) %>
+<%# locals: (request:, messages:, unread: 0, colleagues: [], followers: [], thread_size: nil) %>
 <%# Per-request curator ↔ submitter thread. Submitter posts via the web %>
 <%# UI; curator posts via the form at the bottom. Speakers are told apart %>
 <%# by side and colour rather than by a label the eye has to read. %>
@@ -34,6 +34,16 @@
   </div>
 
   <% if messages.any? %>
+    <%# A thread is read from its newest end, so that is the end this %>
+    <%# renders. What is missing is the beginning of it. %>
+    <% if thread_size && thread_size > messages.size %>
+      <p class="small mb-3">
+        <%= link_to "Show all #{number_with_delimiter(thread_size)} messages",
+                    messages_admin_submission_request_path(request, full: 1), data: {test_show_full: true} %>
+        <span class="text-body-secondary">— the <%= messages.size %> most recent are below.</span>
+      </p>
+    <% end %>
+
     <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
       <% messages.each do |m| %>
         <li class="d-flex gap-3 <%= 'ps-5' unless m.curator_role? %>">
@@ -101,42 +111,7 @@
       <%= file_field_tag 'files[]', multiple: true, class: 'form-control', data: {direct_upload_url: admin_direct_uploads_path} %>
     </div>
 
-    <%# What a curator does in mail without thinking about it. Without %>
-    <%# it the only way to bring a colleague in is to tell them out of %>
-    <%# band, and the thread stops being the record of who was asked. %>
-    <%# Not behind a disclosure. This is one field and no ceremony in %>
-    <%# mail, and a control nobody finds is a control nobody uses. %>
-    <% if colleagues.any? %>
-      <div class="mb-3">
-        <span class="form-label">Also notify</span>
-
-        <div>
-          <% colleagues.each do |colleague| %>
-            <% already = followers.include?(colleague) %>
-
-            <%# Copying somebody in adds them to the notifications from %>
-            <%# here on — that is all it does. This thread is the %>
-            <%# curator's conversation with the submitter, not a way to %>
-            <%# put work to another curator, so there is nothing a tick %>
-            <%# could mean for somebody already following. Shown ticked %>
-            <%# and fixed rather than blank, which would read as a list %>
-            <%# you have to fill in on every message. %>
-            <div class="form-check form-check-inline">
-              <%= check_box_tag 'cc_user_ids[]', colleague.id, already,
-                                id: "cc_#{colleague.id}", class: 'form-check-input',
-                                disabled: already %>
-              <%= label_tag "cc_#{colleague.id}", colleague.uid,
-                            class: "form-check-label#{' text-body-secondary' if already}" %>
-            </div>
-          <% end %>
-        </div>
-
-        <p class="text-body-secondary small mb-0 mt-1">
-          Anyone already following is emailed a copy — greyed above, nothing to do.
-          Ticking somebody else starts notifying them of this thread from here on.
-        </p>
-      </div>
-    <% end %>
+    <%= render 'admin/messages/also_notify', colleagues:, followers:, following: 'this thread' %>
 
     <%= f.submit 'Send message', class: 'btn btn-primary' %>
   <% end %>

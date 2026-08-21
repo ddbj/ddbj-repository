@@ -44,6 +44,10 @@ class SubmissionSetMessage < ApplicationRecord
   # misfire, and both sides refuse it before they get here.
   validates :body, presence: true, unless: -> { files.attached? }
 
+  # Curators copied in on this message. Subscribing them is what makes it
+  # do anything later; this is what makes the thread say it happened.
+  def cc_users = User.where(id: cc_user_ids).order(:uid)
+
   scope :chronological, -> { order(:created_at, :id) }
 
   # Both scopes below compare `(created_at, id)` rather than `created_at`

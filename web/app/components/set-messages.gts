@@ -1,5 +1,4 @@
 import { action } from '@ember/object';
-import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { modifier } from 'ember-modifier';
 import { uniqueId } from '@ember/helper';
@@ -38,9 +37,7 @@ interface Signature {
 // and are on each submission's own page; being able to read somebody's
 // submission through a shared set is not being party to what they were
 // asked about it.
-export default class SetMessages extends MessageThread<Signature> {
-  @tracked messages: Message[] = [];
-
+export default class SetMessages extends MessageThread<Signature, Message> {
   // Which set the messages on screen belong to. Ember reuses a component
   // instance when the model changes under the same route, so loading
   // once at construction would leave one set's thread rendered under
@@ -52,21 +49,38 @@ export default class SetMessages extends MessageThread<Signature> {
     if (this.#loaded === setId) return;
 
     this.#loaded = setId;
-    this.messages = [];
+
+    this.resetThread();
 
     void this.load();
   });
 
-  async load() {
-    const setId = this.args.setId;
+  // Whether the answer to a request we sent is still about the thread on
+  // screen.
+  //
+  // The initial load's use of this is covered ("moving to another set
+  // fetches that set's thread"); `showEarlier`'s is not, because holding
+  // a request open across a navigation deadlocks Ember's settledness —
+  // `visit` waits for the very request the test needs to be in flight.
+  // It is the same guard for the same reason.
+  stillHere = (setId: number) => () => setId === this.args.setId;
 
-    const { content } = await this.requestManager.request<MessagesResponse>({
-      url: `/sets/${setId}/messages`,
-    });
+  get url() {
+    return `/sets/${this.args.setId}/messages`;
+  }
+
+  async load() {
+    const here = this.stillHere(this.args.setId);
+    const messages = await this.loadThread(this.url);
 
     // A slower answer for the set we have left must not land on the one
     // we are looking at.
-    if (setId === this.args.setId) this.messages = content;
+    if (here()) this.messages = messages;
+  }
+
+  @action
+  showEarlier() {
+    void this.loadEarlier(this.url, this.stillHere(this.args.setId));
   }
 
   // Acknowledges what is on screen, not whatever has arrived since.
@@ -89,15 +103,16 @@ export default class SetMessages extends MessageThread<Signature> {
 
     try {
       await this.requestManager.request({
-        url: `/sets/${this.args.setId}/messages/read`,
+        url: `${this.url}/read`,
         method: 'POST',
         data: { through_id: this.newestMessageId },
         options: { reportErrors: false },
       });
 
-      // Both: the count above comes from the route, and anything posted
-      // while this page was open is still missing from the thread.
-      await this.load();
+      // The count above comes from the route, so that is what is fetched
+      // again. NOT the thread: reloading it would replace what is on
+      // screen with the newest page and throw away anything the reader
+      // had pulled in with "Show earlier messages".
       await this.settle();
     } catch {
       this.error = 'Could not mark it read. Try again.';
@@ -122,14 +137,13 @@ export default class SetMessages extends MessageThread<Signature> {
       const files = await this.uploadDraftFiles();
 
       const { content } = await this.requestManager.request<CreateMessageResponse>({
-        url: `/sets/${this.args.setId}/messages`,
+        url: this.url,
         method: 'POST',
         data: { submission_set_message: { body, files } },
         options: { reportErrors: false },
       });
 
-      this.messages = [...this.messages, content];
-
+      this.appendMessage(content);
       this.clearForm();
 
       await this.settle();
@@ -169,6 +183,20 @@ export default class SetMessages extends MessageThread<Signature> {
       member wrote it is named — unlike a submission's thread, where every
       non-curator message is by definition the owner's. }}
       {{#if this.messages.length}}
+        {{! A thread arrives from its newest end, so what is missing is
+        the beginning of it. }}
+        {{#if this.hasEarlier}}
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm mb-3"
+            disabled={{this.loadingEarlier}}
+            data-test-show-earlier
+            {{on "click" this.showEarlier}}
+          >
+            {{if this.loadingEarlier "Loading…" "Show earlier messages"}}
+          </button>
+        {{/if}}
+
         <ul class="list-unstyled mb-3 d-flex flex-column gap-3">
           {{#each this.messages as |m|}}
             <li class="d-flex gap-3 {{unless (isCurator m) 'ps-5'}}">

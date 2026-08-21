@@ -1,4 +1,4 @@
-<%# locals: (set:, messages:, unread: 0) %>
+<%# locals: (set:, messages:, unread: 0, colleagues: [], followers: [], thread_size: nil) %>
 <%# The set's own thread. Everyone on the roster is party to it, which is %>
 <%# the difference from the per-request thread and the reason the author %>
 <%# of each message is named. %>
@@ -29,6 +29,16 @@
   <% end %>
 
   <% if messages.any? %>
+    <%# A thread is read from its newest end, so that is the end this %>
+    <%# renders. What is missing is the beginning of it. %>
+    <% if thread_size && thread_size > messages.size %>
+      <p class="small mb-3">
+        <%= link_to "Show all #{number_with_delimiter(thread_size)} messages",
+                    admin_set_path(set, full: 1), data: {test_show_full: true} %>
+        <span class="text-body-secondary">— the <%= messages.size %> most recent are below.</span>
+      </p>
+    <% end %>
+
     <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
       <% messages.each do |m| %>
         <li class="d-flex gap-3 <%= 'ps-5' unless m.curator_role? %>">
@@ -44,6 +54,16 @@
             </div>
 
             <div style="white-space: pre-wrap;"><%= m.body %></div>
+
+            <%# Who started following here, on the message that brought %>
+            <%# them in. The subscription is invisible from the thread, so %>
+            <%# without this there is no sign of when somebody joined the %>
+            <%# conversation. %>
+            <% if m.cc_user_ids.any? %>
+              <p class="small text-body-secondary mb-0 mt-2">
+                copied in <%= m.cc_users.map(&:uid).to_sentence %>
+              </p>
+            <% end %>
 
             <% if m.files.attached? %>
               <ul class="list-unstyled mb-0 mt-2 small">
@@ -79,6 +99,8 @@
       <%= label_tag 'files_', 'Attach files', class: 'form-label' %>
       <%= file_field_tag 'files[]', multiple: true, class: 'form-control', data: {direct_upload_url: admin_direct_uploads_path} %>
     </div>
+
+    <%= render 'admin/messages/also_notify', colleagues:, followers:, following: 'this set' %>
 
     <%= f.submit 'Send message', class: 'btn btn-primary' %>
   <% end %>
