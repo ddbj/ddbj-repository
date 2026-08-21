@@ -1,0 +1,24 @@
+<% thread_url = File.join(Rails.application.config_for(:app).app_url!, 'admin', 'sets', @set.id.to_s) %>
+
+<p>
+  <%= @message.user.uid %> copied you in on the set “<%= @set.name %>”
+  (<%= @set.submission_requests.size %> submissions, <%= @set.users.size %> members),
+  where they wrote to its members:
+</p>
+
+<% if @message.body.present? %>
+  <blockquote style="border-left: 3px solid #ccc; padding-left: 1em; color: #555;">
+    <%= simple_format @message.body %>
+  </blockquote>
+<% end %>
+
+<%= render 'files', message: @message %>
+
+<p>
+  You are now following this set, so replies from its members will reach your queue.
+  Stop following from the set page if you would rather not.
+</p>
+
+<p><a href="<%= thread_url %>">Open the thread in the admin UI.</a></p>
+
+<p>— DDBJ Repository</p>

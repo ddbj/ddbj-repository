@@ -237,6 +237,44 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
     assert_text 'Answering: bob'
   end
 
+  # Bringing a colleague in. Without it the only way is to tell them out
+  # of band, and then the thread stops being the record of who was asked.
+  test 'a curator copies a colleague in, and it says so on the message' do
+    @set.messages.create!(user: @alice, author_role: :member, body: 'Anyone?')
+
+    visit admin_set_path(@set)
+
+    check 'dave'
+    fill_in 'New message to the set', with: 'Looping dave in.'
+
+    perform_enqueued_jobs do
+      click_button 'Send message'
+    end
+
+    assert_text 'dave copied in'
+    assert_text 'copied in dave'
+
+    # Following from here on is the whole of what copying somebody in
+    # does — plus being told now, because a set with nothing unanswered
+    # says nothing in their queue.
+    assert @set.following?(users(:dave))
+
+    copied = ActionMailer::Base.deliveries.find { it.subject.to_s.include?('copied you in') }
+
+    assert_not_nil copied
+    assert_equal [users(:dave).email], copied.to
+  end
+
+  # Somebody already following is greyed rather than offered: there is
+  # nothing a tick could mean for them.
+  test 'a colleague who already follows the set is not offered again' do
+    @set.subscribe! users(:dave)
+
+    visit admin_set_path(@set)
+
+    assert_selector "input#cc_#{users(:dave).id}[disabled]"
+  end
+
   # Who is already curating what is in the set. This is what decides
   # whether a set-wide question is the reader's to answer, and it is the
   # one fact neither the set nor the thread carries.

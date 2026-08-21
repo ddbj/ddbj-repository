@@ -1,4 +1,4 @@
-<%# locals: (set:, messages:, unread: 0) %>
+<%# locals: (set:, messages:, unread: 0, colleagues: [], followers: []) %>
 <%# The set's own thread. Everyone on the roster is party to it, which is %>
 <%# the difference from the per-request thread and the reason the author %>
 <%# of each message is named. %>
@@ -45,6 +45,16 @@
 
             <div style="white-space: pre-wrap;"><%= m.body %></div>
 
+            <%# Who started following here, on the message that brought %>
+            <%# them in. The subscription is invisible from the thread, so %>
+            <%# without this there is no sign of when somebody joined the %>
+            <%# conversation. %>
+            <% if m.cc_user_ids.any? %>
+              <p class="small text-body-secondary mb-0 mt-2">
+                copied in <%= m.cc_users.map(&:uid).to_sentence %>
+              </p>
+            <% end %>
+
             <% if m.files.attached? %>
               <ul class="list-unstyled mb-0 mt-2 small">
                 <% m.files.each do |file| %>
@@ -79,6 +89,8 @@
       <%= label_tag 'files_', 'Attach files', class: 'form-label' %>
       <%= file_field_tag 'files[]', multiple: true, class: 'form-control', data: {direct_upload_url: admin_direct_uploads_path} %>
     </div>
+
+    <%= render 'admin/messages/also_notify', colleagues:, followers:, following: 'this set' %>
 
     <%= f.submit 'Send message', class: 'btn btn-primary' %>
   <% end %>

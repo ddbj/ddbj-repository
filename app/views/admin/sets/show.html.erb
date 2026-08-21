@@ -50,7 +50,9 @@
 <div class="row g-4">
   <div class="col-lg-7">
     <%= render 'thread', set: @set, messages: @messages,
-               unread: @set.unread_message_count_for(current_user) %>
+               unread:     @set.unread_message_count_for(current_user),
+               colleagues: User.staff.where.not(id: current_user.id).order(:uid),
+               followers:  @set.followers.to_a %>
   </div>
 
   <div class="col-lg-5">

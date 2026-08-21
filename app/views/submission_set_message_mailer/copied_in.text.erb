@@ -1,0 +1,14 @@
+<% app_url = Rails.application.config_for(:app).app_url! -%>
+<%= @message.user.uid %> copied you in on the set “<%= @set.name %>” (<%= @set.submission_requests.size %> submissions, <%= @set.users.size %> members), where they wrote to its members:
+
+<% if @message.body.present? -%>
+<%= @message.body.lines.map { "  #{it}" }.join.chomp %>
+<% end -%>
+<%= render 'files', message: @message -%>
+
+You are now following this set, so replies from its members will reach your queue. Stop following from the set page if you would rather not.
+
+Open the thread in the admin UI:
+<%= File.join(app_url, 'admin', 'sets', @set.id.to_s) %>
+
+— DDBJ Repository

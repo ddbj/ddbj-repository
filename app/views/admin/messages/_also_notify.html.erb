@@ -1,0 +1,37 @@
+<%# locals: (colleagues:, followers:, following:) %>
+<%# What a curator does in mail without thinking about it. Without it the %>
+<%# only way to bring a colleague in is to tell them out of band, and the %>
+<%# thread stops being the record of who was asked. %>
+<%# %>
+<%# Not behind a disclosure. This is one field and no ceremony in mail, %>
+<%# and a control nobody finds is a control nobody uses. %>
+<% if colleagues.any? %>
+  <div class="mb-3">
+    <span class="form-label">Also notify</span>
+
+    <div>
+      <% colleagues.each do |colleague| %>
+        <% already = followers.include?(colleague) %>
+
+        <%# Copying somebody in adds them to the notifications from here %>
+        <%# on — that is all it does. This thread is not a way to put %>
+        <%# work to another curator, so there is nothing a tick could %>
+        <%# mean for somebody already following. Shown ticked and fixed %>
+        <%# rather than blank, which would read as a list you have to %>
+        <%# fill in on every message. %>
+        <div class="form-check form-check-inline">
+          <%= check_box_tag 'cc_user_ids[]', colleague.id, already,
+                            id: "cc_#{colleague.id}", class: 'form-check-input',
+                            disabled: already %>
+          <%= label_tag "cc_#{colleague.id}", colleague.uid,
+                        class: "form-check-label#{' text-body-secondary' if already}" %>
+        </div>
+      <% end %>
+    </div>
+
+    <p class="text-body-secondary small mb-0 mt-1">
+      Anyone already following is emailed a copy — greyed above, nothing to do.
+      Ticking somebody else starts notifying them of <%= following %> from here on.
+    </p>
+  </div>
+<% end %>
