@@ -31,10 +31,22 @@ module Admin
       # Since when, so the row and the order it is in are the same fact.
       @waiting_since = SubmissionSet.waiting_since(@sets.map(&:id))
 
+      # And who is already curating what is in it, which is usually what
+      # decides whether this question is the reader's to answer.
+      @set_assignees = SubmissionSet.assignee_counts(@sets.map(&:id))
+      @assignee_uids = assignee_uids(@set_assignees)
+
       @total = @requests + @set_count
     end
 
     private
+
+    # One lookup for every name any of the rows will print.
+    def assignee_uids(counts)
+      ids = counts.values.flat_map(&:keys).compact.uniq
+
+      User.where(id: ids).pluck(:id, :uid).to_h
+    end
 
     def present(section)
       count    = section.count

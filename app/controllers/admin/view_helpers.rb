@@ -260,6 +260,42 @@ module Admin::ViewHelpers
     distance_of_time_in_words(rate * count)
   end
 
+  # "8 yours, 3 suzuki, 1 unassigned" — who is already curating the
+  # submissions a set-wide question is about.
+  #
+  # This is what decides who answers it, and it is the one fact neither
+  # the set nor the thread carries: a set whose submissions are all one
+  # curator's is that curator's question, and one split between three is
+  # a question somebody has to agree to take. Yours first, because the
+  # reader is deciding whether it is theirs; unassigned last, because it
+  # is the part nobody has claimed yet.
+  #
+  # Long tails are summed rather than listed. A row is read at a glance,
+  # and five names in it is not a glance.
+  NAMED_ASSIGNEES = 2
+
+  def assignee_breakdown(counts, uids:)
+    return nil if counts.blank?
+
+    mine       = counts[current_user.id].to_i
+    unassigned = counts[nil].to_i
+    others     = counts.except(current_user.id, nil).sort_by { -it.last }
+
+    parts = []
+    parts << "#{number_with_delimiter(mine)} yours" if mine.positive?
+
+    others.first(NAMED_ASSIGNEES).each do |id, count|
+      parts << "#{number_with_delimiter(count)} #{uids.fetch(id, 'somebody else')}"
+    end
+
+    rest = others.drop(NAMED_ASSIGNEES).sum { it.last }
+
+    parts << "#{number_with_delimiter(rest)} others" if rest.positive?
+    parts << "#{number_with_delimiter(unassigned)} unassigned" if unassigned.positive?
+
+    parts.join(', ')
+  end
+
   # The three ways a list can be empty, which are three different
   # situations for whoever is looking at it. See the conventions in
   # CLAUDE.md.

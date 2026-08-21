@@ -177,6 +177,42 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # Who is already curating what is in the set. This is what decides
+  # whether a set-wide question is the reader's to answer, and it is the
+  # one fact neither the set nor the thread carries.
+  test 'the queue row says who holds the submissions in the set' do
+    @set.messages.create!(user: @alice, author_role: :member, body: 'Anyone?')
+
+    # Three submissions, split: one this curator's, one a colleague's,
+    # one nobody's.
+    @set.inclusions.create!(submission_request: submission_requests(:biosample), added_by: @alice)
+    @set.inclusions.create!(submission_request: submission_requests(:st26), added_by: @alice)
+
+    # `update_columns`: the fixtures carry no uploaded record, and the
+    # attachment validation is not what this is about.
+    submission_requests(:bioproject).update_columns(assignee_id: users(:bob).id)
+    submission_requests(:biosample).update_columns(assignee_id: users(:dave).id)
+
+    visit admin_my_queue_path
+
+    within '[data-test-section="sets"]' do
+      assert_text '3 submissions, 2 members — 1 yours, 1 dave, 1 unassigned'
+    end
+  end
+
+  # A set nobody has been assigned any of is still a real answer, and
+  # different from one that is half yours.
+  test 'a set nobody is curating says so' do
+    @set.messages.create!(user: @alice, author_role: :member, body: 'Anyone?')
+
+    visit admin_my_queue_path
+
+    within '[data-test-section="sets"]' do
+      assert_text '1 unassigned'
+      assert_no_text 'yours'
+    end
+  end
+
   # An attachment control a label does not name cannot be reached by a
   # screen reader or by a test.
   test 'the file control on the curator form is named' do
