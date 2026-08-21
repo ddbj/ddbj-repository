@@ -101,6 +101,7 @@ export default class extends Component<Signature> {
       const { content } = await this.requestManager.request<SetSummary>({
         url: `/invitations/${this.args.model.token}/acceptance`,
         method: 'POST',
+        options: { reportErrors: false },
       });
 
       this.toast.show(`You have joined “${content.name}”.`, 'success');

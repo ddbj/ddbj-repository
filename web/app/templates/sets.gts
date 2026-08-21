@@ -55,6 +55,7 @@ export default class extends Component<Signature> {
         url: '/sets',
         method: 'POST',
         data: { set: { name: this.name.trim() } },
+        options: { reportErrors: false },
       });
 
       this.name = '';

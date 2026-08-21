@@ -42,7 +42,7 @@ module.exports = function (environment) {
   ENV.apiURL = `${appURL}/api`;
   ENV.adminURL = `${appURL}/admin`;
   ENV.authURL = `${appURL}/auth/keycloak`;
-  ENV.directUploadURL = `${appURL}/rails/active_storage/direct_uploads`;
+  ENV.directUploadURL = `${appURL}/api/direct_uploads`;
 
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;

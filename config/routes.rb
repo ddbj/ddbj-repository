@@ -25,9 +25,20 @@ Rails.application.routes.draw do
     resources :submission_requests, only: %i[index show create] do
       resource  :status,          only: :show
       resource  :submission,      only: :create
+
+      # The attachment is named by the route, not carried as a signed
+      # blob id — so one record's id cannot be presented with another
+      # record's blob, and an attachment no route names has no way in.
+      get 'files/:name',
+          to:          'submission_request_files#show',
+          as:          :file,
+          constraints: {name: /ddbj_record/}
+
       resources :messages, only: %i[index create] do
         # Reading the thread does not discharge it; saying so does.
         post :read, on: :collection
+
+        get 'files/:id', to: 'message_files#show', as: :file
       end
       resource :reviewer_access, only: %i[show create destroy]
 
@@ -42,8 +53,22 @@ Rails.application.routes.draw do
     get 'reviews/:token',            to: 'reviews#show',       as: :review
     get 'reviews/:token/accessions', to: 'reviews#accessions', as: :review_accessions
 
+    # Files on the same token as the rest of the reviewer's view, so
+    # revoking the share revokes them. The name is constrained here as
+    # well as mapped in the controller: an unknown one never reaches
+    # Ruby.
+    get 'reviews/:token/files/:name',
+        to:          'reviews#file',
+        as:          :review_file,
+        constraints: {name: /ddbj_record|submission_record|flatfile_na|flatfile_aa/}
+
     resources :submissions, only: %i[index show] do
       resources :accessions, only: %i[index]
+
+      get 'files/:name',
+          to:          'submission_files#show',
+          as:          :file,
+          constraints: {name: /ddbj_record|flatfile_na|flatfile_aa/}
     end
 
     # `index` here is the cross-submission one — the nested route above
@@ -78,6 +103,11 @@ Rails.application.routes.draw do
     resources :invitations, only: %i[show], param: :token do
       resource :acceptance, only: %i[create], controller: 'invitation_acceptances'
     end
+
+    # Direct upload, redrawn here rather than at Active Storage's own
+    # path — and authenticated, which it never was. It mints a signed
+    # blob id and a presigned PUT to anybody who asks.
+    resource :direct_uploads, only: %i[create], controller: 'direct_uploads'
 
     resources :stats, only: %i[index]
   end
@@ -224,6 +254,25 @@ Rails.application.routes.draw do
       end
     end
 
+    # Downloads for curators. A session cookie rather than a token, which
+    # is the whole reason the two logins are independent.
+    get 'submission_requests/:submission_request_id/files/:name',
+        to:          'files#submission_request',
+        as:          :submission_request_file,
+        constraints: {name: /ddbj_record/}
+
+    get 'submissions/:submission_id/files/:name',
+        to:          'files#submission',
+        as:          :submission_file,
+        constraints: {name: /ddbj_record|flatfile_na|flatfile_aa/}
+
+    get 'messages/:message_id/files/:id', to: 'files#message', as: :message_file
+
+    # Same story as the API's: authenticated, because redrawing Active
+    # Storage's public one is not the same as leaving it where Rails put
+    # it.
+    resource :direct_uploads, only: %i[create], controller: 'direct_uploads'
+
     mount MissionControl::Jobs::Engine, at: '/jobs'
   end
 
@@ -234,6 +283,17 @@ Rails.application.routes.draw do
   get 'web(/*paths)', to: 'webs#show', constraints: ->(req) {
     !req.xhr? && req.format.html?
   }
+
+  # The Disk service's own endpoints, redrawn because
+  # `active_storage.draw_routes` took them with the blob routes — and
+  # `blob.url` resolves through them wherever the service is Disk rather
+  # than S3, which is the test environment. Their tokens are Active
+  # Storage's own, minted per request and short-lived; there is nothing
+  # here to authenticate against and nothing durable to hold.
+  scope :rails do
+    get 'active_storage/disk/:encoded_key/*filename' => 'active_storage/disk#show', as: :rails_disk_service
+    put 'active_storage/disk/:encoded_token'         => 'active_storage/disk#update', as: :update_rails_disk_service
+  end
 
   get 'up' => 'rails/health#show', as: :rails_health_check
 end

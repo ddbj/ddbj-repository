@@ -85,6 +85,7 @@ export default class BulkAddToSet extends Component<Signature> {
         url: `/sets/${this.selected}/submissions`,
         method: 'POST',
         data: { submission_request_ids: this.args.submissionRequestIds },
+        options: { reportErrors: false },
       });
 
       // Both numbers. "8 added" alone leaves somebody who ticked ten

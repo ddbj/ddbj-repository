@@ -126,6 +126,7 @@ export default class extends Component<Signature> {
         url: `/sets/${this.submissionSet.id}`,
         method: 'PATCH',
         data: { set: { name } },
+        options: { reportErrors: false },
       });
 
       this.renaming = false;
@@ -147,6 +148,7 @@ export default class extends Component<Signature> {
           url: `/sets/${this.submissionSet.id}/members`,
           method: 'POST',
           data: { set_member: { email: this.email.trim() } },
+          options: { reportErrors: false },
         });
 
         this.email = '';
@@ -171,6 +173,7 @@ export default class extends Component<Signature> {
       await this.requestManager.request({
         url: `/sets/${this.submissionSet.id}/members/${member.id}/reminder`,
         method: 'POST',
+        options: { reportErrors: false },
       });
 
       this.toast.show('Invitation sent again. The previous link no longer works.', 'success');
@@ -196,6 +199,7 @@ export default class extends Component<Signature> {
         await this.requestManager.request({
           url: `/sets/${this.submissionSet.id}/members/${member.id}`,
           method: 'DELETE',
+          options: { reportErrors: false },
         });
 
         this.confirming = null;
@@ -211,6 +215,7 @@ export default class extends Component<Signature> {
       await this.requestManager.request({
         url: `/sets/${this.submissionSet.id}/submissions/${entry.submission.id}`,
         method: 'DELETE',
+        options: { reportErrors: false },
       });
 
       this.toast.show('Taken out of the set.', 'success');
@@ -221,7 +226,11 @@ export default class extends Component<Signature> {
   async deleteSet() {
     await this.run(
       async () => {
-        await this.requestManager.request({ url: `/sets/${this.submissionSet.id}`, method: 'DELETE' });
+        await this.requestManager.request({
+          url: `/sets/${this.submissionSet.id}`,
+          method: 'DELETE',
+          options: { reportErrors: false },
+        });
 
         this.toast.show('Set deleted.', 'success');
       },

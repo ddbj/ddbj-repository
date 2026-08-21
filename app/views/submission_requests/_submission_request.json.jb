@@ -1,4 +1,10 @@
-# locals: (submission_request:, viewer: nil)
+# locals: (submission_request:, viewer: nil, request_file_url:, submission_file_url:)
+#
+# The two `*_file_url` lambdas take an attachment name and answer with the
+# route that serves it. Handed in rather than built here because the same
+# file is reached by different doors — the submitter's, a reviewer's share
+# token, a curator's session — and which door it is is what authorises the
+# read. See AttachmentDownload.
 
 state = CurationState.new(submission_request)
 
@@ -14,9 +20,9 @@ payload = {
   ),
 
   processing:  submission_request.processing?,
-  ddbj_record: render('attachment', attachment: submission_request.ddbj_record),
+  ddbj_record: render('attachment', attachment: submission_request.ddbj_record, url: request_file_url.call('ddbj_record')),
   validation:  submission_request.validation_with_validity&.then { render(it) },
-  submission:  submission_request.submission&.then { render(it) },
+  submission:  submission_request.submission&.then { render(it, file_url: submission_file_url) },
 
   progress: render('submission_requests/progress', state: state)
 }

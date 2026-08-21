@@ -102,6 +102,7 @@ export default class SetMembership extends Component<Signature> {
         url: `/sets/${this.selected}/submissions`,
         method: 'POST',
         data: { submission_request_ids: [this.args.requestId] },
+        options: { reportErrors: false },
       });
 
       this.selected = '';
@@ -126,6 +127,7 @@ export default class SetMembership extends Component<Signature> {
       await this.requestManager.request({
         url: `/sets/${setId}/submissions/${this.args.requestId}`,
         method: 'DELETE',
+        options: { reportErrors: false },
       });
 
       this.toast.show('Taken out of the set.', 'success');

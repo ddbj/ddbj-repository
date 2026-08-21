@@ -5,6 +5,7 @@ import { service } from '@ember/service';
 import { concat } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
+import DownloadLink from 'repository/components/download-link';
 import ProgressSteps from 'repository/components/progress-steps';
 import ValidityBadge from 'repository/components/validity-badge';
 import ValidationReport from 'repository/components/validation-report';
@@ -323,33 +324,27 @@ export default class extends Component<Signature> {
             <dt>Uploaded file</dt>
 
             <dd>
-              <a
-                href={{@model.ddbj_record.url}}
-                target="_blank"
-                rel="noopener noreferrer"
-              >{{@model.ddbj_record.filename}}</a>
+              <DownloadLink @url={{@model.ddbj_record.url}} @filename={{@model.ddbj_record.filename}} />
             </dd>
 
             {{#if @model.submission}}
               <dt>DDBJ Record</dt>
 
               <dd>
-                <a
-                  href={{@model.submission.ddbj_record.url}}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >{{@model.submission.ddbj_record.filename}}</a>
+                <DownloadLink
+                  @url={{@model.submission.ddbj_record.url}}
+                  @filename={{@model.submission.ddbj_record.filename}}
+                />
               </dd>
 
               <dt>Flatfile (NA)</dt>
 
               <dd>
                 {{#if @model.submission.flatfile_na}}
-                  <a
-                    href={{@model.submission.flatfile_na.url}}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >{{@model.submission.flatfile_na.filename}}</a>
+                  <DownloadLink
+                    @url={{@model.submission.flatfile_na.url}}
+                    @filename={{@model.submission.flatfile_na.filename}}
+                  />
                 {{else}}
                   <span class="text-body-secondary">Not applicable</span>
                 {{/if}}
@@ -359,11 +354,10 @@ export default class extends Component<Signature> {
 
               <dd>
                 {{#if @model.submission.flatfile_aa}}
-                  <a
-                    href={{@model.submission.flatfile_aa.url}}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >{{@model.submission.flatfile_aa.filename}}</a>
+                  <DownloadLink
+                    @url={{@model.submission.flatfile_aa.url}}
+                    @filename={{@model.submission.flatfile_aa.filename}}
+                  />
                 {{else}}
                   <span class="text-body-secondary">Not applicable</span>
                 {{/if}}

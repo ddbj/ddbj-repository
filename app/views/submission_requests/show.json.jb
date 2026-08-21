@@ -1,4 +1,10 @@
 # The full path, not `render(@request)`: this template is also rendered
 # by ClosuresController, and a partial named relatively is looked up
 # under the rendering controller's own prefix.
-render('submission_requests/submission_request', submission_request: @request, viewer: @viewer)
+render(
+  'submission_requests/submission_request',
+  submission_request:  @request,
+  viewer:              @viewer,
+  request_file_url:    ->(name) { submission_request_file_url(@request, name) },
+  submission_file_url: ->(name) { submission_file_url(@request.submission, name) }
+)

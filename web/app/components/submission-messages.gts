@@ -4,6 +4,8 @@ import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { DirectUpload } from '@rails/activestorage';
+
+import DownloadLink from 'repository/components/download-link';
 import { uniqueId } from '@ember/helper';
 
 import formatDatetime from 'repository/helpers/format-datetime';
@@ -11,6 +13,7 @@ import humanSize from 'repository/helpers/human-size';
 import ENV from 'repository/config/environment';
 
 import type AttentionService from 'repository/services/attention';
+import type CurrentUserService from 'repository/services/current-user';
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type { paths } from 'schema/openapi';
@@ -31,6 +34,7 @@ interface Signature {
 
 export default class SubmissionMessages extends Component<Signature> {
   @service declare attention: AttentionService;
+  @service declare currentUser: CurrentUserService;
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
 
@@ -113,7 +117,10 @@ export default class SubmissionMessages extends Component<Signature> {
   // conversation is about — submission files, large by nature — are not
   // bounded by anything in front of Rails.
   async upload(file: File) {
-    const upload = new DirectUpload(file, ENV.directUploadURL);
+    // The endpoint authenticates now (it mints a blob row and a presigned
+    // PUT, which is not something to leave open), and @rails/activestorage
+    // sends only its own headers unless it is given more.
+    const upload = new DirectUpload(file, ENV.directUploadURL, undefined, this.currentUser.authorizationHeader);
 
     return new Promise<string>((resolve, reject) => {
       upload.create((error, blob) => (error ? reject(error) : resolve(blob!.signed_id)));
@@ -140,6 +147,7 @@ export default class SubmissionMessages extends Component<Signature> {
         url: `/submission_requests/${this.args.requestId}/messages`,
         method: 'POST',
         data: { submission_message: { body, files } },
+        options: { reportErrors: false },
       });
 
       // Appended rather than re-fetched — saves a round trip and keeps
@@ -220,7 +228,7 @@ export default class SubmissionMessages extends Component<Signature> {
                   <ul class="list-unstyled mb-0 mt-2 small">
                     {{#each m.files as |file|}}
                       <li>
-                        <a href={{file.url}} download>{{file.filename}}</a>
+                        <DownloadLink @url={{file.url}} @filename={{file.filename}} />
                         <span class="text-body-secondary">{{humanSize file.byte_size}}</span>
                       </li>
                     {{/each}}

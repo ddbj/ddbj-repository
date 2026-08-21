@@ -1,1 +1,5 @@
-render(@submission)
+render(
+  'submissions/submission',
+  submission: @submission,
+  file_url:   ->(name) { submission_file_url(@submission, name) }
+)

@@ -9,6 +9,8 @@ export default class ErrorModalHandler {
   @service declare errorModal: ErrorModalService;
 
   async request<T>(context: RequestContext, next: NextFn<T>) {
+    const options = context.request.options as { reportErrors?: boolean } | undefined;
+
     try {
       return await next(context.request);
     } catch (e) {
@@ -18,7 +20,13 @@ export default class ErrorModalHandler {
       // the banner says the same thing without taking the page away.
       if (status(e) === 401) {
         this.currentUser.expireSession();
-      } else {
+      } else if (options?.reportErrors !== false) {
+        // The modal is the report of last resort — for failures nothing
+        // else on the screen is going to mention. A caller that shows
+        // the message next to the control the person just pressed opts
+        // out: covering that message with a modal saying the same thing
+        // takes the page away to tell them something they can already
+        // see.
         this.errorModal.show(e as Error);
       }
 
