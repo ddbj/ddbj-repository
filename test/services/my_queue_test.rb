@@ -54,21 +54,33 @@ class MyQueueTest < ActiveSupport::TestCase
     assert_includes section(:involved).scope, @req
   end
 
-  # SQL inequality is NULL for an unassigned row, so the obvious
-  # `where.not(assignee_id:)` dropped exactly this case — and since
-  # Unclaimed excludes anything with a participant, replying to a
-  # submitter made the request vanish from every curator's queue.
-  test 'a request I worked on that nobody owns is still in I am involved' do
-    unread_request.participate!(users(:bob))
+  # Unclaimed is one question — has anybody claimed this — and having
+  # replied is not a claim. The row stays in the pool until somebody
+  # takes it, wherever else it also appears.
+  test 'a request I worked on that nobody owns is in Unclaimed, not in I am involved' do
+    unread_request.subscribe!(users(:bob))
 
     assert_nil @req.assignee_id
-    assert_includes section(:involved).scope, @req
+    assert_includes     section(:unclaimed).scope, @req
+    assert_not_includes section(:involved).scope,  @req
   end
 
   test 'an untouched, unowned request is in Unclaimed' do
     unread_request
 
     assert_includes section(:unclaimed).scope, @req
+  end
+
+  # The hole the old rule left: a curator who followed something and
+  # then put it aside took it out of their own sections AND out of
+  # everybody's pool, leaving a submitter waiting on work that appeared
+  # in no queue at all.
+  test 'putting an unclaimed request aside does not take it out of the pool' do
+    unread_request.subscribe!(users(:bob))
+    @req.mark_read_by!(users(:bob), through: @req.messages.last.id)
+
+    assert_includes section(:unclaimed).scope,               @req
+    assert_includes section(:unclaimed, users(:dave)).scope, @req
   end
 
   # Somebody else's work is not this curator's queue.
@@ -128,11 +140,79 @@ class MyQueueTest < ActiveSupport::TestCase
     }
   end
 
+  # Sets live in the same three sections as requests: what makes a piece
+  # of work this curator's is the same question either way.
+  def queued_sets(user = users(:bob))
+    MyQueue.new(user).sections.flat_map { it.set_conversations.to_a }
+  end
+
+  def section_of(set, user = users(:bob))
+    MyQueue.new(user).sections.find { it.set_conversations.exists?(id: set.id) }&.key
+  end
+
   test 'a set with an unanswered question is in the queue, and its count is the badge' do
     set = waiting_set
 
-    assert_equal [set], MyQueue.new(users(:bob)).sets.to_a
+    assert_equal [set], queued_sets
     assert_equal 1,     MyQueue.new(users(:bob)).set_count
+  end
+
+  # The three sections, on the set axis. Claiming is what takes a
+  # conversation out of everybody else's queue — which is the whole
+  # reason the column exists.
+  test 'an unclaimed set is unclaimed for everyone, and claiming moves it' do
+    set = waiting_set
+
+    assert_equal :unclaimed, section_of(set)
+    assert_equal :unclaimed, section_of(set, users(:dave))
+
+    set.assign! users(:bob)
+
+    assert_equal :assigned, section_of(set)
+    assert_nil section_of(set, users(:dave)), 'somebody else holds it and dave has never touched it'
+  end
+
+  # Answering follows it, so a colleague who replied to a set somebody
+  # else holds keeps seeing it — without owning it.
+  test 'a set you follow but do not hold is involved, not assigned' do
+    set = waiting_set
+
+    set.assign!    users(:dave)
+    set.subscribe! users(:bob)
+
+    assert_equal :involved, section_of(set)
+    assert_equal :assigned, section_of(set, users(:dave))
+  end
+
+  # Following is not claiming, on this axis either — and a follower who
+  # puts it aside must not take it out of the pool with them.
+  test 'a set nobody holds stays in the pool however many people follow it' do
+    set = waiting_set
+
+    set.subscribe! users(:bob)
+
+    assert_equal :unclaimed, section_of(set)
+
+    set.mark_read_by!(users(:bob), as: :curator, through: set.messages.last.id)
+
+    assert_equal :unclaimed, section_of(set)
+    assert_equal :unclaimed, section_of(set, users(:dave))
+  end
+
+  # Releasing puts it back where anybody can take it.
+  test 'releasing a set makes it unclaimed again' do
+    set = waiting_set
+
+    set.assign! users(:bob)
+    set.assign! nil
+
+    assert_equal :unclaimed, section_of(set)
+  end
+
+  test 'only a curator can be assigned a set' do
+    set = waiting_set
+
+    assert_raises(ArgumentError) { set.assign!(users(:alice)) }
   end
 
   test 'the total counts both axes' do
@@ -148,19 +228,37 @@ class MyQueueTest < ActiveSupport::TestCase
 
     set.messages.create!(user: users(:dave), author_role: :curator, body: 'Two.')
 
-    assert_empty MyQueue.new(users(:bob)).sets.to_a
-    assert_empty MyQueue.new(users(:dave)).sets.to_a
+    assert_empty queued_sets
+    assert_empty queued_sets(users(:dave))
   end
 
-  # Reading is not answering, and it speaks for nobody else.
+  # Reading is not answering, and it speaks for nobody else. Read
+  # through `set_count` — the number behind the Sets tab — because that
+  # is the per-curator one: the Unclaimed section is deliberately the
+  # same for everybody (a colleague putting something aside must not hide
+  # it from the pool), which is the request axis's rule too.
   test 'marking read clears one curator and leaves the others' do
     set     = waiting_set
     message = set.messages.last
 
     set.mark_read_by!(users(:bob), as: :curator, through: message.id)
 
-    assert_empty MyQueue.new(users(:bob)).sets.to_a
-    assert_equal [set], MyQueue.new(users(:dave)).sets.to_a
+    assert_equal 0, MyQueue.new(users(:bob)).set_count
+    assert_equal 1, MyQueue.new(users(:dave)).set_count
+  end
+
+  # Claimed, it is one curator's — and marking it read takes it out of
+  # their sections rather than only out of their badge.
+  test 'marking an assigned set read takes it out of the queue' do
+    set = waiting_set
+
+    set.assign! users(:bob)
+
+    assert_equal [set], queued_sets
+
+    set.mark_read_by!(users(:bob), as: :curator, through: set.messages.last.id)
+
+    assert_empty queued_sets
   end
 
   # The marker never moves backwards: a stale tab rendered when more was
@@ -174,7 +272,7 @@ class MyQueueTest < ActiveSupport::TestCase
     set.mark_read_by!(users(:bob), as: :curator, through: second.id)
     set.mark_read_by!(users(:bob), as: :curator, through: first.id)
 
-    assert_empty MyQueue.new(users(:bob)).sets.to_a, 'the older press must not undo the newer one'
+    assert_equal 0, MyQueue.new(users(:bob)).set_count, 'the older press must not undo the newer one'
   end
 
   # `through` bounds what a press can discharge to what was on screen.
@@ -185,7 +283,7 @@ class MyQueueTest < ActiveSupport::TestCase
     set.messages.create!(user: users(:alice), author_role: :member, body: 'One more')
     set.mark_read_by!(users(:bob), as: :curator, through: seen.id)
 
-    assert_equal [set], MyQueue.new(users(:bob)).sets.to_a
+    assert_equal 1, MyQueue.new(users(:bob)).set_count
   end
 
   # Which side somebody acts from is the screen they pressed, not what
@@ -197,12 +295,12 @@ class MyQueueTest < ActiveSupport::TestCase
     set.mark_read_by!(users(:bob), as: :member, through: set.messages.last.id)
 
     assert_not_nil membership.reload.last_read_at, 'the member side is what a press on the member screen marks'
-    assert_equal [set], MyQueue.new(users(:bob)).sets.to_a,
+    assert_equal 1, MyQueue.new(users(:bob)).set_count,
                  'and it must not discharge a curator queue entry they never saw as a curator'
 
     set.mark_read_by!(users(:bob), as: :curator, through: set.messages.last.id)
 
-    assert_empty MyQueue.new(users(:bob)).sets.to_a
+    assert_equal 0, MyQueue.new(users(:bob)).set_count
   end
 
   test 'the oldest question comes first' do
@@ -212,6 +310,6 @@ class MyQueueTest < ActiveSupport::TestCase
     older.messages.create!(user: users(:alice), author_role: :member, body: 'Still waiting', created_at: 7.days.ago)
     older.touch
 
-    assert_equal [older, recent], MyQueue.new(users(:bob)).sets.to_a
+    assert_equal [older, recent], queued_sets
   end
 end

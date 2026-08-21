@@ -155,24 +155,26 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     assert_equal 0, req.unread_message_count_for(users(:bob)), 'a stale press must not resurrect'
   end
 
-  # If everyone who touched it has stopped following, nobody is watching
-  # it — which is what Unclaimed is for. Keying on the row's existence
-  # would leave such a request owned by nobody and visible to nobody.
-  test 'a request nobody follows any more is unclaimed again' do
+  # Unclaimed asks one question — has anybody claimed this — because a
+  # two-part answer is not one a screen can ask somebody to remember.
+  # Following is not claiming: it says who is listening, and a pool that
+  # depended on that left work visible to nobody when the listener put
+  # it aside.
+  test 'following a request does not take it out of the pool' do
     req = submission_requests(:bioproject)
     req.subscribe!(users(:bob))
 
-    assert_not_includes SubmissionRequest.unclaimed, req
-
-    req.unsubscribe!(users(:bob))
-
     assert_includes SubmissionRequest.unclaimed, req
+
+    req.assign!(users(:bob))
+
+    assert_not_includes SubmissionRequest.unclaimed, req, 'claiming does'
   end
 
-  test 'unclaimed excludes anything assigned or participated in' do
-    assigned    = submission_requests(:bioproject)
-    involved    = submission_requests(:biosample)
-    untouched   = submission_requests(:st26)
+  test 'unclaimed excludes anything assigned, and nothing else' do
+    assigned  = submission_requests(:bioproject)
+    involved  = submission_requests(:biosample)
+    untouched = submission_requests(:st26)
 
     assigned.assign!(users(:bob))
     involved.participate!(users(:bob))
@@ -180,8 +182,8 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     unclaimed = SubmissionRequest.unclaimed
 
     assert_includes     unclaimed, untouched
+    assert_includes     unclaimed, involved, 'somebody worked on it, but nobody has taken it'
     assert_not_includes unclaimed, assigned
-    assert_not_includes unclaimed, involved
   end
 
   # --- needs_submitter_action --------------------------------------------

@@ -1,0 +1,40 @@
+<%# locals: (set:, section:, unread:, counts:, assignees:, uids:, waiting_since:) %>
+<%# The set-axis row, alongside the request rows in the same section: %>
+<%# what makes a piece of work this curator's is the same question either %>
+<%# way, and which of the two it is does not change the answer. %>
+<div class="list-group-item d-flex align-items-center gap-3 flex-wrap" data-test-set="<%= set.id %>">
+  <%= link_to set.name, admin_set_path(set), class: 'fw-semibold text-nowrap' %>
+
+  <span class="badge text-bg-light border">Set</span>
+
+  <span class="small text-body-secondary">
+    <%= pluralize(counts.fetch(:submissions).fetch(set.id, 0), 'submission') %>,
+    <%= pluralize(counts.fetch(:members).fetch(set.id, 0), 'member') %>
+
+    <%# Who is already curating what is in it — usually the answer to %>
+    <%# "is this mine?", and where it is split, the split is the thing %>
+    <%# that has to be seen rather than assumed. %>
+    <% breakdown = assignee_breakdown(assignees[set.id], uids:) %>
+    <%= " — #{breakdown}" if breakdown %>
+
+    <% if section.key == :involved && set.assignee %>
+      · answering <%= set.assignee.uid %>
+    <% end %>
+  </span>
+
+  <span class="flex-fill small text-body-secondary">
+    <%= pluralize(unread, 'unread message') %>
+  </span>
+
+  <%# How long the question has been sitting — the value this section is %>
+  <%# ordered by, so the row and its place agree. %>
+  <span class="small text-nowrap <%= 'text-danger fw-semibold' if stale?(waiting_since) %>">
+    waiting <%= elapsed_time(waiting_since) %>
+  </span>
+
+  <%= link_to 'Answer', admin_set_path(set), class: 'btn btn-outline-secondary btn-sm' %>
+
+  <% if section.key == :unclaimed %>
+    <%= button_to 'Assign to me', admin_set_assignment_path(set), method: :post, class: 'btn btn-primary btn-sm' %>
+  <% end %>
+</div>

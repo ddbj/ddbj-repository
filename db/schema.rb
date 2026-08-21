@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_21_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_21_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -403,10 +403,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_21_000001) do
   end
 
   create_table "submission_sets", force: :cascade do |t|
+    t.bigint "assignee_id"
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.bigint "owner_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["assignee_id"], name: "index_submission_sets_on_assignee_id"
     t.index ["owner_id"], name: "index_submission_sets_on_owner_id"
   end
 
@@ -524,6 +526,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_21_000001) do
   add_foreign_key "submission_set_messages", "users"
   add_foreign_key "submission_set_participants", "submission_sets"
   add_foreign_key "submission_set_participants", "users"
+  add_foreign_key "submission_sets", "users", column: "assignee_id"
   add_foreign_key "submission_sets", "users", column: "owner_id"
   add_foreign_key "submission_updates", "submissions"
   add_foreign_key "submissions", "submission_updates", column: "cached_at_update_id", on_delete: :nullify

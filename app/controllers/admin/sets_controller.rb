@@ -34,7 +34,7 @@ module Admin
       # that both constrain `id` REPLACES the first condition rather than
       # narrowing it, so asking both questions used to silently answer
       # only the second.
-      scope = SubmissionSet.includes(:owner).order(updated_at: :desc)
+      scope = SubmissionSet.includes(:owner, :assignee).order(updated_at: :desc)
       scope = scope.where(id: SubmissionSet.needing_curator(current_user).select(:id)) if waiting?
       scope = scope.where(id: SubmissionSet.followed_by(current_user).select(:id))     if following?
 
@@ -60,7 +60,7 @@ module Admin
 
 
     def show
-      @set = SubmissionSet.includes(:owner).find(params.expect(:id))
+      @set = SubmissionSet.includes(:owner, :assignee).find(params.expect(:id))
 
       # The thread renders each message's attachments as well as its
       # author — `:user` alone leaves a pair of queries per message.

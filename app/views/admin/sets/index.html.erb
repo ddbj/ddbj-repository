@@ -56,6 +56,7 @@
           <th>Owner</th>
           <th class="text-end">Members</th>
           <th class="text-end">Submissions</th>
+          <th>Answering</th>
           <th>Last message</th>
           <th>Waiting</th>
         </tr>
@@ -77,6 +78,14 @@
 
               <% if breakdown %>
                 <div class="small text-body-secondary"><%= breakdown %></div>
+              <% end %>
+            </td>
+
+            <td>
+              <% if set.assignee %>
+                <code class="small"><%= set.assignee.uid %></code>
+              <% else %>
+                <span class="text-body-secondary">—</span>
               <% end %>
             </td>
 

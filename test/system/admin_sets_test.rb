@@ -31,7 +31,7 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
 
     visit admin_my_queue_path
 
-    within '[data-test-section="sets"]' do
+    within '[data-test-section="unclaimed"]' do
       assert_text 'Deep sea study'
       assert_text '1 submission, 2 members'
 
@@ -63,7 +63,7 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
 
     visit admin_my_queue_path
 
-    assert_no_selector '[data-test-section="sets"]'
+    assert_no_selector "[data-test-set='#{@set.id}']"
   end
 
   # Reading is not answering. A curator who has looked and decided there
@@ -79,7 +79,15 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
     assert_text 'Marked as read.'
 
     visit admin_my_queue_path
-    assert_no_selector '[data-test-section="sets"]'
+
+    # Unclaimed is the shared pool: nobody has claimed this, so putting
+    # it aside is about this curator's own count on the Sets tab and not
+    # about whether anybody else can still find it.
+    assert_selector '.navbar', text: 'Sets 0'
+
+    within '[data-test-section="unclaimed"]' do
+      assert_text 'Deep sea study'
+    end
 
     # A colleague still has it.
     assert_equal 1, SubmissionSet.needing_curator(users(:dave)).count
@@ -169,12 +177,64 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
 
     visit admin_my_queue_path
 
-    within '[data-test-section="sets"]' do
-      names = all('.list-group-item strong').map(&:text)
+    within '[data-test-section="unclaimed"]' do
+      names = all('[data-test-set] a.fw-semibold').map(&:text)
 
       assert_equal ['Asked last week, renamed just now', 'Deep sea study'], names
       assert_text 'waiting 7d ago'
     end
+  end
+
+  # Claiming the conversation. Without it a waiting set sits in every
+  # curator's queue until somebody answers, which is the "visible to
+  # everyone, owned by nobody" the three sections exist to fix.
+  test 'a curator takes a set conversation on, and gives it back' do
+    @set.messages.create!(user: @alice, author_role: :member, body: 'Anyone?')
+
+    visit admin_my_queue_path
+
+    within '[data-test-section="unclaimed"]' do
+      click_button 'Assign to me'
+    end
+
+    assert_text 'Answering: bob'
+
+    visit admin_my_queue_path
+
+    within '[data-test-section="assigned"]' do
+      assert_text 'Deep sea study'
+    end
+
+    # And a colleague no longer sees it as theirs to pick up.
+    assert_empty MyQueue.new(users(:dave)).sections.flat_map { it.set_conversations.to_a }
+
+    visit admin_set_path(@set)
+    click_button 'Release'
+
+    assert_text 'Nobody is answering this set'
+
+    visit admin_my_queue_path
+
+    within '[data-test-section="unclaimed"]' do
+      assert_text 'Deep sea study'
+    end
+  end
+
+  # Somebody else holding it is not a wall — the roster is small and the
+  # coordination is human — but it has to be visible that it was theirs.
+  test 'a set somebody else holds says so, and can be taken over' do
+    @set.messages.create!(user: @alice, author_role: :member, body: 'Anyone?')
+    @set.assign! users(:dave)
+
+    visit admin_set_path(@set)
+
+    within '[data-test-answering]' do
+      assert_text 'dave'
+    end
+
+    click_button 'Take over'
+
+    assert_text 'Answering: bob'
   end
 
   # Who is already curating what is in the set. This is what decides
@@ -195,7 +255,7 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
 
     visit admin_my_queue_path
 
-    within '[data-test-section="sets"]' do
+    within '[data-test-section="unclaimed"]' do
       assert_text '3 submissions, 2 members — 1 yours, 1 dave, 1 unassigned'
     end
   end
@@ -207,7 +267,7 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
 
     visit admin_my_queue_path
 
-    within '[data-test-section="sets"]' do
+    within '[data-test-section="unclaimed"]' do
       assert_text '1 unassigned'
       assert_no_text 'yours'
     end

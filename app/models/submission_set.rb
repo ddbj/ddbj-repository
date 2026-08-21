@@ -44,6 +44,10 @@ class SubmissionSet < ApplicationRecord
   has_many :followers, -> { merge(SubmissionSetParticipant.subscribed) },
            through: :participations, source: :user
 
+  # Who is answering the conversation. Only that: a set has no state to
+  # move through, and nothing to hand over but the thread.
+  belongs_to :assignee, class_name: 'User', optional: true
+
   validates :name, presence: true, length: {maximum: 200}
 
   # The creator is on the roster from the start. A set nobody is in
@@ -64,6 +68,14 @@ class SubmissionSet < ApplicationRecord
   scope :followed_by, ->(user) {
     where(id: SubmissionSetParticipant.subscribed.where(user_id: user.id).select(:submission_set_id))
   }
+
+  scope :assigned_to, ->(user) { where(assignee_id: user.id) }
+  scope :unassigned,  -> { where(assignee_id: nil) }
+
+  # Nobody has claimed it — the same one-part rule as the request axis,
+  # and for the same reason: following is not a claim, and a pool that
+  # depends on who happens to be following is a pool nobody can predict.
+  scope :unclaimed, -> { unassigned }
 
   # Sets whose thread is waiting on the curator side: a member has
   # written and no curator has written since.
@@ -244,6 +256,15 @@ class SubmissionSet < ApplicationRecord
     scope  = scope.where('submission_set_messages.created_at > ?', marker) if marker
 
     scope.count
+  end
+
+  # Claiming says who is answering; it is not a claim to have read
+  # anything, and it must not discharge the question that prompted it —
+  # so no marker and no subscription here, exactly as on a request.
+  def assign!(user)
+    raise ArgumentError, 'Assignee must be an admin user.' unless user.nil? || user.admin?
+
+    update!(assignee: user)
   end
 
   # "I have seen this thread, up to here." `through` is the newest
