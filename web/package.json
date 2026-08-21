@@ -62,7 +62,7 @@
     "babel-plugin-ember-template-compilation": "^4.0.0",
     "babel-plugin-module-resolver": "^5.0.3",
     "bootstrap": "^5.3.8",
-    "concurrently": "^10.0.4",
+    "concurrently": "^10.0.5",
     "date-fns": "^4.4.0",
     "decorator-transforms": "^2.4.0",
     "diff2html": "^3.4.56",
