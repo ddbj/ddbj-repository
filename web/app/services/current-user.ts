@@ -34,6 +34,13 @@ export default class CurrentUserService extends Service {
   // part of it that actually costs them something.
   @tracked sessionExpired = false;
 
+  // Set when the session could not be checked at all — the API down, a
+  // proxy in the way, a laptop off the network. A different thing from
+  // `sessionExpired` and it must not be told as one: the token is still
+  // good, and saying "you are signed out" would send somebody through an
+  // OAuth round trip to fix a problem that is not theirs.
+  @tracked serverUnreachable = false;
+
   previousTransition?: Transition;
 
   get isLoggedIn() {
@@ -179,10 +186,26 @@ export default class CurrentUserService extends Service {
     try {
       const { content } = await this.requestManager.request<Me>({
         url: '/me',
+
+        // The error route is the report here — a modal on top of it says
+        // the same thing twice.
+        options: { reportErrors: false },
       });
 
       this.user = new User(content.uid, content.api_key, content.admin);
-    } catch {
+    } catch (e) {
+      // Only the server saying the token is no good throws the token
+      // away. Anything else — the API down, a proxy in front of it, a
+      // laptop off the network — is a failure to ask rather than an
+      // answer, and discarding a JWT on one signs somebody out of a
+      // session that was never over. There is no second copy: the way
+      // back is the whole OAuth round trip.
+      if (status(e) !== 401) {
+        this.serverUnreachable = true;
+
+        throw e;
+      }
+
       this.clear();
       localStorage.removeItem('token');
 
@@ -193,4 +216,8 @@ export default class CurrentUserService extends Service {
   clear() {
     this.token = this.user = this.proxyUid = undefined;
   }
+}
+
+function status(error: unknown): number | undefined {
+  return (error as { status?: number } | undefined)?.status;
 }
