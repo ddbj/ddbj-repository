@@ -1,5 +1,4 @@
 import { action } from '@ember/object';
-import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { modifier } from 'ember-modifier';
 import { uniqueId } from '@ember/helper';
@@ -38,9 +37,7 @@ interface Signature {
 // and are on each submission's own page; being able to read somebody's
 // submission through a shared set is not being party to what they were
 // asked about it.
-export default class SetMessages extends MessageThread<Signature> {
-  @tracked messages: Message[] = [];
-
+export default class SetMessages extends MessageThread<Signature, Message> {
   // Which set the messages on screen belong to. Ember reuses a component
   // instance when the model changes under the same route, so loading
   // once at construction would leave one set's thread rendered under
@@ -57,16 +54,22 @@ export default class SetMessages extends MessageThread<Signature> {
     void this.load();
   });
 
+  get url() {
+    return `/sets/${this.args.setId}/messages`;
+  }
+
   async load() {
     const setId = this.args.setId;
-
-    const { content } = await this.requestManager.request<MessagesResponse>({
-      url: `/sets/${setId}/messages`,
-    });
+    const messages = await this.loadThread(this.url);
 
     // A slower answer for the set we have left must not land on the one
     // we are looking at.
-    if (setId === this.args.setId) this.messages = content;
+    if (setId === this.args.setId) this.messages = messages;
+  }
+
+  @action
+  showEarlier() {
+    void this.loadEarlier(this.url);
   }
 
   // Acknowledges what is on screen, not whatever has arrived since.
@@ -89,7 +92,7 @@ export default class SetMessages extends MessageThread<Signature> {
 
     try {
       await this.requestManager.request({
-        url: `/sets/${this.args.setId}/messages/read`,
+        url: `${this.url}/read`,
         method: 'POST',
         data: { through_id: this.newestMessageId },
         options: { reportErrors: false },
@@ -122,7 +125,7 @@ export default class SetMessages extends MessageThread<Signature> {
       const files = await this.uploadDraftFiles();
 
       const { content } = await this.requestManager.request<CreateMessageResponse>({
-        url: `/sets/${this.args.setId}/messages`,
+        url: this.url,
         method: 'POST',
         data: { submission_set_message: { body, files } },
         options: { reportErrors: false },
@@ -169,6 +172,20 @@ export default class SetMessages extends MessageThread<Signature> {
       member wrote it is named — unlike a submission's thread, where every
       non-curator message is by definition the owner's. }}
       {{#if this.messages.length}}
+        {{! A thread arrives from its newest end, so what is missing is
+        the beginning of it. }}
+        {{#if this.hasEarlier}}
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm mb-3"
+            disabled={{this.loadingEarlier}}
+            data-test-show-earlier
+            {{on "click" this.showEarlier}}
+          >
+            {{if this.loadingEarlier "Loading…" "Show earlier messages"}}
+          </button>
+        {{/if}}
+
         <ul class="list-unstyled mb-3 d-flex flex-column gap-3">
           {{#each this.messages as |m|}}
             <li class="d-flex gap-3 {{unless (isCurator m) 'ps-5'}}">

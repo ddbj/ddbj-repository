@@ -1,4 +1,4 @@
-<%# locals: (request:, messages:, unread: 0, colleagues: [], followers: []) %>
+<%# locals: (request:, messages:, unread: 0, colleagues: [], followers: [], thread_size: nil) %>
 <%# Per-request curator ↔ submitter thread. Submitter posts via the web %>
 <%# UI; curator posts via the form at the bottom. Speakers are told apart %>
 <%# by side and colour rather than by a label the eye has to read. %>
@@ -34,6 +34,16 @@
   </div>
 
   <% if messages.any? %>
+    <%# A thread is read from its newest end, so that is the end this %>
+    <%# renders. What is missing is the beginning of it. %>
+    <% if thread_size && thread_size > messages.size %>
+      <p class="small mb-3">
+        <%= link_to "Show all #{number_with_delimiter(thread_size)} messages",
+                    messages_admin_submission_request_path(request, full: 1), data: {test_show_full: true} %>
+        <span class="text-body-secondary">— the <%= messages.size %> most recent are below.</span>
+      </p>
+    <% end %>
+
     <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
       <% messages.each do |m| %>
         <li class="d-flex gap-3 <%= 'ps-5' unless m.curator_role? %>">

@@ -1,5 +1,4 @@
 import { action } from '@ember/object';
-import { tracked } from '@glimmer/tracking';
 import { on } from '@ember/modifier';
 import { Textarea } from '@ember/component';
 
@@ -26,21 +25,24 @@ interface Signature {
   };
 }
 
-export default class SubmissionMessages extends MessageThread<Signature> {
-  @tracked messages: Message[] = [];
-
+export default class SubmissionMessages extends MessageThread<Signature, Message> {
   constructor(owner: unknown, args: Signature['Args']) {
     // @ts-expect-error -- Glimmer Component owner typing
     super(owner, args);
     void this.load();
   }
 
-  async load() {
-    const { content } = await this.requestManager.request<MessagesResponse>({
-      url: `/submission_requests/${this.args.requestId}/messages`,
-    });
+  get url() {
+    return `/submission_requests/${this.args.requestId}/messages`;
+  }
 
-    this.messages = content;
+  async load() {
+    this.messages = await this.loadThread(this.url);
+  }
+
+  @action
+  showEarlier() {
+    void this.loadEarlier(this.url);
   }
 
   // Reading is no longer what discharges the thread — see MessagesController.
@@ -60,7 +62,7 @@ export default class SubmissionMessages extends MessageThread<Signature> {
   @action
   async markRead() {
     await this.requestManager.request({
-      url: `/submission_requests/${this.args.requestId}/messages/read`,
+      url: `${this.url}/read`,
       method: 'POST',
       data: { through_id: this.newestMessageId },
     });
@@ -86,7 +88,7 @@ export default class SubmissionMessages extends MessageThread<Signature> {
       const files = await this.uploadDraftFiles();
 
       const { content } = await this.requestManager.request<CreateMessageResponse>({
-        url: `/submission_requests/${this.args.requestId}/messages`,
+        url: this.url,
         method: 'POST',
         data: { submission_message: { body, files } },
         options: { reportErrors: false },
@@ -139,6 +141,20 @@ export default class SubmissionMessages extends MessageThread<Signature> {
       eye has to read: the curator sits left with an avatar, you sit
       indented and tinted. }}
       {{#if this.messages.length}}
+        {{! A thread arrives from its newest end, so what is missing is
+        the beginning of it. }}
+        {{#if this.hasEarlier}}
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm mb-3"
+            disabled={{this.loadingEarlier}}
+            data-test-show-earlier
+            {{on "click" this.showEarlier}}
+          >
+            {{if this.loadingEarlier "Loading…" "Show earlier messages"}}
+          </button>
+        {{/if}}
+
         <ul class="list-unstyled mb-3 d-flex flex-column gap-3">
           {{#each this.messages as |m|}}
             <li class="d-flex gap-3 {{unless (isCurator m) 'ps-5'}}">

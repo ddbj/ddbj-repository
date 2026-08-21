@@ -275,6 +275,24 @@ class AdminSetsSystemTest < ApplicationSystemTestCase
     assert_selector "input#cc_#{users(:dave).id}[disabled]"
   end
 
+  # A curator opening a set is looking at what was said recently. The
+  # whole of a three-year conversation is a link away, not the default.
+  test 'a long thread renders its newest end, and offers the rest' do
+    messages = Array.new(MessageThreadPaging::PER_PAGE + 2) {
+      @set.messages.create!(user: @alice, author_role: :member, body: "message #{it}")
+    }
+
+    visit admin_set_path(@set)
+
+    assert_text messages.last.body
+    assert_no_text messages.first.body
+
+    click_link "Show all #{messages.size} messages"
+
+    assert_text messages.first.body
+    assert_text messages.last.body
+  end
+
   # Who is already curating what is in the set. This is what decides
   # whether a set-wide question is the reader's to answer, and it is the
   # one fact neither the set nor the thread carries.

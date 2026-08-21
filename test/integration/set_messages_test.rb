@@ -201,6 +201,30 @@ class SetMessagesTest < ActionDispatch::IntegrationTest
     assert_equal 1, waiting.fetch('unread_message_count'), 'nothing was marked, so nothing was cleared'
   end
 
+  # A thread is read from its newest end, so that is the end it arrives
+  # from — and `Total-Count` is how a client knows there is a beginning
+  # it has not seen.
+  test 'a long thread arrives newest-end first, and says how long it is' do
+    messages = Array.new(MessageThreadPaging::PER_PAGE + 5) {
+      @set.messages.create!(user: @alice, author_role: :member, body: "message #{it}")
+    }
+
+    get set_messages_path(@set)
+
+    assert_conform_schema 200
+    assert_equal MessageThreadPaging::PER_PAGE, response.parsed_body.size
+    assert_equal messages.size.to_s, response.headers['Total-Count']
+    assert_equal messages.last.id,   response.parsed_body.last.fetch('id'), 'the newest is on the page'
+    assert_equal messages.last(MessageThreadPaging::PER_PAGE).map(&:id), response.parsed_body.pluck('id')
+
+    # And the beginning, by cursor: a page number counted from the oldest
+    # message would move every time somebody writes.
+    get set_messages_path(@set, before_id: response.parsed_body.first.fetch('id'))
+
+    assert_conform_schema 200
+    assert_equal messages.first(5).map(&:id), response.parsed_body.pluck('id')
+  end
+
   test 'a message with neither body nor file is refused' do
     with_exceptions_app do
       post set_messages_path(@set), params: {submission_set_message: {body: '   '}}.to_json, headers: JSON_HEADERS
