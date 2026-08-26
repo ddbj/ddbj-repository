@@ -59,6 +59,33 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     assert_equal 4,                                                           sample_v3['attributes'].size
   end
 
+  # D-way は package と env_package を 2 列に分けて持ち、XML の <Model> を書くときに
+  # 合成する（bscommon の AttributeValidator.createPackage）。合成後の名前のほうが
+  # BioSample のパッケージ名として通用し、公開データも validator のカタログもその語彙。
+  test 'composes package with env_package the way D-way does' do
+    {
+      nil               => 'MIMS.me',
+      ''                => 'MIMS.me',
+      'no_package'      => 'MIMS.me',   # 「環境パッケージ無し」の番兵
+      'soil'            => 'MIMS.me.soil',
+      'host-associated' => 'MIMS.me.host-associated'
+    }.each do |env_package, expected|
+      sub    = build_submission(samples: [sample(package: 'MIMS.me', env_package: env_package)])
+      record = C.new(submission: sub).call
+
+      assert_equal expected, record.fetch('samples').first['package'],
+                   "env_package=#{env_package.inspect}"
+    end
+  end
+
+  test 'omits package entirely when staging has none' do
+    sub    = build_submission(samples: [sample(package: nil, env_package: 'soil')])
+    record = C.new(submission: sub).call
+
+    assert_nil record.fetch('samples').first['package'],
+               'env_package だけで package 名をでっち上げない'
+  end
+
   test 'lifts contacts into submission.submitters carrying the shared organization' do
     sub = build_submission(
       organization:     'Sample Organization 1',

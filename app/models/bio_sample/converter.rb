@@ -85,13 +85,34 @@ module BioSample
         # `description` is one of the most common BS attributes (~17k
         # staging samples) and the v3 slot is freeform `str | None`.
         'description' => attrs_by_name['description'].presence,
-        'package'     => sample.package,
+        'package'     => package_name(sample),
         'organism'    => organism_block(attrs_by_name),
         'attributes'  => sample.attributes.filter_map {|a|
           next nil if a['value'].blank?
           {'name' => a['name'], 'value' => a['value']}
         }.presence
       }.compact
+    end
+
+    # D-way は BioSample のパッケージを `package` と `env_package` の 2 列に分けて
+    # 持ち、XML の `<Model>` を書くときに合成する。合成規則は bscommon の
+    # `AttributeValidator.createPackage` そのもので、`no_package` / 空 / NULL は
+    # 「環境パッケージ無し」を意味する番兵なので接尾辞を付けない。`package_group` は
+    # 合成に使わない（D-way 側にも「packageGroup は検索には使用しない」と明記がある）。
+    #
+    # BioSample のパッケージ名として通用するのは合成後の名前のほうで、公開データも
+    # validator のカタログもその語彙である。合成しないと `MIMS.me` や
+    # `MIMARKS.survey`（環境パッケージが必須の族の、族名だけ）が残り、未知パッケージ
+    # として弾かれた上で、パッケージ定義に依存するルール（必須属性 BS_R0027 等）が
+    # 軒並み評価されなくなる — 「検証したが指摘なし」と区別が付かない壊れ方をする。
+    NO_ENV_PACKAGE = 'no_package'
+
+    def package_name(sample)
+      return nil if sample.package.blank?
+
+      env = sample.env_package
+
+      env.blank? || env == NO_ENV_PACKAGE ? sample.package : "#{sample.package}.#{env}"
     end
 
     def organism_block(attrs_by_name)

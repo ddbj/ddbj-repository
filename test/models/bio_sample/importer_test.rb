@@ -302,8 +302,8 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal 'sample-1', sample.reload.title
   end
 
-  test 'staging-only typed columns (package_group / env_package) backfill on re-run even when patch is byte-identical' do
-    # Initial run: staging row has NULL package_group / env_package.
+  test 'staging-only typed column (package_group) backfills on re-run even when patch is byte-identical' do
+    # Initial run: staging row has NULL package_group.
     samples = [staging_sample(
       smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
       package: 'Generic', package_group: nil, env_package: nil,
@@ -317,27 +317,55 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
     sample = Submission.find_by(source_id: 'SSUB-typed-backfill').samples.first
     assert_nil sample.package_group
-    assert_nil sample.env_package
 
-    # Re-run after staging side fills the typed columns. Canonical
-    # patch is byte-identical (package_group/env_package never reach
-    # the v3 record), so :skipped fires — but sync_samples must still
-    # backfill the typed columns from staging.
+    # Re-run after staging side fills package_group. It never reaches the v3
+    # record (the Converter has no slot for it), so the canonical patch is
+    # byte-identical and :skipped fires — but sync_samples must still backfill
+    # the typed column from staging.
     row_updated = SC::Submission.new(
       ssub_id: 'SSUB-typed-backfill', submitter_id: 'u', organization: nil, organization_url: nil,
       comment: nil, contacts: [],
       samples: [staging_sample(
         smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
-        package: 'Generic', package_group: 'MIGS.ba', env_package: 'soil',
+        package: 'Generic', package_group: 'MIGS.ba', env_package: nil,
         status_id: 5500, attributes: []
       )]
     )
     result = BioSample::Importer.new(staging_submission: row_updated, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
 
     assert_equal :skipped, result.outcome
-    sample.reload
-    assert_equal 'MIGS.ba', sample.package_group
-    assert_equal 'soil',    sample.env_package
+    assert_equal 'MIGS.ba', sample.reload.package_group
+  end
+
+  # env_package は package_group と違って v3 に届く: Converter が package と合成して
+  # BioSample のパッケージ名を作るため（D-way の AttributeValidator.createPackage と
+  # 同じ規則）。staging 側で環境パッケージが埋まればレコードの中身が変わるので、
+  # byte-identical にはならず :updated になる。
+  test 'filling env_package on the staging side changes the record, not just a typed column' do
+    row = ->(env_package) {
+      SC::Submission.new(
+        ssub_id: 'SSUB-env-package', submitter_id: 'u', organization: nil, organization_url: nil,
+        comment: nil, contacts: [],
+        samples: [staging_sample(
+          smp_id: 1, accession: 'SAMD00099992', sample_name: 'DRS002',
+          package: 'MIMS.me', package_group: 'MIxS', env_package: env_package,
+          status_id: 5500, attributes: []
+        )]
+      )
+    }
+
+    BioSample::Importer.new(staging_submission: row.call(nil), user_uid: 'u', migration_run_id: SecureRandom.uuid).call
+
+    submission = Submission.find_by(source_id: 'SSUB-env-package')
+    assert_equal 'MIMS.me', submission.samples.first.package
+    assert_nil submission.samples.first.env_package
+
+    result = BioSample::Importer.new(staging_submission: row.call('soil'), user_uid: 'u', migration_run_id: SecureRandom.uuid).call
+
+    assert_equal :updated, result.outcome
+    sample = submission.samples.first.reload
+    assert_equal 'MIMS.me.soil', sample.package, 'typed column も合成後の名前になる'
+    assert_equal 'soil',         sample.env_package, '合成前の値は provenance として残す'
   end
 
   test 'syncs staging release_date / dist_date / modified_date onto Sample typed columns and backfills on a byte-identical re-run' do
