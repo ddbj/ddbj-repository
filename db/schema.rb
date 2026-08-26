@@ -131,6 +131,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_000001) do
     t.string "db", null: false
     t.text "error_log"
     t.datetime "finished_at"
+    t.jsonb "source", default: {}, null: false
     t.datetime "started_at"
     t.string "status", default: "queued", null: false
     t.integer "total"

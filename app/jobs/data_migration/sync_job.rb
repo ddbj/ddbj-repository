@@ -69,6 +69,8 @@ module DataMigration
       @run.update!(status: :running, started_at: @run.started_at || Time.current, finished_at: nil)
       @client = staging_client_class.new
 
+      record_source
+
       @run.update!(total: @client.submission_ids.size) if @run.total.nil?
 
       Rails.logger.info("[migration_run:#{@run.id}] starting #{@run.db} sync " \
@@ -141,6 +143,20 @@ module DataMigration
     # :no_accession / :no_xml / :no_samples / :missing / :cross_user
     # / :failed). A bad row is absorbed so it does not halt the sweep; a
     # bad backend is not, because there is no sweep left to halt.
+    # 取り込み元を run に焼き付ける。staging を production だと思って判断した事故が
+    # あったので、後から「どこから取ったのか」を言えるようにする。
+    #
+    # 取れなかったときは空のままにせず理由を書く。空 = 「この列より前の run」と
+    # 読ませたいので、「記録していない」と「記録できなかった」を混ぜない。
+    def record_source
+      return if @run.source.present?
+
+      @run.update!(source: @client.source_fingerprint)
+    rescue StandardError => e
+      @run.update!(source: {'error' => "#{e.class}: #{e.message}"})
+      Rails.logger.warn("[migration_run:#{@run.id}] source fingerprint failed: #{e.class}: #{e.message}")
+    end
+
     def process_row(source_id)
       run_importer(source_id)
     rescue *CONNECTION_ERRORS

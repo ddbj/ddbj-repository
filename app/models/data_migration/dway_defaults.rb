@@ -46,6 +46,31 @@ module DataMigration
       }
     end
 
+    # 接続先そのものを記録するための指紋。
+    #
+    # 「どのデータベースから取り込んだのか」が後から分からないと、staging の
+    # テスト行や古い値を production のデータだと思って判断してしまう。実際に
+    # やった。host / port はトンネル越しだと双方 localhost:54301 になり得るので
+    # 区別に使えない。サーバ自身に名乗らせる (`inet_server_addr` はサーバから見た
+    # 自分のアドレスなので、トンネルの手前と奥で値が違う)。
+    #
+    # 行数の見積りは pg_class.reltuples を使う。count(*) は 200 万行で seq scan に
+    # なるが、reltuples は統計から即座に返る。桁が違えば取り違えに気付ける。
+    def fingerprint(conn, tables:)
+      row = conn.exec(<<~SQL).first
+        SELECT current_database()               AS database,
+               host(inet_server_addr())         AS server_addr,
+               inet_server_port()::text         AS server_port,
+               split_part(version(), ' on ', 1)  AS server_version
+      SQL
+
+      row.merge('rows' => tables.to_h {|table|
+        [table, conn.exec_params(<<~SQL, [table]).first['n']&.to_i]
+          SELECT reltuples::bigint AS n FROM pg_class WHERE oid = to_regclass($1)
+        SQL
+      })
+    end
+
     def parse_xsmdb_credential
       url = Rails.application.credentials.dig(:database_url, :xsmdb)
       URI.parse(url) if url

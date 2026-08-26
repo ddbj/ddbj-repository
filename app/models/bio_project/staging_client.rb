@@ -33,6 +33,12 @@ module BioProject
       @conn.close
     end
 
+    # 取り込み元の指紋。MigrationRun に記録して、後から「どこから取ったのか」を
+    # 言えるようにする（DwayDefaults.fingerprint のコメント参照）。
+    def source_fingerprint
+      DataMigration::DwayDefaults.fingerprint(@conn, tables: %w[mass.submission mass.project mass.xml])
+    end
+
     # PSUB ids of every submission that has a project row, ordered for
     # stable resume. `after` lets the batch task pick up where a prior run
     # left off. `limit` nil → all rows.

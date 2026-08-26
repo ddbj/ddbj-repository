@@ -342,6 +342,34 @@ module Admin::ViewHelpers
     DB_LABELS.fetch(db.to_s, db.to_s)
   end
 
+  # Where a migration run read from, as [label, value] rows.
+  #
+  # 取り込み元が後から分からないと、staging のテスト行や古い値を production の
+  # データだと思って判断してしまう。実際にやった。host / port はトンネル越しだと
+  # どちらも localhost になり得るので、サーバ自身が名乗った値と行数の見積りを出す。
+  #
+  # 「記録が無い」(この列より前の run) と「記録できなかった」は別物なので混ぜない。
+  def migration_source_rows(run)
+    source = run.source
+
+    return [['Source', 'Not recorded — this run predates source tracking']] if source.blank?
+    return [['Source', "Could not be recorded — #{source['error']}"]]       if source['error']
+
+    server = [source['server_addr'], source['server_port']].compact_blank.join(':')
+
+    rows = [
+      ['Database', source['database']],
+      ['Server',   server.presence || 'local socket'],
+      ['Version',  source['server_version']&.strip]
+    ]
+
+    rows + Array(source['rows']).map {|table, n|
+      # reltuples は統計からの見積り。桁で取り違えに気付くための数字なので、
+      # 正確さより即答性を採っている。見積りであることは画面に書く。
+      ["#{table.to_s.delete_prefix('mass.')} rows (approx.)", n ? number_with_delimiter(n) : '—']
+    }.sort
+  end
+
   # Everything a curator would otherwise be asked for in a support
   # thread, in one paste: which import, which submission, when, and what
   # went wrong. Assembled here rather than in the template so the shape

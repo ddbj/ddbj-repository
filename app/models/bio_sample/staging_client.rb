@@ -34,6 +34,12 @@ module BioSample
       @conn.close
     end
 
+    # 取り込み元の指紋。MigrationRun に記録して、後から「どこから取ったのか」を
+    # 言えるようにする（DwayDefaults.fingerprint のコメント参照）。
+    def source_fingerprint
+      DataMigration::DwayDefaults.fingerprint(@conn, tables: %w[mass.submission mass.sample mass.xml])
+    end
+
     def submission_ids(limit: nil, after: nil)
       sql = +'SELECT submission_id FROM submission'
       params = []

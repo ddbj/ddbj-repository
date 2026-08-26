@@ -73,6 +73,49 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
   # precheck then blocks every future import of that database — the same
   # dead end the precheck exists to prevent, reached from the other side.
   # A BioSample run left running on 22 July did exactly this.
+  # 取り込み元が後から分からないと、staging のテスト行を production のデータだと
+  # 思って判断してしまう。数字を信用する直前に、どこから読んだのかが見えること。
+  test 'a run says which database it read from' do
+    run = MigrationRun.create!(db: 'biosample', source: {
+      'database'       => 'biosample',
+      'server_addr'    => '172.19.15.11',
+      'server_port'    => '54301',
+      'server_version' => 'PostgreSQL 15.16',
+      'rows'           => {'mass.sample' => 1_952_127}
+    })
+
+    visit admin_migration_run_path(run)
+
+    within '[data-test-source]' do
+      assert_text '172.19.15.11:54301'
+      assert_text 'PostgreSQL 15.16'
+      assert_text '1,952,127'
+    end
+  end
+
+  # 空 =「この列より前の run」。取れなかった run と混ぜると、由来が無いことに
+  # 気付けない。
+  test 'a run with no recorded source says so rather than showing nothing' do
+    run = MigrationRun.create!(db: 'biosample')
+
+    visit admin_migration_run_path(run)
+
+    within '[data-test-source]' do
+      assert_text 'predates source tracking'
+    end
+  end
+
+  test 'a run that could not fingerprint its source shows the reason' do
+    run = MigrationRun.create!(db: 'biosample', source: {'error' => 'PG::ConnectionBad: refused'})
+
+    visit admin_migration_run_path(run)
+
+    within '[data-test-source]' do
+      assert_text 'Could not be recorded'
+      assert_text 'PG::ConnectionBad'
+    end
+  end
+
   test 'a run whose worker is gone can be abandoned from the screen' do
     run = MigrationRun.create!(db: 'biosample', status: :running, started_at: 9.days.ago)
     run.update_columns(updated_at: 9.days.ago)

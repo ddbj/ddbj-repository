@@ -6,9 +6,24 @@ class DataMigration::SyncBpJobTest < ActiveJob::TestCase
   class FakeStagingClient
     Submission = Struct.new(:psub_id, :submitter_id, :status_id, :accession, :project_type, :xml, :release_date, :dist_date, :modified_date, keyword_init: true)
 
-    def initialize(rows)
-      @rows = rows.index_by(&:psub_id)
-      @closed = false
+    FINGERPRINT = {
+      'database'       => 'bioproject',
+      'server_addr'    => '10.0.0.9',
+      'server_port'    => '5432',
+      'server_version' => 'PostgreSQL 16.2',
+      'rows'           => {'mass.submission' => 41_021}
+    }.freeze
+
+    def initialize(rows, fingerprint: FINGERPRINT)
+      @rows        = rows.index_by(&:psub_id)
+      @fingerprint = fingerprint
+      @closed      = false
+    end
+
+    def source_fingerprint
+      raise @fingerprint if @fingerprint.is_a?(Class)
+
+      @fingerprint
     end
 
     def submission_ids(after: nil, limit: nil)
@@ -64,6 +79,34 @@ class DataMigration::SyncBpJobTest < ActiveJob::TestCase
     assert_not_nil run.started_at
     assert_not_nil run.finished_at
     assert fake.closed, 'StagingClient must be closed even on the success path'
+  end
+
+  # 取り込み元が後から分からないと、staging のデータを production だと思って
+  # 判断してしまう。run を見ればどこから読んだか言えること。
+  test 'records where the run read from' do
+    fake = FakeStagingClient.new([make_row('PSUB001')])
+    run  = MigrationRun.create!(db: 'bioproject')
+
+    BioProject::StagingClient.stub(:new, fake) do
+      DataMigration::SyncBpJob.perform_now(run.id)
+    end
+
+    assert_equal FakeStagingClient::FINGERPRINT, run.reload.source
+  end
+
+  # 空 =「この列より前の run」と読ませたいので、取れなかったときは空のままにせず
+  # 理由を書く。「記録していない」と「記録できなかった」を混ぜない。
+  test 'records the reason when the source could not be fingerprinted' do
+    fake = FakeStagingClient.new([make_row('PSUB001')], fingerprint: PG::ConnectionBad)
+    run  = MigrationRun.create!(db: 'bioproject')
+
+    BioProject::StagingClient.stub(:new, fake) do
+      DataMigration::SyncBpJob.perform_now(run.id)
+    end
+
+    run.reload
+    assert_equal 'completed', run.status, '指紋が取れなくても取り込み自体は続ける'
+    assert_match 'PG::ConnectionBad', run.source.fetch('error')
   end
 
   test 'row with blank XML increments :no_xml without invoking the importer' do
