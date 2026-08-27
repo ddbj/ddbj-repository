@@ -9,14 +9,14 @@ module Admin
     def show
       @scope     = RegenerationScope.new(params)
       @all_total = RegenerationScope.regeneratable.count
-      @blocking  = RegenerateFlatfilesRun.in_flight.recent.first
-      @run       = RegenerateFlatfilesRun.recent.first
+      @blocking  = RegenerateFlatfilesRun.without_numbers.in_flight.recent.first
+      @run       = RegenerateFlatfilesRun.without_numbers.recent.first
 
       # The newest run is the panel, so it is not also a row: the panel
       # keeps itself up to date and the table does not, and the two
       # disagreeing about whether the run has finished is the sort of
       # thing that makes a screen not worth reading.
-      @runs = RegenerateFlatfilesRun.recent.where.not(id: @run&.id).limit(10)
+      @runs = RegenerateFlatfilesRun.without_numbers.recent.where.not(id: @run&.id).limit(10)
     end
 
     # The count, live, as the form is filled in. Its own endpoint rather
@@ -30,7 +30,7 @@ module Admin
     def preview
       render partial: 'summary', locals: {
         scope:    RegenerationScope.new(params),
-        blocking: RegenerateFlatfilesRun.in_flight.recent.first
+        blocking: RegenerateFlatfilesRun.without_numbers.in_flight.recent.first
       }
     end
 
@@ -47,7 +47,7 @@ module Admin
       # button while a run is going; this is the same rule for the press
       # that arrives anyway — a second tab, a back button, a double
       # submit of the confirmation.
-      if (blocking = RegenerateFlatfilesRun.in_flight.recent.first)
+      if (blocking = RegenerateFlatfilesRun.without_numbers.in_flight.recent.first)
         return redirect_to admin_regenerate_flatfiles_path,
                            alert: "A regeneration run started at #{helpers.format_datetime(blocking.started_at)} " \
                                   'is still going. Wait for it to finish.'
@@ -94,6 +94,9 @@ module Admin
       # would have the retry date only those. Stored as the parsed list
       # rather than the paste, so the run and the form that made it count
       # the same numbers.
+      #
+      # `accession_count` comes off the list on save, through the same
+      # parse a retry will run, so the two cannot drift apart.
       run = RegenerateFlatfilesRun.create!(
         actor:      current_actor,
         target:     scope.target,

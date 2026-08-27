@@ -20,8 +20,12 @@ module Admin
 
     private
 
+    # Without the accession list: `show` is the frame the tool screen
+    # polls every three seconds, and neither it nor the failure download
+    # reads the numbers back. A retry is the one thing that does, and it
+    # loads the run for itself.
     def set_run
-      @run = RegenerateFlatfilesRun.find(params[:id])
+      @run = RegenerateFlatfilesRun.without_numbers.find(params[:id])
     end
   end
 end

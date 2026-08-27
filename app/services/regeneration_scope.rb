@@ -49,7 +49,7 @@ class RegenerationScope
 
   def accessions_target? = target == 'accessions'
 
-  def numbers = @numbers ||= numbers_text.split(/[\s,]+/).reject(&:blank?).uniq
+  def numbers = @numbers ||= RegenerateFlatfilesRun.parse_numbers(numbers_text)
 
   def submissions
     @submissions ||=

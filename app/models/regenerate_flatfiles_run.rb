@@ -31,8 +31,43 @@ class RegenerateFlatfilesRun < ApplicationRecord
 
   validates :actor, presence: true
 
+  # How the pasted list is read, wherever it is read. `RegenerationScope`
+  # runs these numbers and this row reports how many there were, and a
+  # run that says "2 accessions" beside a list a retry resolves to three
+  # is a run nobody can check.
+  SEPARATOR = /[\s,]+/
+
+  def self.parse_numbers(text) = text.to_s.split(SEPARATOR).reject(&:blank?).uniq
+
+  # The count every screen reads, kept from the list only a retry reads.
+  # Derived here rather than passed in, so a run written from anywhere —
+  # the controller, a console, a test — carries the count of its own list.
+  #
+  # The guard is what makes this compatible with `without_numbers`: on a
+  # row loaded without the column, reading `numbers` raises
+  # `ActiveModel::MissingAttributeError`, and the panel controller saves
+  # such rows. It is not about the counter writes during a run — those go
+  # through `update_counters` and `update_all`, which fire no callbacks
+  # at all.
+  #
+  # `has_attribute?` rather than `will_save_change_to_numbers?`, so the
+  # count is recomputed even when only the count was assigned. That costs
+  # one 40 ms split per save of a full row, and a run is saved twice.
+  before_save :count_accessions, if: -> { has_attribute?(:numbers) }
+
   scope :recent,   -> { order(started_at: :desc) }
   scope :finished, -> { where.not(finished_at: nil) }
+
+  # Without the accession list. A bulk paste is over a megabyte — 127,604
+  # numbers is 1.1 MB — and the only thing that reads it back is a retry.
+  # Every other reader wants the count, which `accession_count` carries.
+  #
+  # The progress panel is why this is a scope rather than a habit: it
+  # polls its own run every three seconds for the length of the run, so
+  # loading the column there meant detoasting a megabyte and splitting it
+  # into 127,604 strings six hundred times over a half-hour regeneration
+  # — inside the Puma process that is also running the jobs.
+  scope :without_numbers, -> { select(column_names - ['numbers']) }
 
   # What a second press has to wait for. Two runs over the same
   # submission put two workers on the same record: both rewrite the
@@ -49,7 +84,10 @@ class RegenerateFlatfilesRun < ApplicationRecord
   # would stay wrong silently. Nil until there is a finished run to
   # measure, and the screens then say nothing rather than guessing.
   def self.measured_rate
-    rows = finished.where('regenerated + skipped + failed > 0').recent.limit(5).to_a
+    # Five whole rows, of which this reads six integers and three
+    # timestamps — and it is called from the summary partial, which the
+    # preview endpoint re-renders while somebody is pasting the list.
+    rows = without_numbers.finished.where('regenerated + skipped + failed > 0').recent.limit(5).to_a
     return nil if rows.empty?
 
     # Weighted by what each run actually got through, not one vote per
@@ -123,11 +161,12 @@ class RegenerateFlatfilesRun < ApplicationRecord
     case target
     when 'all'   then 'All submissions'
     when 'retry' then "Retry of ##{retry_of_id}"
-    else              "#{number_list.size} #{'accession'.pluralize(number_list.size)}"
+    # Delimited here rather than by the view, because the label is one
+    # phrase and its three branches should not be assembled two different
+    # ways. Six figures is the ordinary size of one of these runs.
+    else              "#{ActiveSupport::NumberHelper.number_to_delimited(accession_count)} #{'accession'.pluralize(accession_count)}"
     end
   end
-
-  def number_list = numbers.to_s.split(/[\s,]+/).reject(&:blank?)
 
   # Records a failure and counts it in one go, so the row and the counter
   # cannot disagree — a screen that says "6 failed" and lists five is a
@@ -192,5 +231,11 @@ class RegenerateFlatfilesRun < ApplicationRecord
         .where(id:, finished_at: nil)
         .where('regenerated + skipped + failed >= total')
         .update_all(finished_at: Time.current, updated_at: Time.current)
+  end
+
+  private
+
+  def count_accessions
+    self.accession_count = self.class.parse_numbers(numbers).size
   end
 end

@@ -429,6 +429,29 @@ class RegenerateFlatfilesSystemTest < ApplicationSystemTestCase
       assert_text 'All submissions'
     end
   end
+
+  # A bulk paste is 127,604 numbers — 1.1 MB in the row — and the only
+  # thing that reads it back is a retry. The panel is polled every three
+  # seconds for the length of a run and the history lists ten rows at a
+  # time, so counting the list on the way out meant detoasting a megabyte
+  # and allocating 127,604 strings on every one of those renders, in the
+  # process that is also running the jobs.
+  test 'the run screens report the count without reading the list back' do
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:sato', target: 'accessions', numbers: 'X00001 X00002',
+                                         total: 2, regenerated: 2, started_at: 2.days.ago, finished_at: 2.days.ago + 18)
+
+    [admin_regenerate_flatfiles_path, admin_regenerate_flatfiles_run_path(run)].each do |path|
+      # Naming the columns rather than SELECT *, and `numbers` not among
+      # them — asserting only the absence would pass for a SELECT * too.
+      assert_queries_match(/"regenerate_flatfiles_runs"\."actor"/) do
+        assert_no_queries_match(/"regenerate_flatfiles_runs"\.\*/) do
+          visit path
+        end
+      end
+
+      assert_text '2 accessions'
+    end
+  end
 end
 
 # The parts of the screen that only exist once JavaScript is running: the
@@ -459,6 +482,33 @@ class RegenerateFlatfilesJavaScriptTest < JavaScriptSystemTestCase
 
       assert_text 'every ST.26 submission with a stored record'
       assert_link 'Regenerate 1 submission…'
+    end
+  end
+
+  # The summary is re-rendered 300 ms after every keystroke, including
+  # while a 1.1 MB list is being pasted and while a run holding one is in
+  # flight. Both the blocking run it names and the finished runs its
+  # estimate is measured from are read on that path.
+  test 'the summary is refreshed without reading any accession list back' do
+    RegenerateFlatfilesRun.create!(actor: 'admin:sato', target: 'accessions', numbers: 'X00001 X00002',
+                                   total: 2, regenerated: 2, started_at: 2.days.ago, finished_at: 2.days.ago + 18)
+
+    RegenerateFlatfilesRun.create!(actor: 'admin:sato', target: 'accessions', numbers: 'X00003',
+                                   total: 1, started_at: 1.minute.ago)
+
+    visit admin_regenerate_flatfiles_path
+
+    assert_text 'still going'
+    assert_button 'Regenerate 0 submissions', disabled: true
+
+    # Asserting on the count is what makes this wait for the round trip.
+    # The blocking warning is already on the page from the first render,
+    # so a test that only looked for it would pass without the preview
+    # ever being asked.
+    assert_no_queries_match(/"regenerate_flatfiles_runs"\.\*/) do
+      fill_in 'Accession numbers', with: submissions(:st26).entries.first.accession
+
+      assert_button 'Regenerate 1 submission', disabled: true
     end
   end
 

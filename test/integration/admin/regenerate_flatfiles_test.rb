@@ -38,6 +38,7 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     # there is no list to carry.
     assert_nil enqueued_argument('accessions')
     assert_nil RegenerateFlatfilesRun.sole.numbers
+    assert_equal 0, RegenerateFlatfilesRun.sole.accession_count
   end
 
   # The list is the job's, not just the scope's: it decides whose LOCUS
@@ -52,6 +53,7 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_regenerate_flatfiles_path
     assert_equal [accession], enqueued_argument('accessions')
     assert_equal accession,   RegenerateFlatfilesRun.sole.numbers
+    assert_equal 1,           RegenerateFlatfilesRun.sole.accession_count
   end
 
   # The dialog disables a button; a disabled button is a courtesy. The
