@@ -102,6 +102,111 @@ class RegenerateFlatfilesRunTest < ActiveSupport::TestCase
     assert_predicate dead, :stale?
   end
 
+  # The panel polls its own run every three seconds for the length of the
+  # run, and the history lists ten at a time. Splitting the paste to count
+  # its lines meant a megabyte read and 127,604 strings allocated on every
+  # one of those renders.
+  test 'the accession count is stored, not counted from the list on the way out' do
+    # Comma-separated and newline-separated, with a blank line and a
+    # repeat — so the count is what a retry of this row would run, not
+    # the lines it happens to be stored on.
+    run = new_run(target: 'accessions', numbers: "X00001, X00002, X00003\n\nX00001", total: 1)
+
+    assert_equal 3, run.accession_count
+    assert_equal 3, run.numbers.lines.size
+    assert_equal '3 accessions', run.scope_label
+
+    # From the column, so the label survives a load that leaves the list
+    # behind.
+    assert_equal '3 accessions', RegenerateFlatfilesRun.without_numbers.find(run.id).scope_label
+  end
+
+  # What the screens report and what a retry re-runs come off the same
+  # parse, so they cannot disagree about how many were named.
+  test 'the count is the list a retry of the run would resolve' do
+    run = new_run(target: 'accessions', numbers: "X00001, X00002\n\nX00001", total: 1)
+
+    assert_equal RegenerationScope.retrying(run).numbers.size, run.accession_count
+  end
+
+  test 'the stored count follows the list when it changes' do
+    run = new_run(target: 'accessions', numbers: 'X00001', total: 1)
+
+    run.update! numbers: "X00001\nX00002"
+
+    assert_equal 2, run.reload.accession_count
+  end
+
+  # The count is the list's, not the caller's. Guarding on "did the list
+  # change" would leave a count assigned on its own standing, and then
+  # the label the screens read is whatever somebody typed.
+  test 'a count assigned on its own is replaced by the list it claims to describe' do
+    run = new_run(target: 'accessions', numbers: "X00001\nX00002", accession_count: 99, total: 1)
+
+    assert_equal 2, run.accession_count
+
+    run.update! accession_count: 99
+
+    assert_equal 2, run.reload.accession_count
+  end
+
+  # The callback and `without_numbers` only work together because the
+  # callback checks first: the panel controller loads runs without the
+  # column, and reading it on one of those raises.
+  test 'a run loaded without its list can still be saved' do
+    run  = new_run(target: 'accessions', numbers: 'X00001', total: 1)
+    lean = RegenerateFlatfilesRun.without_numbers.find(run.id)
+
+    lean.update! total: 2
+
+    assert_equal 1, run.reload.accession_count
+    assert_equal 2, run.total
+  end
+
+  # Six figures is the ordinary size of one of these runs.
+  test 'the label delimits the count' do
+    assert_equal '127,604 accessions', RegenerateFlatfilesRun.new(target: 'accessions', accession_count: 127_604).scope_label
+  end
+
+  test 'a run that named no accessions counts none' do
+    run = new_run(target: 'all', total: 1)
+
+    assert_equal 0, run.accession_count
+    assert_equal 'All submissions', run.scope_label
+  end
+
+  # The one place the parse rule is written twice: rows that predate the
+  # column are counted in SQL, and the suite loads the schema rather than
+  # running migrations, so nothing else would exercise it.
+  test 'the backfill counts what the callback counts' do
+    require Rails.root.join('db/migrate/20260827000001_add_accession_count_to_regenerate_flatfiles_runs')
+
+    texts = [
+      nil,
+      '',
+      "   \n ",
+      'X00001',
+      "X00001\nX00002",
+      'X00001, X00002,,X00003',
+      "\nX00001\r\n\tX00002 \n",
+      "X00001\nX00001",
+      # Ruby's \s is ASCII-only and Postgres' is not: a full-width space
+      # is one token to the parse and would be two to a `\s` pattern.
+      "X00001\u3000X00002"
+    ]
+
+    runs = texts.map { new_run(target: 'accessions', numbers: it, total: 1) }
+
+    RegenerateFlatfilesRun.update_all accession_count: -1
+    ActiveRecord::Base.connection.execute AddAccessionCountToRegenerateFlatfilesRuns::BACKFILL
+
+    runs.each do |run|
+      expected = RegenerateFlatfilesRun.parse_numbers(run.numbers).size
+
+      assert_equal expected, run.reload.accession_count, run.numbers.inspect
+    end
+  end
+
   private
 
   def new_run(**attrs)
