@@ -41,12 +41,25 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
                  project['umbrella_subtype_description']
   end
 
-  # data_type は Objectives/Data@data_type と ProjectDataTypeSet/DataType の
-  # 2 箇所に書かれ得る。片方だけ読むと値が丸ごと落ちる（validator の xml_reader は
-  # 両方読む）。説明本文を持てるのは Objectives 側だけ。
-  test 'merges data_types from both places it can be written, without duplicates' do
-    assert_equal %w[eOther eRawSequenceReads eAssembly],
+  # Objectives/Data@data_type と ProjectDataTypeSet/DataType は**別の統制語彙**で、
+  # 混ぜてはいけない。混ぜると validator の BP_R0070 が data_type 語彙で照合して
+  # 全件 error になる（実データでは 43,704 submission が ProjectDataTypeSet を持つ）。
+  #
+  #   data_type         : eSequence / eAssembly …（e- 接頭辞）
+  #   project_data_type : "Genome Sequencing" / "Metagenome" …
+  test 'target.data_types holds only the Objectives vocabulary' do
+    assert_equal %w[eOther eRawSequenceReads],
                  convert(OTHER_XML).dig('project', 'target', 'data_types')
+  end
+
+  # 捨てはしない。v3 に typed slot が無いので attributes へ退避する。
+  test 'ProjectDataTypeSet goes to attributes, not into target.data_types' do
+    attributes = convert(OTHER_XML).dig('project', 'attributes')
+
+    assert_equal [
+      {'name' => 'project_data_type', 'value' => 'eRawSequenceReads'},
+      {'name' => 'project_data_type', 'value' => 'eAssembly'}
+    ], attributes.select {|a| a['name'] == 'project_data_type' }
   end
 
   # prefix の文字列だけでは BP_R0021（prefix と BioSample の組を DB と突合）も
@@ -195,11 +208,9 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal 'eWhole',              target['capture']
     assert_equal 'eSequencing',         target['method']
 
-    # Objectives/Data@data_type と ProjectDataTypeSet/DataType の両方から集める
-    # （validator の xml_reader と同じ）。この XML は前者が eSequence、後者が
-    # 'Genome Sequencing'。
-    assert_equal %w[eSequence], target['data_types'].first(1)
-    assert_equal ['eSequence', 'Genome Sequencing'], target['data_types']
+    # Objectives/Data@data_type のみ。ProjectDataTypeSet の 'Genome Sequencing' は
+    # 別語彙なので attributes へ回る。
+    assert_equal %w[eSequence], target['data_types']
 
     # 説明は付いていないので、キー自体が出ない。
     assert_nil target['description']
@@ -542,10 +553,14 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_includes attrs, {'name' => 'provider', 'value' => 'Higashinagoya National Hospital'}
   end
 
-  test 'project.attributes: omitted entirely when no biology block is present' do
-    project = convert(PSUB671_XML).fetch('project')
+  # biology block（Organism 配下の Strain / BiologicalProperties / RepliconSet /
+  # GenomeSize）と Provider が無ければ、そこ由来の attribute は 1 つも出ない。
+  # ProjectDataTypeSet だけは別語彙なので attributes へ退避される（target.data_types
+  # と混ぜると BP_R0070 が誤検知する）ため、それ以外が空であることを見る。
+  test 'project.attributes: nothing from the biology block when there is none' do
+    attrs = convert(PSUB671_XML).dig('project', 'attributes')
 
-    refute_includes project.keys, 'attributes'
+    assert_equal [], attrs.reject {|a| a['name'] == 'project_data_type' }
   end
 
   test 'project.attributes: blank Strain/Morphology values drop' do

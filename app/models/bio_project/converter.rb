@@ -191,18 +191,24 @@ module BioProject
         'project_type'     => @project_row.fetch(:project_type),
         'title'            => descr&.at_xpath('./Title')&.text&.presence,
         'description'      => descr&.at_xpath('./Description')&.text&.presence,
-        'organism'         => organism_block(target&.at_xpath('./Organism')),
+        # validator の xml_reader は project 配下を `.//Organism` で探す
+        # （project_kind に依らず、と明記されている）。Target 配下だけを見ると
+        # umbrella や single-organism の project で organism が丸ごと落ち、
+        # taxonomy 系 4 ルールが黙って何も判定しなくなる。
+        'organism'         => organism_block(node.at_xpath('.//Organism')),
 
         # umbrella の種別と、"other" を選んだときの説明（BP_R0008）。
         'umbrella_subtype'             => top_admin&.[]('subtype')&.strip&.presence,
         'umbrella_subtype_description' => top_admin&.at_xpath('./DescriptionSubtypeOther')&.text&.strip&.presence,
 
-        'locus_tag_prefix' => locus_tag_prefix(descr),
+        # xml_reader も `.//LocusTagPrefix` で探す（ProjectDescr 配下にあることが
+        # 多いが、そうとは限らない、というコメント付き）。
+        'locus_tag_prefix' => locus_tag_prefix(node),
         'grants'           => grants(descr),
         'publications'     => publications(descr),
         'relevance'        => relevance(descr),
         'target'           => target_block(submission),
-        'attributes'       => attributes_block(target)
+        'attributes'       => attributes_block(target, submission)
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }
     end
 
@@ -210,10 +216,10 @@ module BioProject
     # 検証が成立しない: BP_R0021 は prefix と BioSample の**組**を BioSample DB と
     # 突き合わせ、BP_R0022 は biosample_id の形式を見る。Trad のように対になる
     # BioSample が無い形式では biosample_id が落ちるだけ。
-    def locus_tag_prefix(descr)
-      return nil unless descr
+    def locus_tag_prefix(node)
+      return nil unless node
 
-      descr.xpath('./LocusTagPrefix').filter_map {|n|
+      node.xpath('.//LocusTagPrefix').filter_map {|n|
         {
           'prefix'       => n.text&.strip&.presence,
           'biosample_id' => n['biosample_id']&.strip&.presence
@@ -252,6 +258,10 @@ module BioProject
     # Unknown DbTypes drop the id rather than silently mis-bind it to
     # pubmed_id; status survives so the curator sees the publication
     # existed even when its id couldn't be slotted.
+    # `<Reference>` の自由記述は v3 Publication の `title` に載せる。専用の slot は
+    # 無いが、載せないと 2 つ壊れる: BP_R0015（id も reference も無い）が誤検知になり、
+    # validator が Publication[i].Reference を非 ASCII 検査（BP_R0059/R0060）の
+    # 対象にしているので、その検査が record 入力では死ぬ。
     def publications(descr)
       return nil unless descr
 
@@ -260,8 +270,9 @@ module BioProject
         status    = pub['status']&.strip&.presence
         db        = pub.at_xpath('.//DbType')&.text&.strip
         field     = PUBLICATION_DB_FIELDS[db]
+        reference = pub.at_xpath('./Reference')&.text&.strip&.presence
 
-        out = {'status' => status}.compact
+        out = {'status' => status, 'title' => reference}.compact
         out[field] = id if id && field
 
         out.presence
@@ -303,14 +314,31 @@ module BioProject
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }.presence
     end
 
-    # data_type は 2 箇所に書かれ得る。`Objectives/Data@data_type`（説明本文を
-    # 持てるのはこちら）と `ProjectDataTypeSet/DataType`。validator の
-    # xml_reader も両方読むので、片方だけだと値が丸ごと落ちる。
+    # `Objectives/Data@data_type` **だけ**。`ProjectDataTypeSet/DataType` は一見同じ
+    # ものに見えるが**別の統制語彙**で、混ぜてはいけない。
+    #
+    #   data_type          : eSequence / eAssembly / eRawSequenceReads …（11 語）
+    #   project_data_type  : "Genome Sequencing" / "Metagenome" …（19 語）
+    #
+    # 混ぜると validator の BP_R0070（cv_terms）が data_type 語彙で照合して
+    # 全件 error になる。XSD も ProjectDataTypeSet を "Ignored at submission time" と
+    # 書いており、実際 validator の xml_reader も両者を別のフィールドへ入れている。
+    # 実データ 43,972 件のうち ProjectDataTypeSet を持つのは 43,704 件なので、
+    # 混ぜた場合の誤検知はほぼ全件に及ぶ。値は捨てず attributes へ退避する。
     def data_types(submission)
-      objectives = submission.xpath('./Objectives/Data').filter_map {|n| n['data_type']&.strip&.presence }
-      type_set   = submission.xpath('./ProjectDataTypeSet/DataType').filter_map {|n| n.text&.strip&.presence }
+      submission.xpath('./Objectives/Data').filter_map {|n| n['data_type']&.strip&.presence }.presence
+    end
 
-      (objectives + type_set).uniq.presence
+    # ProjectDataTypeSet/DataType を attributes へ。v3 に typed slot が無く、
+    # data_types とは語彙が違うので混ぜられない。捨てると D-way にあった情報が消える。
+    def project_data_type_attrs(submission)
+      return [] unless submission
+
+      submission.xpath('./ProjectDataTypeSet/DataType').filter_map {|n|
+        value = n.text&.strip&.presence or next nil
+
+        {'name' => 'project_data_type', 'value' => value}
+      }
     end
 
     # `<Data data_type="eOther">説明</Data>` の本文を data_type をキーにして持つ。
@@ -328,16 +356,19 @@ module BioProject
     # into v3 project.attributes[] (each Attribute = {name, value,
     # unit?}). v3 has no typed BiologicalProperties slot, so curators
     # query these via the free-form attribute bag.
-    def attributes_block(target)
-      return nil unless target
+    def attributes_block(target, submission = nil)
+      out = []
 
-      organism = target.at_xpath('./Organism')
-      out      = []
+      if target
+        organism = target.at_xpath('./Organism')
 
-      out.concat(organism_scalar_attrs(organism)) if organism
-      out.concat(replicon_set_attrs(organism))    if organism
-      out.concat(genome_size_attrs(organism))     if organism
-      out.concat(provider_attrs(target))
+        out.concat(organism_scalar_attrs(organism)) if organism
+        out.concat(replicon_set_attrs(organism))    if organism
+        out.concat(genome_size_attrs(organism))     if organism
+        out.concat(provider_attrs(target))
+      end
+
+      out.concat(project_data_type_attrs(submission))
 
       out.presence
     end
