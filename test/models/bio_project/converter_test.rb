@@ -3,18 +3,59 @@ require 'test_helper'
 class BioProject::ConverterTest < ActiveSupport::TestCase
   PSUB604_XML = Rails.root.join('test/fixtures/files/data_migration/bio_project/PSUB000604.xml').freeze
   PSUB671_XML = Rails.root.join('test/fixtures/files/data_migration/bio_project/PSUB002671.xml').freeze
+  OTHER_XML    = Rails.root.join('test/fixtures/files/data_migration/bio_project/PSUB_other_descriptions.xml').freeze
+  UMBRELLA_XML = Rails.root.join('test/fixtures/files/data_migration/bio_project/PSUB_umbrella_other.xml').freeze
 
   # Mirror the staging DB's project.project_id_prefix || project_id_counter,
   # which is the sole accession source post-XML-fallback-removal. Without
   # this, every `convert(...)` call would resolve project.accession to nil
   # and field-mapping tests below would lose their accession anchor.
   ACCESSION_FOR = {
-    PSUB604_XML => 'PRJDB502',
-    PSUB671_XML => 'PRJDB2222'
+    PSUB604_XML  => 'PRJDB502',
+    PSUB671_XML  => 'PRJDB2222',
+    OTHER_XML    => 'PRJDB7777',
+    UMBRELLA_XML => 'PRJDB8888'
   }.freeze
 
   def convert(path = PSUB604_XML, project_type: 'primary', accession: ACCESSION_FOR.fetch(path))
     BioProject::Converter.new(xml: File.read(path), project_row: {project_type:, accession:}).call
+  end
+
+  # BP は "other" を選んだ項目に説明を要求する（BP_R0008〜R0013、BP_R0019）。
+  # 説明を落とすと、書いた登録者に「説明が無い」と言うことになる。誤検知なので
+  # 黙って見逃すより悪い。
+  test 'carries the description that goes with each "other" choice' do
+    target = convert(OTHER_XML).dig('project', 'target')
+
+    assert_equal 'Environmental mat communities sampled across a thermal gradient.', target['description']
+    assert_equal 'In-house enrichment followed by long-read sequencing.',            target['method_description']
+    assert_equal({'eOther' => 'Per-sample community composition tables derived from the reads.'},
+                 target['data_type_descriptions'])
+  end
+
+  test 'carries the umbrella subtype and its description' do
+    project = convert(UMBRELLA_XML, project_type: 'umbrella').fetch('project')
+
+    assert_equal 'eOther', project['umbrella_subtype']
+    assert_equal 'A programme-level grouping that is not one of the listed subtypes.',
+                 project['umbrella_subtype_description']
+  end
+
+  # data_type は Objectives/Data@data_type と ProjectDataTypeSet/DataType の
+  # 2 箇所に書かれ得る。片方だけ読むと値が丸ごと落ちる（validator の xml_reader は
+  # 両方読む）。説明本文を持てるのは Objectives 側だけ。
+  test 'merges data_types from both places it can be written, without duplicates' do
+    assert_equal %w[eOther eRawSequenceReads eAssembly],
+                 convert(OTHER_XML).dig('project', 'target', 'data_types')
+  end
+
+  # prefix の文字列だけでは BP_R0021（prefix と BioSample の組を DB と突合）も
+  # BP_R0022（biosample_id の形式）も判定できない。
+  test 'pairs each locus_tag_prefix with the BioSample it was declared with' do
+    assert_equal [
+      {'prefix' => 'HSM01', 'biosample_id' => 'SAMD00123456'},
+      {'prefix' => 'NOSAMPLE'}
+    ], convert(OTHER_XML).dig('project', 'locus_tag_prefix')
   end
 
   test 'project_row[:accession] wins over XML <ArchiveID> (DB column is source of truth)' do
@@ -127,7 +168,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal 'primary',                                   project['project_type']
     assert_equal 'Chromosome Mycobacterium avium sequencing', project['title']
     assert_match(/Mycobacterium avium complex/,               project['description'])
-    assert_equal ['MAH'],                                     project['locus_tag_prefix']
+    assert_equal [{'prefix' => 'MAH'}],                        project['locus_tag_prefix']
     assert_equal({'taxonomy_id' => 1229671, 'name' => 'Mycobacterium avium subsp. hominissuis TH135'},
                  project['organism'])
   end
@@ -153,7 +194,17 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal 'eGenome',             target['material']
     assert_equal 'eWhole',              target['capture']
     assert_equal 'eSequencing',         target['method']
-    assert_equal ['Genome Sequencing'], target['data_types']
+
+    # Objectives/Data@data_type と ProjectDataTypeSet/DataType の両方から集める
+    # （validator の xml_reader と同じ）。この XML は前者が eSequence、後者が
+    # 'Genome Sequencing'。
+    assert_equal %w[eSequence], target['data_types'].first(1)
+    assert_equal ['eSequence', 'Genome Sequencing'], target['data_types']
+
+    # 説明は付いていないので、キー自体が出ない。
+    assert_nil target['description']
+    assert_nil target['method_description']
+    assert_nil target['data_type_descriptions']
   end
 
   test 'PSUB000604 — Submitters carry shared Organization (name + role + type)' do

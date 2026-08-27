@@ -7,8 +7,10 @@ module BioProject
   #
   # Coverage as of this iteration:
   #   - project: accession, project_type, title, description,
-  #     locus_tag_prefix, organism, target (sample_scope / material /
-  #     capture / method / data_types), grants, publications, relevance,
+  #     locus_tag_prefix (prefix + biosample_id), organism, umbrella_subtype
+  #     (+ description), target (sample_scope / material / capture / method /
+  #     data_types + the description each "other" choice requires),
+  #     grants, publications, relevance,
   #     attributes (Strain + BiologicalProperties + Organization +
   #     Reproduction + RepliconSet + GenomeSize + Provider flattened
   #     into the v3 free-form attribute bag)
@@ -17,7 +19,7 @@ module BioProject
   #     ProjectReleaseDate
   #
   # Still deferred (will land in subsequent iterations / Phase 6 ETL):
-  #   - project.umbrella_subtype, project.keywords, project.study_types
+  #   - project.keywords, project.study_types
   #   - umbrella parent/child relations (mass.umbrella_info table)
   #   - Publication: pull full Reference body when present (current
   #     staging mostly has empty Reference with just id + status)
@@ -169,6 +171,7 @@ module BioProject
 
       descr      = node.at_xpath('./ProjectDescr')
       submission = node.at_xpath('./ProjectType/ProjectTypeSubmission')
+      top_admin  = node.at_xpath('./ProjectType/ProjectTypeTopAdmin')
       target     = submission&.at_xpath('./Target')
 
       {
@@ -189,6 +192,11 @@ module BioProject
         'title'            => descr&.at_xpath('./Title')&.text&.presence,
         'description'      => descr&.at_xpath('./Description')&.text&.presence,
         'organism'         => organism_block(target&.at_xpath('./Organism')),
+
+        # umbrella の種別と、"other" を選んだときの説明（BP_R0008）。
+        'umbrella_subtype'             => top_admin&.[]('subtype')&.strip&.presence,
+        'umbrella_subtype_description' => top_admin&.at_xpath('./DescriptionSubtypeOther')&.text&.strip&.presence,
+
         'locus_tag_prefix' => locus_tag_prefix(descr),
         'grants'           => grants(descr),
         'publications'     => publications(descr),
@@ -198,10 +206,19 @@ module BioProject
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }
     end
 
+    # v3 `LocusTagPrefix` = {prefix, biosample_id}。prefix の文字列だけでは BP の
+    # 検証が成立しない: BP_R0021 は prefix と BioSample の**組**を BioSample DB と
+    # 突き合わせ、BP_R0022 は biosample_id の形式を見る。Trad のように対になる
+    # BioSample が無い形式では biosample_id が落ちるだけ。
     def locus_tag_prefix(descr)
       return nil unless descr
 
-      descr.xpath('./LocusTagPrefix').filter_map {|n| n.text.presence }.presence
+      descr.xpath('./LocusTagPrefix').filter_map {|n|
+        {
+          'prefix'       => n.text&.strip&.presence,
+          'biosample_id' => n['biosample_id']&.strip&.presence
+        }.compact.presence
+      }.presence
     end
 
     def organism_block(node)
@@ -267,17 +284,44 @@ module BioProject
     def target_block(submission)
       return nil unless submission
 
-      target      = submission.at_xpath('./Target')
-      method_type = submission.at_xpath('./Method/@method_type')&.value&.presence
-      data_types  = submission.xpath('./ProjectDataTypeSet/DataType').filter_map {|n| n.text&.strip&.presence }.presence
+      target = submission.at_xpath('./Target')
+      method = submission.at_xpath('./Method')
 
       {
         'sample_scope' => target&.[]('sample_scope')&.strip&.presence,
         'material'     => target&.[]('material')&.strip&.presence,
         'capture'      => target&.[]('capture')&.strip&.presence,
-        'method'       => method_type,
-        'data_types'   => data_types
+        'method'       => method&.[]('method_type')&.strip&.presence,
+        'data_types'   => data_types(submission),
+
+        # "other" を選んだ項目に BP が要求する説明（BP_R0009〜R0013、BP_R0019）。
+        # 説明を持てない形式だと、説明を書いた登録者に「説明が無い」と言うことに
+        # なる。誤検知なので、黙って見逃すより悪い。
+        'description'            => target&.at_xpath('./Description')&.text&.strip&.presence,
+        'method_description'     => method&.text&.strip&.presence,
+        'data_type_descriptions' => data_type_descriptions(submission)
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }.presence
+    end
+
+    # data_type は 2 箇所に書かれ得る。`Objectives/Data@data_type`（説明本文を
+    # 持てるのはこちら）と `ProjectDataTypeSet/DataType`。validator の
+    # xml_reader も両方読むので、片方だけだと値が丸ごと落ちる。
+    def data_types(submission)
+      objectives = submission.xpath('./Objectives/Data').filter_map {|n| n['data_type']&.strip&.presence }
+      type_set   = submission.xpath('./ProjectDataTypeSet/DataType').filter_map {|n| n.text&.strip&.presence }
+
+      (objectives + type_set).uniq.presence
+    end
+
+    # `<Data data_type="eOther">説明</Data>` の本文を data_type をキーにして持つ。
+    # relevance を dict[str, str] にしたのと同じ理由 — 選択肢に紐づく自由記述。
+    def data_type_descriptions(submission)
+      submission.xpath('./Objectives/Data').filter_map {|n|
+        type = n['data_type']&.strip&.presence
+        text = n.text&.strip&.presence
+
+        [type, text] if type && text
+      }.to_h.presence
     end
 
     # Flatten the rich Target/Organism biology block + Target/Provider

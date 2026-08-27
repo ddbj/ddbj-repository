@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- umbrella で subtype="eOther" を選び、説明を付けた合成 fixture（BP_R0008）。 -->
+<PackageSet>
+  <Package>
+    <Project>
+      <Project>
+        <ProjectID><ArchiveID accession="PRJDB8888" archive="DDBJ"/></ProjectID>
+        <ProjectDescr>
+          <Title>Regional conservation programme</Title>
+          <Description>An umbrella grouping the projects run under one conservation programme.</Description>
+        </ProjectDescr>
+        <ProjectType>
+          <ProjectTypeTopAdmin subtype="eOther">
+            <Organism taxID="9606"><OrganismName>Homo sapiens</OrganismName></Organism>
+            <DescriptionSubtypeOther>A programme-level grouping that is not one of the listed subtypes.</DescriptionSubtypeOther>
+          </ProjectTypeTopAdmin>
+        </ProjectType>
+      </Project>
+    </Project>
+    <Submission>
+      <Submission submitted="2020-01-01">
+        <Description>
+          <Organization type="center" role="owner"><Name>NIG</Name></Organization>
+          <Access>public</Access>
+        </Description>
+      </Submission>
+    </Submission>
+  </Package>
+</PackageSet>

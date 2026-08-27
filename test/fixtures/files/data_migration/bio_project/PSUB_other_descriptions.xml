@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  "other" を選んだ項目に説明が付いている合成 fixture。実データから作ると
+  submission ごと持ち込むことになるので、必要な形だけを最小で置いた。
+  形（どの要素・属性に説明が載るか）は ddbj-validator の BP_R0008〜R0013 の
+  fixture に合わせてある。
+-->
+<PackageSet>
+  <Package>
+    <Project>
+      <Project>
+        <ProjectID><ArchiveID accession="PRJDB7777" archive="DDBJ"/></ProjectID>
+        <ProjectDescr>
+          <Title>Hot spring microbial mat survey</Title>
+          <Description>A survey of the microbial community of a hot spring mat, sampled monthly for two years.</Description>
+          <LocusTagPrefix biosample_id="SAMD00123456">HSM01</LocusTagPrefix>
+          <LocusTagPrefix>NOSAMPLE</LocusTagPrefix>
+          <Relevance><Other>Baseline data for a regional conservation programme.</Other></Relevance>
+        </ProjectDescr>
+        <ProjectType>
+          <ProjectTypeSubmission>
+            <Target sample_scope="eOther" material="eOther" capture="eOther">
+              <Organism taxID="433727"><OrganismName>hot springs metagenome</OrganismName></Organism>
+              <Description>Environmental mat communities sampled across a thermal gradient.</Description>
+            </Target>
+            <Method method_type="eOther">In-house enrichment followed by long-read sequencing.</Method>
+            <Objectives>
+              <Data data_type="eOther">Per-sample community composition tables derived from the reads.</Data>
+              <Data data_type="eRawSequenceReads"/>
+            </Objectives>
+            <ProjectDataTypeSet>
+              <DataType>eRawSequenceReads</DataType>
+              <DataType>eAssembly</DataType>
+            </ProjectDataTypeSet>
+          </ProjectTypeSubmission>
+        </ProjectType>
+      </Project>
+    </Project>
+    <Submission>
+      <Submission submitted="2020-01-01">
+        <Description>
+          <Organization type="center" role="owner"><Name>NIG</Name></Organization>
+          <Access>public</Access>
+        </Description>
+      </Submission>
+    </Submission>
+  </Package>
+</PackageSet>
