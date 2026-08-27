@@ -142,19 +142,19 @@ regeneration silently pulled published LOCUS dates back to the apply date —
 which is what happened to 62 entries while fixing PATENT-386. Records written
 before the rename still say `last_updated`, and `Builders` reads both keys.
 
-Two consequences of that history, both one-off:
+Two consequences of that history:
 
-- Submissions applied before the change still have the apply date in the column.
-  `rake locus_date:backfill` reads each request's record — the upload, which no
-  regeneration rewrites — and puts the column back. **It has to have been run
-  before any bulk regeneration**, and the guard above is what makes that
-  unskippable rather than remembered. It only touches entries that still carry
-  the apply stamp (`locus_date == created_at.to_date`), so a date somebody set on
-  purpose is left where it is.
+- The column was put back across the archive on 2026-08-10 — 9,813,674 entries
+  over 17,999 submissions, read from each request's record, which no regeneration
+  rewrites. `rake locus_date:backfill` did that and has been deleted; its
+  premise (an entry still carrying the apply stamp is one nobody has dated) only
+  held for records written before the change. If the two ever disagree again the
+  guard above is what says so, and it means something wrote the column without
+  the record.
 - The key rename makes a re-serialised legacy record differ from its stored
-  blob, so `changed?` is true for every one of them. The first regeneration after
-  this deploy therefore rewrites the record and reports nothing skipped; that is
-  the rename passing through, not a substantive change.
+  blob, so `changed?` is true for every one of them. The first regeneration of
+  such a submission therefore rewrites the record and reports nothing skipped;
+  that is the rename passing through, not a substantive change.
 
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 
