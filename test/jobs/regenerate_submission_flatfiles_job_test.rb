@@ -3,7 +3,14 @@ require 'test_helper'
 class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
 
+  # example.json names no locus_date, so applying it stamps the day the
+  # suite runs on. Every test below then asks for a date that has to differ
+  # from it — and on the day the two coincide the run has nothing to write,
+  # skips, and the assertions read that no-op as the behaviour under test.
+  # That is how this file went green for months and failed on 2026-09-01.
   setup do
+    travel_to Time.zone.local(2026, 6, 15, 12)
+
     request = SubmissionRequest.new(user: users(:alice), db: 'st26')
 
     request.ddbj_record.attach(
@@ -162,15 +169,23 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
       RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1), accessions: [redated.accession]
     end
 
-    # 両方に日付を入れれば通り、両方がその日付で印字される。
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, Date.new(2026, 9, 1),
+    # 両方に日付を入れれば通り、両方がその日付で印字される。run の結果も見る:
+    # 書かずに skip しても既にその日付が入っているファイルは match してしまう。
+    settled = new_run
+
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, settled, Date.new(2026, 9, 1),
                                                 accessions: [kept.accession, redated.accession]
 
+    assert_equal 1, settled.reload.regenerated
     assert_match(/01-SEP-2026/, @submission.reload.flatfile_na.download)
 
     # 一度通れば record と列が揃うので、以後は日付なしの run でも止まらない。
-    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, new_run, nil
+    # 書くものは無いので skip される。
+    after = new_run
 
+    RegenerateSubmissionFlatfilesJob.perform_now @submission, @admin, after, nil
+
+    assert_equal 1, after.reload.skipped
     assert_match(/01-SEP-2026/, @submission.reload.flatfile_na.download)
   end
 
