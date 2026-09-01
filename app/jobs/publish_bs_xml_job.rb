@@ -14,9 +14,12 @@ class PublishBsXMLJob < ApplicationJob
       output_dir:     output_dir,
       filename:       FILENAME,
       renderer_class: PublicXML::Bs::BioSampleRenderer,
-      # Group by submission so v3_by_submission cache hits stay warm and
-      # the alias index is built once per submission (see Exporter#call).
-      scope:          Sample.status_public.includes(:submission).order(:submission_id, :id)
+      # By accession, as bsbatch ordered it (`ORDER BY a.accession_id`).
+      # A consumer that diffs consecutive dumps, or stream-merges them by
+      # accession, would otherwise read the whole file as changed on the
+      # day we take over. The Exporter's caches are keyed by submission
+      # and never evicted, so the order costs them nothing.
+      scope:          Sample.status_public.includes(:submission).order(:accession)
     ).call
   end
 end

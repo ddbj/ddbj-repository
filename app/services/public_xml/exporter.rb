@@ -65,9 +65,7 @@ module PublicXML
           node = @renderer_class.new(record: v3, row: record, cache: render_cache, **@renderer_options).call
           next unless node
 
-          fragment = node.to_xml(indent: 1, indent_text: "\t")
-          io.write indent_fragment(fragment)
-          io.write "\n"
+          io.write indent_fragment(node)
           emitted += 1
         end
 
@@ -94,7 +92,12 @@ module PublicXML
 
     private
 
+    # The declaration is written out: bsbatch declared ISO-8859-1 and
+    # escaped everything above it, so a consumer that trusts the prolog
+    # rather than sniffing gets mojibake on a Japanese organization name
+    # the moment the file starts arriving as undeclared UTF-8.
     def write_header(io)
+      io.write(%(<?xml version="1.0" encoding="UTF-8"?>\n))
       io.write("<#{root_element}>\n")
     end
 
@@ -111,12 +114,30 @@ module PublicXML
       end
     end
 
-    # Nokogiri serialises each fragment at the root level (no leading
-    # indent). Add one tab to every line so the children of the root
-    # element sit one level in, matching the legacy bpbatch tab-indented
-    # output.
-    def indent_fragment(fragment)
-      fragment.each_line.map { "\t#{it}" }.join
+    # Nokogiri serialises a node at the root level, with no leading
+    # indent, so the children of the root element need one tab adding to
+    # sit a level in — matching the legacy tab-indented output.
+    #
+    # By serialising the record inside a stand-in root rather than
+    # prefixing the lines of the finished string. Nokogiri indents
+    # structure but never the inside of a text node, and prefixing by
+    # hand could not tell the two apart: it pushed a tab into the second
+    # and every later line of every multi-line value, which is most of
+    # the freeform ones. The file said something different from the
+    # record, and nothing compared them.
+    def indent_fragment(node)
+      holder.add_child(node)
+
+      holder.to_xml(indent: 1, indent_text: "\t").lines[1..-2].join
+    ensure
+      holder.children.unlink
+    end
+
+    def holder
+      @holder ||= Nokogiri::XML::Document.new.then {
+        it.root = it.create_element(root_element)
+        it.root
+      }
     end
   end
 end

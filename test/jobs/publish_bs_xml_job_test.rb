@@ -35,7 +35,8 @@ class PublishBsXMLJobTest < ActiveSupport::TestCase
     xml = Nokogiri::XML(file.read)
     assert_equal 'BioSampleSet', xml.root.name
 
-    bs = xml.root.at_xpath('./BioSample[@accession="SAMD00000222"]')
+    # 公開 XML では accession は BioSample の属性ではなく Id として出る。
+    bs = xml.root.at_xpath('./BioSample[Ids/Id[@namespace="BioSample"]="SAMD00000222"]')
     assert_not_nil bs
     assert_equal 'DDBJ', bs.at_xpath('./Owner/Name').text
     assert_nil   bs.at_xpath('./Owner/Contacts'), 'BS public XML must strip Contacts'

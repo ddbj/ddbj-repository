@@ -41,6 +41,35 @@ class PublicXML::ExporterTest < ActiveSupport::TestCase
     assert_not_nil run.finished_at
   end
 
+  # 整形は要素に対して行うもので、値に対して行うものではない。断片の各行に
+  # タブを足していた頃は、複数行の値の 2 行目以降にもタブが入り、公開した
+  # ファイルがレコードと違うことを言っていた。誰も比べていなかった。
+  test 'a multi-line value survives indentation unchanged' do
+    # canonicalization は行ごとに trim する (canonical-json.md §2.2) ので、
+    # 行頭の空白は record に入る前に落ちている。ここで見たいのは、書き出し
+    # のときに空白が「足される」ことがないほう。
+    title = "first line\nsecond line\n\nthird line"
+
+    submissions(:bioproject).append_update!({'project' => {'accession' => 'PRJDB000124', 'title' => title}}, actor: 'test')
+    projects(:primary).update!(accession: 'PRJDB000124', status: 'public')
+
+    PublicXML::Exporter.new(
+      db:             'bioproject',
+      kind:           'public',
+      output_dir:     @output_dir,
+      filename:       'test.xml',
+      renderer_class: PublicXML::Bp::PackageRenderer,
+      scope:          Project.status_public.where(submission: submissions(:bioproject)).includes(:submission)
+    ).call
+
+    written = @output_dir.join('test.xml').read
+
+    assert_match(/\A<\?xml version="1\.0" encoding="UTF-8"\?>\n/, written,
+                 'the declaration says how to read the bytes; bsbatch wrote one')
+
+    assert_equal title, Nokogiri::XML(written).at_xpath('//ProjectDescr/Title').text
+  end
+
   test 'skips records whose submission has no materialised record' do
     # `projects(:umbrella)` is public but its submission has no updates,
     # so materialised_record is nil and the exporter must skip it.
