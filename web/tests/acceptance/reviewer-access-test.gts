@@ -334,9 +334,14 @@ module('Acceptance | review link (member side)', function (hooks) {
     await click('[data-test-share-all]');
 
     assert.strictEqual(posted, undefined, 'nothing has happened yet');
-    assert.dom('[data-test-confirm]').includesText('42 accessions');
 
-    await click('[data-test-confirm-action]');
+    // Under the button that opened it. It used to render at the top of
+    // the section, two tables above — so on a set with four thousand
+    // accessions the press appeared to do nothing, and this assertion is
+    // the only thing that can tell the difference.
+    assert.dom('[data-test-mine] [data-test-confirm]').includesText('42 accessions');
+
+    await click('[data-test-mine] [data-test-confirm-action]');
 
     assert.deepEqual(posted, { all: true });
   });
@@ -414,6 +419,29 @@ module('Acceptance | review link (member side)', function (hooks) {
     assert.dom('[data-test-reviewer-access]').includesText('Nothing on this page');
     assert.dom('[data-test-reviewer-access]').doesNotIncludeText('carries nothing yet');
     assert.dom('[aria-label="Previous page of what is on the link"]').exists('the way back is still there');
+  });
+
+  // Nothing to put on the link is not a press to offer.
+  test('a set holding none of your own offers nothing to share', async function (assert) {
+    worker.use(
+      http.get('/sets/{id}', ({ response }) => {
+        return response(200).json(set);
+      }),
+
+      http.get('/sets/{set_id}/reviewer_access', ({ response }) => {
+        return response(200).json(link());
+      }),
+
+      http.get('/sets/{set_id}/accessions', ({ response }) =>
+        response(200).json([], { headers: { 'Total-Count': '0', 'Total-Pages': '1' } }),
+      ),
+    );
+
+    await visit('/sets/7');
+    await click('[data-test-browse]');
+
+    assert.dom('[data-test-mine]').includesText('0 accessions');
+    assert.dom('[data-test-share-all]').doesNotExist();
   });
 
   // Revoking takes everything off the link, including accessions the

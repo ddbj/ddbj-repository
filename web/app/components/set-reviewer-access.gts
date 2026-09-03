@@ -271,6 +271,13 @@ export default class SetReviewerAccess extends Component<Signature> {
   // are amber. Sharing everything is undoable a row at a time and stays
   // primary — what it needs said is not "are you sure" but how many, and
   // a button cannot count on its own.
+  // The two that are confirmed beside the link's own buttons. "Share
+  // all" is confirmed at the foot of the browse list instead, where the
+  // button that opens it is.
+  get confirmingLink() {
+    return this.confirming === 'newLink' || this.confirming === 'revoke';
+  }
+
   @action
   ask(what: Confirmable) {
     this.confirming = what;
@@ -574,7 +581,12 @@ export default class SetReviewerAccess extends Component<Signature> {
         {{/if}}
       </div>
 
-      {{#if this.confirming}}
+      {{! Only the two that belong beside the buttons above. A
+      confirmation renders where the control that opened it is — the
+      "Share all" one is at the foot of the browse list, and putting it
+      here left somebody pressing a button and watching nothing happen,
+      because the panel was two tables above the fold. }}
+      {{#if this.confirmingLink}}
         <div class="border rounded p-3 mb-3" data-test-confirm>
           {{#if (eq this.confirming "newLink")}}
             <p class="mb-2">
@@ -590,26 +602,6 @@ export default class SetReviewerAccess extends Component<Signature> {
               {{on "click" this.enable}}
             >
               Replace the link
-            </button>
-          {{else if (eq this.confirming "shareAll")}}
-            <p class="mb-2">
-              Everything of yours in this set —
-              {{this.mineTotal}}
-              {{if (eq this.mineTotal 1) "accession" "accessions"}}
-              — goes on the link, and anybody holding the URL can read them. You can take any of them off again
-              afterwards.
-            </p>
-
-            <button
-              type="button"
-              class="btn btn-primary me-1"
-              disabled={{this.busy}}
-              data-test-confirm-action
-              {{on "click" this.shareAll}}
-            >
-              Put all
-              {{this.mineTotal}}
-              on the link
             </button>
           {{else}}
             <p class="mb-2">
@@ -817,16 +809,45 @@ export default class SetReviewerAccess extends Component<Signature> {
               @label="your accessions"
             />
 
-            <button
-              type="button"
-              class="btn btn-outline-primary btn-sm"
-              disabled={{this.busy}}
-              data-test-share-all
-              {{on "click" (fn this.ask "shareAll")}}
-            >
-              Share all
-              {{this.mineTotal}}
-            </button>
+            {{! Nothing to put on the link is not a press to offer. }}
+            {{#if this.mineTotal}}
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                disabled={{this.busy}}
+                data-test-share-all
+                {{on "click" (fn this.ask "shareAll")}}
+              >
+                Share all
+                {{this.mineTotal}}
+              </button>
+            {{/if}}
+
+            {{#if (eq this.confirming "shareAll")}}
+              <div class="border rounded p-3 mt-2" data-test-confirm>
+                <p class="mb-2">
+                  Everything of yours in this set —
+                  {{this.mineTotal}}
+                  {{if (eq this.mineTotal 1) "accession" "accessions"}}
+                  — goes on the link, and anybody holding the URL can read them. You can take any of them off again
+                  afterwards.
+                </p>
+
+                <button
+                  type="button"
+                  class="btn btn-primary me-1"
+                  disabled={{this.busy}}
+                  data-test-confirm-action
+                  {{on "click" this.shareAll}}
+                >
+                  Put all
+                  {{this.mineTotal}}
+                  on the link
+                </button>
+
+                <button type="button" class="btn btn-link" {{on "click" this.cancel}}>Cancel</button>
+              </div>
+            {{/if}}
           </div>
         {{else}}
           <button type="button" class="btn btn-link px-0" {{on "click" this.browse}} data-test-browse>
