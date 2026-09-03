@@ -1,10 +1,9 @@
 # The set's own view of its review link: whether there is one, where it
-# points, whether it still works, and what is on it.
+# points, whether it still works, and how much is on it.
 #
-# Not the reviewer's template. That one carries the facts each record
-# states; this one carries who each accession belongs to and whether the
-# reader may take it off, which is the whole of what a member needs and
-# none of what a reviewer should be told.
+# Not what is on it — that is its own paginated route, because what a set
+# holds has no ceiling. The count is here because it is the one fact about
+# the list that a screen needs before it has drawn any of it.
 #
 # Every key is present either way, with nulls where there is no link. The
 # alternative — a two-key body when disabled — reads more tidily and
@@ -21,23 +20,8 @@ if @access
     # a Copy button over a dead URL is worse than no button.
     expired: @access.expired?,
 
-    accessions: @rows.map {|row|
-      facts = AccessionFacts.for(row)
-
-      {
-        accession: facts.accession,
-        db:        facts.db,
-        name:      facts.name,
-
-        # Whose it is, and whether it is yours to take off. Said by the
-        # server for the same reason `owned` is on a set's submissions:
-        # under a proxy login the account the client believes it is is not
-        # the account the server acts as, so comparing uids in the browser
-        # gets it backwards.
-        owner_uid: row.submission.user.uid,
-        owned:     row.submission.user_id == @viewer.id
-      }
-    }
+    count:  @count,
+    others: @others
   }
 else
   {
@@ -45,6 +29,7 @@ else
     url:        nil,
     expires_at: nil,
     expired:    false,
-    accessions: []
+    count:      0,
+    others:     0
   }
 end

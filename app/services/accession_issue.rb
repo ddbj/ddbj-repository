@@ -207,7 +207,7 @@ class AccessionIssue
       row_count:         accessions.size,
       submission_update: update,
       prefix:            prefix,
-      range:             AccessionRange.format(accessions)
+      range:             AccessionRun.label(accessions)
     )
   end
 

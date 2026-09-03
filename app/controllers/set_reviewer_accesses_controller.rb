@@ -48,12 +48,22 @@ class SetReviewerAccessesController < ApplicationController
 
   private
 
-  # `shared_rows` resolves what the link carries through the set's current
-  # contents, which is the answer both actions render — and the reason
-  # `create` renders it too rather than echoing what it was handed.
+  # The link itself, and how much is on it — not what is on it. That list
+  # has no ceiling (see ReviewerAccess) and is read a page at a time from
+  # the nested route; a screen that has just been told a URL and an expiry
+  # does not need a hundred thousand rows to draw its first frame.
   def load_link
     @access = @set.reviewer_access
-    @rows   = @access ? @access.shared_rows : []
+
+    @count = @access ? @access.shared_accessions.count : 0
+
+    # How much of it is not the reader's, so that Revoke can say what it
+    # costs before it fires — anybody in the set may revoke, and taking
+    # somebody else's work off the link is the part they cannot undo for
+    # them. Counted from `added_by` rather than by resolving every row to
+    # its owner: only an owner can put an accession here, so the two are
+    # the same answer and one of them is a single indexed count.
+    @others = @access ? @access.shared_accessions.where.not(added_by_id: current_user.id).count : 0
   end
 
   def reviewer_access_params = params.expect(reviewer_access: %i[expires_at])

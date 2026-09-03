@@ -26,15 +26,15 @@ class ReviewerAccess < ApplicationRecord
   # proxied, and "who did this" is the question a support thread asks.
   belongs_to :created_by, class_name: 'User'
 
+  # No ceiling on how many. There is no number that is both defensible and
+  # useful: what a set holds is whatever its members submitted, and one
+  # BioSample submission can carry a hundred thousand samples, so any
+  # limit picked here would refuse a reviewer the ordinary contents of an
+  # ordinary paper. What that costs is that nothing may assume this list
+  # fits in one page — it is read a page at a time on both sides, and the
+  # rows leave here in SQL rather than through Ruby.
   has_many :shared_accessions, -> { order(:accession) },
            class_name: 'ReviewerAccessAccession', dependent: :destroy, inverse_of: :reviewer_access
-
-  # What one link may carry. A property of the link rather than of the
-  # endpoint that fills it: the reviewer's list is drawn in one page
-  # because of this, and `shared_rows` resolves in three queries however
-  # long the list is — but a link naming a hundred thousand samples is not
-  # a review link, it is the whole submission by another route.
-  MAX_SHARED = 1_000
 
   # Unguessable share token — the reviewer URL is /web/reviews/<token>.
   TOKEN_LENGTH = 32
@@ -70,15 +70,22 @@ class ReviewerAccess < ApplicationRecord
     expires_at.past?
   end
 
-  def full? = shared_accessions.count >= MAX_SHARED
-
-  # What the link actually shows, which is not simply what was named on
-  # it. Every accession is resolved through the set's current contents, so
-  # a submission taken out of the set stops being on the link the moment
-  # it goes — regardless of what rows are left behind. Taking a submission
-  # out also deletes the rows (SubmissionSetInclusion), and that is the
-  # tidying; this is the guarantee.
-  def shared_rows = set.accession_rows(shared_accessions.pluck(:accession))
+  # What the link actually shows for the page of it being read, which is
+  # not simply what was named on it. Every accession is resolved through
+  # the set's current contents, so a submission taken out of the set stops
+  # being on the link the moment it goes — regardless of what rows are
+  # left behind. Taking a submission out also deletes the rows
+  # (SubmissionSetInclusion), and that is the tidying; this is the
+  # guarantee.
+  #
+  # A page at a time, because the list has no ceiling: resolving the whole
+  # of it would mean an IN list as long as the link and every row of it in
+  # memory, on a screen that shows twenty.
+  #
+  # Numbers in, rows out — the same shape as `SubmissionSet#accession_rows`
+  # itself, so the three readers that resolve a page of accessions all
+  # read alike.
+  def shared_rows(accessions) = set.accession_rows(accessions)
 
   # The shareable link the set hands to a reviewer. Points at the Ember
   # SPA route (/web/reviews/<token>), not the API.

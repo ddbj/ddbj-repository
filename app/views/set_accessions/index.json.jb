@@ -1,0 +1,15 @@
+# One page of what the caller could share, with the ones already on the
+# link marked.
+#
+# No owner is named: everything here is the reader's own, which is what
+# makes it a list of things they may share.
+@rows.map {|row|
+  facts = AccessionFacts.for(row)
+
+  {
+    accession: facts.accession,
+    db:        facts.db,
+    name:      facts.name,
+    shared:    @shared.include?(facts.accession)
+  }
+}

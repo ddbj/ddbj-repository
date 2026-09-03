@@ -40,24 +40,20 @@ class SubmissionSetInclusion < ApplicationRecord
   # the read path asks is how an accession comes to be left behind and
   # re-shared later — the exact thing this exists to prevent.
   #
-  # Bounded by what is on the link, never by the submission: a pluck of at
-  # most ReviewerAccess::MAX_SHARED numbers, then three lookups on unique
-  # indexes. It does run once per inclusion, which for a departing member
-  # means once per submission of theirs — a constant on top of the
-  # per-row destroy it hangs off.
+  # Three DELETEs, each driven by a subquery: neither side comes back to
+  # Ruby to be compared here. Both of them can be enormous — a link has no
+  # ceiling and a BioSample submission can carry a hundred thousand
+  # samples — and this runs once per inclusion, so for a departing member
+  # it runs once per submission of theirs, inside the set's lock.
   def unshare_accessions
-    access = set.reviewer_access or return
-
-    shared = access.shared_accessions.pluck(:accession)
-    return if shared.empty?
-
+    access        = set.reviewer_access or return
     submission_id = submission_request.submission_id or return
 
-    mine = Submission.accession_row_models.flat_map {
-      it.where(submission_id:, accession: shared).pluck(:accession)
-    }
-
-    access.shared_accessions.where(accession: mine).delete_all if mine.any?
+    Submission.accession_row_models.each do |model|
+      access.shared_accessions
+              .where(accession: model.where(submission_id:).where.not(accession: nil).select(:accession))
+              .delete_all
+    end
   end
 
   # Your own submission, and nobody else's. Reading somebody else's

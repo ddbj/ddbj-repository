@@ -71,7 +71,7 @@ class AccessionIssuance < ApplicationRecord
 
   def actor_label = actor.to_s.split(':', 2).last.presence || actor
 
-  def accession_range = AccessionRange.format(accessions)
+  def accession_range = AccessionRun.label(accessions)
 
   # The curator who pressed the button, for the things that need a User
   # rather than an audit string. Nil if the account has since gone.

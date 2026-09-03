@@ -48,9 +48,8 @@ module SetContents
                   .includes(submission_request: [:user, {submission: :project}])
                   .order(:created_at, :id)
 
-    pagy, @inclusions = pagy(scope)
+    @inclusions = paginate(scope)
 
-    response.headers.merge! pagy.headers_hash
 
     requests = @inclusions.map(&:submission_request)
 

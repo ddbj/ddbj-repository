@@ -50,11 +50,16 @@ Rails.application.routes.draw do
     end
 
     # Unauthenticated reviewer view — the set is looked up by its
-    # unguessable share token, never by the current user. One route, and
-    # nothing hangs off it: what a reviewer is given is the accessions the
-    # set's members named, and files are not among them (see
-    # ReviewsController for why there is nothing here to download).
-    get 'reviews/:token', to: 'reviews#show', as: :review
+    # unguessable share token, never by the current user. What a reviewer
+    # is given is the accessions the set's members named, and files are
+    # not among them (see ReviewsController for why there is nothing here
+    # to download).
+    #
+    # The list is its own route because there is no bound on how long it
+    # is: what a set holds is whatever its members submitted, and a
+    # BioSample submission alone can carry a hundred thousand samples.
+    get 'reviews/:token',            to: 'reviews#show',       as: :review
+    get 'reviews/:token/accessions', to: 'reviews#accessions', as: :review_accessions
 
     resources :submissions, only: %i[index show] do
       resources :accessions, only: %i[index]
@@ -99,13 +104,18 @@ Rails.application.routes.draw do
                 controller: 'set_submissions',
                 param:      :submission_request_id
 
+      # Everything in the set that the caller could put on its review
+      # link, which is to say their own — only the owner shares their own
+      # work. What the sharing screen offers to tick.
+      resources :accessions, only: %i[index], controller: 'set_accessions'
+
       # The set's review link, and what it carries — two resources
       # because they are two different people's business: any member may
       # mint or revoke the link, while each accession on it is the
       # owner's to put there and to take off.
       resource :reviewer_access, only: %i[show create destroy], controller: 'set_reviewer_accesses' do
         resources :accessions,
-                  only:        %i[create destroy],
+                  only:        %i[index create destroy],
                   controller:  'set_shared_accessions',
                   param:       :accession,
                   constraints: {accession: %r{[^/]+}}

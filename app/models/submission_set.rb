@@ -219,15 +219,67 @@ class SubmissionSet < ApplicationRecord
   #
   # A submission still waiting to be applied has no rows and no
   # accessions, so it contributes nothing without being special-cased.
-  def accession_rows(accessions)
+  # `with_owner` decides how much of the submission comes with each row.
+  # Two of the three readers print who an accession belongs to and one —
+  # the candidate list, which is all the reader's own — does not, and a
+  # join per page for a column nobody renders is a join per page.
+  def accession_rows(accessions, with_owner: true)
     numbers = Array(accessions).compact_blank
     return [] if numbers.empty?
 
     submission_ids = submission_requests.where.not(submission_id: nil).select(:submission_id)
+    association    = with_owner ? {submission: :user} : :submission
 
     Submission.accession_row_models.flat_map {
-      it.where(submission_id: submission_ids, accession: numbers).includes(submission: :user).to_a
+      it.where(submission_id: submission_ids, accession: numbers).includes(association).to_a
     }.sort_by(&:accession)
+  end
+
+  # Every accession in the set that belongs to `owner`, as one ordered
+  # list of numbers — the candidates for their half of the review link,
+  # and only theirs because only an owner shares their own work.
+  #
+  # A UNION rather than three queries because the answer is read a page at
+  # a time, and page four of the whole is page four of none of the three.
+  # It projects the number alone; the rows behind one page are resolved by
+  # `accession_rows` above, which is the same two steps the link's own
+  # list takes.
+  #
+  # UNION rather than UNION ALL: one string can name a row in more than
+  # one of the three tables, and the callers that resolve a number look in
+  # all three for exactly that reason. Offering it twice would count it
+  # twice.
+  #
+  # An unissued accession is not one to share, so the NULLs are dropped:
+  # `projects.accession` and `samples.accession` are both nullable until
+  # the numbers are allocated.
+  #
+  # `after` walks it. A caller reading the whole list seeks past the last
+  # number it saw rather than counting from the start, because OFFSET on a
+  # sorted union re-sorts the whole union for every page — twenty pages of
+  # a hundred thousand samples is twenty sorts of a hundred thousand.
+  def owned_accessions(owner, after: nil)
+    # Whose it is, asked of the request. Everywhere one accession is
+    # checked the question is asked of the submission (`row.submission.
+    # user_id`), and the two agree because a Submission is only ever
+    # created from its request and takes that request's user
+    # (ApplySubmissionRequestJob). If they ever stopped agreeing, this
+    # path would put on the link something the member's own list marks as
+    # somebody else's and then refuses to let them take off.
+    submission_ids = submission_requests.where(user_id: owner.id).where.not(submission_id: nil).select(:submission_id)
+
+    parts = Submission.accession_row_models.map {
+      it.where(submission_id: submission_ids).where.not(accession: nil).select(:accession).to_sql
+    }
+
+    # Aliased to `projects` so that `order(:accession)` and pagy's count
+    # resolve against the table Project would otherwise have read. Nothing
+    # but the accession is selected, and nothing but the accession is read
+    # back — the Project rows this returns are a carrier for a relation,
+    # not projects.
+    scope = Project.unscoped.from(Arel.sql("(#{parts.join(' UNION ')}) AS projects")).order(:accession)
+
+    after ? scope.where(Project.arel_table[:accession].gt(after)) : scope
   end
 
   def member?(user)

@@ -34,7 +34,17 @@ export const handlers = [
   // tests that are about the roster or the submissions don't have to stub
   // it.
   http.get('/sets/{set_id}/reviewer_access', ({ response }) => {
-    return response(200).json({ enabled: false, url: null, expires_at: null, expired: false, accessions: [] });
+    return response(200).json({ enabled: false, url: null, expires_at: null, expired: false, count: 0, others: 0 });
+  }),
+
+  // Both lists behind the link are their own routes, and both are empty
+  // unless a test says otherwise.
+  http.get('/sets/{set_id}/reviewer_access/accessions', ({ response }) => {
+    return response(200).json([]);
+  }),
+
+  http.get('/sets/{set_id}/accessions', ({ response }) => {
+    return response(200).json([]);
   }),
 
   // The set page renders the set's own thread; default to empty so the

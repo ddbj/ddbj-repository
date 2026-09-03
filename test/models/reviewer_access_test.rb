@@ -52,7 +52,7 @@ class ReviewerAccessTest < ActiveSupport::TestCase
     access = ReviewerAccess.enable!(@set, created_by: @alice, expires_at: 1.week.from_now)
     access.shared_accessions.create!(accession: 'PRJDB000001', added_by: @alice)
 
-    assert_equal [projects(:primary)], access.shared_rows
+    assert_equal [projects(:primary)], access.shared_rows(access.shared_accessions.pluck(:accession))
   end
 
   # The rows are resolved through the set every time, so what a reviewer
@@ -65,7 +65,7 @@ class ReviewerAccessTest < ActiveSupport::TestCase
 
     @set.inclusions.delete_all
 
-    assert_empty access.shared_rows
+    assert_empty access.shared_rows(access.shared_accessions.pluck(:accession))
     assert_equal ['PRJDB000001'], access.shared_accessions.pluck(:accession)
   end
 
@@ -78,6 +78,22 @@ class ReviewerAccessTest < ActiveSupport::TestCase
     @set.inclusions.sole.destroy!
 
     assert_empty access.shared_accessions.reload
+  end
+
+  # A submission's accessions come off the link when it leaves the set,
+  # and only that submission's do. The sweep asks the question in SQL
+  # rather than by comparing two lists in Ruby, and this is what says it
+  # still asks the same question.
+  test 'taking one submission out leaves another submission on the link alone' do
+    @set.inclusions.create!(submission_request: submission_requests(:biosample), added_by: @alice)
+
+    access = ReviewerAccess.enable!(@set, created_by: @alice, expires_at: 1.week.from_now)
+    access.shared_accessions.create!(accession: 'PRJDB000001',          added_by: @alice)
+    access.shared_accessions.create!(accession: samples(:first).accession, added_by: @alice)
+
+    @set.inclusions.find_by!(submission_request: submission_requests(:bioproject)).destroy!
+
+    assert_equal [samples(:first).accession], access.shared_accessions.reload.pluck(:accession)
   end
 
   test 'revoking the link takes what was on it with it' do

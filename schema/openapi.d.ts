@@ -472,8 +472,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description What a review link shows: the set it was made for, when it stops
-         *     working, and the accessions the set's members have put on it.
+         * @description What a review link is: the set it was made for and when it stops
+         *     working. What it carries is the route below, because there is no bound
+         *     on how much that is.
          *
          *     No authentication — the token in the path is the whole credential. A
          *     revoked token, an expired one and one that never existed are a 404
@@ -495,13 +496,69 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Returns the set's name and what the link carries. */
+                /** @description Returns the set's name and when the link expires. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["Review"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reviews/{token}/accessions": {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description The accessions on a review link, a page at a time.
+         *
+         *     Resolved through the set every time they are read, so an accession
+         *     whose submission has been taken out of the set is not here whatever
+         *     was named on the link. That also means a page can come back shorter
+         *     than it was asked for: the tidying that follows a removal is what
+         *     closes the gap, and this is what holds until it has.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description One page of what the link carries. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        /** @description How many there are in all. */
+                        "Total-Count"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewerAccession"][];
                     };
                 };
                 404: components["responses"]["NotFound"];
@@ -1454,7 +1511,8 @@ export interface paths {
         };
         /**
          * @description The set's review link: whether one is enabled and, if so, where it
-         *     points, when it expires and which accessions are on it.
+         *     points, when it expires and how many accessions are on it. Which ones
+         *     is the route below.
          */
         get: {
             parameters: {
@@ -1579,14 +1637,52 @@ export interface paths {
     };
     "/sets/{set_id}/reviewer_access/accessions": {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+            };
             header?: never;
             path: {
                 set_id: number;
             };
             cookie?: never;
         };
-        get?: never;
+        /**
+         * @description What the link carries, a page at a time, as the set's members see it —
+         *     the same rows a reviewer is shown, plus whose each one is and whether
+         *     the reader may take it off.
+         *
+         *     Resolved through the set every time, so a page can come back shorter
+         *     than it was asked for. See the reviewer's own list for why.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description One page of what the link carries. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        /** @description How many there are in all. */
+                        "Total-Count"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedAccession"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
         put?: never;
         /**
          * @description Put accessions of yours on the set's review link, which is what lets a
@@ -1597,18 +1693,36 @@ export interface paths {
          *     on — an accession belonging to another member is a 403 naming it, and
          *     one that is not in the set at all is a 422 saying so.
          *
-         *     Always a list; one accession is a list of one. Refused whole if any of
-         *     them cannot go on, because somebody pasting the accessions out of a
-         *     manuscript wants to hear which one is wrong rather than find out later
-         *     that nine of the ten went.
+         *     Two forms, and the only difference is how the list is named.
          *
-         *     Ones already on the link are counted, not refused. A link carries at
-         *     most 1000 accessions in all, and one that has passed its expiry
-         *     carries nothing more — both are a 422.
+         *     `accessions` names them: the ordinary press, the numbers written in a
+         *     manuscript, refused whole if any of them cannot go on — somebody
+         *     pasting ten wants to hear which one is wrong rather than find out
+         *     later that nine went. Any entry may instead be a range,
+         *     `SAMD00000001-SAMD00000050`, which names whichever of your own
+         *     accessions in the set fall inside it. A range is a filter, not a list:
+         *     one wider than what you hold is not an error, and a range that stops
+         *     short of the last three is how "everything except those" is written.
+         *     The comparison is numeric rather than lexical, because BioSample pads
+         *     its numbers and BioProject does not.
+         *
+         *     `all` is everything of yours in the set, for the press that would
+         *     otherwise mean looking up both ends of a block.
+         *
+         *     Neither is a standing rule. Both resolve to rows at the moment they
+         *     are pressed, exactly as if every accession had been named one by one,
+         *     so a submission added to the set tomorrow is not on the link. Nothing
+         *     here shares anything without somebody having pressed it.
+         *
+         *     Ones already on the link are counted, not refused. There is no ceiling
+         *     on what a link may carry; a link that has passed its expiry carries
+         *     nothing more, which is a 422.
          */
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    page?: number;
+                };
                 header?: never;
                 path: {
                     set_id: number;
@@ -1618,7 +1732,17 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        /** @description Accession numbers, ranges (`FROM-TO`), or both. */
                         accessions: string[];
+                    } | {
+                        /**
+                         * @description Everything of yours in the set, resolved now. Only
+                         *     true is accepted — "all: false" would be a third
+                         *     meaning nobody needs and this body could not tell from
+                         *     a mistake.
+                         * @constant
+                         */
+                        all: true;
                     };
                 };
             };
@@ -1700,6 +1824,67 @@ export interface paths {
                 404: components["responses"]["NotFound"];
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sets/{set_id}/accessions": {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description Everything in the set you could put on its review link — your own
+         *     submissions' accessions, with the ones already on the link marked.
+         *
+         *     Yours only, because only the owner of a submission shares it: a list
+         *     holding a colleague's work would be offering what the next request
+         *     refuses.
+         *
+         *     It exists because the alternative is knowing the numbers by heart. What
+         *     goes on the link is written rather than picked — a number, or a range
+         *     — and this is where somebody who does not have their numbers in front
+         *     of them finds out what they are.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description One page of what you could share. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        /** @description How many there are in all, which is what "share all of them" has to be able to say. */
+                        "Total-Count"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SetAccession"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2558,7 +2743,7 @@ export interface components {
          * @description A set's review link, as its members see it.
          *
          *     Every key is present either way: when nobody has made a link `enabled`
-         *     is false, `url` and `expires_at` are null and `accessions` is empty. A
+         *     is false, `url` and `expires_at` are null and `count` is zero. A
          *     two-key body would read more tidily and would leave this contract
          *     unable to say that an enabled link has a URL, which is the one thing
          *     worth checking.
@@ -2575,11 +2760,19 @@ export interface components {
              */
             expired: boolean;
             /**
-             * @description What the link carries, resolved through the set every time it is
-             *     read: an accession whose submission has been taken out of the set
-             *     is not here, whatever was named. At most 1000.
+             * @description How many accessions are on the link. The list itself is a route of
+             *     its own — there is no ceiling on it, and a screen that has just
+             *     been told a URL and an expiry does not need every row to draw its
+             *     first frame.
              */
-            accessions: components["schemas"]["SharedAccession"][];
+            count: number;
+            /**
+             * @description How many of them somebody else put there. Revoking takes
+             *     everything off, anybody in the set may revoke, and this is the
+             *     part of it they cannot undo for the people it belongs to — so the
+             *     button has to be able to say so before it fires.
+             */
+            others: number;
         };
         /**
          * @description One accession on a review link, as a member of the set sees it — whose
@@ -2597,6 +2790,23 @@ export interface components {
             owned: boolean;
         };
         /**
+         * @description One accession in a set that the caller could put on its review link.
+         *
+         *     Their own, always: only the owner of a submission shares it, so a
+         *     candidate list holding somebody else's work would be offering what the
+         *     next request refuses. That is why no owner is named here and
+         *     `SharedAccession` names one — this list is all yours, and that one is
+         *     everybody's.
+         */
+        SetAccession: {
+            accession: string;
+            db: components["schemas"]["Db"];
+            /** @description What the record calls itself — a project title, a sample name, an entry id. */
+            name: string | null;
+            /** @description Whether it is already on the link, so a row says so rather than being offered as if it were new. */
+            shared: boolean;
+        };
+        /**
          * @description What a share-token holder sees. Deliberately not what the set's own
          *     members are served: there is no roster here, no conversation, no
          *     submission and no owner — a reviewer is being shown some records, not
@@ -2607,7 +2817,6 @@ export interface components {
             name: string;
             /** Format: date-time */
             expires_at: string;
-            accessions: components["schemas"]["ReviewerAccession"][];
         };
         SubmissionRequestStatus: {
             id: number;

@@ -1,12 +1,14 @@
+import { array } from '@ember/helper';
 import { pageTitle } from 'ember-page-title';
 
+import Pagination from 'repository/components/pagination';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 
 import type { TOC } from '@ember/component/template-only';
-import type { components } from 'schema/openapi';
+import type ReviewRoute from 'repository/routes/review';
 
-type Review = components['schemas']['Review'];
+type Model = Awaited<ReturnType<ReviewRoute['model']>>;
 
 // What a share link shows. Deliberately not the submitter's screen with
 // controls removed: there is no submission here, no conversation and no
@@ -72,6 +74,18 @@ export default <template>
         </tbody>
       </table>
     </div>
+
+  {{else if (gt @model.page 1)}}
+    {{! Not the same as an empty link. The accessions are resolved through
+    the set on every read, so a page can empty between one visit and the
+    next — and the pager below has to still be there to get back. }}
+    <div class="border rounded p-4 text-center">
+      <p class="mb-1 fw-semibold">Nothing on this page.</p>
+
+      <p class="text-body-secondary small mb-0">
+        What was here may have been taken off the link, or its submission may have left the set.
+      </p>
+    </div>
   {{else}}
     <div class="border rounded p-4 text-center">
       <p class="mb-1 fw-semibold">Nothing has been put on this link yet.</p>
@@ -81,8 +95,10 @@ export default <template>
       </p>
     </div>
   {{/if}}
+
+  <Pagination @route="review" @models={{array @model.token}} @current={{@model.page}} @total={{@model.totalPages}} />
 </template> satisfies TOC<{
   Args: {
-    model: Review;
+    model: Model;
   };
 }>;

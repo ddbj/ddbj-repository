@@ -16,19 +16,115 @@ import type { components, paths } from 'schema/openapi';
 
 type AccessState = paths['/sets/{set_id}/reviewer_access']['get']['responses']['200']['content']['application/json'];
 type SharedAccession = components['schemas']['SharedAccession'];
+type SetAccession = components['schemas']['SetAccession'];
 
 type AddResult =
   paths['/sets/{set_id}/reviewer_access/accessions']['post']['responses']['200']['content']['application/json'];
-
-type Preset = 'week' | 'month' | 'custom';
-
-// Which of the two heavy controls is asking "are you sure".
-type Confirmable = 'newLink' | 'revoke';
 
 interface Signature {
   Args: {
     setId: number;
   };
+}
+
+type Preset = 'week' | 'month' | 'custom';
+
+// Which of the heavy controls is asking "are you sure".
+type Confirmable = 'newLink' | 'revoke' | 'shareAll';
+
+const NO_LINK: AccessState = {
+  enabled: false,
+  url: null,
+  expires_at: null,
+  expired: false,
+  count: 0,
+  others: 0,
+};
+
+// Prev/Next rather than the routed pager: these lists live inside a
+// component on the set's own screen, so a page of one of them is not a
+// place the browser goes.
+class Pager extends Component<{
+  Args: { page: number; pages: number; busy: boolean; label: string; go: (page: number) => void };
+}> {
+  get atStart() {
+    return this.args.page <= 1;
+  }
+
+  get atEnd() {
+    return this.args.page >= this.args.pages;
+  }
+
+  @action
+  first() {
+    this.args.go(1);
+  }
+
+  @action
+  previous() {
+    this.args.go(this.args.page - 1);
+  }
+
+  @action
+  next() {
+    this.args.go(this.args.page + 1);
+  }
+
+  @action
+  last() {
+    this.args.go(this.args.pages);
+  }
+
+  <template>
+    {{#if (gt @pages 1)}}
+      <nav class="d-flex align-items-center gap-2 mb-3" aria-label="Pages of {{@label}}">
+        {{! Both ends, not only the neighbours. These lists are as long as
+        what the members submitted, and stepping to page 5,000 one press
+        at a time is not a way back to the end of a list. }}
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          disabled={{if this.atStart true @busy}}
+          aria-label="First page of {{@label}}"
+          {{on "click" this.first}}
+        >
+          «
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          disabled={{if this.atStart true @busy}}
+          aria-label="Previous page of {{@label}}"
+          {{on "click" this.previous}}
+        >
+          Previous
+        </button>
+
+        <span class="small text-body-secondary">Page {{@page}} of {{@pages}}</span>
+
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          disabled={{if this.atEnd true @busy}}
+          aria-label="Next page of {{@label}}"
+          {{on "click" this.next}}
+        >
+          Next
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-outline-secondary btn-sm"
+          disabled={{if this.atEnd true @busy}}
+          aria-label="Last page of {{@label}}"
+          {{on "click" this.last}}
+        >
+          »
+        </button>
+      </nav>
+    {{/if}}
+  </template>
 }
 
 // The set's review link: one URL, and the accessions the members have put
@@ -40,16 +136,35 @@ interface Signature {
 // is put on and taken off by the owner of the submission it belongs to,
 // which is why the rows without a Take-off button are somebody else's
 // rather than locked.
+//
+// Every list here is a page of one, and none of the counts is derived
+// from what is on screen. What a set holds has no ceiling — a BioSample
+// submission alone can carry a hundred thousand samples — so "how many
+// would this take off" is a number the server says, not one this counts.
 export default class SetReviewerAccess extends Component<Signature> {
   @service declare requestManager: RequestManager;
   @service declare toast: ToastService;
 
-  @tracked access: AccessState = { enabled: false, url: null, expires_at: null, expired: false, accessions: [] };
+  @tracked access: AccessState = NO_LINK;
   @tracked preset: Preset = 'week';
   @tracked customDate = '';
   @tracked accessions = '';
   @tracked busy = false;
   @tracked confirming: Confirmable | null = null;
+
+  // What is on the link, a page at a time.
+  @tracked shared: SharedAccession[] = [];
+  @tracked sharedPage = 1;
+  @tracked sharedPages = 1;
+
+  // What could go on it — the reader's own accessions in the set. Behind a
+  // press because it is a second request for something a submitter who
+  // knows their numbers never opens.
+  @tracked mine: SetAccession[] = [];
+  @tracked minePage = 1;
+  @tracked minePages = 1;
+  @tracked mineTotal = 0;
+  @tracked browsing = false;
 
   // Errors land beside the control that caused them: the likely one here
   // is an accession that is not in the set, and what to do about it is to
@@ -67,18 +182,6 @@ export default class SetReviewerAccess extends Component<Signature> {
     return `/sets/${this.args.setId}/reviewer_access`;
   }
 
-  get shared(): SharedAccession[] {
-    return this.access.accessions;
-  }
-
-  // How much a Revoke would take with it, and how much of that is not the
-  // presser's to take. Anybody in the set may revoke — waiting for one
-  // person to kill a URL that has got out is the wrong way round — so the
-  // button has to say what it costs before it fires.
-  get theirs() {
-    return this.shared.filter((a) => !a.owned).length;
-  }
-
   // Custom expiry needs a date before the link can be minted.
   get enableDisabled() {
     return this.busy || (this.preset === 'custom' && !this.customDate);
@@ -90,7 +193,7 @@ export default class SetReviewerAccess extends Component<Signature> {
 
   // One per line is what somebody pasting out of a manuscript has, but a
   // comma-separated list is what they have as often — so both, rather
-  // than a format to get right.
+  // than a format to get right. A range is one entry, not two.
   get parsed() {
     return this.accessions.split(/[\s,]+/).filter(Boolean);
   }
@@ -102,6 +205,38 @@ export default class SetReviewerAccess extends Component<Signature> {
     const { content } = await this.requestManager.request<AccessState>({ url: this.endpoint });
 
     this.access = content;
+
+    if (content.enabled) {
+      await this.loadShared(this.sharedPage);
+    } else {
+      this.shared = [];
+      this.sharedPages = 1;
+    }
+
+    if (this.browsing) await this.loadMine(this.minePage);
+  }
+
+  async loadShared(page: number) {
+    const { content, response } = await this.requestManager.request<SharedAccession[]>({
+      url: `${this.endpoint}/accessions`,
+      options: { params: { page }, reportErrors: false },
+    });
+
+    this.shared = content;
+    this.sharedPage = page;
+    this.sharedPages = Number(response?.headers?.get('Total-Pages')) || 1;
+  }
+
+  async loadMine(page: number) {
+    const { content, response } = await this.requestManager.request<SetAccession[]>({
+      url: `/sets/${this.args.setId}/accessions`,
+      options: { params: { page }, reportErrors: false },
+    });
+
+    this.mine = content;
+    this.minePage = page;
+    this.minePages = Number(response?.headers?.get('Total-Pages')) || 1;
+    this.mineTotal = Number(response?.headers?.get('Total-Count')) || 0;
   }
 
   expiresAtISO() {
@@ -131,9 +266,11 @@ export default class SetReviewerAccess extends Component<Signature> {
     this.customDate = (e.target as HTMLInputElement).value;
   }
 
-  // Replacing a URL and revoking one are both irreversible and both leave
-  // the building, so both ask first — and the asking is where the price is
-  // named, because neither button can say it on its own.
+  // Three presses that ask first, for two different reasons. Replacing a
+  // URL and revoking one are irreversible and leave the building, so they
+  // are amber. Sharing everything is undoable a row at a time and stays
+  // primary — what it needs said is not "are you sure" but how many, and
+  // a button cannot count on its own.
   @action
   ask(what: Confirmable) {
     this.confirming = what;
@@ -142,6 +279,34 @@ export default class SetReviewerAccess extends Component<Signature> {
   @action
   cancel() {
     this.confirming = null;
+  }
+
+  @action
+  async browse() {
+    this.browsing = true;
+
+    await this.run(() => this.loadMine(1), { onError: (m) => (this.accessionsError = m) });
+  }
+
+  // One row, from the browse list. The same press as typing its number
+  // into the box, which is why it goes the same way.
+  @action
+  shareOne(accession: string) {
+    return this.share({ accessions: [accession] });
+  }
+
+  // Through `run` like every other request in this component: paging is
+  // the one that can be pressed twice in a second, so without `busy` two
+  // overlapping reads race and the last one back decides both the rows
+  // and the page number they are labelled with.
+  @action
+  async goShared(page: number) {
+    await this.run(() => this.loadShared(page), { onError: (m) => (this.accessionsError = m) });
+  }
+
+  @action
+  async goMine(page: number) {
+    await this.run(() => this.loadMine(page), { onError: (m) => (this.accessionsError = m) });
   }
 
   @action
@@ -171,11 +336,16 @@ export default class SetReviewerAccess extends Component<Signature> {
         : 'Review link enabled.',
       'success',
     );
+
+    // The POST answered with the link, so there is nothing to re-read
+    // about it. What it does not carry is the list — replacing a URL
+    // leaves that alone, and enabling a first one starts it empty.
+    await this.loadShared(1);
   }
 
   @action
   async disable() {
-    const taken = this.shared.length;
+    const taken = this.access.count;
 
     const ok = await this.run(
       async () => {
@@ -185,7 +355,10 @@ export default class SetReviewerAccess extends Component<Signature> {
           options: { reportErrors: false },
         });
 
-        this.access = { enabled: false, url: null, expires_at: null, expired: false, accessions: [] };
+        this.access = NO_LINK;
+        this.shared = [];
+        this.sharedPage = 1;
+        this.sharedPages = 1;
       },
       { onError: (m) => (this.linkError = m) },
     );
@@ -202,9 +375,20 @@ export default class SetReviewerAccess extends Component<Signature> {
   }
 
   @action
-  async add(e: Event) {
+  add(e: Event) {
     e.preventDefault();
 
+    return this.share({ accessions: this.parsed });
+  }
+
+  @action
+  shareAll() {
+    return this.share({ all: true });
+  }
+
+  // The two forms differ only in what is posted; what happens afterwards —
+  // the counts, the re-read — is the same press either way.
+  async share(data: { accessions: string[] } | { all: true }) {
     let added = 0;
     let already = 0;
 
@@ -213,18 +397,21 @@ export default class SetReviewerAccess extends Component<Signature> {
         const { content } = await this.requestManager.request<AddResult>({
           url: `${this.endpoint}/accessions`,
           method: 'POST',
-          data: { accessions: this.parsed },
+          data,
           options: { reportErrors: false },
         });
 
         added = content.added;
         already = content.already_shared;
-        this.accessions = '';
+
+        if ('accessions' in data) this.accessions = '';
       },
       { onError: (m) => (this.accessionsError = m) },
     );
 
     if (!ok) return;
+
+    this.confirming = null;
 
     // Both numbers. "8 added" alone leaves somebody who pasted ten
     // wondering what happened to the other two.
@@ -252,6 +439,11 @@ export default class SetReviewerAccess extends Component<Signature> {
     if (!ok) return;
 
     this.toast.show('Taken off the link.', 'success');
+
+    // Back a page if that was the last row on the last page, so taking the
+    // final accession off does not leave somebody looking at an empty
+    // page 3 wondering where their list went.
+    if (this.shared.length === 1 && this.sharedPage > 1) this.sharedPage -= 1;
 
     await this.load();
   }
@@ -390,21 +582,53 @@ export default class SetReviewerAccess extends Component<Signature> {
               stays — it is not yours to take off.
             </p>
 
-            <button type="button" class="btn btn-warning me-1" disabled={{this.busy}} {{on "click" this.enable}}>
+            <button
+              type="button"
+              class="btn btn-warning me-1"
+              disabled={{this.busy}}
+              data-test-confirm-action
+              {{on "click" this.enable}}
+            >
               Replace the link
+            </button>
+          {{else if (eq this.confirming "shareAll")}}
+            <p class="mb-2">
+              Everything of yours in this set —
+              {{this.mineTotal}}
+              {{if (eq this.mineTotal 1) "accession" "accessions"}}
+              — goes on the link, and anybody holding the URL can read them. You can take any of them off again
+              afterwards.
+            </p>
+
+            <button
+              type="button"
+              class="btn btn-primary me-1"
+              disabled={{this.busy}}
+              data-test-confirm-action
+              {{on "click" this.shareAll}}
+            >
+              Put all
+              {{this.mineTotal}}
+              on the link
             </button>
           {{else}}
             <p class="mb-2">
               The link stops working and everything on it comes off —
-              {{this.shared.length}}
-              {{if (eq this.shared.length 1) "accession" "accessions"}}{{#if this.theirs}},
-                {{this.theirs}}
+              {{this.access.count}}
+              {{if (eq this.access.count 1) "accession" "accessions"}}{{#if this.access.others}},
+                {{this.access.others}}
                 of them other people's{{/if}}. Issuing a new link afterwards starts it empty.
             </p>
 
-            <button type="button" class="btn btn-warning me-1" disabled={{this.busy}} {{on "click" this.disable}}>
+            <button
+              type="button"
+              class="btn btn-warning me-1"
+              disabled={{this.busy}}
+              data-test-confirm-action
+              {{on "click" this.disable}}
+            >
               Revoke and take off
-              {{this.shared.length}}
+              {{this.access.count}}
             </button>
           {{/if}}
 
@@ -414,6 +638,15 @@ export default class SetReviewerAccess extends Component<Signature> {
 
       {{#if this.access.enabled}}
         {{#if this.shared}}
+          {{! "Put on", not "is on": the count is of rows named on the
+          link, and a row whose submission has since left the set is
+          still named without being shown. }}
+          <p class="small text-body-secondary mb-1" data-test-shared-count>
+            {{this.access.count}}
+            {{if (eq this.access.count 1) "accession has" "accessions have"}}
+            been put on this link.
+          </p>
+
           <div class="table-responsive">
             <table class="table align-middle" data-test-shared>
               <thead>
@@ -460,11 +693,28 @@ export default class SetReviewerAccess extends Component<Signature> {
               </tbody>
             </table>
           </div>
+
+        {{else if this.access.count}}
+          {{! Reachable without anybody doing anything wrong: the rows are
+          resolved through the set on every read, so a page can empty
+          while somebody is looking at it. The pager below is how they get
+          back, which is why it is outside this branch. }}
+          <p class="text-body-secondary small">
+            Nothing on this page. The submissions these accessions belong to may have left the set.
+          </p>
         {{else}}
           <p class="text-body-secondary small">
             The link carries nothing yet, so anybody opening it sees an empty page.
           </p>
         {{/if}}
+
+        <Pager
+          @page={{this.sharedPage}}
+          @pages={{this.sharedPages}}
+          @busy={{this.busy}}
+          @go={{this.goShared}}
+          @label="what is on the link"
+        />
 
         <form {{on "submit" this.add}}>
           <div class="row g-2 align-items-end">
@@ -479,7 +729,7 @@ export default class SetReviewerAccess extends Component<Signature> {
                   id={{id}}
                   class="form-control {{if this.accessionsError 'is-invalid'}}"
                   rows="3"
-                  placeholder="PRJDB1234&#10;SAMD00000001"
+                  placeholder="PRJDB1234&#10;SAMD00000001-SAMD00000050"
                   @value={{this.accessions}}
                 />
 
@@ -495,10 +745,94 @@ export default class SetReviewerAccess extends Component<Signature> {
           </div>
 
           <p class="form-text">
-            One per line, or separated by commas. They have to be in this set already, and yours — a colleague's
-            accession is theirs to put on.
+            One per line, or separated by commas. A first and a last with a hyphen between them —
+            <code>SAMD00000001-SAMD00000050</code>
+            — shares whichever of yours fall inside, which is how you share a block except the last few. They have to be
+            in this set already, and yours: a colleague's accession is theirs to put on.
           </p>
         </form>
+
+        {{! Behind a press: a submitter who has their numbers to hand never
+        opens it, and it is a second request. }}
+        {{#if this.browsing}}
+          <div class="mt-3" data-test-mine>
+            <p class="small text-body-secondary mb-1">
+              You have
+              {{this.mineTotal}}
+              {{if (eq this.mineTotal 1) "accession" "accessions"}}
+              in this set.
+            </p>
+
+            <div class="table-responsive">
+              <table class="table table-sm align-middle">
+                <thead>
+                  <tr>
+                    <th scope="col">Accession</th>
+                    <th scope="col">Database</th>
+                    <th scope="col">Name</th>
+                    <th scope="col"><span class="visually-hidden">Actions</span></th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {{#each this.mine as |accession|}}
+                    <tr>
+                      <td class="font-monospace">{{accession.accession}}</td>
+                      <td>{{dbLabel accession.db}}</td>
+
+                      <td>
+                        {{#if accession.name}}
+                          {{accession.name}}
+                        {{else}}
+                          <span class="text-body-tertiary">—</span>
+                        {{/if}}
+                      </td>
+
+                      <td class="text-end">
+                        {{#if accession.shared}}
+                          <span class="text-body-secondary small">On the link</span>
+                        {{else}}
+                          <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            disabled={{this.busy}}
+                            aria-label="Put {{accession.accession}} on the link"
+                            {{on "click" (fn this.shareOne accession.accession)}}
+                          >
+                            Share
+                          </button>
+                        {{/if}}
+                      </td>
+                    </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+            </div>
+
+            <Pager
+              @page={{this.minePage}}
+              @pages={{this.minePages}}
+              @busy={{this.busy}}
+              @go={{this.goMine}}
+              @label="your accessions"
+            />
+
+            <button
+              type="button"
+              class="btn btn-outline-primary btn-sm"
+              disabled={{this.busy}}
+              data-test-share-all
+              {{on "click" (fn this.ask "shareAll")}}
+            >
+              Share all
+              {{this.mineTotal}}
+            </button>
+          </div>
+        {{else}}
+          <button type="button" class="btn btn-link px-0" {{on "click" this.browse}} data-test-browse>
+            Show my accessions in this set
+          </button>
+        {{/if}}
       {{/if}}
     </section>
   </template>
