@@ -32,8 +32,6 @@ class SubmissionRequest < ApplicationRecord
   has_many :followers, -> { merge(SubmissionRequestParticipant.subscribed) },
            through: :participations, source: :user
 
-  has_one :reviewer_access, dependent: :destroy
-
   # Which collaborations this submission has been shared into. Many,
   # because a BioProject is a hub: the sets hanging off one are
   # different studies rather than one.

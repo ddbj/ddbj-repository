@@ -1,26 +1,27 @@
-# Reviewer-facing view of a submission request. Deliberately a separate
-# template from submission_requests/show so the two can diverge; this is
-# where they do. No viewer — a share-link holder is not authenticated,
-# and must not learn that a curator asked something, when the thread was
-# last touched, or who else is working on this.
+# What a share-link holder sees: the set's name, when the link stops
+# working, and the accessions that have been put on it.
 #
-# The file URLs carry the share token, so revoking the share revokes the
-# files with it. `submission_record` rather than `ddbj_record` for the
-# applied one, so the two uploads a reviewer can see are not one word
-# apart.
+# Its own template rather than anything the set's members are served, and
+# this is where the two differ rather than where they happen to agree.
+# There is no roster here, no conversation, no submission, no owner and no
+# curation status — a reviewer is being shown some records, not a
+# collaboration and not DDBJ's handling of it.
 #
-# These are the one set of file URLs a plain anchor can still follow —
-# the token in the path is the whole credential — so they say
-# `disposition=attachment` here instead. Without it a reviewer clicking
-# a flatfile gets a browser trying to paint a multi-gigabyte record in a
-# tab, which is not a download and not a page either.
-render(
-  partial: 'submission_requests/submission_request',
+# The rows are resolved through the set every time (ReviewerAccess#
+# shared_rows), so a submission taken out of the set is gone from here
+# without anything having to remember to remove it.
+{
+  name:       @access.set.name,
+  expires_at: @access.expires_at,
 
-  locals: {
-    submission_request:  @request,
-    viewer:              nil,
-    request_file_url:    ->(_name) { review_file_url(params[:token], 'ddbj_record', disposition: 'attachment') },
-    submission_file_url: ->(name) { review_file_url(params[:token], name == 'ddbj_record' ? 'submission_record' : name, disposition: 'attachment') }
+  accessions: @rows.map {|row|
+    facts = AccessionFacts.for(row)
+
+    {
+      accession: facts.accession,
+      db:        facts.db,
+      name:      facts.name,
+      details:   facts.details
+    }
   }
-)
+}

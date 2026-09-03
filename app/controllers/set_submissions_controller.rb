@@ -78,21 +78,22 @@ class SetSubmissionsController < ApplicationController
     render :create
   end
 
+  # Under the same lock as adding. Taking a submission out now also takes
+  # its accessions off the set's review link, and without the lock an add
+  # that had already resolved them could commit afterwards — leaving a
+  # link naming a submission that is no longer in the set, and re-sharing
+  # it the day somebody puts the submission back.
   def destroy
-    submission_set_inclusion = @set.inclusions.find_by!(submission_request_id: params.expect(:submission_request_id))
+    within_submission_set_membership(@set) do
+      submission_set_inclusion = @set.inclusions.find_by!(submission_request_id: params.expect(:submission_request_id))
 
-    unless submission_set_inclusion.submission_request.user_id == current_user.id
-      forbid! 'Only the submission owner can take it out of a set.'
+      unless submission_set_inclusion.submission_request.user_id == current_user.id
+        forbid! 'Only the submission owner can take it out of a set.'
+      end
+
+      submission_set_inclusion.destroy!
     end
 
-    submission_set_inclusion.destroy!
-
     head :no_content
-  end
-
-  private
-
-  def load_set
-    @set = SubmissionSet.joined_by(current_user).find(params.expect(:set_id))
   end
 end

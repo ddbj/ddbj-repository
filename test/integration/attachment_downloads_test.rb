@@ -114,47 +114,6 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  # A reviewer's files ride on the share token, so revoking the share
-  # revokes them. Under Active Storage's own route the URLs they had
-  # collected went on working for ever, which made "disable the link"
-  # mean less than it says.
-  test 'a reviewer fetches on the share token, and loses the files with it' do
-    access = @submission_request.create_reviewer_access!(expires_at: 1.week.from_now)
-
-    default_headers.delete('Authorization')
-
-    %w[ddbj_record submission_record flatfile_na flatfile_aa].each do |name|
-      get review_file_path(access.token, name)
-
-      assert_response :redirect, name
-    end
-
-    access.destroy!
-
-    with_exceptions_app { get review_file_path(access.token, 'ddbj_record') }
-
-    assert_response :not_found
-  end
-
-  test 'an expired share is as good as no share' do
-    access = @submission_request.create_reviewer_access!(expires_at: 1.week.from_now)
-    access.update_columns(expires_at: 1.day.ago)
-
-    default_headers.delete('Authorization')
-
-    with_exceptions_app { get review_file_path(access.token, 'ddbj_record') }
-
-    assert_response :not_found
-  end
-
-  # The reviewer view never shows the conversation, so it must not be a
-  # way to its attachments either.
-  test 'the reviewer route names only the files the reviewer view shows' do
-    assert_raises(ActionController::UrlGenerationError) do
-      review_file_path('sometoken', 'patch')
-    end
-  end
-
   # Active Storage's own direct-upload endpoint is public by design. Ours
   # is not: it mints a blob row and a presigned PUT, and redrawing it
   # unauthenticated would let anybody fill the bucket.

@@ -30,10 +30,11 @@ export const handlers = [
     return response(200).json([]);
   }),
 
-  // The request detail page loads the reviewer-access state; default to
-  // disabled so tests that don't care about it don't have to stub it.
-  http.get('/submission_requests/{submission_request_id}/reviewer_access', ({ response }) => {
-    return response(200).json({ enabled: false });
+  // The set page loads the review-link state; default to disabled so the
+  // tests that are about the roster or the submissions don't have to stub
+  // it.
+  http.get('/sets/{set_id}/reviewer_access', ({ response }) => {
+    return response(200).json({ enabled: false, url: null, expires_at: null, expired: false, accessions: [] });
   }),
 
   // The set page renders the set's own thread; default to empty so the

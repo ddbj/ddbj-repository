@@ -16,8 +16,6 @@ export default class ReviewRoute extends Route {
       url: `/reviews/${token}`,
     });
 
-    // Keep the token alongside the request so the template can link to the
-    // nested (token-scoped) accessions route.
-    return { token, request: content };
+    return content;
   }
 }

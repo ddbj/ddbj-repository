@@ -1,0 +1,50 @@
+# The set's own view of its review link: whether there is one, where it
+# points, whether it still works, and what is on it.
+#
+# Not the reviewer's template. That one carries the facts each record
+# states; this one carries who each accession belongs to and whether the
+# reader may take it off, which is the whole of what a member needs and
+# none of what a reviewer should be told.
+#
+# Every key is present either way, with nulls where there is no link. The
+# alternative — a two-key body when disabled — reads more tidily and
+# leaves the contract unable to say that an enabled link has a URL, which
+# is the one thing worth checking.
+if @access
+  {
+    enabled:    true,
+    url:        @access.share_url,
+    expires_at: @access.expires_at,
+
+    # A link past its expiry still exists and can still be replaced, but
+    # it 404s for whoever holds it. The screen has to be able to say so:
+    # a Copy button over a dead URL is worse than no button.
+    expired: @access.expired?,
+
+    accessions: @rows.map {|row|
+      facts = AccessionFacts.for(row)
+
+      {
+        accession: facts.accession,
+        db:        facts.db,
+        name:      facts.name,
+
+        # Whose it is, and whether it is yours to take off. Said by the
+        # server for the same reason `owned` is on a set's submissions:
+        # under a proxy login the account the client believes it is is not
+        # the account the server acts as, so comparing uids in the browser
+        # gets it backwards.
+        owner_uid: row.submission.user.uid,
+        owned:     row.submission.user_id == @viewer.id
+      }
+    }
+  }
+else
+  {
+    enabled:    false,
+    url:        nil,
+    expires_at: nil,
+    expired:    false,
+    accessions: []
+  }
+end

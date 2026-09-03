@@ -1,0 +1,7 @@
+# Counts rather than the link itself: the client re-reads it anyway, and
+# both numbers are needed — "8 added" alone leaves somebody who pasted ten
+# wondering what happened to the other two.
+{
+  added:          @added,
+  already_shared: @already_shared
+}

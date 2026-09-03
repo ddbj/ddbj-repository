@@ -59,9 +59,4 @@ class SetMessagesController < ApplicationController
   end
 
   private
-
-  # A set you are not in is not visible as a set you are not in.
-  def load_set
-    @set = SubmissionSet.joined_by(current_user).find(params.expect(:set_id))
-  end
 end

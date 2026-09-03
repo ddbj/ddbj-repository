@@ -1,10 +1,10 @@
 # locals: (attachment:, url:)
 #
-# `url` is handed in rather than built here. There is no one URL for a
-# file any more: the same upload is reached by its owner through the
-# request, by a reviewer through their share token, and by a curator
-# through the admin session — and which of those is asking is what
-# authorises the read. See AttachmentDownload.
+# `url` is handed in rather than built here, because the route that names
+# a file depends on which record holds it — a request's upload is reached
+# through the request, a submission's through the submission — and the
+# route is what re-asks whether the caller may have it (see
+# AttachmentDownload). All this partial knows is that there is a file.
 
 attachment.attached? ? {
   filename: attachment.filename,

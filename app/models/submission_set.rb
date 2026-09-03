@@ -33,6 +33,12 @@ class SubmissionSet < ApplicationRecord
   has_many :inclusions, class_name: 'SubmissionSetInclusion', inverse_of: :set, dependent: :destroy
   has_many :submission_requests, through: :inclusions
 
+  # The set's review link, if anybody has enabled one. Onto the set rather
+  # than onto a submission: a paper is a set, and a reviewer given one link
+  # per submission is being asked to do the bundling themselves. See
+  # ReviewerAccess for who may enable it and who may put what on it.
+  has_one :reviewer_access, inverse_of: :set, dependent: :destroy
+
   # The set's own conversation — see SubmissionSetMessage for why it is a
   # thread of its own rather than a message copied into the submissions'.
   has_many :messages, -> { chronological }, class_name: 'SubmissionSetMessage', inverse_of: :set, dependent: :destroy
@@ -199,6 +205,29 @@ class SubmissionSet < ApplicationRecord
     return {} if user.nil? || Array(ids).empty?
 
     unread_curator_messages(user).where(submission_set_id: ids).group(:submission_set_id).count
+  end
+
+  # The rows in this set carrying these accession numbers, whichever
+  # database they came from — one Project, some Samples, some Entries, in
+  # whatever mixture the set holds. Ordered by accession, because to
+  # somebody reading a list of them the number is the only thing all three
+  # share.
+  #
+  # Bounded by the list it is handed, never by the set: a set can hold a
+  # submission of 100K samples, and nothing here may be the thing that
+  # loads it. Callers cap what they pass in.
+  #
+  # A submission still waiting to be applied has no rows and no
+  # accessions, so it contributes nothing without being special-cased.
+  def accession_rows(accessions)
+    numbers = Array(accessions).compact_blank
+    return [] if numbers.empty?
+
+    submission_ids = submission_requests.where.not(submission_id: nil).select(:submission_id)
+
+    Submission.accession_row_models.flat_map {
+      it.where(submission_id: submission_ids, accession: numbers).includes(submission: :user).to_a
+    }.sort_by(&:accession)
   end
 
   def member?(user)

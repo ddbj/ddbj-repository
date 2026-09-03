@@ -27,11 +27,10 @@ Router.map(function () {
     this.route('accessions');
   });
 
-  // Unauthenticated reviewer view, reached via a share link. The request
-  // is fetched by its opaque token, not by id.
-  this.route('review', { path: 'reviews/:token' }, function () {
-    this.route('accessions');
-  });
+  // Unauthenticated reviewer view, reached via a share link. The set is
+  // fetched by its opaque token, not by id, and nothing hangs off it —
+  // the link carries accessions, and they are the page.
+  this.route('review', { path: 'reviews/:token' });
 
   this.route('sets');
   this.route('set', { path: 'sets/:set_id' });

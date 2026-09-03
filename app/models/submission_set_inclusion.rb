@@ -22,7 +22,43 @@ class SubmissionSetInclusion < ApplicationRecord
 
   validate :addable_by_adder
 
+  # Taking a submission out of the set takes its accessions off the set's
+  # review link.
+  #
+  # Not what stops a reviewer seeing them — the link resolves what it
+  # carries through the set's current contents, so they are gone the
+  # moment this row is. What this stops is their coming back: without it,
+  # putting the submission in again would quietly re-share whatever was
+  # named on the link the last time it was here.
+  after_destroy :unshare_accessions
+
   private
+
+  # Looks in all three tables rather than in the one this submission's
+  # database uses, because that is what resolves the link
+  # (SubmissionSet#accession_rows). Asking a narrower question here than
+  # the read path asks is how an accession comes to be left behind and
+  # re-shared later — the exact thing this exists to prevent.
+  #
+  # Bounded by what is on the link, never by the submission: a pluck of at
+  # most ReviewerAccess::MAX_SHARED numbers, then three lookups on unique
+  # indexes. It does run once per inclusion, which for a departing member
+  # means once per submission of theirs — a constant on top of the
+  # per-row destroy it hangs off.
+  def unshare_accessions
+    access = set.reviewer_access or return
+
+    shared = access.shared_accessions.pluck(:accession)
+    return if shared.empty?
+
+    submission_id = submission_request.submission_id or return
+
+    mine = Submission.accession_row_models.flat_map {
+      it.where(submission_id:, accession: shared).pluck(:accession)
+    }
+
+    access.shared_accessions.where(accession: mine).delete_all if mine.any?
+  end
 
   # Your own submission, and nobody else's. Reading somebody else's
   # through a shared set does not carry the right to hand it on to a
