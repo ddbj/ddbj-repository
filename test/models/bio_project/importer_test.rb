@@ -274,9 +274,14 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
   end
 
   test 're-run with identical XML is :skipped and does not touch Submission / Project rows' do
-    first       = build.call.submission
-    first_run   = first.migration_run_id
-    first_seen  = first.updated_at
+    first     = build.call.submission
+    first_run = first.migration_run_id
+
+    # From the database, not from `first`. The import writes the row again
+    # after this object last read it — the materialised-record cache — so
+    # the attribute in memory is a few milliseconds behind what is stored,
+    # and a baseline taken from it is comparing two different instants.
+    first_seen  = first.reload.updated_at
     first_title = first.project.title
 
     travel 1.second
@@ -287,7 +292,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
 
     submission = second.submission
     assert_equal first_run, submission.reload.migration_run_id, 'migration_run_id must NOT be restamped on :skipped'
-    assert_equal first_seen.to_i, submission.updated_at.to_i,    'updated_at must NOT be bumped on :skipped'
+    assert_equal first_seen, submission.updated_at, 'updated_at must NOT be bumped on :skipped'
     assert_equal 'Curator-edited title', submission.project.reload.title,
                  'Project columns must NOT be clobbered by an idempotent re-run'
     refute_equal first_title, 'Curator-edited title' # sanity: the precondition flipped

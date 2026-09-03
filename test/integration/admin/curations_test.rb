@@ -84,7 +84,7 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
             params: {curation: {status: 'curating', assignee_id: users(:bob).id, curator_comment: 'note'}}
     end
 
-    assert_equal before.to_i, @project.reload.updated_at.to_i
+    assert_equal before, @project.reload.updated_at
     assert_equal 'note',      @submission.reload.curator_comment
   end
 

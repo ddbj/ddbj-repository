@@ -49,13 +49,13 @@ class MigrationRunTest < ActiveSupport::TestCase
 
   test 'merge_counters! is a no-op for empty input (avoids spurious UPDATE)' do
     run = MigrationRun.create!(db: 'bioproject', counters: {'created' => 3})
-    before = run.updated_at
+    before = run.reload.updated_at
 
     travel 1.second do
       run.merge_counters!({})
     end
 
-    assert_equal before.to_i, run.reload.updated_at.to_i, 'empty increments must not bump updated_at'
+    assert_equal before, run.reload.updated_at, 'empty increments must not bump updated_at'
   end
 
   test 'append_error! concatenates messages with newlines, skipping blanks' do
