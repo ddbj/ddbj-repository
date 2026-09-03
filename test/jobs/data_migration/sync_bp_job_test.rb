@@ -238,7 +238,7 @@ class DataMigration::SyncBpJobTest < ActiveJob::TestCase
 
     assert_equal 'completed', run.status
     assert_equal counters_after_first, run.counters, 'completed run must not have counters double-incremented'
-    assert_equal started_at_after_first.to_i, run.started_at.to_i, 'completed run must not bump started_at'
+    assert_equal started_at_after_first, run.started_at, 'completed run must not bump started_at'
   end
 
   test 'cursor stored verbatim — resume picks up at next id, not skipping the cursor row' do
