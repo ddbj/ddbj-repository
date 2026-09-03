@@ -15,7 +15,7 @@ class AttentionsController < ApplicationController
     @requests = current_user
       .submission_requests
       .needs_submitter_action
-      .includes(:submission)
+      .includes(:validation, :submission)
       .order(id: :desc)
 
     # The set axis, as one number rather than as entries in the band.

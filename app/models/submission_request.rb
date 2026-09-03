@@ -152,6 +152,50 @@ class SubmissionRequest < ApplicationRecord
   # same fact in two places.
   def closable? = !closed? && ACTION_STATUSES.include?(status)
 
+  # Sentences rather than codes: each is the whole of what the screen has
+  # to say, and there is nothing here for a client to branch on. Each of
+  # them names the way out, and each of those has a control on the screen.
+  #
+  # Closed is the one worth spelling out. Sending a closed request would
+  # leave `closed_at` set through curation and release — where the client
+  # reads it before everything else and would report a public record as
+  # one the submitter had put down. Reopening first is what the screen
+  # already tells them to do.
+  SEND_CLOSED     = 'This request is closed. Reopen it before sending it to DDBJ.'.freeze
+  SEND_NOT_READY  = 'Only a request whose check has passed can be sent to DDBJ.'.freeze
+  SEND_NOT_PASSED = 'The check on this request did not pass, so there is nothing to send.'.freeze
+
+  # Derived rather than written out, so the window and the sentence cannot
+  # drift apart.
+  SEND_STALE = "This check is more than #{Validation::FRESH_FOR.in_hours.to_i} hours old, and a submission is sent on the strength of a current one. Check the file again before sending it.".freeze
+
+  # Whether "Send to DDBJ" can go through, and if not, why.
+  #
+  # Said by the server for the reason `closable` is: the rule is the
+  # server's, and a screen that re-derived it from the status would offer
+  # the button in a case the endpoint refuses — which is what a stale
+  # check was, a button that answered 404 because the request had fallen
+  # out of a `find` scope rather than because it was missing.
+  def sendable? = send_blocked_reason.nil?
+
+  def send_blocked_reason
+    return SEND_CLOSED     if closed?
+    return SEND_NOT_READY  unless ready_to_apply?
+
+    # Belt as well as braces: only the validator sets `ready_to_apply`,
+    # and only when nothing failed, so this cannot fire on a record it
+    # wrote. It is here because the alternative to checking is trusting a
+    # status column to hand a record to DDBJ.
+    return SEND_NOT_PASSED unless validation&.passed?
+    return SEND_STALE      unless validation.fresh?
+
+    nil
+  end
+
+  # Whether the check can be run again. The way out of a stale one: the
+  # file is not in question, the answer about it has expired.
+  def recheckable? = !closed? && !processing? && ddbj_record.attached?
+
   # Straight to the column, for the same reason `assign!` is: `validates
   # :ddbj_record, attached: true` guards the submitter's upload flow, and
   # letting it refuse a closure would mean a request whose blob went

@@ -46,6 +46,9 @@ module('Acceptance | submission request', function (hooks) {
       created_at: now,
       closed_at: null,
       closable: false,
+      sendable: false,
+      send_blocked_reason: null,
+      recheckable: false,
       processing: false,
 
       ddbj_record: {
@@ -81,6 +84,7 @@ module('Acceptance | submission request', function (hooks) {
         return response(200).json({
           ...createdRequest,
           status: 'ready_to_apply',
+          sendable: true,
 
           validation: {
             id: 1,

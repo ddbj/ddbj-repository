@@ -29,6 +29,11 @@ Rails.application.routes.draw do
       resource  :status,          only: :show
       resource  :submission,      only: :create
 
+      # Running the check again. A check expires (Validation::FRESH_FOR)
+      # and the file does not, so the answer to a stale one is to ask
+      # again rather than to upload the same bytes as a new request.
+      resource  :validation,      only: :create
+
       # The attachment is named by the route, not carried as a signed
       # blob id — so one record's id cannot be presented with another
       # record's blob, and an attachment no route names has no way in.

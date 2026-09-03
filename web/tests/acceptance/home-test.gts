@@ -24,6 +24,7 @@ function summary(attrs: Partial<Summary> & Pick<Summary, 'id' | 'db'>): Summary 
     first_accession: null,
     accession_count: 0,
     processing: false,
+    sendable: false,
     unread_curator_message_count: 0,
     progress: {
       step: 'applied',

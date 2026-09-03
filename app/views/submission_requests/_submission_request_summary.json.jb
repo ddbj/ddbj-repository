@@ -16,7 +16,14 @@ state = states[submission_request.id] || CurationState.new(submission_request)
   # Enough for the client to say where this is in the submitter's own
   # words — the same inputs the detail screen answers it from, so a row
   # and the page it opens can never disagree.
+  #
+  # `sendable` earns its place here for that reason and no other: a check
+  # expires while its request stays `ready_to_apply`, so a row written off
+  # the status alone would say "ready to submit" about one the page
+  # refuses to send. The sentence stays on the page — the row has no room
+  # for it — but the fact they differ on has to be on both.
   processing:                   submission_request.processing?,
+  sendable:                     submission_request.sendable?,
   unread_curator_message_count: unread_counts.fetch(submission_request.id, 0),
 
   progress: render('submission_requests/progress', state: state)

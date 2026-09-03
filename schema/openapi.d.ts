@@ -288,6 +288,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submission_requests/{submission_request_id}/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_request_id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Run the check again.
+         *
+         *     The way out of a check that has gone stale: nothing is wrong with the
+         *     file, only the answer about it has expired (see `send_blocked_reason`).
+         *     A check replaces its predecessor rather than joining it.
+         *
+         *     Refused with a sentence for a request that is closed, already in
+         *     flight, or carries no file.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    submission_request_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The check has been queued. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submission_requests/{id}/status": {
         parameters: {
             query?: never;
@@ -2592,6 +2643,13 @@ export interface components {
             accession_count: number;
             /** @description Validation or application is running right now. */
             processing: boolean;
+            /**
+             * @description Whether "Send to DDBJ" can go through. Here as well as on the full
+             *     request because a check expires while its request stays
+             *     `ready_to_apply` — a row written off the status alone would say
+             *     "ready to submit" about one the page refuses to send.
+             */
+            sendable: boolean;
             unread_curator_message_count: number;
             progress: components["schemas"]["Progress"];
         };
@@ -2868,6 +2926,24 @@ export interface components {
              *     and never for somebody reading it through a shared set.
              */
             closable: boolean;
+            /**
+             * @description Whether "Send to DDBJ" can go through. Not derivable from `status`:
+             *     a check that passed goes stale, and after that the request is still
+             *     `ready_to_apply` and can no longer be sent.
+             */
+            sendable: boolean;
+            /**
+             * @description Why it cannot be sent, as a sentence to show — null when it can, and
+             *     null for somebody reading through a shared set, for whom nothing on
+             *     the page is pressable anyway.
+             */
+            send_blocked_reason: string | null;
+            /**
+             * @description Whether the check can be run again. The way out of a check that has
+             *     gone stale: nothing is wrong with the file, only the answer about it
+             *     has expired.
+             */
+            recheckable: boolean;
             /**
              * @description You are the submitter. False when you are reading this through a
              *     set somebody else's submission was shared into, in which case

@@ -94,12 +94,35 @@ export default class extends Component<Signature> {
   async apply() {
     const { model } = this.args;
 
-    await this.requestManager.request({
-      url: `/submission_requests/${model.id}/submission`,
-      method: 'POST',
-    });
+    // Refreshed whether or not it went through. A tab left open past the
+    // check's expiry lands here: the modal says why the press was
+    // refused, and without the refresh the button that just failed is
+    // still sitting there offering to fail again.
+    try {
+      await this.requestManager.request({
+        url: `/submission_requests/${model.id}/submission`,
+        method: 'POST',
+      });
+    } finally {
+      await this.router.refresh();
+    }
+  }
 
-    await this.router.refresh();
+  // Running the check again, which is what a submitter does about one
+  // that has expired. The file is unchanged; only the answer about it
+  // was out of date.
+  @action
+  async recheck() {
+    const { model } = this.args;
+
+    try {
+      await this.requestManager.request({
+        url: `/submission_requests/${model.id}/validation`,
+        method: 'POST',
+      });
+    } finally {
+      await this.router.refresh();
+    }
   }
 
   <template>
@@ -185,8 +208,41 @@ export default class extends Component<Signature> {
             flow and only one of them hands anything over; naming them
             after what they do to DDBJ rather than after the endpoint is
             what makes which is which readable. }}
+              {{! Disabled with the reason beside it, rather than
+            hidden — the same choice the set screen makes about Delete.
+            Hiding it removes the thing the sentence is attached to, and
+            leaves somebody working out that a paragraph is standing
+            where a button was.
+
+            The status still decides whether this screen is at the
+            sending step at all; what it no longer decides is whether the
+            press can go through, which is what `sendable` is for. }}
               {{#if (eq @model.status "ready_to_apply")}}
-                <button type="button" class="btn btn-primary" data-test-send {{on "click" this.apply}}>Send to DDBJ</button>
+                <button
+                  type="button"
+                  class="btn btn-primary"
+                  disabled={{unless @model.sendable true}}
+                  data-test-send
+                  {{on "click" this.apply}}
+                >Send to DDBJ</button>
+
+                {{#unless @model.sendable}}
+                  {{#if @model.recheckable}}
+                    {{! The way out. Nothing is wrong with the file — the
+                  answer about it has expired — so the move is to ask
+                  again, not to upload the same bytes as a new request. }}
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary"
+                      data-test-recheck
+                      {{on "click" this.recheck}}
+                    >Check again</button>
+                  {{/if}}
+
+                  <p class="text-body-secondary small mb-0 w-100" data-test-send-blocked>
+                    {{@model.send_blocked_reason}}
+                  </p>
+                {{/unless}}
               {{/if}}
 
               {{! Only where there is nothing else to do with the file. On a
