@@ -182,11 +182,19 @@ class Submission < ApplicationRecord
   # short-circuit on column presence alone without a round trip to
   # submission_updates.
   #
+  # The invariant has one hole the database cannot close: the stamp is a
+  # column and the cache is an object, and the object can go without the
+  # column hearing about it. That is a store that lost something it was
+  # told to keep, not a cold cache — `cached_record` reports it and
+  # replays.
+  #
   # `materialise_at(update_id:)` for historical snapshots does NOT
   # consult the cache — only the latest-state path is cached.
   def materialised_record
     if cached_at_update_id.present? && cached_materialised_record.attached?
-      return Oj.load(cached_materialised_record.download, mode: :strict)
+      cached = cached_record
+
+      return cached if cached
     end
 
     latest_id = updates.maximum(:id)
@@ -201,10 +209,15 @@ class Submission < ApplicationRecord
   # Raw cached bytes for the latest snapshot, or nil when the cache is
   # cold. Lets callers (e.g. the admin `materialised` controller) ship
   # the bytes verbatim without paying for Oj.load + re-encode.
+  #
+  # Nil for a gone object too, for the same reason and to the same effect:
+  # the admin controller's other branch materialises, which now works.
+  # Answering with the exception instead made the one screen a curator
+  # would open to look at the record the only reader that could not.
   def cached_materialised_bytes
     return nil unless cached_at_update_id.present? && cached_materialised_record.attached?
 
-    cached_materialised_record.download
+    read_cached_object
   end
 
   # Replay submission_updates up to and including `update_id` (defaults
@@ -400,6 +413,44 @@ class Submission < ApplicationRecord
     DDBJRecord::Canonicalizer.canonical_tree(record)
   rescue DDBJRecord::Canonicalizer::Error
     record
+  end
+
+  # The cached record, or nil to say "ask the chain instead".
+  #
+  # A cache is derived data and a miss is not a fact about the record. The
+  # object can be absent while the chain that produced it is intact — a
+  # store restored from an older backup, an environment pointed at a new
+  # bucket — and replaying is then the right answer rather than the
+  # expensive one. It was neither: the download raised out of here
+  # unwrapped, past the rescue in `BioProject::Importer#safe_prior_materialised`
+  # that exists to decide exactly this. What that cost depends on the
+  # caller — a sweep marks the row failed and walks on, a single-record
+  # import stops — and in both cases over a chain that was fine.
+  #
+  # Reported, not swallowed. A stamped row whose object has gone is the
+  # store having lost something it was told to keep — a cold cache is the
+  # stamp being nil, and never reaches here. The read then re-primes, so
+  # the evidence is gone by the next call unless it is taken now, which is
+  # how SeaweedFS died unnoticed twice (see StorageHealthcheckJob).
+  #
+  # Both shapes are caught because both have been seen from this store in
+  # one afternoon: ActiveStorage converts `NoSuchKey` on the paths this
+  # app uses, and a raw one still arrived. A store that is not answering
+  # is not here and must keep going up — see StorageFailure, and the
+  # comment on `safe_prior_materialised` for what reading it as "empty"
+  # would destroy.
+  def cached_record
+    bytes = read_cached_object or return nil
+
+    Oj.load(bytes, mode: :strict)
+  end
+
+  def read_cached_object
+    cached_materialised_record.download
+  rescue ActiveStorage::FileNotFoundError, Aws::S3::Errors::NoSuchKey => e
+    Rails.error.report e, context: {submission_id: id, update_id: cached_at_update_id}
+
+    nil
   end
 
   def write_through_cache(record, update_id)
