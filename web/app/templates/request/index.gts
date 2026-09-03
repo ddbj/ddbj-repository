@@ -185,8 +185,17 @@ export default class extends Component<Signature> {
             flow and only one of them hands anything over; naming them
             after what they do to DDBJ rather than after the endpoint is
             what makes which is which readable. }}
-              {{#if (eq @model.status "ready_to_apply")}}
+              {{#if @model.sendable}}
                 <button type="button" class="btn btn-primary" data-test-send {{on "click" this.apply}}>Send to DDBJ</button>
+              {{else if (eq @model.status "ready_to_apply")}}
+                {{#if @model.send_blocked_reason}}
+                  {{! Ready by its status and still not sendable, which is
+              what a check going stale looks like. The button used to be
+              offered here and answered 404 — the request had fallen out
+              of a scope, not gone missing — so what is shown instead is
+              the reason and the way out, in the server's words. }}
+                  <p class="text-body-secondary small mb-0" data-test-send-blocked>{{@model.send_blocked_reason}}</p>
+                {{/if}}
               {{/if}}
 
               {{! Only where there is nothing else to do with the file. On a

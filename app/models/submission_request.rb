@@ -152,6 +152,51 @@ class SubmissionRequest < ApplicationRecord
   # same fact in two places.
   def closable? = !closed? && ACTION_STATUSES.include?(status)
 
+  # How long a passed check stands for. A submission is sent on the
+  # strength of a check that was run against the reference data and the
+  # rules of the moment, and both move — so beyond this the answer is
+  # about a state of the world that has gone, and the file has to be
+  # checked again before it is handed over.
+  VALIDATION_FRESH_FOR = 1.day
+
+  # Sentences rather than codes, because each of them is the whole of what
+  # the screen has to say and there is nothing to branch on. Each names
+  # the way out, except the one that has none.
+  SEND_CLOSED     = 'This request has been put down. Reopen it before sending it to DDBJ.'.freeze
+  SEND_NOT_READY  = 'Only a request whose check has passed can be sent to DDBJ.'.freeze
+  SEND_UNCHECKED  = 'The check on this request did not pass, so there is nothing to send.'.freeze
+  SEND_STALE      = "The check that passed is more than #{VALIDATION_FRESH_FOR.inspect} old, and a submission is sent on the strength of a current one. Submit the file again to have it checked afresh.".freeze
+
+  # Whether "Send to DDBJ" can go through, and if not, why.
+  #
+  # Said by the server for the reason `closable` is: the rule is the
+  # server's, and a screen that re-derived it from the status would offer
+  # the button in a case the endpoint refuses — which is what a stale
+  # check was, a button that answered 404 because the request had fallen
+  # out of a `find` scope rather than because it was missing.
+  def sendable? = send_blocked_reason.nil?
+
+  def send_blocked_reason
+    return SEND_CLOSED    if closed?
+    return SEND_NOT_READY unless ready_to_apply?
+    return SEND_UNCHECKED unless validation_passed?
+    return SEND_STALE     unless validation_fresh?
+
+    nil
+  end
+
+  # The same two questions the endpoint used to ask as a scope. Asked of
+  # the record so that one answer serves both the screen and the write.
+  def validation_passed?
+    validation&.finished? && !validation.details.exists?(severity: :error)
+  end
+
+  def validation_fresh?
+    finished_at = validation&.finished_at or return false
+
+    finished_at > VALIDATION_FRESH_FOR.ago
+  end
+
   # Straight to the column, for the same reason `assign!` is: `validates
   # :ddbj_record, attached: true` guards the submitter's upload flow, and
   # letting it refuse a closure would mean a request whose blob went

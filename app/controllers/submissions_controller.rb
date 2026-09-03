@@ -17,21 +17,16 @@ class SubmissionsController < ApplicationController
   end
 
   def create
-    request = current_user.submission_requests.valid_only.joins(
-      :validation
-    ).where(
-      validations: {
-        finished_at: 1.day.ago..
-      }
-    ).find(params[:submission_request_id])
+    # Found by ownership alone. Every other reason it cannot be sent is
+    # asked of the record below and answered with a sentence: a request
+    # that is closed, or unchecked, or checked too long ago, is one the
+    # caller can see and is being refused — and 404 says the opposite of
+    # that. It used to be a scope, and a check that had gone stale
+    # overnight came back as "Not Found" against a request the screen was
+    # still offering a button for.
+    request = current_user.submission_requests.find(params[:submission_request_id])
 
-    # Closed means "not taking this further", and applying it anyway
-    # would leave `closed_at` set through curation and release — where
-    # the client reads it before everything else and would report a
-    # public record as one the submitter had put down. Reopening first is
-    # what the screen already tells them to do.
-    raise ActiveRecord::RecordInvalid if request.closed?
-    raise ActiveRecord::RecordInvalid unless request.ready_to_apply?
+    refuse! request.send_blocked_reason unless request.sendable?
 
     request.waiting_application!
 

@@ -26,6 +26,8 @@ function failedRequest(attrs: Partial<SubmissionRequest> = {}): SubmissionReques
     created_at: now,
     closed_at: null,
     closable: true,
+    sendable: false,
+    send_blocked_reason: null,
     processing: false,
     ddbj_record: { filename: 'test.json', url: 'http://example.com/test.json' },
     validation: null,

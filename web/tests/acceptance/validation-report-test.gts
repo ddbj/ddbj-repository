@@ -27,6 +27,8 @@ function requestWith(details: Detail[]): SubmissionRequest {
     created_at: now,
     closed_at: null,
     closable: true,
+    sendable: true,
+    send_blocked_reason: null,
     processing: false,
     last_message_at: null,
     sets: [],
@@ -234,5 +236,36 @@ module('Acceptance | validation report', function (hooks) {
 
     assert.dom('[data-test-validation-report]').doesNotExist();
     assert.dom('[data-test-send]').hasText('Send to DDBJ');
+  });
+
+  // A check that passed goes stale, and the request stays `ready_to_apply`
+  // while it does. The button used to be offered on the status alone and
+  // answered 404 — the request had fallen out of a scope, not gone
+  // missing — so what is shown now is why, and what to do about it.
+  test('a check that has gone stale says so where the button was', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json({
+          ...requestWith([]),
+          status: 'ready_to_apply',
+          sendable: false,
+          send_blocked_reason: 'The check that passed is more than 1 day old. Submit the file again.',
+          validation: {
+            id: 1,
+            progress: 'finished',
+            created_at: now,
+            finished_at: now,
+            validity: 'valid',
+            details: [],
+          },
+        }),
+      ),
+    );
+
+    await visit('/requests/42');
+
+    assert.dom('[data-test-send]').doesNotExist();
+    assert.dom('[data-test-send-blocked]').includesText('more than 1 day old');
+    assert.dom('[data-test-send-blocked]').includesText('Submit the file again');
   });
 });

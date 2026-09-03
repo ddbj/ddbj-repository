@@ -426,8 +426,8 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   setup do
     sign_in_as users(:bob)
 
-    @request    = submission_requests(:bioproject)
-    @submission = @request.submission
+    @submission_request    = submission_requests(:bioproject)
+    @submission = @submission_request.submission
   end
 
   def with_record(record)
@@ -437,7 +437,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
 
   test 'the record is readable without opening the JSON' do
     with_record({'project' => {'title' => 'A study of things', 'hold_date' => '2026-12-01'}}) do
-      visit record_admin_submission_request_path(@request)
+      visit record_admin_submission_request_path(@submission_request)
 
       within '[data-test-record-section="project"]' do
         assert_text 'title'
@@ -455,7 +455,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
     samples = Array.new(8) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
 
     with_record({'samples' => samples}) do
-      visit record_admin_submission_request_path(@request)
+      visit record_admin_submission_request_path(@submission_request)
 
       within '[data-test-record-section="samples"]' do
         assert_selector 'th', text: 'alias'
@@ -475,7 +475,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
     big   = Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
 
     with_record({'project' => small, 'samples' => big}) do
-      visit record_admin_submission_request_path(@request)
+      visit record_admin_submission_request_path(@submission_request)
 
       assert_selector '[data-test-record-section="project"][open]'
       assert_no_selector '[data-test-record-section="samples"][open]'
@@ -492,7 +492,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   # still appears. This is the whole reason it is written this way.
   test 'a field the screen has never heard of shows up anyway' do
     with_record({'project' => {'some_future_field' => 'from a later schema'}}) do
-      visit record_admin_submission_request_path(@request)
+      visit record_admin_submission_request_path(@submission_request)
 
       within '[data-test-record-section="project"]' do
         assert_text 'some_future_field'
@@ -506,7 +506,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   # records that reach the limit are the ones least readable as JSON.
   test 'a record too large to lay out says so rather than vanishing' do
     with_record({'project' => {'description' => 'x' * (Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT + 1024)}}) do
-      visit record_admin_submission_request_path(@request)
+      visit record_admin_submission_request_path(@submission_request)
 
       within '[data-test-record-outline]' do
         assert_selector '[data-test-record-too-large]', text: 'Not laid out'
@@ -521,7 +521,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   # question answered by scrolling.
   test 'the record says what it carries before it says what is in it' do
     with_record({'project' => {'title' => 'x'}, 'relations' => %w[PRJDB1]}) do
-      visit record_admin_submission_request_path(@request)
+      visit record_admin_submission_request_path(@submission_request)
 
       within '[data-test-record-carries]' do
         assert_link 'project'
@@ -537,7 +537,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   # BioProject record's `relations` has no tab behind it.
   test 'a record whose collections have no screen of their own is not sent to one' do
     with_record({'samples' => Array.new(40) {|i| {'alias' => "S#{i}"} }}) do
-      visit record_admin_submission_request_path(@request)
+      visit record_admin_submission_request_path(@submission_request)
 
       assert_no_selector '[data-test-record-samples-hint]', wait: 0
     end
@@ -566,16 +566,16 @@ class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
   setup do
     sign_in_as users(:bob)
 
-    @request = submission_requests(:bioproject)
+    @submission_request = submission_requests(:bioproject)
   end
 
   # Every truncated collection is folded, because twenty rows is what
   # makes a section too tall to read past in the first place. So the
   # summary carries the total and the line inside carries the rest.
   test 'opening a folded collection shows what it is not showing' do
-    @request.submission.append_update!({'relations' => Array.new(40) {|i| "PRJDB#{i}" }}, actor: 'test')
+    @submission_request.submission.append_update!({'relations' => Array.new(40) {|i| "PRJDB#{i}" }}, actor: 'test')
 
-    visit record_admin_submission_request_path(@request)
+    visit record_admin_submission_request_path(@submission_request)
 
     within '[data-test-record-section="relations"]' do
       assert_selector '[data-test-record-precis]', text: '40 items'
@@ -591,12 +591,12 @@ class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
   # the link fetches the URL and replaces the body, so the section opens
   # on a page where every other one has closed again.
   test 'jumping to a section leaves open the ones the curator opened' do
-    @request.submission.append_update!({
+    @submission_request.submission.append_update!({
       'relations' => Array.new(40) {|i| "PRJDB#{i}" },
       'samples'   => Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
     }, actor: 'test')
 
-    visit record_admin_submission_request_path(@request)
+    visit record_admin_submission_request_path(@submission_request)
 
     within('[data-test-record-section="relations"]') { find('summary').click }
 
@@ -648,12 +648,12 @@ class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
   # does not, and a link that scrolls to a heading and reveals nothing
   # reads as broken rather than as closed.
   test 'a link in the Carries row opens the section it points at' do
-    @request.submission.append_update!({
+    @submission_request.submission.append_update!({
       'project' => {'title' => 'A study'},
       'samples' => Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
     }, actor: 'test')
 
-    visit record_admin_submission_request_path(@request)
+    visit record_admin_submission_request_path(@submission_request)
 
     assert_no_selector '[data-test-record-section="samples"][open]'
 

@@ -2869,6 +2869,18 @@ export interface components {
              */
             closable: boolean;
             /**
+             * @description Whether "Send to DDBJ" can go through. Not derivable from `status`:
+             *     a check that passed goes stale, and after that the request is still
+             *     `ready_to_apply` and can no longer be sent.
+             */
+            sendable: boolean;
+            /**
+             * @description Why it cannot be sent, as a sentence to show — null when it can, and
+             *     null for somebody reading through a shared set, for whom nothing on
+             *     the page is pressable anyway.
+             */
+            send_blocked_reason: string | null;
+            /**
              * @description You are the submitter. False when you are reading this through a
              *     set somebody else's submission was shared into, in which case
              *     nothing on the page is yours to press and the conversation facts

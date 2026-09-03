@@ -21,6 +21,8 @@ const request: components['schemas']['SubmissionRequest'] = {
   created_at: now,
   closed_at: null,
   closable: false,
+  sendable: false,
+  send_blocked_reason: null,
   owned: true,
   owner_uid: 'test-user',
   processing: false,

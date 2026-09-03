@@ -27,6 +27,8 @@ const request: components['schemas']['SubmissionRequest'] = {
   created_at: now,
   closed_at: null,
   closable: false,
+  sendable: false,
+  send_blocked_reason: null,
   processing: false,
   ddbj_record: { filename: 'original.json', url: 'http://example.com/original.json' },
   validation: null,

@@ -23,6 +23,8 @@ const shared: SubmissionRequest = {
   created_at: now,
   closed_at: null,
   closable: false,
+  sendable: false,
+  send_blocked_reason: null,
   owned: false,
   owner_uid: 'colleague',
   processing: false,
@@ -92,7 +94,7 @@ module('Acceptance | a submission shared into a set', function (hooks) {
   test('your own carries all of it', async function (assert) {
     worker.use(
       http.get('/submission_requests/{id}', ({ response }) => {
-        return response(200).json({ ...shared, owned: true, closable: true });
+        return response(200).json({ ...shared, owned: true, closable: true, sendable: true });
       }),
 
       http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => {
