@@ -19,6 +19,18 @@ module DDBJRecordValidator
   def validate(subject)
     ActiveRecord::Base.transaction do
       subject.validating!
+
+      # A check replaces its predecessor rather than joining it: one
+      # subject, one check, which the unique index says outright.
+      #
+      # Said here rather than left to `create_validation!`. `has_one`
+      # replaces only what it can see, and a subject loaded before its
+      # first check has a cached nil — so a second run inserted alongside
+      # the first, and which of the two every later reader got was the
+      # planner's choice. The details go with it, which is what a re-run
+      # means: the report is the answer to this run, not to both.
+      Validation.where(subject:).destroy_all
+
       subject.create_validation!
     end
 

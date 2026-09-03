@@ -25,6 +25,7 @@ const shared: SubmissionRequest = {
   closable: false,
   sendable: false,
   send_blocked_reason: null,
+  recheckable: false,
   owned: false,
   owner_uid: 'colleague',
   processing: false,

@@ -48,6 +48,7 @@ module('Acceptance | submission request', function (hooks) {
       closable: false,
       sendable: false,
       send_blocked_reason: null,
+      recheckable: false,
       processing: false,
 
       ddbj_record: {

@@ -152,20 +152,22 @@ class SubmissionRequest < ApplicationRecord
   # same fact in two places.
   def closable? = !closed? && ACTION_STATUSES.include?(status)
 
-  # How long a passed check stands for. A submission is sent on the
-  # strength of a check that was run against the reference data and the
-  # rules of the moment, and both move — so beyond this the answer is
-  # about a state of the world that has gone, and the file has to be
-  # checked again before it is handed over.
-  VALIDATION_FRESH_FOR = 1.day
-
-  # Sentences rather than codes, because each of them is the whole of what
-  # the screen has to say and there is nothing to branch on. Each names
-  # the way out, except the one that has none.
-  SEND_CLOSED     = 'This request has been put down. Reopen it before sending it to DDBJ.'.freeze
+  # Sentences rather than codes: each is the whole of what the screen has
+  # to say, and there is nothing here for a client to branch on. Each of
+  # them names the way out, and each of those has a control on the screen.
+  #
+  # Closed is the one worth spelling out. Sending a closed request would
+  # leave `closed_at` set through curation and release — where the client
+  # reads it before everything else and would report a public record as
+  # one the submitter had put down. Reopening first is what the screen
+  # already tells them to do.
+  SEND_CLOSED     = 'This request is closed. Reopen it before sending it to DDBJ.'.freeze
   SEND_NOT_READY  = 'Only a request whose check has passed can be sent to DDBJ.'.freeze
-  SEND_UNCHECKED  = 'The check on this request did not pass, so there is nothing to send.'.freeze
-  SEND_STALE      = "The check that passed is more than #{VALIDATION_FRESH_FOR.inspect} old, and a submission is sent on the strength of a current one. Submit the file again to have it checked afresh.".freeze
+  SEND_NOT_PASSED = 'The check on this request did not pass, so there is nothing to send.'.freeze
+
+  # Derived rather than written out, so the window and the sentence cannot
+  # drift apart.
+  SEND_STALE = "This check is more than #{Validation::FRESH_FOR.in_hours.to_i} hours old, and a submission is sent on the strength of a current one. Check the file again before sending it.".freeze
 
   # Whether "Send to DDBJ" can go through, and if not, why.
   #
@@ -177,25 +179,22 @@ class SubmissionRequest < ApplicationRecord
   def sendable? = send_blocked_reason.nil?
 
   def send_blocked_reason
-    return SEND_CLOSED    if closed?
-    return SEND_NOT_READY unless ready_to_apply?
-    return SEND_UNCHECKED unless validation_passed?
-    return SEND_STALE     unless validation_fresh?
+    return SEND_CLOSED     if closed?
+    return SEND_NOT_READY  unless ready_to_apply?
+
+    # Belt as well as braces: only the validator sets `ready_to_apply`,
+    # and only when nothing failed, so this cannot fire on a record it
+    # wrote. It is here because the alternative to checking is trusting a
+    # status column to hand a record to DDBJ.
+    return SEND_NOT_PASSED unless validation&.passed?
+    return SEND_STALE      unless validation.fresh?
 
     nil
   end
 
-  # The same two questions the endpoint used to ask as a scope. Asked of
-  # the record so that one answer serves both the screen and the write.
-  def validation_passed?
-    validation&.finished? && !validation.details.exists?(severity: :error)
-  end
-
-  def validation_fresh?
-    finished_at = validation&.finished_at or return false
-
-    finished_at > VALIDATION_FRESH_FOR.ago
-  end
+  # Whether the check can be run again. The way out of a stale one: the
+  # file is not in question, the answer about it has expired.
+  def recheckable? = !closed? && !processing? && ddbj_record.attached?
 
   # Straight to the column, for the same reason `assign!` is: `validates
   # :ddbj_record, attached: true` guards the submitter's upload flow, and

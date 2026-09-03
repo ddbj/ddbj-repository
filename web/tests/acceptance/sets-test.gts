@@ -99,6 +99,7 @@ const set: Set = {
         first_accession: 'PRJDB1234',
         accession_count: 1,
         processing: false,
+        sendable: false,
         unread_curator_message_count: 0,
 
         progress: {

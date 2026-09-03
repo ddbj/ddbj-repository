@@ -37,14 +37,6 @@ module ValidationSubject
       SQL
     }
 
-    scope :valid_only, -> {
-      with_validity.having(<<~SQL)
-        MAX(validations.progress) = 'finished' AND COUNT(
-          CASE WHEN validation_details.severity = 'error' THEN 1 END
-        ) = 0
-      SQL
-    }
-
     def processing?
       status.in?(%w[
         waiting_validation

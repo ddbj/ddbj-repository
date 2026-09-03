@@ -29,6 +29,7 @@ function summary(id: number): Summary {
     first_accession: null,
     accession_count: 0,
     processing: false,
+    sendable: false,
     unread_curator_message_count: 0,
     progress: {
       step: 'applied',

@@ -111,13 +111,28 @@ export function requestState(request: StatefulRequest): RequestState {
   }
 
   if (request.status === 'ready_to_apply') {
+    // A check expires while its request stays `ready_to_apply`, so the
+    // status alone would have this panel say "ready to submit" over a
+    // page whose button is refusing. `sendable` is on the row as well as
+    // on the page for exactly this line.
+    if (!request.sendable) {
+      return {
+        tone: 'action',
+        label: 'Needs checking again',
+        sharedLabel: 'Waiting to be checked again',
+        badge: 'Action needed',
+        heading: 'The check on your file has expired',
+        body: 'Nothing is wrong with the file. A submission is sent on the strength of a current check, so run it again and then send.',
+      };
+    }
+
     return {
       tone: 'action',
       label: 'Ready for you to submit',
       sharedLabel: 'Ready to submit',
       badge: 'Action needed',
       heading: 'Your file passed validation and is ready to submit',
-      body: 'Review the validation report below, then press Apply to hand it to DDBJ.',
+      body: 'Review the validation report below, then press Send to DDBJ to hand it over.',
     };
   }
 

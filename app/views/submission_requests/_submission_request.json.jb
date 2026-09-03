@@ -45,6 +45,11 @@ owned = submission_request.user_id == viewer.id
   sendable:            owned && submission_request.sendable?,
   send_blocked_reason: owned ? submission_request.send_blocked_reason : nil,
 
+  # Whether the check can be run again, which is the way out of the one
+  # refusal above that is not about the file. Offered rather than left to
+  # the client to infer, for the same reason the rest of this is.
+  recheckable: owned && submission_request.recheckable?,
+
   # Only the sets this reader is in. For the owner that is every set it
   # belongs to (a submission can only be put in a set by its owner, who
   # has to be a member to do it); for anybody else it is the one they

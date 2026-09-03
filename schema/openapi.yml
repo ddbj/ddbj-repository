@@ -331,6 +331,45 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /submission_requests/{submission_request_id}/validation:
+    parameters:
+      - name: submission_request_id
+        in: path
+        required: true
+
+        schema:
+          type: number
+
+    post:
+      description: |
+        Run the check again.
+
+        The way out of a check that has gone stale: nothing is wrong with the
+        file, only the answer about it has expired (see `send_blocked_reason`).
+        A check replaces its predecessor rather than joining it.
+
+        Refused with a sentence for a request that is closed, already in
+        flight, or carries no file.
+
+      tags:
+        - Submission requests
+
+      responses:
+        '204':
+          description: The check has been queued.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+        '422':
+          $ref: '#/components/responses/UnprocessableContent'
+
   /submission_requests/{id}/status:
     parameters:
       - name: id
@@ -2569,6 +2608,7 @@ components:
         - first_accession
         - accession_count
         - processing
+        - sendable
         - unread_curator_message_count
         - progress
 
@@ -2620,6 +2660,14 @@ components:
 
         processing:
           description: Validation or application is running right now.
+          type: boolean
+
+        sendable:
+          description: |
+            Whether "Send to DDBJ" can go through. Here as well as on the full
+            request because a check expires while its request stays
+            `ready_to_apply` — a row written off the status alone would say
+            "ready to submit" about one the page refuses to send.
           type: boolean
 
         unread_curator_message_count:
@@ -3157,6 +3205,7 @@ components:
         - closable
         - sendable
         - send_blocked_reason
+        - recheckable
         - owned
         - owner_uid
         - processing
@@ -3249,6 +3298,13 @@ components:
           type:
             - string
             - 'null'
+
+        recheckable:
+          description: |
+            Whether the check can be run again. The way out of a check that has
+            gone stale: nothing is wrong with the file, only the answer about it
+            has expired.
+          type: boolean
 
         owned:
           description: |

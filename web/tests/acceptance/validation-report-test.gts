@@ -29,6 +29,7 @@ function requestWith(details: Detail[]): SubmissionRequest {
     closable: true,
     sendable: true,
     send_blocked_reason: null,
+    recheckable: false,
     processing: false,
     last_message_at: null,
     sets: [],
@@ -243,13 +244,26 @@ module('Acceptance | validation report', function (hooks) {
   // answered 404 — the request had fallen out of a scope, not gone
   // missing — so what is shown now is why, and what to do about it.
   test('a check that has gone stale says so where the button was', async function (assert) {
+    const rechecked: string[] = [];
+
     worker.use(
+      http.post('/submission_requests/{submission_request_id}/validation', ({ params, response }) => {
+        rechecked.push(String(params.submission_request_id));
+
+        return response(204).empty();
+      }),
       http.get('/submission_requests/{id}', ({ response }) =>
         response(200).json({
           ...requestWith([]),
           status: 'ready_to_apply',
           sendable: false,
-          send_blocked_reason: 'The check that passed is more than 1 day old. Submit the file again.',
+          send_blocked_reason: 'This check is more than 24 hours old. Check the file again before sending it.',
+          recheckable: true,
+
+          // The base stub is a failed request; this one passed and then
+          // went stale, which is the whole point of the case.
+          progress: { ...requestWith([]).progress, failed: false },
+
           validation: {
             id: 1,
             progress: 'finished',
@@ -264,8 +278,19 @@ module('Acceptance | validation report', function (hooks) {
 
     await visit('/requests/42');
 
-    assert.dom('[data-test-send]').doesNotExist();
-    assert.dom('[data-test-send-blocked]').includesText('more than 1 day old');
-    assert.dom('[data-test-send-blocked]').includesText('Submit the file again');
+    // Disabled with the reason beside it, not hidden — hiding it leaves
+    // somebody working out that a paragraph is standing where a button
+    // was. The way out is offered next to it.
+    assert.dom('[data-test-send]').isDisabled();
+    assert.dom('[data-test-send-blocked]').includesText('more than 24 hours old');
+    assert.dom('[data-test-recheck]').exists();
+
+    // And the panel above agrees with it, rather than saying the file is
+    // ready to submit over a button that is refusing.
+    assert.dom('[data-test-state]').includesText('check on your file has expired');
+
+    await click('[data-test-recheck]');
+
+    assert.deepEqual(rechecked, ['42']);
   });
 });

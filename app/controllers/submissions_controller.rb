@@ -26,7 +26,9 @@ class SubmissionsController < ApplicationController
     # still offering a button for.
     request = current_user.submission_requests.find(params[:submission_request_id])
 
-    refuse! request.send_blocked_reason unless request.sendable?
+    blocked = request.send_blocked_reason
+
+    refuse! blocked if blocked
 
     request.waiting_application!
 

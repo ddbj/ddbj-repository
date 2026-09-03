@@ -23,6 +23,7 @@ const request: components['schemas']['SubmissionRequest'] = {
   closable: false,
   sendable: false,
   send_blocked_reason: null,
+  recheckable: false,
   owned: true,
   owner_uid: 'test-user',
   processing: false,
