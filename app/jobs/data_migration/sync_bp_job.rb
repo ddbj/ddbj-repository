@@ -14,18 +14,7 @@ module DataMigration
       row = @client.fetch(psub_id)
       return :no_xml if row.nil? || row.xml.blank?
 
-      BioProject::Importer.new(
-        psub_id:          row.psub_id,
-        xml:              row.xml,
-        user_uid:         row.submitter_id || 'migration',
-        project_type:     row.project_type,
-        accession:        row.accession,
-        status:           row.status_id,
-        release_date:     row.release_date,
-        dist_date:        row.dist_date,
-        modified_date:    row.modified_date,
-        migration_run_id: @run.uuid
-      ).call.outcome
+      BioProject::Importer.from_staging_row(row, migration_run_id: @run.uuid).call.outcome
     rescue BioProject::Importer::CrossUserError => e
       @run.append_error!("[#{psub_id}] CROSS-USER: #{e.message}")
       :cross_user

@@ -60,6 +60,72 @@ namespace :data_migration do
     puts "[#{result.outcome}] PSUB #{args[:psub_id]} → Submission ##{result.submission&.id}"
   end
 
+  # Single-BP entry from D-way, the counterpart of import_bs below.
+  #
+  # import_bp_from_file above takes an XML file and has to be told the
+  # accession, the project type and the owner, because a file carries
+  # none of them. This one asks the source, so the row arrives with what
+  # the batch job gives it — the same builder, not the same list written
+  # twice.
+  #
+  # `user_uid` is a fallback for a row whose submitter is blank, not a
+  # way to re-attribute: the source wins where it has an answer, and the
+  # importer refuses a change of owner outright.
+  #
+  # The importer skips a row whose XML has not changed, so re-importing
+  # over an existing submission does nothing. Destroy it first when the
+  # point is to rebuild what it holds.
+  #
+  #   ssh -L 54301:172.19.15.12:54301 a012 -N &
+  #   DWAY_DB_PASSWORD=... bin/rails 'data_migration:import_bp[PSUB000001]'
+  desc 'Import a single BioProject submission from D-way staging (single record)'
+  task :import_bp, %i[psub_id user_uid] => :environment do |_, args|
+    psub_id = args.fetch(:psub_id)
+    run_id  = SecureRandom.uuid
+
+    client = BioProject::StagingClient.new
+    begin
+      row = client.fetch(psub_id) or abort "PSUB #{psub_id} not found in staging"
+
+      # What the sweep reports as `:no_xml` and walks past. A real cohort
+      # — see dump_excluded_bp — and without this it is a TypeError out
+      # of Nokogiri rather than the name the batch job gives it.
+      abort "[no_xml] PSUB #{psub_id} has no XML in staging" if row.xml.blank?
+
+      result = BioProject::Importer.from_staging_row(
+        row,
+        user_uid:         args[:user_uid].presence,
+        migration_run_id: run_id
+      ).call
+
+      # The run id is printed because it is the handle the rollback
+      # documented on BioProject::Importer needs
+      # (`Submission.where(migration_run_id:).destroy_all`), and a run
+      # nobody can name is one nobody can undo.
+      puts "[#{result.outcome}] PSUB #{psub_id} → " \
+           "#{result.submission ? "Submission ##{result.submission.id} (#{result.submission.project&.accession})" : 'nothing written'} " \
+           "migration_run_id=#{run_id}"
+    rescue BioProject::Importer::CrossUserError => e
+      # A refusal the importer is designed to make, so it is answered
+      # with the sentence it wrote rather than with a stack trace. The
+      # batch job counts these and walks on; one row has nowhere to walk
+      # to, so it stops with a non-zero status.
+      abort "[cross_user] #{e.message}"
+    rescue Submission::MaterialisationFailed => e
+      # The chain this submission already has cannot be read, so the
+      # importer will not write over it — see
+      # BioProject::Importer#safe_prior_materialised for what treating it
+      # as empty would discard. Named rather than worked around: the way
+      # past it is to destroy the submission, and that is a decision about
+      # losing its history, not a flag on an import.
+      abort "[unreadable_chain] #{e.message}\n" \
+            'Its existing history cannot be read, so it will not be overwritten. ' \
+            'Destroy the submission first if you mean to rebuild it from the source.'
+    ensure
+      client.close
+    end
+  end
+
   # Batch-import every BioProject from D-way staging via
   # `DataMigration::SyncBpJob`. Creates a MigrationRun row so progress
   # / counters / resume state are visible on `/admin/migration_runs`,
@@ -119,7 +185,11 @@ namespace :data_migration do
 
       result = importer.call
       puts "[#{result.outcome}] SSUB #{ssub_id} → Submission ##{result.submission&.id} " \
-           "(#{result.submission&.samples&.count} sample[s])"
+           "(#{result.submission&.samples&.count} sample[s]) migration_run_id=#{run_id}"
+    rescue BioSample::Importer::CrossUserError => e
+      # As in import_bp above: a designed refusal, answered with its own
+      # sentence rather than with a stack trace.
+      abort "[cross_user] #{e.message}"
     ensure
       client.close
     end
