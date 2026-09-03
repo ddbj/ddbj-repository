@@ -187,9 +187,50 @@ added as failures are classified, so the set grows.
 - Ruby (see `.ruby-version`)
 - Node.js + pnpm
 - PostgreSQL
-- SeaweedFS
+- A SeaweedFS instance — in development we point at one running on the host, shared with the other projects
+- A Keycloak instance — in development we point at the one from [cloakman](https://github.com/ddbj/cloakman)
+
+### Environment
+
+Neither SeaweedFS nor Keycloak is started by `bin/dev` — the application talks
+to instances running outside it. Point it at them through the environment:
+
+| Variable                 | Default                    | Notes                                    |
+| ------------------------ | -------------------------- | ---------------------------------------- |
+| `SEAWEEDFS_ACCESS_KEY`   | —                          | Access key of the `repository` identity  |
+| `SEAWEEDFS_SECRET_KEY`   | —                          | Secret key of the `repository` identity  |
+| `KEYCLOAK_URL`           | `http://localhost:8080`    | Base URL of the Keycloak instance        |
+| `KEYCLOAK_CLIENT_SECRET` | —                          | Secret of the `repository` client        |
+| `CLOAKMAN_URL`           | `https://cloakman.localhost` | Base URL of cloakman                   |
+| `CLOAKMAN_API_TOKEN`     | —                          | API token issued by cloakman             |
+| `APP_URL`                | `http://localhost:3000`    | Origin of the Rails API                  |
+| `WEB_URL`                | `http://localhost:4200`    | Origin of the Ember SPA                  |
+
+### SeaweedFS
+
+The development instance is shared with the other projects, so this application
+is given a bucket of its own and an identity that reaches no further. Create
+both once, on the machine the instance runs on:
+
+```sh
+echo 's3.bucket.create -name repository' | weed shell
+
+echo 's3.configure -user=repository -buckets=repository -actions=Read,Write,List -access_key=<access key> -secret_key=<secret key> -apply' | weed shell
+```
+
+Files are uploaded to the instance directly by the browser, so it answers the
+preflight requests itself. Both screens do it and they are served from different
+origins, so start it with `-s3.allowedOrigins=http://localhost:4200,http://localhost:3000`
+— the Ember SPA and the Rails admin. The endpoint and the bucket name live in
+`config/seaweedfs.yml`.
+
+Without the keys the AWS SDK works its way down to the EC2 metadata service, so
+a timeout against 169.254.169.254 is the environment talking, not the instance.
 
 ### Setup
+
+`bin/setup` starts the application when it is done, so leave it until the
+storage is in place:
 
 ```sh
 bin/setup
