@@ -223,6 +223,64 @@ class SubmissionTest < ActiveSupport::TestCase
     assert_kind_of Oj::ParseError, error.original
   end
 
+  # A cache is derived data. Its object can be gone while the chain that
+  # produced it is intact — a store restored from an older backup, an
+  # environment pointed at a new bucket — and replaying is then the right
+  # answer rather than the expensive one.
+  #
+  # It used to raise out of `materialised_record` unwrapped, past the
+  # rescue in BioProject::Importer that exists to decide exactly this,
+  # and stop an import whose purpose was to put the missing record back.
+  test '#materialised_record replays the chain when the cached object has gone' do
+    submission = submissions(:bioproject)
+
+    submission.append_update!({'project' => {'title' => 'from the chain'}}, actor: 'test')
+
+    assert_equal 'from the chain', submission.materialised_record.dig('project', 'title')
+    assert submission.cached_at_update_id.present?, 'the read primed the cache'
+
+    # The row still says there is a cache; the object behind it is gone.
+    was = submission.cached_materialised_record.blob.key
+
+    ActiveStorage::Blob.service.delete(was)
+
+    assert_equal 'from the chain', submission.reload.materialised_record.dig('project', 'title')
+
+    # Replayed AND re-primed. Asserting only the value would pass whether
+    # the cache was read or rebuilt, which is the whole of what changed.
+    assert_not_equal was, submission.reload.cached_materialised_record.blob.key
+  end
+
+  # The other reader of the same object. It is what the admin screen
+  # calls, so answering with the exception made the one screen a curator
+  # would open to look at the record the only reader that could not.
+  test '#cached_materialised_bytes answers nil when the cached object has gone' do
+    submission = submissions(:bioproject)
+
+    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    submission.materialised_record
+
+    ActiveStorage::Blob.service.delete(submission.cached_materialised_record.blob.key)
+
+    assert_nil submission.reload.cached_materialised_bytes
+  end
+
+  # And a store that is not answering still goes up: reading it as a
+  # miss would replay every submission in a sweep, and reading it as
+  # empty would discard the chain.
+  test '#materialised_record does not swallow a store that is not answering' do
+    submission = submissions(:bioproject)
+
+    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    submission.materialised_record
+
+    dead = Aws::S3::Errors::ServiceUnavailable.new(nil, 'the store is not answering')
+
+    ActiveStorage::Blob.service.stub(:download, ->(*) { raise dead }) do
+      assert_raises(Aws::S3::Errors::ServiceUnavailable) { submission.reload.materialised_record }
+    end
+  end
+
   test '#materialise_at(update_id:) replays only up to the given update' do
     submission = submissions(:bioproject)
     baseline   = submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
