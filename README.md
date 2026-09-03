@@ -206,6 +206,12 @@ to instances running outside it. Point it at them through the environment:
 | `APP_URL`                | `http://localhost:3000`    | Origin of the Rails API                  |
 | `WEB_URL`                | `http://localhost:4200`    | Origin of the Ember SPA                  |
 
+These are read from the process environment. Rails loads no `.env` here — the
+`dotenv` in `Gemfile.lock` is Kamal's — so they have to reach the shell that
+starts it, by whatever you keep them in: exported by hand, or through direnv,
+mise or the like. A file holding them is yours rather than the project's, so it
+belongs in your global ignore.
+
 ### SeaweedFS
 
 The development instance is shared with the other projects, so this application
@@ -219,10 +225,11 @@ echo 's3.configure -user=repository -buckets=repository -actions=Read,Write,List
 ```
 
 Files are uploaded to the instance directly by the browser, so it answers the
-preflight requests itself. Both screens do it and they are served from different
-origins, so start it with `-s3.allowedOrigins=http://localhost:4200,http://localhost:3000`
-— the Ember SPA and the Rails admin. The endpoint and the bucket name live in
-`config/seaweedfs.yml`.
+preflight requests itself. `-s3.allowedOrigins` defaults to `*`, which is what
+the development instance runs with; narrowing it there takes both
+`http://localhost:4200` and `http://localhost:3000`, since the Ember SPA and the
+Rails admin each upload from their own origin. The endpoint and the bucket name
+live in `config/seaweedfs.yml`.
 
 Without the keys the AWS SDK works its way down to the EC2 metadata service, so
 a timeout against 169.254.169.254 is the environment talking, not the instance.
