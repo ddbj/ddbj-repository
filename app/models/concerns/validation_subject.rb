@@ -2,8 +2,14 @@ module ValidationSubject
   extend ActiveSupport::Concern
 
   included do
-    has_one :validation, dependent: :destroy, as: :subject
-    has_one :validation_with_validity, -> { with_validity }, class_name: 'Validation', as: :subject
+    # Newest first. One subject has one validation — the validator creates
+    # it once (DDBJRecordValidator) — but nothing in the schema says so,
+    # and an unordered `has_one` over two rows returns whichever the
+    # planner reaches first. That is not a difference anybody would find
+    # by reading: it comes out as one machine applying a submission and
+    # another refusing it.
+    has_one :validation, -> { order(id: :desc) }, dependent: :destroy, as: :subject
+    has_one :validation_with_validity, -> { with_validity.order(id: :desc) }, class_name: 'Validation', as: :subject
 
     enum :status, {
       waiting_validation:  0,

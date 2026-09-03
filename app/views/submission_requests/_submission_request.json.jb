@@ -42,8 +42,8 @@ owned = submission_request.user_id == viewer.id
   # read `ready_to_apply` and offered the button anyway was offering one
   # that answered 404. The reason travels with it because there is a way
   # out of every case, and the screen is where it has to be said.
-  payload[:sendable]            = owned && submission_request.sendable?
-  payload[:send_blocked_reason] = owned ? submission_request.send_blocked_reason : nil
+  sendable:            owned && submission_request.sendable?,
+  send_blocked_reason: owned ? submission_request.send_blocked_reason : nil,
 
   # Only the sets this reader is in. For the owner that is every set it
   # belongs to (a submission can only be put in a set by its owner, who
