@@ -67,7 +67,11 @@ Rails.application.routes.draw do
     get 'reviews/:token/accessions', to: 'reviews#accessions', as: :review_accessions
 
     resources :submissions, only: %i[index show] do
-      resources :accessions, only: %i[index]
+      # A submission's own accessions, across whichever of the three
+      # tables its database keeps them in. Not the same endpoint as the
+      # flat one below, which is a synchronisation walk over ST.26
+      # entries and answers in their shape.
+      resources :accessions, only: %i[index], controller: 'submission_accessions'
 
       get 'files/:name',
           to:          'submission_files#show',
@@ -75,9 +79,10 @@ Rails.application.routes.draw do
           constraints: {name: /ddbj_record|flatfile_na|flatfile_aa/}
     end
 
-    # `index` here is the cross-submission one — the nested route above
-    # answers for a single submission. Both reach the same controller,
-    # because the only difference is which entries are in scope.
+    # The synchronisation walk: every ST.26 entry the caller has ever
+    # registered, in the shape the bulk client keeps its local copy in.
+    # A submission's own list is the nested route above, which spans the
+    # three databases and answers in a shape a person reads.
     resources :accessions, only: %i[index show], param: :number, constraints: {number: %r{[^/]+}}
 
     # A set is submissions that belong together, and the people they

@@ -8,7 +8,10 @@
     :updated_at
   ),
 
-  accessions_count: submission.entries.count,
+  # Every database, not only ST.26. This said 0 for every BioProject and
+  # BioSample in the archive: the count was `entries.count`, and their
+  # numbers live on projects and samples.
+  accessions_count: submission.accessioned_rows.count,
 
   ddbj_record: render('attachment', attachment: submission.ddbj_record, url: submission_file_url(submission, 'ddbj_record')),
   flatfile_na: render('attachment', attachment: submission.flatfile_na, url: submission_file_url(submission, 'flatfile_na')),

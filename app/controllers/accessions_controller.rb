@@ -4,63 +4,39 @@ class AccessionsController < ApplicationController
   SYNC_LIMIT = 1000
 
   def index
-    scope = scoped_entries
+    scope = owned_entries
     scope = filter_by_status(scope, params[:status]) if params[:status].present?
-    scope = scope.order(:id)
 
-    return offset_page(scope) if nested_submission_id
-
-    keyset_page(scope)
+    keyset_page(scope.order(:id))
   end
 
-  # Readable, like the list it is reached from. `owned_entries` below is
-  # the flat synchronisation walk and stays "mine".
+  # Readable rather than owned: an accession quoted in a paper is looked
+  # up by whoever was given it, and a submission shared into a set opens
+  # for that set's members. The walk below stays "mine" — it is one
+  # submitter's ledger, and widening it would put other people's rows
+  # into a local copy that is theirs.
   def show
     @accession = readable_entries.find_by!(accession: params[:number])
   end
 
   private
 
-  # From the path, not from `params`: a `?submission_id=` in the query
-  # string would otherwise switch the flat endpoint to nested semantics —
-  # scoping the list, dropping the page size to 20, and 404ing on an id
-  # the caller does not own, none of which /accessions declares.
-  def nested_submission_id = request.path_parameters[:submission_id]
-
-  # Nested under a submission it is that submission's entries; on its own
-  # it is every entry the caller has.
+  # Every entry the caller has. What makes "which of mine are no longer
+  # part of their submission" one walk instead of one per submission: the
+  # bulk ST.26 client keeps a local copy of every entry it ever
+  # registered — millions of rows across 143K submissions — and rebuilds
+  # its live list from it, so it has to hear about a retraction it did
+  # not make. Asking that submission by submission is hundreds of
+  # thousands of requests for an answer that is usually a handful of rows.
   #
-  # The flat form is what makes "which of mine are no longer part of their
-  # submission" one walk instead of one per submission. The bulk ST.26
-  # client keeps a local copy of every entry it ever registered — millions
-  # of rows across 143K submissions — and rebuilds its live list from it,
-  # so it has to hear about a retraction it did not make. Asking that
-  # submission by submission is hundreds of thousands of requests for an
-  # answer that is usually a handful of rows.
-  def scoped_entries
-    return owned_entries unless nested_submission_id
-
-    # Readable, not owned. The nested list is what the submission's own
-    # screen shows, and that screen now opens for a set's members — the
-    # accessions are a large part of why somebody looks at a colleague's
-    # submission at all. The flat list below stays "mine": it is a
-    # synchronisation walk, and widening it would put other people's rows
-    # into a local copy that is meant to be one submitter's.
-    Submission.readable_by(current_user).find(nested_submission_id).entries
-  end
-
+  # Entries, and only entries. A BioProject or a BioSample accession here
+  # would land in a local copy that is one submitter's ST.26 ledger.
   def owned_entries
     Entry.joins(:submission).merge(current_user.submissions)
   end
 
   def readable_entries
     Entry.joins(:submission).merge(Submission.readable_by(current_user))
-  end
-
-  # A page of the nested list is read by a person: they want to know how
-  # many there are and to jump about, so it is numbered and counted.
-  def offset_page(scope)
-    @accessions = paginate(scope)
   end
 
   # A page of the flat list is read by a script walking the whole set to

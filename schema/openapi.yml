@@ -687,10 +687,30 @@ paths:
 
     get:
       description: |
-        Get a paginated list of accessions for a submission. `status`
-        filters it, the same way it does on `/accessions` — the two share
-        the action, so leaving it undocumented here would mean a client
-        relying on behaviour no test defends.
+        A submission's own accessions, a page at a time.
+
+        Whichever of the three databases it is: BioProject numbers live on a
+        project, BioSample's on samples, ST.26's on entries, and this reads
+        the one its submission belongs to. It answered with ST.26 entries
+        alone until 2026-09, so every BioProject and BioSample said it had
+        none.
+
+        Readable rather than owned — a submission shared into a set opens for
+        that set's members, and its accessions are a large part of why anybody
+        looks at a colleague's submission.
+
+        `status` filters it, the same way it does on `/accessions`, and an
+        unknown value is refused rather than intersected away — answering
+        "which of these are withdrawn" with every row there is cannot be told
+        from a real answer.
+
+        Ordered as submitted, not by accession: ST.26 draws nucleotide and
+        amino-acid numbers from two sequences with disjoint prefixes, so
+        sorting on the number would split a submission into two blocks that
+        appear nowhere in its file.
+
+        Not `/accessions`, which is a synchronisation walk over one
+        submitter's ST.26 entries and answers in their shape.
 
       tags:
         - Submissions
@@ -713,10 +733,15 @@ paths:
 
       responses:
         '200':
-          description: Returns the list of accessions.
+          description: Returns one page of the submission's accessions.
 
           headers:
             Total-Pages:
+              schema:
+                type: string
+
+            Total-Count:
+              description: How many there are in all.
               schema:
                 type: string
 
@@ -726,7 +751,7 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/Accession'
+                  $ref: '#/components/schemas/SubmissionAccession'
 
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -3584,6 +3609,67 @@ components:
           type: string
           format: date
 
+    AccessionDetail:
+      description: |
+        One labelled fact off an accessioned record. Three databases keep
+        three different rows, so what they carry beyond an accession and a
+        name travels like this rather than as a column per database — a
+        reader reads them, and nothing branches on them.
+      type: object
+      additionalProperties: false
+      required: [label, value]
+
+      properties:
+        label:
+          type: string
+
+        value:
+          type: string
+
+    SubmissionAccession:
+      description: |
+        One accession on a submission's own screen: what the record states,
+        and where DDBJ has got to with it.
+
+        `ReviewerAccession` with `status` added. Written out rather than
+        composed with `allOf`: these schemas close over their properties, and
+        `additionalProperties: false` on one half of an `allOf` refuses what
+        the other half declares. The status is the difference from what a
+        reviewer is shown, and it is the difference on purpose — this is the
+        submitter's own list, and a retracted entry that did not say so there
+        would be the screen keeping a secret from the person it belongs to.
+      type: object
+      additionalProperties: false
+
+      required:
+        - accession
+        - db
+        - name
+        - details
+        - status
+
+      properties:
+        accession:
+          type: string
+
+        db:
+          $ref: '#/components/schemas/Db'
+
+        name:
+          description: What the record calls itself — a project title, a sample name, an entry id.
+          type:
+            - string
+            - 'null'
+
+        details:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/AccessionDetail'
+
+        status:
+          $ref: '#/components/schemas/CurationStatus'
+
     Attachment:
       type: object
       additionalProperties: false
@@ -3764,16 +3850,7 @@ components:
           type: array
 
           items:
-            type: object
-            additionalProperties: false
-            required: [label, value]
-
-            properties:
-              label:
-                type: string
-
-              value:
-                type: string
+            $ref: '#/components/schemas/AccessionDetail'
 
     CurationStatus:
       type: string
