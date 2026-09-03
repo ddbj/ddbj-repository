@@ -717,15 +717,24 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Get a paginated list of accessions for a submission. `status`
-         *     filters it, the same way it does on `/accessions` — the two share
-         *     the action, so leaving it undocumented here would mean a client
-         *     relying on behaviour no test defends.
+         * @description A submission's own accessions, a page at a time.
+         *
+         *     Whichever of the three databases it is: BioProject numbers live on a
+         *     project, BioSample's on samples, ST.26's on entries, and this reads
+         *     the one its submission belongs to. It answered with ST.26 entries
+         *     alone until 2026-09, so every BioProject and BioSample said it had
+         *     none.
+         *
+         *     Readable rather than owned — a submission shared into a set opens for
+         *     that set's members, and its accessions are a large part of why anybody
+         *     looks at a colleague's submission.
+         *
+         *     Not `/accessions`, which is a synchronisation walk over one
+         *     submitter's ST.26 entries and answers in their shape.
          */
         get: {
             parameters: {
                 query?: {
-                    "status[]"?: components["schemas"]["CurationStatus"][];
                     page?: number;
                 };
                 header?: never;
@@ -736,17 +745,18 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Returns the list of accessions. */
+                /** @description Returns one page of the submission's accessions. */
                 200: {
                     headers: {
                         "Total-Pages"?: string;
+                        /** @description How many there are in all. */
+                        "Total-Count"?: string;
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Accession"][];
+                        "application/json": components["schemas"]["SubmissionAccession"][];
                     };
                 };
-                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -3040,6 +3050,31 @@ export interface components {
             version: number;
             /** Format: date */
             locus_date: string;
+        };
+        /**
+         * @description One accession on a submission's own screen: what the record states,
+         *     and where DDBJ has got to with it.
+         *
+         *     The first four are `ReviewerAccession` — the three databases agree on
+         *     an accession and something to call it by, and on nothing after that,
+         *     so the rest travels as labelled facts rather than as a column per
+         *     database. A reader reads them; nothing branches on them.
+         *
+         *     `status` is the difference from what a reviewer is shown, and it is
+         *     the difference on purpose: this is the submitter's own list, and a
+         *     retracted entry that did not say so there would be the screen keeping
+         *     a secret from the person it belongs to.
+         */
+        SubmissionAccession: {
+            accession: string;
+            db: components["schemas"]["Db"];
+            /** @description What the record calls itself — a project title, a sample name, an entry id. */
+            name: string | null;
+            details: {
+                label: string;
+                value: string;
+            }[];
+            status: components["schemas"]["CurationStatus"];
         };
         Attachment: {
             filename: string;

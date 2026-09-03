@@ -687,24 +687,25 @@ paths:
 
     get:
       description: |
-        Get a paginated list of accessions for a submission. `status`
-        filters it, the same way it does on `/accessions` — the two share
-        the action, so leaving it undocumented here would mean a client
-        relying on behaviour no test defends.
+        A submission's own accessions, a page at a time.
+
+        Whichever of the three databases it is: BioProject numbers live on a
+        project, BioSample's on samples, ST.26's on entries, and this reads
+        the one its submission belongs to. It answered with ST.26 entries
+        alone until 2026-09, so every BioProject and BioSample said it had
+        none.
+
+        Readable rather than owned — a submission shared into a set opens for
+        that set's members, and its accessions are a large part of why anybody
+        looks at a colleague's submission.
+
+        Not `/accessions`, which is a synchronisation walk over one
+        submitter's ST.26 entries and answers in their shape.
 
       tags:
         - Submissions
 
       parameters:
-        - name: status[]
-          in: query
-
-          schema:
-            type: array
-
-            items:
-              $ref: '#/components/schemas/CurationStatus'
-
         - name: page
           in: query
 
@@ -713,10 +714,15 @@ paths:
 
       responses:
         '200':
-          description: Returns the list of accessions.
+          description: Returns one page of the submission's accessions.
 
           headers:
             Total-Pages:
+              schema:
+                type: string
+
+            Total-Count:
+              description: How many there are in all.
               schema:
                 type: string
 
@@ -726,10 +732,7 @@ paths:
                 type: array
 
                 items:
-                  $ref: '#/components/schemas/Accession'
-
-        '400':
-          $ref: '#/components/responses/BadRequest'
+                  $ref: '#/components/schemas/SubmissionAccession'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -3583,6 +3586,61 @@ components:
         locus_date:
           type: string
           format: date
+
+    SubmissionAccession:
+      description: |
+        One accession on a submission's own screen: what the record states,
+        and where DDBJ has got to with it.
+
+        The first four are `ReviewerAccession` — the three databases agree on
+        an accession and something to call it by, and on nothing after that,
+        so the rest travels as labelled facts rather than as a column per
+        database. A reader reads them; nothing branches on them.
+
+        `status` is the difference from what a reviewer is shown, and it is
+        the difference on purpose: this is the submitter's own list, and a
+        retracted entry that did not say so there would be the screen keeping
+        a secret from the person it belongs to.
+      type: object
+      additionalProperties: false
+
+      required:
+        - accession
+        - db
+        - name
+        - details
+        - status
+
+      properties:
+        accession:
+          type: string
+
+        db:
+          $ref: '#/components/schemas/Db'
+
+        name:
+          description: What the record calls itself — a project title, a sample name, an entry id.
+          type:
+            - string
+            - 'null'
+
+        details:
+          type: array
+
+          items:
+            type: object
+            additionalProperties: false
+            required: [label, value]
+
+            properties:
+              label:
+                type: string
+
+              value:
+                type: string
+
+        status:
+          $ref: '#/components/schemas/CurationStatus'
 
     Attachment:
       type: object

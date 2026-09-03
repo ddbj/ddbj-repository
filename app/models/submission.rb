@@ -123,6 +123,19 @@ class Submission < ApplicationRecord
     end
   end
 
+  # The rows of this submission that carry an accession — the same set
+  # `curation_rows` names, once the numbers have been issued.
+  #
+  # Whichever of the three tables that is. A submission belongs to one
+  # database, so this is one relation and not a union; what varies is
+  # which table it reads, which is exactly what `curation_rows` already
+  # decides.
+  def accessioned_rows
+    rows = curation_rows or return Project.none
+
+    rows.where.not(accession: nil)
+  end
+
   # What a curation row is called here: BP reads "1 project", BS "1,842
   # samples", ST.26 "1,842 entries". Used wherever a message has to name
   # the thing being acted on.
