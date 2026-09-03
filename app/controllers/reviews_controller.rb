@@ -1,47 +1,36 @@
 class ReviewsController < ApplicationController
-  include AttachmentDownload
-
   # The whole point is unauthenticated access via the share token.
-  skip_before_action :authenticate!, only: %i[show accessions file]
+  skip_before_action :authenticate!, only: %i[show accessions]
+
+  before_action :load_access
 
   # An invalid OR expired token 404s (via find_by! on the `active` scope),
   # so a reviewer can't tell a revoked link from one that never existed.
-  def show
-    @request = reviewed_request
-  end
-
-  # The submission's entries, reachable via the share token. Its own view
-  # rather than the submitter's: the two carried the same fields until one
-  # of them gained a curation status, at which point sharing a template
-  # meant an unauthenticated link had grown a window onto internal state.
-  # They were never the same list — they only looked like it.
-  def accessions
-    submission = reviewed_request.submission or raise ActiveRecord::RecordNotFound
-
-    pagy, @accessions = pagy(submission.entries.order(:id))
-    response.headers.merge! pagy.headers_hash
-  end
-
-  # Files, on the same token as everything else here. Which is the point:
-  # revoking the share revokes these too, where a bare Active Storage URL
-  # the reviewer had collected would have gone on working for ever.
   #
-  # `submission_record` rather than `ddbj_record` for the applied one, so
-  # the two uploads a reviewer can see are not one word apart.
-  NAMES = {
-    'ddbj_record'       => ->(request) { request.ddbj_record },
-    'submission_record' => ->(request) { request.submission&.ddbj_record },
-    'flatfile_na'       => ->(request) { request.submission&.flatfile_na },
-    'flatfile_aa'       => ->(request) { request.submission&.flatfile_aa }
-  }.freeze
+  # What is answered here is the link, not what is on it: the set's name
+  # and when it stops working. The accessions are their own route because
+  # there is no bound on how many there are.
+  def show; end
 
-  def file
-    redirect_to_attachment NAMES.fetch(params[:name]).call(reviewed_request)
+  # What was shared, a page at a time, and never the submissions the
+  # accessions came from. That is the change of granularity: at accession
+  # granularity there is no file to hand over — a record or a flatfile is
+  # the whole submission, and the whole submission is the thing that was
+  # deliberately not shared — so what a reviewer gets is what these
+  # accessions say, drawn on the page.
+  #
+  # A page can come back shorter than it was asked for. The rows are
+  # resolved through the set (ReviewerAccess#shared_rows), so an accession
+  # whose submission has left the set is not on it any more even though
+  # its row is still named — the tidying that follows a removal is what
+  # closes the gap, and this is what holds until it has.
+  def accessions
+    @rows = @access.shared_rows(paginate(@access.shared_accessions).map(&:accession))
   end
 
   private
 
-  def reviewed_request
-    ReviewerAccess.active.find_by!(token: params.expect(:token)).submission_request
+  def load_access
+    @access = ReviewerAccess.active.find_by!(token: params.expect(:token))
   end
 end

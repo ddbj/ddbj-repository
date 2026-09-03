@@ -16,6 +16,17 @@ module SetContents
 
   private
 
+  # The set named by the path, and only if the caller is in it — a set
+  # you are not in is not visible as a set you are not in, same reasoning
+  # as the request scoping one floor up.
+  #
+  # Here rather than copied into each controller nested under `:set_id`:
+  # it is the same three words in every one of them, and it is the line
+  # that decides who may read the set at all.
+  def load_set
+    @set = SubmissionSet.joined_by(current_user).find(params.expect(:set_id))
+  end
+
   # Take the set's own row, then ask again whether the caller is still
   # in it.
   #
@@ -37,9 +48,8 @@ module SetContents
                   .includes(submission_request: [:user, {submission: :project}])
                   .order(:created_at, :id)
 
-    pagy, @inclusions = pagy(scope)
+    @inclusions = paginate(scope)
 
-    response.headers.merge! pagy.headers_hash
 
     requests = @inclusions.map(&:submission_request)
 

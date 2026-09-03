@@ -43,16 +43,31 @@ class GroupSharingBoundaryTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test 'minting a share link for it is not' do
-    with_exceptions_app { get submission_request_reviewer_access_path(@theirs) }
-    assert_response :not_found
+  # The set's review link is any member's to mint and to revoke — but what
+  # it carries is not. Handing somebody else's accession to an anonymous
+  # link is the same escalation as putting their submission into a set of
+  # your own, one floor up.
+  test 'putting their accession on the set review link is not' do
+    submission = Submission.create!(user: @carol, db: 'bioproject')
+    submission.create_project!(project_type: :primary, title: 'Theirs', accession: 'PRJDB000099')
+    @theirs.update_columns(submission_id: submission.id)
+
+    set = SubmissionSet.sole
+
+    post set_reviewer_access_path(set),
+         params:  {reviewer_access: {expires_at: 1.week.from_now.iso8601}}.to_json,
+         headers: {'Content-Type' => 'application/json'}
+
+    assert_response :created
 
     with_exceptions_app do
-      post submission_request_reviewer_access_path(@theirs),
-           params:  {reviewer_access: {expires_at: 1.week.from_now.iso8601}}.to_json,
+      post set_reviewer_access_accessions_path(set),
+           params:  {accessions: ['PRJDB000099']}.to_json,
            headers: {'Content-Type' => 'application/json'}
     end
-    assert_response :not_found
+
+    assert_conform_schema 403
+    assert_includes response.parsed_body['error'], 'PRJDB000099'
   end
 
   test 'closing it is not' do

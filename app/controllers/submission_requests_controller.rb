@@ -30,7 +30,7 @@ class SubmissionRequestsController < ApplicationController
     scope = filter_by_accession(scope, params[:accession]) if params[:accession].present?
     scope = scope.needs_submitter_action                   if params[:needs_action].present?
 
-    pagy, @requests = pagy(order(scope))
+    @requests = paginate(order(scope))
 
     # Per-page BS accession aggregate ([first, count] keyed by submission
     # id) so the summary's DB-aware accession column doesn't N+1.
@@ -50,7 +50,6 @@ class SubmissionRequestsController < ApplicationController
         .group(:submission_request_id)
         .count
 
-    response.headers.merge! pagy.headers_hash
     response.headers['Unfinished-Count'] = owned.unfinished.count.to_s
     response.headers['Finished-Count']   = owned.finished.count.to_s
   end

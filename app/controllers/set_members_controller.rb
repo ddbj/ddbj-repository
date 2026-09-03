@@ -61,9 +61,5 @@ class SetMembersController < ApplicationController
     refuse! 'The owner cannot leave their own set. Delete it instead.' if @member.user_id == current_user.id
   end
 
-  def load_set
-    @set = SubmissionSet.joined_by(current_user).find(params.expect(:set_id))
-  end
-
   def member_params = params.expect(set_member: %i[email])
 end

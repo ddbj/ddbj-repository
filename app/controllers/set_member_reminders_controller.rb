@@ -5,7 +5,10 @@
 # Any member can do it: the point of a resend is usually that whoever
 # sent the first one is not around.
 class SetMemberRemindersController < ApplicationController
+  include SetContents
+
   before_action :refuse_proxy!
+  before_action :load_set
   before_action :load_member
 
   def create
@@ -20,8 +23,5 @@ class SetMemberRemindersController < ApplicationController
 
   private
 
-  def load_member
-    @set  = SubmissionSet.joined_by(current_user).find(params.expect(:set_id))
-    @member = @set.members.find(params.expect(:member_id))
-  end
+  def load_member = @member = @set.members.find(params.expect(:member_id))
 end

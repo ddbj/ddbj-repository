@@ -4,9 +4,7 @@ class SubmissionsController < ApplicationController
   def index
     scope = filter_by_enum(current_user.submissions, :db, params[:db], Submission.dbs.keys)
 
-    pagy, @submissions = pagy(scope.order(id: :desc))
-
-    response.headers.merge! pagy.headers_hash
+    @submissions = paginate(scope.order(id: :desc))
   end
 
   # Readable, not owned — following the request's own screen, which now

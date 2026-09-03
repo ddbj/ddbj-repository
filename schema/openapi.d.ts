@@ -462,104 +462,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/submission_requests/{submission_request_id}/reviewer_access": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                submission_request_id: number;
-            };
-            cookie?: never;
-        };
-        /** @description Get the reviewer-access link state for a request. */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    submission_request_id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Whether reviewer access is enabled and, if so, its share URL and expiry. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ReviewerAccess"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-            };
-        };
-        put?: never;
-        /** @description Enable reviewer access, minting a fresh unguessable link. Any existing link is invalidated. */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    submission_request_id: number;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        reviewer_access: {
-                            /** Format: date-time */
-                            expires_at: string;
-                        };
-                    };
-                };
-            };
-            responses: {
-                /** @description Returns the newly-enabled reviewer access. */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["ReviewerAccess"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-                422: components["responses"]["UnprocessableContent"];
-            };
-        };
-        /** @description Disable reviewer access, invalidating the link. */
-        delete: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    submission_request_id: number;
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Reviewer access disabled. */
-                204: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                401: components["responses"]["Unauthorized"];
-                404: components["responses"]["NotFound"];
-            };
-        };
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/reviews/{token}": {
         parameters: {
             query?: never;
@@ -569,7 +471,20 @@ export interface paths {
             };
             cookie?: never;
         };
-        /** @description Reviewer view of a submission request via its share token. No authentication; messages are deliberately not included. */
+        /**
+         * @description What a review link is: the set it was made for and when it stops
+         *     working. What it carries is the route below, because there is no bound
+         *     on how much that is.
+         *
+         *     No authentication — the token in the path is the whole credential. A
+         *     revoked token, an expired one and one that never existed are a 404
+         *     alike, so a reviewer cannot tell a share that was taken away from one
+         *     that was never given.
+         *
+         *     There is nothing to download here. The link is granted per accession,
+         *     and a record or a flatfile is the whole submission the accession came
+         *     from — which is the thing that was deliberately not shared.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -581,13 +496,13 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Returns the submission request. */
+                /** @description Returns the set's name and when the link expires. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["ReviewerSubmissionRequest"];
+                        "application/json": components["schemas"]["Review"];
                     };
                 };
                 404: components["responses"]["NotFound"];
@@ -603,14 +518,24 @@ export interface paths {
     };
     "/reviews/{token}/accessions": {
         parameters: {
-            query?: never;
+            query?: {
+                page?: number;
+            };
             header?: never;
             path: {
                 token: string;
             };
             cookie?: never;
         };
-        /** @description Reviewer view of a submission's accessions via the share token. No authentication. */
+        /**
+         * @description The accessions on a review link, a page at a time.
+         *
+         *     Resolved through the set every time they are read, so an accession
+         *     whose submission has been taken out of the set is not here whatever
+         *     was named on the link. That also means a page can come back shorter
+         *     than it was asked for: the tidying that follows a removal is what
+         *     closes the gap, and this is what holds until it has.
+         */
         get: {
             parameters: {
                 query?: {
@@ -624,10 +549,12 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Returns the list of accessions. */
+                /** @description One page of what the link carries. */
                 200: {
                     headers: {
                         "Total-Pages"?: string;
+                        /** @description How many there are in all. */
+                        "Total-Count"?: string;
                         [name: string]: unknown;
                     };
                     content: {
@@ -1573,6 +1500,396 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sets/{set_id}/reviewer_access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description The set's review link: whether one is enabled and, if so, where it
+         *     points, when it expires and how many accessions are on it. Which ones
+         *     is the route below.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The link, or that there is none. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewerAccess"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /**
+         * @description Enable the link, or mint a fresh URL for the one that is there. Any
+         *     member may: a collaboration is not organised around whoever pressed
+         *     New first.
+         *
+         *     The previous URL stops working, which is what replacing a link you
+         *     have lost control of means. What is on the link survives it — the
+         *     accessions belong to the members who put them there, and swapping a
+         *     URL is not un-sharing their work.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reviewer_access: {
+                            /**
+                             * Format: date-time
+                             * @description When the link stops working. Must be in the future.
+                             */
+                            expires_at: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Returns the link as it now stands. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewerAccess"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Sets cannot be changed while acting as another account. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        /**
+         * @description Revoke the link. The accessions on it go with it: the next URL must
+         *     never arrive already carrying somebody's work.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Revoked. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                /** @description Sets cannot be changed while acting as another account. */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sets/{set_id}/reviewer_access/accessions": {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description What the link carries, a page at a time, as the set's members see it —
+         *     the same rows a reviewer is shown, plus whose each one is and whether
+         *     the reader may take it off.
+         *
+         *     Resolved through the set every time, so a page can come back shorter
+         *     than it was asked for. See the reviewer's own list for why.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description One page of what the link carries. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        /** @description How many there are in all. */
+                        "Total-Count"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SharedAccession"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        /**
+         * @description Put accessions of yours on the set's review link, which is what lets a
+         *     reviewer see them without logging in.
+         *
+         *     Yours only, and in this set only. Being able to read somebody else's
+         *     submission through a shared set does not carry the right to hand it
+         *     on — an accession belonging to another member is a 403 naming it, and
+         *     one that is not in the set at all is a 422 saying so.
+         *
+         *     Two forms, and the only difference is how the list is named.
+         *
+         *     `accessions` names them: the ordinary press, the numbers written in a
+         *     manuscript, refused whole if any of them cannot go on — somebody
+         *     pasting ten wants to hear which one is wrong rather than find out
+         *     later that nine went. Any entry may instead be a range,
+         *     `SAMD00000001-SAMD00000050`, which names whichever of your own
+         *     accessions in the set fall inside it. A range is a filter, not a list:
+         *     one wider than what you hold is not an error, and a range that stops
+         *     short of the last three is how "everything except those" is written.
+         *     The comparison is numeric rather than lexical, because BioSample pads
+         *     its numbers and BioProject does not.
+         *
+         *     `all` is everything of yours in the set, for the press that would
+         *     otherwise mean looking up both ends of a block.
+         *
+         *     Neither is a standing rule. Both resolve to rows at the moment they
+         *     are pressed, exactly as if every accession had been named one by one,
+         *     so a submission added to the set tomorrow is not on the link. Nothing
+         *     here shares anything without somebody having pressed it.
+         *
+         *     Ones already on the link are counted, not refused. There is no ceiling
+         *     on what a link may carry; a link that has passed its expiry carries
+         *     nothing more, which is a 422.
+         */
+        post: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Accession numbers, ranges (`FROM-TO`), or both. */
+                        accessions: string[];
+                    } | {
+                        /**
+                         * @description Everything of yours in the set, resolved now. Only
+                         *     true is accepted — "all: false" would be a third
+                         *     meaning nobody needs and this body could not tell from
+                         *     a mistake.
+                         * @constant
+                         */
+                        all: true;
+                    };
+                };
+            };
+            responses: {
+                /**
+                 * @description What happened, as counts. Not the link itself, which the client
+                 *     re-reads: both numbers, because "8 added" alone leaves somebody
+                 *     who pasted ten wondering about the other two.
+                 */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            added: number;
+                            already_shared: number;
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                /**
+                 * @description An accession belonging to another member, or a set being written
+                 *     to while acting as another account.
+                 */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sets/{set_id}/reviewer_access/accessions/{accession}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: number;
+                accession: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Take one of your accessions back off the link. */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    set_id: number;
+                    accession: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Taken off. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sets/{set_id}/accessions": {
+        parameters: {
+            query?: {
+                page?: number;
+            };
+            header?: never;
+            path: {
+                set_id: number;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description Everything in the set you could put on its review link — your own
+         *     submissions' accessions, with the ones already on the link marked.
+         *
+         *     Yours only, because only the owner of a submission shares it: a list
+         *     holding a colleague's work would be offering what the next request
+         *     refuses.
+         *
+         *     It exists because the alternative is knowing the numbers by heart. What
+         *     goes on the link is written rather than picked — a number, or a range
+         *     — and this is where somebody who does not have their numbers in front
+         *     of them finds out what they are.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path: {
+                    set_id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description One page of what you could share. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        /** @description How many there are in all, which is what "share all of them" has to be able to say. */
+                        "Total-Count"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SetAccession"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sets/{set_id}/messages": {
         parameters: {
             query?: never;
@@ -2138,98 +2455,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/reviews/{token}/files/{name}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-                /**
-                 * @description `submission_record` is the applied record, as against `ddbj_record`
-                 *     which is what was uploaded — one word apart everywhere else, which is
-                 *     why they are not here.
-                 */
-                name: "ddbj_record" | "submission_record" | "flatfile_na" | "flatfile_aa";
-            };
-            cookie?: never;
-        };
-        /**
-         * @description Files on the share token, like the rest of the reviewer's view — so
-         *     revoking or expiring the share revokes these with it.
-         *
-         *     A revoked token, an expired one, and one that never existed are all a
-         *     404 alike: a reviewer cannot tell a share that was taken away from one
-         *     that was never given. No 401, because there is nothing to
-         *     authenticate — the token in the path is the whole credential.
-         */
-        get: {
-            parameters: {
-                query?: {
-                    /**
-                     * @description `url` answers with the address as JSON instead of redirecting to it.
-                     *     A browser cannot put an `Authorization` header on an anchor and this
-                     *     API takes no cookies, so the web client asks for the address and
-                     *     navigates to it itself. Everything else follows the redirect.
-                     */
-                    as?: "url";
-                    /**
-                     * @description `attachment` saves the file; `inline` (the default) leaves it to the
-                     *     browser. A value outside this list is the default rather than an
-                     *     error — a disposition is a preference, not an instruction.
-                     */
-                    disposition?: "inline" | "attachment";
-                };
-                header?: never;
-                path: {
-                    token: string;
-                    /**
-                     * @description `submission_record` is the applied record, as against `ddbj_record`
-                     *     which is what was uploaded — one word apart everywhere else, which is
-                     *     why they are not here.
-                     */
-                    name: "ddbj_record" | "submission_record" | "flatfile_na" | "flatfile_aa";
-                };
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /**
-                 * @description The address, when `as=url` was asked for. A storage URL good for a
-                 *     few minutes — not a thing to store, and not usable by anybody the
-                 *     request was not authorised for.
-                 */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** Format: uri */
-                            url: string;
-                        };
-                    };
-                };
-                /**
-                 * @description A redirect to storage. The `Location` expires in minutes; the
-                 *     authorisation happened here, on this request.
-                 */
-                302: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                404: components["responses"]["NotFound"];
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/direct_uploads": {
         parameters: {
             query?: never;
@@ -2514,11 +2739,84 @@ export interface components {
              */
             status: "open" | "expired" | "accepted";
         };
+        /**
+         * @description A set's review link, as its members see it.
+         *
+         *     Every key is present either way: when nobody has made a link `enabled`
+         *     is false, `url` and `expires_at` are null and `count` is zero. A
+         *     two-key body would read more tidily and would leave this contract
+         *     unable to say that an enabled link has a URL, which is the one thing
+         *     worth checking.
+         */
         ReviewerAccess: {
             enabled: boolean;
-            url?: string;
+            url: string | null;
             /** Format: date-time */
-            expires_at?: string;
+            expires_at: string | null;
+            /**
+             * @description Whether the link has passed its expiry. It still exists and can
+             *     still be replaced, but it answers 404 for whoever holds it, and
+             *     nothing more can be put on it.
+             */
+            expired: boolean;
+            /**
+             * @description How many accessions are on the link. The list itself is a route of
+             *     its own — there is no ceiling on it, and a screen that has just
+             *     been told a URL and an expiry does not need every row to draw its
+             *     first frame.
+             */
+            count: number;
+            /**
+             * @description How many of them somebody else put there. Revoking takes
+             *     everything off, anybody in the set may revoke, and this is the
+             *     part of it they cannot undo for the people it belongs to — so the
+             *     button has to be able to say so before it fires.
+             */
+            others: number;
+        };
+        /**
+         * @description One accession on a review link, as a member of the set sees it — whose
+         *     it is, and whether it is yours to take off. Both said by the server:
+         *     under a proxy login the account the client believes it is is not the
+         *     account the server acts as, so comparing uids in the browser gets it
+         *     backwards.
+         */
+        SharedAccession: {
+            accession: string;
+            db: components["schemas"]["Db"];
+            /** @description What the record calls itself — a project title, a sample name, an entry id. */
+            name: string | null;
+            owner_uid: string;
+            owned: boolean;
+        };
+        /**
+         * @description One accession in a set that the caller could put on its review link.
+         *
+         *     Their own, always: only the owner of a submission shares it, so a
+         *     candidate list holding somebody else's work would be offering what the
+         *     next request refuses. That is why no owner is named here and
+         *     `SharedAccession` names one — this list is all yours, and that one is
+         *     everybody's.
+         */
+        SetAccession: {
+            accession: string;
+            db: components["schemas"]["Db"];
+            /** @description What the record calls itself — a project title, a sample name, an entry id. */
+            name: string | null;
+            /** @description Whether it is already on the link, so a row says so rather than being offered as if it were new. */
+            shared: boolean;
+        };
+        /**
+         * @description What a share-token holder sees. Deliberately not what the set's own
+         *     members are served: there is no roster here, no conversation, no
+         *     submission and no owner — a reviewer is being shown some records, not
+         *     a collaboration.
+         */
+        Review: {
+            /** @description The set's name, as its members wrote it. */
+            name: string;
+            /** Format: date-time */
+            expires_at: string;
         };
         SubmissionRequestStatus: {
             id: number;
@@ -2594,40 +2892,6 @@ export interface components {
              * @description When the thread was last posted to, by either party.
              */
             last_message_at: string | null;
-        };
-        /**
-         * @description What a share-link holder may see. Identical to SubmissionRequest
-         *     minus the messaging facts: the endpoint is unauthenticated, so it
-         *     must not disclose that a curator ↔ submitter conversation exists.
-         *     Spelled out rather than derived from SubmissionRequest because
-         *     `additionalProperties: false` does not compose through `allOf` —
-         *     which also means a field added to the submitter view stays out of
-         *     this one until somebody decides it belongs here.
-         */
-        ReviewerSubmissionRequest: {
-            id: number;
-            db: components["schemas"]["Db"];
-            status: components["schemas"]["SubmissionOperationStatus"];
-            /**
-             * @description Machine-readable reason the application failed. Null until it does.
-             *     Branch on this rather than on `error_message`, whose wording changes
-             *     without notice. An unknown code means an unexpected internal error;
-             *     treat it like `TRD_R9999`.
-             */
-            error_code: string | null;
-            error_message: string | null;
-            /** Format: date-time */
-            created_at: string;
-            /**
-             * Format: date-time
-             * @description The submitter put this request down. Null while it is still open.
-             */
-            closed_at: string | null;
-            processing: boolean;
-            ddbj_record: components["schemas"]["Attachment"];
-            validation: components["schemas"]["Validation"] | null;
-            submission: components["schemas"]["Submission"] | null;
-            progress: components["schemas"]["Progress"];
         };
         /**
          * @description How far along the request is, in a vocabulary a submitter can read.
@@ -2764,13 +3028,24 @@ export interface components {
             read_at: string | null;
             files: components["schemas"]["AttachedFile"][];
         };
-        /** @description What a share-token holder sees of an entry. Deliberately narrower than Accession: the token is unauthenticated, and where the entry stands in DDBJ's own handling of the submission is not a reviewer's business — the same reason the message thread is unreachable from a share link. */
+        /**
+         * @description One accession as a share-token holder sees it. Only what the record
+         *     itself states: where DDBJ has got to with it is not a reviewer's
+         *     business, the same reason a set's conversation is unreachable from a
+         *     share link.
+         *
+         *     Three databases keep three different rows, so what they carry beyond
+         *     an accession and a name travels as labelled facts rather than as a
+         *     column per database. A reader reads them; nothing branches on them.
+         */
         ReviewerAccession: {
             accession: string;
-            entry_id: string;
-            version: number;
-            /** Format: date */
-            locus_date: string;
+            db: components["schemas"]["Db"];
+            name: string | null;
+            details: {
+                label: string;
+                value: string;
+            }[];
         };
         /**
          * @description Where a curated row stands. `canceled` and `withdrawn` mean the row is no longer part of the submission: it is left out of the flatfile the next time one is generated, and should be left out of anything derived from it. The stored flatfile still contains it until then — the status is what changed, and regenerating is a separate run.

@@ -78,7 +78,7 @@ module('Acceptance | a submission shared into a set', function (hooks) {
     assert.dom('[data-test-send]').doesNotExist();
     assert.dom('[data-test-close]').doesNotExist();
     assert.dom('[data-test-messages]').doesNotExist();
-    assert.dom().doesNotIncludeText('Share with a reviewer');
+    assert.dom('[data-test-sets]').doesNotExist();
 
     // And nothing addresses them as the submitter. The panel is stated
     // about somebody; the validation report — which opens "this is still
@@ -104,7 +104,7 @@ module('Acceptance | a submission shared into a set', function (hooks) {
 
     assert.dom('[data-test-send]').exists();
     assert.dom('[data-test-close]').exists();
-    assert.dom().includesText('Share with a reviewer');
+    assert.dom('[data-test-sets]').exists();
 
     // The other half of the assertion above: the report IS shown to the
     // submitter, second person and all, so its absence there means

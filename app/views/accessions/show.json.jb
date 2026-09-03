@@ -5,9 +5,5 @@
   version:    @accession.version,
   locus_date: @accession.locus_date,
 
-  submission: render(
-    'submissions/submission',
-    submission: @accession.submission,
-    file_url:   ->(name) { submission_file_url(@accession.submission, name) }
-  )
+  submission: render('submissions/submission', submission: @accession.submission)
 }

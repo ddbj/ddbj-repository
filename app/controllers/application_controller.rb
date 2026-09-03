@@ -28,6 +28,27 @@ class ApplicationController < ActionController::API
 
   private
 
+  # Past the end of any list this application can hold, and well short of
+  # what Postgres refuses. A page number is multiplied into an OFFSET, so
+  # without a ceiling `?page=99999999999999999999` is not an empty page
+  # but a bigint overflow — a 500, and on the reviewer's routes one that
+  # anybody holding a share link can produce.
+  MAX_PAGE = 1_000_000
+
+  # A page of a list, and the headers that say where in the list it is.
+  #
+  # The two belong together: a client that is not told `Total-Pages` reads
+  # a truncated list as the whole of one, which is the failure a paginated
+  # endpoint has instead of an error. Written once because there is no
+  # request where one half is wanted without the other.
+  def paginate(scope)
+    pagy, records = pagy(scope, page: params[:page].to_i.clamp(1, MAX_PAGE))
+
+    response.headers.merge! pagy.headers_hash
+
+    records
+  end
+
   def forbid!(message)
     raise Forbidden, message
   end

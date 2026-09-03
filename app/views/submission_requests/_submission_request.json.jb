@@ -1,14 +1,12 @@
-# locals: (submission_request:, viewer: nil, request_file_url:, submission_file_url:)
-#
-# The two `*_file_url` lambdas take an attachment name and answer with the
-# route that serves it. Handed in rather than built here because the same
-# file is reached by different doors — the submitter's, a reviewer's share
-# token, a curator's session — and which door it is is what authorises the
-# read. See AttachmentDownload.
+# locals: (submission_request:, viewer:)
 
 state = CurationState.new(submission_request)
 
-payload = {
+# A set's members can read each other's submissions. Owning one is what
+# says whether the controls on the page are yours to press.
+owned = submission_request.user_id == viewer.id
+
+{
   **submission_request.slice(
     :id,
     :db,
@@ -20,57 +18,42 @@ payload = {
   ),
 
   processing:  submission_request.processing?,
-  ddbj_record: render('attachment', attachment: submission_request.ddbj_record, url: request_file_url.call('ddbj_record')),
+  ddbj_record: render('attachment', attachment: submission_request.ddbj_record, url: submission_request_file_url(submission_request, 'ddbj_record')),
   validation:  submission_request.validation_with_validity&.then { render(it) },
-  submission:  submission_request.submission&.then { render(it, file_url: submission_file_url) },
+  submission:  submission_request.submission&.then { render(it) },
 
-  progress: render('submission_requests/progress', state: state)
-}
+  progress: render('submission_requests/progress', state: state),
 
-# Everything below this line is for somebody who is signed in.
-#
-# The reviewer view renders this same body through an unauthenticated
-# share token and passes no viewer — that is what `viewer: nil` means
-# here, and it is the whole of the difference between the two. It must
-# not disclose that a curator ↔ submitter conversation exists, nor who
-# else is working on this.
-if viewer
-  # A set's members can read each other's submissions. Owning one is
-  # what says whether the controls on the page are yours to press.
-  owned = submission_request.user_id == viewer.id
-
-  payload[:owned] = owned
+  owned: owned,
 
   # Whose it is. Needed because the page reads differently for somebody
   # who is not the submitter — every sentence on it is written in the
   # second person, and "your file is ready to submit" over an empty
   # button row is worse than not showing it.
-  payload[:owner_uid] = submission_request.user.uid
+  owner_uid: submission_request.user.uid,
 
   # Whether the button is offered, rather than the client re-deriving the
   # rule from the status — the rule is "what is asking for something can
   # be put down", and only the server knows it.
-  payload[:closable] = owned && submission_request.closable?
+  closable: owned && submission_request.closable?,
 
   # Only the sets this reader is in. For the owner that is every set it
   # belongs to (a submission can only be put in a set by its owner, who
   # has to be a member to do it); for anybody else it is the one they
   # share, and the other collaborations stay theirs to know about.
-  payload[:sets] = submission_request.sets.merge(SubmissionSet.joined_by(viewer)).order(:name).map {
+  sets: submission_request.sets.merge(SubmissionSet.joined_by(viewer)).order(:name).map {
     {id: it.id, name: it.name}
-  }
+  },
 
   # The conversation is between one submitter and DDBJ. Being able to
   # read somebody's submission through a shared set is not being party
-  # to that, so a member who does not own it is told what a reviewer is
-  # told: nothing. (Set-wide conversation is its own thing and does not
-  # come through here.)
-  payload[:unread_curator_message_count] = owned ? submission_request.messages.curator_role.unread.count : 0
+  # to that, so a member who does not own it is told nothing about it.
+  # (Set-wide conversation is its own thing and does not come through
+  # here.)
+  unread_curator_message_count: owned ? submission_request.messages.curator_role.unread.count : 0,
 
   # Dates the conversation for the submitter's status card ("last message
   # 07-29"). Deliberately a fact rather than an expectation — how long a
   # reply takes is not something this system knows.
-  payload[:last_message_at] = owned ? submission_request.messages.maximum(:created_at)&.iso8601 : nil
-end
-
-payload
+  last_message_at: owned ? submission_request.messages.maximum(:created_at)&.iso8601 : nil
+}

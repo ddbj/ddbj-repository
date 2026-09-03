@@ -1,0 +1,35 @@
+# The set's own view of its review link: whether there is one, where it
+# points, whether it still works, and how much is on it.
+#
+# Not what is on it — that is its own paginated route, because what a set
+# holds has no ceiling. The count is here because it is the one fact about
+# the list that a screen needs before it has drawn any of it.
+#
+# Every key is present either way, with nulls where there is no link. The
+# alternative — a two-key body when disabled — reads more tidily and
+# leaves the contract unable to say that an enabled link has a URL, which
+# is the one thing worth checking.
+if @access
+  {
+    enabled:    true,
+    url:        @access.share_url,
+    expires_at: @access.expires_at,
+
+    # A link past its expiry still exists and can still be replaced, but
+    # it 404s for whoever holds it. The screen has to be able to say so:
+    # a Copy button over a dead URL is worse than no button.
+    expired: @access.expired?,
+
+    count:  @count,
+    others: @others
+  }
+else
+  {
+    enabled:    false,
+    url:        nil,
+    expires_at: nil,
+    expired:    false,
+    count:      0,
+    others:     0
+  }
+end

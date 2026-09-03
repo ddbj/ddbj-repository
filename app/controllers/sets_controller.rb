@@ -55,8 +55,10 @@ class SetsController < ApplicationController
 
   private
 
-  # A set you are not in is not visible as a set you are not in —
-  # same reasoning as the request scoping, one floor up.
+  # `:id` here, where everything nested under a set reads `:set_id` —
+  # which is the whole of why this one is not SetContents#load_set. Same
+  # rule behind it: a set you are not in is not visible as a set you are
+  # not in.
   def load_set
     @set = SubmissionSet.joined_by(current_user).find(params.expect(:id))
   end

@@ -60,9 +60,7 @@ class AccessionsController < ApplicationController
   # A page of the nested list is read by a person: they want to know how
   # many there are and to jump about, so it is numbered and counted.
   def offset_page(scope)
-    pagy, @accessions = pagy(scope)
-
-    response.headers.merge! pagy.headers_hash
+    @accessions = paginate(scope)
   end
 
   # A page of the flat list is read by a script walking the whole set to

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_02_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -221,13 +221,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_000001) do
     t.index ["started_at"], name: "index_regenerate_flatfiles_runs_on_started_at"
   end
 
+  create_table "reviewer_access_accessions", force: :cascade do |t|
+    t.string "accession", null: false
+    t.bigint "added_by_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "reviewer_access_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["added_by_id"], name: "index_reviewer_access_accessions_on_added_by_id"
+    t.index ["reviewer_access_id", "accession"], name: "index_reviewer_access_accessions_uniqueness", unique: true
+    t.index ["reviewer_access_id"], name: "index_reviewer_access_accessions_on_reviewer_access_id"
+  end
+
   create_table "reviewer_accesses", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.bigint "created_by_id", null: false
     t.datetime "expires_at", null: false
-    t.bigint "submission_request_id", null: false
+    t.bigint "submission_set_id", null: false
     t.string "token", null: false
     t.datetime "updated_at", null: false
-    t.index ["submission_request_id"], name: "index_reviewer_accesses_on_submission_request_id", unique: true
+    t.index ["created_by_id"], name: "index_reviewer_accesses_on_created_by_id"
+    t.index ["submission_set_id"], name: "index_reviewer_accesses_on_submission_set_id", unique: true
     t.index ["token"], name: "index_reviewer_accesses_on_token", unique: true
   end
 
@@ -507,7 +520,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_000001) do
   add_foreign_key "regenerate_flatfiles_failures", "regenerate_flatfiles_runs", column: "run_id"
   add_foreign_key "regenerate_flatfiles_failures", "submissions", on_delete: :nullify
   add_foreign_key "regenerate_flatfiles_runs", "regenerate_flatfiles_runs", column: "retry_of_id"
-  add_foreign_key "reviewer_accesses", "submission_requests"
+  add_foreign_key "reviewer_access_accessions", "reviewer_accesses"
+  add_foreign_key "reviewer_access_accessions", "users", column: "added_by_id"
+  add_foreign_key "reviewer_accesses", "submission_sets"
+  add_foreign_key "reviewer_accesses", "users", column: "created_by_id"
   add_foreign_key "sample_references", "samples"
   add_foreign_key "sample_tsv_imports", "submissions"
   add_foreign_key "samples", "submissions"

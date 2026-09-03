@@ -10,6 +10,7 @@ import { pageTitle } from 'ember-page-title';
 import Breadcrumb from 'repository/components/breadcrumb';
 import Pagination from 'repository/components/pagination';
 import SetMessages from 'repository/components/set-messages';
+import SetReviewerAccess from 'repository/components/set-reviewer-access';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 import { requestState, stateLabel, toneClasses } from 'repository/utils/request-state';
@@ -620,6 +621,11 @@ export default class extends Component<Signature> {
         </div>
       {{/if}}
     </section>
+
+    {{! Below what the set holds, because it is about what the set holds
+    — an accession can only go on the link once its submission is in
+    here. }}
+    <SetReviewerAccess @setId={{this.submissionSet.id}} />
 
     {{! The set's own conversation, below what it holds — the thread is
     about the bundle, so it reads after the bundle. }}

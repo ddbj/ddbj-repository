@@ -43,27 +43,23 @@ Rails.application.routes.draw do
 
         get 'files/:id', to: 'message_files#show', as: :file
       end
-      resource :reviewer_access, only: %i[show create destroy]
 
       # A closure is a thing that exists or does not, so creating and
       # destroying one reads as closing and reopening.
       resource :closure, only: %i[create destroy]
     end
 
-    # Unauthenticated reviewer view — the request is looked up by its
-    # unguessable share token, never by the current user. Messages are
-    # deliberately NOT reachable from here.
+    # Unauthenticated reviewer view — the set is looked up by its
+    # unguessable share token, never by the current user. What a reviewer
+    # is given is the accessions the set's members named, and files are
+    # not among them (see ReviewsController for why there is nothing here
+    # to download).
+    #
+    # The list is its own route because there is no bound on how long it
+    # is: what a set holds is whatever its members submitted, and a
+    # BioSample submission alone can carry a hundred thousand samples.
     get 'reviews/:token',            to: 'reviews#show',       as: :review
     get 'reviews/:token/accessions', to: 'reviews#accessions', as: :review_accessions
-
-    # Files on the same token as the rest of the reviewer's view, so
-    # revoking the share revokes them. The name is constrained here as
-    # well as mapped in the controller: an unknown one never reaches
-    # Ruby.
-    get 'reviews/:token/files/:name',
-        to:          'reviews#file',
-        as:          :review_file,
-        constraints: {name: /ddbj_record|submission_record|flatfile_na|flatfile_aa/}
 
     resources :submissions, only: %i[index show] do
       resources :accessions, only: %i[index]
@@ -107,6 +103,23 @@ Rails.application.routes.draw do
                 only:       %i[create destroy],
                 controller: 'set_submissions',
                 param:      :submission_request_id
+
+      # Everything in the set that the caller could put on its review
+      # link, which is to say their own — only the owner shares their own
+      # work. What the sharing screen offers to tick.
+      resources :accessions, only: %i[index], controller: 'set_accessions'
+
+      # The set's review link, and what it carries — two resources
+      # because they are two different people's business: any member may
+      # mint or revoke the link, while each accession on it is the
+      # owner's to put there and to take off.
+      resource :reviewer_access, only: %i[show create destroy], controller: 'set_reviewer_accesses' do
+        resources :accessions,
+                  only:        %i[index create destroy],
+                  controller:  'set_shared_accessions',
+                  param:       :accession,
+                  constraints: {accession: %r{[^/]+}}
+      end
     end
 
     # Where an invitation link lands. `show` is unauthenticated — the

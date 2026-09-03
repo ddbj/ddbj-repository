@@ -2,113 +2,129 @@ require 'test_helper'
 
 class ReviewsTest < ActionDispatch::IntegrationTest
   setup do
-    @submission_request = submission_requests(:bioproject)
+    @alice = users(:alice)
 
-    attach_ddbj_record       @submission_request
-    attach_submission_files  @submission_request.submission
+    @set = SubmissionSet.create!(name: 'Deep sea study', owner: @alice)
+    @set.inclusions.create!(submission_request: submission_requests(:bioproject), added_by: @alice)
+    @set.inclusions.create!(submission_request: submission_requests(:biosample),  added_by: @alice)
 
-    @access = @submission_request.create_reviewer_access!(expires_at: 1.week.from_now)
+    @access = ReviewerAccess.enable!(@set, created_by: @alice, expires_at: 1.week.from_now)
+    @access.shared_accessions.create!(accession: 'PRJDB000001', added_by: @alice)
   end
 
   # No Authorization header is ever set here — the whole point is access
   # without logging in.
 
-  test 'GET with a valid token returns the request and conforms to schema' do
+  test 'GET with a valid token returns the set the link was made for' do
     get review_path(@access.token)
 
     assert_conform_schema 200
-    assert_equal @submission_request.id, response.parsed_body['id']
+
+    body = response.parsed_body
+
+    assert_equal 'Deep sea study', body['name']
+    assert_not_nil body['expires_at']
   end
 
-  # The reviewer's links are plain anchors — the token in the path is the
-  # whole credential, so nothing has to put a header on them. That makes
-  # the disposition the server's business: without it a reviewer clicking
-  # a flatfile gets the browser trying to paint a multi-gigabyte record
-  # in a tab.
-  test 'the reviewer file links ask to be saved rather than rendered' do
-    get review_path(@access.token)
-
-    assert_response :ok
-
-    urls = [
-      response.parsed_body.dig('ddbj_record', 'url'),
-      *response.parsed_body.fetch('submission').values_at('ddbj_record', 'flatfile_na', 'flatfile_aa').compact.map { it.fetch('url') }
-    ]
-
-    assert_equal 4, urls.size
-
-    urls.each do |url|
-      assert_equal 'attachment', Rack::Utils.parse_query(URI.parse(url).query)['disposition'], url
-    end
-  end
-
-  # The endpoint is unauthenticated, so "no messages" has to mean the
-  # conversation is invisible — not merely that the bodies are withheld.
-  # An unread count or a last-posted timestamp still tells a link holder
-  # that a curator asked something, and roughly when.
-  test 'the reviewer view never exposes messages, nor that any exist' do
-    @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'internal note')
-
-    get review_path(@access.token)
-
-    assert_response :ok
-
-    keys = response.parsed_body.keys
-
-    assert_not_includes keys, 'messages'
-    assert_not_includes keys, 'unread_curator_message_count'
-    assert_not_includes keys, 'last_message_at'
-    assert_not_includes response.body, 'internal note'
-  end
-
-  # The submitter's own view of the same request does carry them — the
-  # difference between the two schemas is the point.
-  test 'the submitter view of the same request does carry the conversation facts' do
-    @submission_request.messages.create!(user: users(:bob), author_role: :curator, body: 'internal note')
-
-    default_headers['Authorization'] = "Bearer #{@submission_request.user.api_key}"
-    get submission_request_path(id: @submission_request.id)
+  test 'what was put on the link is its own list' do
+    get review_accessions_path(@access.token)
 
     assert_conform_schema 200
-    assert_equal 1, response.parsed_body.fetch('unread_curator_message_count')
-    assert_not_nil  response.parsed_body.fetch('last_message_at')
+
+    shared = response.parsed_body.sole
+
+    assert_equal 'PRJDB000001',             shared['accession']
+    assert_equal 'bioproject',              shared['db']
+    assert_equal 'Primary fixture project', shared['name']
+  end
+
+  # There is no ceiling on what a link may carry, so nothing may assume it
+  # arrives whole. `Total-Pages` is how the reviewer's page knows there is
+  # more of it.
+  test 'the list is paginated' do
+    get review_accessions_path(@access.token)
+
+    assert_response :ok
+    assert_equal '1', response.headers['Total-Pages']
+  end
+
+  # Being in the set is not being on the link. Naming the accessions is
+  # the whole of what the feature does, so a set holding two submissions
+  # and a link naming one of them has to show one.
+  test 'an accession nobody put on the link is not on it' do
+    get review_accessions_path(@access.token)
+
+    assert_response :ok
+    assert_not_includes response.parsed_body.pluck('accession'), samples(:first).accession
+  end
+
+  test 'what each record says travels as labelled facts' do
+    @access.shared_accessions.create!(accession: samples(:first).accession, added_by: @alice)
+
+    get review_accessions_path(@access.token)
+
+    assert_conform_schema 200
+
+    sample = response.parsed_body.find { it['db'] == 'biosample' }
+
+    assert_equal 'fixture-sample-1', sample['name']
+    assert_equal 'Generic.1.0',      sample.fetch('details').find { it['label'] == 'Package' }['value']
+  end
+
+  # The token is unauthenticated, so the reviewer's view is not the
+  # members' view with fields left out — it is a different view. Where
+  # DDBJ has got to with a record, whose it is, and the collaboration
+  # around it are none of them a reviewer's business.
+  test 'the reviewer view never carries the curation status, the owner, or the roster' do
+    get review_path(@access.token)
+
+    assert_response :ok
+    assert_equal %w[name expires_at], response.parsed_body.keys
+
+    get review_accessions_path(@access.token)
+
+    assert_response :ok
+    assert_equal %w[accession db name details], response.parsed_body.sole.keys
+    assert_not_includes response.body, @alice.uid
+  end
+
+  # At accession granularity there is nothing to hand over: a record or a
+  # flatfile is the whole submission, which is the thing that was
+  # deliberately not shared.
+  test 'there are no files on a review link' do
+    paths = Rails.application.routes.routes.map { it.path.spec.to_s }.grep(%r{/reviews/})
+
+    assert_equal ['/api/reviews/:token(.:format)', '/api/reviews/:token/accessions(.:format)'], paths
+  end
+
+  test 'an accession whose submission has left the set goes with it' do
+    @set.inclusions.find_by!(submission_request: submission_requests(:bioproject)).destroy!
+
+    get review_accessions_path(@access.token)
+
+    assert_conform_schema 200
+    assert_empty response.parsed_body
   end
 
   test 'an expired token 404s' do
     @access.update_column(:expires_at, 1.hour.ago)
 
-    get review_path(@access.token)
+    with_exceptions_app { get review_path(@access.token) }
 
-    assert_response :not_found
+    assert_conform_schema 404
+
+    with_exceptions_app { get review_accessions_path(@access.token) }
+
+    assert_conform_schema 404
   end
 
   test 'an unknown token 404s' do
-    get review_path('does-not-exist')
+    with_exceptions_app { get review_path('does-not-exist') }
 
-    assert_response :not_found
-  end
+    assert_conform_schema 404
 
-  test 'GET accessions returns the submission accessions' do
-    @submission_request.submission.entries.create!(accession: 'ACC_REVIEW1', entry_id: 'E|1', version: 1, locus_date: Date.new(2026, 1, 15))
+    with_exceptions_app { get review_accessions_path('does-not-exist') }
 
-    get review_accessions_path(@access.token)
-
-    assert_conform_schema 200
-    assert_includes response.parsed_body.pluck('accession'), 'ACC_REVIEW1'
-
-    # The share token is unauthenticated, and where DDBJ has got to with an
-    # entry is not a reviewer's business — the same reason the message
-    # thread is unreachable from here. The submitter's own list of the
-    # same entries does carry it, which is what makes this a separate
-    # view rather than a flag on one.
-    assert_not_includes response.parsed_body.first.keys, 'status'
-  end
-
-  test 'accessions 404s for an expired token' do
-    @access.update_column(:expires_at, 1.hour.ago)
-
-    get review_accessions_path(@access.token)
-
-    assert_response :not_found
+    assert_conform_schema 404
   end
 end

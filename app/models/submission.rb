@@ -89,6 +89,16 @@ class Submission < ApplicationRecord
     end
   end
 
+  # Every table an accession can be found in. `curation_rows` below is the
+  # one-submission form of the same fact and picks by `db`; this is for
+  # callers holding an accession number and no submission to ask, which
+  # have to look in all three.
+  #
+  # A method rather than a constant so the three classes are resolved when
+  # somebody asks rather than while this class is being loaded — each of
+  # them points back here.
+  def self.accession_row_models = [Project, Sample, Entry]
+
   # The rows that carry curation state (status / assignee / accession) for
   # this submission: the single BP Project, every BS Sample, every ST.26
   # Entry.

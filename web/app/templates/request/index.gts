@@ -10,7 +10,6 @@ import ProgressSteps from 'repository/components/progress-steps';
 import ValidityBadge from 'repository/components/validity-badge';
 import ValidationReport from 'repository/components/validation-report';
 import SubmissionMessages from 'repository/components/submission-messages';
-import ReviewerAccess from 'repository/components/reviewer-access';
 import SetMembership from 'repository/components/set-membership';
 import autoRefresh from 'repository/modifiers/auto-refresh';
 import dbLabel from 'repository/helpers/db-label';
@@ -374,12 +373,6 @@ export default class extends Component<Signature> {
             <summary>Sets</summary>
 
             <SetMembership @requestId={{@model.id}} @sets={{@model.sets}} />
-          </details>
-
-          <details class="list-group-item px-0 py-3">
-            <summary>Share with a reviewer</summary>
-
-            <ReviewerAccess @requestId={{@model.id}} />
           </details>
         {{/if}}
       </div>
