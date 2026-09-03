@@ -18,54 +18,72 @@ export default <template>
 
   <h1 class="display-6 mb-4">Accessions</h1>
 
-  {{! One table for three databases. A BioProject has a title and a type,
-  a BioSample an organism and a package, an ST.26 entry a version and a
-  LOCUS date — so what each record states beyond its number travels as
-  labelled facts rather than as a column per database, and the table does
-  not grow a column the other two leave empty. }}
-  <div class="table-responsive">
-    <table class="table border align-middle" data-test-accessions>
-      <thead class="table-light">
-        <tr>
-          <th scope="col">Accession</th>
-          <th scope="col">Name</th>
-          <th scope="col">Details</th>
-          <th scope="col">Status</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {{#each @model.accessions as |accession|}}
+  {{#if @model.accessions}}
+    {{! One table, and its middle columns come from the rows. What each
+    record states arrives as labelled facts — a review link can hold all
+    three databases at once and they agree on nothing past a name — but a
+    submission is one database, so here the labels are the same on every
+    row and can be columns. That is what lets a LOCUS date be read down
+    one rather than restated on every line. }}
+    <div class="table-responsive">
+      <table class="table border align-middle" data-test-accessions>
+        <thead class="table-light">
           <tr>
-            <td class="font-monospace">{{accession.accession}}</td>
+            <th scope="col">Accession</th>
+            <th scope="col">Name</th>
 
-            <td>
-              {{#if accession.name}}
-                {{accession.name}}
-              {{else}}
-                <span class="text-body-tertiary">—</span>
-              {{/if}}
-            </td>
+            {{#each @controller.columns as |label|}}
+              <th scope="col">{{label}}</th>
+            {{/each}}
 
-            <td class="small">
-              {{#each accession.details as |detail|}}
-                <div>
-                  <span class="text-body-secondary">{{detail.label}}</span>
-                  {{detail.value}}
-                </div>
-              {{/each}}
-            </td>
-
-            {{! Plain text, as it was. StatusBadge speaks the request's
-            vocabulary (validating, applied) and this is the record's
-            (curating, public, withdrawn); giving the second one a palette
-            is a decision this change does not need to make. }}
-            <td class="text-capitalize">{{accession.status}}</td>
+            <th scope="col">Status</th>
           </tr>
-        {{/each}}
-      </tbody>
-    </table>
-  </div>
+        </thead>
+
+        <tbody>
+          {{#each @model.accessions as |accession|}}
+            <tr>
+              <td class="font-monospace">{{accession.accession}}</td>
+
+              <td>
+                {{#if accession.name}}
+                  {{accession.name}}
+                {{else}}
+                  <span class="text-body-tertiary">—</span>
+                {{/if}}
+              </td>
+
+              {{#each (@controller.detailsFor accession) as |value|}}
+                <td>
+                  {{#if value}}
+                    {{value}}
+                  {{else}}
+                    <span class="text-body-tertiary">—</span>
+                  {{/if}}
+                </td>
+              {{/each}}
+
+              {{! Plain text. StatusBadge speaks the request's vocabulary
+              (validating, applied) and this is the record's (curating,
+              public, withdrawn); giving the second one a palette is a
+              decision this change does not need to make. }}
+              <td class="text-capitalize">{{accession.status}}</td>
+            </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  {{else}}
+    {{! Ordinary rather than impossible: a BioProject or BioSample
+    submission has no numbers until they are issued. }}
+    <div class="border rounded p-4 text-center">
+      <p class="mb-1 fw-semibold">No accessions yet.</p>
+
+      <p class="text-body-secondary small mb-0">
+        DDBJ issues them once the submission has been through curation. They will appear here.
+      </p>
+    </div>
+  {{/if}}
 
   <Pagination
     @route="request.accessions"
@@ -76,9 +94,7 @@ export default <template>
 </template> satisfies TOC<{
   Args: {
     model: {
-      db: string;
       requestId: number;
-      submissionId: number | undefined;
       accessions: components['schemas']['SubmissionAccession'][];
       totalPages: number;
     };

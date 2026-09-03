@@ -25,9 +25,7 @@ export default class extends Route {
     });
 
     return {
-      db: request.db,
       requestId: request.id,
-      submissionId,
       accessions: content,
       totalPages: Number(response?.headers?.get('Total-Pages')) || 1,
     };

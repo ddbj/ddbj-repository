@@ -93,14 +93,62 @@ module('Acceptance | a submission’s accessions', function (hooks) {
     assert.dom('[data-test-accessions]').includesText('SAMD00237947');
     assert.dom('[data-test-accessions]').includesText('station-A-surface');
 
-    // One table for three databases: what a record states beyond its
-    // number travels as labelled facts, so the table does not grow a
-    // column the other two leave empty.
-    assert.dom('[data-test-accessions]').includesText('Organism');
+    // The labels become columns: a submission is one database, so every
+    // row states the same facts and they can be read down rather than
+    // restated on each line.
+    assert.dom('[data-test-accessions] thead').hasText('Accession Name Organism Package Status');
     assert.dom('[data-test-accessions]').includesText('MIMS.me.water.6.0');
+
+    // A record that does not carry one of them leaves the cell empty
+    // rather than shifting the row along by a column.
+    assert.dom('[data-test-accessions] tbody tr:last-child td:nth-child(4)').hasText('—');
 
     // Where DDBJ has got to with each row — the difference between this
     // list and the one a reviewer is shown.
     assert.dom('[data-test-accessions]').includesText('public');
+  });
+
+  // The screen this change took the ST.26 columns off. They are still
+  // here; they arrive as facts and are laid out as columns.
+  test('an ST.26 submission still shows its versions and LOCUS dates', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json({ ...request, db: 'st26', submission: { ...request.submission!, source_id: null } }),
+      ),
+
+      http.get('/submissions/{id}/accessions', ({ response }) =>
+        response(200).json([
+          {
+            accession: 'QP000001',
+            db: 'st26',
+            name: 'SEQ|1',
+            details: [
+              { label: 'Version', value: '1' },
+              { label: 'LOCUS date', value: '2026-01-15' },
+            ],
+            status: 'public',
+          },
+        ]),
+      ),
+    );
+
+    await visit('/requests/1/accessions');
+
+    assert.dom('[data-test-accessions] thead').hasText('Accession Name Version LOCUS date Status');
+    assert.dom('[data-test-accessions]').includesText('2026-01-15');
+  });
+
+  // A BioProject or BioSample submission has no numbers until they are
+  // issued, so an empty list is ordinary rather than impossible.
+  test('a submission with no accessions yet says so', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+      http.get('/submissions/{id}/accessions', ({ response }) => response(200).json([])),
+    );
+
+    await visit('/requests/1/accessions');
+
+    assert.dom('[data-test-accessions]').doesNotExist();
+    assert.dom().includesText('No accessions yet');
   });
 });

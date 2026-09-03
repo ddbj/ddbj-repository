@@ -729,12 +729,23 @@ export interface paths {
          *     that set's members, and its accessions are a large part of why anybody
          *     looks at a colleague's submission.
          *
+         *     `status` filters it, the same way it does on `/accessions`, and an
+         *     unknown value is refused rather than intersected away — answering
+         *     "which of these are withdrawn" with every row there is cannot be told
+         *     from a real answer.
+         *
+         *     Ordered as submitted, not by accession: ST.26 draws nucleotide and
+         *     amino-acid numbers from two sequences with disjoint prefixes, so
+         *     sorting on the number would split a submission into two blocks that
+         *     appear nowhere in its file.
+         *
          *     Not `/accessions`, which is a synchronisation walk over one
          *     submitter's ST.26 entries and answers in their shape.
          */
         get: {
             parameters: {
                 query?: {
+                    "status[]"?: components["schemas"]["CurationStatus"][];
                     page?: number;
                 };
                 header?: never;
@@ -757,6 +768,7 @@ export interface paths {
                         "application/json": components["schemas"]["SubmissionAccession"][];
                     };
                 };
+                400: components["responses"]["BadRequest"];
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
             };
@@ -3052,28 +3064,33 @@ export interface components {
             locus_date: string;
         };
         /**
+         * @description One labelled fact off an accessioned record. Three databases keep
+         *     three different rows, so what they carry beyond an accession and a
+         *     name travels like this rather than as a column per database — a
+         *     reader reads them, and nothing branches on them.
+         */
+        AccessionDetail: {
+            label: string;
+            value: string;
+        };
+        /**
          * @description One accession on a submission's own screen: what the record states,
          *     and where DDBJ has got to with it.
          *
-         *     The first four are `ReviewerAccession` — the three databases agree on
-         *     an accession and something to call it by, and on nothing after that,
-         *     so the rest travels as labelled facts rather than as a column per
-         *     database. A reader reads them; nothing branches on them.
-         *
-         *     `status` is the difference from what a reviewer is shown, and it is
-         *     the difference on purpose: this is the submitter's own list, and a
-         *     retracted entry that did not say so there would be the screen keeping
-         *     a secret from the person it belongs to.
+         *     `ReviewerAccession` with `status` added. Written out rather than
+         *     composed with `allOf`: these schemas close over their properties, and
+         *     `additionalProperties: false` on one half of an `allOf` refuses what
+         *     the other half declares. The status is the difference from what a
+         *     reviewer is shown, and it is the difference on purpose — this is the
+         *     submitter's own list, and a retracted entry that did not say so there
+         *     would be the screen keeping a secret from the person it belongs to.
          */
         SubmissionAccession: {
             accession: string;
             db: components["schemas"]["Db"];
             /** @description What the record calls itself — a project title, a sample name, an entry id. */
             name: string | null;
-            details: {
-                label: string;
-                value: string;
-            }[];
+            details: components["schemas"]["AccessionDetail"][];
             status: components["schemas"]["CurationStatus"];
         };
         Attachment: {
@@ -3153,10 +3170,7 @@ export interface components {
             accession: string;
             db: components["schemas"]["Db"];
             name: string | null;
-            details: {
-                label: string;
-                value: string;
-            }[];
+            details: components["schemas"]["AccessionDetail"][];
         };
         /**
          * @description Where a curated row stands. `canceled` and `withdrawn` mean the row is no longer part of the submission: it is left out of the flatfile the next time one is generated, and should be left out of anything derived from it. The stored flatfile still contains it until then — the status is what changed, and regenerating is a separate run.

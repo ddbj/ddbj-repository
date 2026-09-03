@@ -10,8 +10,11 @@ class AccessionsController < ApplicationController
     keyset_page(scope.order(:id))
   end
 
-  # Readable, like the list it is reached from. `owned_entries` below is
-  # the flat synchronisation walk and stays "mine".
+  # Readable rather than owned: an accession quoted in a paper is looked
+  # up by whoever was given it, and a submission shared into a set opens
+  # for that set's members. The walk below stays "mine" — it is one
+  # submitter's ledger, and widening it would put other people's rows
+  # into a local copy that is theirs.
   def show
     @accession = readable_entries.find_by!(accession: params[:number])
   end

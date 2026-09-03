@@ -3,7 +3,7 @@
 # The way out of a check that has gone stale, which is the one refusal
 # `SubmissionRequest#send_blocked_reason` gives where nothing is wrong
 # with the file — only the answer about it has expired. Without this the
-# screen names a way out that has no control, and the submitter\'s only
+# screen names a way out that has no control, and the submitter's only
 # move is to abandon the request and upload the same file again.
 #
 # A check replaces its predecessor rather than joining it: `has_one` plus
@@ -16,7 +16,7 @@ class ValidationsController < ApplicationController
     request = current_user.submission_requests.find(params[:submission_request_id])
 
     # Not while one is already running, and not on a request that has been
-    # put down or already handed over — `recheckable?` is the screen\'s
+    # put down or already handed over — `recheckable?` is the screen's
     # rule and this one, said once.
     refuse! 'This request cannot be checked again.' unless request.recheckable?
 

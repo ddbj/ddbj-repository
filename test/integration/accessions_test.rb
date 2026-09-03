@@ -99,7 +99,71 @@ class AccessionsTest < ActionDispatch::IntegrationTest
 
     # The sample without a number is not an accession, so it is not on a
     # list of them.
-    assert_equal submission.samples.where.not(accession: nil).count, accessions.size
+    assert_equal [samples(:first).accession], accessions
+  end
+
+  # Before the numbers are issued there is nothing to list, and the branch
+  # that says so is the one this change added — `curation_rows` answers
+  # nil for a BioProject with no project row.
+  test 'a submission whose numbers have not been issued lists none' do
+    submission = submissions(:bioproject)
+
+    projects(:primary).update!(accession: nil)
+
+    get submission_accessions_path(submission)
+
+    assert_conform_schema 200
+    assert_empty response.parsed_body
+
+    projects(:primary).destroy!
+
+    get submission_accessions_path(submission)
+
+    assert_conform_schema 200
+    assert_empty response.parsed_body
+  end
+
+  # Dropping an unknown value instead of refusing it would answer "which
+  # of these are withdrawn" with every row there is, and a client cannot
+  # tell that from a real answer.
+  test 'the status filter works on every database, and refuses a value nobody knows' do
+    submission = submissions(:biosample)
+
+    samples(:first).update!(status: :withdrawn)
+
+    get submission_accessions_path(submission, status: %w[withdrawn])
+
+    assert_conform_schema 200
+    assert_equal [samples(:first).accession], response.parsed_body.pluck('accession')
+
+    get submission_accessions_path(submission, status: %w[public])
+
+    assert_conform_schema 200
+    assert_empty response.parsed_body
+
+    # The contract already forbids the value, so the request is not checked
+    # against the schema — the point is that the server refuses it too
+    # rather than trusting a client to have read it.
+    with_exceptions_app { get submission_accessions_path(submission, status: %w[withdrawn not_a_status]) }
+
+    assert_response :bad_request
+    assert_match(/not_a_status/, response.parsed_body['error'])
+  end
+
+  # As submitted, not by accession: ST.26 draws nucleotide and amino-acid
+  # numbers from two sequences with disjoint prefixes, so sorting on the
+  # number would split a submission into two blocks that appear nowhere
+  # in its file.
+  test 'the entries come back in the order they were submitted' do
+    submission = submissions(:st26)
+
+    later = submission.entries.create!(accession: 'ZAA0000001', entry_id: 'SEQ|3', locus_date: Date.new(2026, 1, 15))
+
+    get submission_accessions_path(submission)
+
+    assert_conform_schema 200
+    assert_equal later.accession, response.parsed_body.last['accession']
+    assert_equal submission.entries.order(:id).pluck(:accession), response.parsed_body.pluck('accession')
   end
 
   # The count beside the link and the list behind it read the same rows.
