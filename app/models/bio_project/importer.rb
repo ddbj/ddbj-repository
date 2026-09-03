@@ -29,6 +29,30 @@ module BioProject
 
     Result = Data.define(:submission, :outcome) # outcome: :created | :updated | :skipped | :no_accession
 
+    # From a row of D-way's own shape, which is where every real import
+    # comes from — the sweep and the single-record task both. The ten
+    # keywords below were written out at each call site, so the next one
+    # this class grows would have reached one of them and silently not
+    # the other.
+    #
+    # BioSample::Importer takes its staging row whole and has never had
+    # the problem; this is the same idea for a row that carries its
+    # fields flat.
+    def self.from_staging_row(row, user_uid: nil, migration_run_id:)
+      new(
+        psub_id:          row.psub_id,
+        xml:              row.xml,
+        user_uid:         row.submitter_id || user_uid || 'migration',
+        project_type:     row.project_type,
+        accession:        row.accession,
+        status:           row.status_id,
+        release_date:     row.release_date,
+        dist_date:        row.dist_date,
+        modified_date:    row.modified_date,
+        migration_run_id:
+      )
+    end
+
     def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, accession: nil, status: nil, release_date: nil, dist_date: nil, modified_date: nil)
       @psub_id          = psub_id
       @xml              = xml

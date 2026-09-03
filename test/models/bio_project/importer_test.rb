@@ -15,6 +15,53 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     )
   end
 
+  # Both real callers build from a staging row — the sweep and the
+  # single-record task — and the ten keywords used to be written out at
+  # each. The next one this class grows would have reached one of them
+  # and silently not the other.
+  test '.from_staging_row carries every field the source has' do
+    row = Struct.new(
+      :psub_id, :xml, :submitter_id, :project_type, :accession,
+      :status_id, :release_date, :dist_date, :modified_date,
+      keyword_init: true
+    ).new(
+      psub_id:       'PSUB000604',
+      xml:           File.read(XML_FIXTURE),
+      submitter_id:  'from-the-source',
+      project_type:  'primary',
+      accession:     'PRJDB502',
+      status_id:     5100,
+      release_date:  Date.new(2026, 1, 2),
+      dist_date:     Date.new(2026, 1, 3),
+      modified_date: Date.new(2026, 1, 4)
+    )
+
+    result = BioProject::Importer.from_staging_row(row, migration_run_id: SecureRandom.uuid).call
+    project = result.submission.project
+
+    assert_equal :created,           result.outcome
+    assert_equal 'PRJDB502',         project.accession
+    assert_equal 'primary',          project.project_type
+    assert_equal 'from-the-source',  result.submission.user.uid
+    assert_equal Date.new(2026, 1, 2), project.release_date
+    assert_equal Date.new(2026, 1, 3), project.dist_date
+    assert_equal Date.new(2026, 1, 4), project.modified_date
+  end
+
+  # The source wins where it has an answer. `user_uid` is for a row whose
+  # submitter is blank, not a way to re-attribute — the importer refuses
+  # a change of owner outright, so a caller who thinks otherwise gets a
+  # CrossUserError naming the mismatch they thought they were resolving.
+  test '.from_staging_row takes the given uid only where the source has none' do
+    row = Struct.new(:psub_id, :xml, :submitter_id, :project_type, :accession, :status_id, :release_date, :dist_date, :modified_date, keyword_init: true)
+
+    with_submitter = row.new(psub_id: 'PSUB000604', xml: File.read(XML_FIXTURE), submitter_id: 'theirs', project_type: 'primary', accession: 'PRJDB502')
+    without        = row.new(psub_id: 'PSUB000605', xml: File.read(XML_FIXTURE), submitter_id: nil,      project_type: 'primary', accession: 'PRJDB503')
+
+    assert_equal 'theirs', BioProject::Importer.from_staging_row(with_submitter, user_uid: 'mine', migration_run_id: SecureRandom.uuid).call.submission.user.uid
+    assert_equal 'mine',   BioProject::Importer.from_staging_row(without,        user_uid: 'mine', migration_run_id: SecureRandom.uuid).call.submission.user.uid
+  end
+
   test 'first-import baseline is a single root `add` snapshot that carries volatile fields' do
     # Going through Canonicalizer.diff({}, record) would strip
     # /schema_version, /provenance and /**/accession from both sides
