@@ -5,6 +5,10 @@
 # record. What they asked for is the whole thing, legible — so the layout
 # is decided by the shape of the data rather than by a list of fields.
 #
+# Submitters read it too now, one accession at a time, through the web
+# client. The layout is decided here for both; what differs is the
+# drawing, which is ERB on one side and a component on the other.
+#
 #   Hash                        → rows of key and value
 #   Array of same-shaped Hashes → a table, columns the union of their keys
 #   anything else               → the value
@@ -24,13 +28,16 @@ class RecordOutline
   # of entries, and those have screens of their own that paginate.
   INLINE_LIMIT = 20
 
+
   # Columns past this and the table stops being a table. The overflow is
   # named rather than dropped — a reader who cannot see that there are
   # more columns will read the ones shown as all of them.
   COLUMN_LIMIT = 12
 
-  # Nodes built before the walk stops expanding. The 1 MB ceiling on the
-  # record bounds bytes, and this walk costs by node: a Trad-shaped record
+  # Nodes built before the walk stops expanding. The admin card bounds
+  # bytes as well (CANONICAL_DISPLAY_SIZE_LIMIT); the accession page does
+  # not — what bounds it there is the subtree, one row of a record, and
+  # this is the only cut left on that screen. The walk costs by node: a Trad-shaped record
   # of 245 KB (entries × features × qualifiers, every one of them inside
   # INLINE_LIMIT) is already thousands of nodes and most of a second in
   # rendering alone. Bytes were the wrong currency for it.
@@ -41,9 +48,10 @@ class RecordOutline
   # little out costs nothing.
   CHARACTERS_PER_LINE = 110
 
-  # Lines a section may draw before it starts folded. A curator reading
-  # the record has business below it — the editors, the patch chain — and
-  # a table of samples is a screenful to scroll past every time.
+  # Lines a section may draw before it starts folded. A reader has
+  # business below it — on the admin card the editors and the patch
+  # chain, on the accession page the sections after this one — and a
+  # table of samples is a screenful to scroll past every time.
   #
   # By height rather than by name. Folding `samples` would be the shorter
   # code and would mean this class knew a field, which is the one thing it
@@ -72,6 +80,23 @@ class RecordOutline
     def truncated? = total && shown && total > shown
 
     def hidden = truncated? ? total - shown : 0
+
+    # The columns a renderer draws, and the ones it has to name instead.
+    # Here rather than in each renderer: `array_node` already truncates
+    # the cells to COLUMN_LIMIT, so a renderer that took `columns` whole
+    # would draw a header longer than its table — and one that applied
+    # the limit itself would be a second place that knows the number.
+    def drawn_columns  = columns&.first(COLUMN_LIMIT)
+    def hidden_columns = columns ? columns.drop(COLUMN_LIMIT) : nil
+
+    # Free text is the one scalar that needs room. Line breaks matter
+    # more than length — a three-line address is 120 characters and
+    # collapses to one without it — and length matters because a
+    # paragraph in a table cell is a paragraph either way.
+    #
+    # A decision about the value, so it is made where the value is known
+    # rather than restated as the same magic number in every renderer.
+    def free_text? = value.is_a?(String) && (value.length > 200 || value.include?("\n"))
 
     # What a folded section says about itself, so that closing it does not
     # also hide what it is. Counts, because the count is the thing a
@@ -118,8 +143,12 @@ class RecordOutline
     end
   end
 
-  def initialize(record)
-    @record = record || {}
+  # `inline_limit` is the caller's, because the collection it cuts is:
+  # over a whole record that is `samples`, which has a screen of its own,
+  # and over one row it is that row's attributes, which do not.
+  def initialize(record, inline_limit: INLINE_LIMIT)
+    @record       = record || {}
+    @inline_limit = inline_limit
   end
 
   # How many keys v3 gives every database, read off the schema rather than
@@ -209,7 +238,7 @@ class RecordOutline
   def array_node(array)
     return empty_node if array.empty?
 
-    shown = array.first(INLINE_LIMIT)
+    shown = array.first(@inline_limit)
 
     unless shown.all?(Hash)
       return Node.new(kind: :list, rows: shown.map { node_for(it) }, columns: nil,

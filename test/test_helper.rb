@@ -46,6 +46,34 @@ class ActiveSupport::TestCase
     )
   end
 
+  def attach_submission_files(submission)
+    submission.ddbj_record.attach(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+
+    submission.flatfile_na.attach(
+      io:           file_fixture('flatfile/example.flat').open,
+      filename:     'example-na.flat',
+      content_type: 'text/plain'
+    )
+
+    submission.flatfile_aa.attach(
+      io:           file_fixture('flatfile/example.flat').open,
+      filename:     'example-aa.flat',
+      content_type: 'text/plain'
+    )
+  end
+
+  def sign_in_as(user)
+    mock_keycloak_auth(user)
+
+    # Drive the admin-origin branch so the callback mints the session
+    # cookie (the web branch is JWT-only and sets no session).
+    get '/auth/keycloak/callback', env: {'omniauth.origin' => '/admin'}
+  end
+
   # PathClassifier holds process-global memoised caches + structural-key
   # safety flags. Registry.stub blocks (and any other test-time rule
   # mutation) leave stale entries behind that would leak into subsequent
@@ -147,35 +175,5 @@ class ActionDispatch::IntegrationTest
 
   teardown do
     OmniAuth.config.mock_auth[:keycloak] = nil
-  end
-
-  private
-
-  def attach_submission_files(submission)
-    submission.ddbj_record.attach(
-      io:           file_fixture('ddbj_record/example.json').open,
-      filename:     'example.json',
-      content_type: 'application/json'
-    )
-
-    submission.flatfile_na.attach(
-      io:           file_fixture('flatfile/example.flat').open,
-      filename:     'example-na.flat',
-      content_type: 'text/plain'
-    )
-
-    submission.flatfile_aa.attach(
-      io:           file_fixture('flatfile/example.flat').open,
-      filename:     'example-aa.flat',
-      content_type: 'text/plain'
-    )
-  end
-
-  def sign_in_as(user)
-    mock_keycloak_auth(user)
-
-    # Drive the admin-origin branch so the callback mints the session
-    # cookie (the web branch is JWT-only and sets no session).
-    get '/auth/keycloak/callback', env: {'omniauth.origin' => '/admin'}
   end
 end

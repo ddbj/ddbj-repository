@@ -1,3 +1,8 @@
+/* Text that keeps its own line breaks and takes new ones anywhere.
+   `pre-wrap` alone breaks at whitespace, and a record's free text is
+   not always the kind that has any — a 2,376-base sequence is one
+   unbroken word and runs off the side of the page without the second
+   line. */
 .text-pre-wrap {
   white-space: pre-wrap;
   line-break: anywhere;
@@ -98,4 +103,19 @@ textarea.form-control.textarea-autogrow {
    stretching the header row it sits in. */
 .delete-hint {
   max-width: 20rem;
+}
+
+/* A record's key/value rows. A fixed key column rather than a
+   proportion: one that grows with the card puts a single-key hash's key
+   and value several hundred pixels apart, and the pair stops reading as
+   a pair. Fixed, the distance is the same however many keys there are. */
+dl.record-fields {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  column-gap: 1rem;
+
+  dt {
+    /* A long key wraps instead of pushing the value off the card. */
+    overflow-wrap: anywhere;
+  }
 }

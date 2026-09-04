@@ -25,6 +25,15 @@ Router.map(function () {
   // detail lives at a flat /requests/:id rather than nested under :db.
   this.route('request', { path: 'requests/:request_id' }, function () {
     this.route('accessions');
+
+    // One accession is a page rather than a row that unfolds: what its
+    // record says is a tree, and a tree in a table cell is neither.
+    //
+    // A sibling of the list rather than a child of it, though the URL
+    // reads as a child. Nesting would run the list's model hook too, and
+    // fetching a page of twenty to show one of them is a fetch nobody
+    // asked for on every visit.
+    this.route('accession', { path: 'accessions/:accession' });
   });
 
   // Unauthenticated reviewer view, reached via a share link. The set is

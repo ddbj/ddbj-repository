@@ -1,5 +1,5 @@
 import { module, test } from 'qunit';
-import { visit } from '@ember/test-helpers';
+import { visit, click, currentURL } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
@@ -9,6 +9,26 @@ import { worker } from '../msw/worker';
 import type { components } from 'schema/openapi';
 
 const now = '2025-01-01T00:00:00.000Z';
+
+// Every key present, because the contract requires them all — `kind`
+// says which of the three collection keys is the populated one.
+const emptyNode: components['schemas']['RecordNode'] = {
+  kind: 'empty',
+  columns: null,
+  hidden_columns: null,
+  total: null,
+  shown: null,
+  hidden: 0,
+  value: null,
+  free_text: false,
+  fields: null,
+  items: null,
+  cells: null,
+};
+
+function valueNode(value: string | number): components['schemas']['RecordNode'] {
+  return { ...emptyNode, kind: 'value', value };
+}
 
 // A BioSample request, which is the case this screen used to get wrong:
 // its numbers live on samples, and the list read entries.
@@ -136,6 +156,151 @@ module('Acceptance | a submission’s accessions', function (hooks) {
 
     assert.dom('[data-test-accessions] thead').hasText('Accession Name Version LOCUS date Status');
     assert.dom('[data-test-accessions]').includesText('2026-01-15');
+  });
+
+  // The record laid out by its own shape. Nothing in the client names a
+  // field either — the node says what it is and the renderer draws that.
+  test('one accession opens onto what its record says', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submissions/{id}/accessions', ({ response }) =>
+        response(200).json([
+          {
+            accession: 'SAMD00237947',
+            db: 'biosample',
+            name: 'Sample001',
+            details: [],
+            status: 'public',
+          },
+        ]),
+      ),
+
+      http.get('/submissions/{id}/accessions/{accession}', ({ response }) =>
+        response(200).json({
+          accession: 'SAMD00237947',
+          db: 'biosample',
+          name: 'Sample001',
+          details: [],
+          status: 'public',
+          elided: false,
+          unavailable_reason: null,
+
+          sections: [
+            { key: 'title', folded: false, precis: null, node: valueNode('Control timepoint A') },
+
+            {
+              key: 'organism',
+              folded: false,
+              precis: null,
+              node: {
+                ...emptyNode,
+                kind: 'fields',
+                fields: [
+                  { key: 'name', node: valueNode('mouse gut metagenome') },
+                  { key: 'taxonomy_id', node: valueNode(410661) },
+                ],
+              },
+            },
+
+            {
+              key: 'attributes',
+              folded: false,
+              precis: null,
+              node: {
+                ...emptyNode,
+                kind: 'table',
+                columns: ['name', 'value'],
+                hidden_columns: ['unit'],
+                total: 2,
+                shown: 2,
+                cells: [
+                  [valueNode('collection_date'), valueNode('2018-04-25')],
+                  [valueNode('env_broad_scale'), null],
+                ],
+              },
+            },
+          ],
+        }),
+      ),
+    );
+
+    await visit('/requests/1/accessions');
+    await click('[data-test-accessions] a');
+
+    assert.strictEqual(currentURL(), '/requests/1/accessions/SAMD00237947');
+
+    // A hash is rows of key and value; an array of same-shaped hashes is
+    // a table; anything else is the value.
+    assert.dom('[data-test-record]').includesText('Control timepoint A');
+    assert.dom('[data-test-record]').includesText('taxonomy_id');
+    assert.dom('[data-test-record] table thead').hasText('name value');
+    assert.dom('[data-test-record] table tbody').includesText('2018-04-25');
+
+    // Said, never implied: a reader who cannot see that there are more
+    // columns will read the ones drawn as all of them.
+    assert.dom('[data-test-record-columns-hidden]').includesText('unit');
+  });
+
+  // A sequence is one unbroken word of a few thousand characters. Drawn
+  // with `pre-wrap` alone it has nowhere to break and runs off the side
+  // of the page, which is what it did.
+  test('a long unbroken value is allowed to break anywhere', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submissions/{id}/accessions/{accession}', ({ response }) =>
+        response(200).json({
+          accession: 'SAMD00237947',
+          db: 'biosample',
+          name: 'Sample001',
+          details: [],
+          status: 'public',
+          elided: false,
+          unavailable_reason: null,
+
+          sections: [
+            {
+              key: 'sequence',
+              folded: false,
+              precis: null,
+              node: { ...emptyNode, kind: 'value', value: 'gagcctctggatgactatgtga'.repeat(108), free_text: true },
+            },
+          ],
+        }),
+      ),
+    );
+
+    await visit('/requests/1/accessions/SAMD00237947');
+
+    assert.dom('[data-test-record] .text-pre-wrap').exists('the class that breaks anywhere');
+  });
+
+  // "This subtree is empty" and "this application cannot open that record
+  // yet" are different answers, and drawing both as a blank panel tells
+  // the second as the first.
+  test('a record that cannot be read yet says so', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submissions/{id}/accessions/{accession}', ({ response }) =>
+        response(200).json({
+          accession: 'ACC_000001',
+          db: 'st26',
+          name: 'SEQ|1',
+          details: [],
+          status: 'public',
+          elided: false,
+          unavailable_reason: 'The record behind this accession is not available to read here yet.',
+          sections: [],
+        }),
+      ),
+    );
+
+    await visit('/requests/1/accessions/ACC_000001');
+
+    assert.dom('[data-test-record-unavailable]').includesText('not available to read here yet');
+    assert.dom('[data-test-record]').doesNotExist();
   });
 
   // A BioProject or BioSample submission has no numbers until they are

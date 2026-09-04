@@ -781,6 +781,77 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/submissions/{id}/accessions/{accession}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                accession: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description What one accession's record says.
+         *
+         *     The whole of that record's own subtree, laid out by the shape of the
+         *     data rather than by a list of fields: a hash becomes rows of key and
+         *     value, an array of same-shaped hashes becomes a table, anything else
+         *     is the value. Nothing here names a field, which is what lets a new v3
+         *     key appear the day it lands instead of the day somebody revises a
+         *     renderer.
+         *
+         *     What bounds it is the subtree. A sample is a sample's fields; the
+         *     submitters beside it in the record are not part of one.
+         *
+         *     Every database: a BioProject's project, a BioSample's sample, an
+         *     ST.26 entry. Where the record lives differs — BP and BS replay a patch
+         *     chain, ST.26 keeps what the apply wrote as an attachment — and the
+         *     reading does not.
+         *
+         *     `unavailable_reason` is non-null where there is nothing to show, and
+         *     says which of the several reasons it is. An accession whose subtree is
+         *     genuinely empty and one whose record cannot be opened are different
+         *     answers, and a screen that draws both as a blank panel is telling the
+         *     second as the first.
+         *
+         *     Answers a conditional GET. A read costs the whole record — one slice
+         *     means downloading and parsing all of it — and the etag is the cache
+         *     stamp, which any edit to the record's history clears.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                    accession: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the accession and what its record says. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccessionRecord"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submission_requests/{submission_request_id}/messages/read": {
         parameters: {
             query?: never;
@@ -3072,6 +3143,103 @@ export interface components {
         AccessionDetail: {
             label: string;
             value: string;
+        };
+        /**
+         * @description One node of a record laid out for reading. Recursive: a node holds
+         *     nodes, because the record's shape is not known in advance and neither
+         *     is its depth.
+         *
+         *     `kind` says which of the three collection keys is populated —
+         *     `fields`, `items` or `cells` — rather than one key meaning three
+         *     different things. A client that has to discriminate a union before it
+         *     can draw anything is a client that will get it wrong for one of the
+         *     three.
+         *
+         *     `empty` is a key the record carries that holds nothing; `elided` is
+         *     where the walk's budget ran out before expanding it.
+         */
+        RecordNode: {
+            /** @enum {string} */
+            kind: "fields" | "table" | "list" | "value" | "empty" | "elided";
+            /** @description A table's header row, in the record's own order — only the ones the cells carry. */
+            columns: string[] | null;
+            /**
+             * @description Columns the table has and does not draw. Named rather than dropped:
+             *     a reader who cannot see that there are more will read the ones
+             *     drawn as all of them.
+             */
+            hidden_columns: string[] | null;
+            /** @description How many there are in all. */
+            total: number | null;
+            /** @description How many are drawn. A reader who cannot see that there are more will read what is shown as all of it. */
+            shown: number | null;
+            /** @description How many are not drawn — the subtraction, so that a renderer does not have to do it. */
+            hidden: number;
+            /** @description The scalar, for a node of kind `value`. Whatever type the record holds. */
+            value: string | number | boolean | null;
+            /**
+             * @description Whether the value needs room to keep its line breaks. A decision
+             *     about the value, made where the value is rather than restated as
+             *     the same magic number in every renderer.
+             */
+            free_text: boolean;
+            fields: {
+                key: string;
+                node: components["schemas"]["RecordNode"];
+            }[] | null;
+            items: components["schemas"]["RecordNode"][] | null;
+            /**
+             * @description A table's rows. A cell is null where its row does not carry that
+             *     column — absent is not empty, and a blank cell says the record has
+             *     nothing there rather than that a field holds "".
+             */
+            cells: (components["schemas"]["RecordNode"] | null)[][] | null;
+        };
+        /**
+         * @description One accession, and what its record says. `SubmissionAccession` with
+         *     the record's own subtree laid out beside it.
+         */
+        AccessionRecord: {
+            accession: string;
+            db: components["schemas"]["Db"];
+            name: string | null;
+            details: components["schemas"]["AccessionDetail"][];
+            status: components["schemas"]["CurationStatus"];
+            /** @description Whether the walk stopped short of the whole subtree. Said once, at the top — the reader needs to know the page is not all of it, not where each cut fell. */
+            elided: boolean;
+            /**
+             * @description Why there is nothing to show, when there is nothing to show. Null
+             *     when the record was read.
+             *
+             *     Four ways there can be none, and they are told apart: this database
+             *     is not readable here (no database does this today), its history
+             *     cannot be reconstructed, there is no record yet, or the record does
+             *     not carry this row. Telling one
+             *     as another sends somebody looking in the wrong place — "not readable
+             *     here yet" over a record that is fine blames the feature for a fact
+             *     about the data.
+             *
+             *     There is no size at which this refuses. A record is read one row at a
+             *     time rather than built whole, so what a row costs in memory is that
+             *     row — the file is still fetched — which matters because a review
+             *     link is the only door its holder has, and the largest studies are
+             *     the ones most worth reviewing.
+             */
+            unavailable_reason: string | null;
+            /** @description The subtree's top-level keys, in the record's own order. Only what it actually carries — an absent key is "this database has no such thing" rather than "this is empty". */
+            sections: {
+                key: string;
+                /** @description Whether it opens folded, decided by how tall it draws rather than by which key it is. */
+                folded: boolean;
+                /**
+                 * @description What a folded section says about itself, so that closing it
+                 *     does not also hide what it is — counts, because the count is
+                 *     what a reader wants before deciding to open it. Null when the
+                 *     section is open, where it would restate what is drawn below.
+                 */
+                precis: string | null;
+                node: components["schemas"]["RecordNode"];
+            }[];
         };
         /**
          * @description One accession on a submission's own screen: what the record states,

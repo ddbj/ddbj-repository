@@ -123,6 +123,12 @@ class Submission < ApplicationRecord
     end
   end
 
+  # What the record says about one of this submission's accessioned
+  # rows, or why it cannot say. See AccessionRecordReader — reading one
+  # row out of a record is its own job, and it reaches this class through
+  # `db`, the two record attachments and the cache stamp.
+  def record_slice(row) = AccessionRecordReader.new(self).slice(row)
+
   # The rows of this submission that carry an accession — the same set
   # `curation_rows` names, once the numbers have been issued.
   #

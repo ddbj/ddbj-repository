@@ -1,4 +1,5 @@
 import { concat } from '@ember/helper';
+import { LinkTo } from '@ember/routing';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 import Pagination from 'repository/components/pagination';
@@ -43,7 +44,11 @@ export default <template>
         <tbody>
           {{#each @model.accessions as |accession|}}
             <tr>
-              <td class="font-monospace">{{accession.accession}}</td>
+              <td class="font-monospace">
+                <LinkTo @route="request.accession" @models={{array @model.requestId accession.accession}}>
+                  {{accession.accession}}
+                </LinkTo>
+              </td>
 
               <td>
                 {{#if accession.name}}

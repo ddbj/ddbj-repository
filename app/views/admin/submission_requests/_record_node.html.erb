@@ -20,9 +20,13 @@
   <%# Free text is the only thing given room. Line breaks matter more
       than length here — a three-line address is 120 characters and
       collapses to one without this, while a long single paragraph does
-      not need it and gets it anyway (harmless). %>
-  <% if node.value.is_a?(String) && (node.value.length > 200 || node.value.include?("\n")) %>
-    <div class="small" style="white-space: pre-wrap;"><%= node.value %></div>
+      not need it and gets it anyway (harmless).
+
+      `pre-wrap` alone breaks at whitespace, and a record's free text is
+      not always the kind that has any: a sequence is one unbroken word
+      and runs off the side of the card without `line-break`. %>
+  <% if node.free_text? %>
+    <div class="small text-pre-wrap"><%= node.value %></div>
   <% else %>
     <%= node.value %>
   <% end %>
@@ -73,8 +77,8 @@
     <table class="table table-sm table-bordered small mb-1">
       <thead class="table-light">
         <tr>
-          <% node.columns.first(RecordOutline::COLUMN_LIMIT).each do |column| %>
-            <th class="text-nowrap"><%= column %></th>
+          <% node.drawn_columns.each do |column| %>
+            <th scope="col" class="text-nowrap"><%= column %></th>
           <% end %>
         </tr>
       </thead>
@@ -95,11 +99,11 @@
       rows unless the screen says otherwise — the same reading that made
       the validation report group its findings rather than show the
       first few. %>
-  <% if node.columns.size > RecordOutline::COLUMN_LIMIT %>
+  <% if node.hidden_columns.any? %>
     <p class="small text-body-secondary mb-1" data-test-record-columns-hidden>
-      <%= node.columns.size - RecordOutline::COLUMN_LIMIT %> more
-      <%= 'column'.pluralize(node.columns.size - RecordOutline::COLUMN_LIMIT) %>
-      not shown: <%= node.columns.drop(RecordOutline::COLUMN_LIMIT).join(', ') %>
+      <%= node.hidden_columns.size %> more
+      <%= 'column'.pluralize(node.hidden_columns.size) %>
+      not shown: <%= node.hidden_columns.join(', ') %>
     </p>
   <% end %>
 <% end %>

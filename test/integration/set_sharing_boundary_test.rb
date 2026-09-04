@@ -99,10 +99,36 @@ class GroupSharingBoundaryTest < ActionDispatch::IntegrationTest
     assert_conform_schema 200
   end
 
+  # The record's content is a larger disclosure than the list: the list
+  # gives a member an accession and a few labelled facts, this gives them
+  # every field of that row's subtree. Same population, deliberately —
+  # and pinned here, because this file is what would notice if the line
+  # in the controller moved.
+  test "a member reads a colleague's record content, and a stranger does not" do
+    submission = Submission.create!(user: @carol, db: 'bioproject')
+    attach_submission_files submission
+    @theirs.update_columns(submission_id: submission.id)
+
+    project = submission.create_project!(accession: 'PRJDB009001', status: 'public', project_type: 'primary')
+    submission.append_update!({'project' => {'title' => 'Theirs'}}, actor: 'test')
+
+    get submission_accession_path(submission, project.accession)
+
+    assert_conform_schema 200
+    assert_equal 'Theirs', response.parsed_body['sections'].sole.dig('node', 'value')
+
+    default_headers['Authorization'] = "Bearer #{users(:dave).api_key}"
+
+    with_exceptions_app { get submission_accession_path(submission, project.accession) }
+
+    assert_conform_schema 404
+  end
+
   # ...but the flat cross-submission walk stays one submitter's. It is a
   # synchronisation endpoint: a client keeps a local copy from it, and
   # somebody else's rows appearing in that copy is the one thing it must
   # not do.
+
   test 'the cross-submission accession walk stays mine' do
     submission = Submission.create!(user: @carol, db: 'st26')
     @theirs.update_columns(submission_id: submission.id)
