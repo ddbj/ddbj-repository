@@ -48,10 +48,12 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
 
     regenerated = false
 
+    omits = retracted_entry_ids(rows)
+
     generate_outputs record_with_entries, entries, **{
       filename:       submission.ddbj_record.filename,
       content_type:   submission.ddbj_record.content_type,
-      flatfile_omits: retracted_entry_ids(rows)
+      flatfile_omits: omits
     } do |outputs|
       # Written once, from the outputs the comparison was made against.
       # Generating a second time to write what was just compared doubled
@@ -66,7 +68,7 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
       # already correct, generate the same bytes, and skip, so the two would
       # never be brought back together. `write_outputs!` is where the upload
       # ordering lives, so ApplySubmissionRequestJob gets it too.
-      write_outputs! submission, outputs do
+      write_outputs! submission, outputs, omits: do
         # By id when the run named accessions, and by submission when it
         # did not — the whole-submission case would otherwise send every
         # entry id back as an IN list.

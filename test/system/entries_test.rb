@@ -149,7 +149,7 @@ class EntriesSystemTest < ApplicationSystemTestCase
     visit entries_admin_submission_request_path(@req)
 
     assert_text '1 entry here is canceled or withdrawn'
-    assert_text 'written before the last of these statuses was set'
+    assert_text 'The flatfile on record still carries 1 of them'
     assert_button 'Regenerate this flatfile'
 
     # The part that surprises: the file is rebuilt rather than edited, so
@@ -187,7 +187,7 @@ class EntriesSystemTest < ApplicationSystemTestCase
     visit entries_admin_submission_request_path(@req)
 
     assert_text '1 entry here is canceled or withdrawn'
-    assert_text 'has been written since the last of these statuses was set'
+    assert_text 'The flatfile on record already leaves them out'
     assert_no_button 'Regenerate this flatfile'
   end
 
@@ -203,18 +203,31 @@ class EntriesSystemTest < ApplicationSystemTestCase
 
     visit entries_admin_submission_request_path(@req)
 
-    assert_text 'has been written since the last of these statuses was set'
+    assert_text 'The flatfile on record already leaves them out'
     assert_no_button 'Regenerate this flatfile'
+    assert_not_includes flatfile, entry.accession
 
     entry.update!(status: :accession_issued)
 
     visit entries_admin_submission_request_path(@req)
 
-    # Nothing is retracted now, so the panel is not about retraction —
-    # it is about the file being older than the statuses.
-    assert_no_text 'canceled or withdrawn.'
-    assert_text 'written before the last of these statuses was set'
+    # Nothing is retracted now, so the panel is not about retraction — it
+    # is about the entry the file is still leaving out.
+    within '[data-test-flatfile-state]' do
+      assert_no_text 'entry here is'
+      assert_text 'leaves out 1 entry that is no longer canceled or withdrawn'
+    end
+
     assert_button 'Regenerate this flatfile'
+
+    regenerate
+
+    # Which is what saying so was for: the entry is back in what goes out.
+    assert_includes flatfile, entry.accession
+
+    visit entries_admin_submission_request_path(@req)
+
+    assert_no_button 'Regenerate this flatfile'
   end
 
   # One run at a time, over every scope — and the reason a press would be
@@ -247,9 +260,15 @@ class EntriesSystemTest < ApplicationSystemTestCase
 
   # What the button does, so a test can start from a file that is current.
   def regenerate
-    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'submission', submission: @req.submission,
+    submission = @req.submission.reload
+
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'submission', submission:,
                                          total: 1, started_at: Time.current)
 
-    RegenerateSubmissionFlatfilesJob.perform_now @req.submission, users(:bob), run, nil
+    RegenerateSubmissionFlatfilesJob.perform_now submission, users(:bob), run, nil
   end
+
+  # What actually goes out, which is the only thing that settles whether
+  # an entry is in or out of it.
+  def flatfile = @req.submission.reload.flatfile_na.download
 end

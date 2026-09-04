@@ -120,27 +120,48 @@ class Submission < ApplicationRecord
     [flatfile_na, flatfile_aa].select(&:attached?).filter_map { it.blob.created_at }.min
   end
 
-  # Whether the file still on record was written before the last of these
-  # statuses was set.
+  # How the flatfile on record and these statuses differ, in both
+  # directions — the retracted entries it still carries, and the entries
+  # put back that it still leaves out.
   #
-  # Every status, not only the retractions: a status decides whether the
-  # flatfile carries the entry, so putting one back leaves the file
-  # behind exactly as taking one out does — and that direction is the
-  # one nobody thinks to check, because what is missing from a file is
-  # not visible in the list that says it should be there.
+  # Read from what the file itself left out (`flatfile_omits`, written
+  # with it) rather than from a timestamp. A timestamp cannot tell a
+  # status the file depends on from one it does not: publishing an entry
+  # stamps `entries.updated_at` and changes no byte, and the 2026-08-10
+  # locus_date backfill stamped 9,813,674 rows across the archive without
+  # touching a file. Either would have lit this on submissions with
+  # nothing to fix, and pressing the button would have reported "nothing
+  # changed" and left it lit — an alarm with no off switch.
   #
-  # Only the statuses reach here in practice. `entries` is written by the
-  # apply (before the file it then writes), by the bulk status update
-  # (which stamps `updated_at`), and by a dated regeneration — which uses
-  # `update_all` and so touches no timestamp, and writes a newer file
-  # anyway.
+  # Nil for a file written before that was recorded, which is every file
+  # in the archive until it is next regenerated. Nil is not "in sync": it
+  # is "this cannot be answered", and `flatfile_behind_statuses?` falls
+  # back to the older reading for it.
+  FlatfileDrift = Data.define(:still_carried, :still_omitted) do
+    def any? = still_carried.any? || still_omitted.any?
+  end
+
+  def flatfile_drift
+    return nil if flatfile_omits.nil?
+
+    retracted = entries.retracted.pluck(:entry_id)
+
+    FlatfileDrift.new(still_carried: retracted - flatfile_omits, still_omitted: flatfile_omits - retracted)
+  end
+
+  # Whether the file on record has stopped matching these statuses.
   #
-  # Said as the fact and not as "the flatfile is wrong", because a
-  # regeneration that changes nothing writes no new file and this goes on
-  # being true — which is honest: the file was written before, and
-  # whether that matters is what pressing it answers.
-  def flatfile_predates_entry_changes?
-    last = entries.maximum(:updated_at)
+  # The fallback is for files that predate `flatfile_omits`: the last
+  # retraction against the file's own age, which catches a retraction not
+  # yet regenerated and cannot see an entry put back. It decays on its
+  # own — the first regeneration of such a submission records what it
+  # omitted, and the exact reading takes over from there.
+  def flatfile_behind_statuses?
+    drift = flatfile_drift
+
+    return drift.any? if drift
+
+    last = entries.retracted.maximum(:updated_at)
     return false unless last
 
     written = flatfile_generated_at

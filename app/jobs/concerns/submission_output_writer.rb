@@ -32,7 +32,14 @@ module SubmissionOutputWriter
   #   COMMIT that itself fails leaves the blobs behind instead of purging them.
   #   Orphan bytes are recoverable — PurgeUnattachedUploadsJob collects them —
   #   and deleting the bytes of a live record is not.
-  def write_outputs!(submission, outputs)
+  #
+  # `omits` is recorded beside the blobs because a file and the statuses it
+  # was written from are one fact: what this file leaves out is the only
+  # thing that can later answer whether it still matches them. Written
+  # inside the same transaction for the same reason the dates are — a row
+  # saying one thing and its file another is what nothing afterwards can
+  # tell apart.
+  def write_outputs!(submission, outputs, omits: Set.new)
     blobs     = {}
     committed = false
 
@@ -44,7 +51,7 @@ module SubmissionOutputWriter
       ActiveRecord::Base.transaction do
         yield if block_given?
 
-        submission.update! blobs
+        submission.update! blobs.merge(flatfile_omits: omits.to_a.sort)
 
         committed = true
       end
