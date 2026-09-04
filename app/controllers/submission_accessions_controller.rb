@@ -28,6 +28,34 @@ class SubmissionAccessionsController < ApplicationController
     @rows = paginate(scope.order(:id))
   end
 
+  # What one accession's record says, laid out by the shape of the data.
+  #
+  # The whole of that record's own subtree, not a chosen subset:
+  # RecordOutline names no field, which is what lets it show a v3 key the
+  # day it appears instead of the day somebody revises a renderer. What
+  # bounds it is the subtree — a sample is a sample's fields, and the
+  # submitters beside it in the record are not part of one.
+  def show
+    submission = Submission.readable_by(current_user).find(params.expect(:submission_id))
+    accession  = params.expect(:accession)
+
+    @row   = submission.accessioned_rows.find_by!(accession:)
+    @slice = submission.record_slice(@row)
+
+    # The stamp is the version: any edit to the chain nil-clears it
+    # (SubmissionUpdate's in-transaction hooks), so an etag built from it
+    # is one a change invalidates. Worth having because a miss costs the
+    # whole record — the blob download and the parse — to answer about
+    # one row of it.
+    #
+    # Private: what it holds is one submitter's record, and a shared
+    # cache is a place for it to be read by somebody the scope above
+    # refused.
+    return unless stale?(etag: [submission.cached_at_update_id, accession], public: false)
+
+    @outline = RecordOutline.new(@slice.subtree)
+  end
+
   private
 
   # Refused rather than dropped. Intersecting an unknown value away would

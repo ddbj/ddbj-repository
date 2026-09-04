@@ -136,6 +136,16 @@ class Submission < ApplicationRecord
     rows.where.not(accession: nil)
   end
 
+  # By alias, which is what every other join of this array uses —
+  # SampleTSV::Importer, AccessionIssue and the public XML renderer all
+  # take `sample_name` to `alias`. Not by accession: `ddbj-canon/v1`
+  # stripped it as volatile, so a chain built by edits rather than by an
+  # importer baseline carries samples with no accession at all, and a
+  # join on it would tell a submitter their own record is unreadable.
+  def sample_subtree(record, row)
+    Array(record['samples']).find { it.is_a?(Hash) && it['alias'] == row.sample_name }
+  end
+
   # What a curation row is called here: BP reads "1 project", BS "1,842
   # samples", ST.26 "1,842 entries". Used wherever a message has to name
   # the thing being acted on.
@@ -159,6 +169,16 @@ class Submission < ApplicationRecord
   def legacy_chain?
     canonical_version < DDBJRecord::Canonicalizer::NUMBER
   end
+
+  # Shown where the record cannot be opened. Four, because there are four
+  # ways and telling one as another sends somebody looking in the wrong
+  # place — "not readable here yet" over a BioSample whose record is fine
+  # blames the feature for a fact about the data.
+  RECORD_NOT_READABLE_HERE = 'Records for this database are not readable here yet.'.freeze
+  RECORD_TOO_LARGE         = 'This record is too large to open one row at a time here.'.freeze
+  RECORD_UNREADABLE        = 'This record cannot be reconstructed from its history. DDBJ has been told.'.freeze
+  RECORD_ABSENT            = 'This submission has no record yet.'.freeze
+  RECORD_MISSING_ROW       = 'The record does not carry this row.'.freeze
 
   class MaterialisationFailed < StandardError
     attr_reader :update_id, :original
@@ -204,6 +224,61 @@ class Submission < ApplicationRecord
     write_through_cache(fresh, latest_id) if fresh
 
     fresh
+  end
+
+  # What the record says about one accessioned row, or why it cannot say.
+  #
+  # `subtree` is that row's own part of the record and nothing beside it:
+  # a sample is a sample's fields, and the submitters in the record are a
+  # fact about the submission. `unavailable_reason` is what the screen
+  # shows instead — nil for a subtree that was found, and four different
+  # sentences for the four ways there can be none, because "this database
+  # is not readable here yet" and "your record does not carry this row"
+  # are different things to be told.
+  RecordSlice = Data.define(:subtree, :unavailable_reason)
+
+  # Past this the page stops opening the record. One slice costs the
+  # whole of it — the blob download and the parse — and the largest
+  # BioSample in the archive is 20MB, which measures at ~105MB of live
+  # heap per request in a worker that also runs the jobs.
+  #
+  # The same argument the comment below makes about ST.26. It applies by
+  # size rather than by database, and drawing the line here is what makes
+  # it apply to both — the largest ST.26 record in this archive is 27MB,
+  # measured, and the largest BioSample 20MB.
+  RECORD_READ_LIMIT = 8.megabytes
+
+  # The part of the record one accession is: the project for a
+  # BioProject, the one sample for a BioSample.
+  #
+  # ST.26 is refused before anything is read. Those submissions carry
+  # their record as an attachment written by ApplySubmissionRequestJob
+  # rather than as a patch chain, so today `materialised_record` would
+  # answer nil anyway — but "today" is doing the work in that sentence,
+  # and a chain arriving for them later would turn this into a download
+  # of a file that reaches 27MB (measured across the archive) to return
+  # nothing.
+  def record_slice(row)
+    return RecordSlice.new(subtree: nil, unavailable_reason: RECORD_NOT_READABLE_HERE) unless bioproject_db? || biosample_db?
+
+    if cached_materialised_record.attached? && cached_materialised_record.byte_size > RECORD_READ_LIMIT
+      return RecordSlice.new(subtree: nil, unavailable_reason: RECORD_TOO_LARGE)
+    end
+
+    record = begin
+      materialised_record
+    rescue MaterialisationFailed
+      # A poisoned chain is a fact about this submission that the admin
+      # screens exist to diagnose. Here it is a sentence, for the same
+      # reason it is one there rather than a 500.
+      return RecordSlice.new(subtree: nil, unavailable_reason: RECORD_UNREADABLE)
+    end
+
+    return RecordSlice.new(subtree: nil, unavailable_reason: RECORD_ABSENT) if record.nil?
+
+    subtree = bioproject_db? ? record['project'] : sample_subtree(record, row)
+
+    RecordSlice.new(subtree:, unavailable_reason: subtree ? nil : RECORD_MISSING_ROW)
   end
 
   # Raw cached bytes for the latest snapshot, or nil when the cache is

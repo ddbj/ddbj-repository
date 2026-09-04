@@ -1,0 +1,44 @@
+# locals: (node:)
+#
+# One node of a RecordOutline, recursing into itself — the JSON
+# counterpart of admin/submission_requests/_record_node.html.erb, and it
+# recurses for the same reason: the record's shape is not known in
+# advance, so neither is the depth.
+#
+# `kind` says which of the three collection keys is populated, rather
+# than one `rows` meaning three different things. A client that has to
+# discriminate a union before it can draw anything is a client that will
+# get it wrong for one of the three.
+{
+  kind: node.kind,
+
+  # The header row and the columns there was no room for. Both off the
+  # node: which is which is the outline's decision, and a renderer that
+  # worked it out would be a second place that knows the limit.
+  columns:        node.drawn_columns,
+  hidden_columns: node.hidden_columns,
+
+  # How many there are and how many are drawn. A reader who cannot see
+  # that there are more will read what is shown as all of it.
+  total: node.total,
+  shown: node.shown,
+
+  value: node.kind == :value ? node.value : nil,
+
+  # Whether the value needs room to keep its line breaks. A decision
+  # about the value, made where the value is.
+  free_text: node.free_text?,
+
+  # How many are not drawn. `total` and `shown` are here for a reader who
+  # wants the numbers; this is the subtraction, so that the two renderers
+  # do not each do it.
+  hidden: node.hidden,
+
+  fields: node.kind == :fields ? node.rows.map {|key, child| {key:, node: render('submission_accessions/node', node: child)} } : nil,
+  items:  node.kind == :list   ? node.rows.map { render('submission_accessions/node', node: it) } : nil,
+
+  # A cell can be absent where its row does not carry that column, and
+  # absent is not empty: a blank cell says the record has nothing there,
+  # which is a different fact from a field holding "".
+  cells: node.kind == :table ? node.rows.map {|cells| cells.map { it && render('submission_accessions/node', node: it) } } : nil
+}

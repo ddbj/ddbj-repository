@@ -166,6 +166,147 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     assert_equal submission.entries.order(:id).pluck(:accession), response.parsed_body.pluck('accession')
   end
 
+  # The record laid out by its own shape. Nothing here names a field —
+  # that is what lets a new v3 key appear the day it lands rather than
+  # the day somebody revises a renderer.
+  test "one accession's record comes back laid out by its shape" do
+    submission = submissions(:biosample)
+    sample     = samples(:first)
+
+    submission.append_update!(
+      {
+        'samples' => [
+          {
+            # Found by alias, which is what every other join of this
+            # array uses — a chain built by edits rather than by an
+            # importer baseline carries no accession at all.
+            'alias'      => sample.sample_name,
+            'accession'  => sample.accession,
+            'title'      => 'Control timepoint A',
+            'organism'   => {'name' => 'mouse gut metagenome', 'taxonomy_id' => 410_661},
+            'attributes' => [
+              {'name' => 'collection_date', 'value' => '2018-04-25'},
+              {'name' => 'env_broad_scale', 'value' => 'Gut'}
+            ]
+          }
+        ]
+      },
+      actor: 'test'
+    )
+
+    get submission_accession_path(submission, sample.accession)
+
+    assert_conform_schema 200
+
+    body = response.parsed_body
+
+    assert_equal sample.accession, body['accession']
+    assert_nil   body['unavailable_reason']
+    assert_equal false, body['elided']
+
+    sections = body['sections'].index_by { it['key'] }
+
+    assert_equal %w[accession alias attributes organism title], sections.keys.sort
+
+    # A hash is rows of key and value.
+    assert_equal 'fields', sections['organism']['node']['kind']
+    assert_equal %w[name taxonomy_id], sections['organism']['node']['fields'].pluck('key')
+
+    # An array of same-shaped hashes is a table, columns in the record's
+    # own order.
+    attributes = sections['attributes']['node']
+
+    assert_equal 'table',           attributes['kind']
+    assert_equal %w[name value],    attributes['columns']
+    assert_equal 2,                 attributes['total']
+    assert_equal 'collection_date', attributes['cells'].first.first['value']
+
+    # And anything else is the value.
+    assert_equal 'value',               sections['title']['node']['kind']
+    assert_equal 'Control timepoint A', sections['title']['node']['value']
+  end
+
+  # Beside it in the record, not part of it. A sample is a sample's
+  # fields; who submitted them is a fact about the submission.
+  test "one accession's record carries nothing from beside it" do
+    submission = submissions(:biosample)
+    sample     = samples(:first)
+
+    submission.append_update!(
+      {
+        'submission' => {'submitters' => [{'name' => 'A Person', 'email' => 'person@example.com'}]},
+        'samples'    => [{'alias' => sample.sample_name, 'title' => 'Only this'}]
+      },
+      actor: 'test'
+    )
+
+    get submission_accession_path(submission, sample.accession)
+
+    assert_conform_schema 200
+    assert_equal %w[alias title], response.parsed_body['sections'].pluck('key').sort
+    assert_not_includes response.body, 'person@example.com'
+  end
+
+  # Four ways there can be nothing to show, and telling one as another
+  # sends somebody looking in the wrong place.
+  test 'a record that does not carry the row says that, not that the database is unsupported' do
+    submission = submissions(:biosample)
+    sample     = samples(:first)
+
+    submission.append_update!({'samples' => [{'alias' => 'somebody else', 'title' => 'Not it'}]}, actor: 'test')
+
+    get submission_accession_path(submission, sample.accession)
+
+    assert_conform_schema 200
+    assert_equal Submission::RECORD_MISSING_ROW, response.parsed_body['unavailable_reason']
+  end
+
+  test 'a submission with no record yet says that' do
+    submission = submissions(:biosample)
+
+    get submission_accession_path(submission, samples(:first).accession)
+
+    assert_conform_schema 200
+    assert_equal Submission::RECORD_ABSENT, response.parsed_body['unavailable_reason']
+  end
+
+  # "This subtree is empty" and "this application cannot open that record
+  # yet" are different answers, and drawing both as a blank panel tells
+  # the second as the first.
+  test 'a record this cannot read yet says so rather than looking empty' do
+    submission = submissions(:st26)
+    entry      = submission.entries.first
+
+    get submission_accession_path(submission, entry.accession)
+
+    assert_conform_schema 200
+    assert_empty response.parsed_body['sections']
+    assert_equal Submission::RECORD_NOT_READABLE_HERE, response.parsed_body['unavailable_reason']
+  end
+
+  # A BioProject's record is its project, and nothing in the suite
+  # covered that branch.
+  test "a BioProject's record is its project" do
+    submission = submissions(:bioproject)
+
+    submission.append_update!(
+      {'project' => {'title' => 'Deep sea survey', 'project_type' => 'primary'}},
+      actor: 'test'
+    )
+
+    get submission_accession_path(submission, projects(:primary).accession)
+
+    assert_conform_schema 200
+    assert_nil response.parsed_body['unavailable_reason']
+    assert_equal %w[project_type title], response.parsed_body['sections'].pluck('key').sort
+  end
+
+  test 'an accession that is not this submission\'s is not found' do
+    with_exceptions_app { get submission_accession_path(submissions(:biosample), 'PRJDB000001') }
+
+    assert_conform_schema 404
+  end
+
   # The count beside the link and the list behind it read the same rows.
   test 'the submission payload counts what the list holds' do
     submission = submissions(:biosample)

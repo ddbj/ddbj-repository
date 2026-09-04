@@ -71,7 +71,11 @@ Rails.application.routes.draw do
       # tables its database keeps them in. Not the same endpoint as the
       # flat one below, which is a synchronisation walk over ST.26
       # entries and answers in their shape.
-      resources :accessions, only: %i[index], controller: 'submission_accessions'
+      resources :accessions,
+                only:        %i[index show],
+                controller:  'submission_accessions',
+                param:       :accession,
+                constraints: {accession: %r{[^/]+}}
 
       get 'files/:name',
           to:          'submission_files#show',
