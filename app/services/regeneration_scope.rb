@@ -32,16 +32,24 @@ class RegenerationScope
   # would fall back to "every entry", and quietly move dates the original
   # had deliberately left alone.
   def self.retrying(run)
-    new({date_mode: run.locus_date ? 'set' : 'keep', date: run.locus_date&.to_s, numbers: run.numbers}, retry_of: run)
+    new({date_mode:     run.locus_date ? 'set' : 'keep',
+         date:          run.locus_date&.to_s,
+         numbers:       run.numbers,
+         submission_id: run.submission_id},
+        retry_of: run)
   end
 
   def initialize(params = {}, retry_of: nil)
-    @retry_of     = retry_of
-    @target       = params[:target].to_s.presence_in(%w[accessions submission all]) || 'accessions'
+    @retry_of      = retry_of
+    @target        = params[:target].to_s.presence_in(%w[accessions submission all]) || 'accessions'
+    @numbers_text  = params[:numbers].to_s
+    @date_mode     = params[:date_mode].to_s.presence_in(DATE_MODES) || 'keep'
+    @date_input    = params[:date].to_s
+
+    # Carried by a retry as well as by the press, so a retry of a run
+    # over one submission is still recorded as being about it — and lands
+    # the curator back on it rather than on the bulk tool.
     @submission_id = params[:submission_id].presence
-    @numbers_text = params[:numbers].to_s
-    @date_mode    = params[:date_mode].to_s.presence_in(DATE_MODES) || 'keep'
-    @date_input   = params[:date].to_s
   end
 
   def target = retry_of ? 'retry' : @target
@@ -61,14 +69,21 @@ class RegenerationScope
   # was asked for and is not what a retry of it should do.
   def submission_target? = target == 'submission'
 
+  # The submission this run is about: the one the press named, or the one
+  # a retry carries forward from the run it is retrying. Nil on every
+  # other target whatever the parameters hold — a paste covers whatever
+  # its numbers resolve to, and recording a submission beside it would be
+  # a claim the run cannot support.
+  def submission_id = (@submission_id if submission_target? || retry_of)
+
   def numbers = @numbers ||= RegenerateFlatfilesRun.parse_numbers(numbers_text)
 
   def submissions
     @submissions ||=
       case target
-      when 'all'   then self.class.regeneratable
+      when 'all'        then self.class.regeneratable
       when 'retry'      then self.class.regeneratable.where(id: retry_of.failures.select(:submission_id))
-      when 'submission' then self.class.regeneratable.where(id: @submission_id)
+      when 'submission' then self.class.regeneratable.where(id: submission_id)
       else                   self.class.regeneratable.where(id: Entry.where(accession: numbers).select(:submission_id))
       end
   end
@@ -143,12 +158,23 @@ class RegenerationScope
     ].compact
   end
 
-  def ready? = total.positive? && !(setting_date? && locus_date.nil?)
+  def ready? = total.positive? && date_problem.nil?
 
   # Telling "you have not picked one" from "the one you typed is not a date this
   # will guess at" — the second used to be reported as the first, which sends a
   # curator looking for an empty field they had already filled in.
   def date_problem
+    # A run over one submission is pressed from the entry that was just
+    # retracted, and that screen carries no accession list to say whose
+    # date is meant — so a date arriving on this target would be written
+    # to every entry of the submission, which is the shape of the
+    # incident the disagreement guard exists for. The form sends `keep`;
+    # this is the rule behind that hidden field, because a hidden field
+    # is a courtesy.
+    if submission_target? && setting_date?
+      return 'A run over one submission keeps the LOCUS dates it finds. Name the accessions to move a date.'
+    end
+
     return nil unless setting_date? && locus_date.nil?
     return 'Pick a LOCUS date, or keep the existing ones.' if date_input.blank?
 
@@ -159,7 +185,7 @@ class RegenerationScope
     case target
     when 'all'        then 'every ST.26 submission with a stored record'
     when 'retry'      then "the #{'failure'.pluralize(retry_of.failed)} from run ##{retry_of.id}"
-    when 'submission' then "submission ##{@submission_id}"
+    when 'submission' then "submission ##{submission_id}"
     else                   "from #{numbers.size} #{'accession number'.pluralize(numbers.size)}"
     end
   end

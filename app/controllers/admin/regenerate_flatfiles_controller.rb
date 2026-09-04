@@ -41,6 +41,13 @@ module Admin
     def create
       scope = build_scope
 
+      # Where a refused press goes back to: the screen it was made on. A
+      # curator who pressed Regenerate on one submission's Entries tab
+      # did not come through the bulk tool, and being dropped on it to
+      # read "wait for the run to finish" leaves them somewhere they then
+      # have to find their way out of.
+      back = origin_of(scope)
+
       # Two runs over one submission put two workers on the same record:
       # both rewrite the flatfile, both overwrite the LOCUS date, and
       # both write an accession history entry. The screen disables the
@@ -48,13 +55,13 @@ module Admin
       # that arrives anyway — a second tab, a back button, a double
       # submit of the confirmation.
       if (blocking = RegenerateFlatfilesRun.without_numbers.in_flight.recent.first)
-        return redirect_to admin_regenerate_flatfiles_path,
+        return redirect_to back,
                            alert: "A regeneration run started at #{helpers.format_datetime(blocking.started_at)} " \
                                   'is still going. Wait for it to finish.'
       end
 
       unless scope.ready?
-        return redirect_to admin_regenerate_flatfiles_path,
+        return redirect_to back,
                            alert: "Nothing to regenerate — #{scope.problems.first || 'the scope was empty'}"
       end
 
@@ -62,17 +69,18 @@ module Admin
       # disables a button, and a disabled button is a courtesy rather
       # than a rule.
       if scope.all_target? && params[:confirm].to_s.strip.downcase != CONFIRM_PHRASE
-        return redirect_to admin_regenerate_flatfiles_path,
+        return redirect_to back,
                            alert: "Type #{CONFIRM_PHRASE} to confirm regenerating every flatfile."
       end
 
       run = start(scope)
 
-      # Back to the run when the press came from one submission's own
-      # screen: that curator did not come from the bulk tool and has no
-      # reason to land on it, and the run page is where the answer to
-      # "did it work" is.
-      here = scope.submission_target? ? admin_regenerate_flatfiles_run_path(run) : admin_regenerate_flatfiles_path
+      # To the run's own page when the run is about one submission —
+      # including a retry of such a run, which is about it too. That
+      # curator did not come from the bulk tool, and the run page is
+      # where the answer to "did it work" is. A press made on the bulk
+      # tool stays there, because its panel is already showing this run.
+      here = run.submission_id ? admin_regenerate_flatfiles_run_path(run) : admin_regenerate_flatfiles_path
 
       redirect_to here,
                   notice: "Regenerating #{helpers.pluralize(run.total, 'submission')}.",
@@ -80,6 +88,19 @@ module Admin
     end
 
     private
+
+    # The screen a press was made on, as far as the scope can say: the
+    # Entries tab of the submission it names, the page of the run it
+    # retries, or the bulk tool.
+    def origin_of(scope)
+      if scope.retry_of
+        admin_regenerate_flatfiles_run_path(scope.retry_of)
+      elsif (req = scope.submission_id && Submission.find_by(id: scope.submission_id)&.request)
+        entries_admin_submission_request_path(req)
+      else
+        admin_regenerate_flatfiles_path
+      end
+    end
 
     def build_scope
       if (previous = params[:retry_of].presence)
@@ -104,13 +125,14 @@ module Admin
       # `accession_count` comes off the list on save, through the same
       # parse a retry will run, so the two cannot drift apart.
       run = RegenerateFlatfilesRun.create!(
-        actor:      current_actor,
-        target:     scope.target,
-        numbers:    (scope.numbers.join("\n") if scope.naming_accessions?),
-        locus_date: scope.locus_date,
-        total:      scope.total,
-        started_at: Time.current,
-        retry_of:   scope.retry_of
+        actor:         current_actor,
+        target:        scope.target,
+        submission_id: scope.submission_id,
+        numbers:       (scope.numbers.join("\n") if scope.naming_accessions?),
+        locus_date:    scope.locus_date,
+        total:         scope.total,
+        started_at:    Time.current,
+        retry_of:      scope.retry_of
       )
 
       # In batches: the all-submissions scope is the whole table, and

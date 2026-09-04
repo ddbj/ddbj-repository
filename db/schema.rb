@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -214,11 +214,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_000001) do
     t.bigint "retry_of_id"
     t.integer "skipped", default: 0, null: false
     t.datetime "started_at", null: false
+    t.bigint "submission_id"
     t.string "target", null: false
     t.integer "total", null: false
     t.datetime "updated_at", null: false
     t.index ["retry_of_id"], name: "index_regenerate_flatfiles_runs_on_retry_of_id"
     t.index ["started_at"], name: "index_regenerate_flatfiles_runs_on_started_at"
+    t.index ["submission_id"], name: "index_regenerate_flatfiles_runs_on_submission_id"
   end
 
   create_table "reviewer_access_accessions", force: :cascade do |t|
@@ -520,6 +522,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_000001) do
   add_foreign_key "regenerate_flatfiles_failures", "regenerate_flatfiles_runs", column: "run_id"
   add_foreign_key "regenerate_flatfiles_failures", "submissions", on_delete: :nullify
   add_foreign_key "regenerate_flatfiles_runs", "regenerate_flatfiles_runs", column: "retry_of_id"
+  add_foreign_key "regenerate_flatfiles_runs", "submissions", on_delete: :nullify
   add_foreign_key "reviewer_access_accessions", "reviewer_accesses"
   add_foreign_key "reviewer_access_accessions", "users", column: "added_by_id"
   add_foreign_key "reviewer_accesses", "submission_sets"

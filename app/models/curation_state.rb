@@ -94,10 +94,20 @@ class CurationState
 
   # --- curation rows -------------------------------------------------
 
-  # `nil` for a request that has not been applied yet, and for ST.26.
+  # `nil` for a request that has not been applied yet — every database
+  # answers with its own rows once it has (BP its Project, BS its
+  # Samples, ST.26 its Entries).
   def rows = @rows ||= submission&.curation_rows
 
-  def row_count = @row_count ||= @row_summary&.count || rows&.count.to_i
+  # How many rows hold each status, as one grouped query. The tab that
+  # draws a row list asks three questions of the same table — how many
+  # rows, which statuses are present, and how many are retracted — and
+  # asking them separately is three aggregates over 27K entries on every
+  # pagination click. A list screen never reaches here: it comes through
+  # `batch`, which has already asked once per model.
+  def status_counts = @status_counts ||= rows ? rows.group(:status).count : {}
+
+  def row_count = @row_count ||= @row_summary&.count || status_counts.values.sum
 
   def curated? = row_count.positive?
 
@@ -107,7 +117,12 @@ class CurationState
     submission.curation_row_noun.pluralize(count)
   end
 
-  def statuses = @statuses ||= @row_summary&.statuses || (rows ? rows.distinct.pluck(:status).compact : [])
+  def statuses = @statuses ||= @row_summary&.statuses || status_counts.keys.compact
+
+  # Rows the flatfile leaves out. A fact about the submission, so it is
+  # not narrowed by whatever the screen is filtered to: a curator who has
+  # narrowed to one entry has not narrowed what goes out.
+  def retracted_count = @retracted_count ||= status_counts.values_at(*Lifecycleable::RETRACTED).compact.sum
 
   def uniform_status = statuses.size == 1 ? statuses.first : nil
 

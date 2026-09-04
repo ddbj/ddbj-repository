@@ -4,7 +4,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2 class="h5 mb-0">
       Entries
-      <span class="text-body-secondary fw-normal"><%= number_with_delimiter(@submission.entries.size) %></span>
+      <span class="text-body-secondary fw-normal"><%= number_with_delimiter(@state.row_count) %></span>
     </h2>
   </div>
 
@@ -18,7 +18,10 @@
   <%# does not touch it, and the only way to regenerate was a bulk tool %>
   <%# reached from elsewhere and driven by a paste of accession numbers. %>
   <%# So where there is something to leave out, the number is named and %>
-  <%# the press is here. %>
+  <%# the press is here — while the file on record is older than the last %>
+  <%# retraction, which is the difference between a discrepancy and a %>
+  <%# standing condition. "1 entry is canceled" is true for ever; "the %>
+  <%# file was written before it" stops being true when it is acted on. %>
   <%# %>
   <%# Not done for them, and the reason is not only that a regeneration %>
   <%# writes LOCUS dates (it does, and it refuses where the column and %>
@@ -37,38 +40,60 @@
   <%# So the press is offered and what it does is said, rather than %>
   <%# taken. %>
   <% if @retracted_count.positive? %>
-    <div class="border rounded p-3 mb-3 d-flex flex-wrap align-items-center gap-3">
-      <p class="mb-0 small flex-grow-1">
-        <%= number_with_delimiter(@retracted_count) %>
-        <%= 'entry'.pluralize(@retracted_count) %>
-        here <%= @retracted_count == 1 ? 'is' : 'are' %> canceled or withdrawn.
-        They stay in the record; the flatfile leaves them out when it is generated.
+    <div class="border rounded p-3 mb-3 d-flex flex-wrap align-items-center gap-3" data-test-retracted-entries>
+      <div class="small flex-grow-1">
+        <p class="mb-0">
+          <%= number_with_delimiter(@retracted_count) %>
+          <%= 'entry'.pluralize(@retracted_count) %>
+          here <%= @retracted_count == 1 ? 'is' : 'are' %> canceled or withdrawn.
+          Retracted entries stay in the record; the flatfile leaves them out when it is generated.
+        </p>
 
-        <%# Said because it is the part that surprises. The file is %>
-        <%# rebuilt, not edited, so it comes back as today's rules would %>
-        <%# write it — which is the same reason the tool exists for %>
-        <%# converter changes. %>
-        <span class="d-block text-body-secondary mt-1">
-          Regenerating rebuilds the whole file from the stored record, so it also picks up any
-          change to how flatfiles are written since this one was made.
-        </span>
-      </p>
+        <p class="text-body-secondary mb-0 mt-1">
+          <% if @flatfile_stale %>
+            <%# Said because it is the part that surprises. The file is %>
+            <%# rebuilt rather than edited, so it comes back as today's %>
+            <%# rules would write it, and the record is written back with %>
+            <%# it — which is the same reason the tool exists for %>
+            <%# converter changes. %>
+            The flatfile on record was written before the last of them. Regenerating rebuilds it from
+            the stored record, and writes that record back, so it picks up any change to how the two
+            are written since this one was made.
+          <% else %>
+            The flatfile has been written since the last of them, so it already leaves them out.
+          <% end %>
+        </p>
 
-      <%= form_with url: admin_regenerate_flatfiles_path, method: :post, local: true, class: 'mb-0' do |f| %>
-        <%= hidden_field_tag :target, 'submission' %>
-        <%= hidden_field_tag :submission_id, @submission.id %>
+        <%# One run at a time, and the reason belongs where the press is: %>
+        <%# a curator sent to the bulk tool to read this would be reading %>
+        <%# it on a screen they have never seen. %>
+        <% if @flatfile_stale && @blocking %>
+          <p class="text-warning-emphasis mb-0 mt-1">
+            The regeneration run started at <%= format_datetime(@blocking.started_at) %> is still going.
+            <%= number_with_delimiter(@blocking.done) %> of <%= number_with_delimiter(@blocking.total) %> done.
+          </p>
+        <% end %>
+      </div>
 
-        <%# The dates stay as they are. This press is about what the file %>
-        <%# contains, and a run that names no date renders every entry %>
-        <%# from the column — and refuses if the column and the record %>
-        <%# disagree, which is the guard doing its job. %>
-        <%= hidden_field_tag :date_mode, 'keep' %>
+      <% if @flatfile_stale %>
+        <%= form_with url: admin_regenerate_flatfiles_path, method: :post, local: true, class: 'mb-0' do |f| %>
+          <%= hidden_field_tag :target, 'submission' %>
+          <%= hidden_field_tag :submission_id, @submission.id %>
 
-        <%= f.submit 'Regenerate this flatfile', class: 'btn btn-primary btn-sm' %>
+          <%# The dates stay as they are. This press is about what the file %>
+          <%# contains, and a run that names no date renders every entry %>
+          <%# from the column — and refuses if the column and the record %>
+          <%# disagree, which is the guard doing its job. RegenerationScope %>
+          <%# refuses a date on this target as well, because a hidden field %>
+          <%# is a courtesy rather than a rule. %>
+          <%= hidden_field_tag :date_mode, 'keep' %>
+
+          <%= f.submit 'Regenerate this flatfile', class: 'btn btn-primary btn-sm', disabled: @blocking.present? %>
+        <% end %>
       <% end %>
     </div>
   <% else %>
-    <p class="text-body-secondary small">
+    <p class="text-body-secondary small" data-test-retracted-entries>
       Canceled and withdrawn entries are left out of the flatfile the next time it
       is generated. They stay in the record.
     </p>

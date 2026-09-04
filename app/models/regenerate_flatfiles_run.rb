@@ -28,6 +28,11 @@ class RegenerateFlatfilesRun < ApplicationRecord
 
   belongs_to :retry_of, class_name: 'RegenerateFlatfilesRun', optional: true
 
+  # The submission a run of one submission was about, and the one a retry
+  # of such a run is still about. Null for the paste and for the
+  # every-submission run, neither of which is about one.
+  belongs_to :submission, optional: true
+
   has_many :retries,  class_name: 'RegenerateFlatfilesRun', foreign_key: :retry_of_id,
                       inverse_of: :retry_of, dependent: :nullify
   has_many :failures, -> { order(:id) }, class_name: 'RegenerateFlatfilesFailure', foreign_key: :run_id,
@@ -167,10 +172,10 @@ class RegenerateFlatfilesRun < ApplicationRecord
     case target
     when 'all'        then 'All submissions'
     when 'retry'      then "Retry of ##{retry_of_id}"
-    when 'submission' then 'One submission'
+    when 'submission' then "Submission ##{submission_id}"
     # Delimited here rather than by the view, because the label is one
-    # phrase and its three branches should not be assembled two different
-    # ways. Six figures is the ordinary size of one of these runs.
+    # phrase and its branches should not be assembled two different ways.
+    # Six figures is the ordinary size of one of these runs.
     else              "#{ActiveSupport::NumberHelper.number_to_delimited(accession_count)} #{'accession'.pluralize(accession_count)}"
     end
   end

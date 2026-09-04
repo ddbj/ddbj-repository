@@ -90,7 +90,20 @@ module Admin
       # Of the whole submission, not of the filtered page: what the
       # flatfile leaves out is a fact about the file, and a curator who
       # has narrowed to one entry has not narrowed what goes out.
-      @retracted_count = @submission.entries.where(status: Entry::RETRACTED).count
+      @retracted_count = @state.retracted_count
+
+      # Whether the file on record was written before the last of them.
+      # Without it the panel states a standing condition that never
+      # clears — "1 entry is canceled" stays true for ever, and the only
+      # way to learn whether the file already leaves it out would be to
+      # press the button and read the answer on another screen.
+      @flatfile_stale = @retracted_count.positive? && @submission.flatfile_predates_retractions?
+
+      # One run at a time, over every scope: two workers on one record
+      # both rewrite its flatfile. The bulk tool names the run in the way
+      # of a press; the button is offered here too, so the reason it
+      # would be refused belongs here too.
+      @blocking = RegenerateFlatfilesRun.without_numbers.in_flight.recent.first if @flatfile_stale
 
       redirect_out_of_range_page(@entries_pagy, key: :entries_page)
     end

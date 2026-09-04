@@ -113,6 +113,89 @@ class AdminRegenerateFlatfilesTest < ActionDispatch::IntegrationTest
     assert_nil RegenerateFlatfilesRun.recent.first.numbers
   end
 
+  # Pressed from one submission's Entries tab, where a curator has just
+  # retracted an entry. Recorded as being about that submission rather
+  # than as a run that named an accession, because that is what the log
+  # is read for and what a retry of it should cover.
+  test 'a run over one submission is recorded as being about it, and moves no date' do
+    st26 = submissions(:st26)
+
+    post admin_regenerate_flatfiles_path, params: {target: 'submission', submission_id: st26.id, date_mode: 'keep'}
+
+    run = RegenerateFlatfilesRun.sole
+
+    assert_equal 'submission', run.target
+    assert_equal st26,         run.submission
+    assert_equal 1,            run.total
+
+    # The press is about what the file contains. Nothing names whose date
+    # would move, so nothing does.
+    assert_nil run.locus_date
+    assert_nil run.numbers
+    assert_nil enqueued_argument('value')
+    assert_nil enqueued_argument('accessions')
+
+    # To the run, not to the bulk tool: this curator never went there.
+    assert_redirected_to admin_regenerate_flatfiles_run_path(run)
+  end
+
+  # The screen sends `keep` in a hidden field, and a hidden field is a
+  # courtesy. Without the rule behind it, a hand-written POST would date
+  # every entry of the submission — the shape of the incident the
+  # disagreement guard exists for.
+  test 'a date on the one-submission target is refused' do
+    st26 = submissions(:st26)
+
+    assert_no_enqueued_jobs only: RegenerateSubmissionFlatfilesJob do
+      post admin_regenerate_flatfiles_path,
+           params: {target: 'submission', submission_id: st26.id, date_mode: 'set', date: '2001-01-01'}
+    end
+
+    assert_empty RegenerateFlatfilesRun.all
+    assert_match(/keeps the LOCUS dates it finds/, flash[:alert])
+  end
+
+  # The set a retry covers is "whatever failed", but what it is about is
+  # still the submission the run it retries was about — so the log says
+  # so, and the curator lands back on it.
+  test 'a retry of a one-submission run is still about that submission' do
+    st26     = submissions(:st26)
+    previous = failed_run(target: 'submission', submission: st26)
+
+    post admin_regenerate_flatfiles_path, params: {retry_of: previous.id}
+
+    run = RegenerateFlatfilesRun.recent.first
+
+    assert_equal 'retry', run.target
+    assert_equal st26,    run.submission
+    assert_nil            run.locus_date
+
+    assert_redirected_to admin_regenerate_flatfiles_run_path(run)
+  end
+
+  # A refusal sends the curator back to the screen they pressed on. The
+  # bulk tool is where the press did not come from, and "wait for the run
+  # to finish" is not worth being lost over.
+  test 'a refused press over one submission goes back to that submission' do
+    RegenerateFlatfilesRun.create!(actor: 'admin:someone', target: 'all', total: 10, started_at: 2.minutes.ago)
+
+    post admin_regenerate_flatfiles_path,
+         params: {target: 'submission', submission_id: submissions(:st26).id, date_mode: 'keep'}
+
+    assert_redirected_to entries_admin_submission_request_path(submission_requests(:st26))
+    assert_match(/still going/, flash[:alert])
+  end
+
+  # A BioProject or BioSample submission has no flatfile to rebuild, and
+  # a number that names nothing is a typo. Neither starts a run.
+  test 'a submission that cannot produce a flatfile starts no run' do
+    post admin_regenerate_flatfiles_path,
+         params: {target: 'submission', submission_id: submissions(:biosample).id, date_mode: 'keep'}
+
+    assert_empty RegenerateFlatfilesRun.all
+    assert_match(/Nothing to regenerate/, flash[:alert])
+  end
+
   # Two runs over one submission would have two workers rewriting one
   # flatfile, both overwriting the LOCUS date and both writing an
   # accession history entry for it.

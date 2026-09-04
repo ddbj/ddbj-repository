@@ -192,7 +192,9 @@ class RegenerateSubmissionFlatfilesJob < ApplicationJob
         raise LocusDateDisagreement,
               "Submission ##{acc.submission_id}: #{entry.id} has LOCUS date #{entry.locus_date} in its record and " \
               "#{acc.locus_date} in entries.locus_date. Regenerating would publish the latter. " \
-              'If the column is the date you meant, name it in this run and it will be written to both. ' \
+              'If the column is the date you meant, name this accession and that date on the Regenerate ' \
+              'flatfiles tool and it will be written to both — naming accessions is what that screen is for, ' \
+              'and no other screen can. ' \
               'If you have not touched it, something has written the column without the record — the two are ' \
               'kept together by the apply job and by this one, so find out what did before regenerating.'
       end

@@ -149,11 +149,13 @@ class EntriesSystemTest < ApplicationSystemTestCase
     visit entries_admin_submission_request_path(@req)
 
     assert_text '1 entry here is canceled or withdrawn'
+    assert_text 'The flatfile on record was written before the last of them'
     assert_button 'Regenerate this flatfile'
 
-    # The part that surprises: the file is rebuilt, not edited, so it
-    # comes back as today's rules would write it.
-    assert_text 'picks up any change to how flatfiles are written'
+    # The part that surprises: the file is rebuilt rather than edited, so
+    # it comes back as today's rules would write it, and the record is
+    # written back with it.
+    assert_text 'picks up any change to how the two are written'
 
     assert_difference 'RegenerateFlatfilesRun.count', 1 do
       click_button 'Regenerate this flatfile'
@@ -163,9 +165,48 @@ class EntriesSystemTest < ApplicationSystemTestCase
 
     # This submission, named as itself, and no date moved: the press is
     # about what the file contains.
-    assert_equal 1, run.total
+    assert_equal 'submission',    run.target
+    assert_equal @req.submission, run.submission
+    assert_equal 1,               run.total
     assert_nil   run.locus_date
     assert_empty run.numbers.to_a
+
+    # The run's own page, which is where the answer to "did it work" is,
+    # and which offers the way back to the request it was pressed from.
+    assert_current_path admin_regenerate_flatfiles_run_path(run)
+    assert_link "Back to request ##{@req.id}"
+  end
+
+  # Otherwise the panel states a condition rather than a discrepancy, and
+  # never clears: "1 entry is canceled" is true for ever, and the curator
+  # has no way to tell an unregenerated file from a regenerated one.
+  test 'the offer clears once the flatfile has been written since' do
+    @entries.first.update!(status: :canceled)
+
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'submission', submission: @req.submission,
+                                        total: 1, started_at: Time.current)
+
+    RegenerateSubmissionFlatfilesJob.perform_now @req.submission, users(:bob), run, nil
+
+    visit entries_admin_submission_request_path(@req)
+
+    assert_text '1 entry here is canceled or withdrawn'
+    assert_text 'already leaves them out'
+    assert_no_button 'Regenerate this flatfile'
+  end
+
+  # One run at a time, over every scope — and the reason a press would be
+  # refused belongs where the press is, not on a screen this curator has
+  # never seen.
+  test 'a run already in flight names itself and disables the press' do
+    @entries.first.update!(status: :canceled)
+
+    RegenerateFlatfilesRun.create!(actor: 'admin:someone', target: 'all', total: 10, started_at: 2.minutes.ago)
+
+    visit entries_admin_submission_request_path(@req)
+
+    assert_text 'The regeneration run started at'
+    assert_button 'Regenerate this flatfile', disabled: true
   end
 
   # Of the whole submission, not of the page: a curator who has narrowed
@@ -175,6 +216,8 @@ class EntriesSystemTest < ApplicationSystemTestCase
 
     visit entries_admin_submission_request_path(@req, q: @entries.last.entry_id)
 
-    assert_text '1 entry here is canceled or withdrawn'
+    within '[data-test-retracted-entries]' do
+      assert_text '1 entry here is canceled or withdrawn'
+    end
   end
 end
