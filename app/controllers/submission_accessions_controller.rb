@@ -52,7 +52,12 @@ class SubmissionAccessionsController < ApplicationController
     # Private: what it holds is one submitter's record, and a shared
     # cache is a place for it to be read by somebody the scope above
     # refused.
-    return unless stale?(etag: [submission.cached_at_update_id, accession, @row.updated_at], public: false)
+    # Both places a record can live: the cache stamp for a chain, the
+    # blob's identity for ST.26, whose record is the attachment itself
+    # and has no stamp.
+    version = [submission.cached_at_update_id, submission.ddbj_record_attachment&.blob_id]
+
+    return unless stale?(etag: [*version, accession, @row.updated_at], public: false)
 
     @slice   = submission.record_slice(@row)
     @outline = RecordOutline.new(@slice.subtree, inline_limit: RecordOutline::SUBTREE_INLINE_LIMIT)

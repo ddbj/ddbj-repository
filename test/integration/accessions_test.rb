@@ -341,18 +341,35 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     assert_equal Submission::RECORD_ABSENT, response.parsed_body['unavailable_reason']
   end
 
-  # "This subtree is empty" and "this application cannot open that record
-  # yet" are different answers, and drawing both as a blank panel tells
-  # the second as the first.
-  test 'a record this cannot read yet says so rather than looking empty' do
+  # ST.26 keeps the record the apply wrote, as an attachment rather than a
+  # patch chain. Always streamed: this is the database whose collections
+  # have no ceiling, and whose elements carry a sequence.
+  test 'an ST.26 entry comes out of the record the apply wrote' do
     submission = submissions(:st26)
     entry      = submission.entries.first
+
+    attach_submission_files submission
 
     get submission_accession_path(submission, entry.accession)
 
     assert_conform_schema 200
-    assert_empty response.parsed_body['sections']
-    assert_equal Submission::RECORD_NOT_READABLE_HERE, response.parsed_body['unavailable_reason']
+    assert_nil response.parsed_body['unavailable_reason']
+
+    sections = response.parsed_body['sections'].index_by { it['key'] }
+
+    assert_equal entry.entry_id, sections['id'].dig('node', 'value')
+    assert_includes sections.keys, 'sequence'
+  end
+
+  # A record whose attachment is not there has nothing behind it to
+  # replay — unlike a cache, which is derived from a chain.
+  test 'an ST.26 submission with no record attached says there is none' do
+    submission = submissions(:st26)
+
+    get submission_accession_path(submission, submission.entries.first.accession)
+
+    assert_conform_schema 200
+    assert_equal Submission::RECORD_ABSENT, response.parsed_body['unavailable_reason']
   end
 
   # A BioProject's record is its project, and nothing in the suite

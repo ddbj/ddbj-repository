@@ -136,18 +136,54 @@ class Submission < ApplicationRecord
     rows.where.not(accession: nil)
   end
 
-  # One sample out of the cached record without building the rest.
+  # A BioProject's record is one project, so there is nothing to stream
+  # past — the record is the project and a handful of fields beside it.
+  def project_subtree
+    record = materialised_record
+
+    @record_absent = record.nil?
+
+    record&.dig('project')
+  end
+
+  # One sample, streamed out of the cache where there is one. Cold means
+  # replaying the chain, which builds the whole record whatever this does,
+  # so the fast path is bounded and the slow path was always going to
+  # cost.
+  def biosample_subtree(row)
+    return streamed_element('samples') { it['alias'] == row.sample_name } if cached_materialised_record.attached?
+
+    record = materialised_record
+
+    @record_absent = record.nil?
+
+    record && sample_subtree(record, row)
+  end
+
+  # One entry, streamed out of the record the apply wrote. Always
+  # streamed: this is the database whose collections have no ceiling —
+  # 27,080 entries in the largest submission here — and the one whose
+  # elements carry a sequence, so building the array would be building
+  # every base of every entry to read one of them.
   #
-  # The cache is the only thing streamable: a cold one has to be replayed
-  # from the patch chain, which produces the whole record in memory
-  # whatever this does. So the fast path is bounded and the slow path is
-  # the one that was always going to cost.
-  def streamed_sample_subtree(row)
+  # By `id`, which is what the typed row calls `entry_id`.
+  def st26_subtree(row)
+    unless ddbj_record.attached?
+      @record_absent = true
+
+      return nil
+    end
+
+    streamed_element('entries', parent: 'sequences', attachment: ddbj_record) { it['id'] == row.entry_id }
+  end
+
+  # One element of a named collection, without building the rest.
+  def streamed_element(key, parent: nil, attachment: cached_materialised_record, &match)
     found = nil
 
-    cached_materialised_record.open do |io|
-      handler = DDBJRecord::StreamingParser::CollectionStreamHandler.new('samples') {
-        found ||= it if it.is_a?(Hash) && it['alias'] == row.sample_name
+    attachment.open do |io|
+      handler = DDBJRecord::StreamingParser::CollectionStreamHandler.new(key, parent:) {
+        found ||= it if it.is_a?(Hash) && match.call(it)
       }
 
       Oj.sc_parse(handler, io)
@@ -155,11 +191,17 @@ class Submission < ApplicationRecord
 
     found
   rescue ActiveStorage::FileNotFoundError, Aws::S3::Errors::NoSuchKey
-    # The cache object has gone. `materialised_record` heals that by
-    # replaying, and it is the one caller here that can.
+    # The object has gone. For a cache that is recoverable — the chain is
+    # still there — and `materialised_record` is the one caller that can.
+    # For ST.26 the attachment IS the record, so there is nothing behind
+    # it to replay.
+    raise unless attachment == cached_materialised_record
+
     record = materialised_record
 
-    record && sample_subtree(record, row)
+    @record_absent = record.nil?
+
+    record && record['samples']&.find { it.is_a?(Hash) && match.call(it) }
   end
 
   # By alias, which is what every other join of this array uses —
@@ -263,39 +305,25 @@ class Submission < ApplicationRecord
   RecordSlice = Data.define(:subtree, :unavailable_reason)
 
   # The part of the record one accession is: the project for a
-  # BioProject, the one sample for a BioSample.
+  # BioProject, the one sample for a BioSample, the one entry for ST.26.
   #
-  # ST.26 is refused before anything is read. Those submissions carry
-  # their record as an attachment written by ApplySubmissionRequestJob
-  # rather than as a patch chain, so today `materialised_record` would
-  # answer nil anyway — but "today" is doing the work in that sentence,
-  # and a chain arriving for them later would turn this into a download
-  # of a file that reaches 27MB (measured across the archive) to return
-  # nothing.
+  # Where the record comes from differs by database and the reading does
+  # not. BP and BS replay a patch chain and cache the result; ST.26 keeps
+  # the record ApplySubmissionRequestJob wrote, as an attachment. Both are
+  # JSON in a blob, which is all the streaming needs.
   def record_slice(row)
-    return RecordSlice.new(subtree: nil, unavailable_reason: RECORD_NOT_READABLE_HERE) unless bioproject_db? || biosample_db?
-
     subtree =
       begin
-        # Streamed where the collection is unbounded. A BioSample record
-        # holds every sample of the submission, and building the whole of
-        # it to read one of them retains it: measured at 4,000 samples,
-        # 55ms and 20MB held against 108ms and nothing held. Twice the
-        # time, per request and then gone; the memory is what stays in a
-        # worker that also runs the jobs.
-        #
-        # A size limit was the other answer and it is the wrong one here.
-        # This is the only door a reviewer has — a link and nothing else —
-        # so a submission too big to open is a submission that cannot be
-        # reviewed, and it is the large studies that most need reviewing.
-        if biosample_db? && cached_materialised_record.attached?
-          streamed_sample_subtree(row)
+        case db
+        when 'bioproject' then project_subtree
+        when 'biosample'  then biosample_subtree(row)
+        when 'st26'       then st26_subtree(row)
         else
-          record = materialised_record
-
-          return RecordSlice.new(subtree: nil, unavailable_reason: RECORD_ABSENT) if record.nil?
-
-          bioproject_db? ? record['project'] : sample_subtree(record, row)
+          # A database this does not know how to open. Unreachable while
+          # `db` holds three values and all three are here; said rather
+          # than left to fall through as "the record does not carry this
+          # row", which would blame the data.
+          return RecordSlice.new(subtree: nil, unavailable_reason: RECORD_NOT_READABLE_HERE)
         end
       rescue MaterialisationFailed
         # A poisoned chain is a fact about this submission that the admin
@@ -304,7 +332,9 @@ class Submission < ApplicationRecord
         return RecordSlice.new(subtree: nil, unavailable_reason: RECORD_UNREADABLE)
       end
 
-    RecordSlice.new(subtree:, unavailable_reason: subtree ? nil : RECORD_MISSING_ROW)
+    return RecordSlice.new(subtree: nil, unavailable_reason: @record_absent ? RECORD_ABSENT : RECORD_MISSING_ROW) if subtree.nil?
+
+    RecordSlice.new(subtree:, unavailable_reason: nil)
   end
 
   # Raw cached bytes for the latest snapshot, or nil when the cache is

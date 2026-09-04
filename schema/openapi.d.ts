@@ -804,6 +804,11 @@ export interface paths {
          *     What bounds it is the subtree. A sample is a sample's fields; the
          *     submitters beside it in the record are not part of one.
          *
+         *     Every database: a BioProject's project, a BioSample's sample, an
+         *     ST.26 entry. Where the record lives differs — BP and BS replay a patch
+         *     chain, ST.26 keeps what the apply wrote as an attachment — and the
+         *     reading does not.
+         *
          *     `unavailable_reason` is non-null where there is nothing to show, and
          *     says which of the several reasons it is. An accession whose subtree is
          *     genuinely empty and one whose record cannot be opened are different
@@ -3207,8 +3212,9 @@ export interface components {
              *     when the record was read.
              *
              *     Four ways there can be none, and they are told apart: this database
-             *     is not readable here yet, its history cannot be reconstructed, there
-             *     is no record yet, or the record does not carry this row. Telling one
+             *     is not readable here (no database does this today), its history
+             *     cannot be reconstructed, there is no record yet, or the record does
+             *     not carry this row. Telling one
              *     as another sends somebody looking in the wrong place — "not readable
              *     here yet" over a record that is fine blames the feature for a fact
              *     about the data.

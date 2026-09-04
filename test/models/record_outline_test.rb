@@ -233,4 +233,26 @@ class RecordOutlineTest < ActiveSupport::TestCase
     assert_equal 30, raised.shown
     assert_not raised.truncated?
   end
+  # A sequence is the one value in the corpus tall enough to fold. It
+  # arrives closed with its length said, and opening it is the reader's
+  # choice — which is why showing an ST.26 entry needs no truncation and
+  # no second door.
+  #
+  # Measured over the 975 ST.26 submissions here: about 1.3KB per entry
+  # at the median and 240KB at the largest, so the fold does the work at
+  # both ends. A Trad record's entries are orders larger and this is
+  # where that will have to be looked at again.
+  test 'a long value folds and says how long it is' do
+    outline = RecordOutline.new({'sequence' => 'A' * 243_626})
+    section = outline.section('sequence')
+
+    assert section.folded?
+    assert_equal '243,626 characters', section.node.precis
+  end
+
+  test 'a short value does not' do
+    section = RecordOutline.new({'sequence' => 'ATGC'}).section('sequence')
+
+    assert_not section.folded?
+  end
 end
