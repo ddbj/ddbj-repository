@@ -3861,11 +3861,17 @@ components:
             when the record was read.
 
             Four ways there can be none, and they are told apart: this database
-            is not readable here yet, the record is too large to open one row at
-            a time, its history cannot be reconstructed, there is no record yet,
-            or the record does not carry this row. Telling one as another sends
-            somebody looking in the wrong place — "not readable here yet" over a
-            record that is fine blames the feature for a fact about the data.
+            is not readable here yet, its history cannot be reconstructed, there
+            is no record yet, or the record does not carry this row. Telling one
+            as another sends somebody looking in the wrong place — "not readable
+            here yet" over a record that is fine blames the feature for a fact
+            about the data.
+
+            There is no size at which this refuses. A BioSample record is read a
+            sample at a time out of the cached snapshot, so one row costs one
+            row — which matters because a review link is the only door its
+            holder has, and the largest studies are the ones most worth
+            reviewing.
           type:
             - string
             - 'null'

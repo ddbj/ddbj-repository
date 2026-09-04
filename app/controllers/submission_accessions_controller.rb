@@ -39,20 +39,22 @@ class SubmissionAccessionsController < ApplicationController
     submission = Submission.readable_by(current_user).find(params.expect(:submission_id))
     accession  = params.expect(:accession)
 
-    @row   = submission.accessioned_rows.find_by!(accession:)
-    @slice = submission.record_slice(@row)
+    @row = submission.accessioned_rows.find_by!(accession:)
 
-    # The stamp is the version: any edit to the chain nil-clears it
+    # Asked before the record is read, which is the whole point of asking:
+    # a slice costs a blob download and a streamed parse, and a reader
+    # who already has this version should pay for neither.
+    #
+    # The stamp is the version. Any edit to the chain nil-clears it
     # (SubmissionUpdate's in-transaction hooks), so an etag built from it
-    # is one a change invalidates. Worth having because a miss costs the
-    # whole record — the blob download and the parse — to answer about
-    # one row of it.
+    # is one a change invalidates.
     #
     # Private: what it holds is one submitter's record, and a shared
     # cache is a place for it to be read by somebody the scope above
     # refused.
-    return unless stale?(etag: [submission.cached_at_update_id, accession], public: false)
+    return unless stale?(etag: [submission.cached_at_update_id, accession, @row.updated_at], public: false)
 
+    @slice   = submission.record_slice(@row)
     @outline = RecordOutline.new(@slice.subtree)
   end
 

@@ -34,7 +34,7 @@ module DDBJRecord
     def each_entry(&block)
       return enum_for(:each_entry) unless block
 
-      handler = EntryStreamHandler.new {|h| block.call(build_entry_from_hash(h)) }
+      handler = CollectionStreamHandler.new('entries', parent: 'sequences') {|h| block.call(build_entry_from_hash(h)) }
 
       File.open(@path) {|f| Oj.sc_parse(handler, f) }
     end
@@ -47,7 +47,7 @@ module DDBJRecord
     def ensure_root_parsed
       return if @root_parsed
 
-      handler = EntryStreamHandler.new { } # discard entries
+      handler = CollectionStreamHandler.new('entries', parent: 'sequences') { } # discard entries
 
       File.open(@path) {|f| Oj.sc_parse(handler, f) }
 
@@ -177,13 +177,24 @@ module DDBJRecord
     # Oj::ScHandler that streams entries via callback without
     # accumulating them. All other content is built as Hash/Array.
     # After parsing, #result returns the root hash (entries excluded).
-    class EntryStreamHandler < Oj::ScHandler
-      ENTRIES = Object.new.freeze
+    # Streams one named collection out of a JSON document, handing its
+    # elements to a block one at a time instead of building the array.
+    # Memory is the largest single element rather than the whole
+    # collection, which is what makes a 10GB record with millions of
+    # entries readable at all.
+    #
+    # Parameterised because there are two of these questions now:
+    # `sequences.entries` for the apply pipeline, and `samples` for
+    # reading one row of a record without loading its neighbours.
+    class CollectionStreamHandler < Oj::ScHandler
+      COLLECTION = Object.new.freeze
 
       attr_reader :result
 
-      def initialize(&on_entry)
-        @on_entry       = on_entry
+      def initialize(key, parent: nil, &on_element)
+        @key            = key
+        @parent         = parent
+        @on_element     = on_element
         @pending_key    = nil
         @hash_key_stack = []
         @result         = nil
@@ -208,24 +219,21 @@ module DDBJRecord
       end
 
       def hash_set(hash, key, value)
-        hash[key] = value unless value.equal?(ENTRIES)
+        hash[key] = value unless value.equal?(COLLECTION)
       end
 
       def array_start
-        if @pending_key == 'entries' && @hash_key_stack.last == 'sequences'
-          @pending_key = nil
-          ENTRIES
-        else
-          @pending_key = nil
-          []
-        end
+        intercept = @pending_key == @key && (@parent.nil? || @hash_key_stack.last == @parent)
+        @pending_key = nil
+
+        intercept ? COLLECTION : []
       end
 
       def array_end = nil
 
       def array_append(array, value)
-        if array.equal?(ENTRIES)
-          @on_entry.call(value)
+        if array.equal?(COLLECTION)
+          @on_element.call(value)
         else
           array << value
         end
