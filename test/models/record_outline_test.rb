@@ -216,4 +216,21 @@ class RecordOutlineTest < ActiveSupport::TestCase
 
     assert_same outline.sections, outline.sections
   end
+  # The collection being cut is the caller's business: over a whole
+  # record it is `samples`, which has a screen of its own; over one row
+  # it is that row's attributes, which do not.
+  test 'the inline limit is the caller\'s' do
+    record = {'attributes' => (1..30).map { {'name' => "a#{it}", 'value' => it.to_s} }}
+
+    default = RecordOutline.new(record).section('attributes').node
+
+    assert_equal 30, default.total
+    assert_equal RecordOutline::INLINE_LIMIT, default.shown
+
+    raised = RecordOutline.new(record, inline_limit: RecordOutline::SUBTREE_INLINE_LIMIT).section('attributes').node
+
+    assert_equal 30, raised.total
+    assert_equal 30, raised.shown
+    assert_not raised.truncated?
+  end
 end

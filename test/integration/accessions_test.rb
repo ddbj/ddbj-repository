@@ -306,6 +306,32 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     assert_equal 'From the chain', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
   end
 
+  # The attribute bag is the collection this page exists to show, and
+  # there is no other screen for it. Measured over D-way's 2,000,619
+  # BioSamples the median is 15 and the maximum 109, so a limit of 20 cut
+  # 50,578 of them with nowhere to go.
+  test "a sample's attributes are not cut at the whole-record limit" do
+    submission = submissions(:biosample)
+    sample     = samples(:first)
+
+    attributes = (1..40).map { {'name' => "attr_#{it}", 'value' => "value #{it}"} }
+
+    submission.append_update!(
+      {'samples' => [{'alias' => sample.sample_name, 'attributes' => attributes}]},
+      actor: 'test'
+    )
+
+    get submission_accession_path(submission, sample.accession)
+
+    assert_conform_schema 200
+
+    node = response.parsed_body['sections'].find { it['key'] == 'attributes' }['node']
+
+    assert_equal 40, node['total']
+    assert_equal 40, node['shown']
+    assert_equal 0,  node['hidden']
+  end
+
   test 'a submission with no record yet says that' do
     submission = submissions(:biosample)
 

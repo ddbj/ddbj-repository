@@ -28,6 +28,17 @@ class RecordOutline
   # of entries, and those have screens of their own that paginate.
   INLINE_LIMIT = 20
 
+  # For one accessioned row rather than a whole record. The collection
+  # being cut is then the row's own — a sample's attribute bag — and
+  # there is no other screen for it: this is where somebody reads it.
+  #
+  # Measured over D-way's 2,000,619 BioSamples: median 15 attributes,
+  # p95 19, p99 23, maximum 109. At 20 the cut falls just above p95 and
+  # takes 50,578 samples with it; at 200 it takes none, and still bounds
+  # a record that is pathological rather than merely large. NODE_BUDGET
+  # is the backstop either way.
+  SUBTREE_INLINE_LIMIT = 200
+
   # Columns past this and the table stops being a table. The overflow is
   # named rather than dropped — a reader who cannot see that there are
   # more columns will read the ones shown as all of them.
@@ -141,8 +152,12 @@ class RecordOutline
     end
   end
 
-  def initialize(record)
-    @record = record || {}
+  # `inline_limit` is the caller's, because the collection it cuts is:
+  # over a whole record that is `samples`, which has a screen of its own,
+  # and over one row it is that row's attributes, which do not.
+  def initialize(record, inline_limit: INLINE_LIMIT)
+    @record       = record || {}
+    @inline_limit = inline_limit
   end
 
   # How many keys v3 gives every database, read off the schema rather than
@@ -232,7 +247,7 @@ class RecordOutline
   def array_node(array)
     return empty_node if array.empty?
 
-    shown = array.first(INLINE_LIMIT)
+    shown = array.first(@inline_limit)
 
     unless shown.all?(Hash)
       return Node.new(kind: :list, rows: shown.map { node_for(it) }, columns: nil,

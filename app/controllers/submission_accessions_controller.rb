@@ -55,7 +55,7 @@ class SubmissionAccessionsController < ApplicationController
     return unless stale?(etag: [submission.cached_at_update_id, accession, @row.updated_at], public: false)
 
     @slice   = submission.record_slice(@row)
-    @outline = RecordOutline.new(@slice.subtree)
+    @outline = RecordOutline.new(@slice.subtree, inline_limit: RecordOutline::SUBTREE_INLINE_LIMIT)
   end
 
   private
