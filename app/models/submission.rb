@@ -113,6 +113,27 @@ class Submission < ApplicationRecord
   # Returned as a relation
   # in both cases so callers can aggregate, filter and `update_all`
   # without branching on the database, which matters at 100K samples.
+  # When the stored flatfiles were written. The earlier of the pair,
+  # because a submission carrying both NA and AA is only as current as
+  # the older one. Nil when neither is attached.
+  def flatfile_generated_at
+    [flatfile_na, flatfile_aa].select(&:attached?).filter_map { it.blob.created_at }.min
+  end
+
+  # Whether the file still on record was written before the last entry
+  # was retracted. Said as the fact and not as "the flatfile is wrong",
+  # because a regeneration that changes nothing writes no new file and
+  # this would go on being true — which is honest: the file was written
+  # before, and whether that matters is what pressing it answers.
+  def flatfile_predates_retractions?
+    last = entries.retracted.maximum(:updated_at)
+    return false unless last
+
+    written = flatfile_generated_at
+
+    written.nil? || written < last
+  end
+
   def curation_rows
     if bioproject_db?
       project && Project.where(id: project.id)

@@ -34,6 +34,7 @@ module Lifecycleable
     # endpoints until 0.8 resolves.
     scope :publicly_visible, -> { status_public }
     scope :curator_visible,  -> { where.not(status: RETRACTED) }
+    scope :retracted,        -> { where(status: RETRACTED) }
 
     def retracted? = status.in?(RETRACTED)
   end

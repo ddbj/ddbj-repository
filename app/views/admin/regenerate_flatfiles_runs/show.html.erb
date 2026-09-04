@@ -12,4 +12,12 @@
   <%= render 'panel', run: @run %>
 <% end %>
 
-<p><%= link_to 'Back to Regenerate flatfiles', admin_regenerate_flatfiles_path %></p>
+<p class="d-flex gap-3">
+  <%# A run of one submission was pressed from that submission's own %>
+  <%# screen, and the way back to it is the link that curator wants. %>
+  <% if (req = @run.submission&.request) %>
+    <%= link_to "Back to request ##{req.id}", entries_admin_submission_request_path(req) %>
+  <% end %>
+
+  <%= link_to 'Back to Regenerate flatfiles', admin_regenerate_flatfiles_path %>
+</p>

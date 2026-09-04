@@ -9,7 +9,13 @@ class RegenerateFlatfilesRun < ApplicationRecord
   # What the run was pointed at. `retry` is its own target rather than a
   # flag on `entries`, because the set it covers is "whatever failed
   # last time" — it cannot be re-derived from a list of numbers.
-  TARGETS = %w[accessions all retry].freeze
+  #
+  # `submission` likewise. Naming one of a submission's accessions would
+  # cover it — a flatfile belongs to a submission, so any of these runs
+  # rewrites whole files — but it would sit here as a run that named
+  # accessions, which is neither what was asked for nor what a retry of
+  # it should do.
+  TARGETS = %w[accessions submission all retry].freeze
 
   # How long a run may report nothing before it stops being believed.
   #
@@ -21,6 +27,11 @@ class RegenerateFlatfilesRun < ApplicationRecord
   STALE_AFTER = 1.hour
 
   belongs_to :retry_of, class_name: 'RegenerateFlatfilesRun', optional: true
+
+  # The submission a run of one submission was about, and the one a retry
+  # of such a run is still about. Null for the paste and for the
+  # every-submission run, neither of which is about one.
+  belongs_to :submission, optional: true
 
   has_many :retries,  class_name: 'RegenerateFlatfilesRun', foreign_key: :retry_of_id,
                       inverse_of: :retry_of, dependent: :nullify
@@ -159,11 +170,12 @@ class RegenerateFlatfilesRun < ApplicationRecord
 
   def scope_label
     case target
-    when 'all'   then 'All submissions'
-    when 'retry' then "Retry of ##{retry_of_id}"
+    when 'all'        then 'All submissions'
+    when 'retry'      then "Retry of ##{retry_of_id}"
+    when 'submission' then "Submission ##{submission_id}"
     # Delimited here rather than by the view, because the label is one
-    # phrase and its three branches should not be assembled two different
-    # ways. Six figures is the ordinary size of one of these runs.
+    # phrase and its branches should not be assembled two different ways.
+    # Six figures is the ordinary size of one of these runs.
     else              "#{ActiveSupport::NumberHelper.number_to_delimited(accession_count)} #{'accession'.pluralize(accession_count)}"
     end
   end
