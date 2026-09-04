@@ -120,13 +120,27 @@ class Submission < ApplicationRecord
     [flatfile_na, flatfile_aa].select(&:attached?).filter_map { it.blob.created_at }.min
   end
 
-  # Whether the file still on record was written before the last entry
-  # was retracted. Said as the fact and not as "the flatfile is wrong",
-  # because a regeneration that changes nothing writes no new file and
-  # this would go on being true — which is honest: the file was written
-  # before, and whether that matters is what pressing it answers.
-  def flatfile_predates_retractions?
-    last = entries.retracted.maximum(:updated_at)
+  # Whether the file still on record was written before the last of these
+  # statuses was set.
+  #
+  # Every status, not only the retractions: a status decides whether the
+  # flatfile carries the entry, so putting one back leaves the file
+  # behind exactly as taking one out does — and that direction is the
+  # one nobody thinks to check, because what is missing from a file is
+  # not visible in the list that says it should be there.
+  #
+  # Only the statuses reach here in practice. `entries` is written by the
+  # apply (before the file it then writes), by the bulk status update
+  # (which stamps `updated_at`), and by a dated regeneration — which uses
+  # `update_all` and so touches no timestamp, and writes a newer file
+  # anyway.
+  #
+  # Said as the fact and not as "the flatfile is wrong", because a
+  # regeneration that changes nothing writes no new file and this goes on
+  # being true — which is honest: the file was written before, and
+  # whether that matters is what pressing it answers.
+  def flatfile_predates_entry_changes?
+    last = entries.maximum(:updated_at)
     return false unless last
 
     written = flatfile_generated_at

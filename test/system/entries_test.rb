@@ -149,7 +149,7 @@ class EntriesSystemTest < ApplicationSystemTestCase
     visit entries_admin_submission_request_path(@req)
 
     assert_text '1 entry here is canceled or withdrawn'
-    assert_text 'The flatfile on record was written before the last of them'
+    assert_text 'written before the last of these statuses was set'
     assert_button 'Regenerate this flatfile'
 
     # The part that surprises: the file is rebuilt rather than edited, so
@@ -182,17 +182,39 @@ class EntriesSystemTest < ApplicationSystemTestCase
   # has no way to tell an unregenerated file from a regenerated one.
   test 'the offer clears once the flatfile has been written since' do
     @entries.first.update!(status: :canceled)
-
-    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'submission', submission: @req.submission,
-                                        total: 1, started_at: Time.current)
-
-    RegenerateSubmissionFlatfilesJob.perform_now @req.submission, users(:bob), run, nil
+    regenerate
 
     visit entries_admin_submission_request_path(@req)
 
     assert_text '1 entry here is canceled or withdrawn'
-    assert_text 'already leaves them out'
+    assert_text 'has been written since the last of these statuses was set'
     assert_no_button 'Regenerate this flatfile'
+  end
+
+  # Putting an entry back leaves the file behind exactly as taking one out
+  # does, and that direction is the one nobody would think to check: an
+  # entry missing from a published file is not visible in the list that
+  # says it should be there.
+  test 'restoring a retracted entry offers the regeneration too' do
+    entry = @entries.first
+
+    entry.update!(status: :canceled)
+    regenerate
+
+    visit entries_admin_submission_request_path(@req)
+
+    assert_text 'has been written since the last of these statuses was set'
+    assert_no_button 'Regenerate this flatfile'
+
+    entry.update!(status: :accession_issued)
+
+    visit entries_admin_submission_request_path(@req)
+
+    # Nothing is retracted now, so the panel is not about retraction —
+    # it is about the file being older than the statuses.
+    assert_no_text 'canceled or withdrawn.'
+    assert_text 'written before the last of these statuses was set'
+    assert_button 'Regenerate this flatfile'
   end
 
   # One run at a time, over every scope — and the reason a press would be
@@ -216,8 +238,18 @@ class EntriesSystemTest < ApplicationSystemTestCase
 
     visit entries_admin_submission_request_path(@req, q: @entries.last.entry_id)
 
-    within '[data-test-retracted-entries]' do
+    within '[data-test-flatfile-state]' do
       assert_text '1 entry here is canceled or withdrawn'
     end
+  end
+
+  private
+
+  # What the button does, so a test can start from a file that is current.
+  def regenerate
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'submission', submission: @req.submission,
+                                         total: 1, started_at: Time.current)
+
+    RegenerateSubmissionFlatfilesJob.perform_now @req.submission, users(:bob), run, nil
   end
 end
