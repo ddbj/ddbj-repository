@@ -68,7 +68,13 @@ module Admin
 
       run = start(scope)
 
-      redirect_to admin_regenerate_flatfiles_path,
+      # Back to the run when the press came from one submission's own
+      # screen: that curator did not come from the bulk tool and has no
+      # reason to land on it, and the run page is where the answer to
+      # "did it work" is.
+      here = scope.submission_target? ? admin_regenerate_flatfiles_run_path(run) : admin_regenerate_flatfiles_path
+
+      redirect_to here,
                   notice: "Regenerating #{helpers.pluralize(run.total, 'submission')}.",
                   status: :see_other
     end

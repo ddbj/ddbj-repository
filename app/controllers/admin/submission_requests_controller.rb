@@ -87,6 +87,11 @@ module Admin
       @entries_pagy, @entries = pagy(@search.scope.order(:id), page_key: 'entries_page', limit: 50)
       @matching_count         = @entries_pagy.count
 
+      # Of the whole submission, not of the filtered page: what the
+      # flatfile leaves out is a fact about the file, and a curator who
+      # has narrowed to one entry has not narrowed what goes out.
+      @retracted_count = @submission.entries.where(status: Entry::RETRACTED).count
+
       redirect_out_of_range_page(@entries_pagy, key: :entries_page)
     end
 

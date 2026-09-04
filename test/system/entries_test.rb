@@ -134,4 +134,47 @@ class EntriesSystemTest < ApplicationSystemTestCase
     assert_equal 'accession_issued', entry.reload.status
     assert_not entry.retracted?
   end
+  # The flatfile is a stored file, so retracting an entry does not touch
+  # it. The rule was on the screen and the way to act on it was not: the
+  # only regeneration was a bulk tool reached from elsewhere and driven
+  # by a paste of accession numbers.
+  test 'retracting an entry offers the regeneration that acts on it' do
+    visit entries_admin_submission_request_path(@req)
+
+    assert_text 'left out of the flatfile the next time it is generated'
+    assert_no_button 'Regenerate this flatfile'
+
+    @entries.first.update!(status: :canceled)
+
+    visit entries_admin_submission_request_path(@req)
+
+    assert_text '1 entry here is canceled or withdrawn'
+    assert_button 'Regenerate this flatfile'
+
+    # The part that surprises: the file is rebuilt, not edited, so it
+    # comes back as today's rules would write it.
+    assert_text 'picks up any change to how flatfiles are written'
+
+    assert_difference 'RegenerateFlatfilesRun.count', 1 do
+      click_button 'Regenerate this flatfile'
+    end
+
+    run = RegenerateFlatfilesRun.order(:id).last
+
+    # This submission, named as itself, and no date moved: the press is
+    # about what the file contains.
+    assert_equal 1, run.total
+    assert_nil   run.locus_date
+    assert_empty run.numbers.to_a
+  end
+
+  # Of the whole submission, not of the page: a curator who has narrowed
+  # to one entry has not narrowed what goes out.
+  test 'the count is of the submission, not of the filter' do
+    @entries.first.update!(status: :canceled)
+
+    visit entries_admin_submission_request_path(@req, q: @entries.last.entry_id)
+
+    assert_text '1 entry here is canceled or withdrawn'
+  end
 end

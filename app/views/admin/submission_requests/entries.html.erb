@@ -12,10 +12,67 @@
   <%# and went looking for it in the flatfile. Both halves matter: the %>
   <%# record keeps it, because the record is the account of what was %>
   <%# submitted. %>
-  <p class="text-body-secondary small">
-    Canceled and withdrawn entries are left out of the flatfile the next time it
-    is generated. They stay in the record.
-  </p>
+  <%# %>
+  <%# The rule on its own left the curator holding a fact and no way to %>
+  <%# act on it: the flatfile is a stored file, so retracting an entry %>
+  <%# does not touch it, and the only way to regenerate was a bulk tool %>
+  <%# reached from elsewhere and driven by a paste of accession numbers. %>
+  <%# So where there is something to leave out, the number is named and %>
+  <%# the press is here. %>
+  <%# %>
+  <%# Not done for them, and the reason is not only that a regeneration %>
+  <%# writes LOCUS dates (it does, and it refuses where the column and %>
+  <%# the record disagree — see the LOCUS date section in CLAUDE.md and %>
+  <%# the 62 entries that paid for that guard). %>
+  <%# %>
+  <%# The general reason is that a flatfile is a function of the record, %>
+  <%# the statuses AND the rules in force when it was written, and those %>
+  <%# rules move: the regeneration tool says outright that it is what to %>
+  <%# run after a converter change. Retracting an entry asks for one of %>
+  <%# those inputs to change. Regenerating re-evaluates all of them, so %>
+  <%# doing it automatically would answer a small deliberate change with %>
+  <%# every rule change since the file was made — which is the shape of %>
+  <%# surprise nobody can attribute afterwards. %>
+  <%# %>
+  <%# So the press is offered and what it does is said, rather than %>
+  <%# taken. %>
+  <% if @retracted_count.positive? %>
+    <div class="border rounded p-3 mb-3 d-flex flex-wrap align-items-center gap-3">
+      <p class="mb-0 small flex-grow-1">
+        <%= number_with_delimiter(@retracted_count) %>
+        <%= 'entry'.pluralize(@retracted_count) %>
+        here <%= @retracted_count == 1 ? 'is' : 'are' %> canceled or withdrawn.
+        They stay in the record; the flatfile leaves them out when it is generated.
+
+        <%# Said because it is the part that surprises. The file is %>
+        <%# rebuilt, not edited, so it comes back as today's rules would %>
+        <%# write it — which is the same reason the tool exists for %>
+        <%# converter changes. %>
+        <span class="d-block text-body-secondary mt-1">
+          Regenerating rebuilds the whole file from the stored record, so it also picks up any
+          change to how flatfiles are written since this one was made.
+        </span>
+      </p>
+
+      <%= form_with url: admin_regenerate_flatfiles_path, method: :post, local: true, class: 'mb-0' do |f| %>
+        <%= hidden_field_tag :target, 'submission' %>
+        <%= hidden_field_tag :submission_id, @submission.id %>
+
+        <%# The dates stay as they are. This press is about what the file %>
+        <%# contains, and a run that names no date renders every entry %>
+        <%# from the column — and refuses if the column and the record %>
+        <%# disagree, which is the guard doing its job. %>
+        <%= hidden_field_tag :date_mode, 'keep' %>
+
+        <%= f.submit 'Regenerate this flatfile', class: 'btn btn-primary btn-sm' %>
+      <% end %>
+    </div>
+  <% else %>
+    <p class="text-body-secondary small">
+      Canceled and withdrawn entries are left out of the flatfile the next time it
+      is generated. They stay in the record.
+    </p>
+  <% end %>
 
   <%# Filter (GET), the same shape as the Samples tab: the curator narrows %>
   <%# to the group they are fixing, and the bulk bar below acts on exactly %>

@@ -37,7 +37,8 @@ class RegenerationScope
 
   def initialize(params = {}, retry_of: nil)
     @retry_of     = retry_of
-    @target       = params[:target].to_s.presence_in(%w[accessions all]) || 'accessions'
+    @target       = params[:target].to_s.presence_in(%w[accessions submission all]) || 'accessions'
+    @submission_id = params[:submission_id].presence
     @numbers_text = params[:numbers].to_s
     @date_mode    = params[:date_mode].to_s.presence_in(DATE_MODES) || 'keep'
     @date_input   = params[:date].to_s
@@ -49,14 +50,26 @@ class RegenerationScope
 
   def accessions_target? = target == 'accessions'
 
+  # One submission, named as itself. Reachable from the entry a curator
+  # just retracted rather than only from the bulk tool, which is a paste
+  # of accession numbers and a different job.
+  #
+  # Its own target instead of "name one of its accessions": naming any
+  # one of them would cover the submission (a flatfile belongs to a
+  # submission, so any of these runs rewrites whole files) and would then
+  # sit in the run log as a run that named accessions, which is not what
+  # was asked for and is not what a retry of it should do.
+  def submission_target? = target == 'submission'
+
   def numbers = @numbers ||= RegenerateFlatfilesRun.parse_numbers(numbers_text)
 
   def submissions
     @submissions ||=
       case target
       when 'all'   then self.class.regeneratable
-      when 'retry' then self.class.regeneratable.where(id: retry_of.failures.select(:submission_id))
-      else              self.class.regeneratable.where(id: Entry.where(accession: numbers).select(:submission_id))
+      when 'retry'      then self.class.regeneratable.where(id: retry_of.failures.select(:submission_id))
+      when 'submission' then self.class.regeneratable.where(id: @submission_id)
+      else                   self.class.regeneratable.where(id: Entry.where(accession: numbers).select(:submission_id))
       end
   end
 
@@ -69,7 +82,7 @@ class RegenerationScope
   # entries knows which ones are meant. A retry of an every-submission
   # run has no numbers to carry, and dating every entry is what that run
   # did.
-  def naming_accessions? = !all_target? && numbers.any?
+  def naming_accessions? = !all_target? && !submission_target? && numbers.any?
 
   # Which of the named numbers this submission holds — the argument that
   # tells its job whose dates to move. Nil is every entry, and only the
@@ -144,9 +157,10 @@ class RegenerationScope
 
   def source_label
     case target
-    when 'all'   then 'every ST.26 submission with a stored record'
-    when 'retry' then "the #{'failure'.pluralize(retry_of.failed)} from run ##{retry_of.id}"
-    else              "from #{numbers.size} #{'accession number'.pluralize(numbers.size)}"
+    when 'all'        then 'every ST.26 submission with a stored record'
+    when 'retry'      then "the #{'failure'.pluralize(retry_of.failed)} from run ##{retry_of.id}"
+    when 'submission' then "submission ##{@submission_id}"
+    else                   "from #{numbers.size} #{'accession number'.pluralize(numbers.size)}"
     end
   end
 

@@ -9,7 +9,13 @@ class RegenerateFlatfilesRun < ApplicationRecord
   # What the run was pointed at. `retry` is its own target rather than a
   # flag on `entries`, because the set it covers is "whatever failed
   # last time" — it cannot be re-derived from a list of numbers.
-  TARGETS = %w[accessions all retry].freeze
+  #
+  # `submission` likewise. Naming one of a submission's accessions would
+  # cover it — a flatfile belongs to a submission, so any of these runs
+  # rewrites whole files — but it would sit here as a run that named
+  # accessions, which is neither what was asked for nor what a retry of
+  # it should do.
+  TARGETS = %w[accessions submission all retry].freeze
 
   # How long a run may report nothing before it stops being believed.
   #
@@ -159,8 +165,9 @@ class RegenerateFlatfilesRun < ApplicationRecord
 
   def scope_label
     case target
-    when 'all'   then 'All submissions'
-    when 'retry' then "Retry of ##{retry_of_id}"
+    when 'all'        then 'All submissions'
+    when 'retry'      then "Retry of ##{retry_of_id}"
+    when 'submission' then 'One submission'
     # Delimited here rather than by the view, because the label is one
     # phrase and its three branches should not be assembled two different
     # ways. Six figures is the ordinary size of one of these runs.
