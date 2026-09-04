@@ -17,11 +17,20 @@
   <%# act on it: the flatfile is a stored file, so retracting an entry %>
   <%# does not touch it, and the only way to regenerate was a bulk tool %>
   <%# reached from elsewhere and driven by a paste of accession numbers. %>
-  <%# So where there is something to leave out, the number is named and %>
-  <%# the press is here — while the file on record is older than the last %>
-  <%# retraction, which is the difference between a discrepancy and a %>
-  <%# standing condition. "1 entry is canceled" is true for ever; "the %>
-  <%# file was written before it" stops being true when it is acted on. %>
+  <%# So where the file and these statuses have come apart, the press is %>
+  <%# here — and the panel names the difference rather than the %>
+  <%# condition. "1 entry is canceled" is true for ever; "the file still %>
+  <%# carries it" stops being true when it is acted on. %>
+  <%# %>
+  <%# Both directions, because a status decides whether the file carries %>
+  <%# the entry: putting one back leaves the file behind exactly as %>
+  <%# taking one out does. That direction is the one nobody would think %>
+  <%# to check — an entry missing from a published file is not visible %>
+  <%# in the list that says it should be there. %>
+  <%# %>
+  <%# Read from what the file itself left out, not from a timestamp: see %>
+  <%# Submission#flatfile_drift for the two archive-wide writes that made %>
+  <%# a timestamp reading light this on submissions with nothing to fix. %>
   <%# %>
   <%# Not done for them, and the reason is not only that a regeneration %>
   <%# writes LOCUS dates (it does, and it refuses where the column and %>
@@ -31,7 +40,7 @@
   <%# The general reason is that a flatfile is a function of the record, %>
   <%# the statuses AND the rules in force when it was written, and those %>
   <%# rules move: the regeneration tool says outright that it is what to %>
-  <%# run after a converter change. Retracting an entry asks for one of %>
+  <%# run after a converter change. Changing a status asks for one of %>
   <%# those inputs to change. Regenerating re-evaluates all of them, so %>
   <%# doing it automatically would answer a small deliberate change with %>
   <%# every rule change since the file was made — which is the shape of %>
@@ -39,28 +48,47 @@
   <%# %>
   <%# So the press is offered and what it does is said, rather than %>
   <%# taken. %>
-  <% if @retracted_count.positive? %>
-    <div class="border rounded p-3 mb-3 d-flex flex-wrap align-items-center gap-3" data-test-retracted-entries>
+  <% if @flatfile_stale || @retracted_count.positive? %>
+    <div class="border rounded p-3 mb-3 d-flex flex-wrap align-items-center gap-3" data-test-flatfile-state>
       <div class="small flex-grow-1">
-        <p class="mb-0">
-          <%= number_with_delimiter(@retracted_count) %>
-          <%= 'entry'.pluralize(@retracted_count) %>
-          here <%= @retracted_count == 1 ? 'is' : 'are' %> canceled or withdrawn.
-          Retracted entries stay in the record; the flatfile leaves them out when it is generated.
-        </p>
+        <% if @retracted_count.positive? %>
+          <p class="mb-0">
+            <%= number_with_delimiter(@retracted_count) %>
+            <%= 'entry'.pluralize(@retracted_count) %>
+            here <%= @retracted_count == 1 ? 'is' : 'are' %> canceled or withdrawn.
+            Retracted entries stay in the record; the flatfile leaves them out when it is generated.
+          </p>
+        <% end %>
 
-        <p class="text-body-secondary mb-0 mt-1">
-          <% if @flatfile_stale %>
+        <p class="text-body-secondary mb-0 <%= 'mt-1' if @retracted_count.positive? %>">
+          <% if @drift&.any? %>
+            <% if (carried = @drift.still_carried.size).positive? %>
+              The flatfile on record still carries <%= number_with_delimiter(carried) %> of them.
+            <% end %>
+
+            <% if (omitted = @drift.still_omitted.size).positive? %>
+              <%= carried.positive? ? 'It also leaves' : 'The flatfile on record leaves' %> out
+              <%= number_with_delimiter(omitted) %> <%= 'entry'.pluralize(omitted) %>
+              that <%= omitted == 1 ? 'is' : 'are' %> no longer canceled or withdrawn.
+            <% end %>
+
             <%# Said because it is the part that surprises. The file is %>
             <%# rebuilt rather than edited, so it comes back as today's %>
             <%# rules would write it, and the record is written back with %>
             <%# it — which is the same reason the tool exists for %>
             <%# converter changes. %>
-            The flatfile on record was written before the last of them. Regenerating rebuilds it from
-            the stored record, and writes that record back, so it picks up any change to how the two
-            are written since this one was made.
+            Regenerating rebuilds it from the stored record, and writes that record back, so it picks
+            up any change to how the two are written since this one was made.
+          <% elsif @flatfile_stale %>
+            <%# What the file left out was recorded from 2026-09-04 on. %>
+            <%# Older files can only be placed against the last %>
+            <%# retraction, which says they may be behind and cannot say %>
+            <%# how — and one regeneration is enough to end that. %>
+            The flatfile on record was written before the last of these entries was retracted, so it
+            may still carry them. What that file left out was not recorded with it; regenerating
+            records that too, and this will then name the entries exactly.
           <% else %>
-            The flatfile has been written since the last of them, so it already leaves them out.
+            The flatfile on record already leaves them out.
           <% end %>
         </p>
 
@@ -93,7 +121,7 @@
       <% end %>
     </div>
   <% else %>
-    <p class="text-body-secondary small" data-test-retracted-entries>
+    <p class="text-body-secondary small" data-test-flatfile-state>
       Canceled and withdrawn entries are left out of the flatfile the next time it
       is generated. They stay in the record.
     </p>

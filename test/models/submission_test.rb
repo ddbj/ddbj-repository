@@ -495,4 +495,108 @@ class SubmissionTest < ActiveSupport::TestCase
     p99 = timings.sort[(timings.size * 0.99).ceil - 1]
     assert_operator p99, :<, 500, "30-patch p99 was #{p99.round(2)}ms"
   end
+
+  # --- the flatfile against the statuses --------------------------------
+  # What the file left out is recorded with it, because the question the
+  # Entries tab asks — does this file still match these statuses — has no
+  # answer in a timestamp. The two writes below are why: both move
+  # `entries.updated_at` and neither changes a byte of the file.
+
+  def st26_with_entries(omits: nil)
+    submission = Submission.create!(db: 'st26', user: users(:alice), source_id: "ff-#{SecureRandom.hex(4)}")
+
+    submission.entries.create!(entry_id: 'A|1', accession: 'X00001', version: 1, locus_date: Date.new(2026, 1, 1))
+    submission.entries.create!(entry_id: 'A|2', accession: 'X00002', version: 1, locus_date: Date.new(2026, 1, 1))
+
+    submission.ddbj_record.attach(io: StringIO.new('{}'), filename: 'x.json', content_type: 'application/json')
+    submission.update!(flatfile_omits: omits) unless omits.nil?
+    attach_flatfile submission
+
+    submission
+  end
+
+  def attach_flatfile(submission)
+    submission.flatfile_na.attach(io: StringIO.new('LOCUS'), filename: 'x-na.flat', content_type: 'text/plain')
+  end
+
+  test 'a file that left nothing out and has nothing retracted is not behind' do
+    submission = st26_with_entries(omits: [])
+
+    assert_empty submission.flatfile_drift.still_carried
+    assert_empty submission.flatfile_drift.still_omitted
+    assert_not submission.flatfile_behind_statuses?
+  end
+
+  test 'a retraction the file has not dropped yet is named' do
+    submission = st26_with_entries(omits: [])
+    submission.entries.first.update!(status: :canceled)
+
+    assert_equal ['A|1'], submission.flatfile_drift.still_carried
+    assert submission.flatfile_behind_statuses?
+  end
+
+  # The direction a timestamp cannot see: the entry is back, and the file
+  # is still without it.
+  test 'an entry put back that the file still leaves out is named' do
+    submission = st26_with_entries(omits: ['A|1'])
+
+    assert_equal ['A|1'], submission.flatfile_drift.still_omitted
+    assert submission.flatfile_behind_statuses?
+  end
+
+  test 'a file that left out exactly what is retracted is not behind' do
+    submission = st26_with_entries(omits: ['A|1'])
+    submission.entries.first.update!(status: :canceled)
+
+    assert_not submission.flatfile_drift.any?
+    assert_not submission.flatfile_behind_statuses?
+  end
+
+  # Publishing is the ordinary end of an ST.26 submission's life and
+  # changes no byte of the file. Read from a timestamp it lit the panel on
+  # every published submission, and the press could not clear it: the
+  # regeneration writes nothing, so the timestamp stays where it was.
+  test 'publishing an entry does not put the file behind' do
+    submission = st26_with_entries(omits: [])
+    submission.entries.each { it.update!(status: :public) }
+
+    assert_not submission.flatfile_behind_statuses?
+  end
+
+  # The 2026-08-10 backfill stamped 9,813,674 entries over 17,999
+  # submissions to restore `locus_date`, and said itself that the
+  # flatfiles were untouched.
+  test 'a column-only write across the archive does not put the file behind' do
+    submission = st26_with_entries(omits: [])
+    submission.entries.update_all(locus_date: Date.new(2020, 1, 1), updated_at: Time.current)
+
+    assert_not submission.flatfile_behind_statuses?
+  end
+
+  # Retracting every entry leaves no flatfile at all — `generate_outputs`
+  # yields nil for an empty one and `write_outputs!` detaches it. That
+  # state reflects the statuses exactly, and read from the file's age it
+  # looked permanently behind.
+  test 'a submission whose entries are all retracted has nothing to fix' do
+    submission = st26_with_entries(omits: ['A|1', 'A|2'])
+    submission.entries.each { it.update!(status: :canceled) }
+    submission.flatfile_na.purge
+
+    assert_not submission.flatfile_behind_statuses?
+  end
+
+  # Every file in the archive predates the record of what it left out.
+  # Until one is regenerated the older reading stands: a retraction newer
+  # than the file says it may still be carried, and nothing says anything
+  # about an entry put back.
+  test 'a file written before this was recorded falls back to its own age' do
+    submission = st26_with_entries
+
+    assert_nil submission.flatfile_drift
+    assert_not submission.flatfile_behind_statuses?
+
+    submission.entries.first.update!(status: :canceled)
+
+    assert submission.flatfile_behind_statuses?
+  end
 end

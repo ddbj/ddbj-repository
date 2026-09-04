@@ -92,12 +92,13 @@ module Admin
       # has narrowed to one entry has not narrowed what goes out.
       @retracted_count = @state.retracted_count
 
-      # Whether the file on record was written before the last of them.
-      # Without it the panel states a standing condition that never
-      # clears — "1 entry is canceled" stays true for ever, and the only
-      # way to learn whether the file already leaves it out would be to
-      # press the button and read the answer on another screen.
-      @flatfile_stale = @retracted_count.positive? && @submission.flatfile_predates_retractions?
+      # How the flatfile on record differs from these statuses, which is
+      # the question — rather than whether anything is retracted, which is
+      # a standing condition that never clears ("1 entry is canceled" is
+      # true for ever) and says nothing at all about an entry put back,
+      # whose absence from a published file is the harder one to notice.
+      @drift          = @submission.flatfile_drift
+      @flatfile_stale = @submission.flatfile_behind_statuses?
 
       # One run at a time, over every scope: two workers on one record
       # both rewrite its flatfile. The bulk tool names the run in the way

@@ -149,7 +149,7 @@ class EntriesSystemTest < ApplicationSystemTestCase
     visit entries_admin_submission_request_path(@req)
 
     assert_text '1 entry here is canceled or withdrawn'
-    assert_text 'The flatfile on record was written before the last of them'
+    assert_text 'The flatfile on record still carries 1 of them'
     assert_button 'Regenerate this flatfile'
 
     # The part that surprises: the file is rebuilt rather than edited, so
@@ -182,16 +182,51 @@ class EntriesSystemTest < ApplicationSystemTestCase
   # has no way to tell an unregenerated file from a regenerated one.
   test 'the offer clears once the flatfile has been written since' do
     @entries.first.update!(status: :canceled)
-
-    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'submission', submission: @req.submission,
-                                        total: 1, started_at: Time.current)
-
-    RegenerateSubmissionFlatfilesJob.perform_now @req.submission, users(:bob), run, nil
+    regenerate
 
     visit entries_admin_submission_request_path(@req)
 
     assert_text '1 entry here is canceled or withdrawn'
-    assert_text 'already leaves them out'
+    assert_text 'The flatfile on record already leaves them out'
+    assert_no_button 'Regenerate this flatfile'
+  end
+
+  # Putting an entry back leaves the file behind exactly as taking one out
+  # does, and that direction is the one nobody would think to check: an
+  # entry missing from a published file is not visible in the list that
+  # says it should be there.
+  test 'restoring a retracted entry offers the regeneration too' do
+    entry = @entries.first
+
+    entry.update!(status: :canceled)
+    regenerate
+
+    visit entries_admin_submission_request_path(@req)
+
+    assert_text 'The flatfile on record already leaves them out'
+    assert_no_button 'Regenerate this flatfile'
+    assert_not_includes flatfile, entry.accession
+
+    entry.update!(status: :accession_issued)
+
+    visit entries_admin_submission_request_path(@req)
+
+    # Nothing is retracted now, so the panel is not about retraction — it
+    # is about the entry the file is still leaving out.
+    within '[data-test-flatfile-state]' do
+      assert_no_text 'entry here is'
+      assert_text 'leaves out 1 entry that is no longer canceled or withdrawn'
+    end
+
+    assert_button 'Regenerate this flatfile'
+
+    regenerate
+
+    # Which is what saying so was for: the entry is back in what goes out.
+    assert_includes flatfile, entry.accession
+
+    visit entries_admin_submission_request_path(@req)
+
     assert_no_button 'Regenerate this flatfile'
   end
 
@@ -216,8 +251,24 @@ class EntriesSystemTest < ApplicationSystemTestCase
 
     visit entries_admin_submission_request_path(@req, q: @entries.last.entry_id)
 
-    within '[data-test-retracted-entries]' do
+    within '[data-test-flatfile-state]' do
       assert_text '1 entry here is canceled or withdrawn'
     end
   end
+
+  private
+
+  # What the button does, so a test can start from a file that is current.
+  def regenerate
+    submission = @req.submission.reload
+
+    run = RegenerateFlatfilesRun.create!(actor: 'admin:bob', target: 'submission', submission:,
+                                         total: 1, started_at: Time.current)
+
+    RegenerateSubmissionFlatfilesJob.perform_now submission, users(:bob), run, nil
+  end
+
+  # What actually goes out, which is the only thing that settles whether
+  # an entry is in or out of it.
+  def flatfile = @req.submission.reload.flatfile_na.download
 end
