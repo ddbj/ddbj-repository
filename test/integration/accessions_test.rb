@@ -258,13 +258,72 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, sample.accession)
 
     assert_conform_schema 200
-    assert_equal Submission::RECORD_MISSING_ROW, response.parsed_body['unavailable_reason']
+    assert_equal AccessionRecordReader::RECORD_MISSING_ROW, response.parsed_body['unavailable_reason']
   end
 
-  # The path a large record takes: the cache is streamed, so one sample
-  # costs one sample rather than the whole of it. Measured at 4,000
-  # samples, 55ms holding 20MB against 108ms holding nothing.
-  test 'a sample comes out of the cached record without building the rest' do
+  # Invalidation clears the cache stamp and leaves the blob attached
+  # (SubmissionUpdate#invalidate_submission_cache!), so a streamed read
+  # that checks only `attached?` serves the pre-edit record — for ever,
+  # because that path never re-primes. The stamp is what says the blob is
+  # current, and this is the test that says so.
+  test 'an edited sample reads as edited, not as whatever the cache still holds' do
+    submission = submissions(:biosample)
+    sample     = samples(:first)
+
+    submission.append_update!({'samples' => [{'alias' => sample.sample_name, 'title' => 'BEFORE'}]}, actor: 'test')
+
+    get submission_accession_path(submission, sample.accession)
+
+    assert_conform_schema 200
+    assert_equal 'BEFORE', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
+
+    submission.append_update!({'samples' => [{'alias' => sample.sample_name, 'title' => 'AFTER'}]}, actor: 'test')
+
+    assert submission.reload.cached_materialised_record.attached?, 'the stale blob is still attached — that is the trap'
+    assert_nil submission.cached_at_update_id, '...and the stamp is what says so'
+
+    get submission_accession_path(submission, sample.accession)
+
+    assert_conform_schema 200
+    assert_equal 'AFTER', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
+  end
+
+  # A read costs a blob download and a streamed parse, so a reader who
+  # already has this version should pay for neither — and must not be
+  # told 304 about a version they do not have. The cache stamp is nil for
+  # the first read after every edit, which is why the etag is the chain
+  # head instead.
+  test 'a repeat read is answered 304, and a read after an edit is not' do
+    submission = submissions(:biosample)
+    sample     = samples(:first)
+
+    submission.append_update!({'samples' => [{'alias' => sample.sample_name, 'title' => 'FIRST'}]}, actor: 'test')
+
+    get submission_accession_path(submission, sample.accession)
+
+    assert_response :ok
+
+    etag = response.headers['ETag']
+
+    assert_not_nil etag
+
+    get submission_accession_path(submission, sample.accession), headers: {'If-None-Match' => etag}
+
+    assert_response :not_modified
+
+    submission.append_update!({'samples' => [{'alias' => sample.sample_name, 'title' => 'SECOND'}]}, actor: 'test')
+
+    get submission_accession_path(submission, sample.accession), headers: {'If-None-Match' => etag}
+
+    assert_response :ok
+    assert_equal 'SECOND', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
+  end
+
+  # That the right sample comes back from a cached record. The property
+  # that it comes back *without building the rest* is not observable from
+  # here — it is pinned in AccessionRecordReaderTest, where the reader
+  # can be asked directly.
+  test 'a sample comes back from a cached record' do
     submission = submissions(:biosample)
     sample     = samples(:first)
 
@@ -338,7 +397,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, samples(:first).accession)
 
     assert_conform_schema 200
-    assert_equal Submission::RECORD_ABSENT, response.parsed_body['unavailable_reason']
+    assert_equal AccessionRecordReader::RECORD_ABSENT, response.parsed_body['unavailable_reason']
   end
 
   # ST.26 keeps the record the apply wrote, as an attachment rather than a
@@ -369,7 +428,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, submission.entries.first.accession)
 
     assert_conform_schema 200
-    assert_equal Submission::RECORD_ABSENT, response.parsed_body['unavailable_reason']
+    assert_equal AccessionRecordReader::RECORD_ABSENT, response.parsed_body['unavailable_reason']
   end
 
   # A BioProject's record is its project, and nothing in the suite

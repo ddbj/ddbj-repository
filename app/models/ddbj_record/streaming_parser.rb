@@ -174,9 +174,6 @@ module DDBJRecord
       }
     end
 
-    # Oj::ScHandler that streams entries via callback without
-    # accumulating them. All other content is built as Hash/Array.
-    # After parsing, #result returns the root hash (entries excluded).
     # Streams one named collection out of a JSON document, handing its
     # elements to a block one at a time instead of building the array.
     # Memory is the largest single element rather than the whole
@@ -186,15 +183,28 @@ module DDBJRecord
     # Parameterised because there are two of these questions now:
     # `sequences.entries` for the apply pipeline, and `samples` for
     # reading one row of a record without loading its neighbours.
+    #
+    # `parent` is the key the collection hangs off, and `nil` means the
+    # document's own root rather than "anywhere" — a wildcard would let a
+    # nested `samples` be intercepted and then dropped from the hash that
+    # held it, silently. (Root and "inside an array element" are the same
+    # to this: both push nil. No record shape distinguishes them today.)
+    #
+    # `result` is the root hash with the collection excluded, which
+    # `ensure_root_parsed` reads to get the record's metadata. A caller
+    # that wants only the elements says `result: false` and the root is
+    # not built — for ST.26 that root carries every feature of every
+    # entry, which is the dominant cost of the records this exists for.
     class CollectionStreamHandler < Oj::ScHandler
       COLLECTION = Object.new.freeze
 
       attr_reader :result
 
-      def initialize(key, parent: nil, &on_element)
+      def initialize(key, parent: nil, result: true, &on_element)
         @key            = key
         @parent         = parent
         @on_element     = on_element
+        @keep_result    = result
         @pending_key    = nil
         @hash_key_stack = []
         @result         = nil
@@ -205,7 +215,7 @@ module DDBJRecord
         @pending_key = nil
 
         h = {}
-        @result = h if @hash_key_stack.size == 1
+        @result = h if @keep_result && @hash_key_stack.size == 1
         h
       end
 
@@ -223,7 +233,7 @@ module DDBJRecord
       end
 
       def array_start
-        intercept = @pending_key == @key && (@parent.nil? || @hash_key_stack.last == @parent)
+        intercept = @pending_key == @key && @hash_key_stack.last == @parent
         @pending_key = nil
 
         intercept ? COLLECTION : []

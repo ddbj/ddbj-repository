@@ -11,6 +11,20 @@
 class SubmissionAccessionsController < ApplicationController
   include EnumFilterable
 
+  # How much of a collection this screen draws before it stops. Not
+  # RecordOutline's own limit, which is for a whole record: there the
+  # collection being cut is `samples`, which has a screen of its own. Here
+  # it is one row's — a sample's attribute bag — and there is no other
+  # screen for it.
+  #
+  # Measured 2026-09-04 over D-way's 2,000,619 BioSamples: median 15
+  # attributes, p95 19, p99 23, maximum 109. At 20 the cut fell just
+  # above p95 and took 50,578 samples with it. 200 is the round number
+  # above that maximum — headroom rather than a derived value, so it
+  # bounds a record that is pathological rather than merely large.
+  # NODE_BUDGET is the backstop either way.
+  INLINE_LIMIT = 200
+
   # Readable, not owned. The submission's own screen opens for a set's
   # members, and the accessions are a large part of why somebody looks at
   # a colleague's submission at all.
@@ -52,15 +66,21 @@ class SubmissionAccessionsController < ApplicationController
     # Private: what it holds is one submitter's record, and a shared
     # cache is a place for it to be read by somebody the scope above
     # refused.
-    # Both places a record can live: the cache stamp for a chain, the
-    # blob's identity for ST.26, whose record is the attachment itself
-    # and has no stamp.
-    version = [submission.cached_at_update_id, submission.ddbj_record_attachment&.blob_id]
+    # The head of the chain, not the cache stamp. Asking before the read
+    # is the point of asking, and at that moment the stamp is nil for the
+    # first read after every edit — so two different states would answer
+    # with the same etag and the second read would be a 304 over the
+    # first read's body. The head is one indexed query, monotonic, and
+    # says nothing about whether anything is cached.
+    #
+    # ST.26 has no chain: its record is the attachment, so the blob's
+    # identity is its version.
+    version = [submission.updates.maximum(:id), submission.ddbj_record_attachment&.blob_id]
 
     return unless stale?(etag: [*version, accession, @row.updated_at], public: false)
 
     @slice   = submission.record_slice(@row)
-    @outline = RecordOutline.new(@slice.subtree, inline_limit: RecordOutline::SUBTREE_INLINE_LIMIT)
+    @outline = RecordOutline.new(@slice.subtree, inline_limit: INLINE_LIMIT)
   end
 
   private

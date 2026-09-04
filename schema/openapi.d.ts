@@ -3219,11 +3219,11 @@ export interface components {
              *     here yet" over a record that is fine blames the feature for a fact
              *     about the data.
              *
-             *     There is no size at which this refuses. A BioSample record is read a
-             *     sample at a time out of the cached snapshot, so one row costs one
-             *     row — which matters because a review link is the only door its
-             *     holder has, and the largest studies are the ones most worth
-             *     reviewing.
+             *     There is no size at which this refuses. A record is read one row at a
+             *     time rather than built whole, so what a row costs in memory is that
+             *     row — the file is still fetched — which matters because a review
+             *     link is the only door its holder has, and the largest studies are
+             *     the ones most worth reviewing.
              */
             unavailable_reason: string | null;
             /** @description The subtree's top-level keys, in the record's own order. Only what it actually carries — an absent key is "this database has no such thing" rather than "this is empty". */

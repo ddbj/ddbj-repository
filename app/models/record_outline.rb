@@ -28,25 +28,16 @@ class RecordOutline
   # of entries, and those have screens of their own that paginate.
   INLINE_LIMIT = 20
 
-  # For one accessioned row rather than a whole record. The collection
-  # being cut is then the row's own — a sample's attribute bag — and
-  # there is no other screen for it: this is where somebody reads it.
-  #
-  # Measured over D-way's 2,000,619 BioSamples: median 15 attributes,
-  # p95 19, p99 23, maximum 109. At 20 the cut falls just above p95 and
-  # takes 50,578 samples with it; at 200 it takes none, and still bounds
-  # a record that is pathological rather than merely large. NODE_BUDGET
-  # is the backstop either way.
-  SUBTREE_INLINE_LIMIT = 200
 
   # Columns past this and the table stops being a table. The overflow is
   # named rather than dropped — a reader who cannot see that there are
   # more columns will read the ones shown as all of them.
   COLUMN_LIMIT = 12
 
-  # Nodes built before the walk stops expanding. The callers bound bytes
-  # — the admin card by CANONICAL_DISPLAY_SIZE_LIMIT, the accession page
-  # by RECORD_READ_LIMIT — and this walk costs by node: a Trad-shaped record
+  # Nodes built before the walk stops expanding. The admin card bounds
+  # bytes as well (CANONICAL_DISPLAY_SIZE_LIMIT); the accession page does
+  # not — what bounds it there is the subtree, one row of a record, and
+  # this is the only cut left on that screen. The walk costs by node: a Trad-shaped record
   # of 245 KB (entries × features × qualifiers, every one of them inside
   # INLINE_LIMIT) is already thousands of nodes and most of a second in
   # rendering alone. Bytes were the wrong currency for it.

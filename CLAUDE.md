@@ -95,7 +95,7 @@ reason it is a separate workflow.
 Large DDBJ Record JSON files (10+ GB genome assemblies) are parsed via `DDBJRecord::StreamingParser`:
 
 - Uses `Oj.sc_parse` (ScHandler) for true streaming entry enumeration
-- `EntryStreamHandler` intercepts the `sequences.entries` array and yields entries one at a time
+- `CollectionStreamHandler` intercepts a named collection and yields its elements one at a time — `sequences.entries` for the apply pipeline, `samples` for reading one row of a record (`AccessionRecordReader`)
 - First pass collects metadata + features (entries discarded); subsequent passes stream entries
 - Memory proportional to the largest single entry, not total file size
 
