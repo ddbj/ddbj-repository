@@ -20,9 +20,13 @@
   <%# Free text is the only thing given room. Line breaks matter more
       than length here — a three-line address is 120 characters and
       collapses to one without this, while a long single paragraph does
-      not need it and gets it anyway (harmless). %>
+      not need it and gets it anyway (harmless).
+
+      `pre-wrap` alone breaks at whitespace, and a record's free text is
+      not always the kind that has any: a sequence is one unbroken word
+      and runs off the side of the card without `line-break`. %>
   <% if node.free_text? %>
-    <div class="small" style="white-space: pre-wrap;"><%= node.value %></div>
+    <div class="small text-pre-wrap"><%= node.value %></div>
   <% else %>
     <%= node.value %>
   <% end %>

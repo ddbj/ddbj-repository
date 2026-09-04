@@ -35,7 +35,7 @@ export default class RecordNode extends Component<Signature> {
   <template>
     {{#if (eq @node.kind "value")}}
       {{#if @node.free_text}}
-        <div class="small record-free-text">{{@node.value}}</div>
+        <div class="small text-pre-wrap">{{@node.value}}</div>
       {{else}}
         {{@node.value}}
       {{/if}}

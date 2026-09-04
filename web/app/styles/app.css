@@ -1,3 +1,8 @@
+/* Text that keeps its own line breaks and takes new ones anywhere.
+   `pre-wrap` alone breaks at whitespace, and a record's free text is
+   not always the kind that has any — a 2,376-base sequence is one
+   unbroken word and runs off the side of the page without the second
+   line. */
 .text-pre-wrap {
   white-space: pre-wrap;
   line-break: anywhere;
@@ -113,10 +118,4 @@ dl.record-fields {
     /* A long key wraps instead of pushing the value off the card. */
     overflow-wrap: anywhere;
   }
-}
-
-/* Free text out of a record. Line breaks matter more than length — a
-   three-line address collapses to one without this. */
-.record-free-text {
-  white-space: pre-wrap;
 }

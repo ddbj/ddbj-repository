@@ -186,3 +186,13 @@ textarea.form-control.textarea-autogrow-tall {
 .record-section > summary {
   margin-left: -1.05rem;
 }
+
+// Text that keeps its own line breaks and takes new ones anywhere.
+// `pre-wrap` alone breaks at whitespace, and a record's free text is not
+// always the kind that has any — a 2,376-base sequence is one unbroken
+// word and runs off the side of the card without the second line. Same
+// rule, same reason, as the web client's own stylesheet.
+.text-pre-wrap {
+  white-space: pre-wrap;
+  line-break: anywhere;
+}

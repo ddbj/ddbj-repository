@@ -242,6 +242,40 @@ module('Acceptance | a submission’s accessions', function (hooks) {
     assert.dom('[data-test-record-columns-hidden]').includesText('unit');
   });
 
+  // A sequence is one unbroken word of a few thousand characters. Drawn
+  // with `pre-wrap` alone it has nowhere to break and runs off the side
+  // of the page, which is what it did.
+  test('a long unbroken value is allowed to break anywhere', async function (assert) {
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submissions/{id}/accessions/{accession}', ({ response }) =>
+        response(200).json({
+          accession: 'SAMD00237947',
+          db: 'biosample',
+          name: 'Sample001',
+          details: [],
+          status: 'public',
+          elided: false,
+          unavailable_reason: null,
+
+          sections: [
+            {
+              key: 'sequence',
+              folded: false,
+              precis: null,
+              node: { ...emptyNode, kind: 'value', value: 'gagcctctggatgactatgtga'.repeat(108), free_text: true },
+            },
+          ],
+        }),
+      ),
+    );
+
+    await visit('/requests/1/accessions/SAMD00237947');
+
+    assert.dom('[data-test-record] .text-pre-wrap').exists('the class that breaks anywhere');
+  });
+
   // "This subtree is empty" and "this application cannot open that record
   // yet" are different answers, and drawing both as a blank panel tells
   // the second as the first.
