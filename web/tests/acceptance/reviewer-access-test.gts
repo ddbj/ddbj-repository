@@ -145,7 +145,7 @@ module('Acceptance | reviewer view (share link, no login)', function (hooks) {
                 folded: true,
                 precis: '2,376 characters',
 
-                node: valueNode('ATGC'),
+                node: valueNode('ATGC'.repeat(594)),
               },
             ],
           },
@@ -168,6 +168,41 @@ module('Acceptance | reviewer view (share link, no login)', function (hooks) {
     // Folded sections open on the reader's press, not before.
     assert.dom('[data-test-record] details:last-of-type').doesNotHaveAttribute('open');
     assert.dom('[data-test-record] details:last-of-type summary').includesText('2,376 characters');
+  });
+
+  // The URL a reviewer is actually given is often the record's, not the
+  // list's: links get forwarded and bookmarked. Landing there directly
+  // has to work, and has to say where they are.
+  test('a record URL opens on its own, and still says what this is', async function (assert) {
+    worker.use(
+      http.get('/reviews/{token}', ({ response }) =>
+        response(200).json({ name: 'Deep sea study', expires_at: '2025-02-01T00:00:00.000Z' }),
+      ),
+
+      http.get('/reviews/{token}/accessions/{accession}', ({ response }) =>
+        response(200).json({
+          accession: 'SAMD00000001',
+          db: 'biosample',
+          name: 'station-A-surface',
+          details: [],
+
+          record: {
+            elided: false,
+            unavailable_reason: null,
+            sections: [{ key: 'title', folded: false, precis: null, node: valueNode('Surface water, station A') }],
+          },
+        }),
+      ),
+    );
+
+    await visit('/reviews/secret-token/accessions/SAMD00000001');
+
+    assert.dom('[role="note"]').includesText('shared with you');
+    assert.dom('h1').hasText('SAMD00000001');
+    assert.dom('[data-test-record]').includesText('Surface water, station A');
+
+    // And the way back to what else is on the link.
+    assert.dom('nav[aria-label="breadcrumb"]').includesText('Deep sea study');
   });
 
   // There is no ceiling on what a link carries, so the reviewer's page

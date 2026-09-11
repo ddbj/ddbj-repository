@@ -650,6 +650,12 @@ export interface paths {
          *     keeps. Resolved through the set on every read, so an accession whose
          *     submission has been taken out of the set stops answering here as it
          *     stops appearing on the list.
+         *
+         *     Answers a conditional GET, and this is the endpoint where making one
+         *     pays: a read costs the whole record — downloaded, checksummed and
+         *     streamed past — for an answer of a few kilobytes. It is also rate
+         *     limited by token, being the only unauthenticated read in the system
+         *     and the most expensive.
          */
         get: {
             parameters: {
@@ -673,6 +679,15 @@ export interface paths {
                     };
                 };
                 404: components["responses"]["NotFound"];
+                /** @description Too many records read through one link in a short time. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
             };
         };
         put?: never;
@@ -875,9 +890,12 @@ export interface paths {
          *     answers, and a screen that draws both as a blank panel is telling the
          *     second as the first.
          *
-         *     Answers a conditional GET. A read costs the whole record — one slice
-         *     means downloading and parsing all of it — and the etag is the cache
-         *     stamp, which any edit to the record's history clears.
+         *     Answers a conditional GET, and it is worth making: a read costs the
+         *     whole record — one slice means downloading, checksumming and parsing
+         *     all of it — for an answer of a few kilobytes. The etag is the head of
+         *     the record's history, not the cache stamp, because the stamp is clear
+         *     for the first read after every edit and two different states would
+         *     then share an etag.
          */
         get: {
             parameters: {

@@ -92,11 +92,17 @@ class ReviewsTest < ActionDispatch::IntegrationTest
   # flatfile is the whole submission, which is the thing that was
   # deliberately not shared. What a reviewer gets instead is the row's own
   # subtree, drawn on the page — read, never downloaded.
-  test 'there are no files on a review link' do
+  # Written out rather than grepped for what must not be there. This is
+  # the sharpest boundary in the system, and a list nobody has to amend
+  # makes every route added under it a decision somebody took on purpose.
+  test 'a review link reaches these routes and no others' do
     paths = Rails.application.routes.routes.map { it.path.spec.to_s }.grep(%r{/reviews/})
 
-    assert_not_empty paths
-    assert_empty paths.grep(/files/), 'a review link must not reach a file'
+    assert_equal [
+      '/api/reviews/:token(.:format)',
+      '/api/reviews/:token/accessions(.:format)',
+      '/api/reviews/:token/accessions/:accession(.:format)'
+    ], paths
   end
 
   test "what one accession's record says is readable through the link" do
@@ -125,6 +131,33 @@ class ReviewsTest < ActionDispatch::IntegrationTest
     assert_equal 'Control timepoint A', title.dig('node', 'value')
   end
 
+  # Beside the row in the record, not part of it. The submitter's own
+  # screen is pinned for this too; a review link is where it matters,
+  # because the reader is not entitled to who submitted what.
+  test 'a record a link carries never shows who submitted it' do
+    submission = submissions(:biosample)
+    sample     = samples(:first)
+
+    @set.inclusions.create!(submission_request: submission_requests(:biosample), added_by: @alice) unless
+      @set.inclusions.exists?(submission_request: submission_requests(:biosample))
+
+    @access.shared_accessions.create!(accession: sample.accession, added_by: @alice)
+
+    submission.append_update!(
+      {
+        'submission' => {'submitters' => [{'name' => 'A Person', 'email' => 'person@example.com'}]},
+        'samples'    => [{'alias' => sample.sample_name, 'title' => 'Only this'}]
+      },
+      actor: 'test'
+    )
+
+    get review_accession_path(@access.token, sample.accession)
+
+    assert_conform_schema 200
+    assert_equal %w[alias title], response.parsed_body.dig('record', 'sections').pluck('key').sort
+    assert_not_includes response.body, 'person@example.com'
+  end
+
   # The same silence the token keeps. Being in the set is not being on the
   # link, and an accession the link does not name is not readable through
   # it however plainly it exists.
@@ -147,7 +180,6 @@ class ReviewsTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 200
     assert_equal %w[accession db name details record], response.parsed_body.keys
-    assert_not_includes response.body, @alice.uid
   end
 
   # A record is a blob download and a streamed parse. A reviewer refreshing
@@ -162,12 +194,11 @@ class ReviewsTest < ActionDispatch::IntegrationTest
     assert_response :not_modified
   end
 
-  # The reviewer's whole reason for holding the link is the sequence, and
-  # it is also the tallest thing an ST.26 record carries. It comes folded
-  # — decided by how tall it draws, not by which key it is — with the
-  # count on the summary, so the page opens on what the entry says and the
-  # reader presses for the bases.
-  test 'a sequence arrives folded, and says how much is inside it' do
+  # A long sequence, which is the case worth pinning: folding is decided by
+  # how tall a section draws, not by which key it is, so the short ones
+  # arrive open and that is right. 2,400 bases is above the line; the
+  # median ST.26 entry (1,346) is below it and opens.
+  test 'a long sequence arrives folded, and says how much is inside it' do
     submission = submissions(:st26)
     entry      = submission.entries.first
 
@@ -193,8 +224,36 @@ class ReviewsTest < ActionDispatch::IntegrationTest
 
     sequence = response.parsed_body.dig('record', 'sections').find { it['key'] == 'sequence' }
 
-    assert sequence['folded'], 'a sequence is taller than anything else on the page'
+    assert sequence['folded'], 'a sequence this long is taller than the fold'
     assert_not_nil sequence['precis']
+  end
+
+  # The only unauthenticated read in the system, and the most expensive:
+  # one record is a whole blob downloaded, checksummed and streamed past.
+  # A share link is meant to be forwarded, so the grant is what the
+  # ceiling hangs on — there is no account behind it to bound.
+  test 'one link cannot be used to walk the archive' do
+    with_rate_limiting do
+      limit = 120
+
+      limit.times do
+        get review_accession_path(@access.token, 'PRJDB000001')
+
+        assert_response :ok
+      end
+
+      get review_accession_path(@access.token, 'PRJDB000001')
+
+      assert_response :too_many_requests
+
+      # By the grant, not by the reader: a second link is a second grant.
+      other = ReviewerAccess.enable!(SubmissionSet.create!(name: 'Another', owner: @alice),
+                                     created_by: @alice, expires_at: 1.week.from_now)
+
+      get review_accession_path(other.token, 'PRJDB000001')
+
+      assert_response :not_found
+    end
   end
 
   test 'an expired link stops answering for the records it carried' do

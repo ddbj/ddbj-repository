@@ -2,6 +2,7 @@ import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
 import type { RequestManager } from '@warp-drive/core';
+import type ReviewRoute from 'repository/routes/review';
 import type { paths } from 'schema/openapi';
 
 type ReviewerAccessionRecord =
@@ -14,7 +15,7 @@ export default class extends Route {
   @service declare requestManager: RequestManager;
 
   async model({ accession }: { accession: string }) {
-    const { token, name } = this.modelFor('review') as { token: string; name: string };
+    const { token, name } = this.modelFor('review') as Awaited<ReturnType<ReviewRoute['model']>>;
 
     const { content } = await this.requestManager.request<ReviewerAccessionRecord>({
       url: `/reviews/${token}/accessions/${encodeURIComponent(accession)}`,

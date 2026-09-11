@@ -14,6 +14,7 @@ class SetMembersController < ApplicationController
   # real collaboration invites a handful in a sitting, and nothing that
   # is not an attempt to use us as a mail relay invites eighty.
   rate_limit to: 30, within: 1.hour, by: -> { current_user&.id }, only: %i[create],
+             store: RateLimitStore,
              with: -> { render json: {error: 'Too many invitations in a short time. Try again later.'}, status: :too_many_requests }
 
   # Any member invites. A collaboration is not organised around whoever

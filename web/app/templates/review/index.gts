@@ -23,10 +23,6 @@ type Model = Awaited<ReturnType<ReviewIndexRoute['model']>>;
 export default <template>
   {{pageTitle @model.name}}
 
-  <div class="alert alert-info py-2 small" role="note">
-    You are looking at data shared with you through a link. No account is needed, and nothing here can be changed.
-  </div>
-
   <h1 class="display-6 mb-1">{{@model.name}}</h1>
 
   <p class="text-body-secondary small mb-4">

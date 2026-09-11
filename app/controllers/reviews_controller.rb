@@ -6,6 +6,25 @@ class ReviewsController < ApplicationController
 
   before_action :load_access
 
+  # The only unauthenticated read in the system, and the most expensive:
+  # one accession's record is a whole blob downloaded, checksummed and
+  # streamed past, which on a 100K-sample submission is ~52 MB of transfer
+  # for a ~6 KB answer. The conditional GET below spares a reviewer
+  # re-reading one row; it does nothing for a walk over the list, and
+  # nothing at all for somebody who did not come to read.
+  #
+  # By the token, because that is the grant. A share link is the one
+  # credential in this system designed to be handed to a stranger — there
+  # is no account behind it to bound, and bounding by IP would put every
+  # reviewer at one institution on one ceiling.
+  #
+  # Set where a person reading carefully would not notice it: opening
+  # thirty records in an afternoon is a reviewer, and three hundred in a
+  # minute is not.
+  rate_limit to: 120, within: 1.minute, by: -> { params[:token] }, only: %i[accession],
+             store: RateLimitStore,
+             with: -> { render json: {error: 'Too many requests. Wait a moment and try again.'}, status: :too_many_requests }
+
   # An invalid OR expired token 404s (via find_by! on the `active` scope),
   # so a reviewer can't tell a revoked link from one that never existed.
   #

@@ -12,8 +12,6 @@ import type { components } from 'schema/openapi';
 
 const now = '2025-01-01T00:00:00.000Z';
 
-// Every key present, because the contract requires them all — `kind`
-// says which of the three collection keys is the populated one.
 // A BioSample request, which is the case this screen used to get wrong:
 // its numbers live on samples, and the list read entries.
 const request: components['schemas']['SubmissionRequest'] = {
