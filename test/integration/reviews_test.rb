@@ -90,11 +90,119 @@ class ReviewsTest < ActionDispatch::IntegrationTest
 
   # At accession granularity there is nothing to hand over: a record or a
   # flatfile is the whole submission, which is the thing that was
-  # deliberately not shared.
+  # deliberately not shared. What a reviewer gets instead is the row's own
+  # subtree, drawn on the page — read, never downloaded.
   test 'there are no files on a review link' do
     paths = Rails.application.routes.routes.map { it.path.spec.to_s }.grep(%r{/reviews/})
 
-    assert_equal ['/api/reviews/:token(.:format)', '/api/reviews/:token/accessions(.:format)'], paths
+    assert_not_empty paths
+    assert_empty paths.grep(/files/), 'a review link must not reach a file'
+  end
+
+  test "what one accession's record says is readable through the link" do
+    submission = submissions(:biosample)
+    sample     = samples(:first)
+
+    @set.inclusions.create!(submission_request: submission_requests(:biosample), added_by: @alice) unless
+      @set.inclusions.exists?(submission_request: submission_requests(:biosample))
+
+    @access.shared_accessions.create!(accession: sample.accession, added_by: @alice)
+
+    submission.append_update!({'samples' => [{'alias' => sample.sample_name, 'title' => 'Control timepoint A'}]},
+                              actor: 'test')
+
+    get review_accession_path(@access.token, sample.accession)
+
+    assert_conform_schema 200
+
+    body = response.parsed_body
+
+    assert_equal sample.accession, body['accession']
+    assert_nil   body.dig('record', 'unavailable_reason')
+
+    title = body.dig('record', 'sections').find { it['key'] == 'title' }
+
+    assert_equal 'Control timepoint A', title.dig('node', 'value')
+  end
+
+  # The same silence the token keeps. Being in the set is not being on the
+  # link, and an accession the link does not name is not readable through
+  # it however plainly it exists.
+  test 'an accession the link does not name is not readable through it' do
+    get review_accession_path(@access.token, samples(:first).accession)
+
+    assert_response :not_found
+  end
+
+  test 'an accession whose submission has left the set stops being readable' do
+    @set.inclusions.find_by!(submission_request: submission_requests(:bioproject)).destroy!
+
+    get review_accession_path(@access.token, 'PRJDB000001')
+
+    assert_response :not_found
+  end
+
+  test 'the record a link carries never says how DDBJ is handling it' do
+    get review_accession_path(@access.token, 'PRJDB000001')
+
+    assert_conform_schema 200
+    assert_equal %w[accession db name details record], response.parsed_body.keys
+    assert_not_includes response.body, @alice.uid
+  end
+
+  # A record is a blob download and a streamed parse. A reviewer refreshing
+  # the page should pay for neither.
+  test 'a reviewer who already has this version is told so' do
+    get review_accession_path(@access.token, 'PRJDB000001')
+
+    assert_response :ok
+
+    get review_accession_path(@access.token, 'PRJDB000001'), headers: {'If-None-Match' => response.headers['ETag']}
+
+    assert_response :not_modified
+  end
+
+  # The reviewer's whole reason for holding the link is the sequence, and
+  # it is also the tallest thing an ST.26 record carries. It comes folded
+  # — decided by how tall it draws, not by which key it is — with the
+  # count on the summary, so the page opens on what the entry says and the
+  # reader presses for the bases.
+  test 'a sequence arrives folded, and says how much is inside it' do
+    submission = submissions(:st26)
+    entry      = submission.entries.first
+
+    # The fixture's sequences are 21 bases, which fold nowhere. A real one
+    # is 1,346 bytes at the median and 240 KB at the top, so the record is
+    # given a realistic one rather than the assertion a lenient bound.
+    record = JSON.parse(file_fixture('ddbj_record/example.json').read)
+
+    record['sequences']['entries'].each { it['sequence'] = 'ATGC' * 600 }
+
+    submission.ddbj_record.attach(
+      io:           StringIO.new(JSON.generate(record)),
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+
+    @set.inclusions.create!(submission_request: submission_requests(:st26), added_by: @alice)
+    @access.shared_accessions.create!(accession: entry.accession, added_by: @alice)
+
+    get review_accession_path(@access.token, entry.accession)
+
+    assert_conform_schema 200
+
+    sequence = response.parsed_body.dig('record', 'sections').find { it['key'] == 'sequence' }
+
+    assert sequence['folded'], 'a sequence is taller than anything else on the page'
+    assert_not_nil sequence['precis']
+  end
+
+  test 'an expired link stops answering for the records it carried' do
+    @access.update_column(:expires_at, 1.hour.ago)
+
+    get review_accession_path(@access.token, 'PRJDB000001')
+
+    assert_response :not_found
   end
 
   test 'an accession whose submission has left the set goes with it' do

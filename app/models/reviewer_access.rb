@@ -87,6 +87,20 @@ class ReviewerAccess < ApplicationRecord
   # read alike.
   def shared_rows(accessions) = set.accession_rows(accessions)
 
+  # One accession on the link, or nil.
+  #
+  # Both halves are load-bearing and neither implies the other: the link
+  # has to name it, and the set has to still hold the submission it came
+  # from. `shared_rows` alone answers for any accession in the set —
+  # which is every accession of every submission any member has put in
+  # it, and the reason this link names its own is that those are not the
+  # same list.
+  def shared_row(accession)
+    return nil unless shared_accessions.exists?(accession:)
+
+    shared_rows([accession]).first
+  end
+
   # The shareable link the set hands to a reviewer. Points at the Ember
   # SPA route (/web/reviews/<token>), not the API.
   def share_url

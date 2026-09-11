@@ -603,6 +603,58 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /reviews/{token}/accessions/{accession}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+
+        schema:
+          type: string
+
+      - name: accession
+        in: path
+        required: true
+
+        schema:
+          type: string
+
+    get:
+      description: |
+        What one accession on a review link says, laid out by the shape of its
+        record — the same layout the submitter's own screen draws.
+
+        This is what the accession granularity leaves reachable. A record or a
+        flatfile is the whole submission, which is the thing that was
+        deliberately not shared; the row's own subtree is exactly what was, and
+        reading it needs no file to leave the building.
+
+        The submission is not named in the path, because naming it would hand
+        over the identifier this granularity exists to withhold.
+
+        An accession this link does not carry is a 404, whether it is in the
+        set, in another set, or nowhere — the same silence the token itself
+        keeps. Resolved through the set on every read, so an accession whose
+        submission has been taken out of the set stops answering here as it
+        stops appearing on the list.
+
+      tags:
+        - Sets
+
+      security: []
+
+      responses:
+        '200':
+          description: Returns the accession and its record.
+
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewerAccessionRecord'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /submissions:
     get:
       description: Get a list of submissions. Omit `db` to span every database the user has access to.
@@ -3818,44 +3870,25 @@ components:
                 - $ref: '#/components/schemas/RecordNode'
                 - type: 'null'
 
-    AccessionRecord:
+    RecordSlice:
       description: |
-        One accession, and what its record says. `SubmissionAccession` with
-        the record's own subtree laid out beside it.
+        What one accessioned row's record says, laid out by the shape of the
+        data rather than by a list of fields — which is what lets a v3 key
+        appear the day it lands instead of the day somebody revises a
+        renderer.
+
+        The same answer whoever is asking: a submitter reading their own
+        record and a reviewer holding a share link are shown this identically,
+        and the schemas that carry it differ only in what they put beside it.
       type: object
       additionalProperties: false
 
       required:
-        - accession
-        - db
-        - name
-        - details
-        - status
         - elided
         - unavailable_reason
         - sections
 
       properties:
-        accession:
-          type: string
-
-        db:
-          $ref: '#/components/schemas/Db'
-
-        name:
-          type:
-            - string
-            - 'null'
-
-        details:
-          type: array
-
-          items:
-            $ref: '#/components/schemas/AccessionDetail'
-
-        status:
-          $ref: '#/components/schemas/CurationStatus'
-
         elided:
           description: Whether the walk stopped short of the whole subtree. Said once, at the top — the reader needs to know the page is not all of it, not where each cut fell.
           type: boolean
@@ -3911,6 +3944,86 @@ components:
 
               node:
                 $ref: '#/components/schemas/RecordNode'
+
+    AccessionRecord:
+      description: |
+        One accession on its submission's own screen, and what its record
+        says. `SubmissionAccession` with the record beside it.
+      type: object
+      additionalProperties: false
+
+      required:
+        - accession
+        - db
+        - name
+        - details
+        - status
+        - record
+
+      properties:
+        accession:
+          type: string
+
+        db:
+          $ref: '#/components/schemas/Db'
+
+        name:
+          type:
+            - string
+            - 'null'
+
+        details:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/AccessionDetail'
+
+        status:
+          $ref: '#/components/schemas/CurationStatus'
+
+        record:
+          $ref: '#/components/schemas/RecordSlice'
+
+    ReviewerAccessionRecord:
+      description: |
+        One accession on a review link, and what its record says.
+        `ReviewerAccession` with the record beside it — no status, for the
+        reason `ReviewerAccession` carries none.
+
+        Written out rather than composed with `allOf`: these schemas close over
+        their properties, and `additionalProperties: false` on one half of an
+        `allOf` refuses what the other half declares. What is genuinely shared
+        is `record`, and that is shared by reference.
+      type: object
+      additionalProperties: false
+
+      required:
+        - accession
+        - db
+        - name
+        - details
+        - record
+
+      properties:
+        accession:
+          type: string
+
+        db:
+          $ref: '#/components/schemas/Db'
+
+        name:
+          type:
+            - string
+            - 'null'
+
+        details:
+          type: array
+
+          items:
+            $ref: '#/components/schemas/AccessionDetail'
+
+        record:
+          $ref: '#/components/schemas/RecordSlice'
 
     SubmissionAccession:
       description: |

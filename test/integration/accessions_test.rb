@@ -201,10 +201,10 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     body = response.parsed_body
 
     assert_equal sample.accession, body['accession']
-    assert_nil   body['unavailable_reason']
-    assert_equal false, body['elided']
+    assert_nil   body.dig('record', 'unavailable_reason')
+    assert_equal false, body.dig('record', 'elided')
 
-    sections = body['sections'].index_by { it['key'] }
+    sections = body.dig('record', 'sections').index_by { it['key'] }
 
     assert_equal %w[accession alias attributes organism title], sections.keys.sort
 
@@ -243,7 +243,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, sample.accession)
 
     assert_conform_schema 200
-    assert_equal %w[alias title], response.parsed_body['sections'].pluck('key').sort
+    assert_equal %w[alias title], response.parsed_body.dig('record', 'sections').pluck('key').sort
     assert_not_includes response.body, 'person@example.com'
   end
 
@@ -258,7 +258,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, sample.accession)
 
     assert_conform_schema 200
-    assert_equal AccessionRecordReader::RECORD_MISSING_ROW, response.parsed_body['unavailable_reason']
+    assert_equal AccessionRecordReader::RECORD_MISSING_ROW, response.parsed_body.dig('record', 'unavailable_reason')
   end
 
   # Invalidation clears the cache stamp and leaves the blob attached
@@ -275,7 +275,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, sample.accession)
 
     assert_conform_schema 200
-    assert_equal 'BEFORE', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
+    assert_equal 'BEFORE', response.parsed_body.dig('record', 'sections').find { it['key'] == 'title' }.dig('node', 'value')
 
     submission.append_update!({'samples' => [{'alias' => sample.sample_name, 'title' => 'AFTER'}]}, actor: 'test')
 
@@ -285,7 +285,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, sample.accession)
 
     assert_conform_schema 200
-    assert_equal 'AFTER', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
+    assert_equal 'AFTER', response.parsed_body.dig('record', 'sections').find { it['key'] == 'title' }.dig('node', 'value')
   end
 
   # A read costs a blob download and a streamed parse, so a reader who
@@ -316,7 +316,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, sample.accession), headers: {'If-None-Match' => etag}
 
     assert_response :ok
-    assert_equal 'SECOND', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
+    assert_equal 'SECOND', response.parsed_body.dig('record', 'sections').find { it['key'] == 'title' }.dig('node', 'value')
   end
 
   # That the right sample comes back from a cached record. The property
@@ -345,7 +345,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, sample.accession)
 
     assert_conform_schema 200
-    assert_equal 'This one', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
+    assert_equal 'This one', response.parsed_body.dig('record', 'sections').find { it['key'] == 'title' }.dig('node', 'value')
   end
 
   # A cache object that has gone is not a fact about the record: the
@@ -362,7 +362,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, sample.accession)
 
     assert_conform_schema 200
-    assert_equal 'From the chain', response.parsed_body['sections'].find { it['key'] == 'title' }.dig('node', 'value')
+    assert_equal 'From the chain', response.parsed_body.dig('record', 'sections').find { it['key'] == 'title' }.dig('node', 'value')
   end
 
   # The attribute bag is the collection this page exists to show, and
@@ -384,7 +384,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 200
 
-    node = response.parsed_body['sections'].find { it['key'] == 'attributes' }['node']
+    node = response.parsed_body.dig('record', 'sections').find { it['key'] == 'attributes' }['node']
 
     assert_equal 40, node['total']
     assert_equal 40, node['shown']
@@ -397,7 +397,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, samples(:first).accession)
 
     assert_conform_schema 200
-    assert_equal AccessionRecordReader::RECORD_ABSENT, response.parsed_body['unavailable_reason']
+    assert_equal AccessionRecordReader::RECORD_ABSENT, response.parsed_body.dig('record', 'unavailable_reason')
   end
 
   # ST.26 keeps the record the apply wrote, as an attachment rather than a
@@ -412,9 +412,9 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, entry.accession)
 
     assert_conform_schema 200
-    assert_nil response.parsed_body['unavailable_reason']
+    assert_nil response.parsed_body.dig('record', 'unavailable_reason')
 
-    sections = response.parsed_body['sections'].index_by { it['key'] }
+    sections = response.parsed_body.dig('record', 'sections').index_by { it['key'] }
 
     assert_equal entry.entry_id, sections['id'].dig('node', 'value')
     assert_includes sections.keys, 'sequence'
@@ -428,7 +428,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, submission.entries.first.accession)
 
     assert_conform_schema 200
-    assert_equal AccessionRecordReader::RECORD_ABSENT, response.parsed_body['unavailable_reason']
+    assert_equal AccessionRecordReader::RECORD_ABSENT, response.parsed_body.dig('record', 'unavailable_reason')
   end
 
   # A BioProject's record is its project, and nothing in the suite
@@ -444,8 +444,8 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, projects(:primary).accession)
 
     assert_conform_schema 200
-    assert_nil response.parsed_body['unavailable_reason']
-    assert_equal %w[project_type title], response.parsed_body['sections'].pluck('key').sort
+    assert_nil response.parsed_body.dig('record', 'unavailable_reason')
+    assert_equal %w[project_type title], response.parsed_body.dig('record', 'sections').pluck('key').sort
   end
 
   test 'an accession that is not this submission\'s is not found' do

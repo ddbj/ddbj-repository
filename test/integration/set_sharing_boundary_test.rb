@@ -115,7 +115,7 @@ class GroupSharingBoundaryTest < ActionDispatch::IntegrationTest
     get submission_accession_path(submission, project.accession)
 
     assert_conform_schema 200
-    assert_equal 'Theirs', response.parsed_body['sections'].sole.dig('node', 'value')
+    assert_equal 'Theirs', response.parsed_body.dig('record', 'sections').sole.dig('node', 'value')
 
     default_headers['Authorization'] = "Bearer #{users(:dave).api_key}"
 

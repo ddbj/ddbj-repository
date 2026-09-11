@@ -1,22 +1,24 @@
-import { array, concat, hash } from '@ember/helper';
+import { array, hash } from '@ember/helper';
+import { pageTitle } from 'ember-page-title';
 
 import Breadcrumb from 'repository/components/breadcrumb';
 import RecordSlice from 'repository/components/record-slice';
 import dbLabel from 'repository/helpers/db-label';
 
-import type AccessionRoute from 'repository/routes/request/accession';
+import type AccessionRoute from 'repository/routes/review/accession';
 import type { TOC } from '@ember/component/template-only';
 
 type Model = Awaited<ReturnType<AccessionRoute['model']>>;
 
-// What one accession's record says, on the submitter's own screen: the
-// record, and where DDBJ has got to with the row.
+// What one shared accession says. The submitter's screen without the
+// parts a reviewer has no business with: no status, no owner, no
+// conversation, and nothing to download.
 export default <template>
+  {{pageTitle @model.accession}}
+
   <Breadcrumb
     @items={{array
-      (hash label="Home" route="index")
-      (hash label=(concat "#" @model.requestId) route="request" models=(array @model.requestId))
-      (hash label="Accessions" route="request.accessions" models=(array @model.requestId))
+      (hash label=@model.setName route="review" models=(array @model.token))
       (hash label=@model.accession)
     }}
   />
@@ -24,7 +26,6 @@ export default <template>
   <div class="d-flex align-items-baseline gap-2 flex-wrap mb-1">
     <h1 class="display-6 mb-0 font-monospace">{{@model.accession}}</h1>
     <span class="badge text-bg-light border">{{dbLabel @model.db}}</span>
-    <span class="badge text-bg-light border text-capitalize">{{@model.status}}</span>
   </div>
 
   {{#if @model.name}}
@@ -32,9 +33,6 @@ export default <template>
   {{/if}}
 
   {{#if @model.details}}
-    {{! What the typed columns say about this row. Drawn whether or not
-    the record can be read — on the one screen where it cannot, these are
-    the only thing the page has to show. }}
     <dl class="dl horizontal small mb-4" data-test-record-details>
       {{#each @model.details as |detail|}}
         <dt class="fw-normal text-body-secondary">{{detail.label}}</dt>
