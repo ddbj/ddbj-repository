@@ -623,6 +623,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reviews/{token}/accessions/{accession}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+                accession: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description What one accession on a review link says, laid out by the shape of its
+         *     record — the same layout the submitter's own screen draws.
+         *
+         *     This is what the accession granularity leaves reachable. A record or a
+         *     flatfile is the whole submission, which is the thing that was
+         *     deliberately not shared; the row's own subtree is exactly what was, and
+         *     reading it needs no file to leave the building.
+         *
+         *     The submission is not named in the path, because naming it would hand
+         *     over the identifier this granularity exists to withhold.
+         *
+         *     An accession this link does not carry is a 404, whether it is in the
+         *     set, in another set, or nowhere — the same silence the token itself
+         *     keeps. Resolved through the set on every read, so an accession whose
+         *     submission has been taken out of the set stops answering here as it
+         *     stops appearing on the list.
+         *
+         *     Answers a conditional GET, and this is the endpoint where making one
+         *     pays: a read costs the whole record — downloaded, checksummed and
+         *     streamed past — for an answer of a few kilobytes. It is also rate
+         *     limited by token, being the only unauthenticated read in the system
+         *     and the most expensive.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                    accession: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Returns the accession and its record. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReviewerAccessionRecord"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                /** @description Too many records read through one link in a short time. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Error"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/submissions": {
         parameters: {
             query?: never;
@@ -815,9 +890,12 @@ export interface paths {
          *     answers, and a screen that draws both as a blank panel is telling the
          *     second as the first.
          *
-         *     Answers a conditional GET. A read costs the whole record — one slice
-         *     means downloading and parsing all of it — and the etag is the cache
-         *     stamp, which any edit to the record's history clears.
+         *     Answers a conditional GET, and it is worth making: a read costs the
+         *     whole record — one slice means downloading, checksumming and parsing
+         *     all of it — for an answer of a few kilobytes. The etag is the head of
+         *     the record's history, not the cache stamp, because the stamp is clear
+         *     for the first read after every edit and two different states would
+         *     then share an etag.
          */
         get: {
             parameters: {
@@ -3196,15 +3274,16 @@ export interface components {
             cells: (components["schemas"]["RecordNode"] | null)[][] | null;
         };
         /**
-         * @description One accession, and what its record says. `SubmissionAccession` with
-         *     the record's own subtree laid out beside it.
+         * @description What one accessioned row's record says, laid out by the shape of the
+         *     data rather than by a list of fields — which is what lets a v3 key
+         *     appear the day it lands instead of the day somebody revises a
+         *     renderer.
+         *
+         *     The same answer whoever is asking: a submitter reading their own
+         *     record and a reviewer holding a share link are shown this identically,
+         *     and the schemas that carry it differ only in what they put beside it.
          */
-        AccessionRecord: {
-            accession: string;
-            db: components["schemas"]["Db"];
-            name: string | null;
-            details: components["schemas"]["AccessionDetail"][];
-            status: components["schemas"]["CurationStatus"];
+        RecordSlice: {
             /** @description Whether the walk stopped short of the whole subtree. Said once, at the top — the reader needs to know the page is not all of it, not where each cut fell. */
             elided: boolean;
             /**
@@ -3240,6 +3319,35 @@ export interface components {
                 precis: string | null;
                 node: components["schemas"]["RecordNode"];
             }[];
+        };
+        /**
+         * @description One accession on its submission's own screen, and what its record
+         *     says. `SubmissionAccession` with the record beside it.
+         */
+        AccessionRecord: {
+            accession: string;
+            db: components["schemas"]["Db"];
+            name: string | null;
+            details: components["schemas"]["AccessionDetail"][];
+            status: components["schemas"]["CurationStatus"];
+            record: components["schemas"]["RecordSlice"];
+        };
+        /**
+         * @description One accession on a review link, and what its record says.
+         *     `ReviewerAccession` with the record beside it — no status, for the
+         *     reason `ReviewerAccession` carries none.
+         *
+         *     Written out rather than composed with `allOf`: these schemas close over
+         *     their properties, and `additionalProperties: false` on one half of an
+         *     `allOf` refuses what the other half declares. What is genuinely shared
+         *     is `record`, and that is shared by reference.
+         */
+        ReviewerAccessionRecord: {
+            accession: string;
+            db: components["schemas"]["Db"];
+            name: string | null;
+            details: components["schemas"]["AccessionDetail"][];
+            record: components["schemas"]["RecordSlice"];
         };
         /**
          * @description One accession on a submission's own screen: what the record states,

@@ -3,32 +3,14 @@ import { visit, click, currentURL } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
+import { emptyNode, valueNode } from 'repository/tests/helpers/record-nodes';
+
 import { http } from '../msw/http';
 import { worker } from '../msw/worker';
 
 import type { components } from 'schema/openapi';
 
 const now = '2025-01-01T00:00:00.000Z';
-
-// Every key present, because the contract requires them all — `kind`
-// says which of the three collection keys is the populated one.
-const emptyNode: components['schemas']['RecordNode'] = {
-  kind: 'empty',
-  columns: null,
-  hidden_columns: null,
-  total: null,
-  shown: null,
-  hidden: 0,
-  value: null,
-  free_text: false,
-  fields: null,
-  items: null,
-  cells: null,
-};
-
-function valueNode(value: string | number): components['schemas']['RecordNode'] {
-  return { ...emptyNode, kind: 'value', value };
-}
 
 // A BioSample request, which is the case this screen used to get wrong:
 // its numbers live on samples, and the list read entries.
@@ -183,44 +165,46 @@ module('Acceptance | a submission’s accessions', function (hooks) {
           name: 'Sample001',
           details: [],
           status: 'public',
-          elided: false,
-          unavailable_reason: null,
+          record: {
+            elided: false,
+            unavailable_reason: null,
 
-          sections: [
-            { key: 'title', folded: false, precis: null, node: valueNode('Control timepoint A') },
+            sections: [
+              { key: 'title', folded: false, precis: null, node: valueNode('Control timepoint A') },
 
-            {
-              key: 'organism',
-              folded: false,
-              precis: null,
-              node: {
-                ...emptyNode,
-                kind: 'fields',
-                fields: [
-                  { key: 'name', node: valueNode('mouse gut metagenome') },
-                  { key: 'taxonomy_id', node: valueNode(410661) },
-                ],
+              {
+                key: 'organism',
+                folded: false,
+                precis: null,
+                node: {
+                  ...emptyNode,
+                  kind: 'fields',
+                  fields: [
+                    { key: 'name', node: valueNode('mouse gut metagenome') },
+                    { key: 'taxonomy_id', node: valueNode(410661) },
+                  ],
+                },
               },
-            },
 
-            {
-              key: 'attributes',
-              folded: false,
-              precis: null,
-              node: {
-                ...emptyNode,
-                kind: 'table',
-                columns: ['name', 'value'],
-                hidden_columns: ['unit'],
-                total: 2,
-                shown: 2,
-                cells: [
-                  [valueNode('collection_date'), valueNode('2018-04-25')],
-                  [valueNode('env_broad_scale'), null],
-                ],
+              {
+                key: 'attributes',
+                folded: false,
+                precis: null,
+                node: {
+                  ...emptyNode,
+                  kind: 'table',
+                  columns: ['name', 'value'],
+                  hidden_columns: ['unit'],
+                  total: 2,
+                  shown: 2,
+                  cells: [
+                    [valueNode('collection_date'), valueNode('2018-04-25')],
+                    [valueNode('env_broad_scale'), null],
+                  ],
+                },
               },
-            },
-          ],
+            ],
+          },
         }),
       ),
     );
@@ -256,17 +240,19 @@ module('Acceptance | a submission’s accessions', function (hooks) {
           name: 'Sample001',
           details: [],
           status: 'public',
-          elided: false,
-          unavailable_reason: null,
+          record: {
+            elided: false,
+            unavailable_reason: null,
 
-          sections: [
-            {
-              key: 'sequence',
-              folded: false,
-              precis: null,
-              node: { ...emptyNode, kind: 'value', value: 'gagcctctggatgactatgtga'.repeat(108), free_text: true },
-            },
-          ],
+            sections: [
+              {
+                key: 'sequence',
+                folded: false,
+                precis: null,
+                node: { ...emptyNode, kind: 'value', value: 'gagcctctggatgactatgtga'.repeat(108), free_text: true },
+              },
+            ],
+          },
         }),
       ),
     );
@@ -290,9 +276,11 @@ module('Acceptance | a submission’s accessions', function (hooks) {
           name: 'SEQ|1',
           details: [],
           status: 'public',
-          elided: false,
-          unavailable_reason: 'The record behind this accession is not available to read here yet.',
-          sections: [],
+          record: {
+            elided: false,
+            unavailable_reason: 'The record behind this accession is not available to read here yet.',
+            sections: [],
+          },
         }),
       ),
     );

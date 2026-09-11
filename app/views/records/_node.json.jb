@@ -34,11 +34,11 @@
   # do not each do it.
   hidden: node.hidden,
 
-  fields: node.kind == :fields ? node.rows.map {|key, child| {key:, node: render('submission_accessions/node', node: child)} } : nil,
-  items:  node.kind == :list   ? node.rows.map { render('submission_accessions/node', node: it) } : nil,
+  fields: node.kind == :fields ? node.rows.map {|key, child| {key:, node: render('records/node', node: child)} } : nil,
+  items:  node.kind == :list   ? node.rows.map { render('records/node', node: it) } : nil,
 
   # A cell can be absent where its row does not carry that column, and
   # absent is not empty: a blank cell says the record has nothing there,
   # which is a different fact from a field holding "".
-  cells: node.kind == :table ? node.rows.map {|cells| cells.map { it && render('submission_accessions/node', node: it) } } : nil
+  cells: node.kind == :table ? node.rows.map {|cells| cells.map { it && render('records/node', node: it) } } : nil
 }

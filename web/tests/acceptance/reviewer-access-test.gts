@@ -3,6 +3,8 @@ import { visit, click, fillIn, currentURL } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
+import { valueNode } from 'repository/tests/helpers/record-nodes';
+
 import { http } from '../msw/http';
 import { worker } from '../msw/worker';
 
@@ -100,6 +102,107 @@ module('Acceptance | reviewer view (share link, no login)', function (hooks) {
     // Whatever the record carries, in its own words.
     assert.dom('[data-test-accessions]').includesText('Type');
     assert.dom('[data-test-accessions]').includesText('primary');
+  });
+
+  // The record is the reason the link exists. At accession granularity
+  // there is no file to hand over, so what the row says has to be
+  // readable on the page or the reviewer has nothing to review.
+  test('an accession on the link opens onto what its record says', async function (assert) {
+    worker.use(
+      http.get('/reviews/{token}', ({ response }) =>
+        response(200).json({ name: 'Deep sea study', expires_at: '2025-02-01T00:00:00.000Z' }),
+      ),
+
+      http.get('/reviews/{token}/accessions', ({ response }) =>
+        response(200).json([{ accession: 'SAMD00000001', db: 'biosample', name: 'station-A-surface', details: [] }]),
+      ),
+
+      http.get('/reviews/{token}/accessions/{accession}', ({ response }) =>
+        response(200).json({
+          accession: 'SAMD00000001',
+          db: 'biosample',
+          name: 'station-A-surface',
+          details: [{ label: 'Package', value: 'Generic.1.0' }],
+
+          record: {
+            elided: false,
+            unavailable_reason: null,
+
+            sections: [
+              {
+                key: 'title',
+                folded: false,
+                precis: null,
+
+                node: valueNode('Surface water, station A'),
+              },
+
+              // Folded, and saying what is inside it. A sequence is the
+              // tallest thing an ST.26 record carries and the one a
+              // reader most often does not want opened for them.
+              {
+                key: 'sequence',
+                folded: true,
+                precis: '2,376 characters',
+
+                node: valueNode('ATGC'.repeat(594)),
+              },
+            ],
+          },
+        }),
+      ),
+    );
+
+    await visit('/reviews/secret-token');
+    await click('[data-test-accessions] a');
+
+    assert.strictEqual(currentURL(), '/reviews/secret-token/accessions/SAMD00000001');
+    assert.dom('h1').hasText('SAMD00000001');
+    assert.dom('[data-test-record-details]').includesText('Generic.1.0');
+    assert.dom('[data-test-record]').includesText('Surface water, station A');
+
+    // A reviewer is shown what the record states, never how DDBJ is
+    // handling it.
+    assert.dom().doesNotIncludeText('public');
+
+    // Folded sections open on the reader's press, not before.
+    assert.dom('[data-test-record] details:last-of-type').doesNotHaveAttribute('open');
+    assert.dom('[data-test-record] details:last-of-type summary').includesText('2,376 characters');
+  });
+
+  // The URL a reviewer is actually given is often the record's, not the
+  // list's: links get forwarded and bookmarked. Landing there directly
+  // has to work, and has to say where they are.
+  test('a record URL opens on its own, and still says what this is', async function (assert) {
+    worker.use(
+      http.get('/reviews/{token}', ({ response }) =>
+        response(200).json({ name: 'Deep sea study', expires_at: '2025-02-01T00:00:00.000Z' }),
+      ),
+
+      http.get('/reviews/{token}/accessions/{accession}', ({ response }) =>
+        response(200).json({
+          accession: 'SAMD00000001',
+          db: 'biosample',
+          name: 'station-A-surface',
+          details: [],
+
+          record: {
+            elided: false,
+            unavailable_reason: null,
+            sections: [{ key: 'title', folded: false, precis: null, node: valueNode('Surface water, station A') }],
+          },
+        }),
+      ),
+    );
+
+    await visit('/reviews/secret-token/accessions/SAMD00000001');
+
+    assert.dom('[role="note"]').includesText('shared with you');
+    assert.dom('h1').hasText('SAMD00000001');
+    assert.dom('[data-test-record]').includesText('Surface water, station A');
+
+    // And the way back to what else is on the link.
+    assert.dom('nav[aria-label="breadcrumb"]').includesText('Deep sea study');
   });
 
   // There is no ceiling on what a link carries, so the reviewer's page

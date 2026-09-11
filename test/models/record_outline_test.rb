@@ -228,7 +228,7 @@ class RecordOutlineTest < ActiveSupport::TestCase
     assert_equal 30, default.total
     assert_equal RecordOutline::INLINE_LIMIT, default.shown
 
-    raised = RecordOutline.new(record, inline_limit: SubmissionAccessionsController::INLINE_LIMIT).section('attributes').node
+    raised = RecordOutline.new(record, inline_limit: AccessionRecordReadable::INLINE_LIMIT).section('attributes').node
 
     assert_equal 30, raised.total
     assert_equal 30, raised.shown

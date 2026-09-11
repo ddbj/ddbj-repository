@@ -66,6 +66,15 @@ Rails.application.routes.draw do
     get 'reviews/:token',            to: 'reviews#show',       as: :review
     get 'reviews/:token/accessions', to: 'reviews#accessions', as: :review_accessions
 
+    # One of them, read. Keyed by the accession alone: the submission it
+    # came from is the thing that was deliberately not shared, and naming
+    # it in the path would hand over the identifier this granularity
+    # exists to withhold.
+    get 'reviews/:token/accessions/:accession',
+        to:          'reviews#accession',
+        as:          :review_accession,
+        constraints: {accession: %r{[^/]+}}
+
     resources :submissions, only: %i[index show] do
       # A submission's own accessions, across whichever of the three
       # tables its database keeps them in. Not the same endpoint as the

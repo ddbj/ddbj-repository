@@ -17,6 +17,9 @@ export default class extends Route {
       url: `/submissions/${request.submission?.id}/accessions/${encodeURIComponent(accession)}`,
     });
 
-    return { requestId: request.id, record: content };
+    // Spread, so the template reads `@model.accession` and
+    // `@model.record` — the record is one field of what this endpoint
+    // answers, not the whole of it.
+    return { requestId: request.id, ...content };
   }
 }

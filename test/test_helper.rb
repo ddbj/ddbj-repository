@@ -46,6 +46,18 @@ class ActiveSupport::TestCase
     )
   end
 
+  # The rate limiters count in `Rails.cache`, which is the null store here
+  # — `increment` returns nil and every limit passes. A test that means to
+  # see one puts a real store in front of it.
+  def with_rate_limiting
+    was        = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+
+    yield
+  ensure
+    Rails.cache = was
+  end
+
   def attach_submission_files(submission)
     submission.ddbj_record.attach(
       io:           file_fixture('ddbj_record/example.json').open,

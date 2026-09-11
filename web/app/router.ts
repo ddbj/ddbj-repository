@@ -37,9 +37,14 @@ Router.map(function () {
   });
 
   // Unauthenticated reviewer view, reached via a share link. The set is
-  // fetched by its opaque token, not by id, and nothing hangs off it —
-  // the link carries accessions, and they are the page.
-  this.route('review', { path: 'reviews/:token' });
+  // fetched by its opaque token, not by id. The link carries accessions,
+  // and the only thing under it is one of them read — never a submission,
+  // which is what the link withholds.
+  this.route('review', { path: 'reviews/:token' }, function () {
+    // What one of them says. Keyed by the accession alone — the
+    // submission it came from is what the link deliberately withholds.
+    this.route('accession', { path: 'accessions/:accession' });
+  });
 
   this.route('sets');
   this.route('set', { path: 'sets/:set_id' });

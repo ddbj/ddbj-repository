@@ -1,0 +1,37 @@
+# locals: (slice:, outline:)
+#
+# One row's subtree, laid out. Rendered by the submitter's own screen and
+# by a review link both — what a record says is the same answer whoever
+# is asking, and the two screens differ only in what they put beside it.
+{
+  # Whether the walk ran out of budget before expanding all of it. Not
+  # every truncation: a table cut at its row limit says so on the table,
+  # where the reader is. This is the one cut that has no line of its own.
+  elided: outline.elided?,
+
+  # Why there is nothing to show, when there is nothing to show. Null
+  # when the record was read: an accession whose subtree is genuinely
+  # empty and one whose record cannot be opened are different answers,
+  # and a screen that draws both as a blank panel is telling the second
+  # one as the first.
+  unavailable_reason: slice.unavailable_reason,
+
+  sections: outline.sections.map {|section|
+    {
+      key: section.key,
+
+      # Whether it opens folded. Decided by how tall it draws rather than
+      # by which key it is — folding `samples` by name would miss a
+      # `sequences` just as tall and fold a `samples` of three rows.
+      folded: section.folded?,
+
+      # What a folded section says about itself, so that closing it does
+      # not also hide what it is. Only when folded: over an open section
+      # it restates what is drawn underneath it, and computing it for
+      # every node of a large record is most of the time the layout takes.
+      precis: section.folded? ? section.node.precis : nil,
+
+      node: render('records/node', node: section.node)
+    }
+  }
+}
