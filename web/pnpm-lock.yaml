@@ -90,8 +90,8 @@ importers:
         specifier: ^4.0.9
         version: 4.0.9
       '@warp-drive/build-config':
-        specifier: 5.8.2
-        version: 5.8.2(@babel/core@7.29.7(supports-color@10.2.2))(@glint/template@1.9.0)(supports-color@10.2.2)
+        specifier: 5.9.1
+        version: 5.9.1(@babel/core@7.29.7(supports-color@10.2.2))(@glint/template@1.9.0)(supports-color@10.2.2)
       '@warp-drive/core':
         specifier: 5.8.2
         version: 5.8.2(@babel/core@7.29.7(supports-color@10.2.2))(@glint/template@1.9.0)(supports-color@10.2.2)
