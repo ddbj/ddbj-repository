@@ -18,10 +18,13 @@ module StorageFailure
   # of them mean the same thing to a caller, and enumerating them is how
   # the next one gets missed.
   #
-  # This does NOT catch a genuinely absent object: ActiveStorage converts
-  # `NoSuchKey` into `ActiveStorage::FileNotFoundError` before it gets
-  # here, which is exactly the per-record fact that should not stop a
-  # sweep.
+  # That includes an object that is genuinely absent. ActiveStorage
+  # converts `NoSuchKey` into `ActiveStorage::FileNotFoundError` inside a
+  # `rescue`, so the original survives as `cause` and the walk below finds
+  # it. That is deliberate: from here "the patch blobs of this chain are
+  # gone" cannot be told from "the store lost them", and reading it as a
+  # per-record absence lets a sweep treat every chain as empty and rebuild
+  # the corpus from D-way. Stopping costs one wasted run.
   ERRORS = [
     Aws::S3::Errors::ServiceError,
     Seahorse::Client::NetworkingError

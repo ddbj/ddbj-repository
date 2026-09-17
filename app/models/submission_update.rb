@@ -16,8 +16,8 @@ class SubmissionUpdate < ApplicationRecord
 
   belongs_to :submission, inverse_of: :updates
 
-  # Patch JSON lives in object storage (SeaweedFS in production, Disk in
-  # test) so it can exceed Postgres bytea's ~1GB practical ceiling — see
+  # Patch JSON lives in object storage (SeaweedFS) so it can exceed
+  # Postgres bytea's ~1GB practical ceiling — see
   # [[project-submission-update-patch-size-ceiling]]. `dependent:
   # :purge_later` (the default) cleans up the blob when the row is
   # destroyed.

@@ -7,9 +7,10 @@ require 'test_helper'
 # history read as empty and be overwritten from the source.
 #
 # Written after a change that moved the line and could not be seen to
-# have moved it: the test suite runs on Disk storage, which never
+# have moved it: the test suite ran on Disk storage then, which never
 # produces the chain S3 produces, so the case that flipped was reachable
-# by nothing.
+# by nothing. It runs on S3 now, and the tests that delete an object out
+# from under a record meet the real chain; these pin the rule itself.
 class StorageFailureTest < ActiveSupport::TestCase
   test 'a store that is not answering is one' do
     assert StorageFailure === Aws::S3::Errors::ServiceUnavailable.new(nil, 'down')

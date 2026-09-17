@@ -228,9 +228,11 @@ echo 's3.configure -user=repository -buckets=repository -actions=Read,Write,List
 ```
 
 The tests use the same instance, through a bucket and an identity of their
-own. The suite writes and deletes freely, so it must not hold keys that reach
-the development bucket: with its own identity, a test pointed at the wrong
-bucket is refused rather than let loose on the development data.
+own. The suite writes to storage and removes what it wrote when it finishes,
+so it must not hold keys that reach the development bucket: with its own
+identity, a test pointed at the wrong bucket is refused rather than let loose
+on the development data. CI creates the same bucket and identity
+(`.github/actions/seaweedfs`).
 
 ```sh
 echo 's3.bucket.create -name repository-test' | weed shell
@@ -247,6 +249,7 @@ live in `config/seaweedfs.yml`.
 
 Without the keys the AWS SDK works its way down to the EC2 metadata service, so
 a timeout against 169.254.169.254 is the environment talking, not the instance.
+The test suite checks for its keys before it starts and says which are missing.
 
 ### Setup
 

@@ -5,9 +5,10 @@ development:
   secret_key: <%= ENV['SEAWEEDFS_SECRET_KEY'] %>
 
 # A bucket of its own and an identity that reaches only it. The suite writes
-# and deletes freely, so the same keys as development would be one wrong
-# bucket name away from the development data; with these, that mistake is a
-# 403. CI runs an instance with no identities, where any keys will do.
+# to storage and deletes what it wrote, so the same keys as development would
+# be one wrong bucket name away from the development data; with these, that
+# mistake is a 403. CI creates the same bucket and identity
+# (.github/actions/seaweedfs).
 test:
   endpoint:   <%= ENV.fetch('SEAWEEDFS_TEST_ENDPOINT', 'http://localhost:8333') %>
   bucket:     repository-test

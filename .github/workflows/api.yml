@@ -33,11 +33,10 @@ jobs:
       RAILS_ENV: test
       TZ: Asia/Tokyo
 
-      # The instance below has no identities, so any keys pass. They still
-      # have to be set: without them the AWS SDK goes looking for EC2
-      # instance metadata, and the first upload times out on that instead.
-      SEAWEEDFS_TEST_ACCESS_KEY: test
-      SEAWEEDFS_TEST_SECRET_KEY: test
+      # Made up, and made real by .github/actions/seaweedfs, which creates the
+      # test identity with exactly these.
+      SEAWEEDFS_TEST_ACCESS_KEY: repository-test
+      SEAWEEDFS_TEST_SECRET_KEY: repository-test-secret
 
     steps:
       - name: Install libvips
@@ -52,15 +51,7 @@ jobs:
       # The same object storage the application runs on, rather than Active
       # Storage's Disk service: multipart uploads and presigned URLs are part
       # of what is under test, and Disk has neither.
-      #
-      # A step rather than a service container, because a service cannot be
-      # given a command and the image needs `server -s3`. The same tag as the
-      # accessory in config/deploy.yml, so the suite runs on what is deployed.
-      - name: Start SeaweedFS
-        run: |
-          docker run --detach --name seaweedfs --publish 8333:8333 chrislusf/seaweedfs:4.47 server -s3 -s3.port=8333 -volume.max=0
-          timeout 60 sh -c 'until curl --silent --fail http://localhost:8333/status > /dev/null; do sleep 1; done'
-          docker exec seaweedfs sh -c "echo 's3.bucket.create -name repository-test' | weed shell"
+      - uses: ./.github/actions/seaweedfs
 
       - run: bin/rails db:test:prepare
 

@@ -75,14 +75,4 @@ class StorageHealthcheckJobTest < ActiveJob::TestCase
 
     assert_empty reports
   end
-
-  # Disk storage in development has no bucket to ask about, and is not a
-  # thing that goes away without somebody noticing.
-  test 'a service with no bucket is left alone' do
-    reports = capture_error_reports {
-      ActiveStorage::Blob.stub(:service, Object.new) { StorageHealthcheckJob.perform_now }
-    }
-
-    assert_empty reports
-  end
 end

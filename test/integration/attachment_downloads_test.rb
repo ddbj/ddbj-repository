@@ -222,15 +222,17 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
 
   private
 
-  # What matters is that the answer sends the caller somewhere else to do
-  # the actual reading — not which backend does it. The test environment
-  # stores blobs on disk; staging and production hand out signed
-  # SeaweedFS URLs, and this assertion has to hold for both.
+  # The answer sends the caller to the object store to do the reading, with
+  # a signature that stops working. Checked against the store the suite runs
+  # on — the same S3 the other environments hand out URLs for — so "short
+  # -lived" is a property of the URL rather than of the comment above it.
   def assert_storage_url(url)
-    uri = URI.parse(url)
+    uri      = URI.parse(url)
+    endpoint = URI.parse(Rails.application.config_for(:seaweedfs).endpoint)
+    query    = URI.decode_www_form(uri.query.to_s).to_h
 
-    assert uri.absolute?, "#{url} is not somewhere to go"
-    assert_not_equal request.path, uri.path, 'it pointed back at itself'
+    assert_equal [endpoint.host, endpoint.port], [uri.host, uri.port], "#{url} is not the object store"
+    assert_equal ActiveStorage.service_urls_expire_in.to_i.to_s, query['X-Amz-Expires'], 'the signature has to expire'
   end
 
   # What the layout hands the browser, which is where the uploader's own

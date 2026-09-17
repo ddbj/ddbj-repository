@@ -56,11 +56,9 @@ module Repository
     # the record the route names is what authorises the read and every
     # request re-asks. See AttachmentDownload.
     #
-    # What is redrawn below (config/routes.rb) is the two things turning
-    # these off would otherwise take with them: direct uploads, which
-    # every upload in the application depends on, and the Disk service's
-    # own endpoints, which are how `blob.url` resolves wherever the
-    # service is Disk rather than S3 — the test environment.
+    # What is redrawn below (config/routes.rb) is the one thing turning
+    # these off would otherwise take with it: direct uploads, which every
+    # upload of something other than a data file depends on.
     config.active_storage.draw_routes = false
 
     # Use the project-owned MailDeliveryJob subclass so mail-only retry
