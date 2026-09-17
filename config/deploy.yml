@@ -76,6 +76,15 @@ accessories:
     options:
       user: 2233:11370
 
+      # How long `docker container stop` — which is all `kamal accessory stop`
+      # and `reboot` run, with no timeout of their own — waits before it
+      # SIGKILLs. Docker's default is 10 s, and SeaweedFS takes about 21 to stop
+      # cleanly: the volume server stops heartbeating and then deliberately
+      # waits 10 s before closing. Until the entrypoint forwarded the signal
+      # the server was never asked to stop, and was SIGKILLed while running;
+      # with it but without this, it would be SIGKILLed halfway through.
+      stop-timeout: 60
+
     files:
       - docker/seaweedfs/entrypoint.sh:/entrypoint.sh
       - docker/seaweedfs/s3.production.json.erb:/etc/seaweedfs/s3.json

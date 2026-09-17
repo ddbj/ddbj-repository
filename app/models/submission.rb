@@ -412,8 +412,8 @@ class Submission < ApplicationRecord
   #
   # ORPHAN CAVEAT: same as SubmissionUpdate.create_with_patch! — an
   # outer-transaction rollback after the synchronous SeaweedFS PUT
-  # leaves the file on storage with no DB row. Periodic unattached-blob
-  # sweep is the right long-term cleanup; not yet wired up.
+  # leaves the file on storage with no DB row, which is also why
+  # PurgeUnattachedUploadsJob cannot find it.
   def prime_cache!(bytes:, update_id:)
     blob = ActiveStorage::Blob.create_and_upload!(
       io:           StringIO.new(bytes),
