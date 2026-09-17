@@ -158,6 +158,15 @@ Rails.application.routes.draw do
     # blob id and a presigned PUT to anybody who asks.
     resource :direct_uploads, only: %i[create], controller: 'direct_uploads'
 
+    # Data files, resumable and in parts. The token is the upload's name, not a
+    # key to it: every request is authenticated as well.
+    resources :uploads, only: %i[create show destroy], param: :token, constraints: {token: %r{[^/]+}} do
+      member do
+        post :part_urls
+        post :complete
+      end
+    end
+
     resources :stats, only: %i[index]
   end
 

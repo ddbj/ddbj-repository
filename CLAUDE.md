@@ -162,6 +162,28 @@ Two consequences of that history:
   such a submission therefore rewrites the record and reports nothing skipped;
   that is the rename passing through, not a substantive change.
 
+### Data file uploads (`MultipartUpload`)
+
+Data files — records and, for DRA, reads of tens of GB — go straight to the
+object store as a resumable S3 multipart upload (`/api/uploads`). Everything
+else (message attachments and the like) stays on Active Storage's direct
+upload, which is one PUT.
+
+- **The store holds the upload's state; the application holds none.** No
+  sessions table: that was a second account of what S3 already knows (which
+  parts, whether it is open, when it began), with nothing to settle
+  disagreements. The server only signs part URLs, says who may carry an upload
+  on (a signed token naming the key, upload id and owner), and turns the
+  finished object into a Blob.
+- **The Blob's checksum is computed by reading the object**
+  (`VerifyMultipartUploadJob`), because a multipart ETag is not the MD5 of the
+  file. Until the Blob exists, the upload is `verifying`.
+- **Never abort a completed upload, and do not sweep `.uploads` with
+  `s3.clean.uploads`.** When SeaweedFS leaves an upload's directory behind
+  after completing it, both delete the finished object's data, invisibly until
+  a vacuum (seaweedfs/seaweedfs#10663). Abandoned uploads are not cleaned up
+  for that reason; decide how before relying on it.
+
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 
 Two-pass streaming:
