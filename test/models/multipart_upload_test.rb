@@ -54,8 +54,12 @@ class MultipartUploadTest < ActiveSupport::TestCase
       content_type: 't', byte_size: 1, md5: nil, started_at: Time.current.to_i
     )
 
-    decoded = carried.token.split('--').map { Base64.urlsafe_decode64(it) }
+    # Read from the start, as the payload of a signed-only token would be.
+    # Leniently and not segment by segment: `-` is in the URL-safe alphabet, so
+    # the `--` between segments can also turn up inside one, and splitting on it
+    # failed now and then.
+    decoded = carried.token.tr('-_', '+/').unpack1('m')
 
-    assert decoded.none? { it.include?('patient-0042') }, 'the filename is readable in the token'
+    assert_not decoded.include?('patient-0042'), 'the filename is readable in the token'
   end
 end
