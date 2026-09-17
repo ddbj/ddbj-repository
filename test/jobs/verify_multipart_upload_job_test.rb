@@ -57,6 +57,23 @@ class VerifyMultipartUploadJobTest < ActiveJob::TestCase
     assert_equal 'text/plain', ActiveStorage::Blob.find_by!(key: @key).content_type
   end
 
+  # A Blob saved without its attachment would be collected two days later, the
+  # file verified and then lost without a word.
+  test 'the Blob is not kept when the file cannot be attached' do
+    alice    = users(:alice)
+    refusing = Object.new.tap { it.define_singleton_method(:create!) {|**| raise ActiveRecord::RecordInvalid } }
+
+    User.stub :find_by, alice do
+      alice.stub :data_files_attachments, refusing do
+        assert_raises(ActiveRecord::RecordInvalid) do
+          VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, alice.id)
+        end
+      end
+    end
+
+    assert_nil ActiveStorage::Blob.find_by(key: @key)
+  end
+
   # Nobody to hold it, so it is what PurgeUnattachedUploadsJob is for.
   test 'the file of an account deleted meanwhile is left unattached' do
     VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, User.maximum(:id) + 1)

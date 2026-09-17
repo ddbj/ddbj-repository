@@ -20,6 +20,11 @@ class VerifyMultipartUploadJob < ApplicationJob
   retry_on Aws::S3::Errors::ServiceError, Seahorse::Client::NetworkingError, Net::ReadTimeout, Net::OpenTimeout,
            wait: :polynomially_longer, attempts: 10
 
+  # Nor is a database that could not take the result for a moment, after the
+  # whole file has been read. The read is repeated, which is the price of
+  # keeping no half-finished state between runs.
+  retry_on ActiveRecord::Deadlocked, ActiveRecord::ConnectionNotEstablished, wait: :polynomially_longer, attempts: 5
+
   def perform(key, filename, content_type, byte_size, md5, user_id)
     return if ActiveStorage::Blob.exists?(key:)
 

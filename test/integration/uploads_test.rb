@@ -279,6 +279,22 @@ class UploadsTest < ActionDispatch::IntegrationTest
     assert_equal 'rejected', response.parsed_body['state']
   end
 
+  # A curator can upload for somebody, but what they sent is theirs to discard.
+  test 'abandoning is refused while acting as another account' do
+    upload = start
+
+    default_headers['Authorization'] = "Bearer #{users(:bob).api_key}"
+    default_headers['X-Dway-User-Id'] = @alice.uid
+
+    with_exceptions_app { delete upload_path(upload['token']) }
+
+    assert_conform_schema 403
+
+    get upload_path(upload['token'])
+
+    assert_equal 'uploading', response.parsed_body['state']
+  end
+
   # Aborting the upload of a finished object can delete the object's data in
   # the store (seaweedfs/seaweedfs#10663), so it is not offered.
   test 'a completed upload cannot be abandoned' do

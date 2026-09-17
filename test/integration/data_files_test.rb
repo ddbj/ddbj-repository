@@ -25,9 +25,11 @@ class DataFilesTest < ActionDispatch::IntegrationTest
   end
 
   test 'newest first, a page at a time' do
+    # Created oldest first, so the order of ids disagrees with the order asked
+    # for.
     files = 21.times.map {|i|
-      attach_data_file_record(@alice, "reads_#{i}.fastq", created_at: i.minutes.ago)
-    }
+      attach_data_file_record(@alice, "reads_#{i}.fastq", created_at: (21 - i).minutes.ago)
+    }.reverse
 
     get data_files_path
 

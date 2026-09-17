@@ -2857,6 +2857,8 @@ export interface paths {
          *     Refused once it has been completed: aborting the upload of a finished
          *     object can delete that object's data in the store
          *     (seaweedfs/seaweedfs#10663).
+         *
+         *     Refused while acting as another account, as removing a data file is.
          */
         delete: {
             parameters: {
@@ -2877,6 +2879,7 @@ export interface paths {
                     content?: never;
                 };
                 401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
                 422: components["responses"]["UnprocessableContent"];
                 503: components["responses"]["ServiceUnavailable"];
@@ -3064,7 +3067,9 @@ export interface paths {
         /**
          * @description Take a file out of the caller's data files. The file itself is kept for
          *     as long as anything else still refers to it, and removed once nothing
-         *     does.
+         *     does — by a daily sweep of files over two days old, so a file uploaded
+         *     earlier than that can be gone within the day, and there is no undoing
+         *     this. Until then its `signed_blob_id` still names it.
          *
          *     Refused while acting as another account: a curator can upload for a
          *     submitter, but not discard what they uploaded.
