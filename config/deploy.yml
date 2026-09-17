@@ -69,6 +69,14 @@ accessories:
       app_port: 8333
       response_timeout: 600
 
+      # Responses straight through. With buffering on — Kamal's default — the
+      # proxy writes a whole object to its own disk before it sends the first
+      # header, so a download of tens of GB waits that long for its first byte
+      # and takes that much of the proxy host's disk, and a client's read
+      # timeout runs out first. Requests stay buffered, as before.
+      buffering:
+        responses: false
+
       healthcheck:
         interval: 3
         path: /status
