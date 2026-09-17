@@ -57,9 +57,10 @@ class SubmissionUpdate < ApplicationRecord
   # ORPHAN CAVEAT: if the SURROUNDING transaction (e.g. the importer's
   # `Submission.transaction`) rolls back AFTER save! returned, the blob
   # row is rolled back with it but the SeaweedFS file PUT already
-  # happened — no DB pointer remains to schedule purge. A periodic
-  # unattached-blob sweep (or `ActiveStorage::PurgeJob.set(wait:) on a
-  # post-commit hook) is the right long-term cleanup; not yet wired up.
+  # happened — no DB pointer remains to schedule purge. PurgeUnattachedUploadsJob
+  # does not reach it either: it starts from blob rows, and this leaves
+  # none. Only a sweep that lists the bucket against the rows would, and
+  # there is none.
   def self.create_with_patch!(submission:, patch_json:, **attrs)
     blob = ActiveStorage::Blob.create_and_upload!(
       io:           StringIO.new(patch_json),

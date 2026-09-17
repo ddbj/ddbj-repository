@@ -7,6 +7,15 @@ production: &production
     class: StorageHealthcheckJob
     schedule: every hour
 
+  # Blobs nothing attached — a direct upload whose request was never made, or
+  # the outputs of a write that rolled back (SubmissionOutputWriter keeps
+  # those rather than risk purging a committed row's bytes). Registered here
+  # until the move from Sidekiq, and not again until 2026-09: nothing was
+  # collected in between, and all three environments had none to collect.
+  purge_unattached_uploads:
+    class: PurgeUnattachedUploadsJob
+    schedule: at 0:30am every day
+
   # SolidQueue names a retention window for finished jobs but nothing
   # acts on it, so the table only grows — one row per job, and a bulk
   # import writes one job per submission. It only removes rows finished
