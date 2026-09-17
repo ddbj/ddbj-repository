@@ -28,8 +28,12 @@ Rails.application.configure do
   # Disable request forgery protection in test environment.
   config.action_controller.allow_forgery_protection = false
 
-  # Store uploaded files on the local file system in a temporary directory.
-  config.active_storage.service = :test
+  # The same S3 the other environments use, not a local directory. What
+  # storage does is part of what is being tested: a multipart upload, a
+  # presigned URL, a part sent twice showing up twice in ListParts — the
+  # Disk service has none of these, so a suite running on it passes over
+  # exactly the behaviour most likely to break.
+  config.active_storage.service = :seaweedfs
 
   # Tell Action Mailer not to deliver emails to the real world.
   # The :test delivery method accumulates sent emails in the

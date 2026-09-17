@@ -195,16 +195,19 @@ added as failures are classified, so the set grows.
 Neither SeaweedFS nor Keycloak is started by `bin/dev` — the application talks
 to instances running outside it. Point it at them through the environment:
 
-| Variable                 | Default                    | Notes                                    |
-| ------------------------ | -------------------------- | ---------------------------------------- |
-| `SEAWEEDFS_ACCESS_KEY`   | —                          | Access key of the `repository` identity  |
-| `SEAWEEDFS_SECRET_KEY`   | —                          | Secret key of the `repository` identity  |
-| `KEYCLOAK_URL`           | `http://localhost:8080`    | Base URL of the Keycloak instance        |
-| `KEYCLOAK_CLIENT_SECRET` | —                          | Secret of the `repository` client        |
-| `CLOAKMAN_URL`           | `https://cloakman.localhost` | Base URL of cloakman                   |
-| `CLOAKMAN_API_TOKEN`     | —                          | API token issued by cloakman             |
-| `APP_URL`                | `http://localhost:3000`    | Origin of the Rails API                  |
-| `WEB_URL`                | `http://localhost:4200`    | Origin of the Ember SPA                  |
+| Variable                    | Default                      | Notes                                                |
+| --------------------------- | ---------------------------- | ---------------------------------------------------- |
+| `SEAWEEDFS_ACCESS_KEY`      | —                            | Access key of the `repository` identity              |
+| `SEAWEEDFS_SECRET_KEY`      | —                            | Secret key of the `repository` identity              |
+| `SEAWEEDFS_TEST_ACCESS_KEY` | —                            | Access key of the `repository-test` identity (tests) |
+| `SEAWEEDFS_TEST_SECRET_KEY` | —                            | Secret key of the `repository-test` identity (tests) |
+| `SEAWEEDFS_TEST_ENDPOINT`   | `http://localhost:8333`      | SeaweedFS the tests use                              |
+| `KEYCLOAK_URL`              | `http://localhost:8080`      | Base URL of the Keycloak instance                    |
+| `KEYCLOAK_CLIENT_SECRET`    | —                            | Secret of the `repository` client                    |
+| `CLOAKMAN_URL`              | `https://cloakman.localhost` | Base URL of cloakman                                 |
+| `CLOAKMAN_API_TOKEN`        | —                            | API token issued by cloakman                         |
+| `APP_URL`                   | `http://localhost:3000`      | Origin of the Rails API                              |
+| `WEB_URL`                   | `http://localhost:4200`      | Origin of the Ember SPA                              |
 
 These are read from the process environment. Rails loads no `.env` here — the
 `dotenv` in `Gemfile.lock` is Kamal's — so they have to reach the shell that
@@ -222,6 +225,17 @@ both once, on the machine the instance runs on:
 echo 's3.bucket.create -name repository' | weed shell
 
 echo 's3.configure -user=repository -buckets=repository -actions=Read,Write,List -access_key=<access key> -secret_key=<secret key> -apply' | weed shell
+```
+
+The tests use the same instance, through a bucket and an identity of their
+own. The suite writes and deletes freely, so it must not hold keys that reach
+the development bucket: with its own identity, a test pointed at the wrong
+bucket is refused rather than let loose on the development data.
+
+```sh
+echo 's3.bucket.create -name repository-test' | weed shell
+
+echo 's3.configure -user=repository-test -buckets=repository-test -actions=Read,Write,List -access_key=<access key> -secret_key=<secret key> -apply' | weed shell
 ```
 
 Files are uploaded to the instance directly by the browser, so it answers the
