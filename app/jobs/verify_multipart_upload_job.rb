@@ -20,7 +20,7 @@ class VerifyMultipartUploadJob < ApplicationJob
   retry_on Aws::S3::Errors::ServiceError, Seahorse::Client::NetworkingError, Net::ReadTimeout, Net::OpenTimeout,
            wait: :polynomially_longer, attempts: 10
 
-  def perform(key, filename, content_type, byte_size, md5)
+  def perform(key, filename, content_type, byte_size, md5, user_id)
     return if ActiveStorage::Blob.exists?(key:)
 
     service = ActiveStorage::Blob.service
@@ -47,14 +47,21 @@ class VerifyMultipartUploadJob < ApplicationJob
 
     return reject(key) if md5 && digest.hexdigest != md5.downcase
 
-    ActiveStorage::Blob.create!(
-      key:,
-      filename:,
-      content_type:,
-      byte_size:,
-      checksum:     digest.base64digest,
-      service_name: service.name
-    )
+    # Into the uploader's data files in the same commit, so the Blob is never
+    # unattached for PurgeUnattachedUploadsJob to find. An account deleted in
+    # the meantime leaves it unattached, which is what should collect it.
+    ActiveRecord::Base.transaction do
+      blob = ActiveStorage::Blob.create!(
+        key:,
+        filename:,
+        content_type:,
+        byte_size:,
+        checksum:     digest.base64digest,
+        service_name: service.name
+      )
+
+      User.find_by(id: user_id)&.data_files&.attach(blob)
+    end
   rescue ActiveRecord::RecordNotUnique
     # Completed twice, verified twice; the first Blob stands.
   end

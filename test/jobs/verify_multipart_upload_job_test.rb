@@ -16,7 +16,7 @@ class VerifyMultipartUploadJobTest < ActiveJob::TestCase
   test 'a store that cannot be read right now is tried again, and the object kept' do
     ActiveStorage::Blob.service.stub(:download, ->(*) { raise Seahorse::Client::NetworkingError, SocketError.new('down') }) do
       assert_enqueued_with(job: VerifyMultipartUploadJob) do
-        VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil)
+        VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, users(:alice).id)
       end
     end
 
@@ -26,18 +26,26 @@ class VerifyMultipartUploadJobTest < ActiveJob::TestCase
 
   # Completing twice queues this twice; the second finds the work done.
   test 'a second run after the Blob exists does nothing' do
-    VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil)
+    VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, users(:alice).id)
 
     assert_no_difference('ActiveStorage::Blob.count') do
-      VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil)
+      VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, users(:alice).id)
     end
+  end
+
+  # Attached as it is created, so it is never a blob nobody attached — which is
+  # what PurgeUnattachedUploadsJob removes after two days.
+  test 'a verified file goes straight into the uploader\'s data files' do
+    VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, users(:alice).id)
+
+    assert_equal [@key], users(:alice).data_files.blobs.pluck(:key)
   end
 
   # Rejected by an earlier run: the object is gone, and that is not a failure.
   test 'a run after the object was rejected ends quietly' do
     MultipartUpload.client.delete_object(bucket: MultipartUpload.bucket, key: @key)
 
-    assert_nothing_raised { VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil) }
+    assert_nothing_raised { VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, users(:alice).id) }
     assert_nil ActiveStorage::Blob.find_by(key: @key)
   end
 end

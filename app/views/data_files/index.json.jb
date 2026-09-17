@@ -1,0 +1,19 @@
+# A data file as its owner lists it. The attachment's id is what removes it
+# from the list; the blob's signed id is what names it anywhere else.
+@files.map {|attachment|
+  blob = attachment.blob
+
+  {
+    id:             attachment.id,
+    filename:       blob.filename.to_s,
+    content_type:   blob.content_type,
+    byte_size:      blob.byte_size,
+
+    # Hexadecimal, the way the file's MD5 is written everywhere a person or a
+    # metadata file states one; the Blob keeps it in base64.
+    md5:            blob.checksum.unpack1('m0').unpack1('H*'),
+
+    signed_blob_id: blob.signed_id,
+    created_at:     attachment.created_at
+  }
+}

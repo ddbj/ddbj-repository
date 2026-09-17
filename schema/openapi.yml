@@ -2757,7 +2757,8 @@ paths:
 
         `verifying` follows completion while the server reads the finished
         object through to compute its MD5 — minutes, for a file of tens of GB.
-        `ready` carries the `signed_blob_id` that attaches the file. `rejected`
+        `ready` means the file is in the uploader's `/data_files`, and carries
+        its `signed_blob_id`. `rejected`
         means the finished object did not match its declared size or MD5 and
         was removed, or the upload is gone.
 
@@ -2951,6 +2952,76 @@ paths:
 
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
+
+  /data_files:
+    get:
+      description: |
+        The caller's data files: uploaded through `/uploads`, verified, and
+        waiting to be named in a submission. Newest first, a page at a time.
+
+      tags:
+        - Uploads
+
+      parameters:
+        - name: page
+          in: query
+
+          schema:
+            type: number
+
+      responses:
+        '200':
+          description: One page of the caller's data files.
+
+          headers:
+            Total-Pages:
+              schema:
+                type: string
+
+          content:
+            application/json:
+              schema:
+                type: array
+
+                items:
+                  $ref: '#/components/schemas/DataFile'
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /data_files/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+
+        schema:
+          type: integer
+
+    delete:
+      description: |
+        Take a file out of the caller's data files. The file itself is kept for
+        as long as a submission still refers to it, and removed once nothing
+        does.
+
+        Refused while acting as another account: a curator can upload for a
+        submitter, but not discard what they uploaded.
+
+      tags:
+        - Uploads
+
+      responses:
+        '204':
+          description: No longer among the caller's data files.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /stats:
     get:
@@ -4593,6 +4664,40 @@ components:
         - applied
         - application_failed
         - no_change
+
+    DataFile:
+      description: A verified data file the caller has uploaded. See `/data_files`.
+      type: object
+      additionalProperties: false
+      required: [id, filename, content_type, byte_size, md5, signed_blob_id, created_at]
+
+      properties:
+        id:
+          description: Removes it from the caller's data files.
+          type: integer
+
+        filename:
+          type: string
+
+        content_type:
+          type:
+            - string
+            - 'null'
+
+        byte_size:
+          type: integer
+
+        md5:
+          description: The MD5 of the file as stored, in hexadecimal.
+          type: string
+
+        signed_blob_id:
+          description: Names the file wherever it is used.
+          type: string
+
+        created_at:
+          type: string
+          format: date-time
 
     Upload:
       description: A resumable upload of one data file. See `/uploads`.

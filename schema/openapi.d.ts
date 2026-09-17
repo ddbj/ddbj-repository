@@ -2816,7 +2816,8 @@ export interface paths {
          *
          *     `verifying` follows completion while the server reads the finished
          *     object through to compute its MD5 — minutes, for a file of tens of GB.
-         *     `ready` carries the `signed_blob_id` that attaches the file. `rejected`
+         *     `ready` means the file is in the uploader's `/data_files`, and carries
+         *     its `signed_blob_id`. `rejected`
          *     means the finished object did not match its declared size or MD5 and
          *     was removed, or the upload is gone.
          *
@@ -2999,6 +3000,97 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data_files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The caller's data files: uploaded through `/uploads`, verified, and
+         *     waiting to be named in a submission. Newest first, a page at a time.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description One page of the caller's data files. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DataFile"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/data_files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Take a file out of the caller's data files. The file itself is kept for
+         *     as long as a submission still refers to it, and removed once nothing
+         *     does.
+         *
+         *     Refused while acting as another account: a curator can upload for a
+         *     submitter, but not discard what they uploaded.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No longer among the caller's data files. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3732,6 +3824,20 @@ export interface components {
         CurationStatus: "submission_accepted" | "curating" | "accession_issued" | "private" | "public" | "withdrawn" | "canceled" | "permanently_suppressed" | "temporarily_suppressed";
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
+        /** @description A verified data file the caller has uploaded. See `/data_files`. */
+        DataFile: {
+            /** @description Removes it from the caller's data files. */
+            id: number;
+            filename: string;
+            content_type: string | null;
+            byte_size: number;
+            /** @description The MD5 of the file as stored, in hexadecimal. */
+            md5: string;
+            /** @description Names the file wherever it is used. */
+            signed_blob_id: string;
+            /** Format: date-time */
+            created_at: string;
+        };
         /** @description A resumable upload of one data file. See `/uploads`. */
         Upload: {
             token: string;

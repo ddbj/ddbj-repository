@@ -157,7 +157,7 @@ class MultipartUpload
         multipart_upload: {parts: etags.sort_by(&:first).map {|number, etag| {part_number: number, etag:} }}
       )
 
-      VerifyMultipartUploadJob.perform_later(key, filename, content_type, byte_size, md5)
+      VerifyMultipartUploadJob.perform_later(key, filename, content_type, byte_size, md5, user_id)
     end
   end
 
