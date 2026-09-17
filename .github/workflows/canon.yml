@@ -37,6 +37,10 @@ jobs:
       RAILS_ENV: test
       TZ: Asia/Tokyo
 
+      # See .github/actions/seaweedfs.
+      SEAWEEDFS_TEST_ACCESS_KEY: repository-test
+      SEAWEEDFS_TEST_SECRET_KEY: repository-test-secret
+
     steps:
       - name: Install libvips
         run: sudo apt-get install --update --assume-yes --no-install-recommends libvips42
@@ -48,6 +52,10 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+
+      # Not for anything canonicalisation stores: a global setup in
+      # test/test_helper.rb attaches to a fixture before every test.
+      - uses: ./.github/actions/seaweedfs
 
       - run: bin/rails db:test:prepare
 
@@ -84,6 +92,10 @@ jobs:
       RAILS_ENV: test
       TZ: Asia/Tokyo
 
+      # See .github/actions/seaweedfs.
+      SEAWEEDFS_TEST_ACCESS_KEY: repository-test
+      SEAWEEDFS_TEST_SECRET_KEY: repository-test-secret
+
     steps:
       - name: Install libvips
         run: |
@@ -107,6 +119,10 @@ jobs:
 
       - name: Expose Python interpreter to the cross-lang test
         run: echo "DDBJ_CANON_PY=$(which python)" >> "$GITHUB_ENV"
+
+      # Not for anything canonicalisation stores: a global setup in
+      # test/test_helper.rb attaches to a fixture before every test.
+      - uses: ./.github/actions/seaweedfs
 
       - run: bin/rails db:test:prepare
 

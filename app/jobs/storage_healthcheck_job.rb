@@ -35,13 +35,7 @@ class StorageHealthcheckJob < ApplicationJob
   TIMEOUTS = {http_open_timeout: 5, http_read_timeout: 5, retry_limit: 0}.freeze
 
   def perform
-    service = ActiveStorage::Blob.service
-
-    # Only the S3-backed services can be asked this. Disk storage in
-    # development is not a thing that goes away without being noticed.
-    return unless service.respond_to?(:bucket)
-
-    bucket = service.bucket
+    bucket = ActiveStorage::Blob.service.bucket
 
     self.class.probe_client(bucket.client.config).head_bucket(bucket: bucket.name)
 

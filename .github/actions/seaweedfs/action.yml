@@ -1,0 +1,33 @@
+name: SeaweedFS
+description: The object storage the Ruby tests run on, shaped like the development instance.
+
+# Every Ruby test needs it, not only the ones about storage: a global setup in
+# test/test_helper.rb attaches a patch to a fixture before each test. So every
+# workflow that runs `bin/rails test` starts one of these.
+#
+# The same tag as the accessory in config/deploy.yml, so the suite runs on what
+# is deployed. A step rather than a service container, because a service cannot
+# be given a command and the image needs `server -s3`.
+#
+# With an identity, like the development instance. An instance with none does
+# not check signatures at all — not the key, not the clock, not a presigned
+# URL's expiry — so a test that is right to fail locally would pass here.
+#
+# Expects SEAWEEDFS_TEST_ACCESS_KEY and SEAWEEDFS_TEST_SECRET_KEY in the job's
+# environment: the identity is created with them, and the tests sign with them.
+
+runs:
+  using: composite
+
+  steps:
+    - name: Start SeaweedFS
+      shell: bash
+      run: |
+        docker run --detach --name seaweedfs --publish 8333:8333 chrislusf/seaweedfs:4.47 server -s3 -s3.port=8333 -volume.max=0
+        timeout 60 sh -c 'until curl --silent --fail http://localhost:8333/status > /dev/null; do sleep 1; done'
+
+    - name: Create the test bucket and identity
+      shell: bash
+      run: |
+        docker exec seaweedfs sh -c "echo 's3.bucket.create -name repository-test' | weed shell"
+        docker exec seaweedfs sh -c "echo 's3.configure -user=repository-test -buckets=repository-test -actions=Read,Write,List -access_key=$SEAWEEDFS_TEST_ACCESS_KEY -secret_key=$SEAWEEDFS_TEST_SECRET_KEY -apply' | weed shell"

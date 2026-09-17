@@ -1,4 +1,13 @@
 ENV['RAILS_ENV'] ||= 'test'
+
+# The suite stores files in SeaweedFS (config/seaweedfs.yml). Without keys the
+# AWS SDK goes looking for EC2 instance metadata, and WebMock stops that with
+# an error about 169.254.169.254 — which names neither SeaweedFS nor the
+# variables that are missing.
+if ENV['SEAWEEDFS_TEST_ACCESS_KEY'].to_s.empty? || ENV['SEAWEEDFS_TEST_SECRET_KEY'].to_s.empty?
+  abort 'Set SEAWEEDFS_TEST_ACCESS_KEY and SEAWEEDFS_TEST_SECRET_KEY: the tests store files in SeaweedFS. See "SeaweedFS" in README.md.'
+end
+
 require_relative '../config/environment'
 require 'rails/test_help'
 require 'webmock/minitest'
@@ -6,6 +15,27 @@ require 'minitest/mock'
 require 'minitest-default_http_header'
 
 WebMock.disable_net_connect! allow_localhost: true
+
+# What the suite put in the bucket, taken back out when it finishes. Each
+# test's rows roll back with its transaction but its objects do not, and
+# `purge_later` never runs under the test adapter — so the bucket only grew,
+# and held 7,254 objects when this was written.
+#
+# The keys this run wrote, not the whole bucket: two runs at once (two
+# terminals, say) share it, and emptying it would take objects the other is
+# about to read. What a test PUTs straight to a presigned URL does not pass
+# through the service and is not collected here.
+uploaded_keys = Concurrent::Array.new
+
+ActiveSupport::Notifications.subscribe('service_upload.active_storage') {|*, payload| uploaded_keys << payload[:key] }
+
+Minitest.after_run do
+  bucket = ActiveStorage::Blob.service.bucket
+
+  uploaded_keys.uniq.each_slice(1000) do |keys|
+    bucket.delete_objects(delete: {objects: keys.map { {key: it} }, quiet: true})
+  end
+end
 
 # Every admin view links the compiled stylesheet, and Propshaft raises
 # when it is missing — so a clean checkout fails with a hundred template

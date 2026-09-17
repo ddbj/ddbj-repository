@@ -16,13 +16,6 @@
 module AttachmentDownload
   extend ActiveSupport::Concern
 
-  included do
-    # What tells the Disk service which host to build its URLs against.
-    # Active Storage's own controllers get it from here too; ours are not
-    # its controllers, so they have to ask for it.
-    include ActiveStorage::SetCurrent
-  end
-
   private
 
   # Takes whatever the caller has in hand — a `has_one_attached` proxy, one

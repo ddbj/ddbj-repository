@@ -33,6 +33,11 @@ jobs:
       RAILS_ENV: test
       TZ: Asia/Tokyo
 
+      # Made up, and made real by .github/actions/seaweedfs, which creates the
+      # test identity with exactly these.
+      SEAWEEDFS_TEST_ACCESS_KEY: repository-test
+      SEAWEEDFS_TEST_SECRET_KEY: repository-test-secret
+
     steps:
       - name: Install libvips
         run: sudo apt-get install --update --assume-yes --no-install-recommends libvips42
@@ -42,6 +47,11 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+
+      # The same object storage the application runs on, rather than Active
+      # Storage's Disk service: multipart uploads and presigned URLs are part
+      # of what is under test, and Disk has neither.
+      - uses: ./.github/actions/seaweedfs
 
       - run: bin/rails db:test:prepare
 

@@ -88,6 +88,12 @@ Python `rfc8785` so `cross_lang_jcs_test.rb` actually runs instead of
 skipping. Keeping the Python toolchain out of the API test job is the
 reason it is a separate workflow.
 
+Every job that runs Ruby tests needs SeaweedFS, including Canon's — the
+test environment stores files in S3 like the others, and a global setup
+attaches to a fixture before each test. `.github/actions/seaweedfs` starts
+it with the bucket and identity the tests expect; use it rather than
+another copy of the commands.
+
 ## Key Architecture
 
 ### DDBJRecord Parsing (Streaming)

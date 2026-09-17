@@ -350,16 +350,5 @@ Rails.application.routes.draw do
     !req.xhr? && req.format.html?
   }
 
-  # The Disk service's own endpoints, redrawn because
-  # `active_storage.draw_routes` took them with the blob routes — and
-  # `blob.url` resolves through them wherever the service is Disk rather
-  # than S3, which is the test environment. Their tokens are Active
-  # Storage's own, minted per request and short-lived; there is nothing
-  # here to authenticate against and nothing durable to hold.
-  scope :rails do
-    get 'active_storage/disk/:encoded_key/*filename' => 'active_storage/disk#show', as: :rails_disk_service
-    put 'active_storage/disk/:encoded_token'         => 'active_storage/disk#update', as: :update_rails_disk_service
-  end
-
   get 'up' => 'rails/health#show', as: :rails_health_check
 end

@@ -3,18 +3,25 @@ require 'test_helper'
 class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
 
-  # example.json names no locus_date, so applying it stamps the day the
+  # example.json names no locus_date, so applying it would stamp the day the
   # suite runs on. Every test below then asks for a date that has to differ
   # from it — and on the day the two coincide the run has nothing to write,
   # skips, and the assertions read that no-op as the behaviour under test.
   # That is how this file went green for months and failed on 2026-09-01.
+  #
+  # So the record names the date, the way a publication does, rather than the
+  # clock being stopped. Stopping it was the first fix, and it broke the day
+  # storage became real S3: requests are signed with the stopped time, and a
+  # signature three months old is refused as skewed.
   setup do
-    travel_to Time.zone.local(2026, 6, 15, 12)
+    record = JSON.parse(file_fixture('ddbj_record/example.json').read)
+
+    record['sequences']['entries'].each { it['locus_date'] = '2026-06-15' }
 
     request = SubmissionRequest.new(user: users(:alice), db: 'st26')
 
     request.ddbj_record.attach(
-      io:           file_fixture('ddbj_record/example.json').open,
+      io:           StringIO.new(JSON.generate(record)),
       filename:     'example.json',
       content_type: 'application/json'
     )

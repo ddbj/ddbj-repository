@@ -56,7 +56,12 @@ accessories:
         TZ: Asia/Tokyo
 
   seaweedfs:
-    image: chrislusf/seaweedfs
+    # Pinned, and the same tag as CI's. Left unpinned, each environment ran
+    # whatever was newest the last time its accessory happened to boot — for
+    # a credential rotation as often as for an upgrade. On 2026-09-17 that
+    # was production 4.40, dev 4.34 and staging 4.16: the environment meant to
+    # show what production will do was the oldest of the three.
+    image: chrislusf/seaweedfs:4.47
 
     cmd: /entrypoint.sh
 
