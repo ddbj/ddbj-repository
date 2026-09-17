@@ -54,12 +54,11 @@ jobs:
       # of what is under test, and Disk has neither.
       #
       # A step rather than a service container, because a service cannot be
-      # given a command and the image needs `server -s3`. The tag is pinned
-      # here although production's is not: CI pulls on every run, so an
-      # unpinned image here changes under the suite without anyone deciding to.
+      # given a command and the image needs `server -s3`. The same tag as the
+      # accessory in config/deploy.yml, so the suite runs on what is deployed.
       - name: Start SeaweedFS
         run: |
-          docker run --detach --name seaweedfs --publish 8333:8333 chrislusf/seaweedfs:4.46 server -s3 -s3.port=8333 -volume.max=0
+          docker run --detach --name seaweedfs --publish 8333:8333 chrislusf/seaweedfs:4.47 server -s3 -s3.port=8333 -volume.max=0
           timeout 60 sh -c 'until curl --silent --fail http://localhost:8333/status > /dev/null; do sleep 1; done'
           docker exec seaweedfs sh -c "echo 's3.bucket.create -name repository-test' | weed shell"
 
