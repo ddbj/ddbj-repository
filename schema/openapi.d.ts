@@ -2727,6 +2727,283 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Start a resumable upload of one data file. The file is sent straight to
+         *     the object store in parts, through URLs signed here; see the operations
+         *     below. For anything that is not a data file, `/direct_uploads` remains
+         *     the way: one PUT and nothing to resume.
+         *
+         *     The store keeps the upload's state. What comes back is a `token` that
+         *     names the upload in the operations below — not a credential on its
+         *     own, since every request is authenticated and somebody else's token is
+         *     a 404. It is usable for seven days from the start, and using it does not
+         *     extend that; after it the upload has to be started again. The token is
+         *     opaque and encrypted.
+         *
+         *     The server decides the part size: at least 16 MiB, and larger for a
+         *     file that would otherwise need more than the store's 10,000 parts.
+         *
+         *     `md5` is optional. Given, the finished object is checked against it and
+         *     rejected if it differs; either way the server computes the MD5 of what
+         *     the store holds, and that becomes the file's checksum.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        upload: {
+                            /** @description At most 255 bytes, which is fewer characters for a name that is not ASCII. */
+                            filename: string;
+                            /** @description At most 255 bytes. `application/octet-stream` when omitted. */
+                            content_type?: string;
+                            byte_size: number;
+                            /** @description The file's MD5, as 32 hexadecimal digits. */
+                            md5?: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description The upload, ready for its parts. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Upload"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                422: components["responses"]["UnprocessableContent"];
+                503: components["responses"]["ServiceUnavailable"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/uploads/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * @description Where an upload has got to. While it is `uploading`, `parts` is what
+         *     the store already has, so a client that stopped sends only the rest.
+         *     A part sent more than once is listed once per copy; the client keeps
+         *     the one whose ETag is the MD5 of what it meant to send.
+         *
+         *     `verifying` follows completion while the server reads the finished
+         *     object through to compute its MD5 — minutes, for a file of tens of GB.
+         *     `ready` carries the `signed_blob_id` that attaches the file. `rejected`
+         *     means the finished object did not match its declared size or MD5 and
+         *     was removed, or the upload is gone.
+         *
+         *     An upload that stays `verifying` has most likely had its verification
+         *     fail against the store; completing it again queues another attempt.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The upload. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Upload"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                503: components["responses"]["ServiceUnavailable"];
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * @description Abandon an upload that has not been completed, discarding its parts.
+         *     Refused once it has been completed: aborting the upload of a finished
+         *     object can delete that object's data in the store
+         *     (seaweedfs/seaweedfs#10663).
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Abandoned. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+                503: components["responses"]["ServiceUnavailable"];
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/uploads/{token}/part_urls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Signed URLs to PUT parts to, valid for an hour. At most 100 at a time.
+         *     Send each part with a `Content-MD5` header: the store then refuses a
+         *     part that arrived damaged instead of keeping it. The ETag in the
+         *     store's response is what completing the upload needs.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        part_numbers: number[];
+                    };
+                };
+            };
+            responses: {
+                /** @description One URL per part asked for. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            part_number: number;
+                            url: string;
+                        }[];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/uploads/{token}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Finish the upload with every part, each with the ETag the store gave
+         *     for it. Every part from 1 to `part_count` has to be named exactly once:
+         *     the store would accept a gap and make the wrong file of it, and a part
+         *     named twice is refused rather than one copy picked.
+         *
+         *     Safe to send again if the answer was lost, or if the upload has stayed
+         *     `verifying`; the store treats a repeated completion of the same upload
+         *     as done.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    token: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        parts: {
+                            part_number: number;
+                            etag: string;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Completed in the store, and being verified. */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Upload"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["UnprocessableContent"];
+                503: components["responses"]["ServiceUnavailable"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/stats": {
         parameters: {
             query?: never;
@@ -3455,6 +3732,23 @@ export interface components {
         CurationStatus: "submission_accepted" | "curating" | "accession_issued" | "private" | "public" | "withdrawn" | "canceled" | "permanently_suppressed" | "temporarily_suppressed";
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
+        /** @description A resumable upload of one data file. See `/uploads`. */
+        Upload: {
+            token: string;
+            /** @enum {string} */
+            state: "uploading" | "verifying" | "ready" | "rejected";
+            /** @description The size of every part but the last, in bytes. */
+            part_size: number;
+            part_count: number;
+            /** @description What the store has, while the upload is still `uploading`; empty otherwise. */
+            parts: {
+                part_number: number;
+                etag: string;
+                size: number;
+            }[];
+            /** @description Attaches the file, once it is `ready`. */
+            signed_blob_id: string | null;
+        };
         Error: {
             error: string;
         };
@@ -3489,6 +3783,15 @@ export interface components {
         };
         /** @description The requested resource could not be found. */
         NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description A service this depends on did not answer. Nothing about the request was wrong; try again shortly. */
+        ServiceUnavailable: {
             headers: {
                 [name: string]: unknown;
             };

@@ -26,7 +26,10 @@ Rambulance.setup do |config|
     # they check the shape of `files`.
     'ActiveSupport::MessageVerifier::InvalidSignature' => :bad_request,
 
-    'Validation::UnprocessableContent'             => :unprocessable_content
+    'Validation::UnprocessableContent'             => :unprocessable_content,
+
+    # The object store could not be asked; nothing about the request was wrong.
+    'UploadsController::StoreUnavailable'          => :service_unavailable
   }
 end
 
