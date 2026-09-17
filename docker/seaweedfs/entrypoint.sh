@@ -1,6 +1,18 @@
 #!/bin/sh
 set -eu
 
+# s3.json names the keys as ${SEAWEEDFS_ACCESS_KEY} and ${SEAWEEDFS_SECRET_KEY},
+# and SeaweedFS fills them in from this environment. It holds no secret because
+# it cannot: Kamal puts an accessory's files under a path without the
+# destination in it, and production, staging and dev share that home directory
+# on Lustre, so the file is one file for all three. When it held the keys, the
+# environment booted last served its keys to the other two. The environment
+# file is kept per destination.
+#
+# SeaweedFS drops a credential whose variable is empty with only a warning, and
+# then answers /status and refuses every request — so refuse to start instead.
+: "${SEAWEEDFS_ACCESS_KEY:?}" "${SEAWEEDFS_SECRET_KEY:?}"
+
 # Iceberg and Lance are catalogs SeaweedFS 4.47 starts beside S3 unless told
 # not to. Nothing here uses them, and a listener nobody uses is one more thing
 # to answer on.

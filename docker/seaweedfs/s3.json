@@ -4,8 +4,8 @@
       "name": "repository",
       "credentials": [
         {
-          "accessKey": "<%= ENV['SEAWEEDFS_ACCESS_KEY'] %>",
-          "secretKey": "<%= ENV['SEAWEEDFS_SECRET_KEY'] %>"
+          "accessKey": "${SEAWEEDFS_ACCESS_KEY}",
+          "secretKey": "${SEAWEEDFS_SECRET_KEY}"
         }
       ],
       "actions": [
