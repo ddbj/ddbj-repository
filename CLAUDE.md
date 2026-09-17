@@ -173,11 +173,17 @@ upload, which is one PUT.
   sessions table: that was a second account of what S3 already knows (which
   parts, whether it is open, when it began), with nothing to settle
   disagreements. The server only signs part URLs, says who may carry an upload
-  on (a signed token naming the key, upload id and owner), and turns the
-  finished object into a Blob.
+  on, and turns the finished object into a Blob. Who may carry it on travels in
+  a token naming the key, upload id and owner — **encrypted**, because it is in
+  the URL path and so in every log, and with an expiry fixed at the start that
+  re-issuing it does not extend. Completing and aborting take an advisory lock
+  on the key, so neither can land between the other's check and its store call.
 - **The Blob's checksum is computed by reading the object**
   (`VerifyMultipartUploadJob`), because a multipart ETag is not the MD5 of the
-  file. Until the Blob exists, the upload is `verifying`.
+  file. Until the Blob exists, the upload is `verifying`. It reads in ranges
+  (`service.download` with a block), never one GET: the storage proxy buffers
+  a whole response to disk before sending headers, so a single GET of tens of
+  GB times out before its first byte.
 - **Never abort a completed upload, and do not sweep `.uploads` with
   `s3.clean.uploads`.** When SeaweedFS leaves an upload's directory behind
   after completing it, both delete the finished object's data, invisibly until

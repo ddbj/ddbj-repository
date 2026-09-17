@@ -2745,8 +2745,9 @@ export interface paths {
          *     The store keeps the upload's state. What comes back is a `token` that
          *     names the upload in the operations below — not a credential on its
          *     own, since every request is authenticated and somebody else's token is
-         *     a 404. It stays usable for seven days from the start, the same window
-         *     in which the store keeps an unfinished upload.
+         *     a 404. It is usable for seven days from the start, and using it does not
+         *     extend that; after it the upload has to be started again. The token is
+         *     opaque and encrypted.
          *
          *     The server decides the part size: at least 16 MiB, and larger for a
          *     file that would otherwise need more than the store's 10,000 parts.
@@ -2766,7 +2767,9 @@ export interface paths {
                 content: {
                     "application/json": {
                         upload: {
+                            /** @description At most 255 bytes, which is fewer characters for a name that is not ASCII. */
                             filename: string;
+                            /** @description At most 255 bytes. `application/octet-stream` when omitted. */
                             content_type?: string;
                             byte_size: number;
                             /** @description The file's MD5, as 32 hexadecimal digits. */
@@ -2787,6 +2790,7 @@ export interface paths {
                 };
                 401: components["responses"]["Unauthorized"];
                 422: components["responses"]["UnprocessableContent"];
+                503: components["responses"]["ServiceUnavailable"];
             };
         };
         delete?: never;
@@ -2815,6 +2819,9 @@ export interface paths {
          *     `ready` carries the `signed_blob_id` that attaches the file. `rejected`
          *     means the finished object did not match its declared size or MD5 and
          *     was removed, or the upload is gone.
+         *
+         *     An upload that stays `verifying` has most likely had its verification
+         *     fail against the store; completing it again queues another attempt.
          */
         get: {
             parameters: {
@@ -2838,6 +2845,7 @@ export interface paths {
                 };
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
+                503: components["responses"]["ServiceUnavailable"];
             };
         };
         put?: never;
@@ -2869,6 +2877,7 @@ export interface paths {
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
                 422: components["responses"]["UnprocessableContent"];
+                503: components["responses"]["ServiceUnavailable"];
             };
         };
         options?: never;
@@ -2946,11 +2955,13 @@ export interface paths {
         put?: never;
         /**
          * @description Finish the upload with every part, each with the ETag the store gave
-         *     for it. Every part from 1 to `part_count` has to be named once: the
-         *     store would accept a gap and make the wrong file of it.
+         *     for it. Every part from 1 to `part_count` has to be named exactly once:
+         *     the store would accept a gap and make the wrong file of it, and a part
+         *     named twice is refused rather than one copy picked.
          *
-         *     Safe to send again if the answer was lost; the store treats a repeated
-         *     completion of the same upload as done.
+         *     Safe to send again if the answer was lost, or if the upload has stayed
+         *     `verifying`; the store treats a repeated completion of the same upload
+         *     as done.
          */
         post: {
             parameters: {
@@ -2984,6 +2995,7 @@ export interface paths {
                 401: components["responses"]["Unauthorized"];
                 404: components["responses"]["NotFound"];
                 422: components["responses"]["UnprocessableContent"];
+                503: components["responses"]["ServiceUnavailable"];
             };
         };
         delete?: never;
@@ -3771,6 +3783,15 @@ export interface components {
         };
         /** @description The requested resource could not be found. */
         NotFound: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
+        /** @description A service this depends on did not answer. Nothing about the request was wrong; try again shortly. */
+        ServiceUnavailable: {
             headers: {
                 [name: string]: unknown;
             };

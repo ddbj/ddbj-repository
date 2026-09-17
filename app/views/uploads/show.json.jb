@@ -1,18 +1,16 @@
 # An upload as the client carries it on: what to call it by, how to cut the
 # file, and where it has got to.
-state = @upload.state
-
 {
   token:      @upload.token,
-  state:,
+  state:      @snapshot.state,
   part_size:  @upload.part_size,
   part_count: @upload.part_count,
 
   # What the store already has, so a client picking the upload up again sends
   # only the rest. Every copy of a part sent twice is listed: the client knows
   # which it meant by the MD5 of what it sent, which is the part's ETag.
-  parts: state == :uploading ? @upload.parts.map { {part_number: it.part_number, etag: it.etag, size: it.size} } : [],
+  parts: @snapshot.parts.map { {part_number: it.part_number, etag: it.etag, size: it.size} },
 
   # What attaches the file, once it is verified.
-  signed_blob_id: state == :ready ? @upload.blob.signed_id : nil
+  signed_blob_id: @snapshot.signed_blob_id
 }

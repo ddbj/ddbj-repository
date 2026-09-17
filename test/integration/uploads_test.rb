@@ -48,6 +48,11 @@ class UploadsTest < ActionDispatch::IntegrationTest
       assert_conform_schema 202
       assert_equal 'verifying', response.parsed_body['state']
 
+      # Between completion and the Blob, the state is observable on its own.
+      get upload_path(upload['token'])
+
+      assert_equal 'verifying', response.parsed_body['state']
+
       perform_enqueued_jobs
 
       get upload_path(upload['token'])
@@ -137,6 +142,112 @@ class UploadsTest < ActionDispatch::IntegrationTest
 
       assert_equal 'uploading', response.parsed_body['state']
     end
+  end
+
+  # An uppercase MD5 is the same MD5.
+  test 'a declared MD5 matches whatever case it is written in' do
+    upload = start(md5: Digest::MD5.hexdigest(@file).upcase)
+    etags  = send_parts(upload, 1 => @file)
+
+    post complete_upload_path(upload['token']), params: {parts: etags.map {|n, e| {part_number: n, etag: e} }}, as: :json
+    perform_enqueued_jobs
+
+    get upload_path(upload['token'])
+
+    assert_equal 'ready', response.parsed_body['state']
+  end
+
+  test 'a file started without a content type is stored as octet-stream' do
+    post uploads_path, params: {upload: {filename: 'reads.fastq', byte_size: @file.bytesize}}, as: :json
+
+    upload = response.parsed_body
+    @keys << MultipartUpload.encryptor.decrypt_and_verify(upload['token'], purpose: :multipart_upload).fetch('key')
+
+    etags = send_parts(upload, 1 => @file)
+
+    post complete_upload_path(upload['token']), params: {parts: etags.map {|n, e| {part_number: n, etag: e} }}, as: :json
+    perform_enqueued_jobs
+
+    assert_equal 'application/octet-stream', ActiveStorage::Blob.find_by!(key: @keys.last).content_type
+  end
+
+  # `parts` lists every copy of a part the store holds. A client that sent that
+  # list back meant one of them, and which is not for the server to guess.
+  test 'completing with a part named twice is refused' do
+    upload = start
+    etags  = send_parts(upload, 1 => @file)
+    etag   = etags.fetch(1)
+
+    with_exceptions_app do
+      post complete_upload_path(upload['token']), params: {parts: [{part_number: 1, etag:}, {part_number: 1, etag:}]}, as: :json
+    end
+
+    assert_conform_schema 422
+  end
+
+  # The store's minimum is for every part but the last. A client that cut the
+  # file its own way hears it from the store, as a refusal and not a 500.
+  test 'a part under the store minimum is refused at completion' do
+    with_small_parts do
+      upload = start
+      etags  = send_parts(upload, 1 => @file.byteslice(0, 1.megabyte), 2 => @file.byteslice(1.megabyte..))
+
+      with_exceptions_app do
+        post complete_upload_path(upload['token']), params: {parts: etags.map {|n, e| {part_number: n, etag: e} }}, as: :json
+      end
+
+      assert_conform_schema 422
+    end
+  end
+
+  # Bytes, not characters: the name travels in the token, and the token in the
+  # path. A hundred Japanese characters are within the schema's 255 and three
+  # hundred bytes.
+  test 'a filename longer than 255 bytes is refused, however few characters it is' do
+    with_exceptions_app do
+      post uploads_path, params: {upload: {filename: 'あ' * 100, byte_size: 1}}, as: :json
+    end
+
+    assert_conform_schema 422
+  end
+
+  # Not a float truncated to a whole number, and not "0x10" read as sixteen.
+  test 'a number that is not a whole number is refused, not rounded' do
+    with_exceptions_app { post uploads_path, params: {upload: {filename: 'reads.fastq', byte_size: '0x10'}}, as: :json }
+
+    assert_response :unprocessable_content
+
+    upload = start
+
+    with_exceptions_app { post part_urls_upload_path(upload['token']), params: {part_numbers: [1.9]}, as: :json }
+
+    assert_response :unprocessable_content
+  end
+
+  # Nothing about the request was wrong, and the same request may work shortly.
+  test 'a store that does not answer is a 503' do
+    upload = start
+
+    down = Object.new
+    down.define_singleton_method(:head_object) {|**| raise Seahorse::Client::NetworkingError, SocketError.new('down') }
+
+    MultipartUpload.stub(:client, down) do
+      with_exceptions_app { get upload_path(upload['token']) }
+    end
+
+    assert_conform_schema 503
+  end
+
+  # A token of a shape this code does not know — from before a change to what
+  # it carries — is a 404, not a 500.
+  test 'a token of an unfamiliar shape is not found' do
+    upload = start
+    attrs  = MultipartUpload.encryptor.decrypt_and_verify(upload['token'], purpose: :multipart_upload)
+    odd    = MultipartUpload.encryptor.encrypt_and_sign(attrs.merge('extra' => 1), purpose: :multipart_upload, expires_in: 1.hour)
+
+    with_exceptions_app { get upload_path(odd) }
+
+    assert_conform_schema 404
   end
 
   test 'part URLs are only for parts the upload has' do
@@ -234,7 +345,7 @@ class UploadsTest < ActionDispatch::IntegrationTest
     assert_conform_schema 201
 
     response.parsed_body.tap {|upload|
-      @keys << MultipartUpload.verifier.verified(upload['token'], purpose: :multipart_upload).fetch('key')
+      @keys << MultipartUpload.encryptor.decrypt_and_verify(upload['token'], purpose: :multipart_upload).fetch('key')
     }
   end
 
