@@ -85,9 +85,13 @@ accessories:
       # with it but without this, it would be SIGKILLed halfway through.
       stop-timeout: 60
 
+    # Only what is the same in every environment. A file lands in the deploy
+    # user's home under a path without the destination in it, and the three
+    # hosts share that home, so these are one copy for all of them. The keys
+    # come from the secrets below, which are kept per destination.
     files:
       - docker/seaweedfs/entrypoint.sh:/entrypoint.sh
-      - docker/seaweedfs/s3.production.json.erb:/etc/seaweedfs/s3.json
+      - docker/seaweedfs/s3.json:/etc/seaweedfs/s3.json
 
     env:
       secret:

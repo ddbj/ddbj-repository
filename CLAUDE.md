@@ -276,7 +276,7 @@ until dismissed, not in a flash.
   CI job fails if they have drifted.
 - `config/seaweedfs.yml` — S3 credentials per environment
 - `config/storage.yml` — ActiveStorage config (quotes ERB values to prevent YAML type coercion)
-- `docker/seaweedfs/` — entrypoint.sh, s3 config JSON for dev/production
+- `docker/seaweedfs/` — the accessory's entrypoint and S3 identity. Both are uploaded to one path shared by the three deploy hosts, so neither may hold anything that differs by environment — the identity names its keys as `${VAR}` and SeaweedFS fills them in
 - `data/qual.list` — valid qualifier keys
 - `data/kq_note.lst` — qualifier formatting rules (quoted vs unquoted)
 
