@@ -50,6 +50,13 @@ class VerifyMultipartUploadJob < ApplicationJob
     # Into the uploader's data files in the same commit, so the Blob is never
     # unattached for PurgeUnattachedUploadsJob to find. An account deleted in
     # the meantime leaves it unattached, which is what should collect it.
+    #
+    # Marked identified and analyzed, and attached by creating the attachment
+    # rather than through `attach`. Either of those would otherwise read the
+    # object again: identifying replaces the declared content type with a guess
+    # from its first bytes, and analyzing an image or a video downloads all of
+    # it. And `attach` answers a failed save with nil, which would leave a file
+    # verified and then collected two days later without a word.
     ActiveRecord::Base.transaction do
       blob = ActiveStorage::Blob.create!(
         key:,
@@ -57,10 +64,11 @@ class VerifyMultipartUploadJob < ApplicationJob
         content_type:,
         byte_size:,
         checksum:     digest.base64digest,
-        service_name: service.name
+        service_name: service.name,
+        metadata:     {identified: true, analyzed: true}
       )
 
-      User.find_by(id: user_id)&.data_files&.attach(blob)
+      User.find_by(id: user_id)&.data_files_attachments&.create!(blob:)
     end
   rescue ActiveRecord::RecordNotUnique
     # Completed twice, verified twice; the first Blob stands.

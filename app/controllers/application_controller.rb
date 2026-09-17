@@ -61,11 +61,11 @@ class ApplicationController < ActionController::API
   # It does not extend to deciding who they collaborate with, or to
   # speaking in their name: a set membership, an invitation and a message
   # all record who did it, and under a proxy that record would name the
-  # person being helped rather than the curator doing the helping.
-  # Reading is untouched.
+  # person being helped rather than the curator doing the helping. Nor to
+  # discarding what they uploaded. Reading is untouched.
   def refuse_proxy!
     return unless proxying?
 
-    forbid! 'A set cannot be written to while acting as another account.'
+    forbid! 'This cannot be done while acting as another account.'
   end
 end

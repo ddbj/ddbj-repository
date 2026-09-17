@@ -41,6 +41,29 @@ class VerifyMultipartUploadJobTest < ActiveJob::TestCase
     assert_equal [@key], users(:alice).data_files.blobs.pluck(:key)
   end
 
+  # The type is the uploader's word. Guessing it from the first bytes — which
+  # attaching a Blob not yet identified does — would read the object again and
+  # replace what was declared: gzipped reads declared as text come back as
+  # application/gzip.
+  test 'the declared content type stands' do
+    gzipped = ActiveSupport::Gzip.compress('ACGT')
+
+    MultipartUpload.client.put_object(bucket: MultipartUpload.bucket, key: @key, body: gzipped)
+
+    assert_no_enqueued_jobs only: ActiveStorage::AnalyzeJob do
+      VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', gzipped.bytesize, nil, users(:alice).id)
+    end
+
+    assert_equal 'text/plain', ActiveStorage::Blob.find_by!(key: @key).content_type
+  end
+
+  # Nobody to hold it, so it is what PurgeUnattachedUploadsJob is for.
+  test 'the file of an account deleted meanwhile is left unattached' do
+    VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, User.maximum(:id) + 1)
+
+    assert_includes ActiveStorage::Blob.unattached.pluck(:key), @key
+  end
+
   # Rejected by an earlier run: the object is gone, and that is not a failure.
   test 'a run after the object was rejected ends quietly' do
     MultipartUpload.client.delete_object(bucket: MultipartUpload.bucket, key: @key)

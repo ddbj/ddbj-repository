@@ -28,9 +28,10 @@ class User < ApplicationRecord
   # PurgeUnattachedUploadsJob, which collects what nobody attached, leaves them
   # alone.
   #
-  # No `dependent`. Taking a file out of here detaches it and nothing more: a
-  # blob a submission also refers to must not go with it. Whatever is then
-  # attached to nothing is PurgeUnattachedUploadsJob's to collect.
+  # No `dependent`. Taking a file out of here detaches it and nothing more: once
+  # submissions name data files, the blob one names must not go with it.
+  # Whatever is then attached to nothing is PurgeUnattachedUploadsJob's to
+  # collect.
   has_many_attached :data_files, dependent: false
 
   scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }

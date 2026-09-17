@@ -12,8 +12,8 @@ class DataFilesController < ApplicationController
   end
 
   # Detaches, and nothing more. The file's bytes go once nothing else refers to
-  # them, which is PurgeUnattachedUploadsJob's to decide — a submission that
-  # names the same file keeps it.
+  # them, which is PurgeUnattachedUploadsJob's to decide — anything else that
+  # holds the same blob keeps it.
   def destroy
     current_user.data_files_attachments.find(params.expect(:id)).destroy!
 

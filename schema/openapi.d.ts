@@ -2816,8 +2816,9 @@ export interface paths {
          *
          *     `verifying` follows completion while the server reads the finished
          *     object through to compute its MD5 — minutes, for a file of tens of GB.
-         *     `ready` means the file is in the uploader's `/data_files`, and carries
-         *     its `signed_blob_id`. `rejected`
+         *     `ready` means the file is verified, and carries its `signed_blob_id`;
+         *     it is then in the uploader's `/data_files` unless they have since
+         *     taken it out. `rejected`
          *     means the finished object did not match its declared size or MD5 and
          *     was removed, or the upload is gone.
          *
@@ -3062,7 +3063,7 @@ export interface paths {
         post?: never;
         /**
          * @description Take a file out of the caller's data files. The file itself is kept for
-         *     as long as a submission still refers to it, and removed once nothing
+         *     as long as anything else still refers to it, and removed once nothing
          *     does.
          *
          *     Refused while acting as another account: a curator can upload for a

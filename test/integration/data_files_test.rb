@@ -24,6 +24,37 @@ class DataFilesTest < ActionDispatch::IntegrationTest
     assert_equal '1',                            response.headers['Total-Pages']
   end
 
+  test 'newest first, a page at a time' do
+    files = 21.times.map {|i|
+      attach_data_file_record(@alice, "reads_#{i}.fastq", created_at: i.minutes.ago)
+    }
+
+    get data_files_path
+
+    assert_conform_schema 200
+    assert_equal files.take(20).map { it.blob.filename.to_s }, response.parsed_body.pluck('filename')
+    assert_equal '2', response.headers['Total-Pages']
+
+    get data_files_path, params: {page: 2}
+
+    assert_conform_schema 200
+    assert_equal [files.last.blob.filename.to_s], response.parsed_body.pluck('filename')
+  end
+
+  # Reading is not refused under a proxy: a curator helping somebody sees what
+  # they have uploaded.
+  test 'a curator acting for somebody sees their data files' do
+    attach_data_file(@alice, 'reads.fastq', 'ACGT')
+
+    default_headers['Authorization'] = "Bearer #{users(:bob).api_key}"
+    default_headers['X-Dway-User-Id'] = @alice.uid
+
+    get data_files_path
+
+    assert_conform_schema 200
+    assert_equal ['reads.fastq'], response.parsed_body.pluck('filename')
+  end
+
   # Taken out of the list, not destroyed: a submission that names the same
   # file keeps it. What nothing refers to any more is collected with the
   # rest of what nobody attached.
@@ -88,6 +119,21 @@ class DataFilesTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  # Rows only, for where the bytes do not matter and twenty uploads would.
+  def attach_data_file_record(user, filename, created_at:)
+    blob = ActiveStorage::Blob.create!(
+      key:          ActiveStorage::Blob.generate_unique_secure_token,
+      filename:,
+      content_type: 'text/plain',
+      byte_size:    4,
+      checksum:     Digest::MD5.base64digest('ACGT'),
+      service_name: ActiveStorage::Blob.service.name,
+      metadata:     {identified: true, analyzed: true}
+    )
+
+    user.data_files_attachments.create!(blob:, created_at:)
+  end
 
   def attach_data_file(user, filename, body)
     user.data_files.attach(io: StringIO.new(body), filename:, content_type: 'text/plain')
