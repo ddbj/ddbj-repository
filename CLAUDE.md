@@ -195,6 +195,16 @@ upload, which is one PUT.
   what is listed there is still waiting, not everything the account ever sent. The Blob is
   created already identified and analyzed — either would read the object again, and identifying would replace
   the declared content type with a guess.
+- **The clients are `web/app/utils/multipart-upload.ts` (browser) and
+  `ST26::Upload` in submission-bulk-st26 (CLI).** Both cut the file where the
+  server says, send each part with its `Content-MD5` and check the ETag that
+  comes back (it is that part's MD5), ask again for a part URL rather than
+  reuse a spent one, and carry on an interrupted upload from what the store
+  already holds. The browser remembers the token in `localStorage` keyed by the
+  file's name, size and mtime — it cannot keep the file itself, so carrying on
+  means the reader choosing the same file again. Neither computes the whole
+  file's MD5: each part is checked on arrival, and the server computes the
+  checksum from what the store holds.
 - **Never abort a completed upload, and do not sweep `.uploads` with
   `s3.clean.uploads`.** When SeaweedFS leaves an upload's directory behind
   after completing it, both delete the finished object's data, invisibly until

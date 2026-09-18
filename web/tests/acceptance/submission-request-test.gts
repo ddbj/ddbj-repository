@@ -1,5 +1,5 @@
 import { module, test } from 'qunit';
-import { visit, click, triggerEvent, currentURL, waitUntil } from '@ember/test-helpers';
+import { visit, click, triggerEvent, currentURL, waitFor, waitUntil } from '@ember/test-helpers';
 import { setupApplicationTest } from 'repository/tests/helpers';
 import { setupAuthentication } from 'repository/tests/helpers/setup-auth';
 
@@ -164,5 +164,39 @@ module('Acceptance | submission request', function (hooks) {
     await waitUntil(() => document.querySelector('[data-test-state] .badge')?.textContent?.trim() === 'With DDBJ');
 
     assert.dom('[data-test-state] h2').hasText('A curator is reviewing your submission');
+  });
+
+  // The record is sent in parts and the server reads it back before there is
+  // anything to submit. When that ends badly the reader is told on the screen
+  // they are standing on, and can choose the file again.
+  test('an upload the store did not keep says so', async function (assert) {
+    await visit('/st26/requests/new');
+
+    worker.use(
+      http.get('/uploads/{token}', ({ response }) => {
+        return response(200).json({
+          token: 'test-token',
+          state: 'rejected',
+          part_size: 16 * 1024 * 1024,
+          part_count: 1,
+          parts: [],
+          signed_blob_id: null,
+        });
+      }),
+    );
+
+    const file = new File(['{}'], 'test.json', { type: 'application/json' });
+
+    await triggerEvent('input[type="file"]', 'change', { files: [file] });
+    await click('button[type="submit"]');
+
+    // The upload runs outside the test's settled state (XHR to the store, a
+    // poll on a timer), so the screen is waited for rather than assumed.
+    await waitFor('[data-test-upload-error]');
+
+    assert.dom('[data-test-upload-error]').hasText('The store did not keep the file. Try uploading it again.');
+    assert.dom('button[type="submit"]').isNotDisabled('the reader can try again');
+    assert.dom('[data-test-upload-progress]').doesNotExist();
+    assert.strictEqual(currentURL(), '/st26/requests/new', 'nothing was submitted');
   });
 });
