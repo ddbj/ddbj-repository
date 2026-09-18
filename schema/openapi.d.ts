@@ -3024,6 +3024,11 @@ export interface paths {
          *
          *     A file leaves this list once something is assigned it — the file itself
          *     stays, held by whatever was assigned it.
+         *
+         *     A file nothing is ever assigned is let go of after seven days, and
+         *     removed with it: the list is where a file waits to be used, and waiting
+         *     ends there. Seven days is also how long an unfinished upload can be
+         *     carried on for.
          */
         get: {
             parameters: {

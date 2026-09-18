@@ -24,6 +24,13 @@ production: &production
     class: ReleaseAssignedFilesJob
     schedule: at 0:15am every day
 
+  # And what nothing was ever assigned is let go of after a week. Between the
+  # release above and the purge below, so a file that expires tonight is
+  # collected tonight rather than tomorrow.
+  expire_unassigned_files:
+    class: ExpireUnassignedFilesJob
+    schedule: at 0:20am every day
+
   # SolidQueue names a retention window for finished jobs but nothing
   # acts on it, so the table only grows — one row per job, and a bulk
   # import writes one job per submission. It only removes rows finished
