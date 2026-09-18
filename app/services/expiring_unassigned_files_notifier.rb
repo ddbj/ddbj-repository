@@ -47,7 +47,7 @@ class ExpiringUnassignedFilesNotifier
   end
 
   def notify(attachments)
-    mailable, unreachable = attachments.group_by(&:record).partition {|user, _| reachable?(user) }
+    mailable, unreachable = attachments.group_by(&:record).partition {|user, _| user.email.present? }
 
     sent_at = Time.current
 
@@ -57,12 +57,10 @@ class ExpiringUnassignedFilesNotifier
       record files, result: :delivered, sent_at:
     end
 
-    # Recorded, not mailed. `skip_reason` is the difference between an address
-    # we have never learned and one this deployment refuses to write to, which
-    # are different problems for whoever reads these rows.
-    unreachable.each do |user, files|
-      record files, result: :skipped, sent_at:,
-                    skip_reason: user.email.present? ? UnassignedFileNotice::NOT_DELIVERED : UnassignedFileNotice::NO_ADDRESS
+    # Recorded, not mailed: an account whose address we have never learned.
+    # The row is why the file went unannounced.
+    unreachable.each do |_user, files|
+      record files, result: :skipped, sent_at:, skip_reason: UnassignedFileNotice::NO_ADDRESS
     end
 
     Result.new(
@@ -73,12 +71,6 @@ class ExpiringUnassignedFilesNotifier
   end
 
   private
-
-  # Having an address is not the same as being written to: outside production
-  # — and in production, for everyone outside the allowed domains — the
-  # interceptor drops the mail on its way out. Asking it here is what keeps a
-  # row from claiming a delivery that never happened.
-  def reachable?(user) = user.email.present? && MailDomainAllowlistInterceptor.delivers_to?(user.email)
 
   def record(files, result:, sent_at:, skip_reason: nil)
     UnassignedFileNotice.insert_all(

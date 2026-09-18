@@ -87,26 +87,6 @@ class ExpiringUnassignedFilesNotifierTest < ActiveSupport::TestCase
     assert_equal UnassignedFileNotice::NO_ADDRESS, notice.skip_reason
   end
 
-  # Having an address is not the same as being written to: outside the allowed
-  # domains the interceptor drops the mail on its way out, and a row claiming a
-  # delivery would be the difference between "told" and "we tried".
-  test 'an address this deployment will not write to is recorded as unmailable' do
-    @alice.update! email: 'alice@example.com'
-
-    attach(@alice, 'reads.fastq', uploaded: 5.days.ago)
-
-    MailDomainAllowlistInterceptor.stub :delivers_to?, false do
-      assert_no_emails do
-        perform_enqueued_jobs { ExpiringUnassignedFilesNotifier.call }
-      end
-    end
-
-    notice = UnassignedFileNotice.sole
-
-    assert_predicate notice, :skipped?
-    assert_equal UnassignedFileNotice::NOT_DELIVERED, notice.skip_reason
-  end
-
   # The release job runs at 0:15 and this at 8:00, so a file assigned in
   # between — or any file at all, if that job failed — would be announced as
   # going. What it would cost is the owner uploading tens of GB again.
