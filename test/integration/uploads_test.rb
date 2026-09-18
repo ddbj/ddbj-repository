@@ -73,6 +73,33 @@ class UploadsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # A client whose completion request is lost — a dropped response, a 503 from
+  # the proxy — sends it again. If the store answered the second one as a
+  # mistake, the file would be thrown away while it was being verified.
+  test 'completing an upload again is answered as done' do
+    with_small_parts do
+      upload = start(md5: Digest::MD5.hexdigest(@file))
+      etags  = send_parts(upload, 1 => @file.byteslice(0, PART), 2 => @file.byteslice(PART..))
+      parts  = etags.map {|n, e| {part_number: n, etag: e} }
+
+      post complete_upload_path(upload['token']), params: {parts:}, as: :json
+
+      assert_conform_schema 202
+
+      post complete_upload_path(upload['token']), params: {parts:}, as: :json
+
+      assert_conform_schema 202
+      assert_equal 'verifying', response.parsed_body['state']
+
+      perform_enqueued_jobs
+
+      get upload_path(upload['token'])
+
+      assert_equal 'ready', response.parsed_body['state']
+      assert_equal @file,   ActiveStorage::Blob.find_signed!(response.parsed_body['signed_blob_id']).download
+    end
+  end
+
   # The reason it is resumable. A client that stopped asks what the store has
   # and sends only the rest.
   test 'an upload picked up again sends only the parts the store does not have' do
