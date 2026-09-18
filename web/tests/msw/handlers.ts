@@ -1,11 +1,24 @@
 import { HttpResponse, http as mswHttp } from 'msw';
+import SparkMD5 from 'spark-md5';
 
 import ENV from 'repository/config/environment';
 
 import { http } from './http';
 
+import type { components } from 'schema/openapi';
+
+type Upload = components['schemas']['Upload'];
+
 const directUploadURL = ENV.directUploadURL;
 const diskURL = `${ENV.appURL}/rails/active_storage/disk/`;
+
+// The object store, as far as these tests are concerned: it answers a part
+// with the ETag the real one would, which is that part's MD5.
+export const storeURL = `${ENV.appURL}/test-store/`;
+
+export function partURL(number: number) {
+  return `${storeURL}part/${number}`;
+}
 
 export const handlers = [
   http.get('/me', ({ response }) => {
@@ -77,4 +90,42 @@ export const handlers = [
   mswHttp.put(`${diskURL}*`, () => {
     return new HttpResponse(null, { status: 204 });
   }),
+
+  // Data files go up in parts. One part by default — a test that cares about
+  // several says so.
+  http.post('/uploads', ({ response }) => {
+    return response(201).json(upload({ state: 'uploading' }));
+  }),
+
+  http.post('/uploads/{token}/part_urls', async ({ request, response }) => {
+    const { part_numbers } = await request.json();
+
+    return response(200).json(part_numbers.map((part_number) => ({ part_number, url: partURL(part_number) })));
+  }),
+
+  http.post('/uploads/{token}/complete', ({ response }) => {
+    return response(202).json(upload({ state: 'verifying' }));
+  }),
+
+  http.get('/uploads/{token}', ({ response }) => {
+    return response(200).json(upload({ state: 'ready', signed_blob_id: 'test-signed-id' }));
+  }),
+
+  mswHttp.put(`${storeURL}part/:number`, async ({ request }) => {
+    const md5 = SparkMD5.ArrayBuffer.hash(await request.arrayBuffer());
+
+    return new HttpResponse(null, { status: 200, headers: { ETag: `"${md5}"` } });
+  }),
 ];
+
+export function upload(attributes: Partial<Upload> = {}): Upload {
+  return {
+    token: 'test-token',
+    state: 'uploading',
+    part_size: 16 * 1024 * 1024,
+    part_count: 1,
+    parts: [],
+    signed_blob_id: null,
+    ...attributes,
+  };
+}
