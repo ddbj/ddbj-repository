@@ -15,12 +15,5 @@ class ReleaseAssignedFilesJob < ApplicationJob
 
   private
 
-  # By record and name together: a message's attachments are called `files`
-  # too, and attaching a file to a message assigns it as much as a submission
-  # does.
-  def assigned
-    elsewhere = ActiveStorage::Attachment.where.not(record_type: 'User', name: User::UNASSIGNED_FILES_ATTACHMENT)
-
-    User.unassigned_file_attachments.where(blob_id: elsewhere.select(:blob_id))
-  end
+  def assigned = User.unassigned_file_attachments.where(blob_id: User.assigned_file_blob_ids)
 end

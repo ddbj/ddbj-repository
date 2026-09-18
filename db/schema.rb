@@ -471,7 +471,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_000001) do
 
   create_table "unassigned_file_notices", force: :cascade do |t|
     t.bigint "attachment_id", null: false
+    t.string "result", null: false
     t.datetime "sent_at", null: false
+    t.string "skip_reason"
     t.index ["attachment_id"], name: "index_unassigned_file_notices_on_attachment_id", unique: true
   end
 

@@ -87,6 +87,38 @@ class ExpireUnassignedFilesJobTest < ActiveJob::TestCase
     end
   end
 
+  # The one property the pair of jobs exists to provide: nothing goes that its
+  # owner was not told about, even when it is old enough to.
+  test 'a file nobody was told about waits' do
+    attach('reads.fastq', since: ExpireUnassignedFilesJob::KEEP_FOR + 1.day, announced: nil)
+
+    assert_no_difference -> { @alice.unassigned_files.count } do
+      ExpireUnassignedFilesJob.perform_now
+    end
+  end
+
+  # Told this morning, gone tonight would leave nobody time to answer.
+  test 'a file told about today waits until tomorrow' do
+    attach('reads.fastq', since: ExpireUnassignedFilesJob::KEEP_FOR + 1.day, announced: 1.hour.ago)
+
+    assert_no_difference -> { @alice.unassigned_files.count } do
+      ExpireUnassignedFilesJob.perform_now
+    end
+  end
+
+  # An address nothing can be sent to is still a record that the file went
+  # unannounced — which is the permission, because the alternative is keeping
+  # it for ever with nobody the wiser.
+  test 'a file recorded as unmailable goes' do
+    attach('reads.fastq', since: ExpireUnassignedFilesJob::KEEP_FOR + 1.day, announced: nil).then do |attachment|
+      announce attachment, result: :skipped
+    end
+
+    assert_difference -> { @alice.unassigned_files.count }, -1 do
+      ExpireUnassignedFilesJob.perform_now
+    end
+  end
+
   # The number itself, so that changing it is a decision rather than a typo
   # that the fixtures move along with.
   test 'a file may wait a week' do
@@ -111,11 +143,19 @@ class ExpireUnassignedFilesJobTest < ActiveJob::TestCase
 
   private
 
-  def attach(filename, since:, content_type: 'text/plain')
+  # Announced by default: the job only lets go of what the notifier has passed,
+  # so a test about the age of a file has to say the notice happened too.
+  def attach(filename, since:, content_type: 'text/plain', announced: 2.days.ago)
     blob = ActiveStorage::Blob.create_and_upload!(io: StringIO.new('ACGT'), filename:, content_type:)
 
-    @alice.unassigned_files_attachments.create!(blob:, created_at: since.ago).tap do
+    @alice.unassigned_files_attachments.create!(blob:, created_at: since.ago).tap do |attachment|
       blob.update_column :created_at, since.ago
+
+      announce attachment, at: announced if announced
     end
+  end
+
+  def announce(attachment, at: 2.days.ago, result: :delivered)
+    UnassignedFileNotice.create! attachment:, result:, sent_at: at
   end
 end

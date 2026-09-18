@@ -194,13 +194,14 @@ upload, which is one PUT.
   nothing refers to them. A file leaves of its own accord once something is
   assigned it (`ReleaseAssignedFilesJob`, nightly), which is what the name says:
   what is listed there is still waiting, not everything the account ever sent.
-  Two days before that, its owner is
-  told (`ExpiringUnassignedFilesNotifier`, one mail an account listing what is
-  due), because for DRA the file being let go of is tens of GB and finding out
-  by looking is not good enough.
   What nothing is ever assigned is let go of seven days after it appeared
   (`ExpireUnassignedFilesJob`, `expires_at` in the API) and collected by the
-  purge half an hour later. The same number as the store's window for carrying
+  purge half an hour later — but **only once its owner has been told**, two
+  days ahead, by `ExpiringUnassignedFilesNotifier` (one mail an account,
+  listing what is due). The notice row is the permission to delete, so a run
+  that does not happen, or an address nothing can be sent to, leaves the file
+  waiting rather than gone unannounced; an address that cannot be written to
+  gets a row saying so, which is that permission too. The same number as the store's window for carrying
   an unfinished upload on, but a different clock — that one runs from the start
   of an upload, this one from the file being verified, so a file can be around
   for a fortnight end to end. The Blob is created
