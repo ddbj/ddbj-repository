@@ -313,12 +313,16 @@ module('Unit | Utility | multipart-upload', function (hooks) {
   // Private browsing, or site data blocked: an upload that refused to run
   // there would be an upload nobody could make.
   test('an upload runs where storage is not available', async function (assert) {
-    const storage = Storage.prototype;
-    const setItem = storage.setItem.bind(storage);
+    // Restored through the descriptor: reassigning a bound copy would leave
+    // every later test writing to the prototype instead of to storage.
+    const descriptor = Object.getOwnPropertyDescriptor(Storage.prototype, 'setItem')!;
 
-    storage.setItem = () => {
-      throw new DOMException('quota', 'QuotaExceededError');
-    };
+    Object.defineProperty(Storage.prototype, 'setItem', {
+      ...descriptor,
+      value: () => {
+        throw new DOMException('quota', 'QuotaExceededError');
+      },
+    });
 
     try {
       assert.strictEqual(
@@ -327,7 +331,7 @@ module('Unit | Utility | multipart-upload', function (hooks) {
         'the file still goes up; only carrying it on is lost',
       );
     } finally {
-      storage.setItem = setItem;
+      Object.defineProperty(Storage.prototype, 'setItem', descriptor);
     }
   });
 
