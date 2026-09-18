@@ -194,6 +194,10 @@ upload, which is one PUT.
   nothing refers to them. A file leaves of its own accord once something is
   assigned it (`ReleaseAssignedFilesJob`, nightly), which is what the name says:
   what is listed there is still waiting, not everything the account ever sent.
+  Two days before that, its owner is
+  told (`ExpiringUnassignedFilesNotifier`, one mail an account listing what is
+  due), because for DRA the file being let go of is tens of GB and finding out
+  by looking is not good enough.
   What nothing is ever assigned is let go of seven days after it appeared
   (`ExpireUnassignedFilesJob`, `expires_at` in the API) and collected by the
   purge half an hour later. The same number as the store's window for carrying

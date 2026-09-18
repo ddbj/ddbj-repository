@@ -2818,9 +2818,16 @@ export interface paths {
          *     object through to compute its MD5 — minutes, for a file of tens of GB.
          *     `ready` means the file is verified, and carries its `signed_blob_id`;
          *     it is then among the uploader's `/unassigned_files` until they take it
-         *     out or something is assigned it. `rejected`
-         *     means the finished object did not match its declared size or MD5 and
-         *     was removed, or the upload is gone.
+         *     out or something is assigned it.
+         *
+         *     `rejected` means the store no longer holds the object, which it can
+         *     mean in three ways: the finished object did not match its declared size
+         *     or MD5 and was removed; the upload was abandoned; or the file was taken
+         *     out of `/unassigned_files`, or expired there, after it was verified.
+         *     The first is worth sending again differently, the last is worth sending
+         *     again as it was — this answer cannot tell them apart, so a client that
+         *     holds a `signed_blob_id` should read `expires_at` while it has one
+         *     rather than learn about the end from here.
          *
          *     An upload that stays `verifying` has most likely had its verification
          *     fail against the store; completing it again queues another attempt.

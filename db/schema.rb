@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -469,6 +469,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_000002) do
     t.index ["user_id"], name: "index_submissions_on_user_id"
   end
 
+  create_table "unassigned_file_notices", force: :cascade do |t|
+    t.bigint "attachment_id", null: false
+    t.datetime "sent_at", null: false
+    t.index ["attachment_id"], name: "index_unassigned_file_notices_on_attachment_id", unique: true
+  end
+
   create_table "users", force: :cascade do |t|
     t.boolean "admin", default: false, null: false
     t.string "api_key", null: false
@@ -555,6 +561,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_000002) do
   add_foreign_key "submission_updates", "submissions"
   add_foreign_key "submissions", "submission_updates", column: "cached_at_update_id", on_delete: :nullify
   add_foreign_key "submissions", "users"
+  add_foreign_key "unassigned_file_notices", "active_storage_attachments", column: "attachment_id", on_delete: :cascade
   add_foreign_key "users", "users", column: "notes_updated_by_id"
   add_foreign_key "validation_details", "validations"
 end
