@@ -66,8 +66,8 @@ class UploadsTest < ActionDispatch::IntegrationTest
       assert_equal Digest::MD5.base64digest(@file),   blob.checksum
       assert_equal @file,                             blob.download
 
-      # And it waits in the uploader's files, where nothing collects it.
-      get files_path
+      # And it waits in the uploader's unassigned files, where nothing collects it.
+      get unassigned_files_path
 
       assert_equal [blob.signed_id], response.parsed_body.pluck('signed_blob_id')
     end

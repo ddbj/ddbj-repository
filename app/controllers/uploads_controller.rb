@@ -4,7 +4,7 @@
 # send, PUTs them to the store itself, and completes it with the ETags the
 # store gave back. If it stops, it asks what the store already has and sends
 # the rest. When the upload is verified it is a Blob in the uploader's data
-# files (FilesController), and named elsewhere by its signed id.
+# files (UnassignedFilesController), and named elsewhere by its signed id.
 #
 # The token names the upload. It is not a credential on its own: every
 # request here is also authenticated, and a token of somebody else's is a 404.

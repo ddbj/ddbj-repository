@@ -2817,8 +2817,8 @@ export interface paths {
          *     `verifying` follows completion while the server reads the finished
          *     object through to compute its MD5 — minutes, for a file of tens of GB.
          *     `ready` means the file is verified, and carries its `signed_blob_id`;
-         *     it is then in the uploader's `/files` unless they have since
-         *     taken it out. `rejected`
+         *     it is then among the uploader's `/unassigned_files` until they take it
+         *     out or something is assigned it. `rejected`
          *     means the finished object did not match its declared size or MD5 and
          *     was removed, or the upload is gone.
          *
@@ -2859,7 +2859,7 @@ export interface paths {
          *     (seaweedfs/seaweedfs#10663).
          *
          *     Refused while acting as another account, as taking a file out of
-         *     `/files` is.
+         *     `/unassigned_files` is.
          */
         delete: {
             parameters: {
@@ -3010,7 +3010,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/files": {
+    "/unassigned_files": {
         parameters: {
             query?: never;
             header?: never;
@@ -3018,8 +3018,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description The caller's files: uploaded through `/uploads`, verified, and
-         *     waiting to be named in a submission. Newest first, a page at a time.
+         * @description The caller's unassigned files: uploaded through `/uploads`, verified,
+         *     and waiting to be assigned to a submission. Newest first, a page at a
+         *     time.
+         *
+         *     A file leaves this list once something is assigned it — the file itself
+         *     stays, held by whatever was assigned it.
          */
         get: {
             parameters: {
@@ -3032,7 +3036,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description One page of the caller's files. */
+                /** @description One page of the caller's unassigned files. */
                 200: {
                     headers: {
                         "Total-Pages"?: string;
@@ -3053,7 +3057,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/files/{id}": {
+    "/unassigned_files/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -3066,11 +3070,11 @@ export interface paths {
         put?: never;
         post?: never;
         /**
-         * @description Take a file out of the caller's files. The file itself is kept for
-         *     as long as anything else still refers to it, and removed once nothing
-         *     does — by a daily sweep of files over two days old, so a file uploaded
-         *     earlier than that can be gone within the day, and there is no undoing
-         *     this. Until then its `signed_blob_id` still names it.
+         * @description Take a file out of the caller's unassigned files. The file itself is kept
+         *     for as long as anything else still refers to it, and removed once
+         *     nothing does — by a daily sweep of files over two days old, so a file
+         *     uploaded earlier than that can be gone within the day, and there is no
+         *     undoing this. Until then its `signed_blob_id` still names it.
          *
          *     Refused while acting as another account: a curator can upload for a
          *     submitter, but not discard what they uploaded.
@@ -3086,7 +3090,7 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description No longer among the caller's files. */
+                /** @description No longer among the caller's unassigned files. */
                 204: {
                     headers: {
                         [name: string]: unknown;
@@ -3831,9 +3835,9 @@ export interface components {
         CurationStatus: "submission_accepted" | "curating" | "accession_issued" | "private" | "public" | "withdrawn" | "canceled" | "permanently_suppressed" | "temporarily_suppressed";
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
-        /** @description A file the caller has uploaded and verified. See `/files`. */
+        /** @description A file the caller has uploaded and verified. See `/unassigned_files`. */
         File: {
-            /** @description Removes it from the caller's files. */
+            /** @description Removes it from the caller's unassigned files. */
             id: number;
             filename: string;
             content_type: string | null;
