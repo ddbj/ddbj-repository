@@ -52,7 +52,7 @@ class VerifyMultipartUploadJob < ApplicationJob
 
     return reject(key) if md5 && digest.hexdigest != md5.downcase
 
-    # Into the uploader's data files in the same commit, so the Blob is never
+    # Into the uploader's files in the same commit, so the Blob is never
     # unattached for PurgeUnattachedUploadsJob to find. An account deleted in
     # the meantime leaves it unattached, which is what should collect it.
     #
@@ -73,7 +73,7 @@ class VerifyMultipartUploadJob < ApplicationJob
         metadata:     {identified: true, analyzed: true}
       )
 
-      User.find_by(id: user_id)&.data_files_attachments&.create!(blob:)
+      User.find_by(id: user_id)&.files_attachments&.create!(blob:)
     end
   rescue ActiveRecord::RecordNotUnique
     # Completed twice, verified twice; the first Blob stands.

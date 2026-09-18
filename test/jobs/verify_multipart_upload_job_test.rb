@@ -35,10 +35,10 @@ class VerifyMultipartUploadJobTest < ActiveJob::TestCase
 
   # Attached as it is created, so it is never a blob nobody attached — which is
   # what PurgeUnattachedUploadsJob removes after two days.
-  test 'a verified file goes straight into the uploader\'s data files' do
+  test 'a verified file goes straight into the uploader\'s files' do
     VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, users(:alice).id)
 
-    assert_equal [@key], users(:alice).data_files.blobs.pluck(:key)
+    assert_equal [@key], users(:alice).files.blobs.pluck(:key)
   end
 
   # The type is the uploader's word. Guessing it from the first bytes — which
@@ -64,7 +64,7 @@ class VerifyMultipartUploadJobTest < ActiveJob::TestCase
     refusing = Object.new.tap { it.define_singleton_method(:create!) {|**| raise ActiveRecord::RecordInvalid } }
 
     User.stub :find_by, alice do
-      alice.stub :data_files_attachments, refusing do
+      alice.stub :files_attachments, refusing do
         assert_raises(ActiveRecord::RecordInvalid) do
           VerifyMultipartUploadJob.perform_now(@key, 'reads.fastq', 'text/plain', 5, nil, alice.id)
         end

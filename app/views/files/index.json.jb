@@ -1,4 +1,4 @@
-# A data file as its owner lists it. The attachment's id is what removes it
+# A file as its owner lists it. The attachment's id is what removes it
 # from the list; the blob's signed id is what names it anywhere else.
 @files.map {|attachment|
   blob = attachment.blob
