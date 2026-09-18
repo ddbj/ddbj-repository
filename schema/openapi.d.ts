@@ -3020,6 +3020,9 @@ export interface paths {
         /**
          * @description The caller's files: uploaded through `/uploads`, verified, and
          *     waiting to be named in a submission. Newest first, a page at a time.
+         *
+         *     A file leaves this list once something else names it — the file itself
+         *     stays, held by whatever named it.
          */
         get: {
             parameters: {

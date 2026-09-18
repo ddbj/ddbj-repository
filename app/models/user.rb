@@ -32,7 +32,11 @@ class User < ApplicationRecord
   # submissions name files, the blob one names must not go with it.
   # Whatever is then attached to nothing is PurgeUnattachedUploadsJob's to
   # collect.
-  has_many_attached :files, dependent: false
+  # The name of the attachment, because ReleaseNamedFilesJob has to ask which
+  # attachments are the area's and which are somebody naming the same blob.
+  FILES_ATTACHMENT = :files
+
+  has_many_attached FILES_ATTACHMENT, dependent: false
 
   scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }
   scope :staff,                    -> { where(admin: true) }

@@ -190,7 +190,9 @@ upload, which is one PUT.
   after two days — away from reads uploaded days ahead of their metadata.
   Taking a file out of the area only detaches it (`dependent: false`), because
   the submissions that name them are to hold the same blob; the bytes go
-  once nothing refers to them. The Blob is created already identified and
+  once nothing refers to them. A file leaves the area of its own accord once
+  something else names it (`ReleaseNamedFilesJob`, nightly): the area is what is
+  still waiting to be used, not a list of everything the account ever sent. The Blob is created already identified and
   analyzed — either would read the object again, and identifying would replace
   the declared content type with a guess.
 - **Never abort a completed upload, and do not sweep `.uploads` with
