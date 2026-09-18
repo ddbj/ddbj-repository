@@ -2816,7 +2816,9 @@ export interface paths {
          *
          *     `verifying` follows completion while the server reads the finished
          *     object through to compute its MD5 — minutes, for a file of tens of GB.
-         *     `ready` carries the `signed_blob_id` that attaches the file. `rejected`
+         *     `ready` means the file is verified, and carries its `signed_blob_id`;
+         *     it is then in the uploader's `/files` unless they have since
+         *     taken it out. `rejected`
          *     means the finished object did not match its declared size or MD5 and
          *     was removed, or the upload is gone.
          *
@@ -2855,6 +2857,9 @@ export interface paths {
          *     Refused once it has been completed: aborting the upload of a finished
          *     object can delete that object's data in the store
          *     (seaweedfs/seaweedfs#10663).
+         *
+         *     Refused while acting as another account, as taking a file out of
+         *     `/files` is.
          */
         delete: {
             parameters: {
@@ -2875,6 +2880,7 @@ export interface paths {
                     content?: never;
                 };
                 401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
                 404: components["responses"]["NotFound"];
                 422: components["responses"]["UnprocessableContent"];
                 503: components["responses"]["ServiceUnavailable"];
@@ -2999,6 +3005,99 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The caller's files: uploaded through `/uploads`, verified, and
+         *     waiting to be named in a submission. Newest first, a page at a time.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description One page of the caller's files. */
+                200: {
+                    headers: {
+                        "Total-Pages"?: string;
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["File"][];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/files/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * @description Take a file out of the caller's files. The file itself is kept for
+         *     as long as anything else still refers to it, and removed once nothing
+         *     does — by a daily sweep of files over two days old, so a file uploaded
+         *     earlier than that can be gone within the day, and there is no undoing
+         *     this. Until then its `signed_blob_id` still names it.
+         *
+         *     Refused while acting as another account: a curator can upload for a
+         *     submitter, but not discard what they uploaded.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No longer among the caller's files. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+                404: components["responses"]["NotFound"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -3732,6 +3831,20 @@ export interface components {
         CurationStatus: "submission_accepted" | "curating" | "accession_issued" | "private" | "public" | "withdrawn" | "canceled" | "permanently_suppressed" | "temporarily_suppressed";
         /** @enum {string} */
         SubmissionOperationStatus: "waiting_validation" | "validating" | "validation_failed" | "ready_to_apply" | "waiting_application" | "applying" | "applied" | "application_failed" | "no_change";
+        /** @description A file the caller has uploaded and verified. See `/files`. */
+        File: {
+            /** @description Removes it from the caller's files. */
+            id: number;
+            filename: string;
+            content_type: string | null;
+            byte_size: number;
+            /** @description The MD5 of the file as stored, in hexadecimal. */
+            md5: string;
+            /** @description Names the file wherever it is used. */
+            signed_blob_id: string;
+            /** Format: date-time */
+            created_at: string;
+        };
         /** @description A resumable upload of one data file. See `/uploads`. */
         Upload: {
             token: string;

@@ -184,6 +184,15 @@ upload, which is one PUT.
   (`service.download` with a block), never one GET: the storage proxy buffers
   a whole response to disk before sending headers, so a single GET of tens of
   GB times out before its first byte.
+- **A verified file goes into the uploader's files** (`User#files`,
+  `/api/files`) in the same commit that creates its Blob. That is what
+  keeps `PurgeUnattachedUploadsJob` — which removes blobs attached to nothing
+  after two days — away from reads uploaded days ahead of their metadata.
+  Taking a file out of the area only detaches it (`dependent: false`), because
+  the submissions that name them are to hold the same blob; the bytes go
+  once nothing refers to them. The Blob is created already identified and
+  analyzed — either would read the object again, and identifying would replace
+  the declared content type with a guess.
 - **Never abort a completed upload, and do not sweep `.uploads` with
   `s3.clean.uploads`.** When SeaweedFS leaves an upload's directory behind
   after completing it, both delete the finished object's data, invisibly until

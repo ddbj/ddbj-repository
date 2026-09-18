@@ -167,6 +167,9 @@ Rails.application.routes.draw do
       end
     end
 
+    # What an account has uploaded and not yet let go of. See User#files.
+    resources :files, only: %i[index destroy]
+
     resources :stats, only: %i[index]
   end
 

@@ -21,6 +21,19 @@ class User < ApplicationRecord
 
   belongs_to :notes_updated_by, class_name: 'User', optional: true
 
+  # The files this account has uploaded and not let go of: where one waits
+  # between being uploaded and being named in a submission — minutes for most,
+  # days for reads uploaded ahead of their metadata. The place D-way's
+  # `/submission/upload/<submitter>` directory was. Attached, so
+  # PurgeUnattachedUploadsJob, which collects what nobody attached, leaves them
+  # alone.
+  #
+  # No `dependent`. Taking a file out of here detaches it and nothing more: once
+  # submissions name files, the blob one names must not go with it.
+  # Whatever is then attached to nothing is PurgeUnattachedUploadsJob's to
+  # collect.
+  has_many_attached :files, dependent: false
+
   scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }
   scope :staff,                    -> { where(admin: true) }
   scope :submitters,               -> { where(admin: false) }
