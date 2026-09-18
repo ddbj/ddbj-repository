@@ -2970,6 +2970,11 @@ paths:
         A file leaves this list once something is assigned it — the file itself
         stays, held by whatever was assigned it.
 
+        A file nothing is ever assigned is let go of seven days after it
+        appeared here (`expires_at`), and the file itself is removed with it,
+        as it would be if it were taken out by hand: the list is where a file
+        waits to be used, and waiting ends there.
+
       tags:
         - Uploads
 
@@ -4682,7 +4687,7 @@ components:
       description: A file the caller has uploaded and verified. See `/unassigned_files`.
       type: object
       additionalProperties: false
-      required: [id, filename, content_type, byte_size, md5, signed_blob_id, created_at]
+      required: [id, filename, content_type, byte_size, md5, signed_blob_id, created_at, expires_at]
 
       properties:
         id:
@@ -4709,6 +4714,14 @@ components:
           type: string
 
         created_at:
+          description: When the file appeared in the list.
+          type: string
+          format: date-time
+
+        expires_at:
+          description: |
+            When it is let go of, unless something is assigned it first — seven
+            days after it appeared.
           type: string
           format: date-time
 

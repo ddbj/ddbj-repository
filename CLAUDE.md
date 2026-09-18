@@ -185,16 +185,23 @@ upload, which is one PUT.
   a whole response to disk before sending headers, so a single GET of tens of
   GB times out before its first byte.
 - **A verified file goes into the uploader's unassigned files**
-  (`User#unassigned_files`, `/api/unassigned_files`) in the same commit that creates its Blob. That is what
-  keeps `PurgeUnattachedUploadsJob` — which removes blobs attached to nothing
-  after two days — away from reads uploaded days ahead of their metadata.
+  (`User#unassigned_files`, `/api/unassigned_files`) in the same commit that
+  creates its Blob. That is what keeps `PurgeUnattachedUploadsJob` — which
+  removes blobs attached to nothing after two days — away from reads uploaded
+  days ahead of their metadata.
   Taking a file out of it only detaches it (`dependent: false`), because the
   submission assigned that file is to hold the same blob; the bytes go once
   nothing refers to them. A file leaves of its own accord once something is
   assigned it (`ReleaseAssignedFilesJob`, nightly), which is what the name says:
-  what is listed there is still waiting, not everything the account ever sent. The Blob is
-  created already identified and analyzed — either would read the object again, and identifying would replace
-  the declared content type with a guess.
+  what is listed there is still waiting, not everything the account ever sent.
+  What nothing is ever assigned is let go of seven days after it appeared
+  (`ExpireUnassignedFilesJob`, `expires_at` in the API) and collected by the
+  purge half an hour later. The same number as the store's window for carrying
+  an unfinished upload on, but a different clock — that one runs from the start
+  of an upload, this one from the file being verified, so a file can be around
+  for a fortnight end to end. The Blob is created
+  already identified and analyzed — either would read the object again, and
+  identifying would replace the declared content type with a guess.
 - **The clients are `web/app/utils/multipart-upload.ts` (browser) and
   `ST26::Upload` in submission-bulk-st26 (CLI).** Both cut the file where the
   server says, send each part with its `Content-MD5` and check the ETag that

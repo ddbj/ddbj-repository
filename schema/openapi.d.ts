@@ -3024,6 +3024,11 @@ export interface paths {
          *
          *     A file leaves this list once something is assigned it — the file itself
          *     stays, held by whatever was assigned it.
+         *
+         *     A file nothing is ever assigned is let go of seven days after it
+         *     appeared here (`expires_at`), and the file itself is removed with it,
+         *     as it would be if it were taken out by hand: the list is where a file
+         *     waits to be used, and waiting ends there.
          */
         get: {
             parameters: {
@@ -3846,8 +3851,17 @@ export interface components {
             md5: string;
             /** @description Names the file wherever it is used. */
             signed_blob_id: string;
-            /** Format: date-time */
+            /**
+             * Format: date-time
+             * @description When the file appeared in the list.
+             */
             created_at: string;
+            /**
+             * Format: date-time
+             * @description When it is let go of, unless something is assigned it first — seven
+             *     days after it appeared.
+             */
+            expires_at: string;
         };
         /** @description A resumable upload of one data file. See `/uploads`. */
         Upload: {

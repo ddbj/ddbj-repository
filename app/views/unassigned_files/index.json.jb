@@ -14,6 +14,10 @@
     md5:            blob.checksum.unpack1('m0').unpack1('H*'),
 
     signed_blob_id: blob.signed_id,
-    created_at:     attachment.created_at
+    created_at:     attachment.created_at,
+
+    # When waiting ends. A date the client can act on, rather than a rule it
+    # would have to know and count from itself.
+    expires_at:     attachment.created_at + ExpireUnassignedFilesJob::KEEP_FOR
   }
 }
