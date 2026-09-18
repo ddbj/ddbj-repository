@@ -45,6 +45,13 @@ class User < ApplicationRecord
     ActiveStorage::Attachment.where(record_type: name, name: UNASSIGNED_FILES_ATTACHMENT)
   end
 
+  # The blobs something other than the list itself holds — a submission, a
+  # message. Those files are assigned: they leave the list rather than expire
+  # from it, and nothing about them needs announcing.
+  def self.assigned_file_blob_ids
+    ActiveStorage::Attachment.where.not(record_type: name, name: UNASSIGNED_FILES_ATTACHMENT).select(:blob_id)
+  end
+
   scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }
   scope :staff,                    -> { where(admin: true) }
   scope :submitters,               -> { where(admin: false) }

@@ -16,8 +16,9 @@
     signed_blob_id: blob.signed_id,
     created_at:     attachment.created_at,
 
-    # When waiting ends. A date the client can act on, rather than a rule it
-    # would have to know and count from itself.
+    # When waiting ends — strictly, when it becomes due: the sweep that acts on
+    # it runs nightly. A date the client can act on, rather than a rule it would
+    # have to know and count from itself.
     expires_at:     attachment.created_at + ExpireUnassignedFilesJob::KEEP_FOR
   }
 }

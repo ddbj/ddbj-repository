@@ -1,0 +1,14 @@
+Dear submitter,
+
+<%= pluralize(@files.size, 'file') %> you uploaded <%= @files.size == 1 ? 'is' : 'are' %> still waiting to be used in a submission. A file that nothing uses is removed after seven days, so <%= @files.size == 1 ? 'it goes' : 'the earliest of them goes' %> on <%= @until.to_date.iso8601 %>.
+
+<% @files.each do |file| -%>
+  - <%= file.blob.filename %> (<%= number_to_human_size file.blob.byte_size %>), uploaded <%= file.created_at.to_date.iso8601 %>, removed on <%= (file.created_at + ExpireUnassignedFilesJob::KEEP_FOR).to_date.iso8601 %>
+<% end -%>
+
+To keep <%= @files.size == 1 ? 'it' : 'them' %>, use <%= @files.size == 1 ? 'it' : 'them' %> in a submission. Nothing else is needed: a file a submission uses is kept for as long as the submission holds it.
+
+If you no longer need <%= @files.size == 1 ? 'this file' : 'these files' %>, you can ignore this message.
+
+Regards,
+DDBJ Repository

@@ -196,12 +196,17 @@ upload, which is one PUT.
   what is listed there is still waiting, not everything the account ever sent.
   What nothing is ever assigned is let go of seven days after it appeared
   (`ExpireUnassignedFilesJob`, `expires_at` in the API) and collected by the
-  purge half an hour later. The same number as the store's window for carrying
-  an unfinished upload on, but a different clock — that one runs from the start
-  of an upload, this one from the file being verified, so a file can be around
-  for a fortnight end to end. The Blob is created
-  already identified and analyzed — either would read the object again, and
-  identifying would replace the declared content type with a guess.
+  purge half an hour later — but **only once its owner has been told**, two days
+  ahead, by `ExpiringUnassignedFilesNotifier` (one mail an account, listing what
+  is due). The notice row is the permission to delete, so a run that does not
+  happen leaves the file waiting rather than gone unannounced; an account whose
+  address is unknown gets a row saying so, which is that permission too. Seven
+  days is the same number as the store's window for carrying an unfinished
+  upload on, but a different clock — that one runs from the start of an upload,
+  this one from the file being verified, so a file can be around for a fortnight
+  end to end. The Blob is created already identified and analyzed — either would
+  read the object again, and identifying would replace the declared content type
+  with a guess.
 - **The clients are `web/app/utils/multipart-upload.ts` (browser) and
   `ST26::Upload` in submission-bulk-st26 (CLI).** Both cut the file where the
   server says, send each part with its `Content-MD5` and check the ETag that

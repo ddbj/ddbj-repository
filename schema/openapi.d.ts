@@ -2818,9 +2818,17 @@ export interface paths {
          *     object through to compute its MD5 — minutes, for a file of tens of GB.
          *     `ready` means the file is verified, and carries its `signed_blob_id`;
          *     it is then among the uploader's `/unassigned_files` until they take it
-         *     out or something is assigned it. `rejected`
-         *     means the finished object did not match its declared size or MD5 and
-         *     was removed, or the upload is gone.
+         *     out or something is assigned it.
+         *
+         *     `rejected` means the store holds neither the object nor an upload in
+         *     progress, which happens three ways: the finished object did not match
+         *     its declared size or MD5 and was removed; the upload was abandoned
+         *     through `DELETE /uploads/{token}`; or the file was verified, nothing
+         *     ever held it, and its bytes have since been collected. The first says
+         *     send it again differently, the last says send it again as it was — this
+         *     answer cannot tell them apart, so a client that holds a
+         *     `signed_blob_id` should watch `expires_at` in `/unassigned_files`
+         *     rather than learn about the end from here.
          *
          *     An upload that stays `verifying` has most likely had its verification
          *     fail against the store; completing it again queues another attempt.
@@ -3858,8 +3866,10 @@ export interface components {
             created_at: string;
             /**
              * Format: date-time
-             * @description When it is let go of, unless something is assigned it first — seven
-             *     days after it appeared.
+             * @description When it becomes due to be let go of, unless something is assigned
+             *     it first — seven days after it appeared. It goes at the first
+             *     nightly sweep after that, so it is still here for a few hours
+             *     afterwards.
              */
             expires_at: string;
         };
