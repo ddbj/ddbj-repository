@@ -12,6 +12,10 @@ function setupApplicationTest(hooks: NestedHooks, options?: SetupTestOptions) {
 
   hooks.afterEach(() => {
     worker.resetHandlers();
+
+    // A half-finished upload is remembered here (see utils/multipart-upload),
+    // so a test that leaves one behind would have the next test carry it on.
+    localStorage.clear();
   });
 }
 

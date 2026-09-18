@@ -24,18 +24,33 @@ const CONCURRENCY = 3;
 // The server signs at most 100 part URLs per request.
 const URLS_PER_REQUEST = 100;
 
-// Each part is tried this many times before the upload gives up. A part URL
-// expires in an hour and the store can refuse one under load; both are answered
-// by asking for a new URL and sending the part again.
-const ATTEMPTS_PER_PART = 5;
+// Each part is tried this many times before the upload gives up, waiting a
+// little longer each time. A part URL expires in an hour and the store can
+// refuse one under load; both are answered by asking for a new URL and sending
+// the part again. About a minute and a half of patience per part — the reader
+// is watching this, so it cannot be the CLI's half hour.
+const ATTEMPTS_PER_PART = 6;
+const RETRY_WAIT = 2000;
+const MAX_RETRY_WAIT = 30000;
 
 const POLL_INTERVAL = 2000;
+
+// How many polls in a row may fail before the upload gives up. The server can
+// answer 503 while the store is busy, and a laptop can lose its network for a
+// minute; neither says anything about the file, which is sitting complete in
+// the store.
+const POLL_FAILURES = 10;
 
 // Where a half-finished upload is remembered, so that picking the same file
 // again carries it on rather than starting over. The file itself cannot be
 // remembered — a browser will not hand back a file the reader has not just
-// chosen — so this is keyed by what a File can be recognised by.
+// chosen — so this is keyed by what a File can be recognised by, plus a hash of
+// its first and last megabyte. Name, size and mtime alone can be the same for
+// two different files, and what a wrong match would attach to the submission is
+// the other file.
 const MEMORY_PREFIX = 'multipart-upload:';
+
+const SAMPLE = 1024 * 1024;
 
 export class UploadRejected extends Error {}
 
@@ -44,6 +59,13 @@ export class PartMismatch extends Error {}
 export interface Progress {
   sent: number;
   total: number;
+
+  // `verifying` is the server reading the finished object through to compute
+  // its checksum — minutes, for a large file, with nothing left to send. It is
+  // reported here because only this knows when sending ended: a caller that
+  // guessed would put the wrong words on the screen for the longest part of
+  // the wait.
+  state: 'uploading' | 'verifying';
 }
 
 export interface Options {
@@ -68,6 +90,10 @@ class MultipartUpload {
   // be overwritten by whichever part reported last.
   #sent = new Map<number, number>();
 
+  #state: Progress['state'] = 'uploading';
+
+  #cachedKey?: string;
+
   constructor(file: File, options: Options) {
     this.#file = file;
     this.#options = options;
@@ -79,7 +105,7 @@ class MultipartUpload {
     if (!upload) {
       upload = await this.#start();
 
-      this.#remember(upload.token);
+      await this.#remember(upload.token);
     }
 
     if (upload.state === 'uploading') {
@@ -94,18 +120,24 @@ class MultipartUpload {
       await this.#complete(upload, await this.#partEtags(upload));
     }
 
-    try {
-      return await this.#waitUntilReady(upload);
-    } finally {
-      this.#forget();
-    }
+    this.#state = 'verifying';
+    this.#report();
+
+    const signedBlobId = await this.#waitUntilReady(upload);
+
+    // Only now: until there is a Blob, this token is the only handle on what
+    // has been sent. A failed poll keeps it, so choosing the file again waits
+    // for the same upload instead of sending it all over again.
+    await this.#forget();
+
+    return signedBlobId;
   }
 
   // What an earlier attempt left, if the store still has it. A token the
   // server no longer knows, or an upload it has rejected, is forgotten here
   // and the file is sent again from the start.
   async #resume() {
-    const token = localStorage.getItem(this.#key());
+    const token = await this.#remembered();
 
     if (!token) return null;
 
@@ -117,7 +149,7 @@ class MultipartUpload {
       if (!isNotFound(e)) throw e;
     }
 
-    this.#forget();
+    await this.#forget();
 
     return null;
   }
@@ -126,6 +158,9 @@ class MultipartUpload {
     const { content } = await this.#options.requestManager.request<Upload>({
       url: '/uploads',
       method: 'POST',
+      // Refusals belong on this screen, beside the file that was chosen — not
+      // in the modal the rest of the app uses for errors nobody asked for.
+      options: { reportErrors: false },
       data: {
         upload: {
           filename: this.#file.name,
@@ -181,7 +216,9 @@ class MultipartUpload {
     let url = signed;
 
     for (let attempt = 1; ; attempt++) {
-      url ||= (await this.#partURLs(upload, [number])).get(number)!;
+      url ||= (await this.#partURLs(upload, [number])).get(number);
+
+      if (!url) throw new Error(`The server did not sign part ${number}.`);
 
       const body = this.#part(upload, number);
       const md5 = await md5Of(body);
@@ -215,7 +252,7 @@ class MultipartUpload {
 
         url = undefined;
 
-        await delay(attempt * 1000);
+        await delay(Math.min(attempt * RETRY_WAIT, MAX_RETRY_WAIT), this.#options.signal);
       }
     }
   }
@@ -244,6 +281,7 @@ class MultipartUpload {
     const { content } = await this.#options.requestManager.request<{ part_number: number; url: string }[]>({
       url: `/uploads/${encodeURIComponent(upload.token)}/part_urls`,
       method: 'POST',
+      options: { reportErrors: false },
       data: { part_numbers: numbers },
     });
 
@@ -256,6 +294,7 @@ class MultipartUpload {
     await this.#options.requestManager.request({
       url: `/uploads/${encodeURIComponent(upload.token)}/complete`,
       method: 'POST',
+      options: { reportErrors: false },
       data: { parts },
     });
   }
@@ -264,13 +303,26 @@ class MultipartUpload {
   // multipart ETag is not the MD5 of the file — and only then is there a Blob
   // to attach. Minutes, for a file of tens of GB.
   async #waitUntilReady(upload: Upload) {
+    let failures = 0;
+
     for (;;) {
-      const current = await this.#get(upload.token);
+      try {
+        const current = await this.#get(upload.token);
 
-      if (current.state === 'ready') return current.signed_blob_id!;
+        failures = 0;
 
-      if (current.state === 'rejected') {
-        throw new UploadRejected('The store did not keep the file. Try uploading it again.');
+        if (current.state === 'ready') return current.signed_blob_id!;
+
+        if (current.state === 'rejected') {
+          await this.#forget();
+
+          throw new UploadRejected('The store did not keep the file. Try uploading it again.');
+        }
+      } catch (e) {
+        // The store being busy (503) or a moment without a network is not an
+        // answer about the file. Asking again costs one request; giving up
+        // costs everything that was sent.
+        if (e instanceof UploadRejected || isAborted(e) || ++failures > POLL_FAILURES) throw e;
       }
 
       await delay(POLL_INTERVAL, this.#options.signal);
@@ -289,21 +341,50 @@ class MultipartUpload {
   #report() {
     const sent = [...this.#sent.values()].reduce((total, bytes) => total + bytes, 0);
 
-    this.#options.onProgress?.({ sent: Math.min(sent, this.#file.size), total: this.#file.size });
+    this.#options.onProgress?.({
+      sent: Math.min(sent, this.#file.size),
+      total: this.#file.size,
+      state: this.#state,
+    });
   }
 
-  #key() {
+  async #key() {
+    return (this.#cachedKey ??= await this.#buildKey());
+  }
+
+  async #buildKey() {
     const { name, size, lastModified } = this.#file;
+    const ends =
+      size <= 2 * SAMPLE ? this.#file : new Blob([this.#file.slice(0, SAMPLE), this.#file.slice(size - SAMPLE)]);
 
-    return `${MEMORY_PREFIX}${name}:${size}:${lastModified}`;
+    return `${MEMORY_PREFIX}${name}:${size}:${lastModified}:${await md5Of(ends)}`;
   }
 
-  #remember(token: string) {
-    localStorage.setItem(this.#key(), token);
+  // Storage is a convenience, never a condition: a browser in private mode, or
+  // one with site data blocked, throws on every one of these, and an upload
+  // that refused to run there would be an upload nobody could make.
+  async #remembered() {
+    try {
+      return localStorage.getItem(await this.#key());
+    } catch {
+      return null;
+    }
   }
 
-  #forget() {
-    localStorage.removeItem(this.#key());
+  async #remember(token: string) {
+    try {
+      localStorage.setItem(await this.#key(), token);
+    } catch {
+      // Then this upload cannot be carried on. It can still be made.
+    }
+  }
+
+  async #forget() {
+    try {
+      localStorage.removeItem(await this.#key());
+    } catch {
+      // See #remember.
+    }
   }
 }
 
@@ -329,10 +410,21 @@ function put(
     xhr.upload.addEventListener('progress', (e) => onProgress(e.loaded));
 
     xhr.addEventListener('load', () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        resolve(xhr.getResponseHeader('ETag') || '');
-      } else {
+      if (xhr.status < 200 || xhr.status >= 300) {
         reject(new Error(`The store refused a part (${xhr.status}).`));
+
+        return;
+      }
+
+      const etag = xhr.getResponseHeader('ETag');
+
+      // Not a mismatch — a part that cannot be checked at all. The store sends
+      // ETag and says so in Access-Control-Expose-Headers; a deployment where
+      // it does not would otherwise look like every part arriving damaged.
+      if (etag) {
+        resolve(etag);
+      } else {
+        reject(new Error('The store did not say what it received (no ETag). Its CORS settings may not expose it.'));
       }
     });
 
@@ -345,8 +437,18 @@ function put(
   });
 }
 
+// In chunks, because a part is as large as the server says: past 16 MiB it is
+// still one Blob, and `arrayBuffer()` on a multi-GB one throws.
+const HASH_CHUNK = 4 * 1024 * 1024;
+
 async function md5Of(blob: Blob) {
-  return SparkMD5.ArrayBuffer.hash(await blob.arrayBuffer());
+  const spark = new SparkMD5.ArrayBuffer();
+
+  for (let start = 0; start < blob.size; start += HASH_CHUNK) {
+    spark.append(await blob.slice(start, start + HASH_CHUNK).arrayBuffer());
+  }
+
+  return spark.end();
 }
 
 function partNumbers(upload: Upload) {
@@ -361,10 +463,23 @@ function chunk<T>(items: T[], size: number) {
 // group waits for its slowest part, which on a busy store is most of the time.
 async function inParallel<T>(items: T[], workers: number, work: (item: T) => Promise<void>) {
   const queue = [...items];
+  let failed = false;
 
   await Promise.all(
     Array.from({ length: Math.min(workers, queue.length) }, async () => {
-      for (let item = queue.shift(); item !== undefined; item = queue.shift()) await work(item);
+      for (let item = queue.shift(); item !== undefined; item = queue.shift()) {
+        // One part that has given up ends the upload, so the others stop
+        // rather than carry on sending for a file that will not be completed.
+        if (failed) return;
+
+        try {
+          await work(item);
+        } catch (e) {
+          failed = true;
+
+          throw e;
+        }
+      }
     }),
   );
 }

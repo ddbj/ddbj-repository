@@ -29,8 +29,12 @@ export default class extends Component<Signature> {
 
   @tracked file?: File;
   @tracked progress?: Progress;
-  @tracked verifying = false;
   @tracked error?: string;
+
+  // Leaving the page stops the upload: the parts in the air would otherwise go
+  // on being sent for a screen nobody is looking at, and the poll would go on
+  // asking about them.
+  #upload?: AbortController;
 
   // The record goes up in parts (`/api/uploads`). A DDBJ Record is a whole
   // genome for some submitters — the file a browser is asked to send here is
@@ -43,8 +47,18 @@ export default class extends Component<Signature> {
     this.error = undefined;
   }
 
+  willDestroy() {
+    super.willDestroy();
+
+    this.#upload?.abort();
+  }
+
   get uploading() {
-    return this.progress !== undefined || this.verifying;
+    return this.progress !== undefined;
+  }
+
+  get verifying() {
+    return this.progress?.state === 'verifying';
   }
 
   get percent() {
@@ -62,17 +76,15 @@ export default class extends Component<Signature> {
     const { db } = this.args.model;
 
     this.error = undefined;
-    this.progress = { sent: 0, total: this.file.size };
+    this.progress = { sent: 0, total: this.file.size, state: 'uploading' };
+    this.#upload = new AbortController();
 
     try {
       const signedBlobId = await uploadFile(this.file, {
         requestManager: this.requestManager,
+        signal: this.#upload.signal,
         onProgress: (progress) => (this.progress = progress),
       });
-
-      // Sent, and now being read through for its checksum. Minutes, for a
-      // large file, and the reader is told so rather than left at 100%.
-      this.verifying = true;
 
       const { content } = await this.requestManager.request<CreateRequestResponse>({
         url: '/submission_requests',
@@ -82,10 +94,13 @@ export default class extends Component<Signature> {
 
       this.router.transitionTo('request', content.id);
     } catch (e) {
-      this.error = errorMessage(e) ?? (e as Error).message ?? 'The upload did not finish. Try again.';
+      // Aborted because the reader left; there is no screen to say it on.
+      if (!(e instanceof DOMException && e.name === 'AbortError')) {
+        this.error = errorMessage(e) || (e as Error).message || 'The upload did not finish. Try again.';
+      }
     } finally {
       this.progress = undefined;
-      this.verifying = false;
+      this.#upload = undefined;
     }
   }
 
@@ -126,7 +141,7 @@ export default class extends Component<Signature> {
             {{this.percent}}%
           </progress>
 
-          <p class="small text-body-secondary mt-1 mb-0">
+          <p class="small text-body-secondary mt-1 mb-0" role="status">
             {{#if this.verifying}}
               Checking the file we received. This can take a few minutes for a large file.
             {{else}}

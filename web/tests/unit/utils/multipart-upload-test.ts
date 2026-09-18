@@ -35,8 +35,10 @@ module('Unit | Utility | multipart-upload', function (hooks) {
     return new File([contents], name, { type: 'text/plain', lastModified });
   }
 
-  function memoryKey(file: File) {
-    return `multipart-upload:${file.name}:${file.size}:${file.lastModified}`;
+  // The same key the upload builds: what a File can be recognised by, plus a
+  // hash of its ends (for a file this small, of the whole of it).
+  function memoryKey(file: File, contents: string) {
+    return `multipart-upload:${file.name}:${file.size}:${file.lastModified}:${SparkMD5.hash(contents)}`;
   }
 
   // The store, answering each part with the ETag the real one would — that
@@ -55,11 +57,17 @@ module('Unit | Utility | multipart-upload', function (hooks) {
     return upload({ state: 'uploading', part_size: PART_SIZE, ...attributes });
   }
 
-  test('sends the file in the parts the server asked for', async function (assert) {
+  test('sends the file in the parts the server asked for, and completes with all of them', async function (assert) {
     const received: ReceivedPart[] = [];
+    let completed: { part_number: number; etag: string }[] = [];
 
     worker.use(
       http.post('/uploads', ({ response }) => response(201).json(uploading({ part_count: 3 }))),
+      http.post('/uploads/{token}/complete', async ({ request, response }) => {
+        ({ parts: completed } = await request.json());
+
+        return response(202).json(upload({ state: 'verifying' }));
+      }),
       recordingStore(received),
     );
 
@@ -75,6 +83,14 @@ module('Unit | Utility | multipart-upload', function (hooks) {
         { number: 3, body: 'CCCC' },
       ],
       'every part, cut where the server said',
+    );
+
+    // Every part exactly once, in order, each with the ETag the store gave —
+    // which is what the server refuses a completion for not having.
+    assert.deepEqual(
+      completed,
+      received.map(({ number, body }) => ({ part_number: number, etag: SparkMD5.hash(body) })),
+      'completed with all of the parts, in order',
     );
   });
 
@@ -123,7 +139,7 @@ module('Unit | Utility | multipart-upload', function (hooks) {
     const received: ReceivedPart[] = [];
     const carried = file('AAAAAAAABBBBBBBBCCCC');
 
-    localStorage.setItem(memoryKey(carried), 'test-token');
+    localStorage.setItem(memoryKey(carried, 'AAAAAAAABBBBBBBBCCCC'), 'test-token');
 
     let polls = 0;
 
@@ -156,7 +172,7 @@ module('Unit | Utility | multipart-upload', function (hooks) {
     const received: ReceivedPart[] = [];
     const carried = file('AAAAAAAABBBBBBBB');
 
-    localStorage.setItem(memoryKey(carried), 'test-token');
+    localStorage.setItem(memoryKey(carried, 'AAAAAAAABBBBBBBB'), 'test-token');
 
     let polls = 0;
 
@@ -181,6 +197,140 @@ module('Unit | Utility | multipart-upload', function (hooks) {
     assert.deepEqual(received.map((part) => part.number).sort(), [1, 2]);
   });
 
+  // A spent URL cannot be sent to twice, so a part that has to go again asks
+  // for a new one rather than reusing the one it just failed with.
+  test('a part that failed is sent again with a fresh URL', async function (assert) {
+    const asked: number[][] = [];
+    let attempts = 0;
+
+    worker.use(
+      http.post('/uploads/{token}/part_urls', async ({ request, response }) => {
+        const { part_numbers } = await request.json();
+
+        asked.push(part_numbers);
+
+        return response(200).json(part_numbers.map((part_number) => ({ part_number, url: partURL(part_number) })));
+      }),
+      mswHttp.put(`${storeURL}part/:number`, async ({ request }) => {
+        const body = await request.arrayBuffer();
+
+        if (++attempts === 1) return new HttpResponse(null, { status: 403 });
+
+        return new HttpResponse(null, { status: 200, headers: { ETag: `"${SparkMD5.ArrayBuffer.hash(body)}"` } });
+      }),
+    );
+
+    await uploadFile(file('ACGT'), { requestManager: requestManager(this) });
+
+    assert.deepEqual(asked, [[1], [1]], 'asked again rather than sending to the URL that just failed');
+  });
+
+  // Rejected means this token cannot go anywhere. Starting over is what the
+  // reader asked for by choosing the file again.
+  test('a remembered upload the server has rejected is started over', async function (assert) {
+    const sending = file('ACGT');
+    let started = 0;
+
+    localStorage.setItem(memoryKey(sending, 'ACGT'), 'rejected-token');
+
+    let polls = 0;
+
+    worker.use(
+      http.post('/uploads', ({ response }) => {
+        started++;
+
+        return response(201).json(uploading());
+      }),
+      http.get('/uploads/{token}', ({ response }) => {
+        if (polls++ === 0) return response(200).json(upload({ state: 'rejected' }));
+
+        return response(200).json(upload({ state: 'ready', signed_blob_id: 'test-signed-id' }));
+      }),
+    );
+
+    assert.strictEqual(await uploadFile(sending, { requestManager: requestManager(this) }), 'test-signed-id');
+    assert.strictEqual(started, 1, 'sent again from the start');
+  });
+
+  // Sent by an earlier attempt but never verified: the parts are all there, so
+  // completing again is what queues the verification afresh.
+  test('a remembered upload that was already sent is completed again, not resent', async function (assert) {
+    const received: ReceivedPart[] = [];
+    const carried = file('AAAAAAAABBBBBBBB');
+    let completed: { part_number: number; etag: string }[] = [];
+    let polls = 0;
+
+    localStorage.setItem(memoryKey(carried, 'AAAAAAAABBBBBBBB'), 'test-token');
+
+    worker.use(
+      http.get('/uploads/{token}', ({ response }) => {
+        if (polls++ === 0)
+          return response(200).json(upload({ state: 'verifying', part_size: PART_SIZE, part_count: 2 }));
+
+        return response(200).json(upload({ state: 'ready', signed_blob_id: 'test-signed-id' }));
+      }),
+      http.post('/uploads/{token}/complete', async ({ request, response }) => {
+        ({ parts: completed } = await request.json());
+
+        return response(202).json(upload({ state: 'verifying' }));
+      }),
+      recordingStore(received),
+    );
+
+    await uploadFile(carried, { requestManager: requestManager(this) });
+
+    assert.deepEqual(received, [], 'nothing was sent again');
+
+    assert.deepEqual(
+      completed,
+      [
+        { part_number: 1, etag: SparkMD5.hash('AAAAAAAA') },
+        { part_number: 2, etag: SparkMD5.hash('BBBBBBBB') },
+      ],
+      'completed again with the ETags worked out here',
+    );
+  });
+
+  // The file is sitting complete in the store; a busy moment while asking
+  // about it is not a reason to throw away the only handle on it.
+  test('a poll that fails is asked again, and the upload is still remembered', async function (assert) {
+    const sending = file('ACGT');
+    let polls = 0;
+
+    worker.use(
+      http.get('/uploads/{token}', ({ response }) => {
+        if (polls++ === 0) return response(503).json({ error: 'the store is busy' });
+
+        return response(200).json(upload({ state: 'ready', signed_blob_id: 'test-signed-id' }));
+      }),
+    );
+
+    assert.strictEqual(await uploadFile(sending, { requestManager: requestManager(this) }), 'test-signed-id');
+    assert.strictEqual(polls, 2, 'asked again');
+    assert.strictEqual(localStorage.getItem(memoryKey(sending, 'ACGT')), null);
+  });
+
+  // Private browsing, or site data blocked: an upload that refused to run
+  // there would be an upload nobody could make.
+  test('an upload runs where storage is not available', async function (assert) {
+    const storage = Storage.prototype;
+    const setItem = storage.setItem.bind(storage);
+
+    storage.setItem = () => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    };
+
+    try {
+      assert.strictEqual(
+        await uploadFile(file('ACGT'), { requestManager: requestManager(this) }),
+        'test-signed-id',
+        'the file still goes up; only carrying it on is lost',
+      );
+    } finally {
+      storage.setItem = setItem;
+    }
+  });
+
   test('says so when the store did not keep the file', async function (assert) {
     worker.use(http.get('/uploads/{token}', ({ response }) => response(200).json(upload({ state: 'rejected' }))));
 
@@ -196,7 +346,11 @@ module('Unit | Utility | multipart-upload', function (hooks) {
 
     worker.use(
       http.get('/uploads/{token}', ({ response }) => {
-        assert.strictEqual(localStorage.getItem(memoryKey(sending)), 'test-token', 'remembered while it is going');
+        assert.strictEqual(
+          localStorage.getItem(memoryKey(sending, 'ACGT')),
+          'test-token',
+          'remembered while it is going',
+        );
 
         return response(200).json(upload({ state: 'ready', signed_blob_id: 'test-signed-id' }));
       }),
@@ -204,7 +358,7 @@ module('Unit | Utility | multipart-upload', function (hooks) {
 
     await uploadFile(sending, { requestManager: requestManager(this) });
 
-    assert.strictEqual(localStorage.getItem(memoryKey(sending)), null, 'forgotten once there is a Blob');
+    assert.strictEqual(localStorage.getItem(memoryKey(sending, 'ACGT')), null, 'forgotten once there is a Blob');
   });
 
   // A token from an upload the server no longer has: start again rather than
@@ -213,7 +367,7 @@ module('Unit | Utility | multipart-upload', function (hooks) {
     const sending = file('ACGT');
     let started = 0;
 
-    localStorage.setItem(memoryKey(sending), 'gone');
+    localStorage.setItem(memoryKey(sending, 'ACGT'), 'gone');
 
     worker.use(
       http.get('/uploads/{token}', ({ params, response }) => {
