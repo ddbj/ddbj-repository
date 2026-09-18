@@ -21,8 +21,6 @@ class ReleaseAssignedFilesJob < ApplicationJob
   def assigned
     elsewhere = ActiveStorage::Attachment.where.not(record_type: 'User', name: User::UNASSIGNED_FILES_ATTACHMENT)
 
-    ActiveStorage::Attachment
-      .where(record_type: 'User', name: User::UNASSIGNED_FILES_ATTACHMENT)
-      .where(blob_id: elsewhere.select(:blob_id))
+    User.unassigned_file_attachments.where(blob_id: elsewhere.select(:blob_id))
   end
 end

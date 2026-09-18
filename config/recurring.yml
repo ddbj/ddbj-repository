@@ -26,7 +26,8 @@ production: &production
 
   # And what nothing was ever assigned is let go of after a week. Between the
   # release above and the purge below, so a file that expires tonight is
-  # collected tonight rather than tomorrow.
+  # collected tonight — unless the queue is busy enough that this runs past
+  # 0:30, which costs a day of storage and nothing else.
   expire_unassigned_files:
     class: ExpireUnassignedFilesJob
     schedule: at 0:20am every day

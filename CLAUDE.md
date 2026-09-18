@@ -194,10 +194,12 @@ upload, which is one PUT.
   nothing refers to them. A file leaves of its own accord once something is
   assigned it (`ReleaseAssignedFilesJob`, nightly), which is what the name says:
   what is listed there is still waiting, not everything the account ever sent.
-  What nothing is ever assigned is let go of after seven days
-  (`ExpireUnassignedFilesJob`) and collected by the purge half an hour later —
-  the same seven days the store carries an unfinished upload on, so there is one
-  number for how long something going nowhere is kept. The Blob is created
+  What nothing is ever assigned is let go of seven days after it appeared
+  (`ExpireUnassignedFilesJob`, `expires_at` in the API) and collected by the
+  purge half an hour later. The same number as the store's window for carrying
+  an unfinished upload on, but a different clock — that one runs from the start
+  of an upload, this one from the file being verified, so a file can be around
+  for a fortnight end to end. The Blob is created
   already identified and analyzed — either would read the object again, and
   identifying would replace the declared content type with a guess.
 - **The clients are `web/app/utils/multipart-upload.ts` (browser) and

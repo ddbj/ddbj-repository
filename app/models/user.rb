@@ -38,6 +38,13 @@ class User < ApplicationRecord
 
   has_many_attached UNASSIGNED_FILES_ATTACHMENT, dependent: false
 
+  # The list's own attachment rows. Both of the jobs that tidy the list ask
+  # this rather than spelling out the pair, because a message's attachments are
+  # called `files` too and the name alone names them as well.
+  def self.unassigned_file_attachments
+    ActiveStorage::Attachment.where(record_type: name, name: UNASSIGNED_FILES_ATTACHMENT)
+  end
+
   scope :with_submission_requests, -> { where(id: SubmissionRequest.select(:user_id)) }
   scope :staff,                    -> { where(admin: true) }
   scope :submitters,               -> { where(admin: false) }
