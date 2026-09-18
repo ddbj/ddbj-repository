@@ -1,6 +1,6 @@
 require 'test_helper'
 
-# Where an uploaded file waits to be named in a submission.
+# Where an uploaded file waits to be used in a submission.
 class FilesTest < ActionDispatch::IntegrationTest
   setup do
     @alice = users(:alice)
@@ -8,11 +8,11 @@ class FilesTest < ActionDispatch::IntegrationTest
     default_headers['Authorization'] = "Bearer #{@alice.api_key}"
   end
 
-  test "an account's files are its own" do
+  test "an account's unassigned files are its own" do
     reads = add_file(@alice, 'reads.fastq', 'ACGT')
     add_file(users(:carol), 'theirs.fastq', 'TTTT')
 
-    get files_path
+    get unassigned_files_path
 
     assert_conform_schema 200
 
@@ -31,13 +31,13 @@ class FilesTest < ActionDispatch::IntegrationTest
       add_file_record(@alice, "reads_#{i}.fastq", created_at: (21 - i).minutes.ago)
     }.reverse
 
-    get files_path
+    get unassigned_files_path
 
     assert_conform_schema 200
     assert_equal files.take(20).map { it.blob.filename.to_s }, response.parsed_body.pluck('filename')
     assert_equal '2', response.headers['Total-Pages']
 
-    get files_path, params: {page: 2}
+    get unassigned_files_path, params: {page: 2}
 
     assert_conform_schema 200
     assert_equal [files.last.blob.filename.to_s], response.parsed_body.pluck('filename')
@@ -45,13 +45,13 @@ class FilesTest < ActionDispatch::IntegrationTest
 
   # Reading is not refused under a proxy: a curator helping somebody sees what
   # they have uploaded.
-  test 'a curator acting for somebody sees their files' do
+  test 'a curator acting for somebody sees their unassigned files' do
     add_file(@alice, 'reads.fastq', 'ACGT')
 
     default_headers['Authorization'] = "Bearer #{users(:bob).api_key}"
     default_headers['X-Dway-User-Id'] = @alice.uid
 
-    get files_path
+    get unassigned_files_path
 
     assert_conform_schema 200
     assert_equal ['reads.fastq'], response.parsed_body.pluck('filename')
@@ -67,11 +67,11 @@ class FilesTest < ActionDispatch::IntegrationTest
     # Not even queued: a purge that fails because something else still holds
     # the blob is a failed job, and one that does not is a file gone that a
     # submission named.
-    assert_no_enqueued_jobs(only: ActiveStorage::PurgeJob) { delete file_path(reads) }
+    assert_no_enqueued_jobs(only: ActiveStorage::PurgeJob) { delete unassigned_file_path(reads) }
 
     assert_response :no_content
 
-    get files_path
+    get unassigned_files_path
 
     assert_empty response.parsed_body
     assert ActiveStorage::Blob.exists?(blob.id), 'detaching does not take the bytes'
@@ -88,10 +88,10 @@ class FilesTest < ActionDispatch::IntegrationTest
 
     # Anything else holding the same blob will do; another account's data
     # files are one that is certain to save.
-    assert users(:carol).files.attach(reads.blob)
+    assert users(:carol).unassigned_files.attach(reads.blob)
     assert_equal 2, reads.blob.attachments.count
 
-    delete file_path(reads)
+    delete unassigned_file_path(reads)
     reads.blob.update_column(:created_at, 3.days.ago)
 
     perform_enqueued_jobs { PurgeUnattachedUploadsJob.perform_now }
@@ -102,7 +102,7 @@ class FilesTest < ActionDispatch::IntegrationTest
   test "somebody else's file cannot be removed" do
     theirs = add_file(users(:carol), 'theirs.fastq', 'TTTT')
 
-    with_exceptions_app { delete file_path(theirs) }
+    with_exceptions_app { delete unassigned_file_path(theirs) }
 
     assert_conform_schema 404
   end
@@ -115,7 +115,7 @@ class FilesTest < ActionDispatch::IntegrationTest
     default_headers['Authorization'] = "Bearer #{users(:bob).api_key}"
     default_headers['X-Dway-User-Id'] = @alice.uid
 
-    with_exceptions_app { delete file_path(reads) }
+    with_exceptions_app { delete unassigned_file_path(reads) }
 
     assert_conform_schema 403
   end
@@ -134,11 +134,11 @@ class FilesTest < ActionDispatch::IntegrationTest
       metadata:     {identified: true, analyzed: true}
     )
 
-    user.files_attachments.create!(blob:, created_at:)
+    user.unassigned_files_attachments.create!(blob:, created_at:)
   end
 
   def add_file(user, filename, body)
-    user.files.attach(io: StringIO.new(body), filename:, content_type: 'text/plain')
-    user.files_attachments.order(:id).last
+    user.unassigned_files.attach(io: StringIO.new(body), filename:, content_type: 'text/plain')
+    user.unassigned_files_attachments.order(:id).last
   end
 end

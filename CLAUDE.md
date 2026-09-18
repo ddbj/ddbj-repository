@@ -184,16 +184,16 @@ upload, which is one PUT.
   (`service.download` with a block), never one GET: the storage proxy buffers
   a whole response to disk before sending headers, so a single GET of tens of
   GB times out before its first byte.
-- **A verified file goes into the uploader's files** (`User#files`,
-  `/api/files`) in the same commit that creates its Blob. That is what
+- **A verified file goes into the uploader's unassigned files**
+  (`User#unassigned_files`, `/api/unassigned_files`) in the same commit that creates its Blob. That is what
   keeps `PurgeUnattachedUploadsJob` — which removes blobs attached to nothing
   after two days — away from reads uploaded days ahead of their metadata.
-  Taking a file out of the area only detaches it (`dependent: false`), because
-  the submissions that name them are to hold the same blob; the bytes go
-  once nothing refers to them. A file leaves the area of its own accord once
-  something else names it (`ReleaseNamedFilesJob`, nightly): the area is what is
-  still waiting to be used, not a list of everything the account ever sent. The Blob is created already identified and
-  analyzed — either would read the object again, and identifying would replace
+  Taking a file out of it only detaches it (`dependent: false`), because the
+  submission assigned that file is to hold the same blob; the bytes go once
+  nothing refers to them. A file leaves of its own accord once something is
+  assigned it (`ReleaseAssignedFilesJob`, nightly), which is what the name says:
+  what is listed there is still waiting, not everything the account ever sent. The Blob is
+  created already identified and analyzed — either would read the object again, and identifying would replace
   the declared content type with a guess.
 - **Never abort a completed upload, and do not sweep `.uploads` with
   `s3.clean.uploads`.** When SeaweedFS leaves an upload's directory behind

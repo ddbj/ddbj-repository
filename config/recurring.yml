@@ -16,12 +16,12 @@ production: &production
     class: PurgeUnattachedUploadsJob
     schedule: at 0:30am every day
 
-  # Files that have since been named in a submission leave the uploader's area;
-  # what stays there is what is still waiting to be used. Just before the purge
-  # above, so a file released here is judged by the same rules as any other
-  # blob nothing holds — which for one a submission named is that it stays.
-  release_named_files:
-    class: ReleaseNamedFilesJob
+  # Files since assigned to a submission leave the uploader's unassigned files;
+  # what stays is what is still waiting. Just before the purge above, so a file
+  # released here is judged by the same rules as any other blob nothing holds —
+  # which for one a submission was assigned is that it stays.
+  release_assigned_files:
+    class: ReleaseAssignedFilesJob
     schedule: at 0:15am every day
 
   # SolidQueue names a retention window for finished jobs but nothing

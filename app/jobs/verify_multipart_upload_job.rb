@@ -73,7 +73,7 @@ class VerifyMultipartUploadJob < ApplicationJob
         metadata:     {identified: true, analyzed: true}
       )
 
-      User.find_by(id: user_id)&.files_attachments&.create!(blob:)
+      User.find_by(id: user_id)&.unassigned_files_attachments&.create!(blob:)
     end
   rescue ActiveRecord::RecordNotUnique
     # Completed twice, verified twice; the first Blob stands.

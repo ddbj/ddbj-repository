@@ -2758,8 +2758,8 @@ paths:
         `verifying` follows completion while the server reads the finished
         object through to compute its MD5 — minutes, for a file of tens of GB.
         `ready` means the file is verified, and carries its `signed_blob_id`;
-        it is then in the uploader's `/files` unless they have since
-        taken it out. `rejected`
+        it is then among the uploader's `/unassigned_files` until they take it
+        out or something is assigned it. `rejected`
         means the finished object did not match its declared size or MD5 and
         was removed, or the upload is gone.
 
@@ -2795,7 +2795,7 @@ paths:
         (seaweedfs/seaweedfs#10663).
 
         Refused while acting as another account, as taking a file out of
-        `/files` is.
+        `/unassigned_files` is.
 
       tags:
         - Uploads
@@ -2960,14 +2960,15 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
-  /files:
+  /unassigned_files:
     get:
       description: |
-        The caller's files: uploaded through `/uploads`, verified, and
-        waiting to be named in a submission. Newest first, a page at a time.
+        The caller's unassigned files: uploaded through `/uploads`, verified,
+        and waiting to be assigned to a submission. Newest first, a page at a
+        time.
 
-        A file leaves this list once something else names it — the file itself
-        stays, held by whatever named it.
+        A file leaves this list once something is assigned it — the file itself
+        stays, held by whatever was assigned it.
 
       tags:
         - Uploads
@@ -2981,7 +2982,7 @@ paths:
 
       responses:
         '200':
-          description: One page of the caller's files.
+          description: One page of the caller's unassigned files.
 
           headers:
             Total-Pages:
@@ -2999,7 +3000,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /files/{id}:
+  /unassigned_files/{id}:
     parameters:
       - name: id
         in: path
@@ -3010,11 +3011,11 @@ paths:
 
     delete:
       description: |
-        Take a file out of the caller's files. The file itself is kept for
-        as long as anything else still refers to it, and removed once nothing
-        does — by a daily sweep of files over two days old, so a file uploaded
-        earlier than that can be gone within the day, and there is no undoing
-        this. Until then its `signed_blob_id` still names it.
+        Take a file out of the caller's unassigned files. The file itself is kept
+        for as long as anything else still refers to it, and removed once
+        nothing does — by a daily sweep of files over two days old, so a file
+        uploaded earlier than that can be gone within the day, and there is no
+        undoing this. Until then its `signed_blob_id` still names it.
 
         Refused while acting as another account: a curator can upload for a
         submitter, but not discard what they uploaded.
@@ -3024,7 +3025,7 @@ paths:
 
       responses:
         '204':
-          description: No longer among the caller's files.
+          description: No longer among the caller's unassigned files.
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -4678,14 +4679,14 @@ components:
         - no_change
 
     File:
-      description: A file the caller has uploaded and verified. See `/files`.
+      description: A file the caller has uploaded and verified. See `/unassigned_files`.
       type: object
       additionalProperties: false
       required: [id, filename, content_type, byte_size, md5, signed_blob_id, created_at]
 
       properties:
         id:
-          description: Removes it from the caller's files.
+          description: Removes it from the caller's unassigned files.
           type: integer
 
         filename:
