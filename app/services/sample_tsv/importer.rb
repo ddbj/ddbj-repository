@@ -52,18 +52,24 @@ module SampleTSV
       # CSV.foreach indirectly via the row-each block below. We still
       # need a single up-front pass to discover the header set, which
       # `headers: true` gives us via the first parsed row.
-      rows           = CSV.parse(strip_bom(@tsv_body), col_sep: "\t", headers: true)
-      attribute_cols = rows.headers.to_a.reject {|h| h.nil? || SampleTSV::RESERVED_COLS.include?(h) }
+      # Headers are names, and a name is its text without the spaces round it —
+      # the record's canonical form strips them anyway (doc/canonical-json.md
+      # §2.2). Stripping here, before anything reads them, is what lets
+      # `status ` be the reserved column it was meant as rather than an
+      # attribute called `status`.
+      rows           = CSV.parse(strip_bom(@tsv_body), col_sep: "\t", headers: true, header_converters: ->(h) { h&.strip })
+      attribute_cols = rows.headers.to_a.reject {|h| h.blank? || SampleTSV::RESERVED_COLS.include?(h) }
 
       unless rows.headers.include?(SampleTSV::IDENTIFIER_COL)
-        return Result.new(
-          total:        0,
-          processed:    0,
-          failed:       0,
-          error_report: nil,
-          rejections:   [],
-          fatal_error:  "TSV is missing the required `#{SampleTSV::IDENTIFIER_COL}` column."
-        )
+        return fatal("TSV is missing the required `#{SampleTSV::IDENTIFIER_COL}` column.")
+      end
+
+      # An attribute needs a name (DDBJ Record v3), so a column with values and
+      # no header has nowhere to go. A column with neither — the trailing tab a
+      # spreadsheet leaves — is nothing and is passed over, as it always was.
+      if (column = unnamed_column_with_values(rows))
+        return fatal("Column #{column} has values but no header. Every attribute needs a name: " \
+                     'give the column one, or remove it.')
       end
 
       sample_by_name = @submission.samples.index_by(&:sample_name)
@@ -92,6 +98,22 @@ module SampleTSV
     # file. Left in, the byte-order mark fuses to the first header name
     # and silently breaks the `sample_name` lookup. Strip once at the
     # entry point so downstream parsing stays simple.
+    def fatal(message)
+      Result.new(total: 0, processed: 0, failed: 0, error_report: nil, rejections: [], fatal_error: message)
+    end
+
+    # 1-based, as a spreadsheet numbers them. By position rather than by name:
+    # the columns in question have none, and two of them would share one.
+    def unnamed_column_with_values(rows)
+      rows.headers.each_with_index do |header, index|
+        next if header.present?
+
+        return index + 1 if rows.any? { it.fields[index].present? }
+      end
+
+      nil
+    end
+
     def strip_bom(body)
       body.start_with?(BOM) ? body.sub(BOM, '') : body
     end
