@@ -1,7 +1,8 @@
 namespace :ddbj_record do
-  # Rewrites every stored BioProject / BioSample record into the shape the
-  # spec's v3 took at ddbj/ddbj-record-specifications#11 (DDBJRecord::ReshapeV3),
-  # as one root replace per chain under ddbj-canon/v3 — the heal
+  # Rewrites every stored record (BioProject and BioSample are the ones the
+  # change reaches) into the shape the spec's v3 took at
+  # ddbj/ddbj-record-specifications#11 (DDBJRecord::ReshapeV3), as one root
+  # replace per chain under ddbj-canon/v3 — the heal
   # Submission#append_update! performs for a chain written under an older
   # version. Edits made in the repository stay: the record rewritten is the
   # materialised one, not a fresh conversion from D-way.
@@ -12,11 +13,11 @@ namespace :ddbj_record do
   # write to it — but running it once after deploying heals them all.
   #
   #   bin/rails ddbj_record:reshape_v3
-  desc 'Rewrite stored BioProject / BioSample records into the current v3 shape'
+  desc 'Rewrite stored records into the current v3 shape and heal their chains'
   task reshape_v3: :environment do
     counts = Hash.new(0)
 
-    Submission.where(db: %w[bioproject biosample]).where.associated(:updates).distinct.find_each do |submission|
+    Submission.where.associated(:updates).distinct.find_each do |submission|
       # The chain as it stores it — replayed, not read through the cache,
       # which the rewrite is about to invalidate anyway.
       record = submission.materialise_at

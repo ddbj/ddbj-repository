@@ -21,13 +21,18 @@ module DDBJRecord
   # recognise an unchanged source by the checksum taken before the change
   # (Submission#same_source?).
   module ReshapeV3
+    # A record carrying both `project` and `projects`: no writer produces
+    # one, and which of them is the record's cannot be decided here.
+    class Error < StandardError; end
+
     module_function
 
-    def call(record)
-      record = record.deep_dup
+    def call(record) = call!(record.deep_dup)
 
+    # `call` on the record itself, for a caller that owns a fresh tree.
+    def call!(record)
       if record.key?('project')
-        raise ArgumentError, 'the record has both project and projects' if record.key?('projects')
+        raise Error, 'the record has both project and projects' if record.key?('projects')
 
         project = record.delete('project')
         record['projects'] = [project] if project.present?

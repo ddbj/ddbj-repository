@@ -28,7 +28,7 @@ class DDBJRecord::ReshapeV3Test < ActiveSupport::TestCase
   end
 
   test 'refuses a record that has both project and projects' do
-    assert_raises(ArgumentError) { R.call({'project' => {}, 'projects' => [{}]}) }
+    assert_raises(R::Error) { R.call({'project' => {}, 'projects' => [{}]}) }
   end
 
   test 'a record in the current shape is left as it is' do

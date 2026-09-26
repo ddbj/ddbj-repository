@@ -277,7 +277,11 @@ class Submission < ApplicationRecord
   def materialised_record
     record = latest_record
 
-    record && legacy_chain? ? DDBJRecord::ReshapeV3.call(record) : record
+    # latest_record answers a tree parsed or replayed for this call, so it
+    # can be reshaped in place.
+    record && legacy_chain? ? DDBJRecord::ReshapeV3.call!(record) : record
+  rescue DDBJRecord::ReshapeV3::Error => e
+    raise MaterialisationFailed.new(update_id: cached_at_update_id || updates.maximum(:id), original: e)
   end
 
   # Whether the cached bytes are the record as materialised_record answers
@@ -387,8 +391,11 @@ class Submission < ApplicationRecord
       )
 
       # The chain is canonical from here on, whether it already was or was
-      # just healed above.
-      update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER)
+      # just healed above. The cache was invalidated in the database
+      # (SubmissionUpdate#after_create); forgetting the stamp here too keeps
+      # a read on this object from answering the stale bytes — now no longer
+      # reshaped on the way out.
+      update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER, cached_at_update_id: nil)
 
       update
       # Cache invalidates via SubmissionUpdate#after_create (inside this
