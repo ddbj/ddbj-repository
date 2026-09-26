@@ -46,7 +46,16 @@ module BioSample
       return Result.new(submission: nil, outcome: :no_samples) if @row.samples.empty?
 
       record = Converter.new(submission: @row).call
-      user   = User.find_or_create_by!(uid: @user_uid)
+
+      # Before anything is written: sync_samples! pairs the conversion with
+      # staging by position, and runs after the chain write (whose objects a
+      # rollback would not take back).
+      if record.fetch('samples').length != @row.samples.length
+        raise "PSUB #{@row.ssub_id}: v3 sample count (#{record.fetch('samples').length}) " \
+              "diverges from staging sample count (#{@row.samples.length})"
+      end
+
+      user = User.find_or_create_by!(uid: @user_uid)
 
       Submission.transaction do
         submission = Submission.find_or_create_by!(db: :biosample, source_id: @row.ssub_id) {|s|
@@ -92,7 +101,7 @@ module BioSample
             source_checksum:,
             updated_at:       Time.current
           )
-          sync_samples!(submission, record, submission.materialised_record)
+          sync_samples!(submission, record, safe_prior_materialised(submission))
 
           return Result.new(submission:, outcome: :skipped)
         end
@@ -107,8 +116,8 @@ module BioSample
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
-        record       = record_to_write(submission, prior_record, record)
-        patch_ops    = compute_patch_ops(prior_record, record, legacy: submission.legacy_chain?)
+        written      = record_to_write(submission, prior_record, record)
+        patch_ops    = compute_patch_ops(prior_record, written, legacy: submission.legacy_chain?)
 
         if patch_ops.empty?
           # The fast byte-equality check above should normally catch
@@ -135,6 +144,10 @@ module BioSample
         new_record = DDBJRecord::Canonicalizer.apply(prior_record, patch_ops)
         new_dump   = Oj.dump(new_record, mode: :strict)
 
+        # Before the uploads below: a failure here must not leave objects in
+        # storage that the rollback cannot take back.
+        sync_samples!(submission, record, new_record)
+
         submission.update_columns(
           canonical_version: DDBJRecord::Canonicalizer::NUMBER,
           converter_version: "bs_v3/#{Converter::SOURCE_FORMAT}",
@@ -160,7 +173,6 @@ module BioSample
         # the (blob, stamp) write — overkill here (importer is single-
         # threaded per submission) but cheap.
         submission.prime_cache!(bytes: new_dump, update_id: new_update.id)
-        sync_samples!(submission, record, new_record)
 
         Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
       end
@@ -254,24 +266,27 @@ module BioSample
     #
     # What the record holds (accession, name, title, package, organism) is
     # projected from `stored`, the record the chain holds after this import,
-    # not from the conversion: a curator may have changed it here, and the
-    # conversion is not that record when the import kept those edits. The
-    # stored samples are in canonical order, so they are found by alias.
+    # not from `record`, the conversion: a curator may have changed it here,
+    # and the conversion is not that record when the import kept those
+    # edits. The stored samples are in canonical order, so they are found by
+    # alias — where the alias names one sample on both sides; a repeated one
+    # cannot say which is which, and that row keeps the conversion's values.
+    #
+    # An accession is never taken away: one D-way has stays when the stored
+    # record lacks it (a chain from before accessions were diffed).
     def sync_samples!(submission, record, stored)
       v3_samples       = record.fetch('samples')
-      stored_samples   = Array(stored&.[]('samples')).index_by { it['alias'] }
+      stored_samples   = Array(stored&.[]('samples'))
       staging_samples  = @row.samples
       existing_samples = submission.samples.order(:id).to_a
 
-      if v3_samples.length != staging_samples.length
-        raise "PSUB #{@row.ssub_id}: v3 sample count (#{v3_samples.length}) " \
-              "diverges from staging sample count (#{staging_samples.length})"
-      end
+      unique  = (v3_samples.map { it['alias'] }.tally.select { _2 == 1 }.keys & stored_samples.map { it['alias'] }.tally.select { _2 == 1 }.keys).to_set
+      by_name = stored_samples.select { unique.include?(it['alias']) }.index_by { it['alias'] }
 
       v3_samples.zip(staging_samples).each_with_index do |(converted, staging), idx|
-        v3    = stored_samples.fetch(converted['alias'], converted)
+        v3    = by_name.fetch(converted['alias'], converted)
         attrs = {
-          accession:     v3['accession'],
+          accession:     v3['accession'] || converted['accession'],
           sample_name:   v3['alias'],
           status:        map_status(staging.status_id),
           title:         v3['title'],

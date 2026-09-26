@@ -176,7 +176,7 @@ class CurationState
   end
 
   # Only BP projects the record's hold date onto a filterable column
-  # (Submission#sync_hold_date!). BS has nowhere to put it, and D-way
+  # (Submission#sync_projections!). BS has nowhere to put it, and D-way
   # never used a BS hold date — so this is nil there rather than paying
   # for a chain replay to find out.
   def hold_date

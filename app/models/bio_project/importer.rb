@@ -127,12 +127,13 @@ module BioProject
         if submission.same_source?(record) && !submission.legacy_chain?
           submission.update_columns(source_checksum:) unless submission.source_checksum == source_checksum
 
-          # hold_date is a projection of the stored record (see
-          # Submission#sync_hold_date!), not of this conversion: a curator
-          # may have changed it here, and the notifier reads the column.
-          # Synced on the skip path too, so a row imported before the
-          # projection existed is backfilled.
-          submission.sync_hold_date!
+          # The Project columns project the stored record (see
+          # Submission#sync_projections!), not this conversion: a curator
+          # may have changed it here. Synced on the skip path too, so a row
+          # imported before a projection existed is backfilled. A chain
+          # that cannot be read leaves them as they are.
+          stored = safe_prior_materialised(submission)
+          submission.sync_projections!(stored) if stored.present?
 
           return Result.new(submission:, outcome: :skipped)
         end
@@ -144,14 +145,14 @@ module BioProject
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
-        record       = record_to_write(submission, prior_record, record)
-        patch_ops    = compute_patch_ops(prior_record, record, legacy: submission.legacy_chain?)
+        written      = record_to_write(submission, prior_record, record)
+        patch_ops    = compute_patch_ops(prior_record, written, legacy: submission.legacy_chain?)
 
         if patch_ops.empty?
           # Nothing to record, but remember what we just compared against
           # so the next run takes the cheap path.
           submission.update_columns(source_checksum:)
-          submission.sync_hold_date!(prior_record)
+          submission.sync_projections!(prior_record) if prior_record.present?
 
           return Result.new(submission:, outcome: :skipped)
         end
@@ -174,20 +175,19 @@ module BioProject
           updated_at:        Time.current
         )
 
-        # Columns refreshed only on real updates: status and project_type
-        # from D-way, accession re-affirmed, and the title projected from the
-        # record the chain now holds — the conversion is not that record when
-        # the import kept edits made here (record_to_write). Phase 6 needs
-        # explicit curator-edit-vs-import diff to handle the case where XML
-        # diverges AFTER a curator touched the row. (release_date / dist_date
-        # are handled above, unconditionally, on purpose.)
+        # D-way's columns, refreshed only on real updates: status and
+        # project_type, and the accession re-affirmed. Phase 6 needs explicit
+        # curator-edit-vs-import diff to handle the case where XML diverges
+        # AFTER a curator touched the row. (release_date / dist_date are
+        # handled above, unconditionally, on purpose.) The record's own
+        # columns come from the record the chain now holds, which is not the
+        # conversion when the import kept edits made here (record_to_write).
         project.update!(
           accession:    accession,
           project_type: @project_type,
-          status:       map_status(@status),
-          title:        new_record.dig('projects', 0, 'title')
+          status:       map_status(@status)
         )
-        submission.sync_hold_date!(new_record)
+        submission.sync_projections!(new_record)
 
         new_update = SubmissionUpdate.create_with_patch!(
           submission:              submission,

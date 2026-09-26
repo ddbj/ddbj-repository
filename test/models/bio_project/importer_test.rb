@@ -332,7 +332,10 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     first_title = first.project.title
 
     travel 1.second
-    first.project.update!(title: 'Curator-edited title')
+    # A curator edit goes through the record, and the column projects it.
+    first.append_update!(first.materialised_record.deep_dup.tap { it['projects'][0]['title'] = 'Curator-edited title' }, actor: 'admin:tanaka')
+    first.sync_projections!
+    first_seen = first.reload.updated_at
 
     second = build(migration_run_id: SecureRandom.uuid).call
     assert_equal :skipped, second.outcome
@@ -343,7 +346,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal 'Curator-edited title', submission.project.reload.title,
                  'Project columns must NOT be clobbered by an idempotent re-run'
     refute_equal first_title, 'Curator-edited title' # sanity: the precondition flipped
-    assert_equal 1, submission.updates.count
+    assert_equal 2, submission.updates.count
   end
 
   test 'on a real :updated run migration_run_id IS restamped' do
@@ -449,20 +452,23 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
       submission.materialised_record.deep_dup.tap { it['submission']['hold_date'] = '2031-01-01' },
       actor: 'admin:tanaka'
     )
-    submission.sync_hold_date!
+    submission.sync_projections!
 
     assert_equal :skipped, build.call.outcome
     assert_equal Date.new(2031, 1, 1), submission.project.reload.hold_date
   end
 
-  test 'on a real update, title and hold_date are projected from the record the chain now holds' do
+  # Healing a chain from before the canon bump writes the stored record, not
+  # the conversion — and the columns follow what was written.
+  test 'healing an old chain keeps a curator-set hold_date in the column' do
     submission = build.call.submission
-    changed    = File.read(XML_FIXTURE).sub(%r{<Title>[^<]*</Title>}, '<Title>New title from D-way</Title>')
+    submission.append_update!(
+      submission.materialised_record.deep_dup.tap { it['submission']['hold_date'] = '2031-01-01' },
+      actor: 'admin:tanaka'
+    )
+    submission.update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER - 1)
 
-    assert_equal :updated, build(xml: changed).call.outcome
-
-    record = submission.reload.materialised_record
-    assert_equal record.dig('projects', 0, 'title'),        submission.project.title
-    assert_equal record.dig('submission', 'hold_date')&.to_date, submission.project.hold_date
+    assert_equal :updated, build.call.outcome
+    assert_equal Date.new(2031, 1, 1), submission.project.reload.hold_date
   end
 end

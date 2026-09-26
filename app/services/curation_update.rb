@@ -132,12 +132,12 @@ class CurationUpdate
   # `submission.hold_date` is a v3 record field, so it goes through the
   # patch chain — and then onto the projected `projects.hold_date` column,
   # without which DistributionNotifier can never see the edit (a blob
-  # patch chain is not filterable in SQL). See Submission#sync_hold_date!.
+  # patch chain is not filterable in SQL). See Submission#sync_projections!.
   def apply_hold_date
     return [] unless params.key?(:hold_date)
 
     # The rail only renders this field for BioProject, because nothing
-    # outside BP acts on it — `sync_hold_date!` is a no-op there and
+    # outside BP acts on it — `sync_projections!` is a no-op there and
     # DistributionNotifier never looks. Enforced here too: a template is
     # not a guard, and a replayed POST would otherwise append a real patch
     # setting a date that nothing will ever honour, which is exactly the
@@ -164,7 +164,7 @@ class CurationUpdate
 
     record = patched_record(current, hold_date)
     update = submission.append_update!(record, actor:, source: :manual)
-    submission.sync_hold_date!(record)
+    submission.sync_projections!(record)
 
     update ? ["hold date=#{hold_date || '—'}"] : []
   end

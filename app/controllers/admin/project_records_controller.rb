@@ -4,8 +4,9 @@ module Admin
   # `Project.update!(title: record.dig('projects', 0, 'title'))` already
   # treats Project.title as a denormalised cache); this controller goes
   # through the patch chain via Submission#append_update! AND mirrors
-  # the title back to the Project.title typed column so the admin
-  # index display stays consistent without waiting for a re-import.
+  # the record back to the Project typed columns
+  # (Submission#sync_projections!) so the admin index display stays
+  # consistent without waiting for a re-import.
   # (Description has no typed column — Project.description doesn't
   # exist; mirror would be a no-op.)
   class ProjectRecordsController < ApplicationController
@@ -25,11 +26,9 @@ module Admin
         source: :manual
       )
 
-      # Mirror title to the typed column inside the same transaction
-      # boundary as append_update! (separate transaction is fine — both
-      # writes are idempotent: identical title is a no-op on either
-      # side).
-      project.update!(title: raw['title'].to_s.strip.presence) if result && raw.key?('title')
+      # Mirror the record onto the typed columns, from the record itself so
+      # the two cannot differ (both writes are idempotent).
+      submission.sync_projections!(new_record) if result
 
       participate!(submission.request) if result
 

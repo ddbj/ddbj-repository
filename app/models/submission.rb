@@ -405,20 +405,23 @@ class Submission < ApplicationRecord
     end
   end
 
-  # `submission.hold_date` lives in the v3 record, which is the editable
-  # source of truth — but DistributionNotifier has to find "hold date within
-  # 10 days" across every submission, and a blob-backed patch chain can't be
-  # filtered in SQL. So the BP Project row carries a projection of it, the
-  # same way it carries status / title. Call this wherever the record
-  # changes (importer, curator edit) or the notifier silently stops seeing
-  # records.
+  # The v3 record is the editable source of truth, but a blob-backed patch
+  # chain can't be filtered in SQL — so the BP Project row carries
+  # projections of it: the title (lists, search) and `submission.hold_date`
+  # (DistributionNotifier finds "hold date within 10 days" by it). Call this
+  # with the record the chain holds wherever that record changes — importer,
+  # curator edit — or the column drifts from it; projecting a conversion
+  # from D-way instead would put D-way's values back over edits made here.
   #
-  # BS has nowhere to project it (no Project row) and D-way never used a BS
-  # hold_date, so this is a no-op there — see DistributionNotifier.
-  def sync_hold_date!(record = materialised_record)
-    return unless bioproject_db? && project
+  # BS has no Project row, and D-way never used a BS hold_date, so this is
+  # a no-op there — see DistributionNotifier.
+  def sync_projections!(record = materialised_record)
+    return unless bioproject_db? && project && record
 
-    project.update_column(:hold_date, record&.dig('submission', 'hold_date'))
+    project.update_columns(
+      title:     record.dig('projects', 0, 'title'),
+      hold_date: record.dig('submission', 'hold_date')
+    )
   end
 
   # Upload the freshly-computed snapshot bytes and stamp the cache
