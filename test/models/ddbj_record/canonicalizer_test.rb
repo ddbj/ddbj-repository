@@ -237,18 +237,11 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   end
 
   test 'accepts v3 Data instances via coerce' do
-    person = DDBJRecord::V3::Person.new(
-      first:        'Alice',
-      last:         'Lovelace',
-      email:        'a@example.com',
-      orcid:        nil,
-      organization: nil,
-      role:         nil
-    )
+    person = DDBJRecord::V3::Parser.model({'first_name' => 'Alice', 'last_name' => 'Lovelace', 'email' => 'a@example.com'}, 'Person')
 
     bytes = C.canonicalize({'people' => [person]})
-    assert_includes bytes, '"first":"Alice"'
-    assert_includes bytes, '"last":"Lovelace"'
+    assert_includes bytes, '"first_name":"Alice"'
+    assert_includes bytes, '"last_name":"Lovelace"'
   end
 
   test 'rejects floats by default' do

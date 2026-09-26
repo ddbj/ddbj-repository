@@ -13,16 +13,12 @@ module DDBJRecord
     HEAD_LEN = 65_536
     BOM      = "\xEF\xBB\xBF".b.freeze
 
-    # Top-level keys that exist ONLY in v3 (per
-    # ddbj-record-specifications/docs/v3-schema.md). Their presence in the
-    # head window with no `schema_version` marker is a strong signal we are
+    # Top-level keys that exist ONLY in v3: the v3 record's keys (read off
+    # the spec's schema) less the v2 record's. Their presence in the head
+    # window with no `schema_version` marker is a strong signal we are
     # looking at v3, not legacy.
-    V3_KEY_PATTERN = /
-      (?<![A-Za-z0-9_])"(?:
-        access_control | analyses | assembly | datasets | project |
-        samples        | runs     | relations
-      )"\s*:
-    /xo.freeze
+    V3_ONLY_KEYS   = (DDBJRecord::V3::Root.members - DDBJRecord::Root.members).map(&:to_s).freeze
+    V3_KEY_PATTERN = /(?<![A-Za-z0-9_])"(?:#{V3_ONLY_KEYS.map { Regexp.escape(it) }.join('|')})"\s*:/
 
     class FutureSchemaVersionError    < StandardError; end
     class AmbiguousSchemaVersionError < StandardError; end

@@ -83,10 +83,12 @@ Three workflows on push:
 - **Canon** (`canon.yml`): the canonicalization gates — see below
 
 Canon overlaps `api.yml` on the Ruby tests by design; what only it does is
-run `canon:fields_check` / `canon:registry_completeness`, and install
-Python `rfc8785` so `cross_lang_jcs_test.rb` actually runs instead of
-skipping. Keeping the Python toolchain out of the API test job is the
-reason it is a separate workflow.
+run `canon:registry_completeness`, install Python `rfc8785` so
+`cross_lang_jcs_test.rb` actually runs instead of skipping, and regenerate
+`schema/ddbj-record/v3.schema.json` from the pinned spec to fail if it
+differs (see [DDBJ Record v3 types](#ddbj-record-v3-types)). Keeping the
+Python toolchain out of the API test job is the reason it is a separate
+workflow.
 
 Every job that runs Ruby tests needs SeaweedFS, including Canon's — the
 test environment stores files in S3 like the others, and a global setup
@@ -229,12 +231,26 @@ Two-pass streaming:
 1. Collect entry IDs and NA/AA classification → allocate accessions
 2. Stream entries → write JSON (StreamingWriter) + flatfiles (StreamingRenderer) simultaneously
 
+### DDBJ Record v3 types
+
+The v3 types are the spec's (`vendor/ddbj-record-specifications`, pinned by
+the gitlink and tracking its `main`), not a copy: the spec generates
+`schema/ddbj-record/v3.schema.json`, and `DDBJRecord::V3` defines one Data
+class per model in it. Moving the submodule means regenerating the schema
+(the command is at the top of `app/models/ddbj_record/v3.rb`) and updating
+`SPEC_SHA`; the Canon workflow and `spec_pin_test` fail until both follow.
+
+The spec changes shape within v3 (`schema_version` stays `"v3"`), so records
+written before a change cannot be told apart by their version. What the
+repository has stored is kept in the current shape by a migration when the
+submodule moves.
+
 ### Canonical JSON (`ddbj-canon`)
 
 `doc/canonical-json.md` is the wire-format spec — deterministic byte-identical
 serialization of a v3 record, which is what makes SHAs content-addressable and
 RFC 6902 patch chains replayable. `DDBJRecord::Canonicalizer` implements it;
-`schema/canon/array-modes.yml` and `v3-fields.yml` are the registries it reads.
+`schema/canon/array-modes.yml` is the registry it reads.
 
 The spec is versioned (`Canonicalizer::VERSION`, currently `ddbj-canon/v2`) and
 frozen on first use: changing a sort rule, the strip list, or string

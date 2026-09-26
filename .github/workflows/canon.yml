@@ -62,8 +62,29 @@ jobs:
       - name: Run canonicalizer test suite
         run: bin/rails test test/models/ddbj_record/canonicalizer_test.rb test/models/ddbj_record/canon/
 
-      - name: Verify field manifest + registry coverage
-        run: bin/rails canon:fields_check canon:registry_completeness
+      - name: Verify registry coverage
+        run: bin/rails canon:registry_completeness
+
+  # DDBJRecord::V3 defines its types from schema/ddbj-record/v3.schema.json.
+  # That file is generated from the spec the submodule pins, and has to be
+  # regenerated whenever the submodule moves.
+  spec-schema:
+    name: Spec schema
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - run: pip install ./vendor/ddbj-record-specifications
+
+      - name: Compare with the schema the pinned spec generates
+        run: python -m ddbj_record.schema.cli --version v3 | diff -u schema/ddbj-record/v3.schema.json -
 
   cross-lang-jcs-gate:
     name: Cross-language JCS gate

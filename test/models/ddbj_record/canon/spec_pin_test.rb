@@ -3,17 +3,15 @@ require 'open3'
 
 module DDBJRecord::Canon; end
 
-# `schema/canon/v3-fields.yml` is derived by hand from the vendored spec, and
-# `canon:fields_check` only compares it against the V3 Data classes. So the
-# manifest and the classes can agree with each other while both have drifted
-# from the spec they claim to describe — which is what happens when the
-# submodule is moved with `git submodule update --remote` and the manifest is
-# not regenerated, or regenerated without updating `SPEC_SHA`.
+# `DDBJRecord::V3::SPEC_SHA` names the spec revision the generated schema
+# (schema/ddbj-record/v3.schema.json) was made from, and
+# `schema/canon/array-modes.yml` cites the revision the registry was derived
+# from. Both have to follow the submodule when it moves — the Canon workflow
+# checks the schema itself against the submodule, and this checks the names.
 #
-# This pins the three places that name a spec revision to the gitlink actually
-# recorded for the submodule. Read from the index rather than the checked-out
-# submodule so the check holds without `git submodule update --init` — the
-# gitlink is what every other checkout resolves to anyway.
+# Read from the index rather than the checked-out submodule so the check holds
+# without `git submodule update --init` — the gitlink is what every other
+# checkout resolves to anyway.
 class DDBJRecord::Canon::SpecPinTest < ActiveSupport::TestCase
   SUBMODULE = 'vendor/ddbj-record-specifications'.freeze
 
@@ -21,7 +19,6 @@ class DDBJRecord::Canon::SpecPinTest < ActiveSupport::TestCase
   CITATION = /ddbj-record-specifications @ (?<sha>[0-9a-f]{7,40})/
 
   CITING_FILES = %w[
-    schema/canon/v3-fields.yml
     schema/canon/array-modes.yml
   ].freeze
 
@@ -54,7 +51,7 @@ class DDBJRecord::Canon::SpecPinTest < ActiveSupport::TestCase
     assert_equal @pinned, DDBJRecord::V3::SPEC_SHA,
                  'DDBJRecord::V3::SPEC_SHA disagrees with the gitlink — either the submodule ' \
                  'moved without updating the constant, or the constant was bumped without ' \
-                 'moving the submodule. Regenerate schema/canon/v3-fields.yml either way.'
+                 'moving the submodule. Regenerate schema/ddbj-record/v3.schema.json either way.'
   end
 
   CITING_FILES.each do |path|

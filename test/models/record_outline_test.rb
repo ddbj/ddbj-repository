@@ -52,7 +52,7 @@ class RecordOutlineTest < ActiveSupport::TestCase
     assert_equal RecordOutline::COLUMN_LIMIT, node.rows.first.size
   end
 
-  # v3 gives every database the same 14 keys, so an absent one means "this
+  # v3 gives every database the same keys, so an absent one means "this
   # database has no such thing" — not an empty section to scroll past.
   test 'a key the record does not carry is not a section' do
     keys = RecordOutline.new({'project' => {'title' => 'x'}, 'samples' => nil, 'sequences' => nil}).sections.map(&:key)
