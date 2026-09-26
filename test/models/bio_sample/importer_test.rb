@@ -457,4 +457,24 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_nil              by_acc['SAMD00099992'].package_group
     assert_nil              by_acc['SAMD00099992'].env_package
   end
+
+  # The typed columns project the record the chain holds, which a curator
+  # may have changed here — not the conversion from D-way.
+  test 'a curator edit to a sample stays in the typed columns across an unchanged re-import' do
+    submission = build.call.submission
+    record     = submission.materialised_record.deep_dup
+    sample     = record['samples'].find { it['alias'] == 'DRS000001' }
+
+    sample['title']    = 'Curated title'
+    sample['organism'] = {'taxonomy_id' => '9606', 'name' => 'Homo sapiens'}
+    submission.append_update!(record, actor: 'admin:tanaka')
+
+    assert_equal :skipped, build.call.outcome
+
+    row = submission.samples.find_by(sample_name: 'DRS000001')
+    assert_equal 'Curated title', row.title
+    assert_equal 'Homo sapiens',  row.organism
+    assert_equal 9606,            row.taxonomy_id
+    assert_equal 'sample-2',      submission.samples.find_by(sample_name: 'DRS000002').title
+  end
 end

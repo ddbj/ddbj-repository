@@ -439,4 +439,30 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_nil   result.submission
     assert_nil   Submission.find_by(source_id: 'PSUB000009')
   end
+
+  # Project.hold_date feeds the distribution notice. It projects the record
+  # the chain holds, where a curator may have moved the date — not the
+  # conversion, which would put D-way's date back on every import.
+  test 'a curator-set hold_date stays in the column across a re-import' do
+    submission = build.call.submission
+    submission.append_update!(
+      submission.materialised_record.deep_dup.tap { it['submission']['hold_date'] = '2031-01-01' },
+      actor: 'admin:tanaka'
+    )
+    submission.sync_hold_date!
+
+    assert_equal :skipped, build.call.outcome
+    assert_equal Date.new(2031, 1, 1), submission.project.reload.hold_date
+  end
+
+  test 'on a real update, title and hold_date are projected from the record the chain now holds' do
+    submission = build.call.submission
+    changed    = File.read(XML_FIXTURE).sub(%r{<Title>[^<]*</Title>}, '<Title>New title from D-way</Title>')
+
+    assert_equal :updated, build(xml: changed).call.outcome
+
+    record = submission.reload.materialised_record
+    assert_equal record.dig('projects', 0, 'title'),        submission.project.title
+    assert_equal record.dig('submission', 'hold_date')&.to_date, submission.project.hold_date
+  end
 end

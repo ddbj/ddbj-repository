@@ -62,12 +62,6 @@ module BioSample
 
         submission.ensure_migration_request!(migration_run_id: @migration_run_id)
 
-        # Sample typed columns ALWAYS sync — they include staging-only
-        # fields (package_group, env_package) that never reach the
-        # canonical patch, so the patch-difference skip below cannot
-        # protect them without permanently stranding staging updates.
-        sync_samples!(submission, record)
-
         # curator_comment is staging-only too: the Converter intentionally
         # does NOT put it into v3 (it's a curator-internal note, not
         # DDBJ Record content), so the patch-difference skip cannot
@@ -98,6 +92,8 @@ module BioSample
             source_checksum:,
             updated_at:       Time.current
           )
+          sync_samples!(submission, record, submission.materialised_record)
+
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -120,13 +116,15 @@ module BioSample
           # prior and current canonicalise to the same form despite
           # differing in non-canonical noise (whitespace, key order
           # not preserved across some intermediate step, etc.). Same
-          # stamping: sync_samples! ran, so re-stamp migration_run_id
-          # for rollback-grain correctness.
+          # stamping as the skip path: sync_samples! runs, so re-stamp
+          # migration_run_id for rollback-grain correctness.
           submission.update_columns(
             migration_run_id: @migration_run_id,
             source_checksum:  source_checksum,
             updated_at:       Time.current
           )
+          sync_samples!(submission, record, prior_record)
+
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -134,7 +132,8 @@ module BioSample
         # ops we just computed rather than by re-serialising `record`:
         # it avoids a third canonicalisation, and it asserts the property
         # the chain exists for — replaying it reproduces exactly this.
-        new_dump = Oj.dump(DDBJRecord::Canonicalizer.apply(prior_record, patch_ops), mode: :strict)
+        new_record = DDBJRecord::Canonicalizer.apply(prior_record, patch_ops)
+        new_dump   = Oj.dump(new_record, mode: :strict)
 
         submission.update_columns(
           canonical_version: DDBJRecord::Canonicalizer::NUMBER,
@@ -161,6 +160,7 @@ module BioSample
         # the (blob, stamp) write — overkill here (importer is single-
         # threaded per submission) but cheap.
         submission.prime_cache!(bytes: new_dump, update_id: new_update.id)
+        sync_samples!(submission, record, new_record)
 
         Result.new(submission:, outcome: submission.updates.size == 1 ? :created : :updated)
       end
@@ -247,8 +247,19 @@ module BioSample
       record
     end
 
-    def sync_samples!(submission, record)
+    # The Sample rows: one per staging sample, in staging order. Synced on
+    # every run, whichever way it ends — package_group, env_package, status
+    # and the D-way dates are staging-only and reach no patch, so a skipped
+    # import must still carry them.
+    #
+    # What the record holds (accession, name, title, package, organism) is
+    # projected from `stored`, the record the chain holds after this import,
+    # not from the conversion: a curator may have changed it here, and the
+    # conversion is not that record when the import kept those edits. The
+    # stored samples are in canonical order, so they are found by alias.
+    def sync_samples!(submission, record, stored)
       v3_samples       = record.fetch('samples')
+      stored_samples   = Array(stored&.[]('samples')).index_by { it['alias'] }
       staging_samples  = @row.samples
       existing_samples = submission.samples.order(:id).to_a
 
@@ -257,7 +268,8 @@ module BioSample
               "diverges from staging sample count (#{staging_samples.length})"
       end
 
-      v3_samples.zip(staging_samples).each_with_index do |(v3, staging), idx|
+      v3_samples.zip(staging_samples).each_with_index do |(converted, staging), idx|
+        v3    = stored_samples.fetch(converted['alias'], converted)
         attrs = {
           accession:     v3['accession'],
           sample_name:   v3['alias'],

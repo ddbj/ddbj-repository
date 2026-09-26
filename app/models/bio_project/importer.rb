@@ -109,12 +109,6 @@ module BioProject
         project = submission.project || Project.create!(submission:, accession:, project_type: @project_type)
         project.update_columns(release_date: @release_date, dist_date: @dist_date, modified_date: @modified_date)
 
-        # hold_date is a projection of the record we just built (see
-        # Submission#sync_hold_date!). Synced on every run for the same
-        # reason as the dates above: the fast-skip path must still backfill
-        # a row imported before the projection existed.
-        submission.sync_hold_date!(record)
-
         # Fast :skipped path: a checksum of the raw converter output. If
         # the source XML hasn't changed meaningfully we short-circuit
         # without paying for a canonicalisation pass, let alone diff's two.
@@ -133,6 +127,13 @@ module BioProject
         if submission.same_source?(record) && !submission.legacy_chain?
           submission.update_columns(source_checksum:) unless submission.source_checksum == source_checksum
 
+          # hold_date is a projection of the stored record (see
+          # Submission#sync_hold_date!), not of this conversion: a curator
+          # may have changed it here, and the notifier reads the column.
+          # Synced on the skip path too, so a row imported before the
+          # projection existed is backfilled.
+          submission.sync_hold_date!
+
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -150,6 +151,7 @@ module BioProject
           # Nothing to record, but remember what we just compared against
           # so the next run takes the cheap path.
           submission.update_columns(source_checksum:)
+          submission.sync_hold_date!(prior_record)
 
           return Result.new(submission:, outcome: :skipped)
         end
@@ -158,7 +160,8 @@ module BioProject
         # ops we just computed rather than by re-serialising `record`:
         # it avoids a third canonicalisation, and it asserts the property
         # the chain exists for — replaying it reproduces exactly this.
-        new_dump = Oj.dump(DDBJRecord::Canonicalizer.apply(prior_record, patch_ops), mode: :strict)
+        new_record = DDBJRecord::Canonicalizer.apply(prior_record, patch_ops)
+        new_dump   = Oj.dump(new_record, mode: :strict)
 
         # `update_columns` bypasses the v2-era `validates :ddbj_record,
         # on: :update` — migration-sourced submissions store state in
@@ -171,18 +174,20 @@ module BioProject
           updated_at:        Time.current
         )
 
-        # Materialised-snapshot columns (status / title, plus accession /
-        # project_type re-affirmed): refreshed only on real updates so
-        # curator-edited fields survive byte-identical re-imports. Phase 6
-        # needs explicit curator-edit-vs-import diff to handle the case
-        # where XML diverges AFTER a curator touched the row. (release_date
-        # / dist_date are handled above, unconditionally, on purpose.)
+        # Columns refreshed only on real updates: status and project_type
+        # from D-way, accession re-affirmed, and the title projected from the
+        # record the chain now holds — the conversion is not that record when
+        # the import kept edits made here (record_to_write). Phase 6 needs
+        # explicit curator-edit-vs-import diff to handle the case where XML
+        # diverges AFTER a curator touched the row. (release_date / dist_date
+        # are handled above, unconditionally, on purpose.)
         project.update!(
           accession:    accession,
           project_type: @project_type,
           status:       map_status(@status),
-          title:        record.dig('projects', 0, 'title')
+          title:        new_record.dig('projects', 0, 'title')
         )
+        submission.sync_hold_date!(new_record)
 
         new_update = SubmissionUpdate.create_with_patch!(
           submission:              submission,
