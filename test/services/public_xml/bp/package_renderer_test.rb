@@ -16,12 +16,14 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
         'accession'        => 'PRJDB000123',
         'title'            => 'Walking skeleton',
         'description'      => 'BP public XML port from D-way',
-        'locus_tag_prefix' => %w[ABCDE FGHIJ],
+        # 変換した record は {prefix, biosample_id}、それより前の record は文字列。
+        'locus_tag_prefix' => [{'prefix' => 'ABCDE', 'biosample_id' => 'SAMD00000001'}, 'FGHIJ'],
         'organism'         => {'taxonomy_id' => 9606, 'name' => 'Homo sapiens'},
         'grants'           => [{'id' => 'JP-001', 'title' => 'Grant title', 'agency' => 'JSPS'}],
         'publications'     => [{'pubmed_id' => '12345', 'status' => 'ePublished'}],
         'relevance'        => {'medical' => 'cancer research'},
-        'target'           => {'sample_scope' => 'eMonoisolate', 'material' => 'eGenome', 'capture' => 'eWholeGenome', 'method' => 'eSequencing', 'data_types' => ['Genome Sequencing']}
+        'target'           => {'sample_scope' => 'eMonoisolate', 'material' => 'eGenome', 'capture' => 'eWholeGenome', 'method' => 'eSequencing', 'data_types' => ['eSequence']},
+        'attributes'       => [{'name' => 'project_data_type', 'value' => 'Genome Sequencing'}]
       }
     }
 
@@ -38,6 +40,7 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
     assert_equal 'Walking skeleton',                descr.at_xpath('./Title').text
     assert_equal 'BP public XML port from D-way',   descr.at_xpath('./Description').text
     assert_equal %w[ABCDE FGHIJ],                   descr.xpath('./LocusTagPrefix').map(&:text)
+    assert_equal ['SAMD00000001', nil],             descr.xpath('./LocusTagPrefix').map { it['biosample_id'] }
     assert_equal '2030-01-01',                      descr.at_xpath('./ProjectReleaseDate').text
 
     grant = descr.at_xpath('./Grant')
@@ -48,7 +51,9 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
     pub = descr.at_xpath('./Publication')
     assert_equal '12345',     pub['id']
     assert_equal 'ePublished', pub['status']
-    assert_equal 'ePubmed',   pub.at_xpath('./Reference/DbType').text
+    # D-way と同じく Reference と DbType は兄弟。
+    assert_equal 'ePubmed',   pub.at_xpath('./DbType').text
+    assert_equal %w[Reference DbType], pub.element_children.map(&:name)
 
     # `medical` should be re-titleized to `Medical` for consumer compatibility
     assert_equal 'cancer research', descr.at_xpath('./Relevance/Medical').text
@@ -63,8 +68,9 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
 
     assert_equal 'eSequencing', node.at_xpath('./Project/Project/ProjectType/ProjectTypeSubmission/Method/@method_type').value
 
-    data_types = node.xpath('./Project/Project/ProjectType/ProjectTypeSubmission/ProjectDataTypeSet/DataType').map(&:text)
-    assert_equal ['Genome Sequencing'], data_types
+    # data_types は Objectives/Data@data_type、ProjectDataTypeSet は別の語彙で project_data_type 属性から。
+    assert_equal ['eSequence'],         node.xpath('./Project/Project/ProjectType/ProjectTypeSubmission/Objectives/Data/@data_type').map(&:value)
+    assert_equal ['Genome Sequencing'], node.xpath('./Project/Project/ProjectType/ProjectTypeSubmission/ProjectDataTypeSet/DataType').map(&:text)
 
     # Submitters
     contact = node.at_xpath('./Submission/Submission/Description/Organization/Contact')
@@ -169,5 +175,98 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
     assert_nil     descr.at_xpath('./ProjectReleaseDate')
 
     assert_nil node.at_xpath('./Submission')
+  end
+
+  # BioProject::Converter が読むものは、renderer が同じ場所に戻す。
+  test 'renders back what the converter reads from a primary project with "other" descriptions' do
+    source = Nokogiri::XML(file_fixture('data_migration/bio_project/PSUB_other_descriptions.xml').read)
+    record = BioProject::Converter.new(xml: source.to_xml, project_row: {project_type: 'primary', accession: 'PRJDB7777'}).call
+
+    node = PublicXML::Bp::PackageRenderer.new(record:).call
+
+    %w[
+      ProjectDescr/LocusTagPrefix
+      ProjectType/ProjectTypeSubmission/Target/Description
+      ProjectType/ProjectTypeSubmission/Method
+      ProjectType/ProjectTypeSubmission/Objectives/Data
+      ProjectType/ProjectTypeSubmission/ProjectDataTypeSet/DataType
+    ].each do |path|
+      expected = source.xpath("//Project/Project/#{path}").map { [it.text.strip, it.attributes.transform_values(&:value)] }
+      actual   = node.xpath("./Project/Project/#{path}").map { [it.text.strip, it.attributes.transform_values(&:value)] }
+
+      assert_equal expected, actual, path
+    end
+
+    children = node.at_xpath('./Project/Project/ProjectType/ProjectTypeSubmission').element_children.map(&:name)
+    assert_equal %w[Target Method Objectives ProjectDataTypeSet], children
+  end
+
+  test 'renders an umbrella project as ProjectTypeTopAdmin' do
+    source = Nokogiri::XML(file_fixture('data_migration/bio_project/PSUB_umbrella_other.xml').read)
+    record = BioProject::Converter.new(xml: source.to_xml, project_row: {project_type: 'umbrella', accession: 'PRJDB8888'}).call
+
+    node = PublicXML::Bp::PackageRenderer.new(record:).call
+
+    top_admin = node.at_xpath('./Project/Project/ProjectType/ProjectTypeTopAdmin')
+    assert_equal 'eOther',       top_admin['subtype']
+    assert_equal '9606',         top_admin.at_xpath('./Organism/@taxID').value
+    assert_equal 'Homo sapiens', top_admin.at_xpath('./Organism/OrganismName').text
+    assert_equal source.at_xpath('//DescriptionSubtypeOther').text, top_admin.at_xpath('./DescriptionSubtypeOther').text
+    assert_nil   node.at_xpath('./Project/Project/ProjectType/ProjectTypeSubmission')
+  end
+
+  test 'follows the XSD order in ProjectDescr and Organism' do
+    record = {
+      'submission' => {'hold_date' => '2030-01-01'},
+      'project'    => {
+        'title'            => 't',
+        'publications'     => [{'pubmed_id' => '1', 'title' => 'Doe J. et al. (2020)'}],
+        'relevance'        => {'modelorganism' => 'yes'},
+        'locus_tag_prefix' => ['ABC'],
+        'organism'         => {'taxonomy_id' => 9606, 'name' => 'Homo sapiens'},
+        'target'           => {'sample_scope' => 'eMonoisolate'},
+        'attributes'       => [{'name' => 'strain', 'value' => 's1'}, {'name' => 'organism_label', 'value' => 'l1'}]
+      }
+    }
+
+    node = PublicXML::Bp::PackageRenderer.new(record:).call
+
+    descr = node.at_xpath('./Project/Project/ProjectDescr')
+    assert_equal %w[Title Publication ProjectReleaseDate Relevance LocusTagPrefix], descr.element_children.map(&:name)
+    assert_equal 'Doe J. et al. (2020)', descr.at_xpath('./Publication/Reference').text
+    assert_equal 'yes', descr.at_xpath('./Relevance/ModelOrganism').text
+
+    organism = node.at_xpath('.//Target/Organism')
+    assert_equal %w[OrganismName Label Strain], organism.element_children.map(&:name)
+  end
+
+  test 'emits no Organism when the record has none' do
+    record = {'project' => {'title' => 't', 'target' => {'sample_scope' => 'eMonoisolate'}}}
+
+    node = PublicXML::Bp::PackageRenderer.new(record:).call
+
+    assert_nil node.at_xpath('.//Organism')
+  end
+
+  # 2 つの語彙を分ける前に変換した record は、ProjectDataTypeSet の値を target.data_types に持ち、
+  # project_data_type 属性を持たない。
+  test 'renders a record converted before the data type vocabularies were told apart' do
+    record = {'project' => {'target' => {'method' => 'eSequencing', 'data_types' => ['eSequence', 'Genome Sequencing']}}}
+
+    node = PublicXML::Bp::PackageRenderer.new(record:).call
+
+    submission = node.at_xpath('.//ProjectTypeSubmission')
+    assert_equal ['eSequence'],         submission.xpath('./Objectives/Data/@data_type').map(&:value)
+    assert_equal ['Genome Sequencing'], submission.xpath('./ProjectDataTypeSet/DataType').map(&:text)
+  end
+
+  test 'takes the project type from the AR row' do
+    record = {'project' => {'project_type' => 'primary', 'umbrella_subtype' => 'eOther'}}
+    row    = Project.new(project_type: :umbrella, accession: 'PRJDB000001')
+
+    node = PublicXML::Bp::PackageRenderer.new(record:, row:).call
+
+    assert_equal 'eOther', node.at_xpath('.//ProjectTypeTopAdmin/@subtype').value
+    assert_nil node.at_xpath('.//ProjectTypeSubmission')
   end
 end

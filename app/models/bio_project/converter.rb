@@ -270,7 +270,9 @@ module BioProject
         status    = pub['status']&.strip&.presence
         db        = pub.at_xpath('.//DbType')&.text&.strip
         field     = PUBLICATION_DB_FIELDS[db]
-        reference = pub.at_xpath('./Reference')&.text&.strip&.presence
+        # 本文の text だけ。<Reference><DbType>eDOI</DbType></Reference> の形では、入れ子の DbType を
+        # 本文として拾わない。
+        reference = pub.xpath('./Reference/text()').map(&:text).join.strip.presence
 
         out = {'status' => status, 'title' => reference}.compact
         out[field] = id if id && field

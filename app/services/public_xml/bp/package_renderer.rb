@@ -22,6 +22,15 @@ module PublicXML
       # name. We use it in the reverse direction here: element xpath →
       # look up the attribute name → fetch its value from the bag.
       ORGANISM_SCALAR_ATTRS = BioProject::Converter::ORGANISM_SCALAR_ATTRS
+
+      # The Objectives/Data@data_type vocabulary (the XSD's enumeration).
+      OBJECTIVE_DATA_TYPES = %w[
+        eRawSequenceReads eSequence eAnalysis eAssembly eAnnotation eVariation
+        eEpigeneticMarkers eExpression eMaps ePhenotype eOther
+      ].to_set.freeze
+
+      # The element names under <Relevance>, which the Converter lowercases.
+      RELEVANCE_ELEMENTS = %w[Agricultural Medical Industrial Environmental Evolution ModelOrganism Other].index_by(&:downcase).freeze
       REPLICON_INDEX_RE     = /\Areplicon_(\d+)_(.+)\z/
 
       # `row:` is the AR Project, used as the source of truth for
@@ -86,9 +95,9 @@ module PublicXML
 
           render_grants(xml)
           render_publications(xml)
+          render_release_date(xml)
           render_relevance(xml)
           render_locus_tag_prefix(xml)
-          render_release_date(xml)
         }
       end
 
@@ -104,10 +113,10 @@ module PublicXML
       end
 
       # The forward Converter folds publications into a flat
-      # {status, pubmed_id|doi} shape; on the way back we have to decide
-      # which DbType to emit. A publication that survived the round trip
-      # without an id (status-only) gets no Reference child — that's
-      # consistent with bpbatch leaving the slot empty.
+      # {status, pubmed_id|doi, title} shape (title is the free text of
+      # <Reference>); on the way back we decide which DbType to emit.
+      # Reference and DbType are siblings, as D-way writes them
+      # (<Reference/><DbType>ePubmed</DbType>).
       def render_publications(xml)
         Array(project_block['publications']).each do |pub|
           id, db_type = if (id = pub['pubmed_id']).present?
@@ -119,36 +128,37 @@ module PublicXML
           attrs = {id:, status: pub['status'].presence}.compact
 
           xml.Publication(**attrs) {
-            if db_type
-              xml.Reference {
-                xml.DbType db_type
-              }
-            end
+            xml.Reference pub['title'].to_s if pub['title'].present? || db_type
+            xml.DbType db_type if db_type
           }
         end
       end
 
       # v3 stores relevance as a flat string-keyed dict; the original XML
-      # nests each entry as a sibling element under <Relevance>. Element
-      # names are lower-cased in v3 but D-way's schema uses TitleCase for
-      # well-known categories (Medical, Agricultural, Industrial, ...) and
-      # a literal "Other" for free text. We re-uppercase the first letter
-      # so consumers that match on element name still hit; bag-mode keys
-      # the curator invented stay as-is.
+      # nests each entry as a sibling element under <Relevance>. The
+      # Converter lower-cases the element names, so the XSD's names
+      # (ModelOrganism included) are looked up; a key outside them is
+      # written as it is.
       def render_relevance(xml)
         relevance = project_block['relevance']
         return if relevance.blank?
 
         xml.Relevance {
           relevance.each do |key, value|
-            xml.send(titleize_element(key), value.to_s)
+            xml.send(RELEVANCE_ELEMENTS.fetch(key.to_s, key.to_s), value.to_s)
           end
         }
       end
 
+      # v3 `LocusTagPrefix` is {prefix, biosample_id}; the prefix is the
+      # element's text and the BioSample it was declared for its
+      # attribute. Records converted before the object form carry bare
+      # strings.
       def render_locus_tag_prefix(xml)
-        Array(project_block['locus_tag_prefix']).each do |prefix|
-          xml.LocusTagPrefix prefix
+        Array(project_block['locus_tag_prefix']).each do |entry|
+          prefix, biosample_id = entry.is_a?(Hash) ? entry.values_at('prefix', 'biosample_id') : [entry, nil]
+
+          emit_tag(xml, :LocusTagPrefix, prefix, {biosample_id:}.compact)
         end
       end
 
@@ -159,15 +169,41 @@ module PublicXML
         xml.ProjectReleaseDate date if date.present?
       end
 
+      # The AR Project's type is authoritative (like the accession); the
+      # record's field only stands in when the renderer runs without a row.
       def render_project_type(xml)
-        target = project_block['target'] || {}
+        project_type = @row&.project_type.presence || project_block['project_type']
 
         xml.ProjectType {
-          xml.ProjectTypeSubmission {
-            render_target(xml, target)
-            render_method(xml, target)
-            render_data_types(xml, target)
-          }
+          if project_type == 'umbrella'
+            render_project_type_top_admin(xml)
+          else
+            render_project_type_submission(xml, project_block['target'] || {})
+          end
+        }
+      end
+
+      # An umbrella project groups others; the Converter reads its subtype
+      # (and the description an "other" subtype requires) from here, and
+      # its organism from wherever the XML put one.
+      def render_project_type_top_admin(xml)
+        attrs = {subtype: project_block['umbrella_subtype'].presence}.compact
+
+        xml.ProjectTypeTopAdmin(**attrs) {
+          render_organism(xml)
+
+          if (description = project_block['umbrella_subtype_description']).present?
+            xml.DescriptionSubtypeOther description
+          end
+        }
+      end
+
+      def render_project_type_submission(xml, target)
+        xml.ProjectTypeSubmission {
+          render_target(xml, target)
+          render_method(xml, target)
+          render_objectives(xml, target)
+          render_project_data_types(xml)
         }
       end
 
@@ -181,12 +217,17 @@ module PublicXML
         xml.Target(**attrs) {
           render_organism(xml)
           render_provider(xml)
+          xml.Description target['description'] if target['description'].present?
         }
       end
 
+      # Nothing when the record has no organism at all (no name, taxID or
+      # organism attribute), rather than an empty <Organism/>.
       def render_organism(xml)
         organism = project_block['organism'] || {}
-        attrs    = organism['taxonomy_id'] ? {taxID: organism['taxonomy_id'].to_s} : {}
+        return if organism.empty? && !organism_attributes?
+
+        attrs = organism['taxonomy_id'] ? {taxID: organism['taxonomy_id'].to_s} : {}
 
         xml.Organism(**attrs) {
           xml.OrganismName organism['name'] if organism['name'].present?
@@ -204,7 +245,7 @@ module PublicXML
       # Supergroup. Pulled from the attribute bag where the forward
       # Converter parked them.
       def render_organism_scalar_attrs(xml)
-        %w[Strain IsolateName Breed Cultivar Label Supergroup].each do |element|
+        %w[Label Strain IsolateName Breed Cultivar Supergroup].each do |element|
           render_organism_scalar(xml, element, element)
         end
       end
@@ -331,22 +372,63 @@ module PublicXML
         xml.Provider value if value
       end
 
+      # The body is the description an "eOther" method requires.
       def render_method(xml, target)
         method_type = target['method']
         return if method_type.blank?
 
-        xml.Method(method_type:)
+        emit_tag(xml, :Method, target['method_description'].presence, {method_type:})
       end
 
-      def render_data_types(xml, target)
-        data_types = Array(target['data_types'])
+      # `target.data_types` is the Objectives/Data@data_type vocabulary
+      # (eSequence, eRawSequenceReads, …), each with the description an
+      # "eOther" choice requires. It is NOT ProjectDataTypeSet, which uses
+      # a different vocabulary ("Genome Sequencing", …) and which the
+      # Converter parks in `project_data_type` attributes.
+      def render_objectives(xml, target)
+        data_types = objective_data_types(target)
         return if data_types.empty?
 
-        xml.ProjectDataTypeSet {
-          data_types.each do |dt|
-            xml.DataType dt
+        descriptions = target['data_type_descriptions'] || {}
+
+        xml.Objectives {
+          data_types.each do |data_type|
+            emit_tag(xml, :Data, descriptions[data_type].presence, {data_type:})
           end
         }
+      end
+
+      def render_project_data_types(xml)
+        values = project_data_types
+        return if values.empty?
+
+        xml.ProjectDataTypeSet {
+          values.each do |value|
+            xml.DataType value
+          end
+        }
+      end
+
+      # Records converted before the two vocabularies were told apart hold
+      # the ProjectDataTypeSet values in `target.data_types` and have no
+      # `project_data_type` attributes. For those, values outside the
+      # Objectives vocabulary go back to ProjectDataTypeSet.
+      def legacy_data_types? = project_data_type_attrs.empty?
+
+      def objective_data_types(target)
+        data_types = Array(target['data_types'])
+
+        legacy_data_types? ? data_types.select { OBJECTIVE_DATA_TYPES.include?(it) } : data_types
+      end
+
+      def project_data_types
+        return project_data_type_attrs unless legacy_data_types?
+
+        Array(project_block.dig('target', 'data_types')).reject { OBJECTIVE_DATA_TYPES.include?(it) }
+      end
+
+      def project_data_type_attrs
+        Array(project_block['attributes']).filter_map { it['value'] if it['name'] == 'project_data_type' }
       end
 
       def render_submission(xml)
@@ -395,6 +477,13 @@ module PublicXML
         }
       end
 
+      # The attributes the Converter reads from under <Organism>.
+      def organism_attributes?
+        ORGANISM_SCALAR_ATTRS.each_value.any? { find_attribute(it) } ||
+          %w[ploidy genome_size].any? { find_attribute(it) } ||
+          group_replicon_attrs.any?
+      end
+
       def collect_organism_attrs(xpaths)
         xpaths.filter_map {|xpath|
           attr_name = ORGANISM_SCALAR_ATTRS[xpath]
@@ -421,14 +510,6 @@ module PublicXML
 
       def attrs_by_name
         @attrs_by_name ||= Array(project_block['attributes']).index_by { it['name'] }
-      end
-
-      def titleize_element(key)
-        # Preserve `pH`, `CO2`-style curator keys that already have mixed
-        # case. Only TitleCase a fully-lowercase key.
-        return key if key.match?(/[A-Z]/)
-
-        key.sub(/\A./, &:upcase)
       end
     end
   end
