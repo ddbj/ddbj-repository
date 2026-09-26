@@ -34,6 +34,9 @@ module BioSample
   class Importer
     class CrossUserError < StandardError; end
 
+    # The Sample columns staging alone knows; the rest project the record.
+    STAGING_ONLY_COLUMNS = %i[status package_group env_package release_date dist_date modified_date].freeze
+
     Result = Data.define(:submission, :outcome) # :created | :updated | :skipped | :no_samples
 
     def initialize(staging_submission:, user_uid:, migration_run_id:)
@@ -101,7 +104,7 @@ module BioSample
             source_checksum:,
             updated_at:       Time.current
           )
-          sync_samples!(submission, record, safe_prior_materialised(submission))
+          sync_samples!(submission, record, safe_prior_materialised(submission).presence)
 
           return Result.new(submission:, outcome: :skipped)
         end
@@ -274,6 +277,10 @@ module BioSample
     #
     # An accession is never taken away: one D-way has stays when the stored
     # record lacks it (a chain from before accessions were diffed).
+    #
+    # `stored` nil means the chain could not be read: an existing row then
+    # takes only what staging alone knows, and keeps what it projects from
+    # the record, rather than going back to D-way's values.
     def sync_samples!(submission, record, stored)
       v3_samples       = record.fetch('samples')
       stored_samples   = Array(stored&.[]('samples'))
@@ -305,7 +312,7 @@ module BioSample
         }
 
         if (existing = existing_samples[idx])
-          existing.update!(attrs)
+          existing.update!(stored ? attrs : attrs.slice(*STAGING_ONLY_COLUMNS))
         else
           submission.samples.create!(attrs)
         end

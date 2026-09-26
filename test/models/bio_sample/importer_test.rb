@@ -530,4 +530,23 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal :skipped, build_named([%w[S1 SAMD00099991]]).call.outcome
     assert_equal 'SAMD00099991', submission.samples.sole.accession
   end
+
+  # An unreadable chain is not a reason to put D-way's values back over
+  # what the rows project from the record; only what staging alone knows
+  # moves.
+  test 'a chain that cannot be read leaves the record\'s columns as they are' do
+    submission = build_named([['S1', nil]]).call.submission
+    record     = submission.materialised_record.deep_dup
+    record['samples'][0]['title'] = 'Curated title'
+    submission.append_update!(record, actor: 'admin:tanaka')
+    submission.samples.sole.update!(title: 'Curated title')
+
+    SubmissionUpdate.create_with_patch!(
+      submission:, patch_json: '[{"op":"remove","path":"/no/such/path"}]', db: 'biosample', status: :applied,
+      actor: 'test', source: :manual, patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+
+    assert_equal :skipped, build_named([['S1', nil]]).call.outcome
+    assert_equal 'Curated title', submission.samples.sole.title
+  end
 end

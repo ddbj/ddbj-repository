@@ -51,7 +51,7 @@
 
       <%# BioProject only. `submission.hold_date` is a v3 field for any DB, %>
       <%# but nothing outside BP acts on it: the projection column lives on %>
-      <%# Project, Submission#sync_hold_date! is a no-op elsewhere, and %>
+      <%# Project, Submission#sync_projections! is a no-op elsewhere, and %>
       <%# DistributionNotifier is BP-only. Offering it here would let a %>
       <%# curator set a date, be told it saved, and have nothing honour it. %>
       <%# %>
