@@ -14,10 +14,11 @@ module DDBJRecord
     BOM      = "\xEF\xBB\xBF".b.freeze
 
     # Top-level keys that exist ONLY in v3: the v3 record's keys (read off
-    # the spec's schema) less the v2 record's. Their presence in the head
-    # window with no `schema_version` marker is a strong signal we are
-    # looking at v3, not legacy.
-    V3_ONLY_KEYS   = (DDBJRecord::V3::Root.members - DDBJRecord::Root.members).map(&:to_s).freeze
+    # the spec's schema) less the v2 record's, plus `project`, which v3 had
+    # before ddbj/ddbj-record-specifications#11 made it `projects`. Their
+    # presence in the head window with no `schema_version` marker is a
+    # strong signal we are looking at v3, not legacy.
+    V3_ONLY_KEYS   = ((DDBJRecord::V3::Root.members - DDBJRecord::Root.members).map(&:to_s) + %w[project]).freeze
     V3_KEY_PATTERN = /(?<![A-Za-z0-9_])"(?:#{V3_ONLY_KEYS.map { Regexp.escape(it) }.join('|')})"\s*:/
 
     class FutureSchemaVersionError    < StandardError; end

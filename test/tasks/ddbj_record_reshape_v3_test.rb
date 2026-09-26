@@ -75,4 +75,30 @@ class DDBJRecordReshapeV3TaskTest < ActiveSupport::TestCase
       assert_output(/unchanged: /) { Rake::Task['ddbj_record:reshape_v3'].invoke }
     end
   end
+
+  # Nothing waits for the rake: until it reaches a chain, the chain is read
+  # in the current shape, and whatever writes to it heals it.
+  test 'before the rewrite, a chain is read in the current shape and a write heals it' do
+    submission = stored_before_the_change
+
+    record = submission.materialised_record
+    assert_equal 'Curator title', record.dig('projects', 0, 'title')
+    assert_not record.key?('project')
+
+    BioProject.record_project!(record)['accession'] = 'PRJDB502'
+    submission.append_update!(record, actor: 'test')
+
+    healed = submission.reload.materialised_record
+    assert_equal DDBJRecord::Canonicalizer::NUMBER, submission.canonical_version
+    assert_equal 'Curator title', healed.dig('projects', 0, 'title')
+    assert_equal 'PRJDB502',      healed.dig('projects', 0, 'accession')
+  end
+
+  test 'before the rewrite, an import of an unchanged source heals the chain and keeps the edits' do
+    submission = stored_before_the_change
+
+    assert_equal :updated, import.outcome
+    assert_equal DDBJRecord::Canonicalizer::NUMBER, submission.reload.canonical_version
+    assert_equal 'Curator title', submission.materialised_record.dig('projects', 0, 'title')
+  end
 end

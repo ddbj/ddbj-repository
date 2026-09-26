@@ -236,7 +236,7 @@ module BioProject
       # 'sp.'）も、数に見えて 0 で始まる値も、書き換えると元に戻せず、検証が
       # 指摘できなくなる。
       {
-        'taxonomy_id' => node['taxID']&.strip&.presence,
+        'taxonomy_id' => node['taxID']&.strip.presence,
         'name'        => node.at_xpath('./OrganismName')&.text&.strip&.presence
       }.compact.presence
     end

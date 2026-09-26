@@ -26,6 +26,7 @@ namespace :canon do
       '/analyses/0/data_blocks/0/files'                     => 'ordered',
       '/projects'                                           => 'ordered',
       '/projects/0/publications/0/authors'                  => 'ordered',
+      '/projects/0/publications/0/consortiums'              => 'ordered',
       '/submission/st26/invention_titles'                   => 'ordered',
       '/provenance/gff/pragmas'                             => 'ordered',
       '/sequences/entries/0/source_features/0/qualifiers/x' => 'ordered',

@@ -59,6 +59,7 @@ arrays:
   # several studies, written in an order the spec keeps.
   '/projects':                                           {mode: ordered}
   '/projects/*/publications/*/authors':                  {mode: ordered}
+  '/projects/*/publications/*/consortiums':              {mode: ordered}
   # Two titles in one language occur (ST.26), so the language cannot key them.
   '/submission/st26/invention_titles':                   {mode: ordered}
   '/features/*/qualifiers/*':                            {mode: ordered}

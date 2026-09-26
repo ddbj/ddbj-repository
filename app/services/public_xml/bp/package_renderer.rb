@@ -227,7 +227,10 @@ module PublicXML
         organism = project_block['organism'] || {}
         return if organism.empty? && !organism_attributes?
 
-        attrs = organism['taxonomy_id'] ? {taxID: organism['taxonomy_id'].to_s} : {}
+        # taxID is an integer in the XML; a value that is not one (kept as
+        # written in v3) is not published, as in the BioSample XML.
+        tax   = DDBJRecord.taxonomy_id_number(organism['taxonomy_id'])
+        attrs = tax ? {taxID: tax.to_s} : {}
 
         xml.Organism(**attrs) {
           xml.OrganismName organism['name'] if organism['name'].present?

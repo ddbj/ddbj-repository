@@ -233,7 +233,10 @@ class Submission < ApplicationRecord
   # would take every source as changed and diff it against the stored record,
   # reverting every edit made here since.
   def same_source?(record)
-    source_checksum.in?([self.class.source_checksum_of(record), self.class.source_checksum_of(DDBJRecord::ReshapeV3.old_shape(record))])
+    return false unless source_checksum
+
+    source_checksum == self.class.source_checksum_of(record) ||
+      source_checksum == self.class.source_checksum_of(DDBJRecord::ReshapeV3.old_shape(record))
   end
 
   class MaterialisationFailed < StandardError
@@ -266,20 +269,22 @@ class Submission < ApplicationRecord
   #
   # `materialise_at(update_id:)` for historical snapshots does NOT
   # consult the cache — only the latest-state path is cached.
+  #
+  # A chain written under an older `ddbj-canon` is read in the current shape
+  # (DDBJRecord::ReshapeV3), so whatever builds on it — an edit, accession
+  # issuance, public XML — works on the shape it writes; the write then heals
+  # the chain. `rake ddbj_record:reshape_v3` heals them all up front.
   def materialised_record
-    if cached_at_update_id.present? && cached_materialised_record.attached?
-      cached = cached_record
+    record = latest_record
 
-      return cached if cached
-    end
+    record && legacy_chain? ? DDBJRecord::ReshapeV3.call(record) : record
+  end
 
-    latest_id = updates.maximum(:id)
-    return nil unless latest_id
-
-    fresh = materialise_at(update_id: latest_id)
-    write_through_cache(fresh, latest_id) if fresh
-
-    fresh
+  # Whether the cached bytes are the record as materialised_record answers
+  # it: the cache is stamped, and the chain is not read in another shape
+  # than it stores.
+  def current_cache?
+    cached_at_update_id.present? && cached_materialised_record.attached? && !legacy_chain?
   end
 
   # Raw cached bytes for the latest snapshot, or nil when the cache is
@@ -291,7 +296,7 @@ class Submission < ApplicationRecord
   # Answering with the exception instead made the one screen a curator
   # would open to look at the record the only reader that could not.
   def cached_materialised_bytes
-    return nil unless cached_at_update_id.present? && cached_materialised_record.attached?
+    return nil unless current_cache?
 
     read_cached_object
   end
@@ -452,11 +457,30 @@ class Submission < ApplicationRecord
 
   private
 
+  # The latest state as the chain stores it, from the cache where there is
+  # one.
+  def latest_record
+    if cached_at_update_id.present? && cached_materialised_record.attached?
+      cached = cached_record
+
+      return cached if cached
+    end
+
+    latest_id = updates.maximum(:id)
+    return nil unless latest_id
+
+    fresh = materialise_at(update_id: latest_id)
+    write_through_cache(fresh, latest_id) if fresh
+
+    fresh
+  end
+
   # A chain written under an older `ddbj-canon` holds its state in an order
   # `diff` no longer emits indices into — so a positional patch appended to
-  # one would name the wrong element of an array. Rather than refuse (or corrupt), the next write to such a
-  # chain replaces the whole record: one big patch, once, after which the
-  # stored state is canonical and ordinary diffs are safe again.
+  # one would name the wrong element of an array. Rather than refuse (or
+  # corrupt), the next write to such a chain replaces the whole record: one
+  # big patch, once, after which the stored state is canonical and ordinary
+  # diffs are safe again.
   #
   # A chain that has never been written to is trivially canonical, so the
   # empty base is exempt.

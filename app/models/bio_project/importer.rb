@@ -131,7 +131,7 @@ module BioProject
         source_checksum = Submission.source_checksum_of(record)
 
         if submission.same_source?(record) && !submission.legacy_chain?
-          submission.update_columns(source_checksum:)
+          submission.update_columns(source_checksum:) unless submission.source_checksum == source_checksum
 
           return Result.new(submission:, outcome: :skipped)
         end
@@ -143,6 +143,7 @@ module BioProject
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
+        record       = record_to_write(submission, prior_record, record)
         patch_ops    = compute_patch_ops(prior_record, record, legacy: submission.legacy_chain?)
 
         if patch_ops.empty?
@@ -203,6 +204,16 @@ module BioProject
     end
 
     private
+
+    # What this import writes: the conversion — except on a chain written
+    # under an older ddbj-canon whose source has not changed. There the
+    # import only heals the chain (one root replace under the current
+    # version), and heals it with the stored record, read in the current
+    # shape (Submission#materialised_record), so edits made here since the
+    # last import stay. Writing the conversion would revert them.
+    def record_to_write(submission, prior, record)
+      submission.legacy_chain? && prior.present? && submission.same_source?(record) ? prior : record
+    end
 
     def safe_prior_materialised(submission)
       submission.materialised_record || {}

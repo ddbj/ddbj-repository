@@ -207,10 +207,9 @@ module PublicXML
       def render_organism(xml, sample, lifted)
         organism = sample['organism'] || {}
         name     = lifted['organism']    || organism['name']
-        tax      = lifted['taxonomy_id'] || organism['taxonomy_id']
-        tax      = Integer(tax.to_s, 10, exception: false)
+        tax      = DDBJRecord.taxonomy_id_number(lifted['taxonomy_id'] || organism['taxonomy_id'])
 
-        xml.Organism(**(tax&.positive? ? {taxonomy_id: tax.to_s} : {})) {
+        xml.Organism(**(tax ? {taxonomy_id: tax.to_s} : {})) {
           xml.OrganismName name.to_s
         }
       end

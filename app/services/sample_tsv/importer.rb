@@ -268,7 +268,7 @@ module SampleTSV
           status:      row[:status],
           title:       row[:attrs]['sample_title'],
           organism:    row[:attrs]['organism'],
-          taxonomy_id: Sample.taxonomy_id_of(row[:attrs]['taxonomy_id'])
+          taxonomy_id: DDBJRecord.taxonomy_id_number(row[:attrs]['taxonomy_id'])
         )
       end
     end

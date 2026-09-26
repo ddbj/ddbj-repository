@@ -78,18 +78,19 @@ class AccessionRecordReader
 
   # One sample, streamed out of the cache where there is a current one.
   #
-  # Both halves of that condition, as `Submission#materialised_record` asks them.
-  # The stamp is what says the blob is current: invalidation clears the
+  # "Current" as `Submission#current_cache?` asks it. The stamp is what
+  # says the blob is current: invalidation clears the
   # stamp and leaves the blob in place
   # (SubmissionUpdate#invalidate_submission_cache!), so a check on the
   # attachment alone reads an edited record as unedited — for ever,
-  # because this path never re-primes.
+  # because this path never re-primes. And a chain under an older
+  # ddbj-canon is read in another shape than its cache holds.
   #
   # Cold means replaying the chain, which builds the whole record
   # whatever this does. The fast path is bounded; the slow path was
   # always going to cost.
   def biosample_slice(row)
-    if @submission.cached_at_update_id.present? && @submission.cached_materialised_record.attached?
+    if @submission.current_cache?
       begin
         return found(find_element(@submission.cached_materialised_record, 'samples') { it['alias'] == row.sample_name })
       rescue ActiveStorage::FileNotFoundError, Aws::S3::Errors::NoSuchKey => e

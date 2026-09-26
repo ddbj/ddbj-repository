@@ -8,28 +8,27 @@ module DDBJRecord
   #     record holds one)
   #   - `taxonomy_id` is the string as written, not an integer
   #
-  # and two things BioProject::Converter wrote differently before it told
-  # them apart (2026-08-27): LocusTagPrefix as bare strings, and
-  # ProjectDataTypeSet values mixed into `target.data_types`.
+  # and LocusTagPrefix as a bare string, as BioProject::Converter wrote it
+  # before it carried the BioSample (2026-08-27). (ProjectDataTypeSet values
+  # that converter mixed into `target.data_types` are left: which values they
+  # are cannot be told from the record, and PublicXML::Bp::PackageRenderer
+  # reads them apart.)
   #
-  # `call` rewrites a stored record into the current shape (rake
-  # ddbj_record:reshape_v3). `old_shape` goes the other way for a converter's
-  # output, so the importers can still recognise an unchanged source by the
-  # checksum taken before the change (Submission#same_source?).
+  # `call` puts a stored record into the current shape: Submission reads a
+  # chain written under an older ddbj-canon through it, and rake
+  # ddbj_record:reshape_v3 rewrites every chain with it. `old_shape` goes
+  # the other way for a converter's output, so the importers can still
+  # recognise an unchanged source by the checksum taken before the change
+  # (Submission#same_source?).
   module ReshapeV3
-    # The Objectives/Data@data_type vocabulary; ProjectDataTypeSet uses
-    # another ("Genome Sequencing", …).
-    OBJECTIVE_DATA_TYPES = %w[
-      eRawSequenceReads eSequence eAnalysis eAssembly eAnnotation eVariation
-      eEpigeneticMarkers eExpression eMaps ePhenotype eOther
-    ].to_set.freeze
-
     module_function
 
     def call(record)
       record = record.deep_dup
 
       if record.key?('project')
+        raise ArgumentError, 'the record has both project and projects' if record.key?('projects')
+
         project = record.delete('project')
         record['projects'] = [project] if project.present?
       end
@@ -37,7 +36,6 @@ module DDBJRecord
       Array(record['projects']).each do |project|
         stringify_taxonomy_id!(project['organism'])
         objectify_locus_tag_prefixes!(project)
-        separate_project_data_types!(project)
       end
 
       Array(record['samples']).each do |sample|
@@ -68,29 +66,6 @@ module DDBJRecord
       return unless project['locus_tag_prefix']
 
       project['locus_tag_prefix'] = project['locus_tag_prefix'].map { it.is_a?(String) ? {'prefix' => it} : it }
-    end
-
-    # A record whose target.data_types holds values outside the Objectives
-    # vocabulary, and which has no project_data_type attributes, was
-    # converted before the two were told apart: those values are the
-    # ProjectDataTypeSet's.
-    def separate_project_data_types!(project)
-      target     = project['target'] or return
-      data_types = target['data_types'] or return
-      attributes = Array(project['attributes'])
-
-      return if attributes.any? { it['name'] == 'project_data_type' }
-
-      objectives, project_data_types = data_types.partition { OBJECTIVE_DATA_TYPES.include?(it) }
-      return if project_data_types.empty?
-
-      if objectives.empty?
-        target.delete('data_types')
-      else
-        target['data_types'] = objectives
-      end
-
-      project['attributes'] = attributes + project_data_types.map { {'name' => 'project_data_type', 'value' => it} }
     end
 
     # The converters dropped a taxonomy_id that did not read as an integer,

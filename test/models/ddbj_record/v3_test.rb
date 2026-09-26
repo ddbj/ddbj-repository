@@ -9,7 +9,13 @@ class DDBJRecord::V3Test < ActiveSupport::TestCase
   end
 
   test 'every record of the spec parses into its models' do
-    skip 'the submodule is not checked out' unless SPEC_RECORDS.exist?
+    # CI checks the submodule out for this (Canon workflow); a skip there
+    # would pass without having read a single record.
+    unless SPEC_RECORDS.exist?
+      flunk 'the submodule is not checked out' if ENV['CI']
+
+      skip 'the submodule is not checked out'
+    end
 
     SPEC_RECORDS.glob('*.json').each do |path|
       record = DDBJRecord::V3::Parser.parse(path.read)
@@ -29,5 +35,12 @@ class DDBJRecord::V3Test < ActiveSupport::TestCase
 
   test 'a container of the wrong kind is a TypeError' do
     assert_raises(TypeError) { DDBJRecord::V3::Parser.parse('{"projects": {}}') }
+  end
+
+  # The spec forbids them (every model but Provenance), so a record carrying
+  # one is not a v3 record — the pre-#11 `project`, for instance.
+  test 'a key the model does not have is a TypeError' do
+    assert_raises(TypeError) { DDBJRecord::V3::Parser.parse('{"project": {}}') }
+    assert_kind_of DDBJRecord::V3::Root, DDBJRecord::V3::Parser.parse('{"provenance": {"anything": 1}}')
   end
 end

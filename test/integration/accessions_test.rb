@@ -183,7 +183,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
             'alias'      => sample.sample_name,
             'accession'  => sample.accession,
             'title'      => 'Control timepoint A',
-            'organism'   => {'name' => 'mouse gut metagenome', 'taxonomy_id' => 410_661},
+            'organism'   => {'name' => 'mouse gut metagenome', 'taxonomy_id' => '410661'},
             'attributes' => [
               {'name' => 'collection_date', 'value' => '2018-04-25'},
               {'name' => 'env_broad_scale', 'value' => 'Gut'}

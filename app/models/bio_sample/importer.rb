@@ -111,6 +111,7 @@ module BioSample
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
+        record       = record_to_write(submission, prior_record, record)
         patch_ops    = compute_patch_ops(prior_record, record, legacy: submission.legacy_chain?)
 
         if patch_ops.empty?
@@ -166,6 +167,16 @@ module BioSample
     end
 
     private
+
+    # What this import writes: the conversion — except on a chain written
+    # under an older ddbj-canon whose source has not changed. There the
+    # import only heals the chain (one root replace under the current
+    # version), and heals it with the stored record, read in the current
+    # shape (Submission#materialised_record), so edits made here since the
+    # last import stay. Writing the conversion would revert them.
+    def record_to_write(submission, prior, record)
+      submission.legacy_chain? && prior.present? && submission.same_source?(record) ? prior : record
+    end
 
     def safe_prior_materialised(submission)
       submission.materialised_record || {}
@@ -262,7 +273,7 @@ module BioSample
           release_date:  staging.release_date,
           dist_date:     staging.dist_date,
           modified_date: staging.modified_date,
-          taxonomy_id:   Sample.taxonomy_id_of(v3.dig('organism', 'taxonomy_id')),
+          taxonomy_id:   DDBJRecord.taxonomy_id_number(v3.dig('organism', 'taxonomy_id')),
           organism:      v3.dig('organism', 'name')
         }
 

@@ -224,6 +224,16 @@ module DDBJRecord
   # Detected rather than parsed: a v3 record can be multi-GB and V3::Parser
   # reads the whole document, so eating that allocation only to refuse would
   # burn RAM and IO for nothing. The detector peeks at 64KB of head bytes.
+  # The NCBI taxonomy id a record's taxonomy_id names, as a number, or nil.
+  # v3 keeps the value as written ("009606", "not applicable"); a typed
+  # column or an XML attribute that must be a positive integer reads it
+  # through this.
+  def self.taxonomy_id_number(value)
+    number = Integer(value.to_s.strip, 10, exception: false)
+
+    number if number&.positive?
+  end
+
   def self.refuse_v3!(io, subject)
     major, = SchemaVersionDetector.detect(io)
 
@@ -244,14 +254,6 @@ module DDBJRecord
   # distinct from `DDBJRecord::Root`, and consumers that cannot take one call
   # `refuse_v3!` above rather than discovering it as a `NoMethodError`. No
   # production producer emits v3 yet.
-  # The project of a BioProject's v3 record, created if the record has none.
-  # v3 holds a list of projects; a BioProject's record has exactly one.
-  def self.bioproject_block!(record)
-    projects = record['projects'] = Array(record['projects']).presence || [{}]
-
-    projects.first
-  end
-
   def self.parse(io)
     unless io.respond_to?(:rewind)
       raise ArgumentError, "DDBJRecord.parse requires a rewindable IO; got #{io.class}"

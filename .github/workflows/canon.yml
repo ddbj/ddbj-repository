@@ -60,7 +60,7 @@ jobs:
       - run: bin/rails db:test:prepare
 
       - name: Run canonicalizer test suite
-        run: bin/rails test test/models/ddbj_record/canonicalizer_test.rb test/models/ddbj_record/canon/
+        run: bin/rails test test/models/ddbj_record/canonicalizer_test.rb test/models/ddbj_record/canon/ test/models/ddbj_record/v3_test.rb
 
       - name: Verify registry coverage
         run: bin/rails canon:registry_completeness
@@ -77,14 +77,14 @@ jobs:
         with:
           submodules: recursive
 
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-
-      - run: pip install ./vendor/ddbj-record-specifications
+      # The spec's own locked toolchain, so a pydantic release that changes
+      # how schemas are written does not fail this on an unrelated push.
+      - uses: astral-sh/setup-uv@v10.2.0
 
       - name: Compare with the schema the pinned spec generates
-        run: python -m ddbj_record.schema.cli --version v3 | diff -u schema/ddbj-record/v3.schema.json -
+        run: |
+          uv run --frozen --project vendor/ddbj-record-specifications \
+            python -m ddbj_record.schema.cli --version v3 | diff -u schema/ddbj-record/v3.schema.json -
 
   cross-lang-jcs-gate:
     name: Cross-language JCS gate

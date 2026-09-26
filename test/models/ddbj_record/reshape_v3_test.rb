@@ -15,16 +15,20 @@ class DDBJRecord::ReshapeV3Test < ActiveSupport::TestCase
     }, R.call(record))
   end
 
-  # What BioProject::Converter wrote before it told the two vocabularies
-  # apart, and before LocusTagPrefix carried its BioSample.
+  # What BioProject::Converter wrote before LocusTagPrefix carried its
+  # BioSample. Which data_types values were ProjectDataTypeSet's cannot be
+  # told from the record, so they stay where they are.
   test 'an early BioProject record is put in the converter\'s current shape' do
     record = {'project' => {'locus_tag_prefix' => ['ABC'], 'target' => {'data_types' => ['eSequence', 'Genome Sequencing']}}}
 
     project = R.call(record).dig('projects', 0)
 
     assert_equal [{'prefix' => 'ABC'}], project['locus_tag_prefix']
-    assert_equal ['eSequence'], project.dig('target', 'data_types')
-    assert_equal [{'name' => 'project_data_type', 'value' => 'Genome Sequencing'}], project['attributes']
+    assert_equal ['eSequence', 'Genome Sequencing'], project.dig('target', 'data_types')
+  end
+
+  test 'refuses a record that has both project and projects' do
+    assert_raises(ArgumentError) { R.call({'project' => {}, 'projects' => [{}]}) }
   end
 
   test 'a record in the current shape is left as it is' do

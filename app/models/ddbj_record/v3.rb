@@ -4,18 +4,22 @@
 # (the gitlink pins the revision) generates schema/ddbj-record/v3.schema.json,
 # and one Data class is defined here per model in it — `Root` for the record,
 # and one per `$defs` entry, named after it, whose members are the model's
-# fields. The Canon workflow regenerates the schema from the submodule and
-# fails if it differs, so moving the submodule means regenerating the schema:
+# fields. Moving the submodule means regenerating the schema with the spec's
+# locked toolchain (the Canon workflow does the same and fails on a
+# difference):
 #
-#   PYTHONPATH=vendor/ddbj-record-specifications python -m ddbj_record.schema.cli --version v3 \
-#     > schema/ddbj-record/v3.schema.json
+#   uv run --frozen --project vendor/ddbj-record-specifications \
+#     python -m ddbj_record.schema.cli --version v3 > schema/ddbj-record/v3.schema.json
 #
-# and updating SPEC_SHA.
+# and re-deriving schema/canon/array-modes.yml, whose header cites the
+# revision (spec_pin_test).
+#
+# Two members shadow methods every Data has: `ProjectTarget#method` and
+# `Pool#members`. Code that walks a record generically has to reach for
+# `to_h` rather than `members`. And the models are constants of this module
+# (`File`, `Sample`, …), so code inside it names Ruby's own with `::File`.
 module DDBJRecord
   module V3
-    SCHEMA_VERSION_PREFIX = 'v3'.freeze
-    SPEC_SHA              = '47cd4433123652d6355e06a2678e96fc34c04caf'.freeze
-
     SCHEMA = JSON.parse(Rails.root.join('schema/ddbj-record/v3.schema.json').read).freeze
 
     # The models of the schema by name (`Root` for the record itself).

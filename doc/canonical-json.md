@@ -289,6 +289,8 @@ At `spec/fixtures/canonical_json/`, one directory per fixture (`input.json`, `ex
 
 ## 6. Appendix: Field Classification Table
 
+The string classes below record the classification this specification intends. The registry implements single-line only for the paths it lists under `strings.paths` (`schema/canon/array-modes.yml`); every other string here marked SL is multi-line in `ddbj-canon/v2` and `v3` alike. Aligning them is left to a later version rather than folded into v3: collapsing whitespace in an `alias` or an attribute `name` changes the key a stored keyed array is sorted by, which wants its own migration.
+
 Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; any unlisted array is bag (treat as bug — registry SHOULD list explicitly, see §3.4).
 
 ### Top-Level
@@ -393,6 +395,12 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/provenance/**` | — | **Vol** (entire subtree, includes `gff/pragmas` O ordering preserved within snapshot) |
 
 ## 7. Open Questions (resolve before first production freeze)
+
+0. **Before SRA / GEA records are stored** (they are not yet; BioProject and BioSample do not reach these):
+   - `index` in `relations` and `pool/*/sample` names a position in its kind's list, used where `alias` is not unique. `/samples` is keyed by `alias` and `/experiments`, `/runs`, `/analyses` are bags, so canonicalisation moves the element an `index` names. Either those lists become ordered, or `index` is defined against the canonical order.
+   - Many arrays of the v3 schema are not registered (`/samples/*/comments`, `/experiments/*/pool/members`, `/submission/sra/actions`, `/**/identifiers`, …). They sort as bags, but the bag-descent guard (§3.1) only knows registered bags, so a patch into one of them passes and leaves the array out of canonical order. Every array path of the schema has to be registered.
+
+   Both change stored bytes, so they come with the next version.
 
 1. **Sequence alphabet.** §2.2 fixes `[acgtn]`. Sample a GB-scale assembly to confirm no curator data carries IUPAC ambiguity codes (R/Y/W/S/K/M/…) that must be preserved. If present, widen *before* freeze.
 2. **EAV `value` line-discipline.** Lat/lon strings like `"31.45N 131.00 E"` preserve internal spacing under multi-line. Confirm with curators or sub-type lat/lon/date/taxid EAV values.

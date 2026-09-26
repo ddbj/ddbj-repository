@@ -237,13 +237,16 @@ The v3 types are the spec's (`vendor/ddbj-record-specifications`, pinned by
 the gitlink and tracking its `main`), not a copy: the spec generates
 `schema/ddbj-record/v3.schema.json`, and `DDBJRecord::V3` defines one Data
 class per model in it. Moving the submodule means regenerating the schema
-(the command is at the top of `app/models/ddbj_record/v3.rb`) and updating
-`SPEC_SHA`; the Canon workflow and `spec_pin_test` fail until both follow.
+(the command is at the top of `app/models/ddbj_record/v3.rb`) and
+re-deriving `schema/canon/array-modes.yml`, whose header cites the revision;
+the Canon workflow and `spec_pin_test` fail until both follow.
 
 The spec changes shape within v3 (`schema_version` stays `"v3"`), so records
-written before a change cannot be told apart by their version. What the
-repository has stored is kept in the current shape by a migration when the
-submodule moves.
+written before a change cannot be told apart by their version — only by the
+`ddbj-canon` version their chain was written under, which moves with such a
+change. A chain under an older version is read in the current shape
+(`DDBJRecord::ReshapeV3`, through `Submission#materialised_record`), healed by
+the next write, and `rake ddbj_record:reshape_v3` heals them all.
 
 ### Canonical JSON (`ddbj-canon`)
 

@@ -54,7 +54,7 @@ module Admin
     # round-trip as `""` in the v3 record.
     def patched_record(submission, raw)
       record  = submission.materialised_record.deep_dup
-      project = DDBJRecord.bioproject_block!(record)
+      project = BioProject.record_project!(record)
 
       EDITABLE_FIELDS.each do |f|
         next unless raw.key?(f)
