@@ -109,12 +109,6 @@ module BioProject
         project = submission.project || Project.create!(submission:, accession:, project_type: @project_type)
         project.update_columns(release_date: @release_date, dist_date: @dist_date, modified_date: @modified_date)
 
-        # hold_date is a projection of the record we just built (see
-        # Submission#sync_hold_date!). Synced on every run for the same
-        # reason as the dates above: the fast-skip path must still backfill
-        # a row imported before the projection existed.
-        submission.sync_hold_date!(record)
-
         # Fast :skipped path: a checksum of the raw converter output. If
         # the source XML hasn't changed meaningfully we short-circuit
         # without paying for a canonicalisation pass, let alone diff's two.
@@ -133,6 +127,14 @@ module BioProject
         if submission.same_source?(record) && !submission.legacy_chain?
           submission.update_columns(source_checksum:) unless submission.source_checksum == source_checksum
 
+          # The Project columns project the stored record (see
+          # Submission#sync_projections!), not this conversion: a curator
+          # may have changed it here. Synced on the skip path too, so a row
+          # imported before a projection existed is backfilled. A chain
+          # that cannot be read leaves them as they are.
+          stored = safe_prior_materialised(submission)
+          submission.sync_projections!(stored) if stored.present?
+
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -143,13 +145,14 @@ module BioProject
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
-        record       = record_to_write(submission, prior_record, record)
-        patch_ops    = compute_patch_ops(prior_record, record, legacy: submission.legacy_chain?)
+        written      = record_to_write(submission, prior_record, record)
+        patch_ops    = compute_patch_ops(prior_record, written, legacy: submission.legacy_chain?)
 
         if patch_ops.empty?
           # Nothing to record, but remember what we just compared against
           # so the next run takes the cheap path.
           submission.update_columns(source_checksum:)
+          submission.sync_projections!(prior_record) if prior_record.present?
 
           return Result.new(submission:, outcome: :skipped)
         end
@@ -158,7 +161,8 @@ module BioProject
         # ops we just computed rather than by re-serialising `record`:
         # it avoids a third canonicalisation, and it asserts the property
         # the chain exists for — replaying it reproduces exactly this.
-        new_dump = Oj.dump(DDBJRecord::Canonicalizer.apply(prior_record, patch_ops), mode: :strict)
+        new_record = DDBJRecord::Canonicalizer.apply(prior_record, patch_ops)
+        new_dump   = Oj.dump(new_record, mode: :strict)
 
         # `update_columns` bypasses the v2-era `validates :ddbj_record,
         # on: :update` — migration-sourced submissions store state in
@@ -171,18 +175,19 @@ module BioProject
           updated_at:        Time.current
         )
 
-        # Materialised-snapshot columns (status / title, plus accession /
-        # project_type re-affirmed): refreshed only on real updates so
-        # curator-edited fields survive byte-identical re-imports. Phase 6
-        # needs explicit curator-edit-vs-import diff to handle the case
-        # where XML diverges AFTER a curator touched the row. (release_date
-        # / dist_date are handled above, unconditionally, on purpose.)
+        # D-way's columns, refreshed only on real updates: status and
+        # project_type, and the accession re-affirmed. Phase 6 needs explicit
+        # curator-edit-vs-import diff to handle the case where XML diverges
+        # AFTER a curator touched the row. (release_date / dist_date are
+        # handled above, unconditionally, on purpose.) The record's own
+        # columns come from the record the chain now holds, which is not the
+        # conversion when the import kept edits made here (record_to_write).
         project.update!(
           accession:    accession,
           project_type: @project_type,
-          status:       map_status(@status),
-          title:        record.dig('projects', 0, 'title')
+          status:       map_status(@status)
         )
+        submission.sync_projections!(new_record)
 
         new_update = SubmissionUpdate.create_with_patch!(
           submission:              submission,

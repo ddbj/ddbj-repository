@@ -457,4 +457,96 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_nil              by_acc['SAMD00099992'].package_group
     assert_nil              by_acc['SAMD00099992'].env_package
   end
+
+  # The typed columns project the record the chain holds, which a curator
+  # may have changed here — not the conversion from D-way.
+  test 'a curator edit to a sample stays in the typed columns across an unchanged re-import' do
+    submission = build.call.submission
+    record     = submission.materialised_record.deep_dup
+    sample     = record['samples'].find { it['alias'] == 'DRS000001' }
+
+    sample['title']    = 'Curated title'
+    sample['organism'] = {'taxonomy_id' => '9606', 'name' => 'Homo sapiens'}
+    submission.append_update!(record, actor: 'admin:tanaka')
+
+    assert_equal :skipped, build.call.outcome
+
+    row = submission.samples.find_by(sample_name: 'DRS000001')
+    assert_equal 'Curated title', row.title
+    assert_equal 'Homo sapiens',  row.organism
+    assert_equal 9606,            row.taxonomy_id
+    assert_equal 'sample-2',      submission.samples.find_by(sample_name: 'DRS000002').title
+  end
+
+  def build_named(names_and_accessions)
+    samples = names_and_accessions.each_with_index.map {|(name, accession), i|
+      staging_sample(
+        smp_id: i + 1, accession:, sample_name: name, package: 'Generic', package_group: nil, env_package: nil, status_id: 5500,
+        attributes: [{'name' => 'organism', 'value' => 'human gut metagenome'}, {'name' => 'sample_title', 'value' => "title of #{name}"}]
+      )
+    }
+
+    row = SC::Submission.new(ssub_id: 'SSUB-named', submitter_id: 'migration-test', organization: 'Org', organization_url: nil, comment: nil, contacts: [], samples:)
+
+    BioSample::Importer.new(staging_submission: row, user_uid: 'migration-test', migration_run_id: SecureRandom.uuid)
+  end
+
+  # The stored samples are in alias order and staging's are not; healing a
+  # chain from before the canon bump must not hand one row another's values.
+  test 'healing an old chain keeps each row with its own sample' do
+    submission = build_named([%w[ZZZ SAMD00099991], %w[AAA SAMD00099992]]).call.submission
+    submission.update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER - 1)
+
+    assert_equal :updated, build_named([%w[ZZZ SAMD00099991], %w[AAA SAMD00099992]]).call.outcome
+
+    rows = submission.samples.order(:id).map { [it.sample_name, it.accession, it.title] }
+    assert_equal [['ZZZ', 'SAMD00099991', 'title of ZZZ'], ['AAA', 'SAMD00099992', 'title of AAA']], rows
+  end
+
+  test 'samples sharing a name each keep their own accession' do
+    submission = build_named([%w[DUP SAMD00099991], %w[DUP SAMD00099992]]).call.submission
+
+    assert_equal %w[SAMD00099991 SAMD00099992], submission.samples.order(:id).pluck(:accession)
+  end
+
+  # Issued here, so D-way does not know it yet.
+  test 'an accession stamped into the record here survives an unchanged re-import' do
+    submission = build_named([['S1', nil]]).call.submission
+    record     = submission.materialised_record.deep_dup
+    record['samples'][0]['accession'] = 'SAMD00099999'
+    submission.append_update!(record, actor: 'accession-issue')
+
+    assert_equal :skipped, build_named([['S1', nil]]).call.outcome
+    assert_equal 'SAMD00099999', submission.samples.sole.accession
+  end
+
+  # A chain from before accessions were diffed may lack one D-way has.
+  test 'an accession D-way has is not taken away by a stored record without it' do
+    submission = build_named([%w[S1 SAMD00099991]]).call.submission
+    record     = submission.materialised_record.deep_dup
+    record['samples'][0].delete('accession')
+    submission.append_update!(record, actor: 'test')
+
+    assert_equal :skipped, build_named([%w[S1 SAMD00099991]]).call.outcome
+    assert_equal 'SAMD00099991', submission.samples.sole.accession
+  end
+
+  # An unreadable chain is not a reason to put D-way's values back over
+  # what the rows project from the record; only what staging alone knows
+  # moves.
+  test 'a chain that cannot be read leaves the record\'s columns as they are' do
+    submission = build_named([['S1', nil]]).call.submission
+    record     = submission.materialised_record.deep_dup
+    record['samples'][0]['title'] = 'Curated title'
+    submission.append_update!(record, actor: 'admin:tanaka')
+    submission.samples.sole.update!(title: 'Curated title')
+
+    SubmissionUpdate.create_with_patch!(
+      submission:, patch_json: '[{"op":"remove","path":"/no/such/path"}]', db: 'biosample', status: :applied,
+      actor: 'test', source: :manual, patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+
+    assert_equal :skipped, build_named([['S1', nil]]).call.outcome
+    assert_equal 'Curated title', submission.samples.sole.title
+  end
 end

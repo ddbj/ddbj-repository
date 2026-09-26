@@ -332,7 +332,10 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     first_title = first.project.title
 
     travel 1.second
-    first.project.update!(title: 'Curator-edited title')
+    # A curator edit goes through the record, and the column projects it.
+    first.append_update!(first.materialised_record.deep_dup.tap { it['projects'][0]['title'] = 'Curator-edited title' }, actor: 'admin:tanaka')
+    first.sync_projections!
+    first_seen = first.reload.updated_at
 
     second = build(migration_run_id: SecureRandom.uuid).call
     assert_equal :skipped, second.outcome
@@ -343,7 +346,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal 'Curator-edited title', submission.project.reload.title,
                  'Project columns must NOT be clobbered by an idempotent re-run'
     refute_equal first_title, 'Curator-edited title' # sanity: the precondition flipped
-    assert_equal 1, submission.updates.count
+    assert_equal 2, submission.updates.count
   end
 
   test 'on a real :updated run migration_run_id IS restamped' do
@@ -438,5 +441,34 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal :no_accession, result.outcome
     assert_nil   result.submission
     assert_nil   Submission.find_by(source_id: 'PSUB000009')
+  end
+
+  # Project.hold_date feeds the distribution notice. It projects the record
+  # the chain holds, where a curator may have moved the date — not the
+  # conversion, which would put D-way's date back on every import.
+  test 'a curator-set hold_date stays in the column across a re-import' do
+    submission = build.call.submission
+    submission.append_update!(
+      submission.materialised_record.deep_dup.tap { it['submission']['hold_date'] = '2031-01-01' },
+      actor: 'admin:tanaka'
+    )
+    submission.sync_projections!
+
+    assert_equal :skipped, build.call.outcome
+    assert_equal Date.new(2031, 1, 1), submission.project.reload.hold_date
+  end
+
+  # Healing a chain from before the canon bump writes the stored record, not
+  # the conversion — and the columns follow what was written.
+  test 'healing an old chain keeps a curator-set hold_date in the column' do
+    submission = build.call.submission
+    submission.append_update!(
+      submission.materialised_record.deep_dup.tap { it['submission']['hold_date'] = '2031-01-01' },
+      actor: 'admin:tanaka'
+    )
+    submission.update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER - 1)
+
+    assert_equal :updated, build.call.outcome
+    assert_equal Date.new(2031, 1, 1), submission.project.reload.hold_date
   end
 end
