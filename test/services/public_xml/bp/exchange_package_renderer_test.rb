@@ -2,8 +2,8 @@ require 'test_helper'
 
 class PublicXML::Bp::ExchangePackageRendererTest < ActiveSupport::TestCase
   # Stand-in for the AR Project row: the renderer only reads accession /
-  # release_date / dist_date off it.
-  Row = Data.define(:accession, :release_date, :dist_date)
+  # project_type / release_date / dist_date off it.
+  Row = Data.define(:accession, :project_type, :release_date, :dist_date)
 
   RECORD = {
     'project'    => {'accession' => 'PRJDB502', 'title' => 'Exchange test'},
@@ -14,7 +14,7 @@ class PublicXML::Bp::ExchangePackageRendererTest < ActiveSupport::TestCase
   EXEC_DATE = Time.zone.local(2024, 6, 30)
 
   def render(release_date: nil, dist_date: nil, accession: 'PRJDB502', last_run: LAST_RUN, exec_date: EXEC_DATE)
-    row = Row.new(accession:, release_date:, dist_date:)
+    row = Row.new(accession:, project_type: 'primary', release_date:, dist_date:)
 
     PublicXML::Bp::ExchangePackageRenderer.new(record: RECORD, row:, last_run:, exec_date:).call
   end

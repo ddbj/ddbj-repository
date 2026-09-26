@@ -29,8 +29,8 @@
               <Data data_type="eRawSequenceReads"/>
             </Objectives>
             <ProjectDataTypeSet>
-              <DataType>eRawSequenceReads</DataType>
-              <DataType>eAssembly</DataType>
+              <DataType>Metagenome</DataType>
+              <DataType>Genome Sequencing</DataType>
             </ProjectDataTypeSet>
           </ProjectTypeSubmission>
         </ProjectType>

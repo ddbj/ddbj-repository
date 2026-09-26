@@ -51,7 +51,9 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
     pub = descr.at_xpath('./Publication')
     assert_equal '12345',     pub['id']
     assert_equal 'ePublished', pub['status']
-    assert_equal 'ePubmed',   pub.at_xpath('./Reference/DbType').text
+    # D-way と同じく Reference と DbType は兄弟。
+    assert_equal 'ePubmed',   pub.at_xpath('./DbType').text
+    assert_equal %w[Reference DbType], pub.element_children.map(&:name)
 
     # `medical` should be re-titleized to `Medical` for consumer compatibility
     assert_equal 'cancer research', descr.at_xpath('./Relevance/Medical').text
@@ -211,5 +213,60 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
     assert_equal 'Homo sapiens', top_admin.at_xpath('./Organism/OrganismName').text
     assert_equal source.at_xpath('//DescriptionSubtypeOther').text, top_admin.at_xpath('./DescriptionSubtypeOther').text
     assert_nil   node.at_xpath('./Project/Project/ProjectType/ProjectTypeSubmission')
+  end
+
+  test 'follows the XSD order in ProjectDescr and Organism' do
+    record = {
+      'submission' => {'hold_date' => '2030-01-01'},
+      'project'    => {
+        'title'            => 't',
+        'publications'     => [{'pubmed_id' => '1', 'title' => 'Doe J. et al. (2020)'}],
+        'relevance'        => {'modelorganism' => 'yes'},
+        'locus_tag_prefix' => ['ABC'],
+        'organism'         => {'taxonomy_id' => 9606, 'name' => 'Homo sapiens'},
+        'target'           => {'sample_scope' => 'eMonoisolate'},
+        'attributes'       => [{'name' => 'strain', 'value' => 's1'}, {'name' => 'organism_label', 'value' => 'l1'}]
+      }
+    }
+
+    node = PublicXML::Bp::PackageRenderer.new(record:).call
+
+    descr = node.at_xpath('./Project/Project/ProjectDescr')
+    assert_equal %w[Title Publication ProjectReleaseDate Relevance LocusTagPrefix], descr.element_children.map(&:name)
+    assert_equal 'Doe J. et al. (2020)', descr.at_xpath('./Publication/Reference').text
+    assert_equal 'yes', descr.at_xpath('./Relevance/ModelOrganism').text
+
+    organism = node.at_xpath('.//Target/Organism')
+    assert_equal %w[OrganismName Label Strain], organism.element_children.map(&:name)
+  end
+
+  test 'emits no Organism when the record has none' do
+    record = {'project' => {'title' => 't', 'target' => {'sample_scope' => 'eMonoisolate'}}}
+
+    node = PublicXML::Bp::PackageRenderer.new(record:).call
+
+    assert_nil node.at_xpath('.//Organism')
+  end
+
+  # 2 つの語彙を分ける前に変換した record は、ProjectDataTypeSet の値を target.data_types に持ち、
+  # project_data_type 属性を持たない。
+  test 'renders a record converted before the data type vocabularies were told apart' do
+    record = {'project' => {'target' => {'method' => 'eSequencing', 'data_types' => ['eSequence', 'Genome Sequencing']}}}
+
+    node = PublicXML::Bp::PackageRenderer.new(record:).call
+
+    submission = node.at_xpath('.//ProjectTypeSubmission')
+    assert_equal ['eSequence'],         submission.xpath('./Objectives/Data/@data_type').map(&:value)
+    assert_equal ['Genome Sequencing'], submission.xpath('./ProjectDataTypeSet/DataType').map(&:text)
+  end
+
+  test 'takes the project type from the AR row' do
+    record = {'project' => {'project_type' => 'primary', 'umbrella_subtype' => 'eOther'}}
+    row    = Project.new(project_type: :umbrella, accession: 'PRJDB000001')
+
+    node = PublicXML::Bp::PackageRenderer.new(record:, row:).call
+
+    assert_equal 'eOther', node.at_xpath('.//ProjectTypeTopAdmin/@subtype').value
+    assert_nil node.at_xpath('.//ProjectTypeSubmission')
   end
 end

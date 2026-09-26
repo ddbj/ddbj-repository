@@ -57,8 +57,8 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     attributes = convert(OTHER_XML).dig('project', 'attributes')
 
     assert_equal [
-      {'name' => 'project_data_type', 'value' => 'eRawSequenceReads'},
-      {'name' => 'project_data_type', 'value' => 'eAssembly'}
+      {'name' => 'project_data_type', 'value' => 'Metagenome'},
+      {'name' => 'project_data_type', 'value' => 'Genome Sequencing'}
     ], attributes.select {|a| a['name'] == 'project_data_type' }
   end
 
@@ -285,6 +285,8 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal '10.1000/foo', pubs[0]['doi']
     assert_equal 'ePublished',  pubs[0]['status']
     refute_includes pubs[0].keys, 'pubmed_id'
+    # 入れ子の DbType を Reference の本文 (title) として拾わない。
+    refute_includes pubs[0].keys, 'title'
   end
 
   test 'Publication: unknown DbType drops id (no silent mis-bind to pubmed_id)' do
