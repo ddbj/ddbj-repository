@@ -9,10 +9,11 @@ class DDBJRecord::V3Test < ActiveSupport::TestCase
   end
 
   test 'every record of the spec parses into its models' do
-    # CI checks the submodule out for this (Canon workflow); a skip there
-    # would pass without having read a single record.
+    # The Canon workflow checks the submodule out for this and says so; a
+    # skip there would pass without having read a single record. Elsewhere
+    # (the API workflow does not check it out) the skip is expected.
     unless SPEC_RECORDS.exist?
-      flunk 'the submodule is not checked out' if ENV['CI']
+      flunk 'the submodule is not checked out' if ENV['REQUIRE_SPEC_SUBMODULE']
 
       skip 'the submodule is not checked out'
     end

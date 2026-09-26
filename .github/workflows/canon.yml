@@ -61,6 +61,8 @@ jobs:
 
       - name: Run canonicalizer test suite
         run: bin/rails test test/models/ddbj_record/canonicalizer_test.rb test/models/ddbj_record/canon/ test/models/ddbj_record/v3_test.rb
+        env:
+          REQUIRE_SPEC_SUBMODULE: '1'
 
       - name: Verify registry coverage
         run: bin/rails canon:registry_completeness
