@@ -112,7 +112,7 @@ class AccessionIssue
 
       project.update!(accession: acc, status: :accession_issued)
 
-      update = stamp_record! {|record| (record['project'] ||= {})['accession'] = acc }
+      update = stamp_record! {|record| DDBJRecord.bioproject_block!(record)['accession'] = acc }
       record_event([acc], 'PRJDB', update)
 
       acc

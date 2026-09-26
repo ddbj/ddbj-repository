@@ -6,7 +6,7 @@ class PublicXML::Bp::ExchangePackageRendererTest < ActiveSupport::TestCase
   Row = Data.define(:accession, :project_type, :release_date, :dist_date)
 
   RECORD = {
-    'project'    => {'accession' => 'PRJDB502', 'title' => 'Exchange test'},
+    'projects'    => [{'accession' => 'PRJDB502', 'title' => 'Exchange test'}],
     'submission' => {'submitters' => [{'first_name' => 'Ada', 'last_name' => 'Lovelace', 'organizations' => [{'name' => 'DDBJ'}]}]}
   }.freeze
 

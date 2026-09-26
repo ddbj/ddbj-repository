@@ -88,7 +88,9 @@ module BioProject
         'schema_version' => 'v3',
         'provenance'     => {'source_format' => SOURCE_FORMAT},
         'submission'     => submission_block(project_node, submission_node),
-        'project'        => project_block(project_node)
+        # v3 は 1 つの record に複数の project を持てる。BioProject の record の
+        # project は 1 つ。
+        'projects'       => [project_block(project_node)].compact
       }.compact.reject {|_, v| v.respond_to?(:empty?) && v.empty? }
     end
 
@@ -230,12 +232,11 @@ module BioProject
     def organism_block(node)
       return nil unless node
 
-      # `Integer(_, exception: false)` rejects non-numeric taxIDs
-      # ('unknown', 'sp.', '') by returning nil — bare `to_i` would
-      # silently coerce them to 0 and persist a non-existent NCBI
-      # taxonomy id. Mirrors BioSample::Converter#organism_block.
+      # taxID は書かれたまま（v3 の taxonomy_id は str）。数でない値（'unknown'、
+      # 'sp.'）も、数に見えて 0 で始まる値も、書き換えると元に戻せず、検証が
+      # 指摘できなくなる。
       {
-        'taxonomy_id' => Integer(node['taxID'].to_s, 10, exception: false),
+        'taxonomy_id' => node['taxID']&.strip&.presence,
         'name'        => node.at_xpath('./OrganismName')&.text&.strip&.presence
       }.compact.presence
     end

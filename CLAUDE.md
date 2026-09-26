@@ -252,7 +252,7 @@ serialization of a v3 record, which is what makes SHAs content-addressable and
 RFC 6902 patch chains replayable. `DDBJRecord::Canonicalizer` implements it;
 `schema/canon/array-modes.yml` is the registry it reads.
 
-The spec is versioned (`Canonicalizer::VERSION`, currently `ddbj-canon/v2`) and
+The spec is versioned (`Canonicalizer::VERSION`, currently `ddbj-canon/v3`) and
 frozen on first use: changing a sort rule, the strip list, or string
 normalization means a version bump plus a migration for records already
 written. `submissions.canonical_version` records which version a record was

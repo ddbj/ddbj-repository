@@ -385,7 +385,7 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     bp = submissions(:bioproject)
     bp.append_update!(
       {'schema_version' => 'v3',
-       'project'    => {'title' => 'A project'},
+       'projects'   => [{'title' => 'A project'}],
        'submission' => {'submitters' => [{'first_name' => 'Hanako', 'organizations' => [{'name' => 'NIG'}]}]}},
       actor: 'test-seed', source: :manual
     )
@@ -436,10 +436,10 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   end
 
   test 'the record is readable without opening the JSON' do
-    with_record({'project' => {'title' => 'A study of things', 'hold_date' => '2026-12-01'}}) do
+    with_record({'submission' => {'title' => 'A study of things', 'hold_date' => '2026-12-01'}}) do
       visit record_admin_submission_request_path(@req)
 
-      within '[data-test-record-section="project"]' do
+      within '[data-test-record-section="submission"]' do
         assert_text 'title'
         assert_text 'A study of things'
         assert_text 'hold_date'
@@ -474,10 +474,10 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
     small = {'title' => 'A study'}
     big   = Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
 
-    with_record({'project' => small, 'samples' => big}) do
+    with_record({'submission' => small, 'samples' => big}) do
       visit record_admin_submission_request_path(@req)
 
-      assert_selector '[data-test-record-section="project"][open]'
+      assert_selector '[data-test-record-section="submission"][open]'
       assert_no_selector '[data-test-record-section="samples"][open]'
 
       # A fold that hides the count leaves the reader to open it to find
@@ -491,10 +491,10 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   # The screen has no field list, so a key nobody has taught it about
   # still appears. This is the whole reason it is written this way.
   test 'a field the screen has never heard of shows up anyway' do
-    with_record({'project' => {'some_future_field' => 'from a later schema'}}) do
+    with_record({'submission' => {'some_future_field' => 'from a later schema'}}) do
       visit record_admin_submission_request_path(@req)
 
-      within '[data-test-record-section="project"]' do
+      within '[data-test-record-section="submission"]' do
         assert_text 'some_future_field'
         assert_text 'from a later schema'
       end
@@ -505,7 +505,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   # a curator cannot tell from the feature not being deployed — and the
   # records that reach the limit are the ones least readable as JSON.
   test 'a record too large to lay out says so rather than vanishing' do
-    with_record({'project' => {'description' => 'x' * (Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT + 1024)}}) do
+    with_record({'submission' => {'description' => 'x' * (Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT + 1024)}}) do
       visit record_admin_submission_request_path(@req)
 
       within '[data-test-record-outline]' do
@@ -520,11 +520,11 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
   # itself the answer to "does this record have sequences?" — otherwise a
   # question answered by scrolling.
   test 'the record says what it carries before it says what is in it' do
-    with_record({'project' => {'title' => 'x'}, 'relations' => %w[PRJDB1]}) do
+    with_record({'submission' => {'title' => 'x'}, 'relations' => %w[PRJDB1]}) do
       visit record_admin_submission_request_path(@req)
 
       within '[data-test-record-carries]' do
-        assert_link 'project'
+        assert_link 'submission'
         assert_link 'relations'
         assert_text "2 of the #{RecordOutline.schema_key_count} v3 keys"
       end
@@ -549,7 +549,7 @@ class RecordOutlineSystemTest < ApplicationSystemTestCase
     request = submission_requests(:biosample)
 
     request.submission.append_update!({
-      'project' => {'description' => 'x' * (Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT + 1024)}
+      'submission' => {'description' => 'x' * (Admin::SubmissionDetail::CANONICAL_DISPLAY_SIZE_LIMIT + 1024)}
     }, actor: 'test')
 
     visit record_admin_submission_request_path(request)
@@ -649,7 +649,7 @@ class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
   # reads as broken rather than as closed.
   test 'a link in the Carries row opens the section it points at' do
     @req.submission.append_update!({
-      'project' => {'title' => 'A study'},
+      'submission' => {'title' => 'A study'},
       'samples' => Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'Homo sapiens'} }
     }, actor: 'test')
 

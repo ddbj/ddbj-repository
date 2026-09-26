@@ -57,7 +57,7 @@ module PublicXML
 
       private
 
-      def project_block    = @record['project']    || {}
+      def project_block    = @record.dig('projects', 0) || {}
       def submission_block = @record['submission'] || {}
 
       def render_project(xml)

@@ -86,12 +86,12 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   # The point of the v2 bump: issuing an accession has to be expressible as
   # a patch, or the chain cannot claim to be the record's history.
   test 'an accession-only change produces a patch' do
-    before = {'project' => {'title' => 'x'}}
-    after  = {'project' => {'title' => 'x', 'accession' => 'PRJDB1'}}
+    before = {'projects' => [{'title' => 'x'}]}
+    after  = {'projects' => [{'title' => 'x', 'accession' => 'PRJDB1'}]}
 
     ops = C.diff(before, after)
 
-    assert_equal [{'op' => 'add', 'path' => '/project/accession', 'value' => 'PRJDB1'}], ops
+    assert_equal [{'op' => 'add', 'path' => '/projects/0/accession', 'value' => 'PRJDB1'}], ops
   end
 
   # `diff` emits array indices into the CANONICAL ordering, while `apply`
@@ -109,10 +109,10 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   # Storage keeps volatile fields (§4.2) — canonical_tree is `for_diff:
   # false`, so a root snapshot does not lose provenance or accession.
   test 'canonical_tree retains volatile fields' do
-    tree = C.canonical_tree({'schema_version' => 'v3', 'project' => {'accession' => 'PRJDB1'}})
+    tree = C.canonical_tree({'schema_version' => 'v3', 'projects' => [{'accession' => 'PRJDB1'}]})
 
     assert_equal 'v3',      tree['schema_version']
-    assert_equal 'PRJDB1',  tree.dig('project', 'accession')
+    assert_equal 'PRJDB1',  tree.dig('projects', 0, 'accession')
   end
 
   test 'a patch applied to a canonical tree lands on the element it names' do
@@ -172,12 +172,21 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   end
 
   test 'diff produces add/remove/replace only' do
-    a   = {'project' => {'description' => 'one'}}
-    b   = {'project' => {'description' => 'two', 'keywords' => ['kw1']}}
+    a   = {'projects' => [{'description' => 'one'}]}
+    b   = {'projects' => [{'description' => 'two', 'keywords' => ['kw1']}]}
     ops = C.diff(a, b)
 
-    assert_includes ops, {'op' => 'replace', 'path' => '/project/description', 'value' => 'two'}
+    assert_includes ops, {'op' => 'replace', 'path' => '/projects/0/description', 'value' => 'two'}
     ops.each {|op| assert_includes %w[add remove replace], op['op'] }
+  end
+
+  # Positions are the identity of an ordered array's elements, so an edit
+  # inside one is a patch to that field, not a replacement of the element.
+  test 'diff descends into an ordered array whose length did not change' do
+    a = {'submission' => {'submitters' => [{'first_name' => 'Hanako', 'last_name' => 'Mishima'}]}}
+    b = {'submission' => {'submitters' => [{'first_name' => 'Hanako', 'last_name' => 'Kokusai'}]}}
+
+    assert_equal [{'op' => 'replace', 'path' => '/submission/submitters/0/last_name', 'value' => 'Kokusai'}], C.diff(a, b)
   end
 
   test 'apply round-trips a basic patch' do
@@ -274,12 +283,12 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   end
 
   test 'apply does not rewrite untouched fields' do
-    base  = {'project' => {'description' => "Foo\r\n\r\nbar  "}, 'submission' => {'comments' => 'old'}}
+    base  = {'projects' => [{'description' => "Foo\r\n\r\nbar  "}], 'submission' => {'comments' => 'old'}}
     patch = [{'op' => 'replace', 'path' => '/submission/comments', 'value' => 'new'}]
 
     out = C.apply(base, patch)
 
-    assert_equal "Foo\r\n\r\nbar  ",  out.dig('project', 'description'), 'untouched field must keep raw bytes'
+    assert_equal "Foo\r\n\r\nbar  ",  out.dig('projects', 0, 'description'), 'untouched field must keep raw bytes'
     assert_equal 'new',                out.dig('submission', 'comments')
   end
 

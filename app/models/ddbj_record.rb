@@ -244,6 +244,14 @@ module DDBJRecord
   # distinct from `DDBJRecord::Root`, and consumers that cannot take one call
   # `refuse_v3!` above rather than discovering it as a `NoMethodError`. No
   # production producer emits v3 yet.
+  # The project of a BioProject's v3 record, created if the record has none.
+  # v3 holds a list of projects; a BioProject's record has exactly one.
+  def self.bioproject_block!(record)
+    projects = record['projects'] = Array(record['projects']).presence || [{}]
+
+    projects.first
+  end
+
   def self.parse(io)
     unless io.respond_to?(:rewind)
       raise ArgumentError, "DDBJRecord.parse requires a rewindable IO; got #{io.class}"

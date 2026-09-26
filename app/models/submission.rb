@@ -209,17 +209,31 @@ class Submission < ApplicationRecord
     end
   end
 
-  # True while this chain still holds a root snapshot written before
-  # `ddbj-canon/v2`, i.e. in raw converter order. `diff` emits indices into
-  # the canonical order, so a positional patch appended to such a chain
-  # names the wrong element of a keyed array — silently, and only where the
-  # two orders happen to differ.
+  # True while this chain was last written under an older `ddbj-canon`
+  # version. Its stored state is ordered (v1: raw converter order) or keyed
+  # (v2: the `/project` paths v3 moved to `/projects/*`) by rules `diff` no
+  # longer follows, so a positional patch appended to such a chain names the
+  # wrong element of an array — silently, and only where the orders differ.
   #
   # Every writer of the chain has to check this, not just append_update!:
   # the importers write far more of it, and they are the ones holding the
   # v1 corpus. Cleared by whichever writer heals the chain first.
   def legacy_chain?
     canonical_version < DDBJRecord::Canonicalizer::NUMBER
+  end
+
+  # The checksum the importers keep of a converter's output, to recognise a
+  # source that has not changed since the last import.
+  def self.source_checksum_of(record) = Digest::MD5.base64digest(Oj.dump(record, mode: :strict))
+
+  # Whether `record` converts the source this submission was last imported
+  # from. A checksum taken before ddbj/ddbj-record-specifications#11 is of
+  # the old shape, so that shape of `record` counts too — until the next
+  # import stores the new one. Without it, the first import after the change
+  # would take every source as changed and diff it against the stored record,
+  # reverting every edit made here since.
+  def same_source?(record)
+    source_checksum.in?([self.class.source_checksum_of(record), self.class.source_checksum_of(DDBJRecord::ReshapeV3.old_shape(record))])
   end
 
   class MaterialisationFailed < StandardError
@@ -438,10 +452,9 @@ class Submission < ApplicationRecord
 
   private
 
-  # A chain written before `ddbj-canon/v2` stored its root snapshot in raw
-  # converter order, while `diff` emits indices into the canonical order —
-  # so a positional patch appended to one would name the wrong element of a
-  # keyed array. Rather than refuse (or corrupt), the next write to such a
+  # A chain written under an older `ddbj-canon` holds its state in an order
+  # `diff` no longer emits indices into — so a positional patch appended to
+  # one would name the wrong element of an array. Rather than refuse (or corrupt), the next write to such a
   # chain replaces the whole record: one big patch, once, after which the
   # stored state is canonical and ordinary diffs are safe again.
   #

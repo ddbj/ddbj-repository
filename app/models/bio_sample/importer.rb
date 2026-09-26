@@ -90,11 +90,12 @@ module BioSample
         # from a source that did not move. Without `legacy_chain?` here,
         # the re-import that a bump requires sweeps the whole corpus,
         # reports every record :skipped, and changes nothing.
-        source_checksum = Digest::MD5.base64digest(Oj.dump(record, mode: :strict))
+        source_checksum = Submission.source_checksum_of(record)
 
-        if submission.source_checksum == source_checksum && !submission.legacy_chain?
+        if submission.same_source?(record) && !submission.legacy_chain?
           submission.update_columns(
             migration_run_id: @migration_run_id,
+            source_checksum:,
             updated_at:       Time.current
           )
           return Result.new(submission:, outcome: :skipped)
@@ -261,7 +262,7 @@ module BioSample
           release_date:  staging.release_date,
           dist_date:     staging.dist_date,
           modified_date: staging.modified_date,
-          taxonomy_id:   v3.dig('organism', 'taxonomy_id'),
+          taxonomy_id:   Sample.taxonomy_id_of(v3.dig('organism', 'taxonomy_id')),
           organism:      v3.dig('organism', 'name')
         }
 

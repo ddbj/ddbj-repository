@@ -1,4 +1,4 @@
-<%# Curator-edit for v3 `/project/title` + `/project/description`. %>
+<%# Curator-edit for v3 `/projects/0/title` + `/projects/0/description`. %>
 <%# Goes through the patch chain; title also mirrors back to the %>
 <%# Project.title typed column inside the controller. %>
 <section class="card mt-4">
@@ -11,8 +11,8 @@
     </p>
 
     <%
-      title       = submission.materialised_record.dig('project', 'title')
-      description = submission.materialised_record.dig('project', 'description')
+      title       = submission.materialised_record.dig('projects', 0, 'title')
+      description = submission.materialised_record.dig('projects', 0, 'description')
     %>
 
     <%= form_with url: admin_submission_project_record_path(submission),

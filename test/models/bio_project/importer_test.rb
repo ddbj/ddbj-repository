@@ -86,7 +86,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
 
     assert_equal 'v3',                                replayed['schema_version']
     assert_equal({'source_format' => 'dway_bp_xml'},  replayed['provenance'])
-    assert replayed.key?('project'),     'project must be in the materialised replay'
+    assert replayed.key?('projects'),    'projects must be in the materialised replay'
     assert replayed.key?('submission'),  'submission must be in the materialised replay'
   end
 
@@ -215,12 +215,12 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
   test 'a curator edit survives an unchanged re-import' do
     submission = build.call.submission
     submission.append_update!(
-      submission.materialised_record.deep_dup.tap { it['project']['title'] = 'Curator title' },
+      submission.materialised_record.deep_dup.tap { it['projects'][0]['title'] = 'Curator title' },
       actor: 'admin:tanaka'
     )
 
     assert_equal :skipped, build.call.outcome
-    assert_equal 'Curator title', submission.reload.materialised_record.dig('project', 'title')
+    assert_equal 'Curator title', submission.reload.materialised_record.dig('projects', 0, 'title')
   end
 
   test 'syncs staging release_date / dist_date / modified_date onto Project and backfills on a byte-identical re-run' do

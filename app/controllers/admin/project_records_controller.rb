@@ -1,7 +1,7 @@
 module Admin
-  # Curator edit to v3 `/project/title` + `/project/description` on a BP
+  # Curator edit to v3 `/projects/0/title` + `/projects/0/description` on a BP
   # submission. The v3 record is the source of truth (the BP Importer's
-  # `Project.update!(title: record.dig('project', 'title'))` already
+  # `Project.update!(title: record.dig('projects', 0, 'title'))` already
   # treats Project.title as a denormalised cache); this controller goes
   # through the patch chain via Submission#append_update! AND mirrors
   # the title back to the Project.title typed column so the admin
@@ -49,12 +49,12 @@ module Admin
     end
 
     # Apply each editable field by `.presence`-filtering and either
-    # writing it onto `/project/<field>` or dropping the key entirely.
+    # writing it onto `/projects/0/<field>` or dropping the key entirely.
     # Matches the Converter's `.compact` idiom so a blank input doesn't
     # round-trip as `""` in the v3 record.
     def patched_record(submission, raw)
       record  = submission.materialised_record.deep_dup
-      project = record['project'] ||= {}
+      project = DDBJRecord.bioproject_block!(record)
 
       EDITABLE_FIELDS.each do |f|
         next unless raw.key?(f)
@@ -67,7 +67,7 @@ module Admin
         end
       end
 
-      record.delete('project') if project.empty?
+      record.delete('projects') if project.empty?
       record
     end
   end

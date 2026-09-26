@@ -110,7 +110,7 @@ class GroupSharingBoundaryTest < ActionDispatch::IntegrationTest
     @theirs.update_columns(submission_id: submission.id)
 
     project = submission.create_project!(accession: 'PRJDB009001', status: 'public', project_type: 'primary')
-    submission.append_update!({'project' => {'title' => 'Theirs'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'Theirs'}]}, actor: 'test')
 
     get submission_accession_path(submission, project.accession)
 

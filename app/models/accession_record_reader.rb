@@ -73,7 +73,7 @@ class AccessionRecordReader
   def project_slice
     record = @submission.materialised_record or return absent
 
-    found(record['project'])
+    found(record.dig('projects', 0))
   end
 
   # One sample, streamed out of the cache where there is a current one.

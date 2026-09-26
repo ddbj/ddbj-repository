@@ -69,7 +69,7 @@ class SubmissionTest < ActiveSupport::TestCase
 
   test 'a poisoned patch stops replay while it is the head of the chain' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'one'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'one'}]}, actor: 'test')
     poison!(submission)
 
     assert_raises(Submission::MaterialisationFailed) { submission.materialise_at }
@@ -77,35 +77,35 @@ class SubmissionTest < ActiveSupport::TestCase
 
   test 'a later root snapshot restores replay' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'one'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'one'}]}, actor: 'test')
     poison!(submission)
 
     # What the importer writes when safe_prior_materialised has swallowed
     # the failure: a whole-document snapshot.
     SubmissionUpdate.create_with_patch!(
       submission:,
-      patch_json: Oj.dump([{'op' => 'add', 'path' => '', 'value' => {'project' => {'title' => 'two'}}}], mode: :strict),
+      patch_json: Oj.dump([{'op' => 'add', 'path' => '', 'value' => {'projects' => [{'title' => 'two'}]}}], mode: :strict),
       db: 'bioproject', status: :applied, actor: 'migration:test', source: :migration,
       patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
     )
 
-    assert_equal({'project' => {'title' => 'two'}}, submission.materialise_at)
+    assert_equal({'projects' => [{'title' => 'two'}]}, submission.materialise_at)
   end
 
   test 'the snapshot does not claim to repair the past' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'one'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'one'}]}, actor: 'test')
     poisoned = poison!(submission)
 
     SubmissionUpdate.create_with_patch!(
       submission:,
-      patch_json: Oj.dump([{'op' => 'add', 'path' => '', 'value' => {'project' => {'title' => 'two'}}}], mode: :strict),
+      patch_json: Oj.dump([{'op' => 'add', 'path' => '', 'value' => {'projects' => [{'title' => 'two'}]}}], mode: :strict),
       db: 'bioproject', status: :applied, actor: 'migration:test', source: :migration,
       patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
     )
 
     # Head replays again...
-    assert_equal({'project' => {'title' => 'two'}}, submission.materialise_at)
+    assert_equal({'projects' => [{'title' => 'two'}]}, submission.materialise_at)
 
     # ...but `?as_of=` behind the damage still fails. That state genuinely
     # cannot be reconstructed, and pretending otherwise would be worse.
@@ -118,12 +118,12 @@ class SubmissionTest < ActiveSupport::TestCase
 
     SubmissionUpdate.create_with_patch!(
       submission:,
-      patch_json: Oj.dump([{'op' => 'replace', 'path' => '', 'value' => {'project' => {'title' => 'x'}}}], mode: :strict),
+      patch_json: Oj.dump([{'op' => 'replace', 'path' => '', 'value' => {'projects' => [{'title' => 'x'}]}}], mode: :strict),
       db: 'bioproject', status: :applied, actor: 'test', source: :manual,
       patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
     )
 
-    assert_equal({'project' => {'title' => 'x'}}, submission.materialise_at)
+    assert_equal({'projects' => [{'title' => 'x'}]}, submission.materialise_at)
   end
 
   # A patch we cannot read must not be trusted to claim it resets anything.
@@ -135,8 +135,8 @@ class SubmissionTest < ActiveSupport::TestCase
 
   test 'an ordinary minimal patch is not a snapshot' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'one'}}, actor: 'test')
-    update = submission.append_update!({'project' => {'title' => 'two'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'one'}]}, actor: 'test')
+    update = submission.append_update!({'projects' => [{'title' => 'two'}]}, actor: 'test')
 
     refute update.root_snapshot?
   end
@@ -145,14 +145,14 @@ class SubmissionTest < ActiveSupport::TestCase
   # must still store something rather than re-raising the error it caught.
   test 'a record canonicalisation rejects still falls back to a snapshot' do
     submission = submissions(:bioproject)
-    submission.append_update!({'schema_version' => 'v3', 'project' => {'title' => 'seed'}}, actor: 'test')
+    submission.append_update!({'schema_version' => 'v3', 'projects' => [{'title' => 'seed'}]}, actor: 'test')
 
     # A float where the registry allows none — canonicalize raises, so the
     # diff path and the canonical snapshot path both fail.
-    weird = submission.materialised_record.deep_dup.tap { it['project']['weight'] = 1.5 }
+    weird = submission.materialised_record.deep_dup.tap { it['projects'][0]['weight'] = 1.5 }
 
     assert_nothing_raised { submission.append_update!(weird, actor: 'admin:tanaka') }
-    assert_equal 1.5, submission.reload.materialised_record.dig('project', 'weight')
+    assert_equal 1.5, submission.reload.materialised_record.dig('projects', 0, 'weight')
   end
 
   test '#materialised_record returns nil before any update is appended' do
@@ -165,7 +165,7 @@ class SubmissionTest < ActiveSupport::TestCase
     submission = submissions(:bioproject)
     record     = {
       'schema_version' => 'v3',
-      'project'        => {'accession' => 'PRJDB502', 'title' => 'sample'}
+      'projects'        => [{'accession' => 'PRJDB502', 'title' => 'sample'}]
     }
     baseline = [{'op' => 'add', 'path' => '', 'value' => record}]
 
@@ -185,8 +185,8 @@ class SubmissionTest < ActiveSupport::TestCase
   test '#materialised_record replays a chain of patches in id order' do
     submission = submissions(:bioproject)
 
-    baseline = [{'op' => 'add', 'path' => '', 'value' => {'project' => {'title' => 'first'}}}]
-    edit     = [{'op' => 'replace', 'path' => '/project/title', 'value' => 'second'}]
+    baseline = [{'op' => 'add', 'path' => '', 'value' => {'projects' => [{'title' => 'first'}]}}]
+    edit     = [{'op' => 'replace', 'path' => '/projects/0/title', 'value' => 'second'}]
 
     [baseline, edit].each do |patch|
       SubmissionUpdate.create_with_patch!(
@@ -200,7 +200,7 @@ class SubmissionTest < ActiveSupport::TestCase
       )
     end
 
-    assert_equal 'second', submission.materialised_record.dig('project', 'title')
+    assert_equal 'second', submission.materialised_record.dig('projects', 0, 'title')
   end
 
   test '#materialised_record raises MaterialisationFailed carrying the offending update_id' do
@@ -234,9 +234,9 @@ class SubmissionTest < ActiveSupport::TestCase
   test '#materialised_record replays the chain when the cached object has gone' do
     submission = submissions(:bioproject)
 
-    submission.append_update!({'project' => {'title' => 'from the chain'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'from the chain'}]}, actor: 'test')
 
-    assert_equal 'from the chain', submission.materialised_record.dig('project', 'title')
+    assert_equal 'from the chain', submission.materialised_record.dig('projects', 0, 'title')
     assert submission.cached_at_update_id.present?, 'the read primed the cache'
 
     # The row still says there is a cache; the object behind it is gone.
@@ -244,7 +244,7 @@ class SubmissionTest < ActiveSupport::TestCase
 
     ActiveStorage::Blob.service.delete(was)
 
-    assert_equal 'from the chain', submission.reload.materialised_record.dig('project', 'title')
+    assert_equal 'from the chain', submission.reload.materialised_record.dig('projects', 0, 'title')
 
     # Replayed AND re-primed. Asserting only the value would pass whether
     # the cache was read or rebuilt, which is the whole of what changed.
@@ -257,7 +257,7 @@ class SubmissionTest < ActiveSupport::TestCase
   test '#cached_materialised_bytes answers nil when the cached object has gone' do
     submission = submissions(:bioproject)
 
-    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'v1'}]}, actor: 'test')
     submission.materialised_record
 
     ActiveStorage::Blob.service.delete(submission.cached_materialised_record.blob.key)
@@ -271,7 +271,7 @@ class SubmissionTest < ActiveSupport::TestCase
   test '#materialised_record does not swallow a store that is not answering' do
     submission = submissions(:bioproject)
 
-    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'v1'}]}, actor: 'test')
     submission.materialised_record
 
     dead = Aws::S3::Errors::ServiceUnavailable.new(nil, 'the store is not answering')
@@ -283,26 +283,26 @@ class SubmissionTest < ActiveSupport::TestCase
 
   test '#materialise_at(update_id:) replays only up to the given update' do
     submission = submissions(:bioproject)
-    baseline   = submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
-    edit       = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+    baseline   = submission.append_update!({'projects' => [{'title' => 'v1'}]}, actor: 'test')
+    edit       = submission.append_update!({'projects' => [{'title' => 'v2'}]}, actor: 'test')
 
-    assert_equal 'v1', submission.materialise_at(update_id: baseline.id).dig('project', 'title')
-    assert_equal 'v2', submission.materialise_at(update_id: edit.id).dig('project', 'title')
-    assert_equal 'v2', submission.materialise_at.dig('project', 'title')
+    assert_equal 'v1', submission.materialise_at(update_id: baseline.id).dig('projects', 0, 'title')
+    assert_equal 'v2', submission.materialise_at(update_id: edit.id).dig('projects', 0, 'title')
+    assert_equal 'v2', submission.materialise_at.dig('projects', 0, 'title')
   end
 
   test '#append_update! computes diff, appends, no-op when nothing changed' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'hello'}}, actor: 'curator')
+    submission.append_update!({'projects' => [{'title' => 'hello'}]}, actor: 'curator')
     assert_equal 1, submission.updates.count
 
-    again = submission.append_update!({'project' => {'title' => 'hello'}}, actor: 'curator')
+    again = submission.append_update!({'projects' => [{'title' => 'hello'}]}, actor: 'curator')
     assert_nil again, 'identical record should produce empty diff and skip insert'
     assert_equal 1, submission.updates.count
 
-    submission.append_update!({'project' => {'title' => 'world'}}, actor: 'curator')
+    submission.append_update!({'projects' => [{'title' => 'world'}]}, actor: 'curator')
     assert_equal 2, submission.updates.count
-    assert_equal 'world', submission.materialised_record.dig('project', 'title')
+    assert_equal 'world', submission.materialised_record.dig('projects', 0, 'title')
   end
 
   test '#append_update! falls back to a root snapshot when diff lands inside a bag (e.g. submitter organizations)' do
@@ -351,11 +351,11 @@ class SubmissionTest < ActiveSupport::TestCase
     submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "rt-#{SecureRandom.hex(4)}")
     50.times do |i|
       record = {
-        'project' => {
+        'projects' => [{
           'accession'   => "PRJDB#{1000 + i}",
           'title'       => "title-#{SecureRandom.hex(3)}",
           'description' => "desc\nline2\nline3" * (i % 3 + 1)
-        }
+        }]
       }
 
       submission.updates.destroy_all
@@ -371,13 +371,13 @@ class SubmissionTest < ActiveSupport::TestCase
     skip 'sqlite test env lacks row locking' if ActiveRecord::Base.connection.adapter_name.match?(/sqlite/i)
 
     submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "race-#{SecureRandom.hex(4)}")
-    submission.append_update!({'project' => {'title' => 'v0'}}, actor: 'seed')
+    submission.append_update!({'projects' => [{'title' => 'v0'}]}, actor: 'seed')
 
     threads = 4.times.map {|i|
       Thread.new do
         ActiveRecord::Base.connection_pool.with_connection do
           fresh = Submission.find(submission.id)
-          fresh.append_update!({'project' => {'title' => "v#{i + 1}"}}, actor: "writer-#{i}")
+          fresh.append_update!({'projects' => [{'title' => "v#{i + 1}"}]}, actor: "writer-#{i}")
         end
       end
     }
@@ -385,18 +385,18 @@ class SubmissionTest < ActiveSupport::TestCase
 
     # All 4 appends must have landed; replay must succeed (no diverged chain).
     assert_equal 5, submission.updates.reload.count
-    assert_includes %w[v0 v1 v2 v3 v4], submission.materialised_record.dig('project', 'title')
+    assert_includes %w[v0 v1 v2 v3 v4], submission.materialised_record.dig('projects', 0, 'title')
   end
 
   test 'write-through cache: first call attaches blob + stamps; second call returns from cache without replay' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'cached'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'cached'}]}, actor: 'test')
 
     assert_nil submission.reload.cached_at_update_id
     assert_not submission.cached_materialised_record.attached?
 
     first = submission.materialised_record
-    assert_equal 'cached', first.dig('project', 'title')
+    assert_equal 'cached', first.dig('projects', 0, 'title')
 
     submission.reload
     assert submission.cached_materialised_record.attached?, 'cache blob must be attached after write-through'
@@ -413,25 +413,25 @@ class SubmissionTest < ActiveSupport::TestCase
 
   test 'write-through cache: invalidates when a new update is appended' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'v1'}]}, actor: 'test')
     submission.materialised_record # warms cache
 
     assert submission.reload.cached_at_update_id.present?, 'baseline cache warm-up must populate cache'
 
-    submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'v2'}]}, actor: 'test')
 
     # SubmissionUpdate#after_create must have nil-cleared the cache stamp.
     assert_nil submission.reload.cached_at_update_id, 'append must invalidate cache'
 
     # Next read recomputes and re-stamps at the new latest.
-    assert_equal 'v2', submission.materialised_record.dig('project', 'title')
+    assert_equal 'v2', submission.materialised_record.dig('projects', 0, 'title')
     assert_equal submission.updates.reload.maximum(:id), submission.reload.cached_at_update_id
   end
 
   test 'write-through cache: invalidates when a SubmissionUpdate is destroyed' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
-    second = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'v1'}]}, actor: 'test')
+    second = submission.append_update!({'projects' => [{'title' => 'v2'}]}, actor: 'test')
     submission.materialised_record # warms cache at v2
     assert submission.reload.cached_at_update_id.present?
 
@@ -443,15 +443,15 @@ class SubmissionTest < ActiveSupport::TestCase
 
   test 'materialise_at(update_id:) historical snapshots never consult the cache' do
     submission = submissions(:bioproject)
-    first  = submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
-    second = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
+    first  = submission.append_update!({'projects' => [{'title' => 'v1'}]}, actor: 'test')
+    second = submission.append_update!({'projects' => [{'title' => 'v2'}]}, actor: 'test')
 
     submission.materialised_record # populates cache at second.id
 
     # Cache is for "latest"; historical snapshots must replay so the
     # cache cannot serve the wrong-version data to a ?as_of query.
-    assert_equal 'v1', submission.materialise_at(update_id: first.id).dig('project', 'title')
-    assert_equal 'v2', submission.materialise_at(update_id: second.id).dig('project', 'title')
+    assert_equal 'v1', submission.materialise_at(update_id: first.id).dig('projects', 0, 'title')
+    assert_equal 'v2', submission.materialise_at(update_id: second.id).dig('projects', 0, 'title')
   end
 
   # Only a MASS submission has a directory; one posted to the API keeps
@@ -484,7 +484,7 @@ class SubmissionTest < ActiveSupport::TestCase
 
   test 'materialise_at p99 < 500ms over a 30-patch chain' do
     submission = Submission.create!(db: 'bioproject', user: users(:alice), source_id: "bench-#{SecureRandom.hex(4)}")
-    30.times {|i| submission.append_update!({'project' => {'title' => "v#{i}"}}, actor: 'bench') }
+    30.times {|i| submission.append_update!({'projects' => [{'title' => "v#{i}"}]}, actor: 'bench') }
 
     timings = Array.new(20) do
       t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)

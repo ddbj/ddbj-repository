@@ -35,7 +35,7 @@ class DDBJRecord::Canonicalizer::PathClassifierCacheTest < ActiveSupport::TestCa
 
   test 'string_class and float_allowed? collapse literal indices too' do
     100.times {|i| PC.string_class("/sequences/entries/#{i}/sequence") }
-    100.times {|i| PC.float_allowed?("/project/grants/#{i}/amount") }
+    100.times {|i| PC.float_allowed?("/projects/0/grants/#{i}/amount") }
 
     assert_equal 1, PC.string_class_cache.size
     assert_equal 1, PC.float_allowed_cache.size
@@ -45,7 +45,7 @@ class DDBJRecord::Canonicalizer::PathClassifierCacheTest < ActiveSupport::TestCa
     PC.array_rule('/samples/0')
     PC.string_class('/sequences/entries/0/sequence')
     PC.volatile?('/provenance')
-    PC.float_allowed?('/project/grants/0/amount')
+    PC.float_allowed?('/projects/0/grants/0/amount')
 
     assert_operator PC.array_rule_cache.size,    :>, 0
     assert_operator PC.string_class_cache.size,  :>, 0

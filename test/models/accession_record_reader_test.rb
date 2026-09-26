@@ -8,7 +8,7 @@ class AccessionRecordReaderTest < ActiveSupport::TestCase
 
   test 'a BioProject reads its project' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'Deep sea survey'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'Deep sea survey'}]}, actor: 'test')
 
     assert_equal 'Deep sea survey', slice_for(submission, projects(:primary)).subtree['title']
   end

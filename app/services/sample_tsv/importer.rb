@@ -239,7 +239,7 @@ module SampleTSV
       assign_or_drop(v3_sample, 'description', description)
 
       org = {
-        'taxonomy_id' => Integer(taxonomy_id.to_s, 10, exception: false),
+        'taxonomy_id' => taxonomy_id&.strip.presence,
         'name'        => organism.presence
       }.compact
 
@@ -268,7 +268,7 @@ module SampleTSV
           status:      row[:status],
           title:       row[:attrs]['sample_title'],
           organism:    row[:attrs]['organism'],
-          taxonomy_id: Integer(row[:attrs]['taxonomy_id'].to_s, 10, exception: false)
+          taxonomy_id: Sample.taxonomy_id_of(row[:attrs]['taxonomy_id'])
         )
       end
     end

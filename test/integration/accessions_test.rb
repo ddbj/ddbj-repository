@@ -437,7 +437,7 @@ class AccessionsTest < ActionDispatch::IntegrationTest
     submission = submissions(:bioproject)
 
     submission.append_update!(
-      {'project' => {'title' => 'Deep sea survey', 'project_type' => 'primary'}},
+      {'projects' => [{'title' => 'Deep sea survey', 'project_type' => 'primary'}]},
       actor: 'test'
     )
 
