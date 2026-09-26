@@ -217,6 +217,57 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     assert_match(/sample_name/, result.fatal_error)
   end
 
+  # An attribute needs a name (DDBJ Record v3), and a header of spaces is none:
+  # the record's canonical form strips it to nothing.
+  test 'a column with values and a blank header is refused, not read as a nameless attribute' do
+    tsv = "sample_name\t  \tcollection_date\nsample-A\t10 m\t2026-04-15\n"
+
+    chain_before = @submission.updates.count
+    result       = run_importer(tsv)
+
+    assert_equal 'Column 2 has values but no header. Every attribute needs a name: give the column one, or remove it.',
+                 result.fatal_error
+    assert_equal chain_before, @submission.updates.count, 'nothing is written'
+  end
+
+  test 'a column with values and no header at all is refused too' do
+    result = run_importer("sample_name\t\tcollection_date\nsample-A\t10 m\t2026-04-15\n")
+
+    assert_match 'Column 2 has values but no header', result.fatal_error
+  end
+
+  # What a spreadsheet leaves after the last column: no header, no values.
+  # Nothing is lost by passing over it, and refusing it would refuse most
+  # files that went through Excel.
+  test 'an empty column with no header is passed over' do
+    result = run_importer("sample_name\tcollection_date\t\nsample-A\t2026-04-15\t\n")
+
+    assert_nil result.fatal_error
+    assert_equal 1, result.processed
+  end
+
+  # A header is a name, and the spaces round it are not part of it — the
+  # record strips them anyway.
+  test 'spaces round a header are not part of the name' do
+    run_importer("sample_name\t depth \nsample-A\t10 m\n")
+
+    attrs = @submission.reload.materialised_record['samples'].first['attributes'].to_h {|a| [a['name'], a['value']] }
+
+    assert_equal '10 m', attrs['depth']
+  end
+
+  # Unstripped, `status ` was not the reserved column: it went into the bag as
+  # an attribute that the record then canonicalised to `status`.
+  test 'a reserved header with trailing spaces is still the reserved column' do
+    run_importer("sample_name\tstatus \nsample-A\taccession_issued\n")
+
+    assert_equal 'accession_issued', @sample.reload.status
+
+    names = @submission.reload.materialised_record['samples'].first['attributes'].pluck('name')
+
+    assert_not_includes names, 'status'
+  end
+
   test 'strips UTF-8 BOM from the leading header so Excel-exported TSVs parse' do
     tsv = "\u{FEFF}sample_name\torganism\nsample-A\tMus musculus\n"
 
