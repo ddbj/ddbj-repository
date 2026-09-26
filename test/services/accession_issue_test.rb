@@ -16,7 +16,7 @@ class AccessionIssueTest < ActiveSupport::TestCase
 
     # Warm the cache with a real SubmissionUpdate so the FK on
     # cached_at_update_id holds.
-    submission.append_update!({'project' => {'title' => 'seed'}}, actor: 'test-seed')
+    submission.append_update!({'projects' => [{'title' => 'seed'}]}, actor: 'test-seed')
     submission.materialised_record # write-through cache populates
     assert submission.reload.cached_materialised_record.attached?,
            'cache blob must be attached after write-through'
@@ -37,7 +37,7 @@ class AccessionIssueTest < ActiveSupport::TestCase
     submission.reload
     assert_nil submission.cached_at_update_id
     assert_equal 2, submission.updates.count
-    assert_equal result.accessions.first, submission.materialised_record.dig('project', 'accession')
+    assert_equal result.accessions.first, submission.materialised_record.dig('projects', 0, 'accession')
   end
 
   # The chain entry and the event describe the same action; linking them
@@ -45,7 +45,7 @@ class AccessionIssueTest < ActiveSupport::TestCase
   test 'BP: the recorded event points at the patch it produced' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
-    submission.append_update!({'project' => {'title' => 'seed'}}, actor: 'test-seed')
+    submission.append_update!({'projects' => [{'title' => 'seed'}]}, actor: 'test-seed')
 
     AccessionIssue.call(submission:, actor: 'admin:tanaka')
 
@@ -75,7 +75,7 @@ class AccessionIssueTest < ActiveSupport::TestCase
   test 'BP: reports a broken chain behind a warm cache, without stamping' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
-    submission.append_update!({'project' => {'title' => 'seed'}}, actor: 'test-seed')
+    submission.append_update!({'projects' => [{'title' => 'seed'}]}, actor: 'test-seed')
 
     poisoned = SubmissionUpdate.create_with_patch!(
       submission:, patch_json: 'not-json', db: 'bioproject', status: :applied,
@@ -83,7 +83,7 @@ class AccessionIssueTest < ActiveSupport::TestCase
     )
 
     # A cache that claims to be current even though the replay cannot run.
-    submission.prime_cache!(bytes: Oj.dump({'project' => {'title' => 'seed'}}, mode: :strict),
+    submission.prime_cache!(bytes: Oj.dump({'projects' => [{'title' => 'seed'}]}, mode: :strict),
                             update_id: poisoned.id)
 
     assert_raises(AccessionIssue::ChainBroken) { AccessionIssue.call(submission:, actor: 'test') }

@@ -55,7 +55,7 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
     assert_equal 'DRS999999',                                                 sample_v3['alias']
     assert_equal 'Generic',                                                   sample_v3['package']
     assert_equal 'APr03S00',                                                  sample_v3['title']
-    assert_equal({'taxonomy_id' => 408170, 'name' => 'human gut metagenome'}, sample_v3['organism'])
+    assert_equal({'taxonomy_id' => '408170', 'name' => 'human gut metagenome'}, sample_v3['organism'])
     assert_equal 4,                                                           sample_v3['attributes'].size
   end
 
@@ -191,16 +191,26 @@ class BioSample::ConverterTest < ActiveSupport::TestCase
                  record['samples'].map {|s| s['accession'] }
   end
 
-  test 'non-numeric taxonomy_id drops rather than silently becoming 0' do
+  # v3 の taxonomy_id は str。数でない値も 0 で始まる値も書かれたまま持ち、検証が指摘する。
+  test 'taxonomy_id is kept as written' do
+    %w[unknown 009606].each do |value|
+      sub = build_submission(samples: [sample(attributes: [
+        {'name' => 'organism',    'value' => 'some organism'},
+        {'name' => 'taxonomy_id', 'value' => value}
+      ])])
+
+      organism = C.new(submission: sub).call.dig('samples', 0, 'organism')
+
+      assert_equal({'taxonomy_id' => value, 'name' => 'some organism'}, organism)
+    end
+  end
+
+  test 'an attribute with a value but no name stops the conversion' do
     sub = build_submission(samples: [sample(attributes: [
-      {'name' => 'organism',    'value' => 'unknown organism'},
-      {'name' => 'taxonomy_id', 'value' => 'unknown'}
+      {'name' => ' ', 'value' => 'orphan'}
     ])])
 
-    organism = C.new(submission: sub).call.dig('samples', 0, 'organism')
-
-    assert_equal({'name' => 'unknown organism'}, organism,
-                 "expected taxonomy_id to drop (was 'unknown'); got #{organism.inspect}")
+    assert_raises(ArgumentError) { C.new(submission: sub).call }
   end
 
   test 'canonicalises cleanly via the production pipeline' do

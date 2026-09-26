@@ -263,7 +263,7 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
   test 'issuance leaves both a patch and an event that names it' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
-    submission.append_update!({'schema_version' => 'v3', 'project' => {'title' => 'x'}}, actor: 'test')
+    submission.append_update!({'schema_version' => 'v3', 'projects' => [{'title' => 'x'}]}, actor: 'test')
 
     assert_difference ['CurationEvent.count', 'submission.updates.count'], 1 do
       IssueAccessionsJob.perform_now(issuance_id: issuance_for(submission).id)

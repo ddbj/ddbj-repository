@@ -1,10 +1,22 @@
-# DDBJ Record JSON Canonicalization Specification (canonical_version: 2)
+# DDBJ Record JSON Canonicalization Specification (canonical_version: 3)
 
 ## Status / Versioning
 
-**Status:** Draft for Phase 2. Identifier: `ddbj-canon/v2`. Frozen on first use.
+**Status:** Draft for Phase 2. Identifier: `ddbj-canon/v3`. Frozen on first use.
 
 ### Version History
+
+**v3 (2026-09-26).** The paths follow the DDBJ Record v3 that the spec now holds on its `main` (ddbj/ddbj-record-specifications#11), which changed shape within v3:
+
+- `project` became `projects`, a list: every `/project/...` path is now `/projects/*/...`, and `/projects` itself is **ordered** (a BioProject's record holds one; an SRA submission may hold several studies, written in an order the spec keeps).
+- `taxonomy_id` is a string kept as written (`"009606"`, `"not applicable"`), so it leaves the integer fields of §2.3 and is single-line.
+- `runs` / `analyses` hold their files under `data_blocks[*].files`; both lists are ordered.
+- `access_control.dac` is one object, not a list `dacs`; its `contacts` are people keyed by `(email, last_name, first_name)`.
+- `/relations` is keyed by the fields `RelationSource` / `RelationTarget` have (§3.1). The v2 key named `source/db` and `source/id`, which neither has, so they were always empty.
+- `/submission/st26/invention_titles` is **ordered**: one ST.26 file names two titles in one language, so the language cannot key them. The filing dates are `/submission/st26/{application,earliest_priority}/filing_date`.
+- The float fields of the SRA pool and legacy spot descriptor are registered (§2.3).
+
+Migration: stored v2 records are rewritten in place into the new shape (`rake ddbj_record:reshape_v3`), one root `replace` per chain under v3 — the same heal `append_update!` performs for a chain below the current version. A re-import would rebuild them from D-way instead and revert every edit made in the repository. The fixture corpus (§5.2) holds no path this changes, so its SHAs hold.
 
 **v2 (2026-07-31).** `accession` is no longer stripped for diff. It failed §4.1's own test — an accession is assigned once and does not change between regenerations, so it is not volatile; it was listed on an authorship argument ("archive-assigned, not curator data"), which is a different criterion. The consequence of stripping it was that accession issuance — the most consequential thing a curator does — produced an empty patch and left no trace in the chain, so the typed column became the sole authority and the stored record could disagree with it. Downstream code had begun to route around the gap: the BS public-XML renderer joins v3 samples on `alias` with a comment naming the strip list as the reason it cannot join on accession.
 
@@ -20,7 +32,7 @@ All Open Questions (§7) must be resolved before the first production canonicali
 
 ### 1.1 Purpose
 
-Defines `ddbj-canon/v2`, a deterministic byte-identical serialization of DDBJ Record v3 JSON, so content-addressable hashing, RFC 6902 patch generation, and chain replay are reproducible across implementations and time. Semantically equivalent records — differing only in key order, whitespace, number formatting, or unordered-collection order — produce byte-identical canonical output and identical SHA-256 digests.
+Defines `ddbj-canon/v3`, a deterministic byte-identical serialization of DDBJ Record v3 JSON, so content-addressable hashing, RFC 6902 patch generation, and chain replay are reproducible across implementations and time. Semantically equivalent records — differing only in key order, whitespace, number formatting, or unordered-collection order — produce byte-identical canonical output and identical SHA-256 digests.
 
 ### 1.2 Scope
 
@@ -34,7 +46,7 @@ JSON per RFC 8259: UTF-8 with no BOM; NFC on all string leaves and object keys e
 
 ### 1.4 Relationship to RFC 8785 (JCS)
 
-`ddbj-canon/v2` is **RFC 8785 plus a versioned delta**. Use a conforming JCS library as the inner serializer.
+`ddbj-canon/v3` is **RFC 8785 plus a versioned delta**. Use a conforming JCS library as the inner serializer.
 
 From RFC 8785 verbatim: UTF-16 code-unit object-key sort; ES262 §7.1.12.1 number serialization; minimal string escaping (`\"`, `\\`, controls as `\u00xx`, else raw UTF-8); no inter-token whitespace.
 
@@ -100,11 +112,11 @@ U+0001 + "abc"     → REJECT (control)
 
 ### 2.3 Numbers
 
-**Integers**: JSON integers — no decimal, no exponent, no leading `+` or zeros, single optional `-`. Safe range `[-(2^53-1), 2^53-1]`. Numeric-typed v3 fields: `samples[*].organism.taxonomy_id`, `experiments[*].library.nominal_length`, `features[*].phase`.
+**Integers**: JSON integers — no decimal, no exponent, no leading `+` or zeros, single optional `-`. Safe range `[-(2^53-1), 2^53-1]`. Numeric-typed v3 fields: `experiments[*].library.nominal_length`, `features[*].phase`.
 
-Identifier-like numerics are **strings**, because they may exceed safe range or carry leading zeros: every `accession`, `pubmed_id`, `host_taxid`-style EAV value, `checksum*`. `"3"` and `3` are not equivalent in canonical form; the schema pins each field's type.
+Identifier-like numerics are **strings**, because they may exceed safe range or carry leading zeros: every `accession`, `pubmed_id`, `taxonomy_id` (v3 keeps it as written), `host_taxid`-style EAV value, `checksum*`. `"3"` and `3` are not equivalent in canonical form; the schema pins each field's type.
 
-**Floats** (`nominal_sdev`, `features[*].score`) follow RFC 8785 §3.2.2 / ES262 §7.1.12.1 (shortest round-trip). ES262 switches to exponent form at `n ≥ 21` digits (§7.1.12.1 step 5); below that, integer-valued floats render without exponent. So `1.0` → `1`, `1.10` → `1.1`, `1e10` → `10000000000`, `1e21` → `1e+21`.
+**Floats** (`nominal_sdev`, `features[*].score`, a pool member's `proportion`, and the legacy spot descriptor's gap `mean` / `stdev` and quality `multiplier`) follow RFC 8785 §3.2.2 / ES262 §7.1.12.1 (shortest round-trip). ES262 switches to exponent form at `n ≥ 21` digits (§7.1.12.1 step 5); below that, integer-valued floats render without exponent. So `1.0` → `1`, `1.10` → `1.1`, `1e10` → `10000000000`, `1e21` → `1e+21`.
 
 **Forbidden**: `NaN`, `±Infinity`; scientific notation for integer-typed fields; thousands separators or non-`.` decimal. `-0` → `0`.
 
@@ -135,7 +147,7 @@ Array ordering is the highest-stakes decision here. RFC 8785 preserves array ord
 
 Order is semantic. Elements emit in input order; the canonicalizer never touches position. Insertion uses an explicit index — never JSON Patch's `-` token. Empty elements are rejected (§2.5).
 
-Paths: `/submission/submitters` (`[0]` = contact); `/sequences/entries` (flatfile order); `/sequences/entries/*/source_features`; `/sequences/entries/*/comments`; `/experiments/*/spot_descriptor/reads` (by `read_index`); `/experiments/*/processing`, `/analyses/*/processing` (step chain); `/runs/*/files`, `/analyses/*/files` (R1/R2 positional); `/project/publications/*/{authors,consortiums}` (byline); `/provenance/gff/pragmas`; any `qualifiers[<key>]` list (INSDC).
+Paths: `/submission/submitters` (`[0]` = contact); `/sequences/entries` (flatfile order); `/sequences/entries/*/source_features`; `/sequences/entries/*/comments`; `/experiments/*/spot_descriptor/reads` (by `read_index`); `/experiments/*/processing`, `/analyses/*/processing` (step chain); `/runs/*/data_blocks`, `/analyses/*/data_blocks` and their `files` (R1/R2 positional); `/projects` (written order); `/projects/*/publications/*/{authors,consortiums}` (byline); `/submission/st26/invention_titles`; `/provenance/gff/pragmas`; any `qualifiers[<key>]` list (INSDC).
 
 #### keyed
 
@@ -144,12 +156,11 @@ Order is by a stable key tuple. Tuple components are normalized via §2.2 single
 | Path | Key tuple |
 |---|---|
 | `/samples` | `(alias,)` |
-| `/relations` | `(type, target.db ‖ '', target.id ‖ '', target.url ‖ '')` |
+| `/relations` | `(type, label, source.type, source.accession, source.alias, source.index, target.db, target.id, target.accession, target.index, target.url)`, each `‖ ''` |
 | `/**/attributes` | `(name, unit ‖ '')` |
-| `/project/publications` | `(doi ‖ '', pubmed_id ‖ '', title ‖ '')` |
-| `/project/grants` | `(id ‖ '', title ‖ '', agency ‖ '')` |
-| `/access_control/dacs` | `(alias ‖ '', accession ‖ '')` |
-| `/access_control/dacs/*/contacts` | `(email ‖ '', last ‖ '', first ‖ '')` |
+| `/projects/*/publications` | `(doi ‖ '', pubmed_id ‖ '', title ‖ '')` |
+| `/projects/*/grants` | `(id ‖ '', title ‖ '', agency ‖ '')` |
+| `/access_control/dac/contacts` | `(email ‖ '', last_name ‖ '', first_name ‖ '')` |
 | `/datasets` | `(alias ‖ '', accession ‖ '')` |
 
 `/samples` is keyed (not bag) because Spike 0.1 confirmed every production BS record assigns an `alias` and a 10K-sample bag-sort would dominate every diff. Records violating the invariant (no `alias`) are rejected at ingest, not silently bagged.
@@ -158,7 +169,7 @@ Order is by a stable key tuple. Tuple components are normalized via §2.2 single
 
 #### bag
 
-No natural key. Sort by `sha256(canonical_json(element))` ascending (hex, byte order). Applies to `/experiments`, `/runs`, `/analyses`, `/features`, scalar bags (`/project/{study_types,keywords,locus_tag_prefix,target/data_types}`, `/datasets/*/dataset_types`, `/sequences/entries/*/structured_comments`).
+No natural key. Sort by `sha256(canonical_json(element))` ascending (hex, byte order). Applies to `/experiments`, `/runs`, `/analyses`, `/features`, scalar bags (`/projects/*/{study_types,keywords,locus_tag_prefix,target/data_types}`, `/datasets/*/dataset_types`, `/sequences/entries/*/structured_comments`).
 
 A bag element is identified entirely by content. **Field-level patches into bags are normatively forbidden**:
 
@@ -205,7 +216,7 @@ canonicalize(record, *, for_diff: bool = False)
 
 Aligning two arrays by similarity is quadratic, and a BioSample submission carries up to 10^5 `/samples` elements. It is also unnecessary: a `keyed` array declares its identity in the registry and canonicalization has already sorted both sides by it, so the alignment is known before the diff starts. Implementations SHOULD merge-join keyed arrays on the key and recurse only into matched pairs, falling back to similarity alignment for `ordered` / `bag` arrays, which are small by construction. Measured on this implementation at 8,000 samples: 181 s before, 5.9 s after.
 
-### 4.3 Stripped Paths (`ddbj-canon/v2`, `for_diff=True`)
+### 4.3 Stripped Paths (`ddbj-canon/v3`, `for_diff=True`)
 
 - `/provenance` (subtree).
 - `/schema_version`.
@@ -278,6 +289,8 @@ At `spec/fixtures/canonical_json/`, one directory per fixture (`input.json`, `ex
 
 ## 6. Appendix: Field Classification Table
 
+The string classes below record the classification this specification intends. The registry implements single-line only for the paths it lists under `strings.paths` (`schema/canon/array-modes.yml`); every other string here marked SL is multi-line in `ddbj-canon/v2` and `v3` alike. Aligning them is left to a later version rather than folded into v3: collapsing whitespace in an `alias` or an attribute `name` changes the key a stored keyed array is sorted by, which wants its own migration.
+
 Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; any unlisted array is bag (treat as bug — registry SHOULD list explicitly, see §3.4).
 
 ### Top-Level
@@ -285,7 +298,8 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | Path | Mode / Type | Notes |
 |---|---|---|
 | `/schema_version`, `/provenance` (subtree) | — | **Vol** |
-| `/submission`, `/project`, `/sequences`, `/assembly`, `/access_control` | object | — |
+| `/submission`, `/sequences`, `/assembly`, `/access_control`, `/array_design` | object | — |
+| `/projects` | O | written order |
 | `/samples` | K `(alias,)` | — |
 | `/experiments`, `/runs`, `/analyses`, `/features` | B | — |
 | `/datasets`, `/relations` | K | — |
@@ -295,27 +309,29 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | Path | Mode / Type | Notes |
 |---|---|---|
 | `/submission/submitters` | O | `[0]` = contact |
-| `/submission/submitters/*/{first,last,email}` | SL | — |
+| `/submission/submitters/*/{first_name,last_name,email}` | SL | — |
 | `/submission/submitters/*/organizations` | B | — |
-| `/submission/hold_date`, `/submission/st26/{filing_date,production_date}` | SL | ISO 8601 |
+| `/submission/hold_date`, `/submission/st26/{application,earliest_priority}/filing_date`, `/submission/st26/production_date` | SL | ISO 8601 |
 | `/submission/comments/*` | ML | open question §7.5 |
-| `/submission/st26/invention_titles` | K `(language_code,)` | — |
+| `/submission/st26/invention_titles` | O | two titles may share a language |
 | `/submission/attributes` | K `(name, unit ‖ '')` | — |
 
 ### Project
 
 | Path | Mode / Type | Notes |
 |---|---|---|
-| `/project/accession` | SL | — |
-| `/project/{name,project_type,umbrella_subtype}` | SL | — |
-| `/project/{title,description}` | ML | — |
-| `/project/{locus_tag_prefix,keywords,study_types}/*`, `/project/target/data_types/*` | SL in B | — |
-| `/project/relevance/*` | SL | map values |
-| `/project/publications` | K `(doi, pubmed_id, title)` | — |
-| `/project/publications/*/authors` | O | byline |
-| `/project/publications/*/{pubmed_id,doi,journal,volume,issue,pages_from,pages_to,date}` | SL | — |
-| `/project/publications/*/title` | ML | — |
-| `/project/grants` | K `(id, title, agency)` | — |
+| `/projects/*/accession` | SL | — |
+| `/projects/*/{name,project_type,umbrella_subtype}` | SL | — |
+| `/projects/*/{title,description}` | ML | — |
+| `/projects/*/{keywords,study_types}/*`, `/projects/*/target/data_types/*` | SL in B | — |
+| `/projects/*/locus_tag_prefix` | B | `{prefix, biosample_id}` objects |
+| `/projects/*/organism/taxonomy_id` | SL | as written |
+| `/projects/*/relevance/*` | SL | map values |
+| `/projects/*/publications` | K `(doi, pubmed_id, title)` | — |
+| `/projects/*/publications/*/authors` | O | byline |
+| `/projects/*/publications/*/{pubmed_id,doi,journal,volume,issue,pages_from,pages_to,date}` | SL | — |
+| `/projects/*/publications/*/title` | ML | — |
+| `/projects/*/grants` | K `(id, title, agency)` | — |
 
 ### Samples
 
@@ -325,7 +341,7 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/samples/*/{alias,title,package,donor_id,sample_group_type}` | SL | — |
 | `/samples/*/description` | ML | — |
 | `/samples/*/organism/{name,common_name}` | SL | — |
-| `/samples/*/organism/taxonomy_id` | INT | NCBI taxid |
+| `/samples/*/organism/taxonomy_id` | SL | NCBI taxid as written |
 | `/samples/*/attributes` | K `(name, unit ‖ '')` | — |
 | `/samples/*/attributes/*/{name,unit}` | SL | — |
 | `/samples/*/attributes/*/value` | ML | open question §7.2 |
@@ -338,14 +354,14 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/experiments/*/{alias,title}`, `/runs/*/{alias,title,run_date,data_type}`, `/analyses/*/{alias,title,analysis_type,analysis_date,data_type}` | SL | — |
 | `/experiments/*/description` | ML | — |
 | `/experiments/*/library/nominal_length` | INT | — |
-| `/experiments/*/library/nominal_sdev` | FLT | — |
+| `/experiments/*/library/nominal_sdev`, `/experiments/*/pool/{default_member,members/*}/proportion`, `/experiments/*/legacy/gaps/*/{mean,stdev}`, `/experiments/*/legacy/quality_scoring/*/multiplier` | FLT | — |
 | `/experiments/*/library/construction_protocol`, `/experiments/*/platform/array_description` | ML | — |
 | `/experiments/*/library/*`, `/experiments/*/platform/*` (other) | SL | CV |
 | `/experiments/*/spot_descriptor/reads` | O | `read_index` |
 | `/{experiments,analyses}/*/processing` | O | step chain |
 | `/experiments/*/targeted_loci/*` | SL in B | — |
-| `/{runs,analyses}/*/files` | O | R1/R2 positional |
-| `/{runs,analyses}/*/files/*/*` | SL | filename, checksum |
+| `/{runs,analyses}/*/data_blocks`, `/{runs,analyses}/*/data_blocks/*/files` | O | R1/R2 positional |
+| `/{runs,analyses}/*/data_blocks/*/files/*/*` | SL | filename, checksum |
 
 ### Sequences / Features / Assembly
 
@@ -373,13 +389,18 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/datasets/*/description`, `/access_control/policy/policy_text` | ML | — |
 | `/datasets/*/dataset_types/*` | SL in B | — |
 | `/datasets/*/attributes` | K | — |
-| `/access_control/dacs` | K `(alias, accession ‖ '')` | — |
-| `/access_control/dacs/*/contacts` | K `(email, last, first)` | — |
+| `/access_control/dac/contacts` | K `(email, last_name, first_name)` | — |
 | `/relations/*/{type,label,source,target.*}` | SL | — |
 | `/relations/*/properties/*` | SL | map values |
 | `/provenance/**` | — | **Vol** (entire subtree, includes `gff/pragmas` O ordering preserved within snapshot) |
 
 ## 7. Open Questions (resolve before first production freeze)
+
+0. **Before SRA / GEA records are stored** (they are not yet; BioProject and BioSample do not reach these):
+   - `index` in `relations` and `pool/*/sample` names a position in its kind's list, used where `alias` is not unique. `/samples` is keyed by `alias` and `/experiments`, `/runs`, `/analyses` are bags, so canonicalisation moves the element an `index` names. Either those lists become ordered, or `index` is defined against the canonical order.
+   - Many arrays of the v3 schema are not registered (`/samples/*/comments`, `/experiments/*/pool/members`, `/submission/sra/actions`, `/**/identifiers`, …). They sort as bags, but the bag-descent guard (§3.1) only knows registered bags, so a patch into one of them passes and leaves the array out of canonical order. Every array path of the schema has to be registered.
+
+   Both change stored bytes, so they come with the next version.
 
 1. **Sequence alphabet.** §2.2 fixes `[acgtn]`. Sample a GB-scale assembly to confirm no curator data carries IUPAC ambiguity codes (R/Y/W/S/K/M/…) that must be preserved. If present, widen *before* freeze.
 2. **EAV `value` line-discipline.** Lat/lon strings like `"31.45N 131.00 E"` preserve internal spacing under multi-line. Confirm with curators or sub-type lat/lon/date/taxid EAV values.

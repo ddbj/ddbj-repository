@@ -12,7 +12,7 @@ class PublishBpXMLJobTest < ActiveSupport::TestCase
   end
 
   test 'runs end-to-end against the configured directory and records a PublicXMLRun' do
-    submissions(:bioproject).append_update!({'project' => {'accession' => 'PRJDB000123', 'title' => 'BP job test'}}, actor: 'test')
+    submissions(:bioproject).append_update!({'projects' => [{'accession' => 'PRJDB000123', 'title' => 'BP job test'}]}, actor: 'test')
     projects(:primary).update!(accession: 'PRJDB000123', status: 'public')
 
     assert_difference 'PublicXMLRun.where(db: "bioproject", kind: "public").count', 1 do

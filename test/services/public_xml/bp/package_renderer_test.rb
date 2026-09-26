@@ -12,19 +12,18 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
         }],
         'hold_date'  => '2030-01-01'
       },
-      'project'    => {
+      'projects'   => [{
         'accession'        => 'PRJDB000123',
         'title'            => 'Walking skeleton',
         'description'      => 'BP public XML port from D-way',
-        # 変換した record は {prefix, biosample_id}、それより前の record は文字列。
-        'locus_tag_prefix' => [{'prefix' => 'ABCDE', 'biosample_id' => 'SAMD00000001'}, 'FGHIJ'],
-        'organism'         => {'taxonomy_id' => 9606, 'name' => 'Homo sapiens'},
+        'locus_tag_prefix' => [{'prefix' => 'ABCDE', 'biosample_id' => 'SAMD00000001'}, {'prefix' => 'FGHIJ'}],
+        'organism'         => {'taxonomy_id' => '9606', 'name' => 'Homo sapiens'},
         'grants'           => [{'id' => 'JP-001', 'title' => 'Grant title', 'agency' => 'JSPS'}],
         'publications'     => [{'pubmed_id' => '12345', 'status' => 'ePublished'}],
         'relevance'        => {'medical' => 'cancer research'},
         'target'           => {'sample_scope' => 'eMonoisolate', 'material' => 'eGenome', 'capture' => 'eWholeGenome', 'method' => 'eSequencing', 'data_types' => ['eSequence']},
         'attributes'       => [{'name' => 'project_data_type', 'value' => 'Genome Sequencing'}]
-      }
+      }]
     }
 
     node = PublicXML::Bp::PackageRenderer.new(record:).call
@@ -87,9 +86,9 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
 
   test 'rehydrates biology block from attribute bag (Strain + BiologicalProperties + Organization/Reproduction)' do
     record = {
-      'project' => {
+      'projects' => [{
         'accession' => 'PRJDB000999',
-        'organism'  => {'taxonomy_id' => 1234},
+        'organism'  => {'taxonomy_id' => '1234'},
         'target'    => {'sample_scope' => 'eMonoisolate'},
         'attributes' => [
           {'name' => 'strain',                  'value' => 'K-12'},
@@ -101,7 +100,7 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
           {'name' => 'genome_size',             'value' => '4600000', 'unit' => 'bp'},
           {'name' => 'provider',                'value' => 'Some provider'}
         ]
-      }
+      }]
     }
 
     node = PublicXML::Bp::PackageRenderer.new(record:).call
@@ -124,7 +123,7 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
 
   test 'rehydrates RepliconSet from indexed attribute bag tuples' do
     record = {
-      'project' => {
+      'projects' => [{
         'accession' => 'PRJDB000888',
         'target'    => {},
         'organism'  => {},
@@ -137,7 +136,7 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
           {'name' => 'replicon_2_type',     'value' => 'ePlasmid'},
           {'name' => 'ploidy',              'value' => 'eHaploid'}
         ]
-      }
+      }]
     }
 
     node      = PublicXML::Bp::PackageRenderer.new(record:).call
@@ -157,10 +156,10 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
 
   test 'omits optional sections when not present in v3' do
     record = {
-      'project' => {
+      'projects' => [{
         'accession' => 'PRJDB000001',
         'title'     => 'minimal'
-      }
+      }]
     }
 
     node = PublicXML::Bp::PackageRenderer.new(record:).call
@@ -218,15 +217,15 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
   test 'follows the XSD order in ProjectDescr and Organism' do
     record = {
       'submission' => {'hold_date' => '2030-01-01'},
-      'project'    => {
+      'projects'    => [{
         'title'            => 't',
         'publications'     => [{'pubmed_id' => '1', 'title' => 'Doe J. et al. (2020)'}],
         'relevance'        => {'modelorganism' => 'yes'},
-        'locus_tag_prefix' => ['ABC'],
-        'organism'         => {'taxonomy_id' => 9606, 'name' => 'Homo sapiens'},
+        'locus_tag_prefix' => [{'prefix' => 'ABC'}],
+        'organism'         => {'taxonomy_id' => '9606', 'name' => 'Homo sapiens'},
         'target'           => {'sample_scope' => 'eMonoisolate'},
         'attributes'       => [{'name' => 'strain', 'value' => 's1'}, {'name' => 'organism_label', 'value' => 'l1'}]
-      }
+      }]
     }
 
     node = PublicXML::Bp::PackageRenderer.new(record:).call
@@ -241,7 +240,7 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
   end
 
   test 'emits no Organism when the record has none' do
-    record = {'project' => {'title' => 't', 'target' => {'sample_scope' => 'eMonoisolate'}}}
+    record = {'projects' => [{'title' => 't', 'target' => {'sample_scope' => 'eMonoisolate'}}]}
 
     node = PublicXML::Bp::PackageRenderer.new(record:).call
 
@@ -251,7 +250,7 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
   # 2 つの語彙を分ける前に変換した record は、ProjectDataTypeSet の値を target.data_types に持ち、
   # project_data_type 属性を持たない。
   test 'renders a record converted before the data type vocabularies were told apart' do
-    record = {'project' => {'target' => {'method' => 'eSequencing', 'data_types' => ['eSequence', 'Genome Sequencing']}}}
+    record = {'projects' => [{'target' => {'method' => 'eSequencing', 'data_types' => ['eSequence', 'Genome Sequencing']}}]}
 
     node = PublicXML::Bp::PackageRenderer.new(record:).call
 
@@ -261,7 +260,7 @@ class PublicXML::Bp::PackageRendererTest < ActiveSupport::TestCase
   end
 
   test 'takes the project type from the AR row' do
-    record = {'project' => {'project_type' => 'primary', 'umbrella_subtype' => 'eOther'}}
+    record = {'projects' => [{'project_type' => 'primary', 'umbrella_subtype' => 'eOther'}]}
     row    = Project.new(project_type: :umbrella, accession: 'PRJDB000001')
 
     node = PublicXML::Bp::PackageRenderer.new(record:, row:).call

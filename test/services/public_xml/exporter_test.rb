@@ -10,7 +10,7 @@ class PublicXML::ExporterTest < ActiveSupport::TestCase
   end
 
   test 'writes one Package per public record, atomic rename, creates completed PublicXMLRun' do
-    submissions(:bioproject).append_update!({'project' => {'accession' => 'PRJDB000123', 'title' => 'one'}}, actor: 'test')
+    submissions(:bioproject).append_update!({'projects' => [{'accession' => 'PRJDB000123', 'title' => 'one'}]}, actor: 'test')
     projects(:primary).update!(accession: 'PRJDB000123', status: 'public')
 
     run = nil
@@ -50,7 +50,7 @@ class PublicXML::ExporterTest < ActiveSupport::TestCase
     # のときに空白が「足される」ことがないほう。
     title = "first line\nsecond line\n\nthird line"
 
-    submissions(:bioproject).append_update!({'project' => {'accession' => 'PRJDB000124', 'title' => title}}, actor: 'test')
+    submissions(:bioproject).append_update!({'projects' => [{'accession' => 'PRJDB000124', 'title' => title}]}, actor: 'test')
     projects(:primary).update!(accession: 'PRJDB000124', status: 'public')
 
     PublicXML::Exporter.new(
@@ -137,7 +137,7 @@ class PublicXML::ExporterTest < ActiveSupport::TestCase
   end
 
   test 'marks run failed and re-raises when rendering blows up' do
-    submissions(:bioproject).append_update!({'project' => {'title' => 'one'}}, actor: 'test')
+    submissions(:bioproject).append_update!({'projects' => [{'title' => 'one'}]}, actor: 'test')
     projects(:primary).update!(status: 'public')
 
     bomb = Class.new do

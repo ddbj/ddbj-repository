@@ -25,7 +25,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   # 説明を落とすと、書いた登録者に「説明が無い」と言うことになる。誤検知なので
   # 黙って見逃すより悪い。
   test 'carries the description that goes with each "other" choice' do
-    target = convert(OTHER_XML).dig('project', 'target')
+    target = convert(OTHER_XML).dig('projects', 0, 'target')
 
     assert_equal 'Environmental mat communities sampled across a thermal gradient.', target['description']
     assert_equal 'In-house enrichment followed by long-read sequencing.',            target['method_description']
@@ -34,7 +34,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'carries the umbrella subtype and its description' do
-    project = convert(UMBRELLA_XML, project_type: 'umbrella').fetch('project')
+    project = convert(UMBRELLA_XML, project_type: 'umbrella').fetch('projects').sole
 
     assert_equal 'eOther', project['umbrella_subtype']
     assert_equal 'A programme-level grouping that is not one of the listed subtypes.',
@@ -49,12 +49,12 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   #   project_data_type : "Genome Sequencing" / "Metagenome" …
   test 'target.data_types holds only the Objectives vocabulary' do
     assert_equal %w[eOther eRawSequenceReads],
-                 convert(OTHER_XML).dig('project', 'target', 'data_types')
+                 convert(OTHER_XML).dig('projects', 0, 'target', 'data_types')
   end
 
   # 捨てはしない。v3 に typed slot が無いので attributes へ退避する。
   test 'ProjectDataTypeSet goes to attributes, not into target.data_types' do
-    attributes = convert(OTHER_XML).dig('project', 'attributes')
+    attributes = convert(OTHER_XML).dig('projects', 0, 'attributes')
 
     assert_equal [
       {'name' => 'project_data_type', 'value' => 'Metagenome'},
@@ -68,7 +68,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal [
       {'prefix' => 'HSM01', 'biosample_id' => 'SAMD00123456'},
       {'prefix' => 'NOSAMPLE'}
-    ], convert(OTHER_XML).dig('project', 'locus_tag_prefix')
+    ], convert(OTHER_XML).dig('projects', 0, 'locus_tag_prefix')
   end
 
   test 'project_row[:accession] wins over XML <ArchiveID> (DB column is source of truth)' do
@@ -81,7 +81,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
       project_row: {project_type: 'primary', accession: 'PRJDB9999999'}
     ).call
 
-    assert_equal 'PRJDB9999999', record.dig('project', 'accession'),
+    assert_equal 'PRJDB9999999', record.dig('projects', 0, 'accession'),
                  'DB-column accession must override the XML ArchiveID'
   end
 
@@ -97,9 +97,9 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     record_no_key  = BioProject::Converter.new(xml: File.read(PSUB604_XML), project_row: {project_type: 'primary'}).call
     record_nil_key = BioProject::Converter.new(xml: File.read(PSUB604_XML), project_row: {project_type: 'primary', accession: nil}).call
 
-    assert_nil record_no_key.dig('project', 'accession'),
+    assert_nil record_no_key.dig('projects', 0, 'accession'),
                'no project_row[:accession] must NOT fall back to XML <ArchiveID>'
-    assert_nil record_nil_key.dig('project', 'accession')
+    assert_nil record_nil_key.dig('projects', 0, 'accession')
   end
 
   test 'DB present + XML <ArchiveID/> empty → DB wins (headline production-win cohort)' do
@@ -125,7 +125,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     record = BioProject::Converter.new(xml:, project_row: {project_type: 'primary', accession: 'PRJDB7777777'}).call
-    assert_equal 'PRJDB7777777', record.dig('project', 'accession')
+    assert_equal 'PRJDB7777777', record.dig('projects', 0, 'accession')
   end
 
   test 'staging PSUB-id-in-ArchiveID pathology: DB wins, PSUB id in XML is discarded' do
@@ -150,7 +150,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     record = BioProject::Converter.new(xml:, project_row: {project_type: 'primary', accession: 'PRJDB3723'}).call
-    assert_equal 'PRJDB3723', record.dig('project', 'accession')
+    assert_equal 'PRJDB3723', record.dig('projects', 0, 'accession')
   end
 
   test 'whitespace in accession is stripped (matches Project::ACCESSION_FORMAT anchored regex)' do
@@ -167,7 +167,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     record = BioProject::Converter.new(xml:, project_row: {project_type: 'primary', accession: '  PRJDB42  '}).call
-    assert_equal 'PRJDB42', record.dig('project', 'accession')
+    assert_equal 'PRJDB42', record.dig('projects', 0, 'accession')
   end
 
   test 'PSUB000604 (PRJDB502, primary) — top-level field mapping' do
@@ -176,18 +176,18 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     assert_equal 'v3',                                        record['schema_version']
     assert_equal({'source_format' => 'dway_bp_xml'},          record['provenance'])
 
-    project = record.fetch('project')
+    project = record.fetch('projects').sole
     assert_equal 'PRJDB502',                                  project['accession']
     assert_equal 'primary',                                   project['project_type']
     assert_equal 'Chromosome Mycobacterium avium sequencing', project['title']
     assert_match(/Mycobacterium avium complex/,               project['description'])
     assert_equal [{'prefix' => 'MAH'}],                        project['locus_tag_prefix']
-    assert_equal({'taxonomy_id' => 1229671, 'name' => 'Mycobacterium avium subsp. hominissuis TH135'},
+    assert_equal({'taxonomy_id' => '1229671', 'name' => 'Mycobacterium avium subsp. hominissuis TH135'},
                  project['organism'])
   end
 
   test 'PSUB000604 — Grant lifts id / title / agency' do
-    grants = convert.dig('project', 'grants')
+    grants = convert.dig('projects', 0, 'grants')
 
     assert_equal 1,                                            grants.size
     assert_equal '24590164',                                   grants[0]['id']
@@ -197,11 +197,11 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'PSUB000604 — Relevance is a dict of tag name → body text (v3 dict[str,str])' do
-    assert_equal({'medical' => 'yes'}, convert.dig('project', 'relevance'))
+    assert_equal({'medical' => 'yes'}, convert.dig('projects', 0, 'relevance'))
   end
 
   test 'PSUB000604 — Target attrs + Method + ProjectDataTypeSet' do
-    target = convert.dig('project', 'target')
+    target = convert.dig('projects', 0, 'target')
 
     assert_equal 'eMonoisolate',        target['sample_scope']
     assert_equal 'eGenome',             target['material']
@@ -236,7 +236,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'PSUB002671 — Publication lifts pubmed_id + status (Reference body absent)' do
-    pubs = convert(PSUB671_XML).dig('project', 'publications')
+    pubs = convert(PSUB671_XML).dig('projects', 0, 'publications')
 
     assert_equal 1,             pubs.size
     assert_equal '23936076',    pubs[0]['pubmed_id']
@@ -245,7 +245,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'PSUB002671 — Relevance Other (empty body) yields {"other" => ""}' do
-    assert_equal({'other' => ''}, convert(PSUB671_XML).dig('project', 'relevance'))
+    assert_equal({'other' => ''}, convert(PSUB671_XML).dig('projects', 0, 'relevance'))
   end
 
   test 'Relevance with body text on Other preserves the curator description' do
@@ -260,7 +260,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     relevance = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
-                                     .dig('project', 'relevance')
+                                     .dig('projects', 0, 'relevance')
 
     assert_equal({'other' => 'Cancer cell line characterization'}, relevance)
   end
@@ -279,7 +279,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     pubs = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
-                                .dig('project', 'publications')
+                                .dig('projects', 0, 'publications')
 
     assert_equal 1, pubs.size
     assert_equal '10.1000/foo', pubs[0]['doi']
@@ -303,12 +303,12 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     pubs = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
-                                .dig('project', 'publications')
+                                .dig('projects', 0, 'publications')
 
     assert_equal [{'status' => 'ePublished'}], pubs
   end
 
-  test 'Organism: non-numeric taxID drops rather than becoming 0' do
+  test 'Organism: a non-numeric taxID is kept as written' do
     xml = <<~XML
       <?xml version="1.0"?>
       <PackageSet><Package><Project><Project>
@@ -320,9 +320,9 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     organism = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
-                                    .dig('project', 'organism')
+                                    .dig('projects', 0, 'organism')
 
-    assert_equal({'name' => 'foo'}, organism)
+    assert_equal({'taxonomy_id' => 'unknown', 'name' => 'foo'}, organism)
   end
 
   test 'submission.hold_date strict parsing: partial / month-name / day-only inputs drop instead of fabricating dates' do
@@ -367,7 +367,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     grants = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
-                                  .dig('project', 'grants')
+                                  .dig('projects', 0, 'grants')
 
     assert_equal [{'id' => 'X1'}], grants
   end
@@ -435,13 +435,13 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'PSUB000604 — project.attributes lifts strain' do
-    attrs = convert.dig('project', 'attributes')
+    attrs = convert.dig('projects', 0, 'attributes')
 
     assert_includes attrs, {'name' => 'strain', 'value' => 'TH135'}
   end
 
   test 'PSUB000604 — project.attributes lifts the full Morphology block' do
-    attrs = convert.dig('project', 'attributes')
+    attrs = convert.dig('projects', 0, 'attributes')
 
     assert_includes attrs, {'name' => 'gram_stain', 'value' => 'ePositive'}
     assert_includes attrs, {'name' => 'enveloped',  'value' => 'eNo'}
@@ -451,7 +451,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'PSUB000604 — project.attributes lifts the full Environment block' do
-    attrs = convert.dig('project', 'attributes')
+    attrs = convert.dig('projects', 0, 'attributes')
 
     assert_includes attrs, {'name' => 'salinity',            'value' => 'eMesophilic'}
     assert_includes attrs, {'name' => 'oxygen_requirement',  'value' => 'eAerobic'}
@@ -461,7 +461,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'PSUB000604 — project.attributes lifts the full Phenotype block' do
-    attrs = convert.dig('project', 'attributes')
+    attrs = convert.dig('projects', 0, 'attributes')
 
     assert_includes attrs, {'name' => 'biotic_relationship', 'value' => 'eParasite'}
     assert_includes attrs, {'name' => 'trophic_level',       'value' => 'eAutotroph'}
@@ -469,14 +469,14 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'PSUB000604 — project.attributes lifts Organization (biological_organization) and Reproduction' do
-    attrs = convert.dig('project', 'attributes')
+    attrs = convert.dig('projects', 0, 'attributes')
 
     assert_includes attrs, {'name' => 'biological_organization', 'value' => 'eColonial'}
     assert_includes attrs, {'name' => 'reproduction',            'value' => 'eAsexual'}
   end
 
   test 'PSUB000604 — project.attributes lifts RepliconSet (per-replicon index, location, isSingle, Ploidy)' do
-    attrs = convert.dig('project', 'attributes')
+    attrs = convert.dig('projects', 0, 'attributes')
 
     assert_includes attrs, {'name' => 'replicon_1_name',      'value' => 'plasmid'}
     assert_includes attrs, {'name' => 'replicon_1_type',      'value' => 'ePlasmid'}
@@ -506,7 +506,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     attrs = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
-                                 .dig('project', 'attributes')
+                                 .dig('projects', 0, 'attributes')
 
     # First Replicon: no name, but type + location + size by index 1.
     assert_includes attrs, {'name' => 'replicon_1_type',     'value' => 'eChromosome'}
@@ -522,7 +522,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   end
 
   test 'PSUB000604 — project.attributes lifts GenomeSize with unit' do
-    attrs = convert.dig('project', 'attributes')
+    attrs = convert.dig('projects', 0, 'attributes')
 
     assert_includes attrs, {'name' => 'genome_size', 'value' => '5', 'unit' => 'Mb'}
   end
@@ -544,13 +544,13 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     attrs = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
-                                 .dig('project', 'attributes')
+                                 .dig('projects', 0, 'attributes')
 
     assert_equal [{'name' => 'genome_size', 'value' => '5000000'}], attrs
   end
 
   test 'PSUB000604 — project.attributes lifts Provider' do
-    attrs = convert.dig('project', 'attributes')
+    attrs = convert.dig('projects', 0, 'attributes')
 
     assert_includes attrs, {'name' => 'provider', 'value' => 'Higashinagoya National Hospital'}
   end
@@ -560,7 +560,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
   # ProjectDataTypeSet だけは別語彙なので attributes へ退避される（target.data_types
   # と混ぜると BP_R0070 が誤検知する）ため、それ以外が空であることを見る。
   test 'project.attributes: nothing from the biology block when there is none' do
-    attrs = convert(PSUB671_XML).dig('project', 'attributes')
+    attrs = convert(PSUB671_XML).dig('projects', 0, 'attributes')
 
     assert_equal [], attrs.reject {|a| a['name'] == 'project_data_type' }
   end
@@ -585,7 +585,7 @@ class BioProject::ConverterTest < ActiveSupport::TestCase
     XML
 
     attrs = BioProject::Converter.new(xml: xml, project_row: {project_type: 'primary'}).call
-                                 .dig('project', 'attributes')
+                                 .dig('projects', 0, 'attributes')
 
     assert_equal [{'name' => 'shape', 'value' => 'eRod'}], attrs
   end

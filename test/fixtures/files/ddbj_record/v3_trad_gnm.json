@@ -1,5 +1,5 @@
 {
-  "schema_version": "v3.0",
+  "schema_version": "v3",
   "provenance": {
     "source_format": "DFAST",
     "submission_category": "GNM"
@@ -42,29 +42,6 @@
     "comments": [
       "Comment line1\nline2",
       "Annotated by DFAST 1.3.4 https://dfast.ddbj.nig.ac.jp/"
-    ]
-  },
-  "project": {
-    "locus_tag_prefix": [
-      "PLH"
-    ],
-    "publications": [
-      {
-        "title": "Complete genome sequencing of Paucilactobacillus hokkaidonensis",
-        "status": "unpublished",
-        "date": "2023",
-        "authors": [
-          {
-            "abbreviation": "Mishima,H."
-          },
-          {
-            "abbreviation": "Tanizawa,Y."
-          },
-          {
-            "abbreviation": "Nakamura,Y."
-          }
-        ]
-      }
     ]
   },
   "sequences": {
@@ -328,6 +305,33 @@
         "db": "insdc.sra",
         "id": "DRR999990"
       }
+    }
+  ],
+  "projects": [
+    {
+      "locus_tag_prefix": [
+        {
+          "prefix": "PLH"
+        }
+      ],
+      "publications": [
+        {
+          "title": "Complete genome sequencing of Paucilactobacillus hokkaidonensis",
+          "status": "unpublished",
+          "date": "2023",
+          "authors": [
+            {
+              "abbreviation": "Mishima,H."
+            },
+            {
+              "abbreviation": "Tanizawa,Y."
+            },
+            {
+              "abbreviation": "Nakamura,Y."
+            }
+          ]
+        }
+      ]
     }
   ]
 }

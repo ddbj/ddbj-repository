@@ -68,7 +68,7 @@ module BioProject
 
     def call
       record    = Converter.new(xml: @xml, project_row: {project_type: @project_type, accession: @accession}).call
-      accession = record.dig('project', 'accession')
+      accession = record.dig('projects', 0, 'accession')
 
       # `:no_accession` fires when the staging DB column
       # (`project.project_id_prefix || project_id_counter`) is blank.
@@ -128,9 +128,11 @@ module BioProject
         # from a source that did not move. Without `legacy_chain?` here,
         # the re-import that a bump requires sweeps the whole corpus,
         # reports every record :skipped, and changes nothing.
-        source_checksum = Digest::MD5.base64digest(Oj.dump(record, mode: :strict))
+        source_checksum = Submission.source_checksum_of(record)
 
-        if submission.source_checksum == source_checksum && !submission.legacy_chain?
+        if submission.same_source?(record) && !submission.legacy_chain?
+          submission.update_columns(source_checksum:) unless submission.source_checksum == source_checksum
+
           return Result.new(submission:, outcome: :skipped)
         end
 
@@ -141,6 +143,7 @@ module BioProject
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
+        record       = record_to_write(submission, prior_record, record)
         patch_ops    = compute_patch_ops(prior_record, record, legacy: submission.legacy_chain?)
 
         if patch_ops.empty?
@@ -178,7 +181,7 @@ module BioProject
           accession:    accession,
           project_type: @project_type,
           status:       map_status(@status),
-          title:        record.dig('project', 'title')
+          title:        record.dig('projects', 0, 'title')
         )
 
         new_update = SubmissionUpdate.create_with_patch!(
@@ -201,6 +204,16 @@ module BioProject
     end
 
     private
+
+    # What this import writes: the conversion — except on a chain written
+    # under an older ddbj-canon whose source has not changed. There the
+    # import only heals the chain (one root replace under the current
+    # version), and heals it with the stored record, read in the current
+    # shape (Submission#materialised_record), so edits made here since the
+    # last import stay. Writing the conversion would revert them.
+    def record_to_write(submission, prior, record)
+      submission.legacy_chain? && prior.present? && submission.same_source?(record) ? prior : record
+    end
 
     def safe_prior_materialised(submission)
       submission.materialised_record || {}

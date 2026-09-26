@@ -57,7 +57,7 @@ module PublicXML
 
       private
 
-      def project_block    = @record['project']    || {}
+      def project_block    = @record.dig('projects', 0) || {}
       def submission_block = @record['submission'] || {}
 
       def render_project(xml)
@@ -152,13 +152,11 @@ module PublicXML
 
       # v3 `LocusTagPrefix` is {prefix, biosample_id}; the prefix is the
       # element's text and the BioSample it was declared for its
-      # attribute. Records converted before the object form carry bare
-      # strings.
+      # attribute. (Records stored as bare strings are read in this form:
+      # DDBJRecord::ReshapeV3.)
       def render_locus_tag_prefix(xml)
         Array(project_block['locus_tag_prefix']).each do |entry|
-          prefix, biosample_id = entry.is_a?(Hash) ? entry.values_at('prefix', 'biosample_id') : [entry, nil]
-
-          emit_tag(xml, :LocusTagPrefix, prefix, {biosample_id:}.compact)
+          emit_tag(xml, :LocusTagPrefix, entry['prefix'], {biosample_id: entry['biosample_id']}.compact)
         end
       end
 
@@ -227,7 +225,10 @@ module PublicXML
         organism = project_block['organism'] || {}
         return if organism.empty? && !organism_attributes?
 
-        attrs = organism['taxonomy_id'] ? {taxID: organism['taxonomy_id'].to_s} : {}
+        # taxID is an integer in the XML; a value that is not one (kept as
+        # written in v3) is not published, as in the BioSample XML.
+        tax   = DDBJRecord.taxonomy_id_number(organism['taxonomy_id'])
+        attrs = tax ? {taxID: tax.to_s} : {}
 
         xml.Organism(**attrs) {
           xml.OrganismName organism['name'] if organism['name'].present?

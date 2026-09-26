@@ -201,7 +201,7 @@ class PublicXML::Bs::BioSampleRendererTest < ActiveSupport::TestCase
     {
       'title'       => 'A sample title',
       'description' => 'A sample description',
-      'organism'    => {'taxonomy_id' => 9606, 'name' => 'Homo sapiens'},
+      'organism'    => {'taxonomy_id' => '9606', 'name' => 'Homo sapiens'},
 
       'attributes' => [
         {'name' => 'sample_name',     'value' => 'a-sample'},

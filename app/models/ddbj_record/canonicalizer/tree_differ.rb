@@ -16,9 +16,15 @@ module DDBJRecord
     # alignment json-diff is searching for is already known. Walking the
     # two sorted runs together is linear.
     #
-    # So: this walker handles objects and keyed arrays itself, and hands
-    # anything else — ordered arrays, bags, scalars — to json-diff on that
-    # subtree alone, where the arrays are small by construction.
+    # An `ordered` array of unchanged length needs no alignment either: its
+    # positions are its identity, so element i before is element i after,
+    # and the walk descends into each — an edited title is a `replace` of the
+    # title, not a `remove` + `add` of the whole element holding it.
+    #
+    # So: this walker handles objects, keyed arrays and same-length ordered
+    # arrays itself, and hands anything else — ordered arrays that grew or
+    # shrank, bags, scalars — to json-diff on that subtree alone, where the
+    # arrays are small by construction.
     module TreeDiffer
       class << self
         # Both sides must already be canonical (`canonicalize(..., for_diff:
@@ -37,6 +43,10 @@ module DDBJRecord
             walk_hash(before, after, pointer:, structural:, ops:)
           elsif before.is_a?(Array) && after.is_a?(Array) && (key = keyed_key(structural))
             walk_keyed(before, after, key:, pointer:, structural:, ops:)
+          elsif before.is_a?(Array) && after.is_a?(Array) && before.size == after.size && ordered?(structural)
+            before.zip(after).each_with_index do |(before_item, after_item), i|
+              walk(before_item, after_item, pointer: "#{pointer}/#{i}", structural: "#{structural}/*", ops:)
+            end
           elsif before == after
             nil
           else
@@ -106,6 +116,12 @@ module DDBJRecord
           return nil unless rule.is_a?(Hash) && rule['mode'] == 'keyed'
 
           Array(rule['key'])
+        end
+
+        def ordered?(structural)
+          rule = PathClassifier.array_rule(structural)
+
+          rule.is_a?(Hash) && rule['mode'] == 'ordered'
         end
 
         # Everything this walker does not special-case. The subtree is

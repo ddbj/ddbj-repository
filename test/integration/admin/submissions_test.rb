@@ -176,7 +176,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
   test 'the record tab links to the materialised JSON endpoint and surfaces orientation metadata' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'accession' => 'PRJDB502', 'title' => 'hello'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'accession' => 'PRJDB502', 'title' => 'hello'}]}, actor: 'test')
 
     get record_admin_submission_request_path(submission.request)
 
@@ -195,9 +195,9 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   # diff, so this patch would have carried only the title.
   test 'the chain records an accession like any other record field' do
     submission = submissions(:bioproject)
-    update     = submission.append_update!({'project' => {'accession' => 'PRJDB502', 'title' => 'hello'}}, actor: 'test')
+    update     = submission.append_update!({'projects' => [{'accession' => 'PRJDB502', 'title' => 'hello'}]}, actor: 'test')
 
-    assert_equal 'PRJDB502', submission.materialised_record.dig('project', 'accession')
+    assert_equal 'PRJDB502', submission.materialised_record.dig('projects', 0, 'accession')
     assert_includes Oj.dump(update.parsed_patch, mode: :strict), 'PRJDB502',
                     'the accession must reach the patch, whatever shape the diff takes'
   end
@@ -213,33 +213,33 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
   test 'materialised returns the latest snapshot as JSON' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'first'}}, actor: 'test')
-    submission.append_update!({'project' => {'title' => 'second'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'first'}]}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'second'}]}, actor: 'test')
 
     get materialised_admin_submission_path(submission)
 
     assert_response :ok
     assert_equal 'application/json', response.media_type
     body = JSON.parse(response.body)
-    assert_equal 'second', body.dig('project', 'title')
+    assert_equal 'second', body.dig('projects', 0, 'title')
   end
 
   test 'materialised ?as_of=N returns the snapshot at that update' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'v1'}}, actor: 'test')
-    v2 = submission.append_update!({'project' => {'title' => 'v2'}}, actor: 'test')
-    submission.append_update!({'project' => {'title' => 'v3'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'v1'}]}, actor: 'test')
+    v2 = submission.append_update!({'projects' => [{'title' => 'v2'}]}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'v3'}]}, actor: 'test')
 
     get materialised_admin_submission_path(submission, as_of: v2.id)
 
     assert_response :ok
     body = JSON.parse(response.body)
-    assert_equal 'v2', body.dig('project', 'title')
+    assert_equal 'v2', body.dig('projects', 0, 'title')
   end
 
   test 'materialised ?as_of=<latest_id> returns the same payload as no as_of' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'only'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'only'}]}, actor: 'test')
     latest = submission.updates.last
 
     get materialised_admin_submission_path(submission)
@@ -253,7 +253,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
   test 'materialised ?as_of=<unknown_id> 404s — stale link must not silently fall back' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'only'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'only'}]}, actor: 'test')
 
     get materialised_admin_submission_path(submission, as_of: 999_999)
     assert_response :not_found
@@ -261,15 +261,15 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
   test 'materialised ?as_of=<non-numeric|0> falls through to latest (parse_as_of returns nil)' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'visible'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'visible'}]}, actor: 'test')
 
     get materialised_admin_submission_path(submission, as_of: 'foo')
     assert_response :ok
-    assert_equal 'visible', JSON.parse(response.body).dig('project', 'title')
+    assert_equal 'visible', JSON.parse(response.body).dig('projects', 0, 'title')
 
     get materialised_admin_submission_path(submission, as_of: 0)
     assert_response :ok
-    assert_equal 'visible', JSON.parse(response.body).dig('project', 'title')
+    assert_equal 'visible', JSON.parse(response.body).dig('projects', 0, 'title')
   end
 
   test 'materialised 404s when no updates have been applied' do
@@ -281,7 +281,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
   test 'materialised ?as_of=N always replays (does NOT serve the cached blob shortcut even when N == latest_id)' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'visible'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'visible'}]}, actor: 'test')
     latest = submission.updates.last
     submission.materialised_record # warm the cache
 
@@ -296,13 +296,13 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     body = JSON.parse(response.body)
-    assert_equal 'visible', body.dig('project', 'title'), 'explicit as_of must always replay, never serve cache'
+    assert_equal 'visible', body.dig('projects', 0, 'title'), 'explicit as_of must always replay, never serve cache'
     refute body.key?('tampered'), 'cache shortcut must not be taken when ?as_of= is supplied'
   end
 
   test 'materialised serves the cached blob bytes directly on the latest path (skipping Oj.load/re-encode roundtrip)' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'real'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'real'}]}, actor: 'test')
     submission.materialised_record # warm the cache
     latest = submission.updates.last
 
@@ -320,7 +320,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
   test 'materialised returns 422 + JSON error body on a poisoned patch chain' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'good'}]}, actor: 'test')
     poisoned = SubmissionUpdate.create_with_patch!(
       submission:              submission,
       patch_json:              'not-json',
@@ -346,7 +346,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # A 2 MB string is plenty; Canonicalizer.canonicalize on this would
     # take seconds and dominate the show response.
     big_value = 'x' * (2 * 1024 * 1024)
-    submission.append_update!({'project' => {'title' => 'big', 'description' => big_value}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'big', 'description' => big_value}]}, actor: 'test')
 
     get record_admin_submission_request_path(submission.request)
 
@@ -358,7 +358,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
 
   test 'the record tab computes canonical bytes / sha for records under the size limit' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'small'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'small'}]}, actor: 'test')
 
     get record_admin_submission_request_path(submission.request)
 
@@ -372,7 +372,7 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
   # what a curator reads to find out that something is wrong.
   test 'the record tab survives a single poisoned patch — the chain renders and names the bad row' do
     submission = submissions(:bioproject)
-    submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
+    submission.append_update!({'projects' => [{'title' => 'good'}]}, actor: 'test')
     poisoned = SubmissionUpdate.create_with_patch!(
       submission:              submission,
       patch_json:              'not-json',

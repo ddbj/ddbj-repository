@@ -139,10 +139,6 @@ module DataMigration
       ActiveRecord::ConnectionNotEstablished
     ].freeze
 
-    # Returns the outcome symbol (:created / :updated / :skipped /
-    # :no_accession / :no_xml / :no_samples / :missing / :cross_user
-    # / :failed). A bad row is absorbed so it does not halt the sweep; a
-    # bad backend is not, because there is no sweep left to halt.
     # 取り込み元を run に焼き付ける。staging を production だと思って判断した事故が
     # あったので、後から「どこから取ったのか」を言えるようにする。
     #
@@ -157,6 +153,10 @@ module DataMigration
       Rails.logger.warn("[migration_run:#{@run.id}] source fingerprint failed: #{e.class}: #{e.message}")
     end
 
+    # Returns the outcome symbol (:created / :updated / :skipped /
+    # :no_accession / :no_xml / :no_samples / :missing / :cross_user
+    # / :failed). A bad row is absorbed so it does not halt the sweep; a
+    # bad backend is not, because there is no sweep left to halt.
     def process_row(source_id)
       run_importer(source_id)
     rescue *CONNECTION_ERRORS

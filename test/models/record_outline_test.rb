@@ -5,7 +5,7 @@ require 'test_helper'
 # be the same standing obligation to the schema the renderer avoids.
 class RecordOutlineTest < ActiveSupport::TestCase
   test 'an object becomes rows of key and value' do
-    node = RecordOutline.new({'project' => {'title' => 'A study', 'hold_date' => '2026-12-01'}}).sections.sole.node
+    node = RecordOutline.new({'submission' => {'title' => 'A study', 'hold_date' => '2026-12-01'}}).sections.sole.node
 
     assert_equal :fields, node.kind
     assert_equal %w[title hold_date], node.rows.map(&:first)
@@ -52,20 +52,20 @@ class RecordOutlineTest < ActiveSupport::TestCase
     assert_equal RecordOutline::COLUMN_LIMIT, node.rows.first.size
   end
 
-  # v3 gives every database the same 14 keys, so an absent one means "this
+  # v3 gives every database the same keys, so an absent one means "this
   # database has no such thing" — not an empty section to scroll past.
   test 'a key the record does not carry is not a section' do
-    keys = RecordOutline.new({'project' => {'title' => 'x'}, 'samples' => nil, 'sequences' => nil}).sections.map(&:key)
+    keys = RecordOutline.new({'submission' => {'title' => 'x'}, 'samples' => nil, 'sequences' => nil}).sections.map(&:key)
 
-    assert_equal %w[project], keys
+    assert_equal %w[submission], keys
   end
 
   # But one that is there and carries nothing is still there. "Present and
   # empty" and "not applicable to this database" are different facts.
   test 'a key that is present and empty is shown as empty' do
-    sections = RecordOutline.new({'project' => {}, 'relations' => []}).sections
+    sections = RecordOutline.new({'submission' => {}, 'relations' => []}).sections
 
-    assert_equal %w[project relations], sections.map(&:key)
+    assert_equal %w[submission relations], sections.map(&:key)
     assert sections.all? { it.node.kind == :empty }
   end
 
@@ -115,7 +115,7 @@ class RecordOutlineTest < ActiveSupport::TestCase
   end
 
   test 'a record that fits is not reported as elided' do
-    assert_not RecordOutline.new({'project' => {'title' => 'x'}}).elided?
+    assert_not RecordOutline.new({'submission' => {'title' => 'x'}}).elided?
   end
 
   # The card offers the Samples tab off the back of one section, so it has
@@ -134,12 +134,12 @@ class RecordOutlineTest < ActiveSupport::TestCase
   # and a `sequences` of forty is, and neither fact is about the key.
   test 'a section is folded by how tall it draws' do
     sections = RecordOutline.new({
-      'project'   => {'title' => 'A study'},
+      'submission'   => {'title' => 'A study'},
       'samples'   => Array.new(3)  {|i| {'alias' => "S#{i}"} },
       'sequences' => Array.new(40) {|i| {'alias' => "E#{i}", 'organism' => 'x'} }
     }).sections.index_by(&:key)
 
-    assert_not sections['project'].folded?
+    assert_not sections['submission'].folded?
     assert_not sections['samples'].folded?
     assert     sections['sequences'].folded?
   end
@@ -170,8 +170,8 @@ class RecordOutlineTest < ActiveSupport::TestCase
 
   # The one value given room to breathe, so the one whose length shows.
   test 'a long string is counted as the lines it wraps to' do
-    short = RecordOutline.new({'project' => {'title' => 'A study'}}).sections.sole.node
-    long  = RecordOutline.new({'project' => {'description' => 'x' * 500}}).sections.sole.node
+    short = RecordOutline.new({'submission' => {'title' => 'A study'}}).sections.sole.node
+    long  = RecordOutline.new({'submission' => {'description' => 'x' * 500}}).sections.sole.node
 
     assert_equal 1, short.height
     assert_equal 5, long.height
@@ -183,19 +183,19 @@ class RecordOutlineTest < ActiveSupport::TestCase
     outline = RecordOutline.new({
       'samples'   => Array.new(40) {|i| {'alias' => "S#{i}", 'organism' => 'x'} },
       'relations' => %w[PRJDB1 PRJDB2],
-      'project'   => {'title' => 'x', 'hold_date' => 'y'}
+      'submission'   => {'title' => 'x', 'hold_date' => 'y'}
     }).sections.index_by(&:key)
 
     assert_equal '40 rows × 2 columns', outline['samples'].node.precis
     assert_equal '2 items',             outline['relations'].node.precis
-    assert_equal '2 fields',            outline['project'].node.precis
+    assert_equal '2 fields',            outline['submission'].node.precis
   end
 
   # A scalar long enough to fold is the shape this class is least likely
   # to have been told about, and a fold with nothing on it says less than
   # no fold at all.
   test 'a long string says how long it is' do
-    node = RecordOutline.new({'project' => 'x' * 2_500}).sections.sole.node
+    node = RecordOutline.new({'submission' => 'x' * 2_500}).sections.sole.node
 
     assert_equal '2,500 characters', node.precis
   end
@@ -212,7 +212,7 @@ class RecordOutlineTest < ActiveSupport::TestCase
 
   # The view asks twice — whether there is anything, then for each.
   test 'sections are built once' do
-    outline = RecordOutline.new({'project' => {'title' => 'x'}})
+    outline = RecordOutline.new({'submission' => {'title' => 'x'}})
 
     assert_same outline.sections, outline.sections
   end

@@ -9,7 +9,7 @@ require 'json-diff'
 # property of the DDBJ Record format, not of any organisation.
 module DDBJRecord
   module Canonicalizer
-    VERSION = 'ddbj-canon/v2'.freeze
+    VERSION = 'ddbj-canon/v3'.freeze
 
     # The integer stored in `submissions.canonical_version` and
     # `submission_updates.patch_canonical_version` — the N in

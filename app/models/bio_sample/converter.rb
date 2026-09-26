@@ -89,6 +89,11 @@ module BioSample
         'organism'    => organism_block(attrs_by_name),
         'attributes'  => sample.attributes.filter_map {|a|
           next nil if a['value'].blank?
+
+          # v3 の Attribute は名前が必須。名前の無い値は何の値か分からず、落とせば
+          # 失い、置けば record が読めなくなるので、取り込みを止めて知らせる。
+          raise ArgumentError, "#{sample.sample_name}: an attribute has a value but no name" if a['name'].blank?
+
           {'name' => a['name'], 'value' => a['value']}
         }.presence
       }.compact
@@ -115,11 +120,11 @@ module BioSample
       env.blank? || env == NO_ENV_PACKAGE ? sample.package : "#{sample.package}.#{env}"
     end
 
+    # taxonomy_id は書かれたまま（v3 の taxonomy_id は str）。数でない値（'unknown'、
+    # 'N/A'）も、数に見えて 0 で始まる値も、書き換えると元に戻せず、検証が指摘
+    # できなくなる。
     def organism_block(attrs_by_name)
-      # `Integer(_, exception: false)` rejects non-numeric staging values
-      # ('unknown', 'N/A', 'sp.') by returning nil rather than silently
-      # coercing them to 0 via String#to_i.
-      tax  = Integer(attrs_by_name['taxonomy_id'].to_s, 10, exception: false)
+      tax  = attrs_by_name['taxonomy_id']&.strip.presence
       name = attrs_by_name['organism'].presence
 
       return nil unless tax || name

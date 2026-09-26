@@ -224,6 +224,16 @@ module DDBJRecord
   # Detected rather than parsed: a v3 record can be multi-GB and V3::Parser
   # reads the whole document, so eating that allocation only to refuse would
   # burn RAM and IO for nothing. The detector peeks at 64KB of head bytes.
+  # The NCBI taxonomy id a record's taxonomy_id names, as a number, or nil.
+  # v3 keeps the value as written ("009606", "not applicable"); a typed
+  # column or an XML attribute that must be a positive integer reads it
+  # through this.
+  def self.taxonomy_id_number(value)
+    number = Integer(value.to_s.strip, 10, exception: false)
+
+    number if number&.positive?
+  end
+
   def self.refuse_v3!(io, subject)
     major, = SchemaVersionDetector.detect(io)
 

@@ -202,15 +202,15 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
 
   test 'compute_patch_ops falls back to root snapshot when Canonicalizer.diff raises ANY Canonicalizer::Error (not just bag descent)' do
     submission = submissions(:biosample)
-    submission.append_update!({'project' => {'title' => 'good'}}, actor: 'test')
-    record     = {'project' => {'title' => 'irrelevant'}}
+    submission.append_update!({'projects' => [{'title' => 'good'}]}, actor: 'test')
+    record     = {'projects' => [{'title' => 'irrelevant'}]}
 
     importer = BioSample::Importer.new(staging_submission: build.instance_variable_get(:@row),
                                        user_uid:         'migration-test',
                                        migration_run_id: SecureRandom.uuid)
 
     DDBJRecord::Canonicalizer.stub(:diff, ->(*) { raise DDBJRecord::Canonicalizer::ControlCharacterError, 'simulated' }) do
-      ops = importer.send(:compute_patch_ops, {'project' => {'title' => 'prior'}}, record)
+      ops = importer.send(:compute_patch_ops, {'projects' => [{'title' => 'prior'}]}, record)
 
       assert_equal 1,         ops.size
       assert_equal '',        ops.first['path']

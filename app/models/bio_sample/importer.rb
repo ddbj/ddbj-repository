@@ -90,11 +90,12 @@ module BioSample
         # from a source that did not move. Without `legacy_chain?` here,
         # the re-import that a bump requires sweeps the whole corpus,
         # reports every record :skipped, and changes nothing.
-        source_checksum = Digest::MD5.base64digest(Oj.dump(record, mode: :strict))
+        source_checksum = Submission.source_checksum_of(record)
 
-        if submission.source_checksum == source_checksum && !submission.legacy_chain?
+        if submission.same_source?(record) && !submission.legacy_chain?
           submission.update_columns(
             migration_run_id: @migration_run_id,
+            source_checksum:,
             updated_at:       Time.current
           )
           return Result.new(submission:, outcome: :skipped)
@@ -110,6 +111,7 @@ module BioSample
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
+        record       = record_to_write(submission, prior_record, record)
         patch_ops    = compute_patch_ops(prior_record, record, legacy: submission.legacy_chain?)
 
         if patch_ops.empty?
@@ -165,6 +167,16 @@ module BioSample
     end
 
     private
+
+    # What this import writes: the conversion — except on a chain written
+    # under an older ddbj-canon whose source has not changed. There the
+    # import only heals the chain (one root replace under the current
+    # version), and heals it with the stored record, read in the current
+    # shape (Submission#materialised_record), so edits made here since the
+    # last import stay. Writing the conversion would revert them.
+    def record_to_write(submission, prior, record)
+      submission.legacy_chain? && prior.present? && submission.same_source?(record) ? prior : record
+    end
 
     def safe_prior_materialised(submission)
       submission.materialised_record || {}
@@ -261,7 +273,7 @@ module BioSample
           release_date:  staging.release_date,
           dist_date:     staging.dist_date,
           modified_date: staging.modified_date,
-          taxonomy_id:   v3.dig('organism', 'taxonomy_id'),
+          taxonomy_id:   DDBJRecord.taxonomy_id_number(v3.dig('organism', 'taxonomy_id')),
           organism:      v3.dig('organism', 'name')
         }
 

@@ -69,7 +69,7 @@ module DDBJRecordValidator
     v3      = record.is_a?(DDBJRecord::V3::Root)
 
     # ST26 application identification — v2: submission.application_identification,
-    # v3: submission.st26.application (per v3 St26Meta).
+    # v3: submission.st26.application (St26Submission).
     app_node   = v3 ? record.submission&.st26&.application : record.submission&.application_identification
     app_number = app_node&.application_number_text
 
@@ -131,8 +131,8 @@ module DDBJRecordValidator
       end
     end
 
-    # For v3, mol_type is hoisted to sequences.common_source.mol_type
-    # (per V3::Sequences); v2 carries it per-entry inside source_features.
+    # For v3, mol_type is hoisted to sequences.common_source.mol_type;
+    # v2 carries it per-entry inside source_features.
     common_mol_type = v3 ? record.sequences&.common_source&.mol_type : nil
 
     # Don't Array()-wrap the v2 path here — v2 records with a missing

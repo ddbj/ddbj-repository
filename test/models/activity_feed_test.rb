@@ -31,7 +31,7 @@ class ActivityFeedTest < ActiveSupport::TestCase
   # Chain rows carry namespaced actors ("admin:tanaka"); a sentence should
   # name the person, not the namespace.
   test 'chain entries name the actor and carry the patch id as a reference' do
-    update = submissions(:bioproject).append_update!({'project' => {'title' => 'x'}}, actor: 'admin:tanaka')
+    update = submissions(:bioproject).append_update!({'projects' => [{'title' => 'x'}]}, actor: 'admin:tanaka')
 
     entry = entries.find { it.update_id == update.id }
 

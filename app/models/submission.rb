@@ -209,17 +209,34 @@ class Submission < ApplicationRecord
     end
   end
 
-  # True while this chain still holds a root snapshot written before
-  # `ddbj-canon/v2`, i.e. in raw converter order. `diff` emits indices into
-  # the canonical order, so a positional patch appended to such a chain
-  # names the wrong element of a keyed array — silently, and only where the
-  # two orders happen to differ.
+  # True while this chain was last written under an older `ddbj-canon`
+  # version. Its stored state is ordered (v1: raw converter order) or keyed
+  # (v2: the `/project` paths v3 moved to `/projects/*`) by rules `diff` no
+  # longer follows, so a positional patch appended to such a chain names the
+  # wrong element of an array — silently, and only where the orders differ.
   #
   # Every writer of the chain has to check this, not just append_update!:
   # the importers write far more of it, and they are the ones holding the
   # v1 corpus. Cleared by whichever writer heals the chain first.
   def legacy_chain?
     canonical_version < DDBJRecord::Canonicalizer::NUMBER
+  end
+
+  # The checksum the importers keep of a converter's output, to recognise a
+  # source that has not changed since the last import.
+  def self.source_checksum_of(record) = Digest::MD5.base64digest(Oj.dump(record, mode: :strict))
+
+  # Whether `record` converts the source this submission was last imported
+  # from. A checksum taken before ddbj/ddbj-record-specifications#11 is of
+  # the old shape, so that shape of `record` counts too — until the next
+  # import stores the new one. Without it, the first import after the change
+  # would take every source as changed and diff it against the stored record,
+  # reverting every edit made here since.
+  def same_source?(record)
+    return false unless source_checksum
+
+    source_checksum == self.class.source_checksum_of(record) ||
+      source_checksum == self.class.source_checksum_of(DDBJRecord::ReshapeV3.old_shape(record))
   end
 
   class MaterialisationFailed < StandardError
@@ -252,20 +269,26 @@ class Submission < ApplicationRecord
   #
   # `materialise_at(update_id:)` for historical snapshots does NOT
   # consult the cache — only the latest-state path is cached.
+  #
+  # A chain written under an older `ddbj-canon` is read in the current shape
+  # (DDBJRecord::ReshapeV3), so whatever builds on it — an edit, accession
+  # issuance, public XML — works on the shape it writes; the write then heals
+  # the chain. `rake ddbj_record:reshape_v3` heals them all up front.
   def materialised_record
-    if cached_at_update_id.present? && cached_materialised_record.attached?
-      cached = cached_record
+    record = latest_record
 
-      return cached if cached
-    end
+    # latest_record answers a tree parsed or replayed for this call, so it
+    # can be reshaped in place.
+    record && legacy_chain? ? DDBJRecord::ReshapeV3.call!(record) : record
+  rescue DDBJRecord::ReshapeV3::Error => e
+    raise MaterialisationFailed.new(update_id: cached_at_update_id || updates.maximum(:id), original: e)
+  end
 
-    latest_id = updates.maximum(:id)
-    return nil unless latest_id
-
-    fresh = materialise_at(update_id: latest_id)
-    write_through_cache(fresh, latest_id) if fresh
-
-    fresh
+  # Whether the cached bytes are the record as materialised_record answers
+  # it: the cache is stamped, and the chain is not read in another shape
+  # than it stores.
+  def current_cache?
+    cached_at_update_id.present? && cached_materialised_record.attached? && !legacy_chain?
   end
 
   # Raw cached bytes for the latest snapshot, or nil when the cache is
@@ -277,7 +300,7 @@ class Submission < ApplicationRecord
   # Answering with the exception instead made the one screen a curator
   # would open to look at the record the only reader that could not.
   def cached_materialised_bytes
-    return nil unless cached_at_update_id.present? && cached_materialised_record.attached?
+    return nil unless current_cache?
 
     read_cached_object
   end
@@ -368,8 +391,11 @@ class Submission < ApplicationRecord
       )
 
       # The chain is canonical from here on, whether it already was or was
-      # just healed above.
-      update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER)
+      # just healed above. The cache was invalidated in the database
+      # (SubmissionUpdate#after_create); forgetting the stamp here too keeps
+      # a read on this object from answering the stale bytes — now no longer
+      # reshaped on the way out.
+      update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER, cached_at_update_id: nil)
 
       update
       # Cache invalidates via SubmissionUpdate#after_create (inside this
@@ -438,12 +464,30 @@ class Submission < ApplicationRecord
 
   private
 
-  # A chain written before `ddbj-canon/v2` stored its root snapshot in raw
-  # converter order, while `diff` emits indices into the canonical order —
-  # so a positional patch appended to one would name the wrong element of a
-  # keyed array. Rather than refuse (or corrupt), the next write to such a
-  # chain replaces the whole record: one big patch, once, after which the
-  # stored state is canonical and ordinary diffs are safe again.
+  # The latest state as the chain stores it, from the cache where there is
+  # one.
+  def latest_record
+    if cached_at_update_id.present? && cached_materialised_record.attached?
+      cached = cached_record
+
+      return cached if cached
+    end
+
+    latest_id = updates.maximum(:id)
+    return nil unless latest_id
+
+    fresh = materialise_at(update_id: latest_id)
+    write_through_cache(fresh, latest_id) if fresh
+
+    fresh
+  end
+
+  # A chain written under an older `ddbj-canon` holds its state in an order
+  # `diff` no longer emits indices into — so a positional patch appended to
+  # one would name the wrong element of an array. Rather than refuse (or
+  # corrupt), the next write to such a chain replaces the whole record: one
+  # big patch, once, after which the stored state is canonical and ordinary
+  # diffs are safe again.
   #
   # A chain that has never been written to is trivially canonical, so the
   # empty base is exempt.
