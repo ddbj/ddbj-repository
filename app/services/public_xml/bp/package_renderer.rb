@@ -146,9 +146,15 @@ module PublicXML
         }
       end
 
+      # v3 `LocusTagPrefix` is {prefix, biosample_id}; the prefix is the
+      # element's text and the BioSample it was declared for its
+      # attribute. Records converted before the object form carry bare
+      # strings.
       def render_locus_tag_prefix(xml)
-        Array(project_block['locus_tag_prefix']).each do |prefix|
-          xml.LocusTagPrefix prefix
+        Array(project_block['locus_tag_prefix']).each do |entry|
+          prefix, biosample_id = entry.is_a?(Hash) ? entry.values_at('prefix', 'biosample_id') : [entry, nil]
+
+          emit_tag(xml, :LocusTagPrefix, prefix, {biosample_id:}.compact)
         end
       end
 
@@ -160,14 +166,36 @@ module PublicXML
       end
 
       def render_project_type(xml)
-        target = project_block['target'] || {}
-
         xml.ProjectType {
-          xml.ProjectTypeSubmission {
-            render_target(xml, target)
-            render_method(xml, target)
-            render_data_types(xml, target)
-          }
+          if project_block['project_type'] == 'umbrella'
+            render_project_type_top_admin(xml)
+          else
+            render_project_type_submission(xml, project_block['target'] || {})
+          end
+        }
+      end
+
+      # An umbrella project groups others; the Converter reads its subtype
+      # (and the description an "other" subtype requires) from here, and
+      # its organism from wherever the XML put one.
+      def render_project_type_top_admin(xml)
+        attrs = {subtype: project_block['umbrella_subtype'].presence}.compact
+
+        xml.ProjectTypeTopAdmin(**attrs) {
+          render_organism(xml) if project_block['organism'].present?
+
+          if (description = project_block['umbrella_subtype_description']).present?
+            xml.DescriptionSubtypeOther description
+          end
+        }
+      end
+
+      def render_project_type_submission(xml, target)
+        xml.ProjectTypeSubmission {
+          render_target(xml, target)
+          render_method(xml, target)
+          render_objectives(xml, target)
+          render_project_data_types(xml)
         }
       end
 
@@ -181,6 +209,7 @@ module PublicXML
         xml.Target(**attrs) {
           render_organism(xml)
           render_provider(xml)
+          xml.Description target['description'] if target['description'].present?
         }
       end
 
@@ -331,20 +360,39 @@ module PublicXML
         xml.Provider value if value
       end
 
+      # The body is the description an "eOther" method requires.
       def render_method(xml, target)
         method_type = target['method']
         return if method_type.blank?
 
-        xml.Method(method_type:)
+        emit_tag(xml, :Method, target['method_description'].presence, {method_type:})
       end
 
-      def render_data_types(xml, target)
+      # `target.data_types` is the Objectives/Data@data_type vocabulary
+      # (eSequence, eRawSequenceReads, …), each with the description an
+      # "eOther" choice requires. It is NOT ProjectDataTypeSet, which uses
+      # a different vocabulary ("Genome Sequencing", …) and which the
+      # Converter parks in `project_data_type` attributes.
+      def render_objectives(xml, target)
         data_types = Array(target['data_types'])
         return if data_types.empty?
 
+        descriptions = target['data_type_descriptions'] || {}
+
+        xml.Objectives {
+          data_types.each do |data_type|
+            emit_tag(xml, :Data, descriptions[data_type].presence, {data_type:})
+          end
+        }
+      end
+
+      def render_project_data_types(xml)
+        values = Array(project_block['attributes']).filter_map { it['value'] if it['name'] == 'project_data_type' }
+        return if values.empty?
+
         xml.ProjectDataTypeSet {
-          data_types.each do |dt|
-            xml.DataType dt
+          values.each do |value|
+            xml.DataType value
           end
         }
       end
