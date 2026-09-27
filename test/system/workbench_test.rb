@@ -676,6 +676,10 @@ class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
     assert_text 'Curating'
     assert_no_link(/\AIssue /)
     assert_selector '[aria-disabled="true"]', text: 'DRA submissions'
+
+    # Its status is D-way's until DRA is curated here.
+    assert_no_select 'Status'
+    assert_selector '[data-test-status-source]', text: 'Status follows D-way'
   end
 
   # The rows slot is named for what the submission's rows are, whether or

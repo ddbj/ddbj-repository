@@ -27,7 +27,7 @@ class DataMigration::SyncDRAJobTest < ActiveJob::TestCase
       hold_date:    nil,
       dist_date:    nil,
       release_date: nil,
-      versions:     versions || [DRA::StagingClient::Version.new(saved_at: Time.zone.parse('2010-01-01'), documents:)]
+      versions:     versions || [DRA::StagingClient::Version.new(saved_at: Time.zone.parse('2010-01-01'), documents:, digest: 'd')]
     )
   end
 

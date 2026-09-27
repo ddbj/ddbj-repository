@@ -7,8 +7,11 @@
 # saved.
 #
 # Re-running brings the chain up to D-way: the versions saved after the
-# last one read (DRASubmission#version_saved_at) are appended, and nothing
-# else is written to it. D-way is where DRA is edited until the repository
+# last one read (DRASubmission#version_saved_at) are appended — and the
+# latest state again, if its documents are no longer the ones last read
+# (#version_digest): an object deleted after the last send, or a version
+# dated before the one it follows, changes it without a later save.
+# Nothing else is written to the chain. D-way is where DRA is edited until the repository
 # takes submissions itself, so a version saved there after a curator's edit
 # here is written over that edit, as the BioProject and BioSample imports
 # do.
@@ -50,6 +53,7 @@ class DRA::Importer
         s.user              = user
         s.migration_run_id  = @migration_run_id
         s.canonical_version = DDBJRecord::Canonicalizer::NUMBER
+        s.created_at        = @row.versions.first.saved_at
       }
 
       if submission.user_id != user.id
@@ -69,6 +73,10 @@ class DRA::Importer
         dist_date:    @row.dist_date,
         release_date: @row.release_date
       )
+
+      # Checked before the patches are stored: a row refused after them
+      # would roll back and leave their objects in the store.
+      row.validate!
 
       outcome = append_versions(submission, row)
 
@@ -96,11 +104,11 @@ class DRA::Importer
   # (a root replace, see ChainImport#compute_patch_ops) or by
   # `rake ddbj_record:reshape_v3`, not by re-reading an old version.
   def append_versions(submission, row)
-    pending = @row.versions.select { row.version_saved_at.nil? || it.saved_at > row.version_saved_at }
+    pending = pending_versions(row)
 
     return :skipped if pending.empty?
 
-    first   = row.version_saved_at.nil?
+    first   = submission.updates.none?
     prior   = first ? {} : safe_prior_materialised(submission)
     legacy  = submission.legacy_chain?
     record  = nil
@@ -117,6 +125,7 @@ class DRA::Importer
     }
 
     row.version_saved_at = pending.last.saved_at
+    row.version_digest   = pending.last.digest
 
     return :skipped if patches.empty?
 
@@ -145,5 +154,17 @@ class DRA::Importer
     submission.prime_cache!(bytes: Oj.dump(prior, mode: :strict), update_id: update.id)
 
     first ? :created : :updated
+  end
+
+  # What D-way has saved since the last run: the versions saved after the
+  # last one read, or else — where the latest state is not the one read —
+  # that state, taken as saved now.
+  def pending_versions(row)
+    latest = @row.versions.last
+    after  = @row.versions.select { row.version_saved_at.nil? || it.saved_at > row.version_saved_at }
+
+    return after if after.any? || row.version_digest.nil? || latest.digest == row.version_digest
+
+    [latest.with(saved_at: Time.current)]
   end
 end

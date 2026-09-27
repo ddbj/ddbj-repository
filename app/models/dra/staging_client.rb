@@ -34,8 +34,10 @@ class DRA::StagingClient
 
   Submission = Data.define(:sub_id, :submitter_id, :status, :accession, :hold_date, :dist_date, :release_date, :versions)
 
-  # One saved state of the submission: when, and its documents' XML.
-  Version = Data.define(:saved_at, :documents)
+  # One saved state of the submission: when, its documents' XML, and a
+  # digest of which versions of them these are — what tells this state
+  # from another saved in the same instant.
+  Version = Data.define(:saved_at, :documents, :digest)
 
   Excluded = Data.define(:sub_id, :reason, :submitter_id, :status, :create_date)
 
@@ -78,18 +80,24 @@ class DRA::StagingClient
 
   # Submissions past the draft that have nothing to import:
   #
-  #   - no_versions: no valid group, so no version was ever sent. In
-  #     practice cancelled while still being written.
+  #   - no_versions: nothing was ever sent — no valid group, or none of its
+  #     objects saved past the draft. In practice cancelled while still
+  #     being written.
   #   - no_accession: sent, but cancelled before a curator issued the
   #     accessions — nothing in it was ever numbered.
   def enumerate_excluded
     @conn.exec(<<~SQL).map {|row|
       WITH classified AS (
         SELECT s.sub_id, s.submitter_id, latest.status, s.create_date,
-               last.grp_id IS NULL AS unsent,
+               NOT EXISTS (
+                 SELECT 1 FROM submission_group g
+                 JOIN accession_relation r USING (grp_id)
+                 JOIN meta_entity m ON m.acc_id = r.acc_id AND m.meta_version > 0
+                 WHERE g.sub_id = s.sub_id AND g.valid
+               ) AS unsent,
                NOT EXISTS (
                  SELECT 1 FROM accession_relation r JOIN accession_entity a USING (acc_id)
-                 WHERE r.grp_id = last.grp_id AND a.acc_type IN ('DRA', 'SRA') AND a.acc_no IS NOT NULL
+                 WHERE r.grp_id = last.grp_id AND a.acc_type IN (#{SUBMISSION_TYPES.map { "'#{it}'" }.join(', ')}) AND a.acc_no IS NOT NULL
                ) AS unnumbered
         FROM (#{LATEST_STATUS}) latest
         JOIN submission s USING (sub_id)
@@ -208,9 +216,9 @@ class DRA::StagingClient
   # under SRA. Nil where the number was never issued: a submission cancelled
   # after it was sent but before a curator issued its accessions.
   def accession_of(members)
-    member = members&.find { SUBMISSION_TYPES.include?(it.acc_type) }
+    member = members&.find { SUBMISSION_TYPES.include?(it.acc_type) && it.acc_no } or return nil
 
-    format('%s%06d', member.acc_type, member.acc_no) if member&.acc_no
+    format('%s%06d', member.acc_type, member.acc_no)
   end
 
   def versions(groups, members)
@@ -220,7 +228,11 @@ class DRA::StagingClient
     contents = contents_of(states.flat_map { it.last.map(&:meta_id) }.uniq)
 
     states.map {|saved_at, state|
-      Version.new(saved_at: saved_at.in_time_zone, documents: state.map { contents.fetch(it.meta_id) })
+      Version.new(
+        saved_at:  saved_at.in_time_zone,
+        documents: state.map { contents.fetch(it.meta_id) },
+        digest:    Digest::MD5.hexdigest(state.map(&:meta_id).join(','))
+      )
     }
   end
 

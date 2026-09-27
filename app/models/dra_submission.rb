@@ -7,4 +7,8 @@ class DRASubmission < ApplicationRecord
   belongs_to :submission
 
   validates :accession, format: {with: ACCESSION_FORMAT}, allow_nil: true
+
+  # None: the status is D-way's until DRA is curated here, and the next
+  # import would put back a status set in the repository.
+  def self.settable_statuses = []
 end

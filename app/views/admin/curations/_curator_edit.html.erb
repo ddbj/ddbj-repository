@@ -35,15 +35,24 @@
     <% end %>
 
     <%= form_with url: admin_submission_curation_path(submission), method: :patch, scope: :curation, local: true do |f| %>
-      <% if state.curated? %>
+      <%# What the rows accept, not every status there is (Lifecycleable. %>
+      <%# settable_statuses). A DRA submission accepts none: its status is %>
+      <%# D-way's until DRA is curated here. %>
+      <% settable = state.curated? ? state.rows.klass.settable_statuses : [] %>
+
+      <% if settable.any? %>
         <div class="mb-3">
           <%= f.label :status, 'Status', class: 'form-label form-label-sm' %>
           <%= f.select :status,
-                       Lifecycleable::STATUSES.keys.map {|s| [s.tr('_', ' ').capitalize, s] },
+                       settable.map {|s| [s.tr('_', ' ').capitalize, s] },
                        {include_blank: ('— Leave as-is —' if state.uniform_status.nil?),
                         selected:      state.uniform_status},
                        class: 'form-select form-select-sm' %>
         </div>
+      <% elsif state.curated? %>
+        <p class="small text-body-secondary" data-test-status-source>
+          Status follows D-way, where DRA is still curated — the next import would put back a status set here.
+        </p>
       <% end %>
 
       <div class="mb-3">

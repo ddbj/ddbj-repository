@@ -8,7 +8,9 @@ class DRA::ImporterTest < ActiveSupport::TestCase
 
   def retitled(title) = documents.map { it.sub('Whole genome analysis of Streptococcus salivarius', title) }
 
-  def version(saved_at, docs = documents) = DRA::StagingClient::Version.new(saved_at: Time.zone.parse(saved_at), documents: docs)
+  def version(saved_at, docs = documents)
+    DRA::StagingClient::Version.new(saved_at: Time.zone.parse(saved_at), documents: docs, digest: Digest::MD5.hexdigest(docs.join))
+  end
 
   def row(**overrides)
     DRA::StagingClient::Submission.new(
@@ -132,6 +134,19 @@ class DRA::ImporterTest < ActiveSupport::TestCase
 
     assert_equal 'Changed in D-way', submission.reload.materialised_record.dig('projects', 0, 'title')
     assert_operator latest.created_at, :>=, manual.created_at
+  end
+
+  # An object deleted after the last send, or a version dated before the
+  # one it follows, changes what stands without a later save.
+  test 'a latest state that changed without a later save is taken again' do
+    submission = import(row).submission
+
+    changed = row.versions[0..-2] + [version('2010-02-01 10:00', retitled('Changed without a later save'))]
+    result  = import(row(versions: changed))
+
+    assert_equal :updated, result.outcome
+    assert_equal 'Changed without a later save', submission.reload.materialised_record.dig('projects', 0, 'title')
+    assert_equal :skipped, import(row(versions: changed)).outcome
   end
 
   test 'a status the import does not know is refused by name' do

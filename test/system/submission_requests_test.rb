@@ -209,15 +209,16 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     assert_selector row_for(submission_requests(:dra))
   end
 
-  test 'the ledger sets a DRA submission\'s status, and says submission' do
+  # D-way's until DRA is curated here: the next import would put it back.
+  test 'the ledger leaves a DRA submission\'s status to D-way' do
     visit admin_submission_requests_path
 
     check "Select ##{submission_requests(:dra).id}"
     select 'Public', from: 'bulk[status]'
     click_button 'Apply'
 
-    assert_text 'Set 1 DRA submission to public.'
-    assert_equal 'public', dra_submissions(:dra).reload.status
+    assert_text 'DRA submissions cannot be set to public.'
+    assert_equal 'private', dra_submissions(:dra).reload.status
   end
 
   # Named in one order whatever was ticked first, so the sentence reads
@@ -227,13 +228,13 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
 
     visit admin_submission_requests_path
 
-    check "Select ##{submission_requests(:dra).id}"
     check "Select ##{submission_requests(:st26).id}"
+    check "Select ##{submission_requests(:biosample).id}"
     check "Select ##{@req.id}"
     select 'Withdrawn', from: 'bulk[status]'
     click_button 'Apply'
 
-    assert_text 'Set 1 project, 1 DRA submission, and 2 entries to withdrawn.'
+    assert_text 'Set 1 project, 2 samples, and 2 entries to withdrawn.'
   end
 
   # The Entries tab does not offer it, so the ledger may not write it: an
@@ -246,7 +247,7 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     select 'Submission accepted', from: 'bulk[status]'
     click_button 'Apply'
 
-    assert_text 'Entries cannot be set to submission accepted.'
+    assert_text 'DRA submissions and Entries cannot be set to submission accepted.'
     assert_equal 'private', dra_submissions(:dra).reload.status
   end
 
