@@ -49,6 +49,27 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
     assert_equal one, two
   end
 
+  test "keeps a source feature's qualifiers in the written order (ordered)" do
+    record = ->(values) {
+      {
+        'sequences' => {
+          'entries' => [
+            {'source_features' => [{'source' => {'qualifiers' => {'note' => values.map { {'value' => it} }}}}]}
+          ]
+        }
+      }
+    }
+
+    assert_equal '{"sequences":{"entries":[{"source_features":[{"source":{"qualifiers":{"note":[{"value":"b"},{"value":"a"}]}}}]}]}}',
+                 C.canonicalize(record.(%w[b a]))
+  end
+
+  test "keeps the shared source's qualifiers in the written order (ordered)" do
+    record = {'sequences' => {'common_source' => {'qualifiers' => {'note' => [{'value' => 'b'}, {'value' => 'a'}]}}}}
+
+    assert_equal '{"sequences":{"common_source":{"qualifiers":{"note":[{"value":"b"},{"value":"a"}]}}}}', C.canonicalize(record)
+  end
+
   test 'rejects empty element in ordered array' do
     assert_raises C::OrderedEmptyElementError do
       C.canonicalize({'submission' => {'submitters' => [{}, {'name' => 'Alice'}]}})
