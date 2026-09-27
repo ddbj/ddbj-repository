@@ -275,6 +275,12 @@ module BioSample
     # alias — where the alias names one sample on both sides; a repeated one
     # cannot say which is which, and that row keeps the conversion's values.
     #
+    # The conversion's samples are taken in the form the record stores them
+    # (canonical: an alias written with runs of spaces is stored with them
+    # collapsed), so that they are found in `stored` and the row names each
+    # sample as the record does — which is what the TSV import, accession
+    # issuance and the public XML look samples up by.
+    #
     # An accession is never taken away: one D-way has stays when the stored
     # record lacks it (a chain from before accessions were diffed).
     #
@@ -282,7 +288,7 @@ module BioSample
     # takes only what staging alone knows, and keeps what it projects from
     # the record, rather than going back to D-way's values.
     def sync_samples!(submission, record, stored)
-      v3_samples       = record.fetch('samples')
+      v3_samples       = record.fetch('samples').map { canonical_sample(it) }
       stored_samples   = Array(stored&.[]('samples'))
       staging_samples  = @row.samples
       existing_samples = submission.samples.order(:id).to_a
@@ -328,6 +334,10 @@ module BioSample
     # BS staging is entirely on the new 5xxx Lifecycleable codes (verified
     # against staging: 0 rows have legacy status_id=700, unlike BP). So
     # the BP `when 700` arm is intentionally absent here.
+    def canonical_sample(sample)
+      canonical({'samples' => [sample]}).dig('samples', 0)
+    end
+
     def map_status(legacy_status_id)
       case legacy_status_id
       when 5500 then :public
