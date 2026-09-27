@@ -88,6 +88,11 @@ jobs:
           uv run --frozen --project vendor/ddbj-record-specifications \
             python -m ddbj_record.schema.cli --version v3 | diff -u schema/ddbj-record/v3.schema.json -
 
+      # DRA::Converter reads the spec's SRA table from a copy, as the app does
+      # not check the submodule out.
+      - name: Compare with the SRA mapping the pinned spec has
+        run: diff -u schema/ddbj-record/mapping/sra.yml vendor/ddbj-record-specifications/tests/fixtures/v3/mapping/sra.yml
+
   cross-lang-jcs-gate:
     name: Cross-language JCS gate
     runs-on: ubuntu-latest

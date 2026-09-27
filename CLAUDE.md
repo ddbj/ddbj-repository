@@ -236,10 +236,13 @@ Two-pass streaming:
 The v3 types are the spec's (`vendor/ddbj-record-specifications`, pinned by
 the gitlink and tracking its `main`), not a copy: the spec generates
 `schema/ddbj-record/v3.schema.json`, and `DDBJRecord::V3` defines one Data
-class per model in it. Moving the submodule means regenerating the schema
-(the command is at the top of `app/models/ddbj_record/v3.rb`) and
-re-deriving `schema/canon/array-modes.yml`, whose header cites the revision;
-the Canon workflow and `spec_pin_test` fail until both follow.
+class per model in it. Moving the submodule means regenerating the schema (the
+command is at the top of `app/models/ddbj_record/v3.rb`) and re-deriving
+`schema/canon/array-modes.yml`, whose header cites the revision; the Canon
+workflow and `spec_pin_test` fail until both follow. The spec's table of where
+SRA XML goes (`tests/fixtures/v3/mapping/sra.yml`) is copied the same way, to
+`schema/ddbj-record/mapping/sra.yml`: `DRA::Converter` converts by reading it,
+and refuses an element the table does not have.
 
 The spec changes shape within v3 (`schema_version` stays `"v3"`), so records
 written before a change cannot be told apart by their version — only by the
