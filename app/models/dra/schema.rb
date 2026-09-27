@@ -4,20 +4,20 @@
 module DRA::Schema
   module_function
 
-  # The JSON type at `place` (a DRA::Mapping::Place): the value's, or with
-  # `element: true` the type of the elements of the list it ends in.
-  def type_at(place, element: false)
-    node = place.segments.reduce(root) {|schema, segment|
-      field = resolve(schema).fetch('properties').fetch(segment.name) { raise KeyError, "#{place}: the schema has no #{segment.name}" }
-      field = resolve(field)
-      field = resolve(field.fetch('items'))                if segment.list && !(element && segment.equal?(place.segments.last))
-      field = resolve(field.fetch('additionalProperties')) if segment.key
-      field
-    }
+  # The JSON type at `place` (a DRA::Mapping::Place): of the value there, or,
+  # for a place ending in a list, of the list's elements.
+  def type_at(place)
+    (@types ||= {})[place] ||= begin
+      node = place.segments.reduce(root) {|schema, segment|
+        field = resolve(schema).fetch('properties').fetch(segment.name) { raise KeyError, "#{place}: the schema has no #{segment.name}" }
+        field = resolve(field)
+        field = resolve(field.fetch('items'))                if segment.list
+        field = resolve(field.fetch('additionalProperties')) if segment.key
+        field
+      }
 
-    node = resolve(node.fetch('items')) if element
-
-    node['type'] || ('object' if node.key?('properties'))
+      node['type'] || ('object' if node.key?('properties'))
+    end
   end
 
   def root = DDBJRecord::V3::SCHEMA

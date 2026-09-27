@@ -8,7 +8,9 @@
 # segments may be a list (`identifiers[external]`: the element of a list,
 # with the words in the brackets being its `type` and, for a relation, its
 # `target.db`) or a dict key (`properties{is_primary}`). A note in trailing
-# parentheses says how a value is read when it is not the item's text.
+# parentheses says how a value is read when it is not the item's text, or
+# where else it goes; a note the converter does not know refuses the table,
+# since it would otherwise read the item as though there were none.
 class DRA::Mapping
   PATH = Rails.root.join('schema/ddbj-record/mapping/sra.yml')
 
@@ -28,9 +30,19 @@ class DRA::Mapping
     def bare = list ? "#{name}[]" : name
   end
 
+  # The notes: the element's name is the value, as it is or lowercased; an
+  # element of that name stands for the quoted value; and the value goes to
+  # another place as well when the element lacks an attribute.
+  ELEMENT_NAME   = '要素名が値'
+  LOWERCASE_NAME = '要素名を小文字にした値'
+  NAMED_VALUE    = /\A\w+ なら "([^"]*)"\z/
+  ALSO_UNLESS    = /\A@(\w+) が無ければ (\S+) にも同じ値\z/
+
   Place = Data.define(:segments, :note) do
     def self.parse(text)
       path, note = text.match(/\A(.*?)(?: \((.*)\))?\z/).captures
+
+      raise ArgumentError, "#{text}: an unknown note" unless note.nil? || [ELEMENT_NAME, LOWERCASE_NAME, NAMED_VALUE, ALSO_UNLESS].any? { it === note }
 
       new(
         segments: path.split('.').map {|segment|
@@ -48,6 +60,20 @@ class DRA::Mapping
 
     # An element of a list itself, rather than a value inside one.
     def element? = segments.last.list
+
+    # The value an element named `name` stands for, when the note says its
+    # name is the value; nil for an item read from its text.
+    def value_of(name)
+      case note
+      when ELEMENT_NAME   then name
+      when LOWERCASE_NAME then name.downcase
+      when NAMED_VALUE    then $1
+      end
+    end
+
+    # `@target が無ければ submission.hold_date にも同じ値`: the attribute
+    # whose absence puts the value at another place too, and that place.
+    def also = note&.match(ALSO_UNLESS)&.then { [it[1], Place.parse(it[2])] }
 
     def to_s = segments.map { it.list ? "#{it.name}[#{it.annotation.join(' ')}]" : [it.name, it.key && "{#{it.key}}"].join }.join('.')
   end
@@ -74,13 +100,18 @@ class DRA::Mapping
     # (`identifiers[external]` and `identifiers[primary]` stand for different
     # XML elements).
     def anchor(kind, path, place, index)
-      elements = path.sub(%r{/@[^/]+\z}, '').split('/')
-      named    = named_depth(kind, elements, place.segments[0..index])
+      (@anchors ||= {})[[kind, path, index]] ||= begin
+        named = named_depth(kind, elements(path), place.segments[0..index])
 
-      named ? [named, true] : [implicit_depth(kind, place.segments[0..index]), false]
+        named ? [named, true] : [implicit_depth(kind, place.segments[0..index]), false]
+      end
     end
 
     private
+
+    # The XML elements down to the item at `path`: an attribute's are its
+    # element's.
+    def elements(path) = path.sub(%r{/@[^/]+\z}, '').split('/')
 
     def named_depth(kind, elements, segments)
       elements.size.downto(1).find {|depth|
@@ -95,8 +126,7 @@ class DRA::Mapping
         paths = rows.fetch(kind).filter_map {|path, other|
           next unless other.is_a?(Place) && other.segments[0..(segments.size - 1)] == segments
 
-          elements = path.sub(%r{/@[^/]+\z}, '').split('/')
-          elements unless named_depth(kind, elements, segments)
+          elements(path) unless named_depth(kind, elements(path), segments)
         }
 
         paths.reduce {|common, path| common.zip(path).take_while { _1 == _2 }.map(&:first) }.size
