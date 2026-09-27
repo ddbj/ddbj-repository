@@ -2,34 +2,44 @@
 
 module DDBJRecord
   module Canonicalizer
-    # Structural diff of two ALREADY-CANONICAL trees.
+    # Structural diff of two ALREADY-CANONICAL trees, in time linear in their
+    # size (apart from sorting a keyed array's keys).
     #
-    # `json-diff` aligns two arrays by building an N×M similarity matrix
-    # (`before.map { after.map { similarity(...) } }`) and sorting it. On a
-    # BioSample submission that is quadratic in the sample count: 500
-    # samples diff in ~1 s, 2,000 in ~12 s, 8,000 in ~180 s. The corpus has
-    # submissions an order of magnitude larger than that.
+    # A general array diff aligns two arrays by comparing every element of
+    # one with every element of the other; json-diff, which this walker
+    # replaced, did so with an N×M similarity matrix, and on a BioSample
+    # submission that was quadratic in the sample count (500 samples ~1 s,
+    # 2,000 ~12 s, 8,000 ~180 s). It does not have to be that expensive,
+    # because every array of a record has a registered mode (§3.1) that
+    # already says which elements are the same one:
     #
-    # It does not have to be that expensive. A `keyed` array carries a
-    # registry-declared identity (`/samples` is keyed on `alias`), and
-    # canonicalisation has already sorted BOTH sides by that key — so the
-    # alignment json-diff is searching for is already known. Walking the
-    # two sorted runs together is linear.
+    # - `keyed`: canonicalisation sorted both sides by the key, so walking the
+    #   two sorted runs together pairs them. Elements with equal keys are
+    #   paired by position, which under `ties: written` is also what they
+    #   mean — the second of two equal aliases before is the second after.
+    # - `ordered`: positions are the identity. What an edit leaves alone is a
+    #   common prefix and suffix; the elements between are paired by position,
+    #   so an inserted element is one `add` and an edited title is a `replace`
+    #   of the title, not a `remove` + `add` of the element holding it.
+    # - `bag`: an element is its content (§3.1), so a changed element is a
+    #   `remove` of the old one and an `add` of the new — never a patch into
+    #   one, which the patch verifier rejects.
     #
-    # An `ordered` array of unchanged length needs no alignment either: its
-    # positions are its identity, so element i before is element i after,
-    # and the walk descends into each — an edited title is a `replace` of the
-    # title, not a `remove` + `add` of the whole element holding it.
+    # The pairing by position has a limit: a run changed at both ends (an
+    # insert at the front and an edit at the back) has no common prefix or
+    # suffix, so every element between is paired with its neighbour and gets
+    # an op — correct, but as large as the run. No run that long is stored
+    # yet; aligning by content (Myers' O(ND) diff) is to come before the Trad
+    # lists (entries, features) are (canonical-json.md §4.2.1).
     #
-    # So: this walker handles objects, keyed arrays and same-length ordered
-    # arrays itself, and hands anything else — ordered arrays that grew or
-    # shrank, bags, scalars — to json-diff on that subtree alone, where the
-    # arrays are small by construction.
+    # Ops are emitted against the array as it is being mutated, so the walks
+    # keep a cursor on the working position: a removal leaves it where it is,
+    # an insertion or a kept element advances it.
     module TreeDiffer
       class << self
         # Both sides must already be canonical (`canonicalize(..., for_diff:
-        # true)` round-tripped through Oj), because keyed matching relies on
-        # the canonical sort order.
+        # true)` round-tripped through Oj), because the walks rely on the
+        # canonical order.
         def diff(before, after)
           ops = []
           walk(before, after, pointer: '', structural: '', ops:)
@@ -41,22 +51,16 @@ module DDBJRecord
         def walk(before, after, pointer:, structural:, ops:)
           if before.is_a?(Hash) && after.is_a?(Hash)
             walk_hash(before, after, pointer:, structural:, ops:)
-          elsif before.is_a?(Array) && after.is_a?(Array) && (key = keyed_key(structural))
-            walk_keyed(before, after, key:, pointer:, structural:, ops:)
-          elsif before.is_a?(Array) && after.is_a?(Array) && before.size == after.size && ordered?(structural)
-            before.zip(after).each_with_index do |(before_item, after_item), i|
-              walk(before_item, after_item, pointer: "#{pointer}/#{i}", structural: "#{structural}/*", ops:)
-            end
-          elsif before == after
-            nil
-          else
-            ops.concat(delegate(before, after, pointer:))
+          elsif before.is_a?(Array) && after.is_a?(Array)
+            walk_array(before, after, pointer:, structural:, ops:)
+          elsif before != after
+            ops << {'op' => 'replace', 'path' => pointer, 'value' => after}
           end
         end
 
         def walk_hash(before, after, pointer:, structural:, ops:)
           (before.keys | after.keys).each do |key|
-            child      = "#{pointer}/#{escape(key)}"
+            child        = "#{pointer}/#{escape(key)}"
             child_struct = "#{structural}/#{escape(key)}"
 
             if !after.key?(key)
@@ -69,72 +73,87 @@ module DDBJRecord
           end
         end
 
-        # Merge-join two runs that are already sorted by the same key.
-        #
-        # Ops are emitted against the array as it is being mutated, so
-        # `cursor` tracks the working position: a removal shifts the tail
-        # left and leaves the cursor where it is, an insertion advances it.
+        def walk_array(before, after, pointer:, structural:, ops:)
+          rule = PathClassifier.array_rule(structural)
+
+          case rule.fetch('mode')
+          when 'keyed'   then walk_keyed(before, after, key: Array(rule['key']), pointer:, structural:, ops:)
+          when 'ordered' then walk_run(before, after, cursor: 0, pointer:, structural:, ops:)
+          else                walk_bag(before, after, pointer:, ops:)
+          end
+        end
+
+        # Merge-join two runs that are already sorted by the same key; the
+        # elements of one key are a run of their own.
         def walk_keyed(before, after, key:, pointer:, structural:, ops:)
           groups_b = group_by_key(before, key)
           groups_a = group_by_key(after, key)
 
-          cursor = 0
+          (groups_b.keys | groups_a.keys).sort.reduce(0) {|cursor, tuple|
+            walk_run(groups_b[tuple] || [], groups_a[tuple] || [], cursor:, pointer:, structural:, ops:)
+          }
+        end
 
-          (groups_b.keys | groups_a.keys).sort.each do |tuple|
-            old = groups_b[tuple] || []
-            new = groups_a[tuple] || []
+        # Two runs whose positions are their identity, starting at `cursor`
+        # of the working array. Answers the cursor after them.
+        def walk_run(before, after, cursor:, pointer:, structural:, ops:)
+          prefix = before.zip(after).take_while {|b, a| b == a }.size
+          rest   = [before.size, after.size].min - prefix
+          suffix = before.last(rest).reverse.zip(after.last(rest).reverse).take_while {|b, a| b == a }.size
 
-            # Equal-key elements are further ordered by content hash, so
-            # pairing them positionally is arbitrary but correct; in
-            # practice a key identifies at most one element.
-            old.zip(new).each do |before_item, after_item|
-              if after_item.nil?
-                ops << {'op' => 'remove', 'path' => "#{pointer}/#{cursor}"}
-              else
-                walk(before_item, after_item,
-                     pointer: "#{pointer}/#{cursor}", structural: "#{structural}/*", ops:)
-                cursor += 1
-              end
-            end
+          middle_b = before[prefix...(before.size - suffix)]
+          middle_a = after[prefix...(after.size - suffix)]
+          paired   = [middle_b.size, middle_a.size].min
 
-            new.drop(old.size).each do |after_item|
-              ops << {'op' => 'add', 'path' => "#{pointer}/#{cursor}", 'value' => after_item}
-              cursor += 1
+          cursor += prefix
+
+          middle_b.first(paired).zip(middle_a.first(paired)).each do |before_item, after_item|
+            walk(before_item, after_item, pointer: "#{pointer}/#{cursor}", structural: "#{structural}/*", ops:)
+            cursor += 1
+          end
+
+          middle_b.drop(paired).each do
+            ops << {'op' => 'remove', 'path' => "#{pointer}/#{cursor}"}
+          end
+
+          middle_a.drop(paired).each do |after_item|
+            ops << {'op' => 'add', 'path' => "#{pointer}/#{cursor}", 'value' => after_item}
+            cursor += 1
+          end
+
+          cursor + suffix
+        end
+
+        # Both sides are sorted by content hash, so the elements kept are in
+        # the same order on both: removing the ones that went leaves them in
+        # place, and the new ones are added where they stand after.
+        def walk_bag(before, after, pointer:, ops:)
+          unmatched = after.tally
+
+          kept = before.map {|item|
+            next false unless unmatched[item].to_i.positive?
+
+            unmatched[item] -= 1
+            true
+          }
+
+          kept.each_with_index.reverse_each do |keep, index|
+            ops << {'op' => 'remove', 'path' => "#{pointer}/#{index}"} unless keep
+          end
+
+          remaining = before.select.with_index {|_, index| kept[index] }.tally
+
+          after.each_with_index do |item, index|
+            if remaining[item].to_i.positive?
+              remaining[item] -= 1
+            else
+              ops << {'op' => 'add', 'path' => "#{pointer}/#{index}", 'value' => item}
             end
           end
         end
 
         def group_by_key(items, key)
           items.group_by {|item| key.map { ArraySorter.key_component(item, it) } }
-        end
-
-        # nil unless this pointer is registered `{mode: keyed}`; the key
-        # list comes from the same registry entry ArraySorter sorts by, so
-        # the two cannot drift.
-        def keyed_key(structural)
-          rule = PathClassifier.array_rule(structural)
-          return nil unless rule.is_a?(Hash) && rule['mode'] == 'keyed'
-
-          Array(rule['key'])
-        end
-
-        def ordered?(structural)
-          rule = PathClassifier.array_rule(structural)
-
-          rule.is_a?(Hash) && rule['mode'] == 'ordered'
-        end
-
-        # Everything this walker does not special-case. The subtree is
-        # small by construction — the large arrays in a DDBJ Record are the
-        # keyed ones — so json-diff's alignment cost is bounded here.
-        def delegate(before, after, pointer:)
-          JsonDiff.diff(before, after, moves: false, include_was: false).filter_map {|op|
-            next nil unless %w[add remove replace].include?(op['op'])
-
-            out = {'op' => op['op'], 'path' => "#{pointer}#{op['path']}"}
-            out['value'] = op['value'] if op.key?('value')
-            out
-          }
         end
 
         # RFC 6901: `~` becomes `~0`, `/` becomes `~1`.

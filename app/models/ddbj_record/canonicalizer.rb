@@ -2,7 +2,6 @@
 
 require 'digest'
 require 'hana'
-require 'json-diff'
 
 # DDBJ Record JSON canonicalization. See doc/canonical-json.md.
 # The Ruby namespace is rooted under DDBJRecord because canonicalization is a
@@ -73,11 +72,9 @@ module DDBJRecord
       # stripped (canonical-json.md §4.2: "chain replay uses True on both
       # sides").
       #
-      # TreeDiffer walks objects and keyed arrays itself and delegates the
-      # rest to json-diff — see there for why: json-diff aligns arrays with
-      # an N×M similarity matrix, which is quadratic in the sample count.
-      # `moves: false` blocks `move` ops; only add / remove / replace are
-      # emitted.
+      # TreeDiffer pairs array elements by each array's registered mode, in
+      # time linear in the record — see there. Only add / remove / replace
+      # are emitted.
       def diff(a, b)
         canon_a = parse_canonical(a, for_diff: true)
         canon_b = parse_canonical(b, for_diff: true)

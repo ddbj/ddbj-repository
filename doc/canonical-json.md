@@ -6,6 +6,13 @@
 
 ### Version History
 
+**Within v3 (2026-09-27), no bump (§3.4).** Every list of the v3 schema is registered, and the lists of objects are keyed on `alias` with equal aliases kept in the order written (`ties: written`, §3.1):
+
+- `/experiments`, `/runs`, `/analyses` and `/features` were bags and are keyed on `(alias,)`; `/datasets` was already keyed on `(alias,)` in the registry (this document said `(alias, accession)`) and takes `ties: written`. A relation's `index` counts among the objects of one kind that share an alias (ddbj/ddbj-record-specifications#18), and a list sorted on alias with equal aliases in written order keeps that count — a bag moved it (§7.0 had this open). None of these lists is in a stored record: only BioProject and BioSample records are stored, and neither holds them.
+- `/samples` keeps its key `(alias,)` and takes `ties: written` in place of the content hash. This changes no stored byte: a stored state is already in canonical order, and keeping equal aliases in the order they stand returns it unchanged. What differs is where a fresh input's equal aliases land — in the order written, rather than by content hash — which any new input shows (an import of a changed source, a TSV import, an upload), as one reordering among them.
+- The 73 other lists of the schema (SRA, GEA and JGA sub-lists, identifiers, comments, …) are ordered: written order is what the spec keeps on a round trip, and they are small, so it costs a diff nothing. None is in a BioProject or BioSample record. `test/models/ddbj_record/canon/registry_schema_test.rb` checks that every list is registered and that every registry path is one of the schema.
+- The differ (`TreeDiffer`) pairs elements by each array's mode in linear time: an ordered or equal-key run is trimmed of its common prefix and suffix and paired by position between, and a changed bag element is removed and the new one added, as §3.1 rule 1 requires (a patch into it had been emitted and then refused, falling back to a root snapshot). It no longer hands arrays to json-diff.
+
 **v3 (2026-09-26).** The paths follow the DDBJ Record v3 that the spec now holds on its `main` (ddbj/ddbj-record-specifications#11), which changed shape within v3:
 
 - `project` became `projects`, a list: every `/project/...` path is now `/projects/*/...`, and `/projects` itself is **ordered** (a BioProject's record holds one; an SRA submission may hold several studies, written in an order the spec keeps).
@@ -147,36 +154,36 @@ Array ordering is the highest-stakes decision here. RFC 8785 preserves array ord
 
 Order is semantic. Elements emit in input order; the canonicalizer never touches position. Insertion uses an explicit index — never JSON Patch's `-` token. Empty elements are rejected (§2.5).
 
-Paths: `/submission/submitters` (`[0]` = contact); `/sequences/entries` (flatfile order); `/sequences/entries/*/source_features`; `/sequences/entries/*/comments`; `/experiments/*/spot_descriptor/reads` (by `read_index`); `/experiments/*/processing`, `/analyses/*/processing` (step chain); `/runs/*/data_blocks`, `/analyses/*/data_blocks` and their `files` (R1/R2 positional); `/projects` (written order); `/projects/*/publications/*/{authors,consortiums}` (byline); `/submission/st26/invention_titles`; `/provenance/gff/pragmas`; any `qualifiers[<key>]` list (INSDC: `/features/*/qualifiers/<key>`, `/sequences/entries/*/source_features/*/source/qualifiers/<key>`, `/sequences/common_source/qualifiers/<key>`).
+Paths: every list of the schema not keyed or bagged below — the registry lists each; among them `/submission/submitters` (`[0]` = contact); `/sequences/entries` (flatfile order); `/sequences/entries/*/source_features`; `/sequences/entries/*/comments`; `/experiments/*/spot_descriptor/reads` (by `read_index`); `/experiments/*/processing`, `/analyses/*/processing` (step chain); `/runs/*/data_blocks`, `/analyses/*/data_blocks` and their `files` (R1/R2 positional); `/projects` (written order); `/projects/*/publications/*/{authors,consortiums}` (byline); `/submission/st26/invention_titles`; `/provenance/gff/pragmas`; any `qualifiers[<key>]` list (INSDC: `/features/*/qualifiers/<key>`, `/sequences/entries/*/source_features/*/source/qualifiers/<key>`, `/sequences/common_source/qualifiers/<key>`).
 
 #### keyed
 
-Order is by a stable key tuple. Tuple components are normalized via §2.2 single-line rules **on both sides of every comparison**, then JCS-serialized as a JSON array, then byte-compared as UTF-8. (RFC 8785's UTF-16 ordering applies only to object keys, not to keyed-array tuples; UTF-8 is chosen for portability with content-addressing.) Missing or empty components coerce to `''` (key absent, or value dropped under §2.5); `‖ ''` in the table is shorthand for this.
+Order is by a stable key tuple. Tuple components are the canonical values (each normalized by its own string class, §2.2) and are compared component by component as UTF-8 byte strings, the first differing component deciding. (RFC 8785's UTF-16 ordering applies only to object keys, not to keyed-array tuples; UTF-8 is chosen for portability with content-addressing.) Missing or empty components coerce to `''` (key absent, or value dropped under §2.5); `‖ ''` in the table is shorthand for this.
 
 | Path | Key tuple |
 |---|---|
-| `/samples` | `(alias,)` |
+| `/samples` | `(alias,)`, ties written |
 | `/relations` | `(type, label, source.type, source.accession, source.alias, source.index, target.db, target.id, target.accession, target.index, target.url)`, each `‖ ''` |
 | `/**/attributes` | `(name, unit ‖ '')` |
 | `/projects/*/publications` | `(doi ‖ '', pubmed_id ‖ '', title ‖ '')` |
 | `/projects/*/grants` | `(id ‖ '', title ‖ '', agency ‖ '')` |
 | `/access_control/dac/contacts` | `(email ‖ '', last_name ‖ '', first_name ‖ '')` |
-| `/datasets` | `(alias ‖ '', accession ‖ '')` |
+| `/datasets`, `/experiments`, `/runs`, `/analyses`, `/features` | `(alias,)`, ties written |
 
-`/samples` is keyed (not bag) because Spike 0.1 confirmed every production BS record assigns an `alias` and a 10K-sample bag-sort would dominate every diff. Records violating the invariant (no `alias`) are rejected at ingest, not silently bagged.
+`/samples` is keyed (not bag) because Spike 0.1 confirmed every production BS record assigns an `alias` and a 10K-sample bag-sort would dominate every diff. An object without an `alias` keys as `''`, with the others lacking one.
 
-**Collisions** (identical tuples) are permitted; the canonicalizer warns and sub-sorts by `sha256(canonical_json(element))`. Legacy duplicates must not be rejected.
+**Collisions** (identical tuples) are permitted, and legacy duplicates must not be rejected. By default (`ties: content`) the canonicalizer sub-sorts them by `sha256(canonical_json(element))`. The lists of objects instead keep them in the order written (`ties: written`): a relation's `index` names an object by its position among those of its kind sharing an alias, and only written order keeps that position.
 
 #### bag
 
-No natural key. Sort by `sha256(canonical_json(element))` ascending (hex, byte order). Applies to `/experiments`, `/runs`, `/analyses`, `/features`, scalar bags (`/projects/*/{study_types,keywords,locus_tag_prefix,target/data_types}`, `/datasets/*/dataset_types`, `/sequences/structured_comments`).
+No natural key. Sort by `sha256(canonical_json(element))` ascending (hex, byte order). Applies to the object lists `/submission/submitters/*/organizations`, `/projects/*/locus_tag_prefix`, `/experiments/*/targeted_loci` and `/sequences/structured_comments`, and the scalar lists `/projects/*/{study_types,keywords,target/data_types}`, `/datasets/*/dataset_types` and `/features/*/parent_ids`.
 
 A bag element is identified entirely by content. **Field-level patches into bags are normatively forbidden**:
 
 1. The diff generator MUST emit whole-element `remove` + `add` for any change inside a bag; MUST NOT emit a patch whose `path` traverses a bag array beyond the array index.
 2. The patch verifier MUST reject any incoming patch whose `path` or `from` descends into a bag (more segments after the integer index).
 
-Unclassified paths default to bag; the registry SHOULD list all production paths explicitly (see §3.4).
+Unclassified paths default to bag. The registry lists every list of the schema, so none is unclassified; `registry_schema_test.rb` fails when a schema change adds one.
 
 **Performance.** Implementations MUST memoize each element's canonical bytes across the sort comparator so each element is canonicalized + hashed once per pass, not O(log N) times. For large bags, a streaming variant hashes as elements are read, buffers `(hash, element_bytes)`, sorts by hash, emits.
 
@@ -214,7 +221,7 @@ canonicalize(record, *, for_diff: bool = False)
 
 ### 4.2.1 Diff Cost
 
-Aligning two arrays by similarity is quadratic, and a BioSample submission carries up to 10^5 `/samples` elements. It is also unnecessary: a `keyed` array declares its identity in the registry and canonicalization has already sorted both sides by it, so the alignment is known before the diff starts. Implementations SHOULD merge-join keyed arrays on the key and recurse only into matched pairs, falling back to similarity alignment for `ordered` / `bag` arrays, which are small by construction. Measured on this implementation at 8,000 samples: 181 s before, 5.9 s after.
+Aligning two arrays by similarity is quadratic, and a BioSample submission carries up to 10^5 `/samples` elements. It is also unnecessary: a `keyed` array declares its identity in the registry and canonicalization has already sorted both sides by it, so the alignment is known before the diff starts. Implementations SHOULD pair elements by each array's mode instead: merge-join `keyed` arrays on the key; for an `ordered` array, and for the elements of one key under `ties: written`, trim the common prefix and suffix and pair the rest by position; for a `bag`, remove the elements that went and add those that came (§3.1 rule 1). Measured on this implementation at 8,000 samples: 181 s by similarity alignment, 5.9 s merge-joined. The positional pairing has a known limit: a run changed at both ends (an insert at the front and an edit at the back) pairs every element in between, emitting an op per element — correct, but larger than the change. No such run is stored yet; aligning runs by content (Myers' O(ND)) is to come before the Trad lists are.
 
 ### 4.3 Stripped Paths (`ddbj-canon/v3`, `for_diff=True`)
 
@@ -291,7 +298,7 @@ At `spec/fixtures/canonical_json/`, one directory per fixture (`input.json`, `ex
 
 The string classes below record the classification this specification intends. The registry implements single-line only for the paths it lists under `strings.paths` (`schema/canon/array-modes.yml`); every other string here marked SL is multi-line in `ddbj-canon/v2` and `v3` alike. Aligning them is left to a later version rather than folded into v3: collapsing whitespace in an `alias` or an attribute `name` changes the key a stored keyed array is sorted by, which wants its own migration. That migration also renames the BioSample rows: `samples.sample_name` holds a sample's alias as the record stores it (`Sample.normalise_name`), and is what the record is looked up by.
 
-Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; any unlisted array is bag (treat as bug — registry SHOULD list explicitly, see §3.4).
+Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; an array this table does not list is ordered (the registry lists every array of the schema; one missing from the registry would sort as a bag, §3.1).
 
 ### Top-Level
 
@@ -300,9 +307,10 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/schema_version`, `/provenance` (subtree) | — | **Vol** |
 | `/submission`, `/sequences`, `/assembly`, `/access_control`, `/array_design` | object | — |
 | `/projects` | O | written order |
-| `/samples` | K `(alias,)` | — |
-| `/experiments`, `/runs`, `/analyses`, `/features` | B | — |
-| `/datasets`, `/relations` | K | — |
+| `/samples` | K `(alias,)`, ties written | — |
+| `/experiments`, `/runs`, `/analyses`, `/features` | K `(alias,)`, ties written | — |
+| `/datasets` | K `(alias,)`, ties written | — |
+| `/relations` | K | — |
 
 ### Submission
 
@@ -359,7 +367,7 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/experiments/*/library/*`, `/experiments/*/platform/*` (other) | SL | CV |
 | `/experiments/*/spot_descriptor/reads` | O | `read_index` |
 | `/{experiments,analyses}/*/processing` | O | step chain |
-| `/experiments/*/targeted_loci/*` | SL in B | — |
+| `/experiments/*/targeted_loci` | B | objects |
 | `/{runs,analyses}/*/data_blocks`, `/{runs,analyses}/*/data_blocks/*/files` | O | R1/R2 positional |
 | `/{runs,analyses}/*/data_blocks/*/files/*/*` | SL | filename, checksum |
 
@@ -396,11 +404,7 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 
 ## 7. Open Questions (resolve before first production freeze)
 
-0. **Before SRA / GEA records are stored** (they are not yet; BioProject and BioSample do not reach these):
-   - `index` in `relations` and `pool/*/sample` names a position in its kind's list, used where `alias` is not unique. `/samples` is keyed by `alias` and `/experiments`, `/runs`, `/analyses` are bags, so canonicalisation moves the element an `index` names. Either those lists become ordered, or `index` is defined against the canonical order.
-   - Many arrays of the v3 schema are not registered (`/samples/*/comments`, `/experiments/*/pool/members`, `/submission/sra/actions`, `/**/identifiers`, …). They sort as bags, but the bag-descent guard (§3.1) only knows registered bags, so a patch into one of them passes and leaves the array out of canonical order. Every array path of the schema has to be registered.
-
-   Both change stored bytes, so they come with the next version.
+0. ~~**Before SRA / GEA records are stored.**~~ Resolved within v3 (see the version history): `index` counts among the objects of one kind sharing an alias, the lists of objects keep equal aliases in written order, and every list of the schema is registered. Neither changed a stored byte, since none of those lists is in a stored record — which is why they did not wait for the next version, as first planned here.
 
 1. **Sequence alphabet.** §2.2 fixes `[acgtn]`. Sample a GB-scale assembly to confirm no curator data carries IUPAC ambiguity codes (R/Y/W/S/K/M/…) that must be preserved. If present, widen *before* freeze.
 2. **EAV `value` line-discipline.** Lat/lon strings like `"31.45N 131.00 E"` preserve internal spacing under multi-line. Confirm with curators or sub-type lat/lon/date/taxid EAV values.

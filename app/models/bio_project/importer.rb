@@ -140,8 +140,8 @@ module BioProject
 
         # Semantic diff path. First-import: diff({}, record) →
         # per-top-level-key add ops. Real shape delta: minimal RFC
-        # 6902 ops or root-snapshot fallback on bag-descent / other
-        # Canonicalizer::Error. safe_prior_materialised swallows
+        # 6902 ops or root-snapshot fallback on a Canonicalizer::Error.
+        # safe_prior_materialised swallows
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
@@ -251,7 +251,8 @@ module BioProject
     # (pure replay) on the admin show page.
     #
     # Non-empty prior → semantic diff. The rescue catches the full
-    # Canonicalizer::Error hierarchy (BagPatchPathError plus
+    # Canonicalizer::Error hierarchy (BagPatchPathError, now only for
+    # malformed input such as a hash where the registry says bag, plus
     # ControlCharacterError / NumberGuard / SequenceCodec /
     # OrderedEmptyElement / UnsupportedValue) — those come from the
     # canonicalize pass diff() runs on BOTH sides. apply() is pure

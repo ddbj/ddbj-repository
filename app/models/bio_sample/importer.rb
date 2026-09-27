@@ -113,9 +113,8 @@ module BioSample
         # diff({}, record) returns one `add /<top_level_key>` op per
         # top-level key. Re-import unchanged: diff is empty (but the
         # fast path above already caught it). Real shape delta: minimal
-        # RFC 6902 ops, or a root snapshot fallback when the diff
-        # would descend into a bag-array element or hit any
-        # Canonicalizer::Error. safe_prior_materialised swallows
+        # RFC 6902 ops, or a root snapshot fallback when canonicalising
+        # either side hits a Canonicalizer::Error. safe_prior_materialised swallows
         # MaterialisationFailed so a poisoned historical patch lets
         # the importer self-heal forward.
         prior_record = safe_prior_materialised(submission)
@@ -224,7 +223,8 @@ module BioSample
     # (pure replay) on the admin show page.
     #
     # Non-empty prior → semantic diff. The rescue catches the full
-    # Canonicalizer::Error hierarchy (BagPatchPathError plus
+    # Canonicalizer::Error hierarchy (BagPatchPathError, now only for
+    # malformed input such as a hash where the registry says bag, plus
     # ControlCharacterError / NumberGuard / SequenceCodec /
     # OrderedEmptyElement / UnsupportedValue) — those come from the
     # canonicalize pass diff() runs on BOTH sides. apply() is pure

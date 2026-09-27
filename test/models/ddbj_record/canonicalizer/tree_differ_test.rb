@@ -2,8 +2,9 @@ require 'test_helper'
 
 module DDBJRecord::Canonicalizer; end
 
-# TreeDiffer replaces json-diff's N×M array alignment for keyed arrays.
-# The behaviour that matters is not the op shape but the round trip:
+# TreeDiffer pairs array elements by each array's registered mode instead
+# of aligning every element with every other. The behaviour that matters
+# most is not the op shape but the round trip:
 # applying what it emits must reproduce the target exactly, because that
 # is the property the whole patch chain rests on.
 class DDBJRecord::Canonicalizer::TreeDifferTest < ActiveSupport::TestCase
@@ -67,8 +68,8 @@ class DDBJRecord::Canonicalizer::TreeDifferTest < ActiveSupport::TestCase
     assert_equal C.canonical_tree(samples('a', 'b')), round_trip({}, samples('a', 'b'))
   end
 
-  # Nested structures still reach json-diff; the walker must prefix its
-  # paths correctly on the way back out.
+  # The walker must prefix its paths correctly on the way back out of a
+  # nested array.
   test 'edits inside a sample attribute bag round-trip' do
     before = {'samples' => [{'alias' => 'a', 'attributes' => [{'name' => 'depth', 'value' => '1'}]}]}
     after  = {'samples' => [{'alias' => 'a', 'attributes' => [{'name' => 'depth', 'value' => '2'}]}]}
@@ -83,8 +84,8 @@ class DDBJRecord::Canonicalizer::TreeDifferTest < ActiveSupport::TestCase
     assert_equal C.canonical_tree(after), round_trip(before, after)
   end
 
-  # json-diff aligned arrays with an N×M similarity matrix, so this shape
-  # took ~180 s at 8,000 elements. The assertion is correctness; the
+  # Aligned N×M (json-diff, which this walker replaced), this shape took
+  # ~180 s at 8,000 elements. The assertion is correctness; the
   # generous bound is only here to fail loudly if the quadratic path
   # returns.
   test 'a large keyed array diffs in linear time' do
@@ -101,5 +102,65 @@ class DDBJRecord::Canonicalizer::TreeDifferTest < ActiveSupport::TestCase
     assert_equal 4_000,       ops.size
     assert_equal canon_after, C.apply(canon_before, ops)
     assert_operator elapsed, :<, 20, 'diff of 4,000 keyed elements should not be quadratic'
+  end
+
+  test 'an element inserted before equal aliases is one add' do
+    before = {'experiments' => [{'alias' => 'x', 'title' => '1'}, {'alias' => 'x', 'title' => '2'}]}
+    after  = {'experiments' => [{'alias' => 'x', 'title' => '0'}, {'alias' => 'x', 'title' => '1'}, {'alias' => 'x', 'title' => '2'}]}
+
+    ops = C.diff(before, after)
+
+    assert_equal [{'op' => 'add', 'path' => '/experiments/0', 'value' => {'alias' => 'x', 'title' => '0'}}], ops
+    assert_equal C.canonical_tree(after), round_trip(before, after)
+  end
+
+  test 'the first of equal aliases removed is one remove' do
+    before = {'experiments' => [{'alias' => 'x', 'title' => '1'}, {'alias' => 'x', 'title' => '2'}]}
+    after  = {'experiments' => [{'alias' => 'x', 'title' => '2'}]}
+
+    assert_equal [{'op' => 'remove', 'path' => '/experiments/0'}], C.diff(before, after)
+  end
+
+  test 'an element inserted at the front of an ordered array is one add' do
+    before = {'sequences' => {'entries' => (1..2_000).map { {'alias' => "c#{it}", 'sequence' => 'acgt'} }}}
+    after  = {'sequences' => {'entries' => [{'alias' => 'c0', 'sequence' => 'acgt'}, *before.dig('sequences', 'entries')]}}
+
+    ops = C.diff(before, after)
+
+    assert_equal [{'op' => 'add', 'path' => '/sequences/entries/0', 'value' => {'alias' => 'c0', 'sequence' => 'acgt'}}], ops
+  end
+
+  test 'a changed bag element is removed and added, never patched into' do
+    before = {'sequences' => {'structured_comments' => [{'tagset_id' => 'A', 'fields' => {'x' => '1'}}]}}
+    after  = {'sequences' => {'structured_comments' => [{'tagset_id' => 'A', 'fields' => {'x' => '2'}}]}}
+
+    ops = C.diff(before, after)
+
+    assert_equal %w[remove add], ops.map { it['op'] }
+    assert_equal C.canonical_tree(after), round_trip(before, after)
+  end
+
+  # Lists of each mode, with repeated keys and repeated elements, changed at
+  # random: whatever the walks pair, applying their ops has to give the target.
+  test 'random edits of keyed, ordered and bag lists round-trip' do
+    random = Random.new(20_260_927)
+
+    element = -> { {'alias' => %w[a b c].sample(random:), 'title' => %w[t u].sample(random:)} }
+    record  = -> {
+      {
+        'experiments' => Array.new(random.rand(0..6)) { element.() },
+        'sequences'   => {
+          'entries'             => Array.new(random.rand(0..6)) { {'alias' => element.()['alias'], 'sequence' => %w[ac gt].sample(random:)} },
+          'structured_comments' => Array.new(random.rand(0..4)) { {'tagset_id' => %w[A B].sample(random:)} }
+        }
+      }
+    }
+
+    300.times do
+      before = record.()
+      after  = record.()
+
+      assert_equal C.canonical_tree(after), round_trip(before, after), "#{before.inspect} -> #{after.inspect}"
+    end
   end
 end

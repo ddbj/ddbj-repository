@@ -36,6 +36,14 @@
 # BP/BS carry none and ApplySubmissionRequestJob refuses v3 — so none of
 # this changes the canonical bytes of anything stored, which is what §3.4
 # asks of a path added without one.
+#
+# Later within v3, again without a bump (§3.4, doc version history): every list
+# of the schema is registered, and the lists of objects are keyed on alias
+# with equal aliases in written order (`ties: written`), so a relation's
+# `index` — a position among one kind's objects sharing an alias — survives
+# canonicalisation. Of those lists only /samples is stored, and a stored state
+# is already in canonical order, which keeping equal aliases as they stand
+# returns unchanged.
 canonical_version: ddbj-canon/v3
 
 # ----------------------------------------------------------------------
@@ -44,7 +52,7 @@ canonical_version: ddbj-canon/v3
 # ----------------------------------------------------------------------
 arrays:
   # ----- ordered -----
-  '/submission/submitters':                                     {mode: ordered}
+  '/submission/submitters':                                                   {mode: ordered}
   # v3 Submission.comments is `list[str]` — curator notes accumulate in
   # input order and reading them sorted destroys narrative continuity
   # ("first I noted X, then Y"). Omitted from the original registry
@@ -54,57 +62,137 @@ arrays:
   # themselves — verified 2026-06-04). Adding the path here is a
   # registry-omission fix; canonical bytes for every existing record
   # are byte-identical because single-element arrays are sort-invariant.
-  '/submission/comments':                                       {mode: ordered}
-  '/sequences/entries':                                         {mode: ordered}
-  '/sequences/entries/*/source_features':                       {mode: ordered}
-  '/sequences/entries/*/source_features/*/source/qualifiers/*': {mode: ordered}
-  '/sequences/common_source/qualifiers/*':                      {mode: ordered}
-  '/sequences/entries/*/comments':                              {mode: ordered}
-  '/experiments/*/spot_descriptor/reads':                       {mode: ordered}
-  '/experiments/*/processing':                                  {mode: ordered}
-  '/analyses/*/processing':                                     {mode: ordered}
-  '/runs/*/data_blocks':                                        {mode: ordered}
-  '/runs/*/data_blocks/*/files':                                {mode: ordered}
-  '/analyses/*/data_blocks':                                    {mode: ordered}
-  '/analyses/*/data_blocks/*/files':                            {mode: ordered}
+  '/submission/comments':                                                     {mode: ordered}
+  '/sequences/entries':                                                       {mode: ordered}
+  '/sequences/entries/*/source_features':                                     {mode: ordered}
+  '/sequences/entries/*/source_features/*/source/qualifiers/*':               {mode: ordered}
+  '/sequences/common_source/qualifiers/*':                                    {mode: ordered}
+  '/sequences/entries/*/comments':                                            {mode: ordered}
+  '/experiments/*/spot_descriptor/reads':                                     {mode: ordered}
+  '/experiments/*/processing':                                                {mode: ordered}
+  '/analyses/*/processing':                                                   {mode: ordered}
+  '/runs/*/data_blocks':                                                      {mode: ordered}
+  '/runs/*/data_blocks/*/files':                                              {mode: ordered}
+  '/analyses/*/data_blocks':                                                  {mode: ordered}
+  '/analyses/*/data_blocks/*/files':                                          {mode: ordered}
   # A BioProject's record has one project; an SRA submission may hold
   # several studies, written in an order the spec keeps.
-  '/projects':                                                  {mode: ordered}
-  '/projects/*/publications/*/authors':                         {mode: ordered}
-  '/projects/*/publications/*/consortiums':                     {mode: ordered}
+  '/projects':                                                                {mode: ordered}
+  '/projects/*/publications/*/authors':                                       {mode: ordered}
+  '/projects/*/publications/*/consortiums':                                   {mode: ordered}
   # Two titles in one language occur (ST.26), so the language cannot key them.
-  '/submission/st26/invention_titles':                          {mode: ordered}
-  '/features/*/qualifiers/*':                                   {mode: ordered}
-  '/provenance/gff/pragmas':                                    {mode: ordered}
+  '/submission/st26/invention_titles':                                        {mode: ordered}
+  '/features/*/qualifiers/*':                                                 {mode: ordered}
+  # Every other list of the schema (canonical-json.md §3.1, ordered).
+  # None is in a BP / BS record, so adding them changed nothing stored (§3.4).
+  # Written order is what the spec keeps on a round trip, and the lists are
+  # small, so ordering them costs a diff nothing.
+  '/access_control/dac/contacts/*/organizations':                             {mode: ordered}
+  '/analyses/*/comments':                                                     {mode: ordered}
+  '/analyses/*/data_blocks/*/files/*/legacy/data_series_labels':              {mode: ordered}
+  '/analyses/*/data_blocks/*/files/*/read_labels':                            {mode: ordered}
+  '/analyses/*/identifiers':                                                  {mode: ordered}
+  '/analyses/*/processing/*/prev_step_indexes':                               {mode: ordered}
+  '/analyses/*/protocol_refs':                                                {mode: ordered}
+  '/analyses/*/reference_alignment/custom_assembly/sources':                  {mode: ordered}
+  '/analyses/*/reference_alignment/run_labels':                               {mode: ordered}
+  '/analyses/*/reference_alignment/run_labels/*/run/identifiers':             {mode: ordered}
+  '/analyses/*/reference_alignment/seq_labels':                               {mode: ordered}
+  '/analyses/*/reference_alignment/standard_assembly/names':                  {mode: ordered}
+  '/array_design/file/legacy/data_series_labels':                             {mode: ordered}
+  '/array_design/file/read_labels':                                           {mode: ordered}
+  '/array_design/term_sources':                                               {mode: ordered}
+  '/experiments/*/comments':                                                  {mode: ordered}
+  '/experiments/*/identifiers':                                               {mode: ordered}
+  '/experiments/*/legacy/gaps':                                               {mode: ordered}
+  '/experiments/*/legacy/quality_scoring':                                    {mode: ordered}
+  '/experiments/*/platform/array_design/identifiers':                         {mode: ordered}
+  '/experiments/*/platform/legacy/color_matrix':                              {mode: ordered}
+  '/experiments/*/pool/default_member/extract/comments':                      {mode: ordered}
+  '/experiments/*/pool/default_member/extract/protocol_refs':                 {mode: ordered}
+  '/experiments/*/pool/default_member/factor_values':                         {mode: ordered}
+  '/experiments/*/pool/default_member/protocol_refs':                         {mode: ordered}
+  '/experiments/*/pool/default_member/read_labels':                           {mode: ordered}
+  '/experiments/*/pool/default_member/sample/identifiers':                    {mode: ordered}
+  '/experiments/*/pool/members':                                              {mode: ordered}
+  '/experiments/*/pool/members/*/extract/comments':                           {mode: ordered}
+  '/experiments/*/pool/members/*/extract/protocol_refs':                      {mode: ordered}
+  '/experiments/*/pool/members/*/factor_values':                              {mode: ordered}
+  '/experiments/*/pool/members/*/protocol_refs':                              {mode: ordered}
+  '/experiments/*/pool/members/*/read_labels':                                {mode: ordered}
+  '/experiments/*/pool/members/*/sample/identifiers':                         {mode: ordered}
+  '/experiments/*/processing/*/prev_step_indexes':                            {mode: ordered}
+  '/experiments/*/protocol_refs':                                             {mode: ordered}
+  '/experiments/*/spot_descriptor/reads/*/expected_basecall_table/basecalls': {mode: ordered}
+  '/projects/*/experimental_factors':                                         {mode: ordered}
+  '/projects/*/identifiers':                                                  {mode: ordered}
+  '/projects/*/protocols':                                                    {mode: ordered}
+  '/projects/*/publications/*/authors/*/organizations':                       {mode: ordered}
+  '/relations/*/target/identifiers':                                          {mode: ordered}
+  '/runs/*/comments':                                                         {mode: ordered}
+  '/runs/*/data_blocks/*/files/*/legacy/data_series_labels':                  {mode: ordered}
+  '/runs/*/data_blocks/*/files/*/read_labels':                                {mode: ordered}
+  '/runs/*/identifiers':                                                      {mode: ordered}
+  '/runs/*/platform/array_design/identifiers':                                {mode: ordered}
+  '/runs/*/platform/legacy/color_matrix':                                     {mode: ordered}
+  '/runs/*/processing':                                                       {mode: ordered}
+  '/runs/*/processing/*/prev_step_indexes':                                   {mode: ordered}
+  '/runs/*/protocol_refs':                                                    {mode: ordered}
+  '/runs/*/spot_descriptor/reads':                                            {mode: ordered}
+  '/runs/*/spot_descriptor/reads/*/expected_basecall_table/basecalls':        {mode: ordered}
+  '/samples/*/comments':                                                      {mode: ordered}
+  '/samples/*/identifiers':                                                   {mode: ordered}
+  '/sequences/entries/*/source_features/*/definition':                        {mode: ordered}
+  '/submission/gea/legacy/cibex/array_designs':                               {mode: ordered}
+  '/submission/gea/legacy/cibex/array_designs/*/data_fields':                 {mode: ordered}
+  '/submission/gea/legacy/cibex/hybridizations':                              {mode: ordered}
+  '/submission/gea/legacy/cibex/hybridizations/*/data_fields':                {mode: ordered}
+  '/submission/gea/legacy/cibex/labeled_extracts':                            {mode: ordered}
+  '/submission/gea/legacy/cibex/protocols':                                   {mode: ordered}
+  '/submission/gea/legacy/cibex/references':                                  {mode: ordered}
+  '/submission/gea/legacy/cibex/samples':                                     {mode: ordered}
+  '/submission/gea/legacy/cibex/submitters':                                  {mode: ordered}
+  '/submission/gea/legacy/cibex/summaries':                                   {mode: ordered}
+  '/submission/gea/legacy/cibex/summaries/*/data_fields':                     {mode: ordered}
+  '/submission/identifiers':                                                  {mode: ordered}
+  '/submission/sra/actions':                                                  {mode: ordered}
+  '/submission/sra/contacts':                                                 {mode: ordered}
+  '/submission/sra/legacy/files':                                             {mode: ordered}
+  '/submission/sra/legacy/files/*/legacy/data_series_labels':                 {mode: ordered}
+  '/submission/sra/legacy/files/*/read_labels':                               {mode: ordered}
+  '/provenance/gff/pragmas':                                                  {mode: ordered}
 
   # ----- keyed -----
-  '/samples':                                                   {mode: keyed, key: [alias]}
-  '/relations':                                                 {mode: keyed, key: [type, label, source/type, source/accession, source/alias, source/index, target/db, target/id, target/accession, target/index, target/url]}
-  '/projects/*/publications':                                   {mode: keyed, key: [doi, pubmed_id, title]}
-  '/projects/*/grants':                                         {mode: keyed, key: [id, title, agency]}
-  '/datasets':                                                  {mode: keyed, key: [alias]}
-  '/access_control/dac/contacts':                               {mode: keyed, key: [email, last_name, first_name]}
-  '/submission/attributes':                                     {mode: keyed, key: [name, unit]}
-  '/assembly/attributes':                                       {mode: keyed, key: [name, unit]}
-  '/datasets/*/attributes':                                     {mode: keyed, key: [name, unit]}
+  # The lists of objects: keyed on alias, equal aliases in the order written, so a
+  # relation's `index` (its position among one kind's objects sharing an alias) keeps
+  # pointing at the same one. Nothing but /samples is stored yet (§3.4).
+  '/samples':                                                                 {mode: keyed, key: [alias], ties: written}
+  '/relations':                                                               {mode: keyed, key: [type, label, source/type, source/accession, source/alias, source/index, target/db, target/id, target/accession, target/index, target/url]}
+  '/projects/*/publications':                                                 {mode: keyed, key: [doi, pubmed_id, title]}
+  '/projects/*/grants':                                                       {mode: keyed, key: [id, title, agency]}
+  '/datasets':                                                                {mode: keyed, key: [alias], ties: written}
+  '/experiments':                                                             {mode: keyed, key: [alias], ties: written}
+  '/runs':                                                                    {mode: keyed, key: [alias], ties: written}
+  '/analyses':                                                                {mode: keyed, key: [alias], ties: written}
+  '/features':                                                                {mode: keyed, key: [alias], ties: written}
+  '/access_control/dac/contacts':                                             {mode: keyed, key: [email, last_name, first_name]}
+  '/submission/attributes':                                                   {mode: keyed, key: [name, unit]}
+  '/assembly/attributes':                                                     {mode: keyed, key: [name, unit]}
+  '/datasets/*/attributes':                                                   {mode: keyed, key: [name, unit]}
   # Fallback: any other path ending in /attributes (samples, project, run,
   # analysis, experiment, sequences, etc.) keys by (name, unit).
-  '/**/attributes':                                             {mode: keyed, key: [name, unit]}
+  '/**/attributes':                                                           {mode: keyed, key: [name, unit]}
 
   # ----- bag -----
-  '/experiments':                                               {mode: bag}
-  '/runs':                                                      {mode: bag}
-  '/analyses':                                                  {mode: bag}
-  '/features':                                                  {mode: bag}
-  '/features/*/parent_ids':                                     {mode: bag}
-  '/sequences/structured_comments':                             {mode: bag}
-  '/submission/submitters/*/organizations':                     {mode: bag}
-  '/datasets/*/dataset_types':                                  {mode: bag}
-  '/projects/*/keywords':                                       {mode: bag}
-  '/projects/*/study_types':                                    {mode: bag}
-  '/projects/*/locus_tag_prefix':                               {mode: bag}
-  '/projects/*/target/data_types':                              {mode: bag}
-  '/experiments/*/targeted_loci':                               {mode: bag}
+  '/features/*/parent_ids':                                                   {mode: bag}
+  '/sequences/structured_comments':                                           {mode: bag}
+  '/submission/submitters/*/organizations':                                   {mode: bag}
+  '/datasets/*/dataset_types':                                                {mode: bag}
+  '/projects/*/keywords':                                                     {mode: bag}
+  '/projects/*/study_types':                                                  {mode: bag}
+  '/projects/*/locus_tag_prefix':                                             {mode: bag}
+  '/projects/*/target/data_types':                                            {mode: bag}
+  '/experiments/*/targeted_loci':                                             {mode: bag}
 
 # ----------------------------------------------------------------------
 # Volatile sub-trees stripped before diff (for_diff: true).

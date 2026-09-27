@@ -205,7 +205,6 @@ GEM
     jmespath (1.6.2)
     json (2.21.2)
     json-canonicalization (1.0.0)
-    json-diff (0.4.1)
     json-jwt (1.17.0)
       activesupport (>= 4.2)
       aes_key_wrap
@@ -556,7 +555,6 @@ DEPENDENCIES
   jb
   json
   json-canonicalization
-  json-diff
   jwt
   kamal
   letter_opener

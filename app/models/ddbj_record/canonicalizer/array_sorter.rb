@@ -21,7 +21,7 @@ module DDBJRecord
 
         case mode
         when 'ordered' then sort_ordered(results, pointer:)
-        when 'keyed'   then sort_keyed(results, pointer:, key: rule['key'] || [])
+        when 'keyed'   then sort_keyed(results, pointer:, key: rule['key'] || [], ties: rule['ties'] || 'content')
         when 'bag'     then sort_bag(results, pointer:)
         else
           raise UnsupportedValueError, "unknown array mode #{mode.inspect} at #{pointer}"
@@ -38,15 +38,28 @@ module DDBJRecord
         end
       end
 
-      def sort_keyed(results, pointer:, key:)
+      # Equal tuples are ordered by content hash (`ties: content`, §3.1), or
+      # kept in the order written (`ties: written`) where something points
+      # into the list by position among equal keys — a relation's `index`
+      # counts among the objects of one kind sharing an alias.
+      def sort_keyed(results, pointer:, key:, ties:)
         kept = results.reject {|r| EmptyDropper.empty?(r.tree) }
 
-        decorated = kept.map {|r|
+        decorated = kept.each_with_index.map {|r, idx|
           tuple = key.map {|k| key_component(r.tree, k) }
-          [tuple, r.sha, r]
+          [tuple, tie_breaker(ties, r, idx, pointer), r]
         }
 
-        decorated.sort_by {|tuple, sha, _r| [tuple, sha] }.map {|_, _, r| r }
+        decorated.sort_by {|tuple, tie, _r| [tuple, tie] }.map {|_, _, r| r }
+      end
+
+      def tie_breaker(ties, result, idx, pointer)
+        case ties
+        when 'content' then result.sha
+        when 'written' then idx
+        else
+          raise UnsupportedValueError, "unknown keyed ties #{ties.inspect} at #{pointer}"
+        end
       end
 
       def sort_bag(results, pointer:)
