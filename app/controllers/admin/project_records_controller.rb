@@ -10,6 +10,8 @@ module Admin
   # (Description has no typed column — Project.description doesn't
   # exist; mirror would be a no-op.)
   class ProjectRecordsController < ApplicationController
+    include RecordEditing
+
     EDITABLE_FIELDS = %w[title description].freeze
 
     def update
@@ -52,7 +54,7 @@ module Admin
     # Matches the Converter's `.compact` idiom so a blank input doesn't
     # round-trip as `""` in the v3 record.
     def patched_record(submission, raw)
-      record  = submission.materialised_record.deep_dup
+      record  = editable_record(submission)
       project = BioProject.record_project!(record)
 
       EDITABLE_FIELDS.each do |f|
