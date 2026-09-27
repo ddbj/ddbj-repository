@@ -1,6 +1,6 @@
 # Lifecycle row for a single D-way → ddbj-repository batch import run.
 #
-# Owned by DataMigration::SyncJob (and its BP/BS subclasses). The job
+# Owned by DataMigration::SyncJob (and its per-database subclasses). The job
 # resumes via ActiveJob::Continuation, so `status` / cursor / counters
 # are written by a single worker per `db`. That single-writer property
 # is enforced at the call site: the admin controller and rake task
@@ -8,11 +8,11 @@
 # running (limits_concurrency is deliberately avoided — it would
 # discard a Continuable retry; see DataMigration::SyncJob).
 #
-# `uuid` is the value passed to BioProject::Importer / BioSample::Importer
-# as `migration_run_id:`, so the admin show can pivot to the touched
+# `uuid` is the value passed to the importers (BioProject::Importer,
+# BioSample::Importer, DRA::Importer) as `migration_run_id:`, so the admin show can pivot to the touched
 # Submissions via `Submission.where(migration_run_id: uuid)`.
 class MigrationRun < ApplicationRecord
-  DBS = %w[bioproject biosample].freeze
+  DBS = %w[bioproject biosample dra].freeze
 
   # What each counter key means, said once, in a fixed order.
   #
@@ -27,6 +27,7 @@ class MigrationRun < ApplicationRecord
     'no_accession' => 'No accession in the source row',
     'no_xml'       => 'No XML in the source row',
     'no_samples'   => 'No samples in the source row',
+    'no_versions'  => 'Never sent past a draft in the source database',
     'missing'      => 'Not found in the source database',
     'cross_user'   => 'Belongs to a different submitter than the existing record',
     'failed'       => 'Could not be converted'
@@ -205,7 +206,7 @@ class MigrationRun < ApplicationRecord
   # its own group of one, which is the log again with extra steps.
   def normalise_cause(message)
     message
-      .gsub(/\b[A-Z]{4}\d{4,}\b/, 'X')          # PSUB000318 / SAMD00412919
+      .gsub(/\b[A-Z]{3,4}\d{4,}\b/, 'X')        # PSUB000318 / SAMD00412919 / DRA021408
       .gsub(/\b\d[\d.]*\b/, 'N')                 # ids, counts, byte offsets
       .gsub(/\s+/, ' ')
       .strip

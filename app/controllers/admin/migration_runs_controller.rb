@@ -2,7 +2,8 @@ module Admin
   class MigrationRunsController < ApplicationController
     JOB_CLASSES = {
       'bioproject' => DataMigration::SyncBpJob,
-      'biosample'  => DataMigration::SyncBsJob
+      'biosample'  => DataMigration::SyncBsJob,
+      'dra'        => DataMigration::SyncDRAJob
     }.freeze
 
     # Reading past runs stays available everywhere — the history of what
