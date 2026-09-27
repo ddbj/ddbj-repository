@@ -682,6 +682,16 @@ class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
     assert_selector '[data-test-status-source]', text: 'Status follows D-way'
   end
 
+  # D-way clears its hold date on publication, while the record keeps the
+  # HOLD it was sent with; what is shown is what is still held.
+  test 'a DRA request shows the hold date D-way still holds it to' do
+    dra_submissions(:dra).update!(hold_date: Date.new(2027, 4, 1))
+
+    visit admin_submission_request_path(submission_requests(:dra))
+
+    assert_text '2027-04-01'
+  end
+
   # The rows slot is named for what the submission's rows are, whether or
   # not there is a bag of them to open.
   test 'the rows slot is named for the database, and is not a link where there is one row' do
