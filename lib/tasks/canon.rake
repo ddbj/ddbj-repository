@@ -44,12 +44,12 @@ namespace :canon do
       '/projects/0/grants'                                         => 'keyed',
       '/access_control/dac/contacts'                               => 'keyed',
       '/datasets'                                                  => 'keyed',
+      '/experiments'                                               => 'keyed',
+      '/runs'                                                      => 'keyed',
+      '/analyses'                                                  => 'keyed',
+      '/features'                                                  => 'keyed',
 
       # §3.1 bag (named in body) + §6 tables
-      '/experiments'                                               => 'bag',
-      '/runs'                                                      => 'bag',
-      '/analyses'                                                  => 'bag',
-      '/features'                                                  => 'bag',
       '/projects/0/study_types'                                    => 'bag',
       '/projects/0/keywords'                                       => 'bag',
       '/projects/0/locus_tag_prefix'                               => 'bag',

@@ -40,12 +40,36 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
     assert_equal '{"samples":[{"alias":"A"},{"alias":"B"},{"alias":"C"}]}', bytes
   end
 
-  test 'sorts /experiments by content hash (bag)' do
-    a = {'id' => 'X'}
-    b = {'id' => 'Y'}
+  test 'sorts /sequences/structured_comments by content hash (bag)' do
+    a = {'tagset_id' => 'X'}
+    b = {'tagset_id' => 'Y'}
 
-    one = C.canonicalize({'experiments' => [a, b]})
-    two = C.canonicalize({'experiments' => [b, a]})
+    one = C.canonicalize({'sequences' => {'structured_comments' => [a, b]}})
+    two = C.canonicalize({'sequences' => {'structured_comments' => [b, a]}})
+    assert_equal one, two
+  end
+
+  test 'sorts /experiments by alias, keeping equal aliases in the order written' do
+    bytes = C.canonicalize({'experiments' => [
+      {'alias' => 'b', 'title' => 'first b'},
+      {'alias' => 'a'},
+      {'alias' => 'b', 'title' => 'second b'}
+    ]})
+
+    assert_equal '{"experiments":[{"alias":"a"},{"alias":"b","title":"first b"},{"alias":"b","title":"second b"}]}', bytes
+  end
+
+  test 'keeps equal aliases of /samples in the order written, whatever their content' do
+    one = C.canonicalize({'samples' => [{'alias' => 'x', 'title' => 'Z'}, {'alias' => 'x', 'title' => 'A'}]})
+    two = C.canonicalize({'samples' => [{'alias' => 'x', 'title' => 'A'}, {'alias' => 'x', 'title' => 'Z'}]})
+
+    refute_equal one, two
+  end
+
+  test 'still sorts equal attribute keys by content hash (ties: content)' do
+    one = C.canonicalize({'samples' => [{'alias' => 's', 'attributes' => [{'name' => 'note', 'value' => 'Z'}, {'name' => 'note', 'value' => 'A'}]}]})
+    two = C.canonicalize({'samples' => [{'alias' => 's', 'attributes' => [{'name' => 'note', 'value' => 'A'}, {'name' => 'note', 'value' => 'Z'}]}]})
+
     assert_equal one, two
   end
 
@@ -233,13 +257,11 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   end
 
   test 'rejects patch path descending into bag interior' do
-    patch = [{'op' => 'replace', 'path' => '/experiments/0/title', 'value' => 'X'}]
+    patch = [{'op' => 'replace', 'path' => '/sequences/structured_comments/0/tagset_id', 'value' => 'X'}]
+    base  = {'sequences' => {'structured_comments' => [{'tagset_id' => 'A'}]}}
+
     assert_raises C::BagPatchPathError do
-      C.diff({'experiments' => [{'title' => 'A'}]}, {'experiments' => [{'title' => 'X'}]}).then {|ops|
-        # If diff produced this op type, apply should reject it. We force the
-        # check by calling apply with the raw forbidden op directly.
-        C.apply({'experiments' => [{'title' => 'A'}]}, patch)
-      }
+      C.apply(base, patch)
     end
   end
 
@@ -314,8 +336,8 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   end
 
   test 'reject_bag_descent allows read-only test op against bag interior' do
-    base  = {'experiments' => [{'title' => 'A'}]}
-    patch = [{'op' => 'test', 'path' => '/experiments/0/title', 'value' => 'A'}]
+    base  = {'sequences' => {'structured_comments' => [{'tagset_id' => 'A'}]}}
+    patch = [{'op' => 'test', 'path' => '/sequences/structured_comments/0/tagset_id', 'value' => 'A'}]
 
     # `test` is read-only and must not raise BagPatchPathError; Hana itself
     # decides whether the assertion holds.
@@ -325,8 +347,8 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   end
 
   test 'reject_bag_descent catches trailing empty segment' do
-    base  = {'experiments' => [{'id' => 'e1'}]}
-    patch = [{'op' => 'add', 'path' => '/experiments/0/', 'value' => 'sneaky'}]
+    base  = {'sequences' => {'structured_comments' => [{'tagset_id' => 'e1'}]}}
+    patch = [{'op' => 'add', 'path' => '/sequences/structured_comments/0/', 'value' => 'sneaky'}]
 
     assert_raises C::BagPatchPathError do
       C.apply(base, patch)
@@ -334,8 +356,8 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   end
 
   test 'reject_bag_descent catches move whose path descends into bag interior' do
-    base  = {'experiments' => [{'title' => 'A'}], 'tmp' => 'X'}
-    patch = [{'op' => 'move', 'from' => '/tmp', 'path' => '/experiments/0/title'}]
+    base  = {'sequences' => {'structured_comments' => [{'tagset_id' => 'A'}]}, 'tmp' => 'X'}
+    patch = [{'op' => 'move', 'from' => '/tmp', 'path' => '/sequences/structured_comments/0/tagset_id'}]
 
     assert_raises C::BagPatchPathError do
       C.apply(base, patch)
@@ -343,8 +365,8 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
   end
 
   test 'reject_bag_descent catches copy whose from descends into bag interior' do
-    base  = {'experiments' => [{'title' => 'A'}], 'tmp' => nil}
-    patch = [{'op' => 'copy', 'from' => '/experiments/0/title', 'path' => '/tmp'}]
+    base  = {'sequences' => {'structured_comments' => [{'tagset_id' => 'A'}]}, 'tmp' => nil}
+    patch = [{'op' => 'copy', 'from' => '/sequences/structured_comments/0/tagset_id', 'path' => '/tmp'}]
 
     assert_raises C::BagPatchPathError do
       C.apply(base, patch)

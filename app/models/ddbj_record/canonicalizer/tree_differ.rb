@@ -84,9 +84,11 @@ module DDBJRecord
             old = groups_b[tuple] || []
             new = groups_a[tuple] || []
 
-            # Equal-key elements are further ordered by content hash, so
-            # pairing them positionally is arbitrary but correct; in
-            # practice a key identifies at most one element.
+            # Equal-key elements are ordered by content hash or kept in the
+            # order written (the registry's `ties`). Pairing them by position
+            # is correct either way, and under `written` it is also what
+            # they mean: the second of two equal aliases before is the
+            # second after.
             old.zip(new).each do |before_item, after_item|
               if after_item.nil?
                 ops << {'op' => 'remove', 'path' => "#{pointer}/#{cursor}"}

@@ -67,6 +67,19 @@ class DDBJRecord::Canon::RegistrySchemaTest < ActiveSupport::TestCase
     assert_includes PLACES.fetch('/sequences/entries/*/source_features/*/source/qualifiers/*'), 'array'
   end
 
+  # An unregistered list sorts as a bag, but the guard against patches into
+  # bags only knows the registered ones (canonical-json.md §3.1), so every
+  # list of the schema is registered.
+  test 'every array of the schema is registered' do
+    arrays = PLACES.select {|_, types| types.include?('array') }.keys
+
+    unregistered = arrays.reject {|place|
+      REGISTRY.fetch('arrays').each_key.any? { self.class.pattern(it).match?(place) }
+    }
+
+    assert_empty unregistered
+  end
+
   REGISTRY.fetch('arrays').each_key do |path|
     test "array mode #{path} names an array of the schema" do
       assert_includes self.class.types_at(path), 'array', "#{path} matches no array of the v3 schema"
