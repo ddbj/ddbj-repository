@@ -3,25 +3,6 @@ default: &default
   encoding: unicode
   max_connections: <%= ENV.fetch('RAILS_MAX_THREADS') { 5 } %>
 
-xsmdb_default: &xsmdb_default
-  <<: *default
-  schema_search_path: mass,public
-  default_timezone: local
-
-drmdb_default: &drmdb_default
-  <<: *xsmdb_default
-  migrations_paths: db/drmdb_migrate
-
-submitterdb_default: &submitterdb_default
-  <<: *xsmdb_default
-  migrations_paths: db/submitterdb_migrate
-
-drasearch_default: &drasearch_default
-  <<: *default
-  schema_search_path: sra,public
-  default_timezone: local
-  migrations_paths: db/drasearch_migrate
-
 development:
   primary:
     <<: *default
@@ -34,15 +15,6 @@ development:
     <<: *default
     database: taxdump_development
     migrations_paths: db/taxdump_migrate
-  drmdb:
-    <<: *drmdb_default
-    database: drmdb_development
-  submitterdb:
-    <<: *submitterdb_default
-    database: submitterdb_development
-  drasearch:
-    <<: *drasearch_default
-    database: drasearch_development
 
 test:
   primary:
@@ -52,15 +24,6 @@ test:
     <<: *default
     database: taxdump_test
     migrations_paths: db/taxdump_migrate
-  drmdb:
-    <<: *drmdb_default
-    database: drmdb_test
-  submitterdb:
-    <<: *submitterdb_default
-    database: submitterdb_test
-  drasearch:
-    <<: *drasearch_default
-    database: drasearch_test
 
 production: &production
   primary:
@@ -82,21 +45,6 @@ production: &production
     <<: *default
     url: <%= Rails.application.credentials.dig(:database_url, :taxdump) %>
     migrations_paths: db/taxdump_migrate
-  drmdb:
-    <<: *drmdb_default
-    url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
-    database: drmdb
-    database_tasks: false
-  submitterdb:
-    <<: *submitterdb_default
-    url: <%= Rails.application.credentials.dig(:database_url, :xsmdb) %>
-    database: submitterdb
-    database_tasks: false
-  drasearch:
-    <<: *drasearch_default
-    url: <%= Rails.application.credentials.dig(:database_url, :drasearch) %>
-    database: drasearch
-    database_tasks: false
 
 staging:
   <<: *production
