@@ -1,5 +1,5 @@
 module DataMigration
-  # Base class for the per-DB (BP / BS) D-way → ddbj-repository sync jobs.
+  # Base class for the per-database D-way → ddbj-repository sync jobs.
   #
   # Resumable via ActiveJob::Continuation. The only step is :sync; the
   # cheap setup (find run, mark running, open client, fetch total) runs
@@ -154,8 +154,8 @@ module DataMigration
     end
 
     # Returns the outcome symbol (:created / :updated / :skipped /
-    # :no_accession / :no_xml / :no_samples / :missing / :cross_user
-    # / :failed). A bad row is absorbed so it does not halt the sweep; a
+    # :no_accession / :no_xml / :no_samples / :no_versions / :missing /
+    # :cross_user / :failed). A bad row is absorbed so it does not halt the sweep; a
     # bad backend is not, because there is no sweep left to halt.
     def process_row(source_id)
       run_importer(source_id)

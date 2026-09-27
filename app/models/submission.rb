@@ -71,12 +71,16 @@ class Submission < ApplicationRecord
   # everywhere (request-first lists + one-page detail). Idempotent: a
   # re-import finds the existing submission whose request is already
   # present and does nothing. See [[project-submission-request-as-unit]].
-  def ensure_migration_request!(migration_run_id:)
+  #
+  # `submitted_at` dates the request when the source knows when it was
+  # sent, so its history does not begin at the import.
+  def ensure_migration_request!(migration_run_id:, submitted_at: nil)
     request || create_request!(
       user:             user,
       db:               db,
       status:           :applied,
-      migration_run_id: migration_run_id
+      migration_run_id: migration_run_id,
+      created_at:       submitted_at
     )
   end
 

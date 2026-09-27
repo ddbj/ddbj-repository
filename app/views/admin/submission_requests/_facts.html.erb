@@ -57,7 +57,9 @@
 
       <div class="col">
         <dt class="small text-body-secondary fw-normal">Hold date</dt>
-        <dd><%= materialised&.dig('submission', 'hold_date') || '—' %></dd>
+        <%# The row's, where there is one (CurationState#hold_date): for DRA %>
+        <%# it is what is still held, not the HOLD the record was sent with. %>
+        <dd><%= (submission&.single_row_db? ? state.hold_date&.iso8601 : materialised&.dig('submission', 'hold_date')) || '—' %></dd>
       </div>
     </dl>
   </div>

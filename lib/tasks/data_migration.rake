@@ -1,6 +1,6 @@
 require 'csv' # used by dump_excluded_* tasks; csv stopped being a default gem in Ruby 3.4
 
-# Shared scaffolding for the dump_excluded_bp / dump_excluded_bs rake tasks:
+# Shared scaffolding for the dump_excluded_* rake tasks:
 # enumerate a StagingClient, write a CSV atomically (tempfile + rename so a
 # SIGINT mid-write never leaves a syntactically-complete but truncated file
 # for a curator to mistake for a finished dump), and print a per-reason
@@ -276,6 +276,57 @@ namespace :data_migration do
       row_mapper:   ->(r) {
         [r.ssub_id, r.reason, r.submitter_id, r.organization, r.charge_id, r.create_date, r.modified_date]
       },
+      output_path:  args[:output_path]
+    )
+  end
+
+  # Single-DRA entry: one drmdb submission (by its sub_id), with its whole
+  # history. Re-running appends only the versions saved since.
+  #
+  #   bin/rails 'data_migration:import_dra[55268]'
+  desc 'Import a single DRA submission from D-way (by drmdb sub_id)'
+  task :import_dra, %i[sub_id] => :environment do |_, args|
+    sub_id = args.fetch(:sub_id)
+    client = DRA::StagingClient.new
+
+    begin
+      row = client.fetch(sub_id) or abort "sub_id #{sub_id} not found in drmdb"
+
+      result = DRA::Importer.new(row, migration_run_id: SecureRandom.uuid).call
+      puts "[#{result.outcome}] sub_id #{sub_id} (#{row.accession}, #{row.versions.size} versions) → Submission ##{result.submission&.id}"
+    ensure
+      client.close
+    end
+  end
+
+  # See import_bp_batch for why this runs inline and refuses to start
+  # beside a run already in flight.
+  desc 'Run a DRA sync (inline). Creates a MigrationRun row + runs DataMigration::SyncDRAJob.'
+  task import_dra_batch: :environment do
+    if (active = MigrationRun.where(db: :dra, status: %w[queued running]).order(:id).last)
+      abort "Aborting: DRA MigrationRun ##{active.id} is already #{active.status}. " \
+            'See /admin/migration_runs.'
+    end
+
+    run = MigrationRun.create!(db: :dra)
+    puts "Created MigrationRun ##{run.id} (uuid=#{run.uuid}). Running inline..."
+
+    DataMigration::SyncDRAJob.perform_now(run.id)
+
+    run.reload
+    puts "Done. status=#{run.status} " + run.counters.map {|k, v| "#{k}=#{v}" }.join(' ')
+  end
+
+  # DRA submissions past the draft with nothing to import: never sent
+  # (`no_versions`), or cancelled before their accessions were issued
+  # (`no_accession`). See DRA::StagingClient#enumerate_excluded.
+  desc 'Dump excluded DRA submissions to CSV for curator review'
+  task :dump_excluded_dra, %i[output_path] => :environment do |_, args|
+    DataMigration::DumpExcluded.call(
+      client_class: DRA::StagingClient,
+      default_stem: 'excluded-dra',
+      header:       %w[sub_id reason status submitter_id create_date],
+      row_mapper:   ->(r) { [r.sub_id, r.reason, r.status, r.submitter_id, r.create_date] },
       output_path:  args[:output_path]
     )
   end

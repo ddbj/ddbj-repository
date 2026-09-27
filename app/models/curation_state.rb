@@ -171,15 +171,13 @@ class CurationState
     "Issue #{accession_prefix} for #{ActiveSupport::NumberHelper.number_to_delimited(issuable_count)} #{row_noun(issuable_count)}"
   end
 
-  # Only BP projects the record's hold date onto a filterable column
-  # (Submission#sync_projections!). BS has nowhere to put it, and D-way
-  # never used a BS hold date — so this is nil there rather than paying
-  # for a chain replay to find out.
-  def hold_date
-    return nil unless submission&.bioproject_db?
-
-    submission.project&.hold_date
-  end
+  # The hold date on the submission's row, where it has one. BP projects
+  # the record's onto it (Submission#sync_projections!). DRA's is D-way's
+  # own, and says what is still held: D-way clears it on publication,
+  # while the record keeps the HOLD it was sent with. BS has nowhere to put
+  # one, and D-way never used a BS hold date — so this is nil there rather
+  # than paying for a chain replay to find out.
+  def hold_date = submission&.single_row_db? ? submission.curation_row&.hold_date : nil
 
   # --- validation ----------------------------------------------------
 

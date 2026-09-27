@@ -18,13 +18,13 @@
 
 <h2 class="h5 mb-3">All runs</h2>
 
-<%# Chips rather than a select and a Filter button: three choices, and %>
-<%# each is one press. %>
+<%# Chips rather than a select and a Filter button: one per database %>
+<%# and one for all, and each is one press. %>
 <div class="btn-group btn-group-sm mb-3" role="group" aria-label="Filter by database">
   <%# Derived from the databases that can be migrated, not from the %>
-  <%# intersection with the label table — adding a third would otherwise %>
+  <%# intersection with the label table — adding one would otherwise %>
   <%# get a state card and no filter chip, silently. %>
-  <% [[nil, 'Both'], *MigrationRun::DBS.map { [it, db_label(it)] }].each do |value, label| %>
+  <% [[nil, 'All'], *MigrationRun::DBS.map { [it, db_label(it)] }].each do |value, label| %>
     <%= link_to label, admin_migration_runs_path(db: value),
                 class: "btn btn-outline-secondary#{' active' if @db == value}" %>
   <% end %>
@@ -82,7 +82,7 @@
         <td colspan="6">
           <% if @db %>
             <%= empty_state :filtered, "No runs for #{db_label(@db)} yet." do %>
-              <%= link_to 'Show both databases', admin_migration_runs_path, class: 'btn btn-sm btn-outline-secondary' %>
+              <%= link_to 'Show every database', admin_migration_runs_path, class: 'btn btn-sm btn-outline-secondary' %>
             <% end %>
           <% else %>
             <%= empty_state :first_run, 'No migration runs yet.',

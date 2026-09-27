@@ -254,6 +254,18 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
     assert_equal 2, MigrationRun.where(db: 'biosample').count
   end
 
+  test 'a DRA run is started from the same form, and queues the DRA sync' do
+    visit new_admin_migration_run_path
+
+    choose 'DRA'
+
+    assert_enqueued_with job: DataMigration::SyncDRAJob do
+      click_button 'Enqueue'
+    end
+
+    assert MigrationRun.where(db: 'dra').exists?
+  end
+
   # The press abandons a run, and the run it abandons has a number. The
   # form used to state the rule ("a run that stopped moving over an hour
   # ago is treated as gone") and leave the reader to work out that it
