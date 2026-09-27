@@ -168,7 +168,6 @@ GEM
       faraday (>= 1, < 3)
     faraday-net_http (3.4.4)
       net-http (~> 0.5)
-    ffi (1.17.4)
     ffi (1.17.4-arm64-darwin)
     ffi (1.17.4-x86_64-linux-gnu)
     fugit (1.13.0)
@@ -176,9 +175,6 @@ GEM
       raabro (~> 1.4)
     globalid (1.4.0)
       activesupport (>= 6.1)
-    google-protobuf (4.35.0)
-      bigdecimal
-      rake (~> 13.3)
     google-protobuf (4.35.0-arm64-darwin)
       bigdecimal
       rake (~> 13.3)
@@ -205,7 +201,6 @@ GEM
     jmespath (1.6.2)
     json (2.21.2)
     json-canonicalization (1.0.0)
-    json-diff (0.4.1)
     json-jwt (1.17.0)
       activesupport (>= 4.2)
       aes_key_wrap
@@ -325,7 +320,6 @@ GEM
     parser (3.3.10.1)
       ast (~> 2.4.1)
       racc
-    pg (1.6.3)
     pg (1.6.3-arm64-darwin)
     pg (1.6.3-x86_64-linux)
     popper_js (2.11.8)
@@ -448,15 +442,10 @@ GEM
     ruby-vips (2.3.0)
       ffi (~> 1.12)
       logger
-    rusty_racer (0.2.3)
-      rb_sys (~> 0.9)
     rusty_racer (0.2.3-arm64-darwin)
       rb_sys (~> 0.9)
     rusty_racer (0.2.3-x86_64-linux)
       rb_sys (~> 0.9)
-    sass-embedded (1.99.0)
-      google-protobuf (~> 4.31)
-      rake (>= 13)
     sass-embedded (1.99.0-arm64-darwin)
       google-protobuf (~> 4.31)
     sass-embedded (1.99.0-x86_64-linux-gnu)
@@ -496,7 +485,6 @@ GEM
       faraday (~> 2.0)
       faraday-follow_redirects
     thor (1.5.0)
-    thruster (0.1.26)
     thruster (0.1.26-arm64-darwin)
     thruster (0.1.26-x86_64-linux)
     timeout (0.6.1)
@@ -556,7 +544,6 @@ DEPENDENCIES
   jb
   json
   json-canonicalization
-  json-diff
   jwt
   kamal
   letter_opener

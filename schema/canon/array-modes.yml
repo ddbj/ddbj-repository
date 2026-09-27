@@ -41,8 +41,9 @@
 # of the schema is registered, and the lists of objects are keyed on alias
 # with equal aliases in written order (`ties: written`), so a relation's
 # `index` — a position among one kind's objects sharing an alias — survives
-# canonicalisation. Of those lists only /samples is stored, and its bytes move
-# only where two samples of one record share an alias.
+# canonicalisation. Of those lists only /samples is stored, and a stored state
+# is already in canonical order, which keeping equal aliases as they stand
+# returns unchanged.
 canonical_version: ddbj-canon/v3
 
 # ----------------------------------------------------------------------

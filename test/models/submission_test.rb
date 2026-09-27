@@ -305,7 +305,7 @@ class SubmissionTest < ActiveSupport::TestCase
     assert_equal 'world', submission.materialised_record.dig('projects', 0, 'title')
   end
 
-  test '#append_update! falls back to a root snapshot when diff lands inside a bag (e.g. submitter organizations)' do
+  test '#append_update! replaces an edited bag element whole (e.g. submitter organizations)' do
     submission = submissions(:bioproject)
 
     submission.append_update!(
@@ -320,12 +320,10 @@ class SubmissionTest < ActiveSupport::TestCase
       actor: 'seed'
     )
 
-    # Edit: add `url` to the existing organization. A minimal semantic
-    # diff would emit `add /submission/submitters/0/organizations/0/url`
-    # which descends into the `/submission/submitters/*/organizations`
-    # bag — Canonicalizer rejects that as a BagPatchPathError. The
-    # fallback emits a single root-level `replace` op instead so the
-    # curator's save still lands.
+    # Edit: add `url` to the existing organization. A patch into the
+    # element (`add /submission/submitters/0/organizations/0/url`) would
+    # descend into the `/submission/submitters/*/organizations` bag, which
+    # the patch verifier rejects (§3.1), so the element is replaced whole.
     submission.append_update!(
       {
         'submission' => {
@@ -338,10 +336,10 @@ class SubmissionTest < ActiveSupport::TestCase
       actor: 'curator'
     )
 
-    fallback_patch = submission.updates.order(:id).last.parsed_patch
-    assert_equal 1, fallback_patch.size, 'bag-internal edit must coarsen to a single root op'
-    assert_equal '',        fallback_patch.first['path']
-    assert_equal 'replace', fallback_patch.first['op']
+    patch = submission.updates.order(:id).last.parsed_patch
+
+    assert_equal [%w[remove /submission/submitters/0/organizations/0], %w[add /submission/submitters/0/organizations/0]],
+                 patch.map { [it['op'], it['path']] }
 
     assert_equal 'https://nig.ac.jp/',
                  submission.materialised_record.dig('submission', 'submitters', 0, 'organizations', 0, 'url')

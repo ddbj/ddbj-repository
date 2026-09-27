@@ -8,9 +8,10 @@
 
 **Within v3 (2026-09-27), no bump (§3.4).** Every list of the v3 schema is registered, and the lists of objects are keyed on `alias` with equal aliases kept in the order written (`ties: written`, §3.1):
 
-- `/experiments`, `/runs`, `/analyses` and `/features` were bags and are keyed on `(alias,)`; `/datasets` was keyed on `(alias, accession)` and is keyed on `(alias,)`. A relation's `index` counts among the objects of one kind that share an alias (ddbj/ddbj-record-specifications#18), and a list sorted on alias with equal aliases in written order keeps that count — a bag moved it (§7.0 had this open). None of these lists is in a stored record: only BioProject and BioSample records are stored, and neither holds them.
-- `/samples` keeps its key `(alias,)` and takes `ties: written` in place of the content hash. That changes the bytes of a stored record only where one sample shares its alias with another; before this is released, the stored BioSample records are checked to have none.
+- `/experiments`, `/runs`, `/analyses` and `/features` were bags and are keyed on `(alias,)`; `/datasets` was already keyed on `(alias,)` in the registry (this document said `(alias, accession)`) and takes `ties: written`. A relation's `index` counts among the objects of one kind that share an alias (ddbj/ddbj-record-specifications#18), and a list sorted on alias with equal aliases in written order keeps that count — a bag moved it (§7.0 had this open). None of these lists is in a stored record: only BioProject and BioSample records are stored, and neither holds them.
+- `/samples` keeps its key `(alias,)` and takes `ties: written` in place of the content hash. This changes no stored byte: a stored state is already in canonical order, and keeping equal aliases in the order they stand returns it unchanged. What differs is where a fresh input's equal aliases first land — in the order written, rather than by content hash — and only an import of a changed source sees that, as one reordering among them.
 - The 73 other lists of the schema (SRA, GEA and JGA sub-lists, identifiers, comments, …) are ordered: written order is what the spec keeps on a round trip, and they are small, so it costs a diff nothing. None is in a BioProject or BioSample record. `test/models/ddbj_record/canon/registry_schema_test.rb` checks that every list is registered and that every registry path is one of the schema.
+- The differ (`TreeDiffer`) pairs elements by each array's mode in linear time: an ordered or equal-key run is trimmed of its common prefix and suffix and paired by position between, and a changed bag element is removed and the new one added, as §3.1 rule 1 requires (a patch into it had been emitted and then refused, falling back to a root snapshot). It no longer hands arrays to json-diff.
 
 **v3 (2026-09-26).** The paths follow the DDBJ Record v3 that the spec now holds on its `main` (ddbj/ddbj-record-specifications#11), which changed shape within v3:
 
@@ -167,15 +168,15 @@ Order is by a stable key tuple. Tuple components are normalized via §2.2 single
 | `/projects/*/publications` | `(doi ‖ '', pubmed_id ‖ '', title ‖ '')` |
 | `/projects/*/grants` | `(id ‖ '', title ‖ '', agency ‖ '')` |
 | `/access_control/dac/contacts` | `(email ‖ '', last_name ‖ '', first_name ‖ '')` |
-| `/datasets`, `/experiments`, `/runs`, `/analyses`, `/features` | `(alias ‖ '',)`, ties written |
+| `/datasets`, `/experiments`, `/runs`, `/analyses`, `/features` | `(alias,)`, ties written |
 
-`/samples` is keyed (not bag) because Spike 0.1 confirmed every production BS record assigns an `alias` and a 10K-sample bag-sort would dominate every diff. Records violating the invariant (no `alias`) are rejected at ingest, not silently bagged.
+`/samples` is keyed (not bag) because Spike 0.1 confirmed every production BS record assigns an `alias` and a 10K-sample bag-sort would dominate every diff. An object without an `alias` keys as `''`, with the others lacking one.
 
 **Collisions** (identical tuples) are permitted, and legacy duplicates must not be rejected. By default (`ties: content`) the canonicalizer sub-sorts them by `sha256(canonical_json(element))`. The lists of objects instead keep them in the order written (`ties: written`): a relation's `index` names an object by its position among those of its kind sharing an alias, and only written order keeps that position.
 
 #### bag
 
-No natural key. Sort by `sha256(canonical_json(element))` ascending (hex, byte order). Applies to `/submission/submitters/*/organizations`, `/projects/*/locus_tag_prefix` and scalar bags (`/projects/*/{study_types,keywords,locus_tag_prefix,target/data_types}`, `/datasets/*/dataset_types`, `/sequences/structured_comments`).
+No natural key. Sort by `sha256(canonical_json(element))` ascending (hex, byte order). Applies to the object lists `/submission/submitters/*/organizations`, `/projects/*/locus_tag_prefix`, `/experiments/*/targeted_loci` and `/sequences/structured_comments`, and the scalar lists `/projects/*/{study_types,keywords,target/data_types}`, `/datasets/*/dataset_types` and `/features/*/parent_ids`.
 
 A bag element is identified entirely by content. **Field-level patches into bags are normatively forbidden**:
 
@@ -297,7 +298,7 @@ At `spec/fixtures/canonical_json/`, one directory per fixture (`input.json`, `ex
 
 The string classes below record the classification this specification intends. The registry implements single-line only for the paths it lists under `strings.paths` (`schema/canon/array-modes.yml`); every other string here marked SL is multi-line in `ddbj-canon/v2` and `v3` alike. Aligning them is left to a later version rather than folded into v3: collapsing whitespace in an `alias` or an attribute `name` changes the key a stored keyed array is sorted by, which wants its own migration.
 
-Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; any unlisted array is bag (treat as bug — registry SHOULD list explicitly, see §3.4).
+Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; an unlisted array is ordered unless named keyed or bag here (the registry lists every array of the schema).
 
 ### Top-Level
 
@@ -366,7 +367,7 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/experiments/*/library/*`, `/experiments/*/platform/*` (other) | SL | CV |
 | `/experiments/*/spot_descriptor/reads` | O | `read_index` |
 | `/{experiments,analyses}/*/processing` | O | step chain |
-| `/experiments/*/targeted_loci/*` | SL in B | — |
+| `/experiments/*/targeted_loci` | B | objects |
 | `/{runs,analyses}/*/data_blocks`, `/{runs,analyses}/*/data_blocks/*/files` | O | R1/R2 positional |
 | `/{runs,analyses}/*/data_blocks/*/files/*/*` | SL | filename, checksum |
 

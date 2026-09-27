@@ -61,6 +61,26 @@ namespace :canon do
       '/features/0/parent_ids'                                     => 'bag'
     }.freeze
 
+    # §3.1 keyed table: the key tuple and how equal tuples are ordered.
+    relation_key = %w[
+      type label source/type source/accession source/alias source/index
+      target/db target/id target/accession target/index target/url
+    ]
+
+    expected_keys = {
+      '/samples'                     => [%w[alias],               'written'],
+      '/datasets'                    => [%w[alias],               'written'],
+      '/experiments'                 => [%w[alias],               'written'],
+      '/runs'                        => [%w[alias],               'written'],
+      '/analyses'                    => [%w[alias],               'written'],
+      '/features'                    => [%w[alias],               'written'],
+      '/relations'                   => [relation_key,            'content'],
+      '/samples/0/attributes'        => [%w[name unit],           'content'],
+      '/projects/0/publications'     => [%w[doi pubmed_id title], 'content'],
+      '/projects/0/grants'           => [%w[id title agency],     'content'],
+      '/access_control/dac/contacts' => [%w[email last_name first_name], 'content']
+    }.freeze
+
     # ----- §2.2 / §6 String classes ---------------------------------------
     # Default per registry is `multi_line`; entries here cover every
     # explicit single_line / sequence call-out from §2.2 plus §6 table.
@@ -134,6 +154,12 @@ namespace :canon do
       failures << "FAIL: #{path} expected #{expected} got #{actual}" unless actual == expected
     end
 
+    expected_keys.each do |path, (key, ties)|
+      rule   = classifier.array_rule(path)
+      actual = [Array(rule['key']), rule['ties'] || 'content']
+      failures << "FAIL: #{path} expected key #{key} ties #{ties} got key #{actual[0]} ties #{actual[1]}" unless actual == [key, ties]
+    end
+
     expected_strings.each do |path, expected|
       actual = classifier.string_class(path)
       failures << "FAIL: #{path} expected #{expected} got #{actual}" unless actual == expected
@@ -163,7 +189,7 @@ namespace :canon do
     volatile_count = DDBJRecord::Canonicalizer::Registry.volatile_paths.size
 
     puts "#{array_count} arrays / #{string_count} strings / #{volatile_count} volatile paths registered."
-    puts "Spec coverage: #{expected_arrays.size} array / #{expected_strings.size} string / " \
+    puts "Spec coverage: #{expected_arrays.size} array / #{expected_keys.size} key / #{expected_strings.size} string / " \
          "#{expected_volatile.size} volatile / #{expected_non_volatile.size} non-volatile assertions."
 
     if failures.empty?

@@ -360,13 +360,12 @@ class Submission < ApplicationRecord
       latest_id = updates.maximum(:id)
       base      = latest_id ? base_state(latest_id) : {}
 
-      # Try a minimal semantic diff. If it lands inside a bag-mode array
-      # (or any other Canonicalizer::Error — NumberGuard, ControlChar,
-      # OrderedEmptyElement, etc.) fall back to a root-level snapshot.
-      # That loses per-field chain granularity for THIS op but keeps
-      # curator edits on bag-internal fields (e.g. submitter
-      # organizations) replayable. Mirrors the same fallback used by
-      # BP/BS Importer's `compute_patch_ops`.
+      # Try a minimal semantic diff (an edited bag element comes out as its
+      # removal and the new element's addition, §3.1). If canonicalising
+      # either side fails — NumberGuard, ControlChar, OrderedEmptyElement,
+      # etc. — fall back to a root-level snapshot. That loses per-field
+      # chain granularity for THIS op but keeps the save replayable. Mirrors
+      # the same fallback used by BP/BS Importer's `compute_patch_ops`.
       patch =
         if heal_chain?(base)
           [{'op' => 'replace', 'path' => '', 'value' => snapshot_value(new_record)}]
