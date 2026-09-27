@@ -164,7 +164,7 @@ export interface paths {
          *     filter to span every value. `source_id` is a case-insensitive prefix
          *     match on the applied submission's source id. `accession` is a
          *     case-insensitive prefix match across the submission's accessions
-         *     (BP project / BS samples / ST.26 accessions).
+         *     (BP project / DRA submission / BS samples / ST.26 entries).
          *
          *     `phase` splits the live submissions from the finished ones and
          *     defaults to `unfinished`; `needs_action` narrows to the ones
@@ -219,7 +219,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         submission_request: {
-                            db: components["schemas"]["Db"];
+                            db: components["schemas"]["SubmittableDb"];
                             /** Format: binary */
                             ddbj_record: string;
                         };
@@ -3187,7 +3187,12 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        Db: "st26" | "bioproject" | "biosample";
+        Db: "st26" | "bioproject" | "biosample" | "dra";
+        /**
+         * @description The databases a submission request can be created for. DRA submissions are migrated from D-way and cannot be created here yet.
+         * @enum {string}
+         */
+        SubmittableDb: "st26" | "bioproject" | "biosample";
         SubmissionRequestSummary: {
             id: number;
             db: components["schemas"]["Db"];
@@ -3606,9 +3611,9 @@ export interface components {
             locus_date: string;
         };
         /**
-         * @description One labelled fact off an accessioned record. Three databases keep
-         *     three different rows, so what they carry beyond an accession and a
-         *     name travels like this rather than as a column per database — a
+         * @description One labelled fact off an accessioned record. Each database keeps a
+         *     row of its own, so what they carry beyond an accession and a name
+         *     travels like this rather than as a column per database — a
          *     reader reads them, and nothing branches on them.
          */
         AccessionDetail: {
@@ -3831,8 +3836,8 @@ export interface components {
          *     business, the same reason a set's conversation is unreachable from a
          *     share link.
          *
-         *     Three databases keep three different rows, so what they carry beyond
-         *     an accession and a name travels as labelled facts rather than as a
+         *     Each database keeps a row of its own, so what they carry beyond an
+         *     accession and a name travels as labelled facts rather than as a
          *     column per database. A reader reads them; nothing branches on them.
          */
         ReviewerAccession: {

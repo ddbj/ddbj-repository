@@ -27,11 +27,12 @@ module Admin
       # uid. COALESCE keeps the id branch harmless when it is neither.
       scope.where(<<~SQL.squish, id: Integer(value, exception: false), pattern: "#{ActiveRecord::Base.sanitize_sql_like(value)}%")
         submission_requests.id = COALESCE(:id, -1) OR
-        EXISTS (SELECT 1 FROM users       WHERE users.id                 = submission_requests.user_id       AND users.uid            ILIKE :pattern) OR
-        EXISTS (SELECT 1 FROM submissions WHERE submissions.id           = submission_requests.submission_id AND submissions.source_id ILIKE :pattern) OR
-        EXISTS (SELECT 1 FROM projects    WHERE projects.submission_id   = submission_requests.submission_id AND projects.accession    ILIKE :pattern) OR
-        EXISTS (SELECT 1 FROM samples     WHERE samples.submission_id    = submission_requests.submission_id AND samples.accession     ILIKE :pattern) OR
-        EXISTS (SELECT 1 FROM entries  WHERE entries.submission_id = submission_requests.submission_id AND entries.accession     ILIKE :pattern)
+        EXISTS (SELECT 1 FROM users           WHERE users.id                     = submission_requests.user_id       AND users.uid                 ILIKE :pattern) OR
+        EXISTS (SELECT 1 FROM submissions     WHERE submissions.id               = submission_requests.submission_id AND submissions.source_id     ILIKE :pattern) OR
+        EXISTS (SELECT 1 FROM projects        WHERE projects.submission_id        = submission_requests.submission_id AND projects.accession        ILIKE :pattern) OR
+        EXISTS (SELECT 1 FROM dra_submissions WHERE dra_submissions.submission_id = submission_requests.submission_id AND dra_submissions.accession ILIKE :pattern) OR
+        EXISTS (SELECT 1 FROM samples         WHERE samples.submission_id         = submission_requests.submission_id AND samples.accession         ILIKE :pattern) OR
+        EXISTS (SELECT 1 FROM entries         WHERE entries.submission_id         = submission_requests.submission_id AND entries.accession         ILIKE :pattern)
       SQL
     end
   end

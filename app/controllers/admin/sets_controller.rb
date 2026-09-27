@@ -83,7 +83,7 @@ module Admin
       # same list paginates for the same reason.
       @pagy, @inclusions = pagy(
         @set.inclusions
-              .includes(submission_request: [:user, :assignee, {submission: :project}])
+              .includes(submission_request: [:user, :assignee, {submission: %i[project dra_submission]}])
               .order(:created_at, :id)
       )
 

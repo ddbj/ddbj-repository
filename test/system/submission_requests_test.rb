@@ -180,6 +180,99 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # A DRA submission is one row, as a BioProject is: its accession and its
+  # status are the row's, and the accession finds it.
+  test 'a DRA request reads as its submission, and its accession finds it' do
+    visit admin_submission_requests_path
+
+    within row_for(submission_requests(:dra)) do
+      assert_text 'DRA'
+      assert_text 'DRA000001'
+      assert_text 'private'
+    end
+
+    fill_in 'Search requests', with: 'DRA000001'
+    click_button 'Search'
+
+    assert_selector row_for(submission_requests(:dra))
+    assert_no_selector row_for(@req)
+  end
+
+  # Every Database box ticked is no constraint. With a box missing for
+  # DRA, a Search with the facets untouched posted the other three and
+  # the DRA requests fell out of the ledger.
+  test 'searching with the facets untouched keeps DRA requests' do
+    visit admin_submission_requests_path
+
+    click_button 'Search'
+
+    assert_selector row_for(submission_requests(:dra))
+  end
+
+  test 'the ledger sets a DRA submission\'s status, and says submission' do
+    visit admin_submission_requests_path
+
+    check "Select ##{submission_requests(:dra).id}"
+    select 'Public', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Set 1 DRA submission to public.'
+    assert_equal 'public', dra_submissions(:dra).reload.status
+  end
+
+  # Named in one order whatever was ticked first, so the sentence reads
+  # the same every time.
+  test 'a mixed selection names each kind of row, in one order' do
+    projects(:primary).update!(status: 'curating')
+
+    visit admin_submission_requests_path
+
+    check "Select ##{submission_requests(:dra).id}"
+    check "Select ##{submission_requests(:st26).id}"
+    check "Select ##{@req.id}"
+    select 'Withdrawn', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Set 1 project, 1 DRA submission, and 2 entries to withdrawn.'
+  end
+
+  # The Entries tab does not offer it, so the ledger may not write it: an
+  # entry is never waiting for its accession.
+  test 'the ledger refuses a status the rows cannot take, and writes nothing' do
+    visit admin_submission_requests_path
+
+    check "Select ##{submission_requests(:st26).id}"
+    check "Select ##{submission_requests(:dra).id}"
+    select 'Submission accepted', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Entries cannot be set to submission accepted.'
+    assert_equal 'private', dra_submissions(:dra).reload.status
+  end
+
+  # DRA's numbers are still D-way's. The confirmation says so, and the
+  # press queues nothing for it — its line on the run page is written
+  # refused, in the same words.
+  test 'issuing from the ledger skips a DRA submission, and says why' do
+    projects(:primary).update!(accession: nil, status: 'curating')
+    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+
+    visit admin_submission_requests_path
+
+    check "Select ##{@req.id}"
+    check "Select ##{submission_requests(:dra).id}"
+    click_button 'Issue accessions'
+
+    assert_text 'DRA accessions are still issued in D-way, not here'
+
+    assert_enqueued_jobs 1, only: IssueAccessionsJob do
+      click_button 'Issue 1 accession'
+    end
+
+    assert_text 'DRA accessions are still issued in D-way, not here.'
+    assert_equal %w[refused], submissions(:dra).accession_issuances.pluck(:status)
+  end
+
   # One box over everything somebody might be holding — the identifier is
   # what they have, and which kind it is should not be their problem.
   test 'the search box takes an id, a source id or an accession' do

@@ -118,7 +118,7 @@ module Admin
       return redirect_to back, alert: 'No entries selected.' if empty_selection?
       return redirect_to back, alert: 'No changes specified (status left as-is).' if raw[:status].blank?
 
-      unless Entry::SETTABLE_STATUSES.include?(raw[:status])
+      unless Entry.settable_statuses.include?(raw[:status])
         return redirect_to back, alert: "Unknown status: #{raw[:status].inspect}."
       end
 
@@ -137,7 +137,7 @@ module Admin
 
     # Cross-submission bulk: apply (status, assignee) to many submissions
     # in one form post from the index. The two land in different places —
-    # status on the curation rows (the BP Project, every BS Sample),
+    # status on the curation rows (Submission.curation_row_models),
     # assignee on the request — so they are written separately.
     def bulk_update
       ids = Array(params.dig(:bulk, :submission_ids)).map(&:to_i).reject(&:zero?).uniq
@@ -173,27 +173,27 @@ module Admin
       end
 
       subs     = Submission.where(id: ids)
-      bp_ids   = subs.where(db: 'bioproject').pluck(:id)
-      bs_ids   = subs.where(db: 'biosample').pluck(:id)
-      st26_ids = subs.where(db: 'st26').pluck(:id)
-
-      projects = Applied.none
-      samples  = Applied.none
-      entries  = Applied.none
+      rows     = curation_rows_of(subs)
+      applied  = {}
       assigned = Applied.none
 
+      # The same rule each rows screen keeps: an ST.26 entry cannot be put
+      # back to `submission_accepted`. A selection that includes such rows
+      # is refused whole, rather than set for some and not others.
+      if attrs.any? && (refused = rows.reject { _2.klass.settable_statuses.include?(raw[:status]) }.keys).any?
+        nouns = refused.map { Submission::CURATION_ROW_NOUNS.fetch(it).pluralize.upcase_first }
+
+        return redirect_to bulk_return_path, alert: "#{nouns.to_sentence} cannot be set to #{raw[:status].tr('_', ' ')}."
+      end
+
+      # Every database's rows, each named in the notice by its own noun.
+      # ST.26 was once missing here — the selection reported "no curation
+      # rows" and filed an event saying 0 rows changed, while the same
+      # status applied fine from the Entries tab.
       if attrs.any?
         attrs[:updated_at] = Time.current
 
-        projects = apply_status(Project.where(submission_id: bp_ids), attrs)
-
-        # Entries counted with the samples: both are "the rows of a
-        # submission", and the notice names them by the submission's own
-        # noun. ST.26 was missing here entirely — the selection reported
-        # "no curation rows" and filed an event saying 0 rows changed,
-        # while the same status applied fine from the Entries tab.
-        samples = apply_status(Sample.where(submission_id: bs_ids), attrs)
-        entries = apply_status(Entry.where(submission_id: st26_ids), attrs)
+        applied = rows.transform_values { apply_status(it, attrs) }
       end
 
       if assign
@@ -205,10 +205,10 @@ module Admin
         assigned = Applied.new(changed: matched - already, unchanged: already)
       end
 
-      record_cross_submission_events(subs, bp_ids, bs_ids, raw)
+      record_cross_submission_events(subs, rows, raw)
       SubmissionRequest.where(submission_id: ids).find_each { participate!(it) }
 
-      redirect_to bulk_return_path, notice: bulk_notice(projects:, samples:, entries:, assigned:, raw:)
+      redirect_to bulk_return_path, notice: bulk_notice(applied:, assigned:, raw:)
     end
 
     # The confirmation for the ledger's bulk. Same component the single
@@ -218,7 +218,7 @@ module Admin
 
       return redirect_to bulk_return_path, alert: 'No submissions selected.' if ids.empty?
 
-      @plan   = AccessionPlan.for(Submission.where(id: ids).includes(:request, :project).to_a)
+      @plan   = AccessionPlan.for(Submission.where(id: ids).includes(:request, :project, :dra_submission).to_a)
       @action = bulk_issue_accessions_admin_submissions_path(index_filter_params)
       @cancel = bulk_return_path
       @ids    = ids
@@ -254,15 +254,19 @@ module Admin
       # to make — deciding it here from the preview would mean a
       # submission that became issuable in between is turned away by a
       # stale reading, and the run page would be missing the line that
-      # says what happened to it.
+      # says what happened to it. A database that issues nothing here is
+      # the exception: no reading changes that, so its row is written
+      # refused and nothing is queued for it.
       Submission.where(id: ids).find_each do |submission|
-        issuance = submission.accession_issuances.create!(
-          run:,
-          actor:      run.actor,
-          started_at: Time.current
-        )
+        attrs = {run:, actor: run.actor, started_at: Time.current}
 
-        IssueAccessionsJob.perform_later(issuance_id: issuance.id)
+        if (refusal = AccessionIssue.refusal_for(submission))
+          submission.accession_issuances.create!(**attrs, status: 'refused', finished_at: Time.current, error_message: refusal)
+        else
+          issuance = submission.accession_issuances.create!(**attrs)
+
+          IssueAccessionsJob.perform_later(issuance_id: issuance.id)
+        end
       end
 
       # Participation is recorded by the job, on the ones that actually
@@ -325,8 +329,8 @@ module Admin
     # `to_sentence` produced "Nothing to set and 1 row already curating",
     # which is a list of fragments rather than a statement of what
     # happened.
-    def bulk_notice(projects:, samples:, entries:, assigned:, raw:)
-      parts = [status_notice(projects, samples, entries, raw), assignee_notice(assigned, raw)].compact
+    def bulk_notice(applied:, assigned:, raw:)
+      parts = [status_notice(applied, raw), assignee_notice(assigned, raw)].compact
 
       # A selection with nothing to act on — every request in it applied
       # but not yet carrying rows. An empty string still renders an empty
@@ -337,21 +341,19 @@ module Admin
       parts.join(' ')
     end
 
-    def status_notice(projects, samples, entries, raw)
-      return nil unless projects.any? || samples.any? || entries.any?
+    def status_notice(applied, raw)
+      return nil unless applied.values.any?(&:any?)
 
       status = raw[:status]
 
       # Named by what each kind of row is called. A mixed selection reads
       # "Set 1 project and 40 entries to public" — "40 rows" would be
       # shorter and would leave the curator to work out which.
-      moved = [
-        (helpers.pluralize(projects.changed, 'project') if projects.changed.positive?),
-        (helpers.pluralize(samples.changed,  'sample')  if samples.changed.positive?),
-        (helpers.pluralize(entries.changed,  'entry')   if entries.changed.positive?)
-      ].compact
+      moved = applied.filter_map {|db, counts|
+        helpers.pluralize(counts.changed, Submission::CURATION_ROW_NOUNS.fetch(db)) if counts.changed.positive?
+      }
 
-      already = projects.unchanged + samples.unchanged + entries.unchanged
+      already = applied.values.sum(&:unchanged)
       tail    = " #{helpers.pluralize(already, 'row')} #{already == 1 ? 'was' : 'were'} already #{status}." if already.positive?
 
       if moved.any?
@@ -376,9 +378,18 @@ module Admin
       end
     end
 
-    def record_cross_submission_events(submissions, bp_ids, bs_ids, raw)
-      counts = Project.where(submission_id: bp_ids).group(:submission_id).count
-                      .merge(Sample.where(submission_id: bs_ids).group(:submission_id).count)
+    # {db => the curation rows of the selected submissions of that db}, in
+    # one order whatever the selection, so the notice always reads the same.
+    def curation_rows_of(submissions)
+      dbs = submissions.distinct.pluck(:db)
+
+      Submission.curation_row_models.select {|db, _| dbs.include?(db) }.to_h {|db, model|
+        [db, model.where(submission_id: submissions.where(db:).select(:id))]
+      }
+    end
+
+    def record_cross_submission_events(submissions, rows, raw)
+      counts = rows.values.map { it.group(:submission_id).count }.reduce({}, :merge)
 
       submissions.each do |submission|
         # An assignee-only batch touches no rows, so it still deserves an

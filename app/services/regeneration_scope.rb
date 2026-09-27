@@ -141,7 +141,7 @@ class RegenerationScope
     @out_of_scope ||= begin
       rest = numbers - matched_numbers
 
-      rest & (Project.where(accession: rest).pluck(:accession) + Sample.where(accession: rest).pluck(:accession))
+      rest & (Submission.accession_row_models - [Entry]).flat_map { it.where(accession: rest).pluck(:accession) }
     end
   end
 
@@ -208,7 +208,7 @@ class RegenerationScope
   def numbers_problems
     [
       ("#{unmatched.size} #{'number'.pluralize(unmatched.size)} matched no submission: #{unmatched.take(3).join(', ')}#{'…' if unmatched.size > 3}" if unmatched.any?),
-      ("No flatfile for #{out_of_scope.size} #{'number'.pluralize(out_of_scope.size)} — BioProject and BioSample records have none: #{out_of_scope.take(3).join(', ')}" if out_of_scope.any?),
+      ("No flatfile for #{out_of_scope.size} #{'number'.pluralize(out_of_scope.size)} — only ST.26 records have one: #{out_of_scope.take(3).join(', ')}" if out_of_scope.any?),
       ('Nothing to regenerate.' if numbers.empty?)
     ]
   end

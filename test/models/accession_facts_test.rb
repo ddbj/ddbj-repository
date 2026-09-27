@@ -38,6 +38,15 @@ class AccessionFactsTest < ActiveSupport::TestCase
     )
   end
 
+  test 'a DRA submission is its accession alone' do
+    facts = AccessionFacts.for(dra_submissions(:dra))
+
+    assert_equal 'DRA000001', facts.accession
+    assert_equal 'dra',       facts.db
+    assert_nil                facts.name
+    assert_equal [],          facts.details
+  end
+
   # Nothing else is an accessioned row, and being handed one is a
   # programming mistake rather than a state to render.
   test 'anything else is refused' do

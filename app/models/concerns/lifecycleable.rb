@@ -38,4 +38,10 @@ module Lifecycleable
 
     def retracted? = status.in?(RETRACTED)
   end
+
+  class_methods do
+    # What a curator may put this kind of row into from a screen. Every
+    # status, unless the model says otherwise (Entry).
+    def settable_statuses = STATUSES.keys
+  end
 end

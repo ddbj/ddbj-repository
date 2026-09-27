@@ -4,7 +4,7 @@
 
 <p>
   A DDBJ curator (<%= @curator.uid %>) has posted a message on your
-  <%= @request.db.humanize %> request
+  <%= Submission.db_label(@request.db) %> request
   (<%= @request.submission&.source_id.presence || "##{@request.id}" %>):
 </p>
 

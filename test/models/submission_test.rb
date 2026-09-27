@@ -597,4 +597,18 @@ class SubmissionTest < ActiveSupport::TestCase
 
     assert submission.flatfile_behind_statuses?
   end
+
+  # --- curation rows ------------------------------------------------------
+
+  test 'a DRA submission is curated as its one row, like a BioProject' do
+    submission = submissions(:dra)
+
+    assert_equal [dra_submissions(:dra)], submission.curation_rows.to_a
+    assert_equal ['DRA000001', 1],        submission.accession_summary
+    assert_equal 'DRA submission',        submission.curation_row_noun
+  end
+
+  test 'every database has a label people read' do
+    assert_equal Submission.dbs.keys.sort, Submission::DB_LABELS.keys.sort
+  end
 end

@@ -47,33 +47,29 @@ class CurationState
     }
   end
 
-  # {submission_id => RowSummary} over the BP Projects, BS Samples and
-  # ST.26 Entries of the given submissions — one grouped query per model.
-  # Submissions with no rows are absent, which `batch` reads as
-  # EMPTY_ROW_SUMMARY.
+  # {submission_id => RowSummary} over the BP Projects, DRA
+  # DRASubmissions, BS Samples and ST.26 Entries of the given submissions —
+  # one grouped query per model. Submissions with no rows are absent, which
+  # `batch` reads as EMPTY_ROW_SUMMARY.
   def self.row_summaries(submissions)
     names = Lifecycleable::STATUSES.invert
 
-    [[Project, submissions.select(&:bioproject_db?)],
-     [Sample,  submissions.select(&:biosample_db?)],
-     [Entry,   submissions.select(&:st26_db?)]]
-      .flat_map {|model, subs|
-        next [] if subs.empty?
+    summaries = submissions.group_by(&:db).flat_map {|db, subs|
+      Submission.curation_row_models.fetch(db)
+        .where(submission_id: subs.map(&:id))
+        .group(:submission_id)
+        .pluck(:submission_id,
+               Arel.sql('COUNT(*) AS row_count'),
+               Arel.sql('ARRAY_AGG(DISTINCT status) AS statuses'),
+               Arel.sql('COUNT(accession) AS accessioned_count'))
+    }
 
-        model
-          .where(submission_id: subs.map(&:id))
-          .group(:submission_id)
-          .pluck(:submission_id,
-                 Arel.sql('COUNT(*) AS row_count'),
-                 Arel.sql('ARRAY_AGG(DISTINCT status) AS statuses'),
-                 Arel.sql('COUNT(accession) AS accessioned_count'))
-      }
-      # ARRAY_AGG bypasses the enum's type cast, so the statuses come back
-      # as the raw integers the column stores; the rest of this class
-      # compares them by name.
-      .to_h {|sid, count, statuses, accessioned_count|
-        [sid, RowSummary.new(count:, statuses: statuses.compact.map { names.fetch(it, it) }, accessioned_count:)]
-      }
+    # ARRAY_AGG bypasses the enum's type cast, so the statuses come back
+    # as the raw integers the column stores; the rest of this class
+    # compares them by name.
+    summaries.to_h {|sid, count, statuses, accessioned_count|
+      [sid, RowSummary.new(count:, statuses: statuses.compact.map { names.fetch(it, it) }, accessioned_count:)]
+    }
   end
 
   # `viewer` is the curator the screen is being drawn for, where there is
@@ -95,8 +91,8 @@ class CurationState
   # --- curation rows -------------------------------------------------
 
   # `nil` for a request that has not been applied yet — every database
-  # answers with its own rows once it has (BP its Project, BS its
-  # Samples, ST.26 its Entries).
+  # answers with its own rows once it has (BP its Project, DRA its
+  # DRASubmission, BS its Samples, ST.26 its Entries).
   def rows = @rows ||= submission&.curation_rows
 
   # How many rows hold each status, as one grouped query. The tab that
@@ -149,7 +145,7 @@ class CurationState
     @first_accession ||= rows && rows.where.not(accession: nil).minimum(:accession)
   end
 
-  def issuable_count = @issuable_count ||= rows ? AccessionIssue.issuable(rows).count : 0
+  def issuable_count = @issuable_count ||= rows && AccessionIssue.supported?(submission) ? AccessionIssue.issuable(rows).count : 0
 
   def issuable? = issuable_count.positive?
 
@@ -280,7 +276,5 @@ class CurationState
     end
   end
 
-  def accession_prefix
-    submission&.bioproject_db? ? 'PRJDB' : 'SAMD'
-  end
+  def accession_prefix = AccessionIssue::PREFIXES.fetch(submission.db)
 end

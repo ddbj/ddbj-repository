@@ -4,7 +4,8 @@ class SubmissionRequest < ApplicationRecord
   enum :db, {
     st26:       'st26',
     bioproject: 'bioproject',
-    biosample:  'biosample'
+    biosample:  'biosample',
+    dra:        'dra'
   }, suffix: true, validate: true
 
   belongs_to :user
@@ -132,11 +133,13 @@ class SubmissionRequest < ApplicationRecord
     sanitize_sql_array([<<~SQL.squish, sids:, applied: statuses.fetch('applied')])
       submission_requests.closed_at IS NOT NULL OR (
         (
-          EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id) OR
-          EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id)
+          EXISTS (SELECT 1 FROM projects        WHERE projects.submission_id        = submission_requests.submission_id) OR
+          EXISTS (SELECT 1 FROM dra_submissions WHERE dra_submissions.submission_id = submission_requests.submission_id) OR
+          EXISTS (SELECT 1 FROM samples         WHERE samples.submission_id         = submission_requests.submission_id)
         ) AND
-        NOT EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id AND projects.status NOT IN (:sids)) AND
-        NOT EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id AND samples.status  NOT IN (:sids))
+        NOT EXISTS (SELECT 1 FROM projects        WHERE projects.submission_id        = submission_requests.submission_id AND projects.status        NOT IN (:sids)) AND
+        NOT EXISTS (SELECT 1 FROM dra_submissions WHERE dra_submissions.submission_id = submission_requests.submission_id AND dra_submissions.status NOT IN (:sids)) AND
+        NOT EXISTS (SELECT 1 FROM samples         WHERE samples.submission_id         = submission_requests.submission_id AND samples.status         NOT IN (:sids))
       ) OR (
         submission_requests.db = 'st26' AND submission_requests.status = :applied
       )
@@ -226,6 +229,12 @@ class SubmissionRequest < ApplicationRecord
   # wrap an already-materialised submission and have no upload, so the
   # attachment rule is waived for them.
   validates :ddbj_record, attached: true, content_type: 'application/json', unless: :migration_origin?
+
+  # The databases a submitter can send a record for. DRA arrives only from
+  # D-way until the repository takes its reads itself.
+  SUBMITTABLE_DBS = %w[st26 bioproject biosample].freeze
+
+  validates :db, inclusion: {in: SUBMITTABLE_DBS, message: 'does not take submissions here yet'}, unless: :migration_origin?
 
   def migration_origin?
     migration_run_id.present?

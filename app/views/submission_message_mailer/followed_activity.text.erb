@@ -1,5 +1,5 @@
 <% app_url = Rails.application.config_for(:app).app_url! -%>
-<%= @message.user.uid %> replied to the submitter (<%= @request.user.uid %>) on <%= @request.db.humanize %> request (<%= @request.submission&.source_id.presence || "##{@request.id}" %>), which you are following:
+<%= @message.user.uid %> replied to the submitter (<%= @request.user.uid %>) on <%= Submission.db_label(@request.db) %> request (<%= @request.submission&.source_id.presence || "##{@request.id}" %>), which you are following:
 
 <% if @message.body.present? -%>
 <%= @message.body.lines.map { "  #{it}" }.join.chomp %>

@@ -45,7 +45,7 @@ module SetContents
 
   def load_set_contents
     scope = @set.inclusions
-                  .includes(submission_request: [:user, {submission: :project}])
+                  .includes(submission_request: [:user, {submission: %i[project dra_submission]}])
                   .order(:created_at, :id)
 
     @inclusions = paginate(scope)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_27_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -99,6 +99,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_27_000001) do
     t.datetime "created_at", null: false
     t.string "subject", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "dra_submissions", force: :cascade do |t|
+    t.string "accession"
+    t.datetime "created_at", null: false
+    t.date "dist_date"
+    t.date "hold_date"
+    t.date "release_date"
+    t.integer "status", default: 5100, null: false
+    t.bigint "submission_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["accession"], name: "index_dra_submissions_on_accession", unique: true, where: "(accession IS NOT NULL)"
+    t.index ["status"], name: "index_dra_submissions_on_status"
+    t.index ["submission_id"], name: "index_dra_submissions_on_submission_id", unique: true
   end
 
   create_table "entries", force: :cascade do |t|
@@ -523,6 +537,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_27_000001) do
   add_foreign_key "curation_events", "submission_updates", on_delete: :nullify
   add_foreign_key "curation_events", "submissions"
   add_foreign_key "distribution_notices", "users"
+  add_foreign_key "dra_submissions", "submissions"
   add_foreign_key "entries", "submissions"
   add_foreign_key "entry_histories", "entries"
   add_foreign_key "entry_histories", "users"

@@ -412,9 +412,26 @@ class AccessionIssueTest < ActiveSupport::TestCase
 
   # --- ST26 ---
 
-  test 'refuses st26 submissions (no Project or Sample to stamp)' do
-    assert_raises AccessionIssue::Refused do
+  test 'refuses st26 submissions, whose numbers come with Apply' do
+    error = assert_raises(AccessionIssue::Refused) {
       AccessionIssue.call(submission: submissions(:st26), actor: 'test')
+    }
+
+    assert_equal 'ST.26 accessions are allocated when the file is applied, not issued here.', error.message
+  end
+
+  # --- DRA ---
+
+  # Its numbers are still D-way's. A row the importer left without one is
+  # not something to allocate for here.
+  test 'refuses DRA submissions, and does not call their row issuable' do
+    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+
+    refute AccessionIssue.supported?(submissions(:dra))
+    assert_equal 0, CurationState.new(submission_requests(:dra)).issuable_count
+
+    assert_raises AccessionIssue::Refused do
+      AccessionIssue.call(submission: submissions(:dra), actor: 'test')
     end
   end
 end

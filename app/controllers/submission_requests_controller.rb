@@ -22,7 +22,7 @@ class SubmissionRequestsController < ApplicationController
   def index
     owned = current_user.submission_requests
 
-    scope = owned.includes(:validation, submission: :project)
+    scope = owned.includes(:validation, submission: %i[project dra_submission])
     scope = filter_by_phase(scope, params[:phase])
     scope = filter_by_db(scope, params[:db])               if params[:db].present?
     scope = filter_by_status(scope, params[:status])       if params[:status].present?

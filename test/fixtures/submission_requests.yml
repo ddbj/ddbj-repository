@@ -12,3 +12,11 @@ biosample:
   user: alice
   submission: biosample
   db: biosample
+
+# As the D-way import leaves one: applied, and marked with the run.
+dra:
+  user: alice
+  submission: dra
+  db: dra
+  status: applied
+  migration_run_id: 7a1c2e4b-0d6f-4f8e-9b3a-5c2d1e0f9a87

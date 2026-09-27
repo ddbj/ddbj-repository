@@ -248,6 +248,16 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     assert_includes SubmissionRequest.unfinished, request
   end
 
+  test 'a DRA request is finished once its submission is public' do
+    request = submission_requests(:dra)
+
+    assert_includes SubmissionRequest.unfinished, request
+
+    dra_submissions(:dra).update!(status: 'public')
+
+    assert_includes SubmissionRequest.finished, request
+  end
+
   # Withdrawn / canceled / permanently suppressed records are done with
   # too — showing them among the live ones implies work is still pending.
   test 'a withdrawn record counts as finished' do
@@ -309,5 +319,20 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     set.inclusions.create!(submission_request: theirs, added_by: carol)
 
     assert_not_includes SubmissionRequest.readable_by(alice), theirs
+  end
+
+  # --- databases ---------------------------------------------------------
+
+  # DRA submissions come from D-way until the repository takes reads.
+  test 'a DRA request is refused unless the migration made it' do
+    request = SubmissionRequest.new(user: users(:alice), db: 'dra')
+    attach_ddbj_record(request)
+
+    refute request.valid?
+    assert_includes request.errors[:db], 'does not take submissions here yet'
+
+    request.migration_run_id = SecureRandom.uuid
+
+    assert request.valid?
   end
 end
