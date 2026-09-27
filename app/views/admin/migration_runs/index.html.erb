@@ -82,7 +82,7 @@
         <td colspan="6">
           <% if @db %>
             <%= empty_state :filtered, "No runs for #{db_label(@db)} yet." do %>
-              <%= link_to 'Show both databases', admin_migration_runs_path, class: 'btn btn-sm btn-outline-secondary' %>
+              <%= link_to 'Show every database', admin_migration_runs_path, class: 'btn btn-sm btn-outline-secondary' %>
             <% end %>
           <% else %>
             <%= empty_state :first_run, 'No migration runs yet.',

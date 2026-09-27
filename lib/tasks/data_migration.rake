@@ -317,9 +317,9 @@ namespace :data_migration do
     puts "Done. status=#{run.status} " + run.counters.map {|k, v| "#{k}=#{v}" }.join(' ')
   end
 
-  # DRA submissions past the draft with nothing to import (never sent: no
-  # valid group). One reason today, `no_versions` — in practice the ones
-  # cancelled while still being written.
+  # DRA submissions past the draft with nothing to import: never sent
+  # (`no_versions`), or cancelled before their accessions were issued
+  # (`no_accession`). See DRA::StagingClient#enumerate_excluded.
   desc 'Dump excluded DRA submissions to CSV for curator review'
   task :dump_excluded_dra, %i[output_path] => :environment do |_, args|
     DataMigration::DumpExcluded.call(

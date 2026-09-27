@@ -9,7 +9,7 @@ class DRA::StagingClientTest < ActiveSupport::TestCase
 
   def at(time) = Time.zone.parse("2025-#{time}")
 
-  def member(acc_id, acc_type) = Member.new(acc_id:, acc_type:, acc_no: acc_id)
+  def member(acc_id, acc_type, deleted: false) = Member.new(acc_id:, acc_type:, acc_no: acc_id, deleted:)
 
   setup do
     submission  = member(1, 'DRA')
@@ -38,7 +38,7 @@ class DRA::StagingClientTest < ActiveSupport::TestCase
       [401, 4, 'experiment', '06-04 11:23:33'], [402, 4, 'experiment', '06-04 14:53:01'],
       [501, 5, 'run',        '06-04 11:23:33'], [502, 5, 'run',        '06-04 14:30:01'], [503, 5, 'run', '06-04 14:53:01'],
       [601, 6, 'run',        '05-31 13:57:47']
-    ].map { Meta.new(meta_id: _1, acc_id: _2, kind: _3, saved_at: at(_4)) }
+    ].map { Meta.new(meta_id: _1, acc_id: _2, meta_version: _1 % 100, kind: _3, saved_at: at(_4)) }
   end
 
   test 'each save is a version, holding the objects of the send that followed it' do
@@ -60,10 +60,37 @@ class DRA::StagingClientTest < ActiveSupport::TestCase
   end
 
   test 'a save that leaves every document as it stood is no version' do
-    metas = @metas + [Meta.new(meta_id: 602, acc_id: 6, kind: 'run', saved_at: at('06-10 09:00:00'))]
+    metas = @metas + [Meta.new(meta_id: 602, acc_id: 6, meta_version: 2, kind: 'run', saved_at: at('06-10 09:00:00'))]
 
     states = DRA::StagingClient.states(groups: @groups, members: @members, metas:)
 
     assert_not_includes states.map(&:first), at('06-10 09:00:00')
+  end
+
+  # Deleted after the last send: still in its group, marked, with no date.
+  test 'an object deleted after the last send leaves what was saved after it' do
+    members = @members.merge(12 => @members[12].map { it.acc_id == 5 ? member(5, 'DRR', deleted: true) : it })
+
+    states = DRA::StagingClient.states(groups: @groups, members:, metas: @metas)
+
+    assert_includes states.to_h.fetch(at('06-04 14:30:01')).map(&:meta_id), 502
+    assert_equal [104, 203, 402, 304], states.to_h.fetch(at('06-27 08:36:53')).map(&:meta_id)
+  end
+
+  test 'two versions saved in the same instant are told apart by their number' do
+    metas = @metas + [Meta.new(meta_id: 105, acc_id: 1, meta_version: 5, kind: 'submission', saved_at: at('06-27 08:36:53'))]
+
+    states = DRA::StagingClient.states(groups: @groups, members: @members, metas: metas.reverse)
+
+    assert_equal 105, states.last.last.first.meta_id
+  end
+
+  # A handful of versions in drmdb are dated before the one they follow.
+  test 'the highest version saved by then stands, even one dated before its predecessor' do
+    metas = @metas + [Meta.new(meta_id: 199, acc_id: 1, meta_version: 9, kind: 'submission', saved_at: at('06-27 08:00:00'))]
+
+    states = DRA::StagingClient.states(groups: @groups, members: @members, metas:)
+
+    assert_equal 199, states.last.last.first.meta_id, 'version 4, saved later, does not put version 9 back'
   end
 end

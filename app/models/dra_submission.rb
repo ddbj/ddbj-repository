@@ -1,7 +1,8 @@
 class DRASubmission < ApplicationRecord
   include Lifecycleable
 
-  ACCESSION_FORMAT = /\ADRA\d{6,}\z/
+  # SRA for the 27 early submissions D-way numbers under that prefix.
+  ACCESSION_FORMAT = /\A[DS]RA\d{6,}\z/
 
   belongs_to :submission
 

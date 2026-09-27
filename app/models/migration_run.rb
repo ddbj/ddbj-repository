@@ -9,8 +9,9 @@
 # discard a Continuable retry; see DataMigration::SyncJob).
 #
 # `uuid` is the value passed to the importers (BioProject::Importer,
-# BioSample::Importer, DRA::Importer) as `migration_run_id:`, so the admin show can pivot to the touched
-# Submissions via `Submission.where(migration_run_id: uuid)`.
+# BioSample::Importer, DRA::Importer) as `migration_run_id:`, so the admin
+# show can pivot to the touched Submissions via
+# `Submission.where(migration_run_id: uuid)`.
 class MigrationRun < ApplicationRecord
   DBS = %w[bioproject biosample dra].freeze
 

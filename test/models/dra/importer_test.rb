@@ -45,6 +45,7 @@ class DRA::ImporterTest < ActiveSupport::TestCase
 
     assert_equal 'applied', submission.request.status
     assert submission.request.migration_origin?
+    assert_equal Time.zone.parse('2010-01-01 10:00'), submission.request.created_at, 'dated by the first send, not the import'
   end
 
   # D-way moves a submission along by its status, not by a new version.
@@ -90,10 +91,52 @@ class DRA::ImporterTest < ActiveSupport::TestCase
 
   # A document the converter refuses stops the submission rather than
   # importing the versions before it: a history with a hole is not one.
-  test 'a version that does not convert imports nothing' do
+  # Nothing is stored for it either — the patches are written only once
+  # every version has converted.
+  test 'a version that does not convert imports nothing, and stores nothing' do
     broken = row(versions: [version('2010-01-01 10:00'), version('2010-02-01 10:00', documents + ['<SAMPLE alias="x"><FOO/></SAMPLE>'])])
 
-    assert_raises(DRA::Converter::Unmapped) { import(broken) }
+    assert_no_difference -> { ActiveStorage::Blob.count } do
+      assert_raises(DRA::Converter::Unmapped) { import(broken) }
+    end
+
     assert_not Submission.dra_db.where(source_id: 'DRA000072').exists?
+  end
+
+  # A version that changes nothing the record says is still read. Were it
+  # not, every run would read it again — and once a curator had edited the
+  # record, diff it against the edit and write the edit away.
+  test 'a curator edit survives a run that has nothing new from D-way' do
+    reformatted = documents.map { it.gsub('><', ">\n<") }
+    submission  = import(row(versions: [version('2010-01-01 10:00'), version('2010-02-01 10:00', reformatted)])).submission
+
+    edited = submission.materialised_record.deep_dup.tap { it['projects'][0]['title'] = 'Fixed by a curator' }
+    submission.append_update!(edited, actor: 'admin:bob', source: :manual)
+
+    assert_equal :skipped, import(row(versions: [version('2010-01-01 10:00'), version('2010-02-01 10:00', reformatted)])).outcome
+    assert_equal 'Fixed by a curator', submission.reload.materialised_record.dig('projects', 0, 'title')
+  end
+
+  # D-way is where DRA is edited until the repository takes it, so a
+  # version saved there wins — and is dated after the edit it writes over,
+  # not before it.
+  test 'a version from D-way after a curator edit is written over it, dated after it' do
+    submission = import(row).submission
+
+    edited = submission.materialised_record.deep_dup.tap { it['projects'][0]['title'] = 'Fixed by a curator' }
+    manual = submission.append_update!(edited, actor: 'admin:bob', source: :manual)
+
+    import(row(versions: row.versions + [version('2010-03-01 10:00', retitled('Changed in D-way'))]))
+
+    latest = submission.updates.order(:id).last
+
+    assert_equal 'Changed in D-way', submission.reload.materialised_record.dig('projects', 0, 'title')
+    assert_operator latest.created_at, :>=, manual.created_at
+  end
+
+  test 'a status the import does not know is refused by name' do
+    error = assert_raises(ArgumentError) { import(row(status: 450)) }
+
+    assert_match 'unknown DRA status 450', error.message
   end
 end

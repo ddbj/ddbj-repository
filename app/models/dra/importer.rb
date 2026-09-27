@@ -7,11 +7,16 @@
 # saved.
 #
 # Re-running brings the chain up to D-way: the versions saved after the
-# last one imported are appended, and nothing else is written to it. The
-# DRASubmission row is D-way's account of where the submission stands
-# (status and dates), and is refreshed on every run, since those move in
-# D-way without a new version — a submission goes public by its status
-# changing, not its XML.
+# last one read (DRASubmission#version_saved_at) are appended, and nothing
+# else is written to it. D-way is where DRA is edited until the repository
+# takes submissions itself, so a version saved there after a curator's edit
+# here is written over that edit, as the BioProject and BioSample imports
+# do.
+#
+# The DRASubmission row is D-way's account of where the submission stands
+# (status and dates), and is refreshed on every run: those move in D-way
+# without a new version — a submission goes public by its status changing,
+# not its XML.
 class DRA::Importer
   include DataMigration::ChainImport
 
@@ -39,9 +44,8 @@ class DRA::Importer
     return Result.new(submission: nil, outcome: :no_versions)  if @row.versions.empty?
     return Result.new(submission: nil, outcome: :no_accession) unless @row.accession
 
-    user = User.find_or_create_by!(uid: @row.submitter_id)
-
     Submission.transaction do
+      user       = User.find_or_create_by!(uid: @row.submitter_id)
       submission = Submission.find_or_create_by!(db: :dra, source_id: @row.accession) {|s|
         s.user              = user
         s.migration_run_id  = @migration_run_id
@@ -54,45 +58,71 @@ class DRA::Importer
               "refusing to silently re-attribute to '#{@row.submitter_id}'."
       end
 
-      submission.ensure_migration_request!(migration_run_id: @migration_run_id)
+      submission.ensure_migration_request!(migration_run_id: @migration_run_id, submitted_at: @row.versions.first.saved_at)
 
-      (submission.dra_submission || submission.build_dra_submission).update!(
+      row = submission.dra_submission || submission.build_dra_submission
+
+      row.assign_attributes(
         accession:    @row.accession,
-        status:       STATUSES.fetch(@row.status),
+        status:       STATUSES.fetch(@row.status) { raise ArgumentError, "unknown DRA status #{@row.status.inspect}" },
         hold_date:    @row.hold_date,
         dist_date:    @row.dist_date,
         release_date: @row.release_date
       )
 
-      Result.new(submission:, outcome: append_versions(submission))
+      outcome = append_versions(submission, row)
+
+      row.save!
+
+      Result.new(submission:, outcome:)
     end
   end
 
   private
 
-  # The versions saved after the last one this chain holds, each as a patch
-  # dated when it was saved. A version that changes nothing the record says
-  # adds nothing.
+  # The versions saved after the last one read, each as a patch. A version
+  # that changes nothing the record says adds none, but is read all the
+  # same.
+  #
+  # Every version is converted and diffed before anything is stored: one
+  # that does not convert then leaves no patch objects behind in the store
+  # for a transaction that rolled back.
+  #
+  # A patch is dated when its version was saved, unless the chain already
+  # holds something later — a curator's edit here — which it is written
+  # over now rather than then.
   #
   # A chain written under an older ddbj-canon is healed by the next patch
   # (a root replace, see ChainImport#compute_patch_ops) or by
-  # `rake ddbj_record:reshape_v3`, not by re-importing an old version.
-  def append_versions(submission)
-    imported = submission.updates.where(source: :migration).maximum(:created_at)
-    pending  = @row.versions.select { imported.nil? || it.saved_at > imported }
-    prior    = pending.any? ? safe_prior_materialised(submission) : {}
-    legacy   = submission.legacy_chain?
-    record   = nil
-    update   = nil
+  # `rake ddbj_record:reshape_v3`, not by re-reading an old version.
+  def append_versions(submission, row)
+    pending = @row.versions.select { row.version_saved_at.nil? || it.saved_at > row.version_saved_at }
 
-    pending.each do |version|
+    return :skipped if pending.empty?
+
+    first   = row.version_saved_at.nil?
+    prior   = first ? {} : safe_prior_materialised(submission)
+    legacy  = submission.legacy_chain?
+    record  = nil
+    patches = pending.filter_map {|version|
       record = DRA::Converter.new(documents: version.documents).call
       ops    = compute_patch_ops(prior, record, legacy:)
 
       next if ops.empty?
 
       prior  = DDBJRecord::Canonicalizer.apply(prior, ops)
-      update = SubmissionUpdate.create_with_patch!(
+      legacy = false
+
+      [version.saved_at, ops]
+    }
+
+    row.version_saved_at = pending.last.saved_at
+
+    return :skipped if patches.empty?
+
+    since  = submission.updates.maximum(:created_at)
+    update = patches.map {|saved_at, ops|
+      SubmissionUpdate.create_with_patch!(
         submission:,
         patch_json:              Oj.dump(ops, mode: :strict),
         db:                      'dra',
@@ -100,12 +130,9 @@ class DRA::Importer
         actor:                   "migration:#{@row.submitter_id}",
         source:                  :migration,
         patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER,
-        created_at:              version.saved_at
+        created_at:              [saved_at, since].compact.max
       )
-      legacy = false
-    end
-
-    return :skipped unless update
+    }.last
 
     submission.update_columns(
       canonical_version: DDBJRecord::Canonicalizer::NUMBER,
@@ -117,6 +144,6 @@ class DRA::Importer
 
     submission.prime_cache!(bytes: Oj.dump(prior, mode: :strict), update_id: update.id)
 
-    imported ? :updated : :created
+    first ? :created : :updated
   end
 end

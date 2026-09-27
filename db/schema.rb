@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_28_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_28_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -110,6 +110,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000001) do
     t.integer "status", default: 5100, null: false
     t.bigint "submission_id", null: false
     t.datetime "updated_at", null: false
+    t.datetime "version_saved_at"
     t.index ["accession"], name: "index_dra_submissions_on_accession", unique: true, where: "(accession IS NOT NULL)"
     t.index ["status"], name: "index_dra_submissions_on_status"
     t.index ["submission_id"], name: "index_dra_submissions_on_submission_id", unique: true

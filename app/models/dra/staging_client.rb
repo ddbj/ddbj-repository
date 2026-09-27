@@ -76,21 +76,37 @@ class DRA::StagingClient
     @conn.exec_params(sql, params).column_values(0)
   end
 
-  # Submissions past the draft that have nothing to import: no valid
-  # group, so no version was ever sent. In practice the ones cancelled
-  # while still being written.
+  # Submissions past the draft that have nothing to import:
+  #
+  #   - no_versions: no valid group, so no version was ever sent. In
+  #     practice cancelled while still being written.
+  #   - no_accession: sent, but cancelled before a curator issued the
+  #     accessions — nothing in it was ever numbered.
   def enumerate_excluded
     @conn.exec(<<~SQL).map {|row|
-      SELECT s.sub_id, s.submitter_id, latest.status, s.create_date
-      FROM (#{LATEST_STATUS}) latest
-      JOIN submission s USING (sub_id)
-      WHERE latest.status >= #{ACC_ISSUED}
-        AND NOT EXISTS (SELECT 1 FROM submission_group g WHERE g.sub_id = s.sub_id AND g.valid)
-      ORDER BY s.sub_id
+      WITH classified AS (
+        SELECT s.sub_id, s.submitter_id, latest.status, s.create_date,
+               last.grp_id IS NULL AS unsent,
+               NOT EXISTS (
+                 SELECT 1 FROM accession_relation r JOIN accession_entity a USING (acc_id)
+                 WHERE r.grp_id = last.grp_id AND a.acc_type IN ('DRA', 'SRA') AND a.acc_no IS NOT NULL
+               ) AS unnumbered
+        FROM (#{LATEST_STATUS}) latest
+        JOIN submission s USING (sub_id)
+        LEFT JOIN LATERAL (
+          SELECT grp_id FROM submission_group g WHERE g.sub_id = s.sub_id AND g.valid ORDER BY serial_version DESC LIMIT 1
+        ) last ON true
+        WHERE latest.status >= #{ACC_ISSUED}
+      )
+      SELECT sub_id, submitter_id, status, create_date,
+             CASE WHEN unsent THEN 'no_versions' ELSE 'no_accession' END AS reason
+      FROM classified
+      WHERE unsent OR unnumbered
+      ORDER BY sub_id
     SQL
       Excluded.new(
         sub_id:       row['sub_id'],
-        reason:       'no_versions',
+        reason:       row['reason'],
         submitter_id: row['submitter_id'],
         status:       row['status'],
         create_date:  row['create_date']
@@ -103,7 +119,7 @@ class DRA::StagingClient
   def fetch(sub_id)
     row = @conn.exec_params(<<~SQL, [sub_id]).first or return nil
       SELECT s.sub_id, s.submitter_id, s.hold_date, s.dist_date, s.release_date,
-             (SELECT status FROM status_history h WHERE h.sub_id = s.sub_id ORDER BY date DESC LIMIT 1) AS status
+             (SELECT status FROM status_history h WHERE h.sub_id = s.sub_id ORDER BY date DESC, id DESC LIMIT 1) AS status
       FROM submission s
       WHERE s.sub_id = $1::bigint
     SQL
@@ -126,26 +142,37 @@ class DRA::StagingClient
     )
   end
 
-  Meta   = Data.define(:meta_id, :acc_id, :kind, :saved_at)
-  Member = Data.define(:acc_id, :acc_type, :acc_no)
+  Meta   = Data.define(:meta_id, :acc_id, :meta_version, :kind, :saved_at)
+  Member = Data.define(:acc_id, :acc_type, :acc_no, :deleted)
 
   # Each moment something was saved, with the versions of the documents
   # that stood then (Metas, in KINDS order): for every object of the group
   # the moment belongs to, its latest version saved by then. A moment that
   # leaves the documents as they were is left out.
   #
+  # An object deleted after the last send stays in that group, marked
+  # deleted, with no date for when; it is left out of what was saved after
+  # the send, which is as near as the history can place it.
+  #
   # `groups` are the valid ones, oldest first ({'grp_id', 'date'}),
   # `members` their objects by grp_id, `metas` every version past the
   # draft.
   def self.states(groups:, members:, metas:)
-    by_acc = metas.group_by(&:acc_id)
-    stood  = nil
+    stood   = nil
+    current = {}
 
-    metas.map(&:saved_at).uniq.sort.filter_map {|saved_at|
-      group = groups.find { it['date'] >= saved_at } || groups.last
-      state = Array(members[group['grp_id']]).filter_map {|member|
-        by_acc[member.acc_id]&.select { it.saved_at <= saved_at }&.max_by(&:saved_at)
-      }.sort_by { [KINDS.index(it.kind) || KINDS.size, it.acc_id] }
+    # Walked in the order they were saved, holding each object's highest
+    # version so far — by number, not by time: a handful of versions are
+    # dated before the one they follow.
+    metas.sort_by { [it.saved_at, it.meta_version] }.chunk_while { _1.saved_at == _2.saved_at }.filter_map {|saved|
+      saved.each do |meta|
+        current[meta.acc_id] = meta if (current[meta.acc_id]&.meta_version || -1) < meta.meta_version
+      end
+
+      saved_at = saved.first.saved_at
+      group    = groups.find { it['date'] >= saved_at }
+      stand    = group ? Array(members[group['grp_id']]) : Array(members[groups.last['grp_id']]).reject(&:deleted)
+      state    = stand.filter_map { current[it.acc_id] }.sort_by { [KINDS.index(it.kind) || KINDS.size, it.acc_id] }
 
       next if state.empty? || state.map(&:meta_id) == stood
 
@@ -156,27 +183,34 @@ class DRA::StagingClient
 
   private
 
+  # The id breaks a tie between two statuses written in one second, here and
+  # in #fetch.
   LATEST_STATUS = <<~SQL.squish
-    SELECT DISTINCT ON (sub_id) sub_id, status FROM status_history ORDER BY sub_id, date DESC
+    SELECT DISTINCT ON (sub_id) sub_id, status FROM status_history ORDER BY sub_id, date DESC, id DESC
   SQL
+
+  SUBMISSION_TYPES = %w[DRA SRA].freeze
 
   # {grp_id => [Member]}.
   def members_of(grp_ids)
     return {} if grp_ids.empty?
 
     @conn.exec_params(<<~SQL, [PG::TextEncoder::Array.new.encode(grp_ids)]).group_by { it['grp_id'] }.transform_values {|rows|
-      SELECT r.grp_id, a.acc_id, a.acc_type, a.acc_no
+      SELECT r.grp_id, a.acc_id, a.acc_type, a.acc_no, a.is_delete
       FROM accession_relation r JOIN accession_entity a USING (acc_id)
       WHERE r.grp_id = ANY($1::bigint[])
     SQL
-      rows.map { Member.new(acc_id: it['acc_id'], acc_type: it['acc_type'], acc_no: it['acc_no']) }
+      rows.map { Member.new(acc_id: it['acc_id'], acc_type: it['acc_type'], acc_no: it['acc_no'], deleted: it['is_delete']) }
     }
   end
 
+  # DRA000072 — or SRA002058, for the 27 early submissions D-way numbers
+  # under SRA. Nil where the number was never issued: a submission cancelled
+  # after it was sent but before a curator issued its accessions.
   def accession_of(members)
-    member = members&.find { it.acc_type == 'DRA' } or return nil
+    member = members&.find { SUBMISSION_TYPES.include?(it.acc_type) }
 
-    format('DRA%06d', member.acc_no)
+    format('%s%06d', member.acc_type, member.acc_no) if member&.acc_no
   end
 
   def versions(groups, members)
@@ -191,16 +225,15 @@ class DRA::StagingClient
   end
 
   # Every version past the draft (meta_version 0 is what was being written
-  # before the first send), oldest first.
+  # before the first send).
   def metas_of(acc_ids)
     return [] if acc_ids.empty?
 
     @conn.exec_params(<<~SQL, [PG::TextEncoder::Array.new.encode(acc_ids)]).map {
-      SELECT meta_id, acc_id, type, date FROM meta_entity
+      SELECT meta_id, acc_id, meta_version, type, date FROM meta_entity
       WHERE acc_id = ANY($1::bigint[]) AND meta_version > 0
-      ORDER BY acc_id, meta_version
     SQL
-      Meta.new(meta_id: it['meta_id'], acc_id: it['acc_id'], kind: it['type'], saved_at: it['date'])
+      Meta.new(meta_id: it['meta_id'], acc_id: it['acc_id'], meta_version: it['meta_version'], kind: it['type'], saved_at: it['date'])
     }
   end
 
