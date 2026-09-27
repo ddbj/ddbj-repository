@@ -3,7 +3,7 @@
 module DDBJRecord
   module Canonicalizer
     # Structural diff of two ALREADY-CANONICAL trees, in time linear in their
-    # size.
+    # size (apart from sorting a keyed array's keys).
     #
     # A general array diff aligns two arrays by comparing every element of
     # one with every element of the other; json-diff, which this walker
@@ -24,6 +24,13 @@ module DDBJRecord
     # - `bag`: an element is its content (§3.1), so a changed element is a
     #   `remove` of the old one and an `add` of the new — never a patch into
     #   one, which the patch verifier rejects.
+    #
+    # The pairing by position has a limit: a run changed at both ends (an
+    # insert at the front and an edit at the back) has no common prefix or
+    # suffix, so every element between is paired with its neighbour and gets
+    # an op — correct, but as large as the run. No run that long is stored
+    # yet; aligning by content (Myers' O(ND) diff) is to come before the Trad
+    # lists (entries, features) are (canonical-json.md §4.2.1).
     #
     # Ops are emitted against the array as it is being mutated, so the walks
     # keep a cursor on the working position: a removal leaves it where it is,

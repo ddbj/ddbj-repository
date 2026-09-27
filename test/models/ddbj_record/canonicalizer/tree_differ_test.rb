@@ -84,9 +84,8 @@ class DDBJRecord::Canonicalizer::TreeDifferTest < ActiveSupport::TestCase
     assert_equal C.canonical_tree(after), round_trip(before, after)
   end
 
-  # An N×M alignment of arrays (json-diff, which this walker replaced) made
-  # this shape
-  # took ~180 s at 8,000 elements. The assertion is correctness; the
+  # Aligned N×M (json-diff, which this walker replaced), this shape took
+  # ~180 s at 8,000 elements. The assertion is correctness; the
   # generous bound is only here to fail loudly if the quadratic path
   # returns.
   test 'a large keyed array diffs in linear time' do

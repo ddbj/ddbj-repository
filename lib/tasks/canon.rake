@@ -68,16 +68,16 @@ namespace :canon do
     ]
 
     expected_keys = {
-      '/samples'                     => [%w[alias],               'written'],
-      '/datasets'                    => [%w[alias],               'written'],
-      '/experiments'                 => [%w[alias],               'written'],
-      '/runs'                        => [%w[alias],               'written'],
-      '/analyses'                    => [%w[alias],               'written'],
-      '/features'                    => [%w[alias],               'written'],
-      '/relations'                   => [relation_key,            'content'],
-      '/samples/0/attributes'        => [%w[name unit],           'content'],
-      '/projects/0/publications'     => [%w[doi pubmed_id title], 'content'],
-      '/projects/0/grants'           => [%w[id title agency],     'content'],
+      '/samples'                     => [%w[alias],                      'written'],
+      '/datasets'                    => [%w[alias],                      'written'],
+      '/experiments'                 => [%w[alias],                      'written'],
+      '/runs'                        => [%w[alias],                      'written'],
+      '/analyses'                    => [%w[alias],                      'written'],
+      '/features'                    => [%w[alias],                      'written'],
+      '/relations'                   => [relation_key,                   'content'],
+      '/samples/0/attributes'        => [%w[name unit],                  'content'],
+      '/projects/0/publications'     => [%w[doi pubmed_id title],        'content'],
+      '/projects/0/grants'           => [%w[id title agency],            'content'],
       '/access_control/dac/contacts' => [%w[email last_name first_name], 'content']
     }.freeze
 

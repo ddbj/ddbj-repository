@@ -80,6 +80,23 @@ class DDBJRecord::Canon::RegistrySchemaTest < ActiveSupport::TestCase
     assert_empty unregistered
   end
 
+  # A diff indexes into the order `for_diff` stripping leaves, while the stored
+  # state is sorted on the unstripped elements. Where elements are sorted by
+  # their content (a bag, or equal keys under `ties: content`), a volatile
+  # field inside one could order the two differently, and a removal would
+  # take the wrong element.
+  test 'no volatile path falls inside an element sorted by its content' do
+    by_content = REGISTRY.fetch('arrays').filter_map {|path, rule|
+      path if rule['mode'] == 'bag' || (rule['mode'] == 'keyed' && rule.fetch('ties', 'content') == 'content')
+    }
+
+    inside = PLACES.keys.select {|place| by_content.any? { self.class.pattern("#{it}/*/**").match?(place) } }
+
+    REGISTRY.fetch('volatile_paths').each do |volatile|
+      assert_empty inside.grep(self.class.pattern(volatile)), "#{volatile} falls inside an element sorted by its content"
+    end
+  end
+
   REGISTRY.fetch('arrays').each_key do |path|
     test "array mode #{path} names an array of the schema" do
       assert_includes self.class.types_at(path), 'array', "#{path} matches no array of the v3 schema"

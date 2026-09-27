@@ -9,7 +9,7 @@
 **Within v3 (2026-09-27), no bump (§3.4).** Every list of the v3 schema is registered, and the lists of objects are keyed on `alias` with equal aliases kept in the order written (`ties: written`, §3.1):
 
 - `/experiments`, `/runs`, `/analyses` and `/features` were bags and are keyed on `(alias,)`; `/datasets` was already keyed on `(alias,)` in the registry (this document said `(alias, accession)`) and takes `ties: written`. A relation's `index` counts among the objects of one kind that share an alias (ddbj/ddbj-record-specifications#18), and a list sorted on alias with equal aliases in written order keeps that count — a bag moved it (§7.0 had this open). None of these lists is in a stored record: only BioProject and BioSample records are stored, and neither holds them.
-- `/samples` keeps its key `(alias,)` and takes `ties: written` in place of the content hash. This changes no stored byte: a stored state is already in canonical order, and keeping equal aliases in the order they stand returns it unchanged. What differs is where a fresh input's equal aliases first land — in the order written, rather than by content hash — and only an import of a changed source sees that, as one reordering among them.
+- `/samples` keeps its key `(alias,)` and takes `ties: written` in place of the content hash. This changes no stored byte: a stored state is already in canonical order, and keeping equal aliases in the order they stand returns it unchanged. What differs is where a fresh input's equal aliases land — in the order written, rather than by content hash — which any new input shows (an import of a changed source, a TSV import, an upload), as one reordering among them.
 - The 73 other lists of the schema (SRA, GEA and JGA sub-lists, identifiers, comments, …) are ordered: written order is what the spec keeps on a round trip, and they are small, so it costs a diff nothing. None is in a BioProject or BioSample record. `test/models/ddbj_record/canon/registry_schema_test.rb` checks that every list is registered and that every registry path is one of the schema.
 - The differ (`TreeDiffer`) pairs elements by each array's mode in linear time: an ordered or equal-key run is trimmed of its common prefix and suffix and paired by position between, and a changed bag element is removed and the new one added, as §3.1 rule 1 requires (a patch into it had been emitted and then refused, falling back to a root snapshot). It no longer hands arrays to json-diff.
 
@@ -158,7 +158,7 @@ Paths: every list of the schema not keyed or bagged below — the registry lists
 
 #### keyed
 
-Order is by a stable key tuple. Tuple components are normalized via §2.2 single-line rules **on both sides of every comparison**, then JCS-serialized as a JSON array, then byte-compared as UTF-8. (RFC 8785's UTF-16 ordering applies only to object keys, not to keyed-array tuples; UTF-8 is chosen for portability with content-addressing.) Missing or empty components coerce to `''` (key absent, or value dropped under §2.5); `‖ ''` in the table is shorthand for this.
+Order is by a stable key tuple. Tuple components are the canonical values (each normalized by its own string class, §2.2) and are compared component by component as UTF-8 byte strings, the first differing component deciding. (RFC 8785's UTF-16 ordering applies only to object keys, not to keyed-array tuples; UTF-8 is chosen for portability with content-addressing.) Missing or empty components coerce to `''` (key absent, or value dropped under §2.5); `‖ ''` in the table is shorthand for this.
 
 | Path | Key tuple |
 |---|---|
@@ -221,7 +221,7 @@ canonicalize(record, *, for_diff: bool = False)
 
 ### 4.2.1 Diff Cost
 
-Aligning two arrays by similarity is quadratic, and a BioSample submission carries up to 10^5 `/samples` elements. It is also unnecessary: a `keyed` array declares its identity in the registry and canonicalization has already sorted both sides by it, so the alignment is known before the diff starts. Implementations SHOULD merge-join keyed arrays on the key and recurse only into matched pairs, falling back to similarity alignment for `ordered` / `bag` arrays, which are small by construction. Measured on this implementation at 8,000 samples: 181 s before, 5.9 s after.
+Aligning two arrays by similarity is quadratic, and a BioSample submission carries up to 10^5 `/samples` elements. It is also unnecessary: a `keyed` array declares its identity in the registry and canonicalization has already sorted both sides by it, so the alignment is known before the diff starts. Implementations SHOULD pair elements by each array's mode instead: merge-join `keyed` arrays on the key; for an `ordered` array, and for the elements of one key under `ties: written`, trim the common prefix and suffix and pair the rest by position; for a `bag`, remove the elements that went and add those that came (§3.1 rule 1). Measured on this implementation at 8,000 samples: 181 s by similarity alignment, 5.9 s merge-joined. The positional pairing has a known limit: a run changed at both ends (an insert at the front and an edit at the back) pairs every element in between, emitting an op per element — correct, but larger than the change. No such run is stored yet; aligning runs by content (Myers' O(ND)) is to come before the Trad lists are.
 
 ### 4.3 Stripped Paths (`ddbj-canon/v3`, `for_diff=True`)
 
@@ -298,7 +298,7 @@ At `spec/fixtures/canonical_json/`, one directory per fixture (`input.json`, `ex
 
 The string classes below record the classification this specification intends. The registry implements single-line only for the paths it lists under `strings.paths` (`schema/canon/array-modes.yml`); every other string here marked SL is multi-line in `ddbj-canon/v2` and `v3` alike. Aligning them is left to a later version rather than folded into v3: collapsing whitespace in an `alias` or an attribute `name` changes the key a stored keyed array is sorted by, which wants its own migration.
 
-Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; an unlisted array is ordered unless named keyed or bag here (the registry lists every array of the schema).
+Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; an array this table does not list is ordered (the registry lists every array of the schema; one missing from the registry would sort as a bag, §3.1).
 
 ### Top-Level
 
