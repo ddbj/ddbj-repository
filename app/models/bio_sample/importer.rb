@@ -275,6 +275,12 @@ module BioSample
     # alias — where the alias names one sample on both sides; a repeated one
     # cannot say which is which, and that row keeps the conversion's values.
     #
+    # Aliases are compared normalised (Sample.normalise_name: D-way's runs of
+    # spaces are stored collapsed), and the row takes the alias as the stored
+    # record spells it — which is what the TSV import, accession issuance and
+    # the public XML look samples up by. A row the stored record cannot name
+    # takes the conversion in the form the record would store it.
+    #
     # An accession is never taken away: one D-way has stays when the stored
     # record lacks it (a chain from before accessions were diffed).
     #
@@ -287,14 +293,15 @@ module BioSample
       staging_samples  = @row.samples
       existing_samples = submission.samples.order(:id).to_a
 
-      unique  = (v3_samples.map { it['alias'] }.tally.select { _2 == 1 }.keys & stored_samples.map { it['alias'] }.tally.select { _2 == 1 }.keys).to_set
-      by_name = stored_samples.select { unique.include?(it['alias']) }.index_by { it['alias'] }
+      name    = ->(sample) { Sample.normalise_name(sample['alias']) }
+      unique  = (v3_samples.map(&name).tally.select { _2 == 1 }.keys & stored_samples.map(&name).tally.select { _2 == 1 }.keys).to_set
+      by_name = stored_samples.select { unique.include?(name.(it)) }.index_by(&name)
 
       v3_samples.zip(staging_samples).each_with_index do |(converted, staging), idx|
-        v3    = by_name.fetch(converted['alias'], converted)
+        v3    = by_name[name.(converted)] || canonical_sample(converted)
         attrs = {
           accession:     v3['accession'] || converted['accession'],
-          sample_name:   v3['alias'],
+          sample_name:   v3['alias'].presence || converted['alias'],
           status:        map_status(staging.status_id),
           title:         v3['title'],
           package:       v3['package'],
@@ -323,6 +330,10 @@ module BioSample
       # this the typed-column view drifts away from the materialised v3
       # record forever.
       existing_samples[v3_samples.length..].to_a.each(&:destroy)
+    end
+
+    def canonical_sample(sample)
+      canonical({'samples' => [sample]}).dig('samples', 0)
     end
 
     # BS staging is entirely on the new 5xxx Lifecycleable codes (verified

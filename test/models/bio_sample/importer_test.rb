@@ -61,6 +61,42 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal 'sample-1',             sample.title
   end
 
+  test 'names a sample row as the record stores its alias' do
+    row = SC::Submission.new(
+      ssub_id: 'SSUB-spaced', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil, contacts: [],
+      samples: [
+        staging_sample(smp_id: 1, accession: nil, sample_name: 'Yang01    Homo sapiens', package: 'Generic',
+                       package_group: nil, env_package: nil, status_id: 5500, attributes: [])
+      ]
+    )
+
+    submission = BioSample::Importer.new(staging_submission: row, user_uid: 'u', migration_run_id: SecureRandom.uuid).call.submission
+    stored     = submission.materialised_record.dig('samples', 0, 'alias')
+
+    assert_equal 'Yang01 Homo sapiens', stored
+    assert_equal stored,                submission.samples.sole.sample_name
+  end
+
+  # A record canonicalisation rejects (here a control character in another
+  # sample) is stored as converted. The row still names its sample as the
+  # record spells it.
+  test 'names a sample row as a record stored raw spells its alias' do
+    row = SC::Submission.new(
+      ssub_id: 'SSUB-raw', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil, contacts: [],
+      samples: [
+        staging_sample(smp_id: 1, accession: nil, sample_name: 'A    B', package: 'Generic', package_group: nil,
+                       env_package: nil, status_id: 5500, attributes: []),
+        staging_sample(smp_id: 2, accession: nil, sample_name: 'X', package: 'Generic', package_group: nil,
+                       env_package: nil, status_id: 5500, attributes: [{'name' => 'note', 'value' => "bad\u0001"}])
+      ]
+    )
+
+    submission = BioSample::Importer.new(staging_submission: row, user_uid: 'u', migration_run_id: SecureRandom.uuid).call.submission
+
+    assert_equal submission.materialised_record['samples'].map { it['alias'] },
+                 submission.samples.order(:id).map(&:sample_name)
+  end
+
   test 'returns :no_samples (no writes) when the staging submission has none' do
     row = SC::Submission.new(
       ssub_id: 'SSUB-empty', submitter_id: 'u', organization: nil, organization_url: nil, comment: nil,

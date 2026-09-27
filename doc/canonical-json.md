@@ -289,7 +289,7 @@ At `spec/fixtures/canonical_json/`, one directory per fixture (`input.json`, `ex
 
 ## 6. Appendix: Field Classification Table
 
-The string classes below record the classification this specification intends. The registry implements single-line only for the paths it lists under `strings.paths` (`schema/canon/array-modes.yml`); every other string here marked SL is multi-line in `ddbj-canon/v2` and `v3` alike. Aligning them is left to a later version rather than folded into v3: collapsing whitespace in an `alias` or an attribute `name` changes the key a stored keyed array is sorted by, which wants its own migration.
+The string classes below record the classification this specification intends. The registry implements single-line only for the paths it lists under `strings.paths` (`schema/canon/array-modes.yml`); every other string here marked SL is multi-line in `ddbj-canon/v2` and `v3` alike. Aligning them is left to a later version rather than folded into v3: collapsing whitespace in an `alias` or an attribute `name` changes the key a stored keyed array is sorted by, which wants its own migration. That migration also renames the BioSample rows: `samples.sample_name` holds a sample's alias as the record stores it (`Sample.normalise_name`), and is what the record is looked up by.
 
 Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ** sequence. Numbers: **INT**, **FLT**. Array modes (§3): **O** ordered, **K** keyed, **B** bag. **Vol** = stripped under `for_diff=true`. Defaults: any string-typed field not listed is multi-line; any unlisted array is bag (treat as bug — registry SHOULD list explicitly, see §3.4).
 
