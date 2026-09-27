@@ -664,4 +664,17 @@ class RecordOutlineFoldSystemTest < JavaScriptSystemTestCase
     assert_selector '[data-test-record-section="samples"][open]'
     assert_text 'S0'
   end
+
+  # A DRA submission is curated as one row, and its numbers are still
+  # D-way's: an unaccessioned one is not offered for issuance here.
+  test 'a DRA request shows its submission, with nothing to issue' do
+    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+
+    visit admin_submission_request_path(submission_requests(:dra))
+
+    assert_text 'DRA'
+    assert_text 'Curating'
+    assert_no_link(/\AIssue /)
+    assert_no_link 'Samples'
+  end
 end

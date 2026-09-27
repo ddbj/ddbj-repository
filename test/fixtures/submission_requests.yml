@@ -12,3 +12,8 @@ biosample:
   user: alice
   submission: biosample
   db: biosample
+
+dra:
+  user: alice
+  submission: dra
+  db: dra

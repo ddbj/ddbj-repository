@@ -341,6 +341,28 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_equal 'biosample', SubmissionRequest.find(response.parsed_body['id']).db
   end
 
+  # DRA submissions come from D-way; there is nothing yet that would
+  # validate or apply one sent here.
+  test 'create refuses a DRA request' do
+    blob = ActiveStorage::Blob.create_and_upload!(
+      io:           file_fixture('ddbj_record/example.json').open,
+      filename:     'example.json',
+      content_type: 'application/json'
+    )
+
+    with_exceptions_app do
+      post submission_requests_path, params: {
+        submission_request: {
+          db:          'dra',
+          ddbj_record: blob.signed_id
+        }
+      }, as: :json
+    end
+
+    assert_response :unprocessable_content
+    assert_no_enqueued_jobs only: ValidateDDBJRecordJob
+  end
+
   private
 
   def sign_in_as_user(user)

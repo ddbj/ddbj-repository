@@ -59,6 +59,15 @@ class AccessionIssue
 
   ISSUABLE_FROM = %w[submission_accepted curating].freeze
 
+  # What each database's issuance allocates. A database not here issues
+  # nothing in the repository yet — DRA's numbers are still D-way's.
+  PREFIXES = {
+    'bioproject' => 'PRJDB',
+    'biosample'  => 'SAMD'
+  }.freeze
+
+  def self.supported?(submission) = PREFIXES.key?(submission.db)
+
   def self.call(submission:, actor:, samples: nil, issuance: nil)
     new(submission:, actor:, samples:, issuance:).call
   end
@@ -113,7 +122,7 @@ class AccessionIssue
       project.update!(accession: acc, status: :accession_issued)
 
       update = stamp_record! {|record| BioProject.record_project!(record)['accession'] = acc }
-      record_event([acc], 'PRJDB', update)
+      record_event([acc], update)
 
       acc
     end
@@ -145,7 +154,7 @@ class AccessionIssue
         end
       }
 
-      record_event(acc_list, 'SAMD', update)
+      record_event(acc_list, update)
 
       acc_list
     end
@@ -199,14 +208,14 @@ class AccessionIssue
   # feed reads this months later, by which time the rows it came from may
   # have been suppressed, renumbered upstream, or split across
   # submissions. What was issued that day does not change afterwards.
-  def record_event(accessions, prefix, update)
+  def record_event(accessions, update)
     CurationEvent.record!(
       submission:        @submission,
       actor:             @actor,
       action:            :accession_issued,
       row_count:         accessions.size,
       submission_update: update,
-      prefix:            prefix,
+      prefix:            PREFIXES.fetch(@submission.db),
       range:             AccessionRun.label(accessions)
     )
   end

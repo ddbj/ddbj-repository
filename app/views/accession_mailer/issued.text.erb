@@ -1,6 +1,6 @@
 Dear submitter,
 
-We have issued <%= @accessions.size %> accession<%= 's' if @accessions.size != 1 %> for your <%= @submission.db.humanize %> submission (<%= @submission.source_id.presence || "##{@submission.id}" %>).
+We have issued <%= @accessions.size %> accession<%= 's' if @accessions.size != 1 %> for your <%= Submission.db_label(@submission.db) %> submission (<%= @submission.source_id.presence || "##{@submission.id}" %>).
 
 <% @accessions.each do |a| -%>
   - <%= a %>

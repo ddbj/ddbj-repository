@@ -280,7 +280,7 @@ paths:
 
                   properties:
                     db:
-                      $ref: '#/components/schemas/Db'
+                      $ref: '#/components/schemas/SubmittableDb'
 
                     ddbj_record:
                       type: string
@@ -3137,6 +3137,16 @@ components:
         - st26
         - bioproject
         - biosample
+        - dra
+
+    SubmittableDb:
+      description: The databases a submission request can be created for. DRA submissions are migrated from D-way and cannot be created here yet.
+      type: string
+
+      enum:
+        - st26
+        - bioproject
+        - biosample
 
     SubmissionRequestSummary:
       type: object
@@ -4131,9 +4141,9 @@ components:
 
     AccessionDetail:
       description: |
-        One labelled fact off an accessioned record. Three databases keep
-        three different rows, so what they carry beyond an accession and a
-        name travels like this rather than as a column per database — a
+        One labelled fact off an accessioned record. Each database keeps a
+        row of its own, so what they carry beyond an accession and a name
+        travels like this rather than as a column per database — a
         reader reads them, and nothing branches on them.
       type: object
       additionalProperties: false
@@ -4628,8 +4638,8 @@ components:
         business, the same reason a set's conversation is unreachable from a
         share link.
 
-        Three databases keep three different rows, so what they carry beyond
-        an accession and a name travels as labelled facts rather than as a
+        Each database keeps a row of its own, so what they carry beyond an
+        accession and a name travels as labelled facts rather than as a
         column per database. A reader reads them; nothing branches on them.
 
       required:

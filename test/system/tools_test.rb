@@ -360,7 +360,7 @@ class RegenerateFlatfilesSystemTest < ApplicationSystemTestCase
 
     within '[data-test-scope-summary]' do
       assert_text '1 number matched no submission: X99999'
-      assert_text 'No flatfile for 1 number — BioProject and BioSample records have none: PRJDB19940'
+      assert_text 'No flatfile for 1 number — only ST.26 records have one: PRJDB19940'
     end
   end
 

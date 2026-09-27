@@ -2,7 +2,7 @@
 
 <p>
   We have issued <%= @accessions.size %> accession<%= 's' if @accessions.size != 1 %>
-  for your <%= @submission.db.humanize %> submission
+  for your <%= Submission.db_label(@submission.db) %> submission
   (<%= @submission.source_id.presence || "##{@submission.id}" %>).
 </p>
 

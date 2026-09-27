@@ -199,4 +199,12 @@ module('Acceptance | submission request', function (hooks) {
     assert.dom('[data-test-upload-progress]').doesNotExist();
     assert.strictEqual(currentURL(), '/st26/requests/new', 'nothing was submitted');
   });
+
+  // DRA submissions are migrated from D-way; the server would refuse one
+  // sent here, after the person had chosen a file for it.
+  test('a database that takes no submissions here goes back to the picker', async function (assert) {
+    await visit('/dra/requests/new');
+
+    assert.strictEqual(currentURL(), '/new');
+  });
 });

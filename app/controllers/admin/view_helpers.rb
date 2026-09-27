@@ -1,10 +1,4 @@
 module Admin::ViewHelpers
-  DB_LABELS = {
-    'st26'       => 'ST.26',
-    'bioproject' => 'BioProject',
-    'biosample'  => 'BioSample'
-  }.freeze
-
   STATUS_COLORS = {
     'waiting_validation'  => 'secondary',
     'validating'          => 'warning',
@@ -338,9 +332,7 @@ module Admin::ViewHelpers
     controller_path.in?(TOOLS_CONTROLLERS) || controller_path.start_with?('mission_control/')
   end
 
-  def db_label(db)
-    DB_LABELS.fetch(db.to_s, db.to_s)
-  end
+  def db_label(db) = Submission.db_label(db)
 
   # Where a migration run read from, as [label, value] rows.
   #
@@ -428,7 +420,7 @@ module Admin::ViewHelpers
   end
 
   def db_options
-    DB_LABELS.map {|value, label| [label, value] }
+    Submission::DB_LABELS.map {|value, label| [label, value] }
   end
 
   # Inline checkbox group for a multi-select list filter. Emits `name[]`
@@ -534,14 +526,14 @@ module Admin::ViewHelpers
 
   # Curation status of a Submission as the enum spells it, `:mixed` where
   # a BS submission's samples disagree, or nil when it has none.
-  #   - BP: the Project's Lifecycleable status.
+  #   - BP, DRA: the one row's Lifecycleable status.
   #   - BS: aggregate over Samples.
   #   - ST26: aggregate over Entries. It used to be nil here, from when
   #     entries carried no status — which left a submission whose every
   #     entry had been withdrawn showing a green pipeline badge, so the
   #     ledger could not be used to find one.
   def submission_status(submission, sample_aggregates)
-    return submission.project&.status if submission.bioproject_db?
+    return submission.curation_row&.status if submission.single_row_db?
 
     agg = sample_aggregates[submission.id]
     return nil unless agg

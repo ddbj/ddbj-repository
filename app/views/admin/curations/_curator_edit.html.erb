@@ -21,13 +21,18 @@
   <div class="card-body">
     <h2 class="h6 card-title">Curation</h2>
 
-    <p class="text-body-secondary small">
-      <% if state.curated? %>
-        Status applies to all <%= number_with_delimiter(state.row_count) %> <%= state.row_noun %> in this submission.
-      <% else %>
+    <%# A submission curated as one row (BioProject, DRA) needs no word on %>
+    <%# what the status reaches; "all 1 submission in this submission" %>
+    <%# was saying so. %>
+    <% if !state.curated? %>
+      <p class="text-body-secondary small">
         This submission has no curation rows yet, so there is no status to set — it can still be assigned.
-      <% end %>
-    </p>
+      </p>
+    <% elsif !submission.single_row_db? %>
+      <p class="text-body-secondary small">
+        Status applies to all <%= number_with_delimiter(state.row_count) %> <%= state.row_noun %> in this submission.
+      </p>
+    <% end %>
 
     <%= form_with url: admin_submission_curation_path(submission), method: :patch, scope: :curation, local: true do |f| %>
       <% if state.curated? %>

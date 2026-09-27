@@ -3,7 +3,7 @@
 
 <p>
   The submitter (<%= @request.user.uid %>) has replied on
-  <%= @request.db.humanize %> request
+  <%= Submission.db_label(@request.db) %> request
   (<%= @request.submission&.source_id.presence || "##{@request.id}" %>):
 </p>
 

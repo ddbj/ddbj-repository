@@ -3,7 +3,7 @@
 
 <p>
   <strong><%= @message.user.uid %></strong> replied to the submitter
-  (<%= @request.user.uid %>) on <%= @request.db.humanize %> request
+  (<%= @request.user.uid %>) on <%= Submission.db_label(@request.db) %> request
   (<%= @request.submission&.source_id.presence || "##{@request.id}" %>), which you are
   following:
 </p>

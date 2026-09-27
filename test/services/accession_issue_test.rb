@@ -417,4 +417,19 @@ class AccessionIssueTest < ActiveSupport::TestCase
       AccessionIssue.call(submission: submissions(:st26), actor: 'test')
     end
   end
+
+  # --- DRA ---
+
+  # Its numbers are still D-way's. A row the importer left without one is
+  # not something to allocate for here.
+  test 'refuses DRA submissions, and does not call their row issuable' do
+    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+
+    refute AccessionIssue.supported?(submissions(:dra))
+    assert_equal 0, CurationState.new(submission_requests(:dra)).issuable_count
+
+    assert_raises AccessionIssue::Refused do
+      AccessionIssue.call(submission: submissions(:dra), actor: 'test')
+    end
+  end
 end

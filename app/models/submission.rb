@@ -2,8 +2,20 @@ class Submission < ApplicationRecord
   enum :db, {
     st26:       'st26',
     bioproject: 'bioproject',
-    biosample:  'biosample'
+    biosample:  'biosample',
+    dra:        'dra'
   }, suffix: true, validate: true
+
+  # What each database is called wherever a person reads it — the admin
+  # screens and the mail alike.
+  DB_LABELS = {
+    'st26'       => 'ST.26',
+    'bioproject' => 'BioProject',
+    'biosample'  => 'BioSample',
+    'dra'        => 'DRA'
+  }.freeze
+
+  def self.db_label(db) = DB_LABELS.fetch(db.to_s, db.to_s)
 
   belongs_to :user
 
@@ -21,7 +33,8 @@ class Submission < ApplicationRecord
   has_many :updates,    dependent: :destroy, class_name: 'SubmissionUpdate'
   has_many :entries, dependent: :destroy
 
-  has_one  :project, dependent: :destroy
+  has_one  :project,        dependent: :destroy
+  has_one  :dra_submission, dependent: :destroy
   has_many :samples, dependent: :destroy
 
   has_many :sample_tsv_imports,  -> { recent }, dependent: :destroy
@@ -68,7 +81,8 @@ class Submission < ApplicationRecord
   end
 
   # [first_accession, count] for list display, reading the right source
-  # per DB: BP → its Project, BS → its Samples, ST.26 → its Entries.
+  # per DB: BP → its Project, DRA → its DRASubmission, BS → its Samples,
+  # ST.26 → its Entries.
   #
   # The two bagged databases take a preloaded [first, count] aggregate —
   # one grouped query for the whole page — rather than loading the bag: a
@@ -81,27 +95,57 @@ class Submission < ApplicationRecord
   # only differ where a submission's numbers were not allocated in row
   # order, which the allocator does not do.
   def accession_summary(aggregate = nil)
-    if bioproject_db?
-      accession = project&.accession
+    if single_row_db?
+      accession = curation_row&.accession
       [accession, accession ? 1 : 0]
     else
       aggregate || [nil, 0]
     end
   end
 
-  # Every table an accession can be found in. `curation_rows` below is the
-  # one-submission form of the same fact and picks by `db`; this is for
-  # callers holding an accession number and no submission to ask, which
-  # have to look in all three.
+  # The databases whose submission is curated as one row — BP's Project,
+  # DRA's DRASubmission — rather than as a bag of samples or entries.
+  def single_row_db? = bioproject_db? || dra_db?
+
+  # That one row.
+  def curation_row
+    case db
+    when 'bioproject' then project
+    when 'dra'        then dra_submission
+    end
+  end
+
+  # Each database's curation rows, and what one is called: BP reads "1
+  # project", DRA "1 submission", BS "1,842 samples", ST.26 "1,842
+  # entries". `curation_rows` below is the one-submission form of the
+  # model; this is for callers acting on many submissions at once, or
+  # holding an accession number and no submission to ask.
   #
-  # A method rather than a constant so the three classes are resolved when
+  # A method rather than a constant so the classes are resolved when
   # somebody asks rather than while this class is being loaded — each of
   # them points back here.
-  def self.accession_row_models = [Project, Sample, Entry]
+  def self.curation_row_models
+    {
+      'bioproject' => Project,
+      'dra'        => DRASubmission,
+      'biosample'  => Sample,
+      'st26'       => Entry
+    }
+  end
+
+  CURATION_ROW_NOUNS = {
+    'bioproject' => 'project',
+    'dra'        => 'submission',
+    'biosample'  => 'sample',
+    'st26'       => 'entry'
+  }.freeze
+
+  # Every table an accession can be found in.
+  def self.accession_row_models = curation_row_models.values
 
   # The rows that carry curation state (status / assignee / accession) for
-  # this submission: the single BP Project, every BS Sample, every ST.26
-  # Entry.
+  # this submission: the single BP Project or DRA DRASubmission, every BS
+  # Sample, every ST.26 Entry.
   #
   # ST.26 was nil here until its entries carried a status of their own.
   # They are a curated set now — retracting one is what keeps it out of
@@ -170,12 +214,10 @@ class Submission < ApplicationRecord
   end
 
   def curation_rows
-    if bioproject_db?
-      project && Project.where(id: project.id)
-    elsif biosample_db?
-      samples
-    else
-      entries
+    case db
+    when 'bioproject', 'dra' then (row = curation_row) && row.class.where(id: row.id)
+    when 'biosample'         then samples
+    when 'st26'              then entries
     end
   end
 
@@ -188,7 +230,7 @@ class Submission < ApplicationRecord
   # The rows of this submission that carry an accession — the same set
   # `curation_rows` names, once the numbers have been issued.
   #
-  # Whichever of the three tables that is. A submission belongs to one
+  # Whichever of the tables that is. A submission belongs to one
   # database, so this is one relation and not a union; what varies is
   # which table it reads, which is exactly what `curation_rows` already
   # decides.
@@ -198,16 +240,9 @@ class Submission < ApplicationRecord
     rows.where.not(accession: nil)
   end
 
-  # What a curation row is called here: BP reads "1 project", BS "1,842
-  # samples", ST.26 "1,842 entries". Used wherever a message has to name
-  # the thing being acted on.
-  def curation_row_noun
-    case db
-    when 'bioproject' then 'project'
-    when 'biosample'  then 'sample'
-    else                   'entry'
-    end
-  end
+  # What a curation row is called here (CURATION_ROW_NOUNS). Used wherever
+  # a message has to name the thing being acted on.
+  def curation_row_noun = CURATION_ROW_NOUNS.fetch(db)
 
   # True while this chain was last written under an older `ddbj-canon`
   # version. Its stored state is ordered (v1: raw converter order) or keyed

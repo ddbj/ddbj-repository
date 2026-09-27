@@ -27,8 +27,8 @@ module Admin
     def new
       submission = Submission.find(params[:submission_id])
 
-      if empty_selection?
-        return redirect_to submission_return_path(submission), alert: 'No samples selected.'
+      if (refusal = refusal(submission))
+        return redirect_to submission_return_path(submission), alert: refusal
       end
 
       @plan   = AccessionPlan.for([submission], targeting: targeting_for(submission))
@@ -57,8 +57,8 @@ module Admin
     def create
       submission = Submission.find(params[:submission_id])
 
-      if empty_selection?
-        return redirect_to submission_return_path(submission), alert: 'No samples selected.'
+      if (refusal = refusal(submission))
+        return redirect_to submission_return_path(submission), alert: refusal
       end
 
       run = AccessionIssuanceRun.create!(
@@ -82,6 +82,17 @@ module Admin
     end
 
     private
+
+    # Why nothing can be issued here, before anything is counted: a
+    # database whose numbers the repository does not issue, or a selection
+    # of no rows.
+    def refusal(submission)
+      if !AccessionIssue.supported?(submission)
+        "#{Submission.db_label(submission.db)} accessions are not issued here yet."
+      elsif empty_selection?
+        'No samples selected.'
+      end
+    end
 
     # The Samples screen's filter travels in the action URL, so it has to
     # be put back on the one the confirmation posts to.

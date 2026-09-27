@@ -61,8 +61,13 @@ class AccessionPlan
   def item_for(submission)
     rows = submission.curation_rows
 
-    return Item.new(submission:, prefix: prefix_for(submission), issuable: 0, total: 0,
+    return Item.new(submission:, prefix: nil, issuable: 0, total: 0,
                     skip_reason: 'has nothing to issue accessions for') if rows.nil?
+
+    unless AccessionIssue.supported?(submission)
+      return Item.new(submission:, prefix: nil, issuable: 0, total: rows.count,
+                      skip_reason: "is #{Submission.db_label(submission.db)}, whose accessions are not issued here yet")
+    end
 
     if in_flight.include?(submission.id)
       return Item.new(submission:, prefix: prefix_for(submission), issuable: 0, total: rows.count,
@@ -102,7 +107,7 @@ class AccessionPlan
       "#{AccessionIssue::ISSUABLE_FROM.map { it.tr('_', ' ') }.join(' or ')}"
   end
 
-  def prefix_for(submission) = submission.bioproject_db? ? 'PRJDB' : 'SAMD'
+  def prefix_for(submission) = AccessionIssue::PREFIXES.fetch(submission.db)
 
   # Only the single-submission dialog carries a targeting; the ledger's
   # bulk is always whole submissions.

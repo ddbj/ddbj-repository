@@ -180,6 +180,57 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # A DRA submission is one row, as a BioProject is: its accession and its
+  # status are the row's, and the accession finds it.
+  test 'a DRA request reads as its submission, and its accession finds it' do
+    visit admin_submission_requests_path
+
+    within row_for(submission_requests(:dra)) do
+      assert_text 'DRA'
+      assert_text 'DRA000001'
+      assert_text 'private'
+    end
+
+    fill_in 'Search requests', with: 'DRA000001'
+    click_button 'Search'
+
+    assert_selector row_for(submission_requests(:dra))
+    assert_no_selector row_for(@req)
+  end
+
+  # Every Database box ticked is no constraint. With a box missing for
+  # DRA, a Search with the facets untouched posted the other three and
+  # the DRA requests fell out of the ledger.
+  test 'searching with the facets untouched keeps DRA requests' do
+    visit admin_submission_requests_path
+
+    click_button 'Search'
+
+    assert_selector row_for(submission_requests(:dra))
+  end
+
+  test 'the ledger sets a DRA submission\'s status, and says submission' do
+    visit admin_submission_requests_path
+
+    check "Select ##{submission_requests(:dra).id}"
+    select 'Public', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Set 1 submission to public.'
+    assert_equal 'public', dra_submissions(:dra).reload.status
+  end
+
+  test 'the issuance confirmation says a DRA submission is not issued here' do
+    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+
+    visit admin_submission_requests_path
+
+    check "Select ##{submission_requests(:dra).id}"
+    click_button 'Issue accessions'
+
+    assert_text 'is DRA, whose accessions are not issued here yet'
+  end
+
   # One box over everything somebody might be holding — the identifier is
   # what they have, and which kind it is should not be their problem.
   test 'the search box takes an id, a source id or an accession' do

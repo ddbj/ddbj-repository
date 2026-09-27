@@ -2,16 +2,14 @@ import Controller from '@ember/controller';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
+import { DB_LABELS } from 'repository/helpers/db-label';
+
 export interface FilterOption {
   value: string;
   label: string;
 }
 
-export const DB_OPTIONS: FilterOption[] = [
-  { value: 'st26', label: 'ST.26' },
-  { value: 'bioproject', label: 'BioProject' },
-  { value: 'biosample', label: 'BioSample' },
-];
+export const DB_OPTIONS: FilterOption[] = Object.entries(DB_LABELS).map(([value, label]) => ({ value, label }));
 
 export type Phase = 'unfinished' | 'finished' | 'all';
 

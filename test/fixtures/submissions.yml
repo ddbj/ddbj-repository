@@ -9,3 +9,7 @@ bioproject:
 biosample:
   user: alice
   db: biosample
+
+dra:
+  user: alice
+  db: dra

@@ -3,7 +3,7 @@
 
 <p>
   <strong><%= @message.user.uid %></strong> copied you in on
-  <%= @request.db.humanize %> request
+  <%= Submission.db_label(@request.db) %> request
   (<%= @request.submission&.source_id.presence || "##{@request.id}" %>),
   where they wrote to the submitter (<%= @request.user.uid %>):
 </p>

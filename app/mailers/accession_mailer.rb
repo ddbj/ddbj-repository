@@ -19,7 +19,7 @@ class AccessionMailer < ApplicationMailer
   private
 
   def subject_line(submission, accessions)
-    db    = submission.db.humanize
+    db    = Submission.db_label(submission.db)
     first = accessions.first
     rest  = accessions.size - 1
 

@@ -176,17 +176,20 @@ module Admin
       scope.where(status: selected)
     end
 
-    # Match iff the applied submission's BP project status OR any of its BS
-    # samples' status is one of the requested names (OR across the multi
-    # select). Unknown names are dropped; an all-unknown set is a no-op.
+    # Match iff any curation row of the applied submission — its BP
+    # project, its DRA submission, any of its BS samples or ST.26 entries —
+    # has one of the requested statuses (OR across the multi select).
+    # Unknown names are dropped; an all-unknown set is a no-op.
     def filter_by_status(scope, raw)
       names = Array(raw).map(&:to_s) & Lifecycleable::STATUSES.keys
       return scope if full_or_empty?(names, Lifecycleable::STATUSES.size)
 
       sids = names.map { Lifecycleable::STATUSES.fetch(it) }
       scope.where(<<~SQL.squish, sids:)
-        EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id AND projects.status IN (:sids)) OR
-        EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id AND samples.status  IN (:sids))
+        EXISTS (SELECT 1 FROM projects        WHERE projects.submission_id        = submission_requests.submission_id AND projects.status        IN (:sids)) OR
+        EXISTS (SELECT 1 FROM dra_submissions WHERE dra_submissions.submission_id = submission_requests.submission_id AND dra_submissions.status IN (:sids)) OR
+        EXISTS (SELECT 1 FROM samples         WHERE samples.submission_id         = submission_requests.submission_id AND samples.status         IN (:sids)) OR
+        EXISTS (SELECT 1 FROM entries         WHERE entries.submission_id         = submission_requests.submission_id AND entries.status         IN (:sids))
       SQL
     end
 

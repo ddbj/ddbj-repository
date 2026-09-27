@@ -4,7 +4,8 @@ class SubmissionUpdate < ApplicationRecord
   enum :db, {
     st26:       'st26',
     bioproject: 'bioproject',
-    biosample:  'biosample'
+    biosample:  'biosample',
+    dra:        'dra'
   }, suffix: true, validate: true
 
   enum :source, {

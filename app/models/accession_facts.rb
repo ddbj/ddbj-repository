@@ -1,27 +1,28 @@
 # What one accessioned row states, in the words somebody reads it in.
 #
-# A review link onto a set can carry any mixture of the three: a
-# BioProject, a BioSample, a sequence entry. What they have in common is
+# A review link onto a set can carry any mixture of them: a BioProject, a
+# BioSample, a sequence entry, a DRA submission. What they have in common is
 # an accession and something to call it by; what they do not is
 # everything else — which is why the rest travels as labelled facts
 # rather than as a column per database. A reader reads them; nothing
 # branches on them, and a database gaining a fact worth showing does not
-# widen the payload for the other two.
+# widen the payload for the others.
 #
 # Only what the row itself carries. Where DDBJ has got to with it is not
 # in here, for the same reason the message thread is unreachable from a
 # share link.
 #
-# `db` is read off the submission rather than written down three times
-# beside the three classes. It is the same fact — an Entry belongs to an
+# `db` is read off the submission rather than written down again beside
+# each class. It is the same fact — an Entry belongs to an
 # ST.26 submission by construction — and saying it twice is how the two
 # copies come to disagree.
 AccessionFacts = Data.define(:accession, :db, :name, :details) do
   def self.for(row)
     case row
-    when Project then project(row)
-    when Sample  then sample(row)
-    when Entry   then entry(row)
+    when Project       then project(row)
+    when DRASubmission then dra_submission(row)
+    when Sample        then sample(row)
+    when Entry         then entry(row)
     else raise ArgumentError, "not an accessioned row: #{row.class}"
     end
   end
@@ -32,6 +33,17 @@ AccessionFacts = Data.define(:accession, :db, :name, :details) do
       db:        project.submission.db,
       name:      project.title,
       details:   labelled('Type' => project.project_type)
+    )
+  end
+
+  # Nothing but the number: what a DRA submission is called and holds is
+  # its record's (studies, samples, runs), which the row does not carry.
+  def self.dra_submission(dra_submission)
+    new(
+      accession: dra_submission.accession,
+      db:        dra_submission.submission.db,
+      name:      nil,
+      details:   []
     )
   end
 

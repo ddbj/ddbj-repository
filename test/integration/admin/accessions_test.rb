@@ -154,4 +154,17 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
 
     assert_response :forbidden
   end
+
+  # DRA's numbers are still D-way's: nothing is enqueued to be refused.
+  test 'a DRA submission is turned away before anything is enqueued' do
+    submission = submissions(:dra)
+    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+
+    assert_no_enqueued_jobs only: IssueAccessionsJob do
+      post admin_submission_accessions_path(submission)
+    end
+
+    assert_empty submission.accession_issuances
+    assert_equal 'DRA accessions are not issued here yet.', flash[:alert]
+  end
 end
