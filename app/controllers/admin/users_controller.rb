@@ -52,7 +52,7 @@ module Admin
     end
 
     def show
-      @recent = @user.submission_requests.includes(:submission).order(updated_at: :desc).limit(RECENT_REQUESTS).to_a
+      @recent = @user.submission_requests.includes(submission: %i[project dra_submission]).order(updated_at: :desc).limit(RECENT_REQUESTS).to_a
 
       # The same aggregate the ledger's rows use, so "where it is now"
       # reads identically in both places.

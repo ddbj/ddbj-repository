@@ -216,19 +216,61 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     select 'Public', from: 'bulk[status]'
     click_button 'Apply'
 
-    assert_text 'Set 1 submission to public.'
+    assert_text 'Set 1 DRA submission to public.'
     assert_equal 'public', dra_submissions(:dra).reload.status
   end
 
-  test 'the issuance confirmation says a DRA submission is not issued here' do
-    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+  # Named in one order whatever was ticked first, so the sentence reads
+  # the same every time.
+  test 'a mixed selection names each kind of row, in one order' do
+    projects(:primary).update!(status: 'curating')
 
     visit admin_submission_requests_path
 
     check "Select ##{submission_requests(:dra).id}"
+    check "Select ##{submission_requests(:st26).id}"
+    check "Select ##{@req.id}"
+    select 'Withdrawn', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Set 1 project, 1 DRA submission, and 2 entries to withdrawn.'
+  end
+
+  # The Entries tab does not offer it, so the ledger may not write it: an
+  # entry is never waiting for its accession.
+  test 'the ledger refuses a status the rows cannot take, and writes nothing' do
+    visit admin_submission_requests_path
+
+    check "Select ##{submission_requests(:st26).id}"
+    check "Select ##{submission_requests(:dra).id}"
+    select 'Submission accepted', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Entries cannot be set to submission accepted.'
+    assert_equal 'private', dra_submissions(:dra).reload.status
+  end
+
+  # DRA's numbers are still D-way's. The confirmation says so, and the
+  # press queues nothing for it — its line on the run page is written
+  # refused, in the same words.
+  test 'issuing from the ledger skips a DRA submission, and says why' do
+    projects(:primary).update!(accession: nil, status: 'curating')
+    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+
+    visit admin_submission_requests_path
+
+    check "Select ##{@req.id}"
+    check "Select ##{submission_requests(:dra).id}"
     click_button 'Issue accessions'
 
-    assert_text 'is DRA, whose accessions are not issued here yet'
+    assert_text 'DRA accessions are still issued in D-way, not here'
+
+    assert_enqueued_jobs 1, only: IssueAccessionsJob do
+      click_button 'Issue 1 accession'
+    end
+
+    assert_text 'DRA accessions are still issued in D-way, not here.'
+    assert_equal %w[refused], submissions(:dra).accession_issuances.pluck(:status)
   end
 
   # One box over everything somebody might be holding — the identifier is

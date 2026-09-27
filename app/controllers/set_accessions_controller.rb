@@ -16,8 +16,8 @@ class SetAccessionsController < ApplicationController
 
   # Two steps, like every other list of accessions here: a page of numbers
   # out of the set, then the rows behind that page. The union that orders
-  # them projects the number alone, because it spans three tables and
-  # there is nothing else the three agree on.
+  # them projects the number alone, because it spans every accession table
+  # and there is nothing else they agree on.
   def index
     numbers = paginate(@set.owned_accessions(current_user)).map(&:accession)
 

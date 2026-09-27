@@ -64,9 +64,8 @@ class AccessionPlan
     return Item.new(submission:, prefix: nil, issuable: 0, total: 0,
                     skip_reason: 'has nothing to issue accessions for') if rows.nil?
 
-    unless AccessionIssue.supported?(submission)
-      return Item.new(submission:, prefix: nil, issuable: 0, total: rows.count,
-                      skip_reason: "is #{Submission.db_label(submission.db)}, whose accessions are not issued here yet")
+    if (refusal = AccessionIssue.refusal_for(submission))
+      return Item.new(submission:, prefix: nil, issuable: 0, total: rows.count, skip_reason: refusal.chomp('.'))
     end
 
     if in_flight.include?(submission.id)

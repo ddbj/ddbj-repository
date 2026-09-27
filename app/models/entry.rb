@@ -22,5 +22,5 @@ class Entry < ApplicationRecord
   # did that in error has to be able to undo it — leaving the state an
   # entry starts in off the list made retraction one-way, which is not
   # something a screen should do quietly.
-  SETTABLE_STATUSES = (Lifecycleable::STATUSES.keys - %w[submission_accepted]).freeze
+  def self.settable_statuses = super - %w[submission_accepted]
 end

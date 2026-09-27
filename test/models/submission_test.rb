@@ -605,7 +605,7 @@ class SubmissionTest < ActiveSupport::TestCase
 
     assert_equal [dra_submissions(:dra)], submission.curation_rows.to_a
     assert_equal ['DRA000001', 1],        submission.accession_summary
-    assert_equal 'submission',            submission.curation_row_noun
+    assert_equal 'DRA submission',        submission.curation_row_noun
   end
 
   test 'every database has a label people read' do

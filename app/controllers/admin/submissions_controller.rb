@@ -118,7 +118,7 @@ module Admin
       return redirect_to back, alert: 'No entries selected.' if empty_selection?
       return redirect_to back, alert: 'No changes specified (status left as-is).' if raw[:status].blank?
 
-      unless Entry::SETTABLE_STATUSES.include?(raw[:status])
+      unless Entry.settable_statuses.include?(raw[:status])
         return redirect_to back, alert: "Unknown status: #{raw[:status].inspect}."
       end
 
@@ -177,6 +177,15 @@ module Admin
       applied  = {}
       assigned = Applied.none
 
+      # The same rule each rows screen keeps: an ST.26 entry cannot be put
+      # back to `submission_accepted`. A selection that includes such rows
+      # is refused whole, rather than set for some and not others.
+      if attrs.any? && (refused = rows.reject { _2.klass.settable_statuses.include?(raw[:status]) }.keys).any?
+        nouns = refused.map { Submission::CURATION_ROW_NOUNS.fetch(it).pluralize.upcase_first }
+
+        return redirect_to bulk_return_path, alert: "#{nouns.to_sentence} cannot be set to #{raw[:status].tr('_', ' ')}."
+      end
+
       # Every database's rows, each named in the notice by its own noun.
       # ST.26 was once missing here — the selection reported "no curation
       # rows" and filed an event saying 0 rows changed, while the same
@@ -209,7 +218,7 @@ module Admin
 
       return redirect_to bulk_return_path, alert: 'No submissions selected.' if ids.empty?
 
-      @plan   = AccessionPlan.for(Submission.where(id: ids).includes(:request, :project).to_a)
+      @plan   = AccessionPlan.for(Submission.where(id: ids).includes(:request, :project, :dra_submission).to_a)
       @action = bulk_issue_accessions_admin_submissions_path(index_filter_params)
       @cancel = bulk_return_path
       @ids    = ids
@@ -245,15 +254,19 @@ module Admin
       # to make — deciding it here from the preview would mean a
       # submission that became issuable in between is turned away by a
       # stale reading, and the run page would be missing the line that
-      # says what happened to it.
+      # says what happened to it. A database that issues nothing here is
+      # the exception: no reading changes that, so its row is written
+      # refused and nothing is queued for it.
       Submission.where(id: ids).find_each do |submission|
-        issuance = submission.accession_issuances.create!(
-          run:,
-          actor:      run.actor,
-          started_at: Time.current
-        )
+        attrs = {run:, actor: run.actor, started_at: Time.current}
 
-        IssueAccessionsJob.perform_later(issuance_id: issuance.id)
+        if (refusal = AccessionIssue.refusal_for(submission))
+          submission.accession_issuances.create!(**attrs, status: 'refused', finished_at: Time.current, error_message: refusal)
+        else
+          issuance = submission.accession_issuances.create!(**attrs)
+
+          IssueAccessionsJob.perform_later(issuance_id: issuance.id)
+        end
       end
 
       # Participation is recorded by the job, on the ones that actually
@@ -370,7 +383,7 @@ module Admin
     def curation_rows_of(submissions)
       dbs = submissions.distinct.pluck(:db)
 
-      Submission.curation_row_models.slice(*dbs).to_h {|db, model|
+      Submission.curation_row_models.select {|db, _| dbs.include?(db) }.to_h {|db, model|
         [db, model.where(submission_id: submissions.where(db:).select(:id))]
       }
     end

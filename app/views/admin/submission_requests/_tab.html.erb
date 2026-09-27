@@ -3,7 +3,7 @@
   <% classes = "nav-link d-inline-flex align-items-center gap-2 #{'active' if active} #{'disabled' if disabled}" %>
 
   <% if disabled %>
-    <span class="<%= classes %>"><%= label %></span>
+    <span class="<%= classes %>" aria-disabled="true"><%= label %></span>
   <% else %>
     <%= link_to path, class: classes, 'aria-current': ('page' if active) do %>
       <%= label %>

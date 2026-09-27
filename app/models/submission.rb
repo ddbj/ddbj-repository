@@ -116,8 +116,9 @@ class Submission < ApplicationRecord
   end
 
   # Each database's curation rows, and what one is called: BP reads "1
-  # project", DRA "1 submission", BS "1,842 samples", ST.26 "1,842
-  # entries". `curation_rows` below is the one-submission form of the
+  # project", DRA "1 DRA submission", BS "1,842 samples", ST.26 "1,842
+  # entries". DRA's row is named with its database: beside the submissions
+  # a curator ticked, "1 submission" would not say which it meant. `curation_rows` below is the one-submission form of the
   # model; this is for callers acting on many submissions at once, or
   # holding an accession number and no submission to ask.
   #
@@ -135,7 +136,7 @@ class Submission < ApplicationRecord
 
   CURATION_ROW_NOUNS = {
     'bioproject' => 'project',
-    'dra'        => 'submission',
+    'dra'        => 'DRA submission',
     'biosample'  => 'sample',
     'st26'       => 'entry'
   }.freeze

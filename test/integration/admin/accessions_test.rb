@@ -165,6 +165,6 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     end
 
     assert_empty submission.accession_issuances
-    assert_equal 'DRA accessions are not issued here yet.', flash[:alert]
+    assert_equal 'DRA accessions are still issued in D-way, not here.', flash[:alert]
   end
 end

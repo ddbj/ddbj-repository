@@ -412,10 +412,12 @@ class AccessionIssueTest < ActiveSupport::TestCase
 
   # --- ST26 ---
 
-  test 'refuses st26 submissions (no Project or Sample to stamp)' do
-    assert_raises AccessionIssue::Refused do
+  test 'refuses st26 submissions, whose numbers come with Apply' do
+    error = assert_raises(AccessionIssue::Refused) {
       AccessionIssue.call(submission: submissions(:st26), actor: 'test')
-    end
+    }
+
+    assert_equal 'ST.26 accessions are allocated when the file is applied, not issued here.', error.message
   end
 
   # --- DRA ---

@@ -12,7 +12,7 @@
 # PRJDB1000 before PRJDB999 and quietly name the wrong block. `sort_key`
 # below is the one place that knows this, and AccessionRun sorts by it too.
 class AccessionRange < Data.define(:prefix, :from, :to, :written)
-  # Prefix then digits, which is the shape of every accession the three
+  # Prefix then digits, which is the shape of every accession the
   # databases issue. Anything else is not a range and is not silently
   # treated as one.
   PATTERN = /\A([A-Za-z][A-Za-z_]*)(\d+)\z/

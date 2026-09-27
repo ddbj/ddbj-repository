@@ -86,17 +86,11 @@ class CurationUpdate
 
     status = params[:status].to_s
 
-    # What the row model will accept, not every status there is: an
-    # ST.26 Entry takes `accession_issued` from the pipeline and cannot
-    # be put back to it from a screen, so offering it here would write a
-    # state the Entries tab has no way to undo.
-    settable =
-      if rows.klass.const_defined?(:SETTABLE_STATUSES, false)
-        rows.klass::SETTABLE_STATUSES
-      else
-        Lifecycleable::STATUSES.keys
-      end
-    raise Refused, "Unknown status: #{status.inspect}." unless settable.include?(status)
+    # What the row model will accept, not every status there is: an ST.26
+    # entry is never `submission_accepted` (Entry.settable_statuses), and
+    # writing it here would put the entries in a state the Entries tab has
+    # no way to set them out of.
+    raise Refused, "Unknown status: #{status.inspect}." unless rows.klass.settable_statuses.include?(status)
 
     return {} if rows.distinct.pluck(:status) == [status]
 

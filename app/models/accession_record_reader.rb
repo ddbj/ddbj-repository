@@ -44,10 +44,9 @@ class AccessionRecordReader
     when 'biosample'  then biosample_slice(row)
     when 'st26'       then st26_slice(row)
     else
-      # A database this does not know how to open. Unreachable while `db`
-      # holds three values and all three are here; said rather than left
-      # to fall through as "the record does not carry this row", which
-      # would blame the data.
+      # A database this does not know how to open yet (DRA); said rather
+      # than left to fall through as "the record does not carry this row",
+      # which would blame the data.
       RecordSlice.new(subtree: nil, unavailable_reason: RECORD_NOT_READABLE_HERE)
     end
   rescue Submission::MaterialisationFailed

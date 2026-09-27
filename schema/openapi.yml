@@ -147,7 +147,7 @@ paths:
         filter to span every value. `source_id` is a case-insensitive prefix
         match on the applied submission's source id. `accession` is a
         case-insensitive prefix match across the submission's accessions
-        (BP project / BS samples / ST.26 accessions).
+        (BP project / DRA submission / BS samples / ST.26 entries).
 
         `phase` splits the live submissions from the finished ones and
         defaults to `unfinished`; `needs_action` narrows to the ones

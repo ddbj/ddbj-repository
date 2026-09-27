@@ -98,11 +98,11 @@ class ReviewerAccess < ApplicationRecord
   # which is every accession of every submission any member has put in
   # it, and the reason this link names its own is that those are not the
   # same list.
-  # One string can in principle name a row in more than one of the three
-  # tables — `owned_accessions` says so and unions for that reason. This
+  # One string can in principle name a row in more than one of the
+  # accession tables — `owned_accessions` says so and unions for that reason. This
   # answers with the first, which is `Submission.accession_row_models`
-  # order and therefore arbitrary. It holds because the three prefixes are
-  # disjoint in practice (PRJDB, SAMD, and ST.26's own), and the day that
+  # order and therefore arbitrary. It holds because the prefixes are
+  # disjoint in practice (PRJDB, DRA, SAMD, and ST.26's own), and the day that
   # stops being true this has to take the database as well as the number,
   # because nothing here can choose between two records.
   def shared_row(accession)

@@ -91,7 +91,7 @@ class SetSharedAccessionsController < ApplicationController
 
       # `any?` rather than the first row, so this asks the same question
       # `create` asks. One string can only name one row per table, but it
-      # can name a row in more than one of the three, and "the first one
+      # can name a row in more than one of them, and "the first one
       # is mine" is not the rule.
       #
       # No rows at all is a row whose submission has left the set, and

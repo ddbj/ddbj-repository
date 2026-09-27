@@ -34,7 +34,7 @@ class SubmissionSetInclusion < ApplicationRecord
 
   private
 
-  # Looks in all three tables rather than in the one this submission's
+  # Looks in every accession table rather than in the one this submission's
   # database uses, because that is what resolves the link
   # (SubmissionSet#accession_rows). Asking a narrower question here than
   # the read path asks is how an accession comes to be left behind and

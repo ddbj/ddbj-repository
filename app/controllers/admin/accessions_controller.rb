@@ -87,11 +87,7 @@ module Admin
     # database whose numbers the repository does not issue, or a selection
     # of no rows.
     def refusal(submission)
-      if !AccessionIssue.supported?(submission)
-        "#{Submission.db_label(submission.db)} accessions are not issued here yet."
-      elsif empty_selection?
-        'No samples selected.'
-      end
+      AccessionIssue.refusal_for(submission) || ('No samples selected.' if empty_selection?)
     end
 
     # The Samples screen's filter travels in the action URL, so it has to

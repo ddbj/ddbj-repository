@@ -208,10 +208,10 @@ class SubmissionSet < ApplicationRecord
   end
 
   # The rows in this set carrying these accession numbers, whichever
-  # database they came from — one Project, some Samples, some Entries, in
-  # whatever mixture the set holds. Ordered by accession, because to
-  # somebody reading a list of them the number is the only thing all three
-  # share.
+  # database they came from — a Project, a DRA submission, some Samples,
+  # some Entries, in whatever mixture the set holds. Ordered by accession,
+  # because to somebody reading a list of them the number is the only
+  # thing they all share.
   #
   # Bounded by the list it is handed, never by the set: a set can hold a
   # submission of 100K samples, and nothing here may be the thing that

@@ -1,4 +1,4 @@
-# A submission's own accessions, whichever of the three databases it is.
+# A submission's own accessions, whichever database it is.
 #
 # This used to be the flat synchronisation endpoint under another path,
 # and it read `entries` — so every BioProject and BioSample in the archive
@@ -6,8 +6,8 @@
 # plainly there on the screen it was reached from.
 #
 # The shape follows: an accession, what the record calls itself, and what
-# else that record states as labelled facts, because the three databases
-# agree on the first two and on nothing after them.
+# else that record states as labelled facts, because the databases agree
+# on the first two and on nothing after them.
 class SubmissionAccessionsController < ApplicationController
   include AccessionRecordReadable
   include EnumFilterable

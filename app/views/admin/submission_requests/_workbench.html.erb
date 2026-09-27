@@ -8,7 +8,7 @@
 <%# The rows slot is named for what the submission's rows are, so the %>
 <%# breadcrumb has to read it the same way the tab strip does — it said %>
 <%# "Samples" over a page headed Entries otherwise. %>
-<% rows_label = (@submission&.curation_row_noun || 'sample').pluralize.capitalize %>
+<% rows_label = Submission::CURATION_ROW_NOUNS.fetch(@request.db).pluralize.upcase_first %>
 <% tab_label  = tab == :samples ? rows_label : workbench_tab_label(tab) %>
 
 <%= render 'admin/shared/breadcrumb', items: [

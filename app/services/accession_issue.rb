@@ -59,14 +59,25 @@ class AccessionIssue
 
   ISSUABLE_FROM = %w[submission_accepted curating].freeze
 
-  # What each database's issuance allocates. A database not here issues
-  # nothing in the repository yet — DRA's numbers are still D-way's.
+  # What each database's issuance allocates.
   PREFIXES = {
     'bioproject' => 'PRJDB',
     'biosample'  => 'SAMD'
   }.freeze
 
+  # Why each of the others has none here, in the words a curator reads —
+  # on the confirmation, as the refusal of a press, and on the run page.
+  REFUSALS = {
+    'st26' => 'ST.26 accessions are allocated when the file is applied, not issued here.',
+    'dra'  => 'DRA accessions are still issued in D-way, not here.'
+  }.freeze
+
   def self.supported?(submission) = PREFIXES.key?(submission.db)
+
+  # Nil for a database that issues here.
+  def self.refusal_for(submission)
+    REFUSALS.fetch(submission.db) unless supported?(submission)
+  end
 
   def self.call(submission:, actor:, samples: nil, issuance: nil)
     new(submission:, actor:, samples:, issuance:).call
@@ -74,8 +85,8 @@ class AccessionIssue
 
   # The refusal rules as a predicate, so the admin UI offers the button
   # only where it would succeed instead of re-deriving the rule and
-  # drifting from it. Takes a Project or a Sample — both carry
-  # `accession` + a Lifecycleable `status`.
+  # drifting from it. Takes any curation row — each carries `accession` +
+  # a Lifecycleable `status`.
   def self.issuable?(row)
     row.accession.blank? && ISSUABLE_FROM.include?(row.status)
   end
@@ -104,7 +115,7 @@ class AccessionIssue
     when 'bioproject' then issue_bp
     when 'biosample'  then issue_bs
     else
-      raise Refused, "Accession issuance not supported for db=#{@submission.db.inspect}"
+      raise Refused, self.class.refusal_for(@submission)
     end
   end
 
