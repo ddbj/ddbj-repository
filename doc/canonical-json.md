@@ -147,7 +147,7 @@ Array ordering is the highest-stakes decision here. RFC 8785 preserves array ord
 
 Order is semantic. Elements emit in input order; the canonicalizer never touches position. Insertion uses an explicit index — never JSON Patch's `-` token. Empty elements are rejected (§2.5).
 
-Paths: `/submission/submitters` (`[0]` = contact); `/sequences/entries` (flatfile order); `/sequences/entries/*/source_features`; `/sequences/entries/*/comments`; `/experiments/*/spot_descriptor/reads` (by `read_index`); `/experiments/*/processing`, `/analyses/*/processing` (step chain); `/runs/*/data_blocks`, `/analyses/*/data_blocks` and their `files` (R1/R2 positional); `/projects` (written order); `/projects/*/publications/*/{authors,consortiums}` (byline); `/submission/st26/invention_titles`; `/provenance/gff/pragmas`; any `qualifiers[<key>]` list (INSDC).
+Paths: `/submission/submitters` (`[0]` = contact); `/sequences/entries` (flatfile order); `/sequences/entries/*/source_features`; `/sequences/entries/*/comments`; `/experiments/*/spot_descriptor/reads` (by `read_index`); `/experiments/*/processing`, `/analyses/*/processing` (step chain); `/runs/*/data_blocks`, `/analyses/*/data_blocks` and their `files` (R1/R2 positional); `/projects` (written order); `/projects/*/publications/*/{authors,consortiums}` (byline); `/submission/st26/invention_titles`; `/provenance/gff/pragmas`; any `qualifiers[<key>]` list (INSDC: `/features/*/qualifiers/<key>`, `/sequences/entries/*/source_features/*/source/qualifiers/<key>`, `/sequences/common_source/qualifiers/<key>`).
 
 #### keyed
 
@@ -169,7 +169,7 @@ Order is by a stable key tuple. Tuple components are normalized via §2.2 single
 
 #### bag
 
-No natural key. Sort by `sha256(canonical_json(element))` ascending (hex, byte order). Applies to `/experiments`, `/runs`, `/analyses`, `/features`, scalar bags (`/projects/*/{study_types,keywords,locus_tag_prefix,target/data_types}`, `/datasets/*/dataset_types`, `/sequences/entries/*/structured_comments`).
+No natural key. Sort by `sha256(canonical_json(element))` ascending (hex, byte order). Applies to `/experiments`, `/runs`, `/analyses`, `/features`, scalar bags (`/projects/*/{study_types,keywords,locus_tag_prefix,target/data_types}`, `/datasets/*/dataset_types`, `/sequences/structured_comments`).
 
 A bag element is identified entirely by content. **Field-level patches into bags are normatively forbidden**:
 
@@ -228,7 +228,7 @@ Each one differs between two regenerations of the same source. That is the whole
 
 All `accession` fields at any depth — project, samples, experiments, runs, analyses, sequences entries, datasets, assembly, access_control policy/dac (v2; stripped in v1). Archive-assigned but stable: issuance is a change and must appear as one.
 
-`/submission/hold_date` (embargo); `/submission/submitters/*` (curator content; `submitters[0]` = contact); `/project/publications/*/date`, `/runs/*/run_date`, `/analyses/*/analysis_date`, `/submission/st26/{filing_date,production_date}`; `/access_control/*` content. The line: **regeneration artifacts out; durable state in, whoever assigned it.**
+`/submission/hold_date` (embargo); `/submission/submitters/*` (curator content; `submitters[0]` = contact); `/projects/*/publications/*/date`, `/runs/*/run_date`, `/analyses/*/analysis_date`, `/submission/st26/{application/filing_date,earliest_priority/filing_date,production_date}`; `/access_control/*` content. The line: **regeneration artifacts out; durable state in, whoever assigned it.**
 
 ### 4.4.1 Replay and Root Snapshots
 
@@ -351,7 +351,7 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | Path | Mode / Type | Notes |
 |---|---|---|
 | `/{experiments,runs,analyses}/*/accession` | SL | — |
-| `/experiments/*/{alias,title}`, `/runs/*/{alias,title,run_date,data_type}`, `/analyses/*/{alias,title,analysis_type,analysis_date,data_type}` | SL | — |
+| `/experiments/*/{alias,title}`, `/runs/*/{alias,title,run_date,data_type}`, `/analyses/*/{alias,title,analysis_type,analysis_date}` | SL | — |
 | `/experiments/*/description` | ML | — |
 | `/experiments/*/library/nominal_length` | INT | — |
 | `/experiments/*/library/nominal_sdev`, `/experiments/*/pool/{default_member,members/*}/proportion`, `/experiments/*/legacy/gaps/*/{mean,stdev}`, `/experiments/*/legacy/quality_scoring/*/multiplier` | FLT | — |
@@ -374,8 +374,8 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/sequences/entries/*/sequence` | **SEQ** | alphabet `[acgtn]` post-normalize |
 | `/sequences/entries/*/comments/*`, `/assembly/{title,description}` | ML | — |
 | `/sequences/entries/*/source_features` | O | — |
-| `/sequences/entries/*/source_features/*/source/qualifiers/<key>`, `/features/*/qualifiers/<key>` | O | per-key positional |
-| `/sequences/entries/*/structured_comments` | B | — |
+| `/sequences/entries/*/source_features/*/source/qualifiers/<key>`, `/sequences/common_source/qualifiers/<key>`, `/features/*/qualifiers/<key>` | O | per-key positional |
+| `/sequences/structured_comments` | B | — |
 | `/features/*/{location,score,phase}` | SL / FLT / INT | — |
 | `/features/*/parent_ids/*` | SL in B | — |
 | `/assembly/attributes` | K `(name, unit ‖ '')` | — |
@@ -385,7 +385,7 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | Path | Mode / Type | Notes |
 |---|---|---|
 | `/datasets/*/accession`, `/access_control/policy/accession` | SL | — |
-| `/datasets/*/{alias,name}`, `/access_control/policy/policy_url` | SL | — |
+| `/datasets/*/alias`, `/access_control/policy/policy_url` | SL | — |
 | `/datasets/*/description`, `/access_control/policy/policy_text` | ML | — |
 | `/datasets/*/dataset_types/*` | SL in B | — |
 | `/datasets/*/attributes` | K | — |
@@ -420,4 +420,4 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 - **M4**: §4.6 distinguishes safe additions (no live patch references the path) from version-bumping additions (an active chain references it). Removal always bumps.
 - **M5**: Status now gates first freeze on all §7 Open Questions being resolved; "frozen-on-use" semantics unchanged, but immediate v2 is prevented.
 - **M6**: §1.6 specifies canonicalization of the JSON Patch document itself, ordered `ops` array intact.
-- **M7**: §6 named a source feature's qualifiers `source_features/*/qualifiers/<key>`; they live under `source_features/*/source/qualifiers/<key>`. Corrected in ddbj-canon/v3 without a bump: no record written under it has `sequences`, so no canonical bytes change (see the registry's header).
+- **M7**: §3.1 / §6 named a source feature's qualifiers `source_features/*/qualifiers/<key>` (they live under `source_features/*/source/qualifiers/<key>`), left out the shared source's `/sequences/common_source/qualifiers/<key>`, and put `structured_comments` on each entry (it is `/sequences/structured_comments`). Corrected in ddbj-canon/v3 without a bump under §3.4: no record written under it has `sequences`, so no canonical bytes change (see the registry's header). §4.4 and §6 also named fields the schema does not have (`/project/...`, `st26/filing_date`, `analyses/*/data_type`, `datasets/*/name`). `test/models/ddbj_record/canon/registry_schema_test.rb` now checks every registry path against the v3 schema.

@@ -60,7 +60,14 @@ class DDBJRecord::CanonicalizerTest < ActiveSupport::TestCase
       }
     }
 
-    refute_equal C.canonicalize(record.(%w[b a])), C.canonicalize(record.(%w[a b]))
+    assert_equal '{"sequences":{"entries":[{"source_features":[{"source":{"qualifiers":{"note":[{"value":"b"},{"value":"a"}]}}}]}]}}',
+                 C.canonicalize(record.(%w[b a]))
+  end
+
+  test "keeps the shared source's qualifiers in the written order (ordered)" do
+    record = {'sequences' => {'common_source' => {'qualifiers' => {'note' => [{'value' => 'b'}, {'value' => 'a'}]}}}}
+
+    assert_equal '{"sequences":{"common_source":{"qualifiers":{"note":[{"value":"b"},{"value":"a"}]}}}}', C.canonicalize(record)
   end
 
   test 'rejects empty element in ordered array' do
