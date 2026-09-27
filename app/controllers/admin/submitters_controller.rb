@@ -5,6 +5,8 @@ module Admin
   # we filter blanks, drop empty submitter rows entirely, and let the
   # Canonicalizer.diff emit minimal RFC 6902 ops.
   class SubmittersController < ApplicationController
+    include RecordEditing
+
     PERSON_FIELDS   = %w[email first_name last_name].freeze
     ORG_FIELDS      = %w[name role type url].freeze
 
@@ -82,7 +84,7 @@ module Admin
     end
 
     def patched_record(submission, submitters)
-      record = submission.materialised_record.deep_dup
+      record = editable_record(submission)
       block  = record['submission'] ||= {}
 
       if submitters.any?

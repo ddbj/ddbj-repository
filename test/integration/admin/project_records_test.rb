@@ -64,6 +64,17 @@ class AdminProjectRecordsTest < ActionDispatch::IntegrationTest
     assert_equal chain_before, @submission.reload.updates.count
   end
 
+  test 'PATCH update refuses a BP submission whose chain has no record' do
+    @submission.updates.delete_all
+
+    patch admin_submission_project_record_path(@submission),
+          params: {project_record: {title: 'X'}}
+
+    assert_redirected_to admin_submission_request_path(@submission.request)
+    assert_match(/no record in its patch chain/, flash[:alert])
+    assert_empty @submission.reload.updates
+  end
+
   test 'PATCH update 404s for non-BP submissions (no Project row)' do
     patch admin_submission_project_record_path(submissions(:st26)),
           params: {project_record: {title: 'X'}}

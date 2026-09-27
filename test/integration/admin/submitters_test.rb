@@ -118,6 +118,19 @@ class AdminSubmittersTest < ActionDispatch::IntegrationTest
     assert_equal chain_before, @submission.reload.updates.count
   end
 
+  test 'PATCH update refuses a submission whose chain has no record' do
+    # As an ST.26 submission's is: it keeps its record beside the chain.
+    submission = submissions(:st26)
+    submission.updates.delete_all
+
+    patch admin_submission_submitters_path(submission),
+          params: {submitters: {'0' => {email: 'hanako@example.test'}}}
+
+    assert_redirected_to admin_submission_request_path(submission.request)
+    assert_match(/no record in its patch chain/, flash[:alert])
+    assert_empty submission.reload.updates
+  end
+
   test 'PATCH update requires admin auth' do
     sign_in_as users(:carol)
     patch admin_submission_submitters_path(@submission),
