@@ -29,7 +29,7 @@ namespace :canon do
       '/projects/0/publications/0/consortiums'              => 'ordered',
       '/submission/st26/invention_titles'                   => 'ordered',
       '/provenance/gff/pragmas'                             => 'ordered',
-      '/sequences/entries/0/source_features/0/qualifiers/x' => 'ordered',
+      '/sequences/entries/0/source_features/0/source/qualifiers/x' => 'ordered',
       '/features/0/qualifiers/x'                            => 'ordered',
 
       # §3.1 keyed (table)

@@ -25,6 +25,15 @@
 # the new shape by `rake ddbj_record:reshape_v3`, whose one root replace per
 # chain is also the heal above — a re-import would rebuild them from D-way
 # and revert every edit made in the repository.
+#
+# One entry was corrected without a bump: a source feature's qualifiers
+# live at `source_features/*/source/qualifiers/*`, not
+# `source_features/*/qualifiers/*`, so the ordered mode §3.1 gives every
+# INSDC qualifier list never applied there and those lists fell to the
+# default bag. No v3 record written so far has `sequences` — BP/BS carry
+# none and ApplySubmissionRequestJob refuses v3 — so the correction changes
+# the canonical bytes of nothing stored, which is what makes it safe without
+# one (the test §4.6 applies to strip paths).
 canonical_version: ddbj-canon/v3
 
 # ----------------------------------------------------------------------
@@ -33,7 +42,7 @@ canonical_version: ddbj-canon/v3
 # ----------------------------------------------------------------------
 arrays:
   # ----- ordered -----
-  '/submission/submitters':                              {mode: ordered}
+  '/submission/submitters':                                     {mode: ordered}
   # v3 Submission.comments is `list[str]` — curator notes accumulate in
   # input order and reading them sorted destroys narrative continuity
   # ("first I noted X, then Y"). Omitted from the original registry
@@ -43,56 +52,56 @@ arrays:
   # themselves — verified 2026-06-04). Adding the path here is a
   # registry-omission fix; canonical bytes for every existing record
   # are byte-identical because single-element arrays are sort-invariant.
-  '/submission/comments':                                {mode: ordered}
-  '/sequences/entries':                                  {mode: ordered}
-  '/sequences/entries/*/source_features':                {mode: ordered}
-  '/sequences/entries/*/source_features/*/qualifiers/*': {mode: ordered}
-  '/sequences/entries/*/comments':                       {mode: ordered}
-  '/experiments/*/spot_descriptor/reads':                {mode: ordered}
-  '/experiments/*/processing':                           {mode: ordered}
-  '/analyses/*/processing':                              {mode: ordered}
-  '/runs/*/data_blocks':                                 {mode: ordered}
-  '/runs/*/data_blocks/*/files':                         {mode: ordered}
-  '/analyses/*/data_blocks':                             {mode: ordered}
-  '/analyses/*/data_blocks/*/files':                     {mode: ordered}
+  '/submission/comments':                                       {mode: ordered}
+  '/sequences/entries':                                         {mode: ordered}
+  '/sequences/entries/*/source_features':                       {mode: ordered}
+  '/sequences/entries/*/source_features/*/source/qualifiers/*': {mode: ordered}
+  '/sequences/entries/*/comments':                              {mode: ordered}
+  '/experiments/*/spot_descriptor/reads':                       {mode: ordered}
+  '/experiments/*/processing':                                  {mode: ordered}
+  '/analyses/*/processing':                                     {mode: ordered}
+  '/runs/*/data_blocks':                                        {mode: ordered}
+  '/runs/*/data_blocks/*/files':                                {mode: ordered}
+  '/analyses/*/data_blocks':                                    {mode: ordered}
+  '/analyses/*/data_blocks/*/files':                            {mode: ordered}
   # A BioProject's record has one project; an SRA submission may hold
   # several studies, written in an order the spec keeps.
-  '/projects':                                           {mode: ordered}
-  '/projects/*/publications/*/authors':                  {mode: ordered}
-  '/projects/*/publications/*/consortiums':              {mode: ordered}
+  '/projects':                                                  {mode: ordered}
+  '/projects/*/publications/*/authors':                         {mode: ordered}
+  '/projects/*/publications/*/consortiums':                     {mode: ordered}
   # Two titles in one language occur (ST.26), so the language cannot key them.
-  '/submission/st26/invention_titles':                   {mode: ordered}
-  '/features/*/qualifiers/*':                            {mode: ordered}
-  '/provenance/gff/pragmas':                             {mode: ordered}
+  '/submission/st26/invention_titles':                          {mode: ordered}
+  '/features/*/qualifiers/*':                                   {mode: ordered}
+  '/provenance/gff/pragmas':                                    {mode: ordered}
 
   # ----- keyed -----
-  '/samples':                                            {mode: keyed, key: [alias]}
-  '/relations':                                          {mode: keyed, key: [type, label, source/type, source/accession, source/alias, source/index, target/db, target/id, target/accession, target/index, target/url]}
-  '/projects/*/publications':                            {mode: keyed, key: [doi, pubmed_id, title]}
-  '/projects/*/grants':                                  {mode: keyed, key: [id, title, agency]}
-  '/datasets':                                           {mode: keyed, key: [alias]}
-  '/access_control/dac/contacts':                        {mode: keyed, key: [email, last_name, first_name]}
-  '/submission/attributes':                              {mode: keyed, key: [name, unit]}
-  '/assembly/attributes':                                {mode: keyed, key: [name, unit]}
-  '/datasets/*/attributes':                              {mode: keyed, key: [name, unit]}
+  '/samples':                                                   {mode: keyed, key: [alias]}
+  '/relations':                                                 {mode: keyed, key: [type, label, source/type, source/accession, source/alias, source/index, target/db, target/id, target/accession, target/index, target/url]}
+  '/projects/*/publications':                                   {mode: keyed, key: [doi, pubmed_id, title]}
+  '/projects/*/grants':                                         {mode: keyed, key: [id, title, agency]}
+  '/datasets':                                                  {mode: keyed, key: [alias]}
+  '/access_control/dac/contacts':                               {mode: keyed, key: [email, last_name, first_name]}
+  '/submission/attributes':                                     {mode: keyed, key: [name, unit]}
+  '/assembly/attributes':                                       {mode: keyed, key: [name, unit]}
+  '/datasets/*/attributes':                                     {mode: keyed, key: [name, unit]}
   # Fallback: any other path ending in /attributes (samples, project, run,
   # analysis, experiment, sequences, etc.) keys by (name, unit).
-  '/**/attributes':                                      {mode: keyed, key: [name, unit]}
+  '/**/attributes':                                             {mode: keyed, key: [name, unit]}
 
   # ----- bag -----
-  '/experiments':                                        {mode: bag}
-  '/runs':                                               {mode: bag}
-  '/analyses':                                           {mode: bag}
-  '/features':                                           {mode: bag}
-  '/features/*/parent_ids':                              {mode: bag}
-  '/sequences/entries/*/structured_comments':            {mode: bag}
-  '/submission/submitters/*/organizations':              {mode: bag}
-  '/datasets/*/dataset_types':                           {mode: bag}
-  '/projects/*/keywords':                                {mode: bag}
-  '/projects/*/study_types':                             {mode: bag}
-  '/projects/*/locus_tag_prefix':                        {mode: bag}
-  '/projects/*/target/data_types':                       {mode: bag}
-  '/experiments/*/targeted_loci':                        {mode: bag}
+  '/experiments':                                               {mode: bag}
+  '/runs':                                                      {mode: bag}
+  '/analyses':                                                  {mode: bag}
+  '/features':                                                  {mode: bag}
+  '/features/*/parent_ids':                                     {mode: bag}
+  '/sequences/entries/*/structured_comments':                   {mode: bag}
+  '/submission/submitters/*/organizations':                     {mode: bag}
+  '/datasets/*/dataset_types':                                  {mode: bag}
+  '/projects/*/keywords':                                       {mode: bag}
+  '/projects/*/study_types':                                    {mode: bag}
+  '/projects/*/locus_tag_prefix':                               {mode: bag}
+  '/projects/*/target/data_types':                              {mode: bag}
+  '/experiments/*/targeted_loci':                               {mode: bag}
 
 # ----------------------------------------------------------------------
 # Volatile sub-trees stripped before diff (for_diff: true).

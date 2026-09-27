@@ -374,7 +374,7 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 | `/sequences/entries/*/sequence` | **SEQ** | alphabet `[acgtn]` post-normalize |
 | `/sequences/entries/*/comments/*`, `/assembly/{title,description}` | ML | — |
 | `/sequences/entries/*/source_features` | O | — |
-| `/sequences/entries/*/source_features/*/qualifiers/<key>`, `/features/*/qualifiers/<key>` | O | per-key positional |
+| `/sequences/entries/*/source_features/*/source/qualifiers/<key>`, `/features/*/qualifiers/<key>` | O | per-key positional |
 | `/sequences/entries/*/structured_comments` | B | — |
 | `/features/*/{location,score,phase}` | SL / FLT / INT | — |
 | `/features/*/parent_ids/*` | SL in B | — |
@@ -420,3 +420,4 @@ Legend — string classes (§2.2): **SL** single-line, **ML** multi-line, **SEQ*
 - **M4**: §4.6 distinguishes safe additions (no live patch references the path) from version-bumping additions (an active chain references it). Removal always bumps.
 - **M5**: Status now gates first freeze on all §7 Open Questions being resolved; "frozen-on-use" semantics unchanged, but immediate v2 is prevented.
 - **M6**: §1.6 specifies canonicalization of the JSON Patch document itself, ordered `ops` array intact.
+- **M7**: §6 named a source feature's qualifiers `source_features/*/qualifiers/<key>`; they live under `source_features/*/source/qualifiers/<key>`. Corrected in ddbj-canon/v3 without a bump: no record written under it has `sequences`, so no canonical bytes change (see the registry's header).
