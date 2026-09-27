@@ -20,6 +20,20 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     SampleTSV::Importer.new(submission: @submission, tsv_body: tsv, actor: 'admin:bob').call
   end
 
+  # A TSV names a sample as a curator's spreadsheet spelled it: from before the
+  # row took the record's spelling, or with an NBSP. It still finds the sample,
+  # and the record keeps it once.
+  test 'a sample name spelled otherwise than the record finds its sample' do
+    tsv = "sample_name\tcollection_date\nsample-A\u00A0\t2026-04-15\n"
+
+    result = run_importer(tsv)
+
+    assert_equal 1, result.processed
+    samples = @submission.reload.materialised_record['samples']
+    assert_equal ['sample-A'], samples.map { it['alias'] }
+    assert_includes samples.first['attributes'], {'name' => 'collection_date', 'value' => '2026-04-15'}
+  end
+
   test 'applies a row that touches typed cols + edits attributes via single SubmissionUpdate' do
     tsv = <<~TSV
       sample_name\tstatus\tcollection_date\torganism\tsample_title

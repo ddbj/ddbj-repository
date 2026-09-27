@@ -72,7 +72,10 @@ module SampleTSV
                      'give the column one, or remove it.')
       end
 
-      sample_by_name = @submission.samples.index_by(&:sample_name)
+      # Names are compared as the record stores an alias (Sample.normalise_name),
+      # so a TSV downloaded before a row was renamed, or re-saved by a
+      # spreadsheet with NBSP, still finds its sample.
+      sample_by_name = @submission.samples.index_by { Sample.normalise_name(it.sample_name) }
 
       valid, errors = partition_rows(rows, attribute_cols, sample_by_name)
 
@@ -135,7 +138,7 @@ module SampleTSV
         report_checking(index, rows.size, errors.size)
 
         name   = row[SampleTSV::IDENTIFIER_COL].to_s.strip.presence
-        sample = sample_by_name[name]
+        sample = sample_by_name[Sample.normalise_name(name)]
 
         unless sample
           errors << [row, Rejection.new(line:, sample_name: name, column: SampleTSV::IDENTIFIER_COL,
@@ -182,13 +185,14 @@ module SampleTSV
         base = @submission.materialised_record&.deep_dup || {'schema_version' => 'v3'}
         base['samples'] ||= []
 
-        v3_by_alias = base['samples'].to_h { [it['alias'], it] }
+        v3_by_alias = base['samples'].to_h { [Sample.normalise_name(it['alias']), it] }
 
         valid.each do |row|
-          v3_sample = v3_by_alias[row[:sample].sample_name] || begin
+          name      = Sample.normalise_name(row[:sample].sample_name)
+          v3_sample = v3_by_alias[name] || begin
             fresh = {'alias' => row[:sample].sample_name}
             base['samples'] << fresh
-            v3_by_alias[row[:sample].sample_name] = fresh
+            v3_by_alias[name] = fresh
             fresh
           end
 
