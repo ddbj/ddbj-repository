@@ -13,7 +13,7 @@
 #   a.b[]                b は list。[] の中の語は注記で、要素の type と、relation なら
 #                        target.db（relations[part_of sample] は type が part_of で
 #                        target.db が sample の relation）
-#   a.properties{key}    dict の key
+#   a.properties{key}    dict の key の値
 #   ... (要素名が値)     子要素の名前がその値になる（PLATFORM/ILLUMINA → "ILLUMINA"）
 #   ... (要素名を小文字にした値)
 #                        同じく、小文字にして値にする（LIBRARY_LAYOUT/PAIRED → "paired"）
@@ -40,7 +40,7 @@ submission:
   SUBMISSION/ACTIONS/ACTION/ADD/@source:                       submission.sra.actions[].source
   SUBMISSION/ACTIONS/ACTION/HOLD:                              submission.sra.actions[].type (要素名が値)
   SUBMISSION/ACTIONS/ACTION/HOLD/@HoldForPeriod:               submission.sra.actions[].legacy.hold_for_period  # XSD に無い。D-way で 1,123 文書
-  SUBMISSION/ACTIONS/ACTION/HOLD/@HoldUntilDate:               submission.sra.actions[].hold_until_date (@target が無ければ submission.hold_date にも同じ値)
+  SUBMISSION/ACTIONS/ACTION/HOLD/@HoldUntilDate:               submission.sra.actions[].hold_until_date (@target の無い HOLD と RELEASE のうち最後のものなら、submission.hold_date にも同じ値)
   SUBMISSION/ACTIONS/ACTION/HOLD/@notes:                       submission.sra.actions[].legacy.notes  # XSD に無い。D-way で 495 文書
   SUBMISSION/ACTIONS/ACTION/HOLD/@target:                      submission.sra.actions[].target
   SUBMISSION/ACTIONS/ACTION/MODIFY:                            submission.sra.actions[].type (要素名が値)
