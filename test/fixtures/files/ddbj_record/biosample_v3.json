@@ -1,0 +1,13 @@
+{
+  "schema_version": "v3",
+  "submission": {"submitters": [{"email": "alice@example.com"}]},
+  "projects": [{"alias": "project-1", "accession": "PRJDB9", "title": "A project registered first", "project_type": "primary"}],
+  "samples": [
+    {"alias": "sample-1", "title": "First sample", "package": "Generic.1.0", "organism": {"name": "Homo sapiens", "taxonomy_id": "9606"}},
+    {"alias": "sample-2", "title": "Second sample", "package": "Generic.1.0", "organism": {"name": "Mus musculus", "taxonomy_id": "10090"}}
+  ],
+  "relations": [
+    {"type": "part_of", "source": {"type": "sample", "alias": "sample-1"}, "target": {"db": "bioproject", "accession": "PRJDB9"}},
+    {"type": "child_of", "source": {"type": "project", "alias": "project-1"}, "target": {"db": "bioproject", "accession": "PRJDB1"}}
+  ]
+}

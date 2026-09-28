@@ -41,6 +41,41 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # A BioProject or BioSample submission keeps its record as a chain, not
+  # a file Apply wrote. What DDBJ holds is then the chain's current state,
+  # named for the submission rather than for the cache it is kept in.
+  test 'a submission kept as a chain hands over its record as it stands' do
+    submission = submissions(:biosample)
+    record     = {'schema_version' => 'v3', 'samples' => [{'alias' => 'fixture-sample-1'}]}
+
+    submission.update_columns(source_id: 'SSUB000001', canonical_version: DDBJRecord::Canonicalizer::NUMBER)
+    submission.ddbj_record.purge
+    SubmissionUpdate.create_with_patch!(submission:, patch_json: [{op: 'add', path: '', value: record}].to_json, db: 'biosample', status: :applied, actor: 'test', source: :manual)
+
+    get submission_file_path(submission, 'ddbj_record', as: 'url')
+
+    assert_response :ok
+    assert_match 'SSUB000001.json', CGI.unescape(response.parsed_body['url'])
+    assert_equal record, JSON.parse(submission.reload.cached_materialised_record.download)
+  end
+
+  # Its cache is of the shape it was stored in; handing that over would be
+  # a record in a shape DDBJ no longer reads it in.
+  test 'a chain not yet in the current shape has no record to hand over' do
+    submission = submissions(:biosample)
+
+    submission.ddbj_record.purge
+    SubmissionUpdate.create_with_patch!(submission:, patch_json: [{op: 'add', path: '', value: {'schema_version' => 'v3'}}].to_json, db: 'biosample', status: :applied, actor: 'test', source: :manual)
+
+    get submission_file_path(submission, 'ddbj_record')
+
+    assert_response :not_found
+
+    get submission_request_path(submission_requests(:biosample))
+
+    assert_nil response.parsed_body.dig('submission', 'ddbj_record')
+  end
+
   test 'somebody else gets nothing' do
     default_headers['Authorization'] = "Bearer #{@carol.api_key}"
 

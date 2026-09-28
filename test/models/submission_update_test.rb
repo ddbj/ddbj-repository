@@ -16,11 +16,11 @@ class SubmissionUpdateTest < ActiveSupport::TestCase
     assert_includes update.errors[:patch], 'must not be empty'
   end
 
-  test 'source enum exposes migration / manual / batch / tsv_import' do
+  test 'source enum exposes migration / manual / batch / tsv_import / submitted' do
     update = submission_updates(:st26)
 
     assert update.migration?
-    assert_equal({'manual' => 0, 'migration' => 1, 'batch' => 2, 'tsv_import' => 3}, SubmissionUpdate.sources)
+    assert_equal({'manual' => 0, 'migration' => 1, 'batch' => 2, 'tsv_import' => 3, 'submitted' => 4}, SubmissionUpdate.sources)
   end
 
   test '.create_with_patch! attaches the patch JSON in a single transactional save' do

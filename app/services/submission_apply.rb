@@ -4,7 +4,9 @@
 module SubmissionApply
   def self.for(db)
     case db
-    when 'st26' then St26
+    when 'st26'       then St26
+    when 'bioproject' then BioProjectRecord
+    when 'biosample'  then BioSampleRecord
     else raise ArgumentError, "#{db} records are not applied yet"
     end
   end

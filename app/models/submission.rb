@@ -331,6 +331,27 @@ class Submission < ApplicationRecord
     cached_at_update_id.present? && cached_materialised_record.attached? && !legacy_chain?
   end
 
+  # The record as DDBJ holds it, as a file to hand over: the one Apply wrote
+  # (ST.26), or the chain's current state (BioProject, BioSample, DRA) —
+  # made current first if a curator's edit has left the cached copy behind.
+  # Not the file the submitter sent, which stays on the request.
+  #
+  # None for a chain written under an older `ddbj-canon`: its cache holds
+  # the shape it was stored in, not the one it is read in, until the next
+  # write (or `rake ddbj_record:reshape_v3`) heals it.
+  def record_file
+    return ddbj_record if ddbj_record.attached?
+    return nil unless record_file?
+
+    latest_record unless current_cache?
+
+    cached_materialised_record if current_cache?
+  end
+
+  def record_file? = ddbj_record.attached? || (!legacy_chain? && updates.exists?)
+
+  def record_filename = ddbj_record.attached? ? ddbj_record.filename.to_s : "#{source_id.presence || "submission-#{id}"}.json"
+
   # Raw cached bytes for the latest snapshot, or nil when the cache is
   # cold. Lets callers (e.g. the admin `materialised` controller) ship
   # the bytes verbatim without paying for Oj.load + re-encode.

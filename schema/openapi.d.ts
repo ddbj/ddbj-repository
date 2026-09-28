@@ -3527,6 +3527,7 @@ export interface components {
              */
             owner_uid: string;
             processing: boolean;
+            /** @description The file as the submitter sent it, unchanged. The record as DDBJ holds it is the submission's `ddbj_record`. */
             ddbj_record: components["schemas"]["Attachment"];
             validation: components["schemas"]["Validation"] | null;
             submission: components["schemas"]["Submission"] | null;
@@ -3605,7 +3606,13 @@ export interface components {
             /** Format: date-time */
             updated_at: string;
             accessions_count: number;
-            ddbj_record: components["schemas"]["Attachment"];
+            /**
+             * @description The record as DDBJ holds it now: in its canonical form, holding
+             *     this database's part only, with the accessions issued since and
+             *     any curator's edits. Not the file the submitter sent, which is the
+             *     request's `ddbj_record`. Null for a submission that holds no record.
+             */
+            ddbj_record: components["schemas"]["Attachment"] | null;
             flatfile_na: components["schemas"]["Attachment"] | null;
             flatfile_aa: components["schemas"]["Attachment"] | null;
         };

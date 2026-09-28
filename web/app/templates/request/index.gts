@@ -384,21 +384,29 @@ export default class extends Component<Signature> {
         <details class="list-group-item px-0 py-3">
           <summary>Files &amp; downloads</summary>
 
+          {{! Two files, and they differ: what was sent stays as it was,
+          and what DDBJ holds moves on — accessions issued, curators'
+          edits, and only this database's part of a record that carried
+          more. Named so nobody takes one for the other. }}
           <dl class="horizontal mt-3">
-            <dt>Uploaded file</dt>
+            <dt>The file you sent</dt>
 
             <dd>
               <DownloadLink @url={{@model.ddbj_record.url}} @filename={{@model.ddbj_record.filename}} />
             </dd>
 
             {{#if @model.submission}}
-              <dt>DDBJ Record</dt>
+              <dt>The record as DDBJ holds it</dt>
 
               <dd>
-                <DownloadLink
-                  @url={{@model.submission.ddbj_record.url}}
-                  @filename={{@model.submission.ddbj_record.filename}}
-                />
+                {{#if @model.submission.ddbj_record}}
+                  <DownloadLink
+                    @url={{@model.submission.ddbj_record.url}}
+                    @filename={{@model.submission.ddbj_record.filename}}
+                  />
+                {{else}}
+                  <span class="text-body-secondary">Not available</span>
+                {{/if}}
               </dd>
 
               <dt>Flatfile (NA)</dt>

@@ -21,7 +21,10 @@ module AttachmentDownload
   # Takes whatever the caller has in hand — a `has_one_attached` proxy, one
   # `ActiveStorage::Attachment` out of a `has_many`, or nothing at all —
   # and reduces it to the blob, which is the only thing storage needs.
-  def redirect_to_attachment(attachment)
+  #
+  # `filename` names the download where the blob's own name is not the one
+  # to give it (a cached copy's).
+  def redirect_to_attachment(attachment, filename: nil)
     blob = attachment.respond_to?(:blob) ? attachment.blob : attachment
 
     raise ActiveRecord::RecordNotFound unless blob
@@ -35,7 +38,7 @@ module AttachmentDownload
     # download that stops, not one that stops in five minutes.
     no_store
 
-    url = blob.url(disposition:)
+    url = blob.url(disposition:, filename: filename && ActiveStorage::Filename.new(filename))
 
     # A browser cannot put an `Authorization` header on an anchor, and
     # this API takes no cookies — so the web client asks for the address
