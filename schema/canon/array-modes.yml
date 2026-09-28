@@ -1,6 +1,6 @@
 # DDBJ Record Canonical JSON v3 — array mode + string class + volatile path registry.
 #
-# Derived from ddbj-record-specifications @ 47cd4433 (2026-09-26) and
+# Derived from ddbj-record-specifications @ c43e2811 (2026-09-28) and
 # doc/canonical-json.md §3 / §4 / §6.
 #
 # DO NOT modify after first use. Changes require a canonical_version bump
@@ -44,6 +44,10 @@
 # canonicalisation. Of those lists only /samples is stored, and a stored state
 # is already in canonical order, which keeping equal aliases as they stand
 # returns unchanged.
+#
+# The lists the spec added since (ST.26's header and its skipped sequence
+# numbers, GEA's SDRF rows and additional files) are ordered like the rest,
+# also without a bump: none of them is in a stored record.
 canonical_version: ddbj-canon/v3
 
 # ----------------------------------------------------------------------
@@ -161,6 +165,19 @@ arrays:
   '/submission/sra/legacy/files/*/legacy/data_series_labels':                 {mode: ordered}
   '/submission/sra/legacy/files/*/read_labels':                               {mode: ordered}
   '/provenance/gff/pragmas':                                                  {mode: ordered}
+  '/submission/st26/skipped_sequence_id_numbers':                             {mode: ordered}
+  '/submission/gea/additional_files':                                         {mode: ordered}
+  '/submission/gea/additional_files/*/read_labels':                           {mode: ordered}
+  '/submission/gea/additional_files/*/legacy/data_series_labels':             {mode: ordered}
+  '/submission/gea/legacy/unread_sdrf/read_labels':                           {mode: ordered}
+  '/submission/gea/legacy/unread_sdrf/legacy/data_series_labels':             {mode: ordered}
+  '/samples/*/sdrf_rows':                                                     {mode: ordered}
+  '/experiments/*/pool/default_member/misplaced_columns':                     {mode: ordered}
+  '/experiments/*/pool/default_member/sdrf_rows':                             {mode: ordered}
+  '/experiments/*/pool/members/*/misplaced_columns':                          {mode: ordered}
+  '/experiments/*/pool/members/*/sdrf_rows':                                  {mode: ordered}
+  '/runs/*/sdrf_rows':                                                        {mode: ordered}
+  '/analyses/*/sdrf_rows':                                                    {mode: ordered}
 
   # ----- keyed -----
   # The lists of objects: keyed on alias, equal aliases in the order written, so a

@@ -43,6 +43,7 @@ class DRA::Converter
     @relations = []
     @restarts  = {}.compare_by_identity
     @roots     = {}.compare_by_identity
+    @alsos     = {}
 
     @documents.each do |xml|
       documents_in(Nokogiri::XML(xml, &:strict).root).each do |element|
@@ -51,6 +52,8 @@ class DRA::Converter
         walk(element, kind:, path: name_of(element), frames: [], frame: root_frame(kind, name_of(element)))
       end
     end
+
+    @alsos.each { copy_from_action_in_force(*it) }
 
     prune(@record)
 
@@ -115,9 +118,9 @@ class DRA::Converter
     elsif (value = place.value_of(element.name))
       raise Unmapped, "#{path}: text where the element's name is the value" if text
 
-      write(place, value, frames, kind:, path:, element:)
+      write(place, value, frames, kind:, path:)
     elsif text
-      write(place, text, frames, kind:, path:, element:)
+      write(place, text, frames, kind:, path:)
     end
 
     element.attribute_nodes.each do |attribute|
@@ -125,7 +128,7 @@ class DRA::Converter
 
       attribute_path = "#{path}/@#{name_of(attribute)}"
 
-      write(place!(kind, attribute_path), attribute.value, frames, kind:, path: attribute_path, element:)
+      write(place!(kind, attribute_path), attribute.value, frames, kind:, path: attribute_path)
     end
 
     element.element_children.each do |child|
@@ -145,7 +148,7 @@ class DRA::Converter
     element.children.select { it.text? || it.cdata? }.map(&:content).join.presence
   end
 
-  def write(place, value, frames, kind:, path:, element:)
+  def write(place, value, frames, kind:, path:)
     *outer, last = place.segments
     value        = cast(place, value, path)
     target       = walk_segments(outer, place, frames, kind:, path:)
@@ -167,13 +170,24 @@ class DRA::Converter
       put(target, last.name, value, path)
     end
 
-    attribute, also = place.also
+    @alsos[place] ||= place.also if place.also
+  end
 
-    return unless also && element[attribute].blank?
+  # `@target の無い HOLD と RELEASE のうち最後のものなら、submission.hold_date
+  # にも同じ値`: ACTIONS are carried out in the order written, so of the
+  # HOLDs and RELEASEs naming no target the last is the one in force. Only
+  # known once every action is read. A RELEASE, or a HOLD with no date (a
+  # period only), leaves no hold date.
+  def copy_from_action_in_force(place, also)
+    *actions, value = place.segments
+    list            = actions.reduce(@record) {|object, segment| object&.dig(segment.name) }
+    in_force        = Array(list).select { %w[HOLD RELEASE].include?(it['type']) && !it.key?('target') }.last
+
+    return unless (date = in_force&.dig(value.name))
 
     *outer, last = also.segments
 
-    put(walk_segments(outer, also, frames, kind:, path:), last.name, value, path)
+    put(outer.reduce(@record) {|object, segment| object[segment.name] ||= {} }, last.name, date, place.to_s)
   end
 
   def filled?(target, last) = !(last.key ? target[last.name]&.dig(last.key) : target[last.name]).nil?

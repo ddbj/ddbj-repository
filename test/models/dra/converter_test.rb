@@ -155,6 +155,20 @@ class DRA::ConverterTest < ActiveSupport::TestCase
                  record.dig('submission', 'sra', 'actions')
   end
 
+  # ACTIONS are carried out in the order written: of the HOLDs and RELEASEs
+  # naming no target, the last is the one in force.
+  test 'the hold date is the last target-less HOLD, unless a RELEASE or an undated HOLD comes after it' do
+    hold_date = ->(*actions) {
+      convert("<SUBMISSION alias=\"s\"><ACTIONS>#{actions.map { "<ACTION>#{it}</ACTION>" }.join}</ACTIONS></SUBMISSION>").dig('submission', 'hold_date')
+    }
+
+    assert_equal '2028-01-01', hold_date.('<RELEASE/>', '<HOLD HoldUntilDate="2028-01-01"/>')
+    assert_equal '2028-01-01', hold_date.('<HOLD HoldUntilDate="2027-01-01"/>', '<HOLD HoldUntilDate="2028-01-01"/>')
+    assert_nil                 hold_date.('<HOLD HoldUntilDate="2027-01-01"/>', '<RELEASE/>')
+    assert_nil                 hold_date.('<HOLD HoldUntilDate="2027-01-01"/>', '<HOLD HoldForPeriod="12"/>')
+    assert_equal '2027-01-01', hold_date.('<HOLD HoldUntilDate="2027-01-01"/>', '<RELEASE target="DRX000001"/>')
+  end
+
   test 'values are written as the schema types them' do
     record = convert(<<~XML)
       <EXPERIMENT alias="e">

@@ -32,17 +32,17 @@ class DRA::Mapping
 
   # The notes: the element's name is the value, as it is or lowercased; an
   # element of that name stands for the quoted value; and the value goes to
-  # another place as well when the element lacks an attribute.
+  # another place as well when it belongs to the action in force.
   ELEMENT_NAME   = '要素名が値'
   LOWERCASE_NAME = '要素名を小文字にした値'
   NAMED_VALUE    = /\A\w+ なら "([^"]*)"\z/
-  ALSO_UNLESS    = /\A@(\w+) が無ければ (\S+) にも同じ値\z/
+  LAST_HOLD      = /\A@target の無い HOLD と RELEASE のうち最後のものなら、(\S+) にも同じ値\z/
 
   Place = Data.define(:segments, :note) do
     def self.parse(text)
       path, note = text.match(/\A(.*?)(?: \((.*)\))?\z/).captures
 
-      raise ArgumentError, "#{text}: an unknown note" unless note.nil? || [ELEMENT_NAME, LOWERCASE_NAME, NAMED_VALUE, ALSO_UNLESS].any? { it === note }
+      raise ArgumentError, "#{text}: an unknown note" unless note.nil? || [ELEMENT_NAME, LOWERCASE_NAME, NAMED_VALUE, LAST_HOLD].any? { it === note }
 
       new(
         segments: path.split('.').map {|segment|
@@ -71,9 +71,9 @@ class DRA::Mapping
       end
     end
 
-    # `@target が無ければ submission.hold_date にも同じ値`: the attribute
-    # whose absence puts the value at another place too, and that place.
-    def also = note&.match(ALSO_UNLESS)&.then { [it[1], Place.parse(it[2])] }
+    # `…のうち最後のものなら、submission.hold_date にも同じ値`: the other
+    # place the value goes to when its action is the one in force.
+    def also = note&.match(LAST_HOLD)&.then { Place.parse(it[1]) }
 
     def to_s = segments.map { it.list ? "#{it.name}[#{it.annotation.join(' ')}]" : [it.name, it.key && "{#{it.key}}"].join }.join('.')
   end

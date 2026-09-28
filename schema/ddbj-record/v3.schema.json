@@ -329,6 +329,35 @@
           ],
           "default": null,
           "title": "Comments"
+        },
+        "sdrf_rows": {
+          "anyOf": [
+            {
+              "items": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sdrf Rows"
+        },
+        "sdrf_column": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sdrf Column"
         }
       },
       "title": "Analysis",
@@ -2546,6 +2575,17 @@
           ],
           "default": null,
           "title": "Source Features"
+        },
+        "st26": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/St26Sequence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "Entry",
@@ -3686,6 +3726,21 @@
           "default": null,
           "title": "Dbcls Approval"
         },
+        "additional_files": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/File"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Additional Files"
+        },
         "legacy": {
           "anyOf": [
             {
@@ -3703,7 +3758,7 @@
     },
     "GeaSubmissionLegacy": {
       "additionalProperties": false,
-      "description": "CIBEX から移した GEA の experiment にだけある、IDF の Comment[CIBEX *] と、CIBEX の元の登録。",
+      "description": "移した GEA の experiment にだけあるもの。CIBEX から移したものの IDF の Comment[CIBEX *] と\nCIBEX の元の登録、表として読めない過去の版の SDRF。",
       "properties": {
         "cibex_accept_date": {
           "anyOf": [
@@ -3745,6 +3800,17 @@
           "anyOf": [
             {
               "$ref": "#/$defs/Cibex"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unread_sdrf": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/File"
             },
             {
               "type": "null"
@@ -4977,6 +5043,37 @@
           ],
           "default": null,
           "title": "Factor Values"
+        },
+        "misplaced_columns": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Attribute"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Misplaced Columns"
+        },
+        "sdrf_rows": {
+          "anyOf": [
+            {
+              "items": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sdrf Rows"
         }
       },
       "title": "PoolMember",
@@ -5788,6 +5885,18 @@
           ],
           "default": null,
           "title": "Value"
+        },
+        "non_english_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Non English Value"
         }
       },
       "title": "Qualifier",
@@ -6190,7 +6299,7 @@
     },
     "RelationSource": {
       "additionalProperties": false,
-      "description": "関係の起点。type はオブジェクトの種類で、record のキーの単数形 (\"sample\"、\"analysis\"、\"policy\" など)。\n\nrecord 内のオブジェクトを accession で指し、accession が無ければ alias で指す。\nSRA の alias は record の中でも一意とは限らないので、accession が無く alias も\n一意でないときは、その種類の list の中の位置 (0 始まり) を index に書く。",
+      "description": "関係の起点。type はオブジェクトの種類で、record のキーの単数形 (\"sample\"、\"analysis\"、\"policy\" など)。\n\nrecord 内のオブジェクトを accession で指し、accession が無ければ alias で指す。\nSRA の alias は record の中でも一意とは限らないので、accession が無く alias も\n一意でないときは、その種類の list で同じ alias を持つものの中での位置 (書かれた順、\n0 始まり) を index に書く。list 全体の中の位置ではない。alias は前後の空白を除き、\n続く空白を 1 つとみなして比べ、alias の無いものどうしも同じ alias を持つものとして数える。",
       "properties": {
         "type": {
           "anyOf": [
@@ -6250,7 +6359,7 @@
     },
     "RelationTarget": {
       "additionalProperties": false,
-      "description": "関係の相手。\n\ndb が外部 DB の名前なら、id はその DB での番号。\ndb がオブジェクトの種類 (RelationSource.type と同じ名前) なら、相手はその種類の\nオブジェクトで、id は alias、accession は accession。相手がこの record の中に\nあるかどうかは表さず、読む側が accession か (center_name, alias) で探す。\nただし、相手がこの record の中にあり、accession が無く alias も一意でないときは、\nその種類の list の中の位置 (0 始まり) を index に書く。\nSRA の参照は refname と accession を同時に書けるので、片方に寄せると戻せない。\ncenter_name は alias の名前空間(SRA の refcenter)。",
+      "description": "関係の相手。\n\ndb が外部 DB の名前なら、id はその DB での番号。\ndb がオブジェクトの種類 (RelationSource.type と同じ名前) なら、相手はその種類の\nオブジェクトで、id は alias、accession は accession。相手がこの record の中に\nあるかどうかは表さず、読む側が accession か (center_name, alias) で探す。\nただし、相手がこの record の中にあり、accession が無く alias も一意でないときは、\nその種類の list で同じ alias を持つものの中での位置 (書かれた順、0 始まり) を index に書く。\nSRA の参照は refname と accession を同時に書けるので、片方に寄せると戻せない。\ncenter_name は alias の名前空間(SRA の refcenter)。",
       "properties": {
         "url": {
           "anyOf": [
@@ -6610,6 +6719,35 @@
           "default": null,
           "title": "Comments"
         },
+        "sdrf_rows": {
+          "anyOf": [
+            {
+              "items": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sdrf Rows"
+        },
+        "sdrf_column": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sdrf Column"
+        },
         "legacy": {
           "anyOf": [
             {
@@ -6923,6 +7061,22 @@
           ],
           "default": null,
           "title": "Comments"
+        },
+        "sdrf_rows": {
+          "anyOf": [
+            {
+              "items": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sdrf Rows"
         }
       },
       "title": "Sample",
@@ -7550,9 +7704,47 @@
       "title": "SraSubmissionLegacy",
       "type": "object"
     },
+    "St26Sequence": {
+      "additionalProperties": false,
+      "description": "ST.26 の配列 (SequenceData) の 1 つについて、v3 の Entry に置き場の無い値。書かれたまま持つ。",
+      "properties": {
+        "moltype": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "examples": [
+            "AA"
+          ],
+          "title": "Moltype"
+        },
+        "other_seqid": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "examples": [
+            "pat|JP|2024048697|A5|1"
+          ],
+          "title": "Other Seqid"
+        }
+      },
+      "title": "St26Sequence",
+      "type": "object"
+    },
     "St26Submission": {
       "additionalProperties": false,
-      "description": "ST.26 (WIPO) の特許配列リストの出願情報。来歴ではなく、登録の内容そのもの。",
+      "description": "ST.26 (WIPO) の特許配列リストの出願情報。来歴ではなく、登録の内容そのもの。\n\n配列 (SequenceData) より前の全てと、JPO が末尾に足す Bibliography、欠番にした配列の番号を持つ。\n配列そのものは sequences.entries[] (配列ごとの ST.26 の値は entries[].st26)。",
       "properties": {
         "dtd_version": {
           "anyOf": [
@@ -7568,6 +7760,18 @@
             "V1_3"
           ],
           "title": "Dtd Version"
+        },
+        "file_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File Name"
         },
         "software_name": {
           "anyOf": [
@@ -7681,6 +7885,21 @@
           "default": null,
           "title": "Applicant Name"
         },
+        "applicant_name_language_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "examples": [
+            "ja"
+          ],
+          "title": "Applicant Name Language Code"
+        },
         "applicant_name_latin": {
           "anyOf": [
             {
@@ -7704,6 +7923,21 @@
           ],
           "default": null,
           "title": "Inventor Name"
+        },
+        "inventor_name_language_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "examples": [
+            "ja"
+          ],
+          "title": "Inventor Name Language Code"
         },
         "inventor_name_latin": {
           "anyOf": [
@@ -7731,6 +7965,59 @@
           ],
           "default": null,
           "title": "Invention Titles"
+        },
+        "sequence_total_quantity": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sequence Total Quantity"
+        },
+        "skipped_sequence_id_numbers": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skipped Sequence Id Numbers"
+        },
+        "published_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "examples": [
+            "2024-12-03"
+          ],
+          "title": "Published Date"
+        },
+        "bibliography_priority": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ApplicationIdentification"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "St26Submission",
