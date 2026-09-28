@@ -19,8 +19,8 @@ export default class DbRoute extends Route {
     return { db };
   }
 
-  // Only what a request can be created for: a DRA request would be
-  // refused on upload, after the person had chosen a file for it.
+  // Only what a request can be created for (SUBMITTABLE_DBS): anything else
+  // would be refused on upload, after the person had chosen a file for it.
   afterModel({ db }: { db: string }) {
     if (!isSubmittableDb(db)) this.router.replaceWith('new');
   }

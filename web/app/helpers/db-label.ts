@@ -10,9 +10,9 @@ export const DB_LABELS: Record<Db, string> = {
   dra: 'DRA',
 };
 
-// The databases a request can be created for here. DRA submissions are
-// migrated from D-way and cannot be created yet.
-export const SUBMITTABLE_DBS: SubmittableDb[] = ['st26', 'bioproject', 'biosample'];
+// The databases a request can be created for here (SubmittableDb in the
+// API): ST.26 only, until BioProject and BioSample records can be applied.
+export const SUBMITTABLE_DBS: SubmittableDb[] = ['st26'];
 
 export function isSubmittableDb(db: string): db is SubmittableDb {
   return (SUBMITTABLE_DBS as string[]).includes(db);

@@ -295,7 +295,7 @@ class AdminCurationsTest < ActionDispatch::IntegrationTest
   # The queue's whole point: an unapplied request is claimable, which the
   # old submission-scoped endpoint could not express at all.
   test 'POST assignment claims a request that has not been applied' do
-    request = SubmissionRequest.new(user: users(:alice), db: 'bioproject')
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
     attach_ddbj_record(request)
     request.save!
 

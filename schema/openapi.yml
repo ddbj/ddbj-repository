@@ -3140,13 +3140,15 @@ components:
         - dra
 
     SubmittableDb:
-      description: The databases a submission request can be created for. DRA submissions are migrated from D-way and cannot be created here yet.
+      description: >
+        The databases a submission request can be created for. BioProject and
+        BioSample submissions are not accepted yet — their records cannot be
+        applied until v3 records are validated and applied here. DRA submissions
+        are migrated from D-way and cannot be created here yet.
       type: string
 
       enum:
         - st26
-        - bioproject
-        - biosample
 
     SubmissionRequestSummary:
       type: object

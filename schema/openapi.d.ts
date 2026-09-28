@@ -3189,10 +3189,10 @@ export interface components {
         /** @enum {string} */
         Db: "st26" | "bioproject" | "biosample" | "dra";
         /**
-         * @description The databases a submission request can be created for. DRA submissions are migrated from D-way and cannot be created here yet.
+         * @description The databases a submission request can be created for. BioProject and BioSample submissions are not accepted yet — their records cannot be applied until v3 records are validated and applied here. DRA submissions are migrated from D-way and cannot be created here yet.
          * @enum {string}
          */
-        SubmittableDb: "st26" | "bioproject" | "biosample";
+        SubmittableDb: "st26";
         SubmissionRequestSummary: {
             id: number;
             db: components["schemas"]["Db"];

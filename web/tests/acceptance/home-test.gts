@@ -220,8 +220,10 @@ module('Acceptance | home', function (hooks) {
     assert.strictEqual(currentURL(), '/new');
     assert.dom('h1').hasText('New Submission');
     assert.dom('a[href="/web/st26/requests/new"]').exists();
-    assert.dom('a[href="/web/bioproject/requests/new"]').exists();
-    assert.dom('a[href="/web/biosample/requests/new"]').exists();
+
+    // Not until a BioProject or BioSample record can be applied.
+    assert.dom('a[href="/web/bioproject/requests/new"]').doesNotExist();
+    assert.dom('a[href="/web/biosample/requests/new"]').doesNotExist();
   });
 
   test('unchecking a database facet and submitting narrows the list', async function (assert) {
