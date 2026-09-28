@@ -17,6 +17,9 @@
 #   ... (要素名が値)     子要素の名前がその値になる（PLATFORM/ILLUMINA → "ILLUMINA"）
 #   ... (要素名を小文字にした値)
 #                        同じく、小文字にして値にする（LIBRARY_LAYOUT/PAIRED → "paired"）
+#   ... (種類の名前にした値)
+#                        SRA のオブジェクトの型名を、record の種類の名前（record のキーの
+#                        単数形）にする（STUDY → "project"、SAMPLE → "sample"）
 #   relations[...]       ルートの relations。source は文書の根の要素
 #
 # 注記の付いた行は、XSD の一部の版にしかないか、XSD に無いもの。
@@ -777,5 +780,5 @@ analysis:
   ANALYSIS/TARGETS/TARGET/@accession:                                                                  relations[derived_from].target.accession
   ANALYSIS/TARGETS/TARGET/@refcenter:                                                                  relations[derived_from].target.center_name
   ANALYSIS/TARGETS/TARGET/@refname:                                                                    relations[derived_from].target.id
-  ANALYSIS/TARGETS/TARGET/@sra_object_type:                                                            relations[derived_from].target.db
+  ANALYSIS/TARGETS/TARGET/@sra_object_type:                                                            relations[derived_from].target.db (種類の名前にした値)
   ANALYSIS/TITLE:                                                                                      analyses[].title

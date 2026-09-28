@@ -150,7 +150,7 @@ class DRA::Converter
 
   def write(place, value, frames, kind:, path:)
     *outer, last = place.segments
-    value        = cast(place, value, path)
+    value        = place.note == DRA::Mapping::KIND_NAME ? kind_name(value, path) : cast(place, value, path)
     target       = walk_segments(outer, place, frames, kind:, path:)
 
     # A list element the table does not name, built from its XML element's
@@ -280,6 +280,14 @@ class DRA::Converter
         end
       }
     end
+  end
+
+  # The record's name for an SRA object type: the singular of the list its
+  # objects are in (STUDY → "project").
+  def kind_name(value, path)
+    kind = DRA::Mapping::ROOTS.fetch(value.strip) { raise Unmapped, "#{path}: #{value.inspect} is not an SRA object type" }
+
+    ROOT_LISTS.dig(kind, 1) || kind
   end
 
   # The value as the schema types it. XML Schema lets such values stand

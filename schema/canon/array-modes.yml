@@ -1,6 +1,6 @@
 # DDBJ Record Canonical JSON v3 — array mode + string class + volatile path registry.
 #
-# Derived from ddbj-record-specifications @ c43e2811 (2026-09-28) and
+# Derived from ddbj-record-specifications @ 9122d063 (2026-09-28) and
 # doc/canonical-json.md §3 / §4 / §6.
 #
 # DO NOT modify after first use. Changes require a canonical_version bump

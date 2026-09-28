@@ -31,18 +31,21 @@ class DRA::Mapping
   end
 
   # The notes: the element's name is the value, as it is or lowercased; an
-  # element of that name stands for the quoted value; and the value goes to
-  # another place as well when it belongs to the action in force.
+  # element of that name stands for the quoted value; an SRA object type
+  # (STUDY) is written as the record's name for that kind ("project"); and
+  # the value goes to another place as well when it belongs to the action
+  # in force.
   ELEMENT_NAME   = '要素名が値'
   LOWERCASE_NAME = '要素名を小文字にした値'
   NAMED_VALUE    = /\A\w+ なら "([^"]*)"\z/
+  KIND_NAME      = '種類の名前にした値'
   LAST_HOLD      = /\A@target の無い HOLD と RELEASE のうち最後のものなら、(\S+) にも同じ値\z/
 
   Place = Data.define(:segments, :note) do
     def self.parse(text)
       path, note = text.match(/\A(.*?)(?: \((.*)\))?\z/).captures
 
-      raise ArgumentError, "#{text}: an unknown note" unless note.nil? || [ELEMENT_NAME, LOWERCASE_NAME, NAMED_VALUE, LAST_HOLD].any? { it === note }
+      raise ArgumentError, "#{text}: an unknown note" unless note.nil? || [ELEMENT_NAME, LOWERCASE_NAME, NAMED_VALUE, KIND_NAME, LAST_HOLD].any? { it === note }
 
       new(
         segments: path.split('.').map {|segment|
