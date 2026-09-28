@@ -3549,6 +3549,13 @@ export interface components {
             /** @description The pipeline stopped at the step after `step`. */
             failed: boolean;
             /**
+             * @description The check could not be carried out (the checking service did not
+             *     answer in time, or its run ended without a report) — `failed`, but
+             *     with nothing known to be wrong with the file. The way on is to check
+             *     it again, not to correct it.
+             */
+            unchecked: boolean;
+            /**
              * @description The record left the pipeline — withdrawn, canceled or
              *     permanently suppressed. `step` is then where it stopped, not
              *     where work is in progress.

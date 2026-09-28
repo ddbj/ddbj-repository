@@ -3918,6 +3918,7 @@ components:
       required:
         - step
         - failed
+        - unchecked
         - closed
         - row_count
         - accessioned_count
@@ -3936,6 +3937,14 @@ components:
 
         failed:
           description: The pipeline stopped at the step after `step`.
+          type: boolean
+
+        unchecked:
+          description: |
+            The check could not be carried out (the checking service did not
+            answer in time, or its run ended without a report) — `failed`, but
+            with nothing known to be wrong with the file. The way on is to check
+            it again, not to correct it.
           type: boolean
 
         closed:

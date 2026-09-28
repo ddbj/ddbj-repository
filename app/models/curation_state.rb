@@ -189,6 +189,17 @@ class CurationState
 
   def failed? = request.status.in?(%w[validation_failed application_failed])
 
+  # Failed only because the check could not be carried out (TRD_R0016):
+  # nothing is known to be wrong with the file, and the way on is to check
+  # it again. Asked of the details only for a failed check, which is rare.
+  def unchecked?
+    return false unless request.validation_failed?
+
+    errors = request.validation&.details&.error
+
+    errors.present? && errors.where.not(code: DDBJValidatorCheck::NOT_CHECKED).none?
+  end
+
   # Withdrawn / canceled / permanently suppressed: the record has left the
   # pipeline, so the step it stopped on is where it ended, not where work
   # is in progress. Without this a withdrawn BP reads as "Curating" in

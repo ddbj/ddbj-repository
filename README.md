@@ -169,6 +169,8 @@ added as failures are classified, so the set grows.
 | TRD_R0012 | application | error | No accession numbers left in the scope; extend its prefix list in `config/sequence.yml`. Nothing was consumed — no accession was burned and no submission created — so once it is extended the file can be submitted afresh |
 | TRD_R0013 | validation | error | The uploaded record could not be parsed: malformed JSON, or a node whose container type is wrong for the schema (`"sequences": []` where an object belongs). The message is the parser's |
 | TRD_R0014 | application | error | The record's `locus_date` is not written as `YYYY-MM-DD`. Refused rather than guessed: `Date.parse` reads `8/13` as this year's 13 August, and the value is printed on the LOCUS line of a published flatfile. Nothing was consumed — no accession was allocated |
+| TRD_R0015 | validation | error | ddbj-validator refused the record when it was sent (too large, or a request it cannot take). The message carries its reason |
+| TRD_R0016 | validation | error | The record could not be checked: ddbj-validator was out of reach or had not finished within two hours, its run ended without a report, or none is configured. Nothing is known to be wrong with the file; check it again later |
 | TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack

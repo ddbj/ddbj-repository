@@ -34,6 +34,7 @@ function summary(id: number): Summary {
     progress: {
       step: 'applied',
       failed: false,
+      unchecked: false,
       closed: false,
       row_count: 0,
       accessioned_count: 0,

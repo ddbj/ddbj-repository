@@ -75,6 +75,19 @@ export function requestState(request: StatefulRequest): RequestState {
     };
   }
 
+  // Failed, but only because the file could not be checked at all: the
+  // move is to check it again, and telling the submitter to correct a file
+  // nothing was found wrong with would send them looking for a fault.
+  if (request.progress.unchecked) {
+    return {
+      tone: 'action',
+      label: 'Could not be checked',
+      badge: 'Check again',
+      heading: 'We could not check this file',
+      body: 'The checking service did not answer in time. Nothing is known to be wrong with the file — check it again later.',
+    };
+  }
+
   if (request.progress.failed) {
     return {
       tone: 'failed',
