@@ -1,0 +1,18 @@
+# ddbj-validator (ddbj/ddbj-validator), which checks BioProject / BioSample
+# (and later DRA) records for us over HTTP. Operated by others; a blank url
+# is an environment that does not use it yet, and there a record it would
+# check stays waiting rather than passing.
+development:
+  url: <%= ENV['DDBJ_VALIDATOR_URL'] %>
+
+test:
+  url: http://validator.example.com
+
+production:
+  url: <%= ENV['DDBJ_VALIDATOR_URL'] %>
+
+staging:
+  url: <%= ENV['DDBJ_VALIDATOR_URL'] %>
+
+dev:
+  url: <%= ENV['DDBJ_VALIDATOR_URL'] %>
