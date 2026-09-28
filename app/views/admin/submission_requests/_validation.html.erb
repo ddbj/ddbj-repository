@@ -15,7 +15,12 @@
     <% elsif validation.validity == 'invalid' %>
       <span class="badge text-bg-danger">Invalid</span>
     <% else %>
-      <span class="badge text-bg-secondary text-capitalize"><%= validation.progress %></span>
+      <%# A check that runs elsewhere (ddbj-validator) can wait; how long %>
+      <%# is the question, so it is said. %>
+      <span class="small text-body-secondary">
+        <span class="badge text-bg-secondary text-capitalize"><%= validation.progress %></span>
+        <% if validation.running? %>started <%= elapsed_time(validation.created_at) %><% end %>
+      </span>
     <% end %>
   </div>
 
