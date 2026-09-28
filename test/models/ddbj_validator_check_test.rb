@@ -121,19 +121,38 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
     assert_match 'This says nothing about the file', validation.details.sole.message
   end
 
-  test 'a run the validator no longer knows is sent again' do
+  test 'a run the validator no longer knows is sent again, a few times' do
     validation = started
 
     stub_request(:get, "#{VALIDATOR}/validation/#{UUID}/status").to_return(status: 404)
 
-    DDBJValidatorCheck.poll validation, 0
+    assert_enqueued_with job: PollDDBJValidatorJob, at: DDBJValidatorCheck::POLL_AT_MOST.from_now do
+      DDBJValidatorCheck.poll validation, 0
+    end
 
     assert_nil validation.reload.external_id
 
-    stub_start
     DDBJValidatorCheck.poll validation, 0
 
     assert_equal UUID, validation.reload.external_id
+    assert_equal 2, validation.external_sends
+
+    validation.update!(external_sends: DDBJValidatorCheck::MAX_SENDS)
+    DDBJValidatorCheck.poll validation, 0
+
+    assert_equal [%w[TRD_R0016 error]], details(validation)
+    assert_match 'lost its run', validation.details.sole.message
+  end
+
+  # One that finished a minute ago is an answer, deadline or not.
+  test 'past the deadline, a run already sent is still asked after once more' do
+    validation = started
+    validation.update_columns(created_at: (DDBJValidatorCheck::GIVE_UP_AFTER + 1.minute).ago)
+
+    stub_report [{id: 'BS_R0098', level: 'warning', message: 'An attribute has no value.'}]
+    DDBJValidatorCheck.poll validation, 0
+
+    assert @request.reload.ready_to_apply?
   end
 
   # A run that crashed on the record would crash again; sending it again
@@ -157,7 +176,21 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
 
     assert @request.reload.validation_failed?
     assert_equal [%w[TRD_R0015 error]], details(@request.validation)
-    assert_match 'Request Entity Too Large', @request.validation.details.sole.message
+    assert_match 'HTTP 413: Request Entity Too Large', @request.validation.details.sole.message
+    assert_not CurationState.new(@request).unchecked?, 'refused is about the file'
+  end
+
+  # A proxy's access list or a rate limit says nothing about the record.
+  test 'a refusal on the way to the validator is waited out, not blamed on the record' do
+    [403, 429].each do |status|
+      stub_request(:post, "#{VALIDATOR}/validation").to_return(status:)
+
+      assert_enqueued_with job: PollDDBJValidatorJob do
+        DDBJValidatorCheck.start @request
+      end
+
+      assert @request.reload.validating?, status.to_s
+    end
   end
 
   # Anything unforeseen is asked again like an outage, so it too ends when
@@ -172,6 +205,37 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
     end
 
     assert validation.reload.running?
+  end
+
+  # "Not asked" is not "passed" — nor is a report whose findings could not
+  # be read.
+  test 'a report without its findings, or invalid without an error, ends the check unchecked' do
+    validation = started
+
+    stub_status 'finished'
+    stub_request(:get, "#{VALIDATOR}/validation/#{UUID}").to_return_json(body: {uuid: UUID, status: 'finished', result: {validity: false, stats: {error: 3}}})
+    DDBJValidatorCheck.poll validation, 0
+
+    assert_equal [%w[TRD_R0016 error]], details(validation)
+
+    validation = started
+    stub_request(:get, "#{VALIDATOR}/validation/#{UUID}").to_return_json(body: {uuid: UUID, status: 'finished', result: {validity: false, messages: [{id: 'BP_R0015', level: 'warning', message: 'x'}]}})
+    DDBJValidatorCheck.poll validation, 0
+
+    assert_equal [%w[TRD_R0016 error]], details(validation)
+    assert CurationState.new(@request.reload).unchecked?
+  end
+
+  # Its answer goes straight to the column: a request whose own validations
+  # no longer pass would otherwise be asked about for ever.
+  test 'a request that no longer passes its own validations still gets its answer' do
+    validation = started
+    @request.update_columns(assignee_id: users(:alice).id)
+
+    stub_report []
+    DDBJValidatorCheck.poll validation, 0
+
+    assert @request.reload.ready_to_apply?
   end
 
   test 'a run finished without a report ends the check' do

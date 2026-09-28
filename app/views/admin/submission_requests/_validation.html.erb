@@ -16,8 +16,11 @@
       <span class="badge text-bg-danger">Invalid</span>
     <% else %>
       <%# A check that runs elsewhere (ddbj-validator) can wait; how long %>
-      <%# is the question, so it is said. %>
-      <span class="small text-body-secondary">
+      <%# is the question, so it is said — in amber once it has waited half %>
+      <%# of what it will before giving up, since it might be stuck or %>
+      <%# might be a big record, and the screen cannot tell which. %>
+      <% slow = validation.running? && stale?(validation.created_at, threshold: DDBJValidatorCheck::GIVE_UP_AFTER / 2) %>
+      <span class="small <%= slow ? 'text-warning-emphasis' : 'text-body-secondary' %>">
         <span class="badge text-bg-secondary text-capitalize"><%= validation.progress %></span>
         <% if validation.running? %>started <%= elapsed_time(validation.created_at) %><% end %>
       </span>

@@ -245,10 +245,19 @@ export default class extends Component<Signature> {
                 {{/unless}}
               {{/if}}
 
-              {{! Only where there is nothing else to do with the file. On a
+              {{! A check that could not be carried out is asked again; the
+            file itself was not found wanting, so a fresh upload is not
+            the way on. }}
+              {{#if @model.progress.unchecked}}
+                {{#if @model.recheckable}}
+                  <button type="button" class="btn btn-primary" data-test-recheck {{on "click" this.recheck}}>Check
+                    again</button>
+                {{/if}}
+
+                {{! Only where there is nothing else to do with the file. On a
             request that validated, the next step is Apply, and a second
             primary button offering a fresh upload would compete with it. }}
-              {{#if (eq @model.status "validation_failed")}}
+              {{else if (eq @model.status "validation_failed")}}
                 <button
                   type="button"
                   class="btn btn-primary"

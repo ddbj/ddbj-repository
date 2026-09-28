@@ -29,6 +29,7 @@ function summary(attrs: Partial<Summary> & Pick<Summary, 'id' | 'db'>): Summary 
     progress: {
       step: 'applied',
       failed: false,
+      unchecked: false,
       closed: false,
       row_count: 0,
       accessioned_count: 0,
@@ -105,6 +106,7 @@ module('Acceptance | home', function (hooks) {
         progress: {
           step: 'curating',
           failed: false,
+          unchecked: false,
           closed: false,
           row_count: 3,
           accessioned_count: 3,

@@ -49,6 +49,7 @@ function requestWith(details: Detail[]): SubmissionRequest {
     progress: {
       step: 'submitted',
       failed: true,
+      unchecked: false,
       closed: false,
       row_count: 0,
       accessioned_count: 0,
@@ -288,6 +289,42 @@ module('Acceptance | validation report', function (hooks) {
     // And the panel above agrees with it, rather than saying the file is
     // ready to submit over a button that is refusing.
     assert.dom('[data-test-state]').includesText('check on your file has expired');
+
+    await click('[data-test-recheck]');
+
+    assert.deepEqual(rechecked, ['42']);
+  });
+
+  // The checking service did not answer: nothing was found wrong with the
+  // file, so the way on is to check it again — not to correct it and send
+  // it as a new request.
+  test('a check that could not be carried out offers to check again', async function (assert) {
+    const rechecked: string[] = [];
+
+    worker.use(
+      http.post('/submission_requests/{submission_request_id}/validation', ({ params, response }) => {
+        rechecked.push(String(params.submission_request_id));
+
+        return response(204).empty();
+      }),
+      http.get('/submission_requests/{id}', ({ response }) =>
+        response(200).json({
+          ...requestWith([
+            detail({
+              code: 'TRD_R0016',
+              message: 'The record could not be checked: ddbj-validator had not finished within 2 hours.',
+            }),
+          ]),
+          recheckable: true,
+          progress: { ...requestWith([]).progress, unchecked: true },
+        }),
+      ),
+    );
+
+    await visit('/requests/42');
+
+    assert.dom('[data-test-state]').includesText('We could not check this file');
+    assert.dom('[data-test-close-and-resubmit]').doesNotExist();
 
     await click('[data-test-recheck]');
 

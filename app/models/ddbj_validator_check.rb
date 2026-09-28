@@ -18,7 +18,8 @@
 #
 # A validator that cannot be asked for a while is asked again, since that
 # is nothing the submitter can fix; only when the wait runs out is the
-# check ended, and the submitter can run it again.
+# check ended, and the submitter can run it again. A run given up on goes
+# on at the validator, which has no way to be told to stop.
 module DDBJValidatorCheck
   POLL_FIRST   = 5.seconds
   POLL_AT_MOST = 1.minute
@@ -26,6 +27,10 @@ module DDBJValidatorCheck
   # Longer than the validator gives a run (an hour), so a run it is still
   # working on is not given up on.
   GIVE_UP_AFTER = 2.hours
+
+  # How many times a record is sent before a validator that keeps losing
+  # its runs is given up on.
+  MAX_SENDS = 3
 
   REFUSED     = 'TRD_R0015'
   NOT_CHECKED = 'TRD_R0016'
@@ -49,10 +54,18 @@ module DDBJValidatorCheck
 
   # Asked by PollDDBJValidatorJob. `attempt` counts the asks since the
   # record was last sent, for the wait before the next.
+  #
+  # Past the deadline a run already sent is still asked after once more —
+  # one that finished a minute ago is an answer — and given up on only if
+  # it has none.
   def poll(validation, attempt)
     return unless validation.running?
-    return give_up(validation, "ddbj-validator had not finished within #{GIVE_UP_AFTER.inspect}") if validation.created_at < GIVE_UP_AFTER.ago
-    return send_record(validation) unless validation.external_id
+
+    overdue = validation.created_at < GIVE_UP_AFTER.ago
+
+    unless validation.external_id
+      return overdue ? give_up(validation, "ddbj-validator could not be reached within #{GIVE_UP_AFTER.inspect}") : send_record(validation)
+    end
 
     run = client.run(validation.external_id)
 
@@ -60,18 +73,30 @@ module DDBJValidatorCheck
       finish validation, run.report
     elsif run.finished? || run.failed?
       give_up validation, "the ddbj-validator run ended without a report#{": #{run.message}" if run.message.present?}"
+    elsif overdue
+      give_up validation, "ddbj-validator had not finished within #{GIVE_UP_AFTER.inspect}"
     else
       ask_again validation, [POLL_FIRST * (2**attempt), POLL_AT_MOST].min, attempt + 1
     end
   rescue DDBJValidatorClient::Lost
-    validation.update!(external_id: nil)
-    ask_again validation, POLL_FIRST
-  rescue DDBJValidatorClient::Unavailable
-    ask_again validation, POLL_AT_MOST, attempt
+    lost validation, overdue
   rescue StandardError => e
-    Rails.error.report e, context: {validation_id: validation.id}
+    # Anything unforeseen is asked again like an outage, once reported;
+    # the deadline ends it either way.
+    Rails.error.report e, context: {validation_id: validation.id} if attempt.zero? && !e.is_a?(DDBJValidatorClient::Unavailable)
 
-    ask_again validation, POLL_AT_MOST, attempt
+    overdue ? give_up(validation, "ddbj-validator could not be asked (#{e.class})") : ask_again(validation, POLL_AT_MOST, attempt + 1)
+  end
+
+  # A run the validator no longer knows (restarted, or cleaned up) is sent
+  # again — a few times, and a minute apart, since a validator losing every
+  # run would otherwise be sent the record every few seconds.
+  def lost(validation, overdue)
+    return give_up(validation, "ddbj-validator lost its run #{validation.external_sends} times") if validation.external_sends >= MAX_SENDS
+    return give_up(validation, "ddbj-validator lost its run, and the wait of #{GIVE_UP_AFTER.inspect} ran out") if overdue
+
+    validation.update!(external_id: nil)
+    ask_again validation, POLL_AT_MOST
   end
 
   def send_record(validation)
@@ -80,14 +105,12 @@ module DDBJValidatorCheck
       client.start(io: file, filename: subject.ddbj_record.filename.to_s, record_db: subject.db, submitter_id: subject.user.uid)
     }
 
-    validation.update!(external_id: uuid)
+    validation.update!(external_id: uuid, external_sends: validation.external_sends + 1)
     ask_again validation, POLL_FIRST
   rescue DDBJValidatorClient::Refused => e
-    conclude validation, [{code: REFUSED, severity: :error, message: "ddbj-validator refused the record: #{e.message}"}]
-  rescue DDBJValidatorClient::Unavailable
-    ask_again validation, POLL_AT_MOST
+    conclude validation, [{code: REFUSED, severity: :error, message: "ddbj-validator refused the record (#{e.message})."}]
   rescue StandardError => e
-    Rails.error.report e, context: {validation_id: validation.id}
+    Rails.error.report e, context: {validation_id: validation.id} unless e.is_a?(DDBJValidatorClient::Unavailable)
 
     ask_again validation, POLL_AT_MOST
   end
@@ -102,7 +125,11 @@ module DDBJValidatorCheck
   # an umbrella's members) as a warning, the details having no other place
   # for it.
   def finish(validation, report)
-    details = Array(report['messages']).map {|message|
+    messages = report['messages'] if report.is_a?(Hash)
+
+    return give_up(validation, 'ddbj-validator returned a report without its findings') unless messages.is_a?(Array)
+
+    details = messages.map {|message|
       code = message['id'].presence || 'ddbj-validator'
 
       {
@@ -112,6 +139,12 @@ module DDBJValidatorCheck
         message:  message['message'].presence || code
       }
     }
+
+    # A report that calls the record invalid and lists no error is one
+    # whose findings were not all read — not a pass.
+    if report['validity'] == false && details.none? { it[:severity] == :error }
+      return give_up(validation, 'ddbj-validator reported the record invalid without saying why')
+    end
 
     conclude validation, details, report:
   end
@@ -139,8 +172,12 @@ module DDBJValidatorCheck
         details.each { validation.details.create!(it) }
         validation.update!(raw_result: report, progress: :finished, finished_at: Time.current)
 
-        subject = validation.subject
-        validation.details.error.exists? ? subject.validation_failed! : subject.ready_to_apply!
+        # Straight to the column, as `close!` and `assign!` do: a request
+        # whose own validations no longer pass (its assignee stopped being
+        # a curator) must still get its answer, or the check would be
+        # asked again for ever.
+        status = validation.details.error.exists? ? 'validation_failed' : 'ready_to_apply'
+        validation.subject.update_columns(status:, updated_at: Time.current)
       end
     end
   rescue ActiveRecord::RecordNotFound

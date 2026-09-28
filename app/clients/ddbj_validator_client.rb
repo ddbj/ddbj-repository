@@ -13,9 +13,11 @@ class DDBJValidatorClient
   # The check has to be started again.
   class Lost < StandardError; end
 
-  # The validator refused the record when it was sent (a 4xx other than
-  # 404: too large, or a request it cannot take). The message is its own.
+  # The validator refused the record when it was sent: too large (413), or
+  # a request it cannot take (400, 422). The message is its own.
   class Refused < StandardError; end
+
+  REFUSING = [400, 413, 422].freeze
 
   # Where a run stands. `message` says why a run that ended in `error`
   # could not check the record; `report` is the validator's report once it
@@ -74,8 +76,10 @@ class DDBJValidatorClient
   # it refuses (4xx) is a mistake here, and is raised as it is; everything
   # else is the validator not answering.
   #
-  # Sending the record, a 4xx is the validator refusing it — except a 404,
-  # which says the url is wrong here rather than anything about the record.
+  # Sending the record, only REFUSING says something about the record. The
+  # other 4xx — a proxy's access list (403), a rate limit (429), a wrong url
+  # (404) — say something about getting there, and are the validator out
+  # of reach.
   def call(uuid = nil, refusable: false)
     raise Unavailable, 'ddbj-validator is not configured here' if @config.url.blank?
 
@@ -85,9 +89,9 @@ class DDBJValidatorClient
 
     raise Unavailable, "#{e.class}: #{e.message}"
   rescue Faraday::ClientError => e
-    raise unless refusable
+    raise Refused, refusal_of(e) if refusable && REFUSING.include?(e.response_status)
 
-    raise Refused, refusal_of(e)
+    raise Unavailable, "#{e.class}: #{e.message}"
   rescue Faraday::Error => e
     raise Unavailable, "#{e.class}: #{e.message}"
   end
@@ -95,13 +99,20 @@ class DDBJValidatorClient
   # The body is not parsed by then (`raise_error` answers before `json`), and
   # a proxy's refusal is not JSON at all.
   def refusal_of(error)
-    reason_in(error.response_body) || "HTTP #{error.response_status}"
+    ["HTTP #{error.response_status}", reason_in(error.response_body)].compact.join(': ')
   end
 
+  # The validator says why as `message`; FastAPI's own refusals (422) as a
+  # list of problems under `detail`.
   def reason_in(body)
     parsed = JSON.parse(body.to_s)
 
-    (parsed['message'] || parsed['detail']).presence&.to_s if parsed.is_a?(Hash)
+    return unless parsed.is_a?(Hash)
+
+    reason = parsed['message'] || parsed['detail']
+    reason = reason.map { it.is_a?(Hash) ? it['msg'] : it }.join('; ') if reason.is_a?(Array)
+
+    reason.to_s.presence
   rescue JSON::ParserError
     nil
   end

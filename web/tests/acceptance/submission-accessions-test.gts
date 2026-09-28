@@ -33,6 +33,7 @@ const request: components['schemas']['SubmissionRequest'] = {
   progress: {
     step: 'curating',
     failed: false,
+    unchecked: false,
     closed: false,
     row_count: 2,
     accessioned_count: 2,

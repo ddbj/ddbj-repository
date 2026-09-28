@@ -522,6 +522,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000003) do
   create_table "validations", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "external_id"
+    t.integer "external_sends", default: 0, null: false
     t.datetime "finished_at"
     t.string "progress", default: "running", null: false
     t.jsonb "raw_result"

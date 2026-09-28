@@ -62,6 +62,7 @@ module('Acceptance | submission request', function (hooks) {
       progress: {
         step: 'submitted',
         failed: false,
+        unchecked: false,
         closed: false,
         row_count: 0,
         accessioned_count: 0,
@@ -131,6 +132,7 @@ module('Acceptance | submission request', function (hooks) {
           progress: {
             step: 'curating',
             failed: false,
+            unchecked: false,
             closed: false,
             row_count: 1,
             accessioned_count: 0,

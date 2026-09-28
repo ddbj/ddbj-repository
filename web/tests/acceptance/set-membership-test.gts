@@ -47,6 +47,7 @@ function request(sets: SubmissionRequest['sets']): SubmissionRequest {
     progress: {
       step: 'submitted',
       failed: false,
+      unchecked: false,
       closed: false,
       row_count: 0,
       accessioned_count: 0,
