@@ -1,0 +1,12 @@
+{
+  "schema_version": "v3",
+  "submission": {"submitters": [{"email": "alice@example.com"}]},
+  "projects": [
+    {
+      "alias": "project-1",
+      "title": "A project title long enough to read",
+      "description": "What the project is about, in enough words.",
+      "project_type": "primary"
+    }
+  ]
+}
