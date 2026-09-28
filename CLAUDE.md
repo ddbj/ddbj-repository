@@ -132,7 +132,7 @@ It lives in three places, and they hold the same value by construction:
 | `entries.locus_date` | the queryable copy — API, admin, and where a redate is written |
 | the flatfile's LOCUS line | rendered from the record field the renderer is handed |
 
-`ApplySubmissionRequestJob` takes the date from the record and writes both,
+ST.26's Apply (`SubmissionApply::St26`) takes the date from the record and writes both,
 falling back to the apply date only when the record names none.
 `RegenerateSubmissionFlatfilesJob` renders from the column and writes the date to
 the entries the run names — so redating some entries of a submission is what the
@@ -227,7 +227,11 @@ upload, which is one PUT.
 
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 
-Two-pass streaming:
+The job owns what is the same for every database — the request's status
+and its error code (`ERROR_CODES`). What a record becomes is each
+database's own, in `SubmissionApply.for(db)`.
+
+ST.26 (`SubmissionApply::St26`, v2 records) streams in two passes:
 1. Collect entry IDs and NA/AA classification → allocate accessions
 2. Stream entries → write JSON (StreamingWriter) + flatfiles (StreamingRenderer) simultaneously
 
