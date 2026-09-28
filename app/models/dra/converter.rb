@@ -282,10 +282,6 @@ class DRA::Converter
     end
   end
 
-  # The value as the schema types it. XML Schema lets such values stand
-  # between spaces; a number is read only in its decimal notation, and one
-  # the record cannot hold as it was written (past 2^53, overflowing, or
-  # underflowing to zero) is refused rather than changed.
   # The record's name for an SRA object type: the singular of the list its
   # objects are in (STUDY → "project").
   def kind_name(value, path)
@@ -294,6 +290,10 @@ class DRA::Converter
     ROOT_LISTS.dig(kind, 1) || kind
   end
 
+  # The value as the schema types it. XML Schema lets such values stand
+  # between spaces; a number is read only in its decimal notation, and one
+  # the record cannot hold as it was written (past 2^53, overflowing, or
+  # underflowing to zero) is refused rather than changed.
   def cast(place, value, path)
     type = DRA::Schema.type_at(place)
 
