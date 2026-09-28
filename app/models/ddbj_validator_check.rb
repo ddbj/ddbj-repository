@@ -10,7 +10,7 @@
 # is never left checking with nothing to finish it:
 #
 #   - what only the repository can
-#     say (RecordIntake)            → its findings, before anything is sent
+#     say (RecordIntake, once)      → its findings, before anything is sent
 #   - the report                    → its findings
 #   - the record refused when sent  → TRD_R0015, with the validator's reason
 #   - no answer in time, a run that
@@ -49,7 +49,28 @@ module DDBJValidatorCheck
       subject.create_validation!
     }
 
+    intake validation
+  end
+
+  # What only the repository can say (RecordIntake) comes first, and once:
+  # a record it would refuse anyway is not worth the validator's run, and
+  # the uploaded record does not change between sends. Checking a large
+  # record costs a minute, so it is not repeated on every ask.
+  #
+  # A failure of the intake itself (the store not answering) ends the check
+  # as not carried out, for the submitter to run again, rather than leaving
+  # the request checking with nothing to finish it.
+  def intake(validation)
+    findings = RecordIntake.findings(validation.subject)
+
+    return conclude(validation, findings) if findings.any?
+    return give_up(validation, 'no ddbj-validator is configured here') unless DDBJValidatorClient.configured?
+
     send_record validation
+  rescue StandardError => e
+    Rails.error.report e, context: {validation_id: validation.id}
+
+    give_up validation, "the record could not be read (#{e.class})"
   end
 
   # Asked by PollDDBJValidatorJob. `attempt` counts the asks since the
@@ -99,18 +120,9 @@ module DDBJValidatorCheck
     ask_again validation, POLL_AT_MOST
   end
 
-  # What only the repository can say comes first: a record it would refuse
-  # anyway is not worth the validator's run.
   def send_record(validation)
     subject = validation.subject
-
-    if (findings = RecordIntake.findings(subject)).any?
-      return conclude(validation, findings)
-    end
-
-    return give_up(validation, 'no ddbj-validator is configured here') unless DDBJValidatorClient.configured?
-
-    uuid = subject.ddbj_record.open {|file|
+    uuid    = subject.ddbj_record.open {|file|
       client.start(io: file, filename: subject.ddbj_record.filename.to_s, record_db: subject.db, submitter_id: subject.user.uid)
     }
 

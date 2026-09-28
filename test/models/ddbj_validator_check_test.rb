@@ -279,16 +279,46 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
   test 'what only the repository can say ends the check before anything is sent' do
     record = JSON.parse(file_fixture('ddbj_record/bioproject_v3.json').read)
     record['projects'][0]['accession'] = 'PRJDB1'
-    record['samples'] = [{'alias' => 's1'}]
 
     @request.ddbj_record.attach(io: StringIO.new(record.to_json), filename: 'example.json', content_type: 'application/json')
 
     DDBJValidatorCheck.start @request
 
     assert @request.reload.validation_failed?
-    assert_equal [%w[TRD_R0018 error], %w[TRD_R0019 error]], details(@request.validation)
-    assert_equal 'project-1', @request.validation.details.find_by(code: 'TRD_R0019').entry_id
+    assert_equal [%w[TRD_R0018 error]], details(@request.validation)
+    assert_equal 'project-1', @request.validation.details.sole.entry_id
     assert_not_requested :post, "#{VALIDATOR}/validation"
+  end
+
+  # The record does not change between sends, and checking a large one
+  # costs a minute; an outage must not repeat it every minute.
+  test 'the intake runs once, not on every send' do
+    stub_request(:post, "#{VALIDATOR}/validation").to_return(status: 503)
+
+    calls = 0
+    count = lambda {|*|
+      calls += 1
+      []
+    }
+
+    RecordIntake.stub(:findings, count) do
+      DDBJValidatorCheck.start @request
+      DDBJValidatorCheck.poll @request.validation, 0
+    end
+
+    assert_equal 1, calls
+    assert_requested :post, "#{VALIDATOR}/validation", times: 2
+  end
+
+  # The store not answering while the record is read ends the check as not
+  # carried out, rather than leaving it checking with nothing to finish it.
+  test 'an intake that cannot read the record ends the check unchecked' do
+    RecordIntake.stub(:findings, ->(*) { raise Aws::S3::Errors::ServiceError.new(nil, 'down') }) do
+      DDBJValidatorCheck.start @request
+    end
+
+    assert @request.reload.validation_failed?
+    assert CurationState.new(@request).unchecked?
   end
 
   test 'ST.26 is checked here, BioProject and BioSample by the validator, anything else by nobody' do
