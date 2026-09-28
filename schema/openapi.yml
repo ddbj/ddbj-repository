@@ -3882,7 +3882,9 @@ components:
           type: boolean
 
         ddbj_record:
-          $ref: '#/components/schemas/Attachment'
+          description: The file as the submitter sent it, unchanged. The record as DDBJ holds it is the submission's `ddbj_record`.
+          allOf:
+            - $ref: '#/components/schemas/Attachment'
 
         validation:
           anyOf:
@@ -4110,7 +4112,14 @@ components:
           type: number
 
         ddbj_record:
-          $ref: '#/components/schemas/Attachment'
+          description: |
+            The record as DDBJ holds it now: in its canonical form, holding
+            this database's part only, with the accessions issued since and
+            any curator's edits. Not the file the submitter sent, which is the
+            request's `ddbj_record`. Null for a submission that holds no record.
+          anyOf:
+            - $ref: '#/components/schemas/Attachment'
+            - type: 'null'
 
         flatfile_na:
           anyOf:

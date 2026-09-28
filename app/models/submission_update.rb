@@ -12,7 +12,8 @@ class SubmissionUpdate < ApplicationRecord
     manual:     0,
     migration:  1,
     batch:      2,
-    tsv_import: 3
+    tsv_import: 3,
+    submitted:  4
   }, validate: true
 
   belongs_to :submission, inverse_of: :updates

@@ -15,6 +15,19 @@ class Sample < ApplicationRecord
   validates :sample_name, presence: true
   validates :accession,   format: {with: ACCESSION_FORMAT}, allow_nil: true
 
+  # The columns that project a sample of the record (as the record stores
+  # it) — what the lists and the admin screens read without opening it.
+  def self.record_columns(sample)
+    {
+      accession:   sample['accession'],
+      sample_name: sample['alias'],
+      title:       sample['title'],
+      package:     sample['package'],
+      taxonomy_id: DDBJRecord.taxonomy_id_number(sample.dig('organism', 'taxonomy_id')),
+      organism:    sample.dig('organism', 'name')
+    }
+  end
+
   # `sample_name` is the sample's `alias` in the record, spelled as the
   # record stores it — which is what the TSV import, accession issuance and
   # the public XML find its record by. A name spelled otherwise (D-way's

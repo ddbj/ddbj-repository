@@ -611,4 +611,21 @@ class SubmissionTest < ActiveSupport::TestCase
   test 'every database has a label people read' do
     assert_equal Submission.dbs.keys.sort, Submission::DB_LABELS.keys.sort
   end
+
+  # A read replays, then stamps. An edit landing between the two has
+  # already cleared the stamp, which is then no guard: what was replayed
+  # before the edit must not be kept as current after it.
+  test 'a cache replayed before an edit is not stamped as current after it' do
+    submission = submissions(:biosample)
+    patch      = ->(ops) { SubmissionUpdate.create_with_patch!(submission:, patch_json: ops.to_json, db: 'biosample', status: :applied, actor: 'test', source: :manual) }
+
+    first = patch.([{op: 'add', path: '', value: {'schema_version' => 'v3', 'samples' => [{'alias' => 's', 'title' => 'Before'}]}}])
+    stale = Oj.dump(submission.materialise_at(update_id: first.id), mode: :strict)
+
+    patch.([{op: 'replace', path: '/samples/0/title', value: 'After'}])
+
+    submission.reload.prime_cache!(bytes: stale, update_id: first.id)
+
+    assert_nil submission.reload.cached_at_update_id
+  end
 end

@@ -221,12 +221,10 @@ module BioSample
 
       v3_samples.zip(staging_samples).each_with_index do |(converted, staging), idx|
         v3    = by_name[name.(converted)] || canonical_sample(converted)
-        attrs = {
+        attrs = Sample.record_columns(v3).merge(
           accession:     v3['accession'] || converted['accession'],
           sample_name:   v3['alias'].presence || converted['alias'],
           status:        map_status(staging.status_id),
-          title:         v3['title'],
-          package:       v3['package'],
           # NOTE(phase 6 deferral): :package_group is derivable from :package
           # against a versioned catalog snapshot — see staging_client.rb Sample
           # Data class comment. Persisting staging's value as-is for now so we
@@ -235,10 +233,8 @@ module BioSample
           env_package:   staging.env_package,
           release_date:  staging.release_date,
           dist_date:     staging.dist_date,
-          modified_date: staging.modified_date,
-          taxonomy_id:   DDBJRecord.taxonomy_id_number(v3.dig('organism', 'taxonomy_id')),
-          organism:      v3.dig('organism', 'name')
-        }
+          modified_date: staging.modified_date
+        )
 
         if (existing = existing_samples[idx])
           existing.update!(stored ? attrs : attrs.slice(*STAGING_ONLY_COLUMNS))

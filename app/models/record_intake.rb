@@ -6,6 +6,9 @@
 #   TRD_R0017  not DDBJ Record v3
 #   TRD_R0018  its own objects bring accessions: they are issued here
 #   TRD_R0019  cannot be put in its canonical form, which is how it is kept
+#   TRD_R0020  nothing of its own to register, or samples that cannot be told
+#              apart: a sample is kept, found and issued its accession by its
+#              alias, as it is kept (canonical, so whitespace collapsed)
 #
 # A record may carry more than its request's database — projects and samples
 # together, the accession of the one registered first written into it
@@ -39,11 +42,30 @@ module RecordIntake
 
     return [finding('TRD_R0017', 'The record is not a DDBJ Record v3 document (schema_version "v3").')] unless record.is_a?(Hash) && record['schema_version'] == V3
 
-    accessions(record, own).presence || canonical_form(record)
+    objects(record, own).presence || accessions(record, own).presence || canonical_form(record)
   rescue Oj::ParseError => e
     [finding('TRD_R0013', "The record is not JSON#{e.message[/ at (line \d+, column \d+)/, 1]&.then { " (#{it})" }}.")]
   rescue SystemStackError
     [finding('TRD_R0013', 'The record is nested too deeply to read.')]
+  end
+
+  def objects(record, own)
+    objects = record[own]
+
+    return [finding('TRD_R0020', "The record has no #{own} to register.")] unless objects.is_a?(Array) && objects.any?
+    return [] unless own == 'samples'
+
+    aliases = objects.map { Sample.normalise_name(it['alias'].presence) if it.is_a?(Hash) && it['alias'].is_a?(String) }
+
+    missing = aliases.each_index.select { aliases[it].blank? }.map {|index|
+      finding('TRD_R0020', "samples[#{index}] has no alias; a sample is known by it.")
+    }
+
+    repeated = aliases.compact_blank.tally.select {|_, count| count > 1 }.keys.map {|name|
+      finding('TRD_R0020', "More than one sample has the alias #{name.inspect} (spacing aside); each is known by its own.", entry_id: name)
+    }
+
+    missing + repeated
   end
 
   def accessions(record, own)

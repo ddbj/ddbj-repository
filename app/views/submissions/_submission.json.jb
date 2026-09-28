@@ -13,7 +13,9 @@
   # numbers live on projects and samples.
   accessions_count: submission.accessioned_rows.count,
 
-  ddbj_record: render('attachment', attachment: submission.ddbj_record, url: submission_file_url(submission, 'ddbj_record')),
+  # The record as DDBJ holds it — for a chain its current state, not a file
+  # Apply wrote (Submission#record_file).
+  ddbj_record: (submission.record_file? ? {filename: submission.record_filename, url: submission_file_url(submission, 'ddbj_record')} : nil),
   flatfile_na: render('attachment', attachment: submission.flatfile_na, url: submission_file_url(submission, 'flatfile_na')),
   flatfile_aa: render('attachment', attachment: submission.flatfile_aa, url: submission_file_url(submission, 'flatfile_aa'))
 }

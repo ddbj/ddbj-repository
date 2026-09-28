@@ -10,12 +10,6 @@ class Admin::FilesController < Admin::ApplicationController
 
   REQUEST_NAMES = {'ddbj_record' => :ddbj_record}.freeze
 
-  SUBMISSION_NAMES = {
-    'ddbj_record' => :ddbj_record,
-    'flatfile_na' => :flatfile_na,
-    'flatfile_aa' => :flatfile_aa
-  }.freeze
-
   def submission_request
     request = SubmissionRequest.find(params.expect(:submission_request_id))
 
@@ -25,7 +19,7 @@ class Admin::FilesController < Admin::ApplicationController
   def submission
     submission = Submission.find(params.expect(:submission_id))
 
-    redirect_to_attachment submission.public_send(SUBMISSION_NAMES.fetch(params[:name]))
+    redirect_to_submission_file submission, params[:name]
   end
 
   def message

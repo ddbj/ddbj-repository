@@ -26,11 +26,15 @@ class SubmissionsController < ApplicationController
     # still offering a button for.
     request = current_user.submission_requests.find(params[:submission_request_id])
 
-    blocked = request.send_blocked_reason
+    # Under a lock, so two presses cannot both find it sendable and send
+    # it twice — the second finds it already waiting.
+    request.with_lock do
+      blocked = request.send_blocked_reason
 
-    refuse! blocked if blocked
+      refuse! blocked if blocked
 
-    request.waiting_application!
+      request.waiting_application!
+    end
 
     ApplySubmissionRequestJob.perform_later request
 

@@ -168,6 +168,63 @@ module('Acceptance | submission request', function (hooks) {
     assert.dom('[data-test-state] h2').hasText('A curator is reviewing your submission');
   });
 
+  // What was sent and what DDBJ holds differ once a curator has touched
+  // it, and a record held as a chain can be without a file for a while.
+  // Flatfiles are ST.26's, so a BioSample request has no row for them.
+  test('the files say which is which, and only the ones there can be', async function (assert) {
+    const request: SubmissionRequest = {
+      id: 42,
+      db: 'biosample',
+      status: 'applied',
+      error_code: null,
+      error_message: null,
+      created_at: now,
+      closed_at: null,
+      closable: false,
+      sendable: false,
+      send_blocked_reason: null,
+      recheckable: false,
+      processing: false,
+      last_message_at: null,
+      sets: [],
+      owned: true,
+      owner_uid: 'test-user',
+      unread_curator_message_count: 0,
+      ddbj_record: { filename: 'samples.json', url: 'http://example.com/samples.json' },
+      validation: null,
+      submission: {
+        id: 10,
+        source_id: null,
+        created_at: now,
+        updated_at: now,
+        ddbj_record: null,
+        flatfile_na: null,
+        flatfile_aa: null,
+        accessions_count: 0,
+      },
+      progress: {
+        step: 'curating',
+        failed: false,
+        unchecked: false,
+        closed: false,
+        row_count: 2,
+        accessioned_count: 0,
+        hold_date: null,
+      },
+    };
+
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json([])),
+    );
+
+    await visit('/requests/42');
+
+    assert.dom('[data-test-files]').includesText('Submitted file samples.json');
+    assert.dom('[data-test-files]').includesText('Record held by DDBJ Not available');
+    assert.dom('[data-test-files]').doesNotIncludeText('Flatfile');
+  });
+
   // The record is sent in parts and the server reads it back before there is
   // anything to submit. When that ends badly the reader is told on the screen
   // they are standing on, and can choose the file again.

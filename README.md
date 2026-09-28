@@ -174,6 +174,7 @@ added as failures are classified, so the set grows.
 | TRD_R0017 | validation | error | A BioProject or BioSample record is not DDBJ Record v3 (`schema_version` `"v3"`) |
 | TRD_R0018 | validation | error | A project (on a BioProject request) or a sample (on a BioSample request) brings an accession of its own. Accessions are issued by DDBJ. A record may carry the other database's objects, accessions included |
 | TRD_R0019 | validation | error | The record cannot be put in its canonical form, which is how it is kept (`doc/canonical-json.md`). The message is the canonicaliser's |
+| TRD_R0020 | validation | error | A BioProject or BioSample record has none of its own objects to register, or a sample has no `alias` or shares one with another (whitespace aside). A sample is kept, found and issued its accession by its alias |
 | TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack

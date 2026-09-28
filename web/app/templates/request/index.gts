@@ -384,48 +384,60 @@ export default class extends Component<Signature> {
         <details class="list-group-item px-0 py-3">
           <summary>Files &amp; downloads</summary>
 
-          <dl class="horizontal mt-3">
-            <dt>Uploaded file</dt>
+          {{! Two files, and they differ: what was sent stays as it was,
+          and what DDBJ holds moves on — accessions issued, curators'
+          edits, and only this database's part of a record that carried
+          more. Named so nobody takes one for the other — and not "yours",
+          since a set member reads this page too. }}
+          <dl class="horizontal mt-3" data-test-files>
+            <dt>Submitted file</dt>
 
             <dd>
               <DownloadLink @url={{@model.ddbj_record.url}} @filename={{@model.ddbj_record.filename}} />
             </dd>
 
             {{#if @model.submission}}
-              <dt>DDBJ Record</dt>
+              <dt>Record held by DDBJ</dt>
 
               <dd>
-                <DownloadLink
-                  @url={{@model.submission.ddbj_record.url}}
-                  @filename={{@model.submission.ddbj_record.filename}}
-                />
-              </dd>
-
-              <dt>Flatfile (NA)</dt>
-
-              <dd>
-                {{#if @model.submission.flatfile_na}}
+                {{#if @model.submission.ddbj_record}}
                   <DownloadLink
-                    @url={{@model.submission.flatfile_na.url}}
-                    @filename={{@model.submission.flatfile_na.filename}}
+                    @url={{@model.submission.ddbj_record.url}}
+                    @filename={{@model.submission.ddbj_record.filename}}
                   />
                 {{else}}
-                  <span class="text-body-secondary">Not applicable</span>
+                  <span class="text-body-secondary">Not available</span>
                 {{/if}}
               </dd>
 
-              <dt>Flatfile (AA)</dt>
+              {{! Flatfiles are rendered for ST.26 alone. }}
+              {{#if (eq @model.db "st26")}}
+                <dt>Flatfile (NA)</dt>
 
-              <dd>
-                {{#if @model.submission.flatfile_aa}}
-                  <DownloadLink
-                    @url={{@model.submission.flatfile_aa.url}}
-                    @filename={{@model.submission.flatfile_aa.filename}}
-                  />
-                {{else}}
-                  <span class="text-body-secondary">Not applicable</span>
-                {{/if}}
-              </dd>
+                <dd>
+                  {{#if @model.submission.flatfile_na}}
+                    <DownloadLink
+                      @url={{@model.submission.flatfile_na.url}}
+                      @filename={{@model.submission.flatfile_na.filename}}
+                    />
+                  {{else}}
+                    <span class="text-body-secondary">Not applicable</span>
+                  {{/if}}
+                </dd>
+
+                <dt>Flatfile (AA)</dt>
+
+                <dd>
+                  {{#if @model.submission.flatfile_aa}}
+                    <DownloadLink
+                      @url={{@model.submission.flatfile_aa.url}}
+                      @filename={{@model.submission.flatfile_aa.filename}}
+                    />
+                  {{else}}
+                    <span class="text-body-secondary">Not applicable</span>
+                  {{/if}}
+                </dd>
+              {{/if}}
             {{/if}}
           </dl>
         </details>
