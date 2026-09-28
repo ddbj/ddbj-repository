@@ -185,6 +185,18 @@ class DRA::ConverterTest < ActiveSupport::TestCase
     assert_equal 1, record.dig('experiments', 0, 'spot_descriptor', 'reads', 0, 'read_index')
   end
 
+  # target.db names a kind as the record does: "sample", as EXPERIMENT_REF's
+  # relations say "experiment" — not SRA's "SAMPLE".
+  test 'an analysis target names its kind as the record does' do
+    db = ->(type) {
+      convert(%(<ANALYSIS alias="a"><TARGETS><TARGET sra_object_type="#{type}" accession="X1"/></TARGETS></ANALYSIS>)).dig('relations', 0, 'target', 'db')
+    }
+
+    assert_equal 'sample',  db.('SAMPLE')
+    assert_equal 'project', db.('STUDY')
+    refuses '<ANALYSIS alias="a"><TARGETS><TARGET sra_object_type="SEQUENCE" accession="X1"/></TARGETS></ANALYSIS>', 'is not an SRA object type'
+  end
+
   test 'a value the schema types is refused unless the record can hold it as written' do
     %w[two 3_00 1e3 300.0 9007199254740992].each do |value|
       refuses %(<EXPERIMENT alias="e" expected_number_runs="#{value}"/>), 'is not a integer'

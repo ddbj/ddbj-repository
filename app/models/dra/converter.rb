@@ -150,7 +150,7 @@ class DRA::Converter
 
   def write(place, value, frames, kind:, path:)
     *outer, last = place.segments
-    value        = cast(place, value, path)
+    value        = place.note == DRA::Mapping::KIND_NAME ? kind_name(value, path) : cast(place, value, path)
     target       = walk_segments(outer, place, frames, kind:, path:)
 
     # A list element the table does not name, built from its XML element's
@@ -286,6 +286,14 @@ class DRA::Converter
   # between spaces; a number is read only in its decimal notation, and one
   # the record cannot hold as it was written (past 2^53, overflowing, or
   # underflowing to zero) is refused rather than changed.
+  # The record's name for an SRA object type: the singular of the list its
+  # objects are in (STUDY → "project").
+  def kind_name(value, path)
+    kind = DRA::Mapping::ROOTS.fetch(value.strip) { raise Unmapped, "#{path}: #{value.inspect} is not an SRA object type" }
+
+    ROOT_LISTS.dig(kind, 1) || kind
+  end
+
   def cast(place, value, path)
     type = DRA::Schema.type_at(place)
 
