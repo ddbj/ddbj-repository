@@ -171,6 +171,10 @@ added as failures are classified, so the set grows.
 | TRD_R0014 | application | error | The record's `locus_date` is not written as `YYYY-MM-DD`. Refused rather than guessed: `Date.parse` reads `8/13` as this year's 13 August, and the value is printed on the LOCUS line of a published flatfile. Nothing was consumed — no accession was allocated |
 | TRD_R0015 | validation | error | ddbj-validator refused the record when it was sent (too large, or a request it cannot take). The message carries its reason |
 | TRD_R0016 | validation | error | The record could not be checked: ddbj-validator was out of reach or had not finished within two hours, its run ended without a report, or none is configured. Nothing is known to be wrong with the file; check it again later |
+| TRD_R0017 | validation | error | A BioProject or BioSample record is not DDBJ Record v3 |
+| TRD_R0018 | validation | error | The record carries the parts of another database (samples on a BioProject request, or anything but `projects` / `samples` besides `schema_version`, `provenance`, `submission` and `relations`). A request is for one database |
+| TRD_R0019 | validation | error | A project or sample brings an accession of its own. Accessions are issued by DDBJ |
+| TRD_R0020 | validation | error | The record cannot be put in its canonical form, which is how it is kept (`doc/canonical-json.md`). The message is the canonicaliser's |
 | TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack

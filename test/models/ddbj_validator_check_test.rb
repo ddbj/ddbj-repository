@@ -8,7 +8,7 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
 
   setup do
     @request = submission_requests(:bioproject)
-    attach_ddbj_record @request
+    @request.ddbj_record.attach(io: file_fixture('ddbj_record/bioproject_v3.json').open, filename: 'example.json', content_type: 'application/json')
   end
 
   def stub_start
@@ -272,6 +272,22 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
 
     assert @request.reload.validation_failed?
     assert_match 'no ddbj-validator is configured here', @request.validation.details.sole.message
+    assert_not_requested :post, "#{VALIDATOR}/validation"
+  end
+
+  # Nothing the validator could say would change these.
+  test 'what only the repository can say ends the check before anything is sent' do
+    record = JSON.parse(file_fixture('ddbj_record/bioproject_v3.json').read)
+    record['projects'][0]['accession'] = 'PRJDB1'
+    record['samples'] = [{'alias' => 's1'}]
+
+    @request.ddbj_record.attach(io: StringIO.new(record.to_json), filename: 'example.json', content_type: 'application/json')
+
+    DDBJValidatorCheck.start @request
+
+    assert @request.reload.validation_failed?
+    assert_equal [%w[TRD_R0018 error], %w[TRD_R0019 error]], details(@request.validation)
+    assert_equal 'project-1', @request.validation.details.find_by(code: 'TRD_R0019').entry_id
     assert_not_requested :post, "#{VALIDATOR}/validation"
   end
 

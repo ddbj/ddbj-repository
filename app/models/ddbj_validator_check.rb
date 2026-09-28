@@ -9,6 +9,8 @@
 # Every way through ends, or asks again within GIVE_UP_AFTER, so a request
 # is never left checking with nothing to finish it:
 #
+#   - what only the repository can
+#     say (RecordIntake)            → its findings, before anything is sent
 #   - the report                    → its findings
 #   - the record refused when sent  → TRD_R0015, with the validator's reason
 #   - no answer in time, a run that
@@ -46,8 +48,6 @@ module DDBJValidatorCheck
 
       subject.create_validation!
     }
-
-    return give_up(validation, 'no ddbj-validator is configured here') unless DDBJValidatorClient.configured?
 
     send_record validation
   end
@@ -99,9 +99,18 @@ module DDBJValidatorCheck
     ask_again validation, POLL_AT_MOST
   end
 
+  # What only the repository can say comes first: a record it would refuse
+  # anyway is not worth the validator's run.
   def send_record(validation)
     subject = validation.subject
-    uuid    = subject.ddbj_record.open {|file|
+
+    if (findings = RecordIntake.findings(subject)).any?
+      return conclude(validation, findings)
+    end
+
+    return give_up(validation, 'no ddbj-validator is configured here') unless DDBJValidatorClient.configured?
+
+    uuid = subject.ddbj_record.open {|file|
       client.start(io: file, filename: subject.ddbj_record.filename.to_s, record_db: subject.db, submitter_id: subject.user.uid)
     }
 
