@@ -321,45 +321,29 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_conform_schema 404
   end
 
-  test 'create persists the db from the request body' do
+  # Only ST.26 can be applied. A BioProject or BioSample record used to pass
+  # validation — which checks ST.26 rules alone — and then fail to apply;
+  # DRA submissions come from D-way.
+  test 'create refuses a database whose record cannot be applied yet' do
     blob = ActiveStorage::Blob.create_and_upload!(
       io:           file_fixture('ddbj_record/example.json').open,
       filename:     'example.json',
       content_type: 'application/json'
     )
 
-    perform_enqueued_jobs do
-      post submission_requests_path, params: {
-        submission_request: {
-          db:          'biosample',
-          ddbj_record: blob.signed_id
-        }
-      }, as: :json
+    %w[bioproject biosample dra].each do |db|
+      with_exceptions_app do
+        post submission_requests_path, params: {
+          submission_request: {
+            db:,
+            ddbj_record: blob.signed_id
+          }
+        }, as: :json
+      end
+
+      assert_response :unprocessable_content, db
     end
 
-    assert_conform_schema 202
-    assert_equal 'biosample', SubmissionRequest.find(response.parsed_body['id']).db
-  end
-
-  # DRA submissions come from D-way; there is nothing yet that would
-  # validate or apply one sent here.
-  test 'create refuses a DRA request' do
-    blob = ActiveStorage::Blob.create_and_upload!(
-      io:           file_fixture('ddbj_record/example.json').open,
-      filename:     'example.json',
-      content_type: 'application/json'
-    )
-
-    with_exceptions_app do
-      post submission_requests_path, params: {
-        submission_request: {
-          db:          'dra',
-          ddbj_record: blob.signed_id
-        }
-      }, as: :json
-    end
-
-    assert_response :unprocessable_content
     assert_no_enqueued_jobs only: ValidateDDBJRecordJob
   end
 

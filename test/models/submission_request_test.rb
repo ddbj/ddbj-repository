@@ -280,7 +280,7 @@ class SubmissionRequestTest < ActiveSupport::TestCase
   end
 
   test 'a request with no submission is never finished' do
-    request = SubmissionRequest.new(user: users(:alice), db: 'bioproject')
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
     attach_ddbj_record(request)
     request.save!
 
@@ -334,5 +334,14 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     request.migration_run_id = SecureRandom.uuid
 
     assert request.valid?
+  end
+
+  # The rule is about making requests. One made before BioProject stopped
+  # taking them stays savable — closing it, attaching to it.
+  test 'a request already made is not refused for its database' do
+    request = submission_requests(:bioproject)
+    attach_ddbj_record(request)
+
+    assert request.save
   end
 end
