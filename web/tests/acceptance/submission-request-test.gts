@@ -221,7 +221,7 @@ module('Acceptance | submission request', function (hooks) {
     await visit('/requests/42');
 
     assert.dom('[data-test-files]').includesText('Submitted file samples.json');
-    assert.dom('[data-test-files]').includesText('Record held by DDBJ Not available yet');
+    assert.dom('[data-test-files]').includesText('Record held by DDBJ Not available');
     assert.dom('[data-test-files]').doesNotIncludeText('Flatfile');
   });
 

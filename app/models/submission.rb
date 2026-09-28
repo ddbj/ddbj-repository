@@ -344,9 +344,16 @@ class Submission < ApplicationRecord
     return ddbj_record unless record_kept_as_chain?
     return nil unless record_file?
 
-    refresh_cache! unless current_cache? && cached_object_present?
+    # Twice: an edit landing during the replay makes the copy it produced
+    # stale, and it is discarded (`prime_cache!`) — the second replay is
+    # of the edit.
+    2.times do
+      return cached_materialised_record if current_cache? && cached_object_present?
 
-    cached_materialised_record if current_cache?
+      refresh_cache!
+    end
+
+    raise ActiveStorage::Error, "the record of submission #{id} could not be made current"
   end
 
   def record_file?
@@ -652,10 +659,17 @@ class Submission < ApplicationRecord
   # Unstamped as well as reported, so the replay that follows can put the
   # copy back: `prime_cache!` keeps the copy in place for an update it
   # already has one of.
+  #
+  # Only the stamp that was seen: a reader that found the copy gone at the
+  # same time may already have put it back, and clearing that one would
+  # have it replaced again under a link just handed over.
   def cache_lost!(error)
     Rails.error.report error, context: {submission_id: id, update_id: cached_at_update_id}
 
-    update_columns cached_at_update_id: nil
+    Submission.where(id:, cached_at_update_id:).update_all(cached_at_update_id: nil)
+
+    self[:cached_at_update_id] = nil
+    clear_attribute_changes %i[cached_at_update_id]
   end
 
   def refresh_cache!

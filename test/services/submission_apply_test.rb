@@ -54,7 +54,8 @@ class SubmissionApplyTest < ActiveSupport::TestCase
 
   # docs/v3-schema.md: projects and samples may travel together, each
   # registered by its own request. Each submission holds its own part only
-  # — with what the record as a whole relates to, which is both parts' —
+  # — with what the record as a whole relates to, which is both parts', and
+  # what starts from an object of no stated kind, which could be either's —
   # and the file as sent stays on the request.
   test 'a record carrying both databases is held by each submission as its own part' do
     bs = request_for('biosample', 'biosample_v3.json')
@@ -67,10 +68,10 @@ class SubmissionApplyTest < ActiveSupport::TestCase
     projects_side = bp.reload.submission.materialised_record
 
     assert_nil samples_side['projects']
-    assert_equal ['sample', nil], samples_side['relations'].map { it.dig('source', 'type') }
+    assert_equal({'sample' => 1, nil => 2}, samples_side['relations'].map { it.dig('source', 'type') }.tally)
 
     assert_nil projects_side['samples']
-    assert_equal ['project', nil], projects_side['relations'].map { it.dig('source', 'type') }
+    assert_equal({'project' => 1, nil => 2}, projects_side['relations'].map { it.dig('source', 'type') }.tally)
 
     assert_equal file_fixture('ddbj_record/biosample_v3.json').read, bs.ddbj_record.download, 'the file as sent is kept as it was'
   end

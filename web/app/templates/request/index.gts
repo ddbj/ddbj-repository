@@ -406,7 +406,7 @@ export default class extends Component<Signature> {
                     @filename={{@model.submission.ddbj_record.filename}}
                   />
                 {{else}}
-                  <span class="text-body-secondary">Not available yet</span>
+                  <span class="text-body-secondary">Not available</span>
                 {{/if}}
               </dd>
 

@@ -48,7 +48,8 @@ class SubmissionApply::V3Record
 
   # The database's own objects, and the relations that start from them —
   # or from the record as a whole (no `source`), which is each part's as
-  # much as the frame is.
+  # much as the frame is. A source that does not say what kind of object
+  # it is could be either part's, so both keep it rather than neither.
   def own_part(record)
     part      = record.slice(*SHARED, self.class::OWN)
     relations = Array(record['relations']).select {|relation|
@@ -56,7 +57,7 @@ class SubmissionApply::V3Record
 
       source = relation['source']
 
-      source.nil? || (source.is_a?(Hash) && source['type'] == self.class::KIND)
+      source.nil? || (source.is_a?(Hash) && [nil, self.class::KIND].include?(source['type']))
     }
 
     part['relations'] = relations if relations.any?
