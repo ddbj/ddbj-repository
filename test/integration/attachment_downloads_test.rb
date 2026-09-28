@@ -14,7 +14,7 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     @alice = users(:alice)
     @carol = users(:carol)
 
-    @submission_request = submission_requests(:bioproject) # owned by :alice
+    @submission_request = submission_requests(:st26) # owned by :alice; its submission's record is a file Apply wrote
     attach_ddbj_record @submission_request
     attach_submission_files @submission_request.submission
 
@@ -57,6 +57,49 @@ class AttachmentDownloadsTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_match 'SSUB000001.json', CGI.unescape(response.parsed_body['url'])
     assert_equal record, JSON.parse(submission.reload.cached_materialised_record.download)
+  end
+
+  # A curator's edit leaves the cached copy behind, and the store can lose
+  # it; either way what is handed over is the chain as it now stands.
+  test 'the record handed over follows edits, and survives the store losing its copy' do
+    submission = submissions(:biosample)
+    record     = {'schema_version' => 'v3', 'samples' => [{'alias' => 's', 'title' => 'Before'}]}
+
+    submission.update_columns(canonical_version: DDBJRecord::Canonicalizer::NUMBER)
+    submission.ddbj_record.purge
+    SubmissionUpdate.create_with_patch!(submission:, patch_json: [{op: 'add', path: '', value: record}].to_json, db: 'biosample', status: :applied, actor: 'test', source: :manual)
+    get submission_file_path(submission, 'ddbj_record', as: 'url')
+
+    SubmissionUpdate.create_with_patch!(submission:, patch_json: [{op: 'replace', path: '/samples/0/title', value: 'After'}].to_json, db: 'biosample', status: :applied, actor: 'curator', source: :manual)
+    get submission_file_path(submission, 'ddbj_record', as: 'url')
+
+    assert_equal 'After', JSON.parse(submission.reload.cached_materialised_record.download).dig('samples', 0, 'title')
+
+    lost = submission.cached_materialised_record.key
+    submission.cached_materialised_record.blob.service.delete lost
+
+    assert_error_reported ActiveStorage::FileNotFoundError do
+      get submission_file_path(submission, 'ddbj_record', as: 'url')
+    end
+
+    assert_response :ok
+    assert_not_equal lost, submission.reload.cached_materialised_record.key
+    assert_equal 'After', JSON.parse(submission.cached_materialised_record.download).dig('samples', 0, 'title')
+  end
+
+  # ST.26 is not kept as a chain: until Apply has written the file there
+  # is nothing to hand over, whatever else the submission holds.
+  test 'an ST.26 submission without its file offers none' do
+    submission = @submission_request.submission
+
+    submission.ddbj_record.purge
+
+    assert submission.updates.exists?
+    assert_not submission.record_file?
+
+    get submission_file_path(submission, 'ddbj_record')
+
+    assert_response :not_found
   end
 
   # Its cache is of the shape it was stored in; handing that over would be

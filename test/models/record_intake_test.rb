@@ -46,4 +46,16 @@ class RecordIntakeTest < ActiveSupport::TestCase
 
     assert_equal %w[TRD_R0019], codes(record)
   end
+
+  # A sample is kept, found and issued its accession by its alias, as it
+  # is kept — whitespace collapsed.
+  test 'samples each need an alias of their own, and there must be something to register' do
+    assert_equal %w[TRD_R0020], codes({'schema_version' => 'v3', 'samples' => [{'alias' => 's'}]})
+    assert_equal %w[TRD_R0020], codes({'schema_version' => 'v3', 'samples' => []}, db: 'biosample')
+    assert_equal %w[TRD_R0020 TRD_R0020], codes({'schema_version' => 'v3', 'samples' => [{'title' => 'x'}, {'alias' => ' '}]}, db: 'biosample')
+
+    repeated = findings({'schema_version' => 'v3', 'samples' => [{'alias' => 'a b'}, {'alias' => 'a  b'}, {'alias' => 'c'}]}, db: 'biosample')
+
+    assert_equal [['TRD_R0020', 'a b']], repeated.map { it.values_at(:code, :entry_id) }
+  end
 end

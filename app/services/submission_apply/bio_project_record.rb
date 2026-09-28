@@ -8,7 +8,7 @@ class SubmissionApply::BioProjectRecord < SubmissionApply::V3Record
   private
 
   def build_rows(submission, tree)
-    project = Array(tree['projects']).first || {}
+    project = tree['projects'].first
 
     Project.create!(submission:, project_type: project['project_type'] == 'umbrella' ? :umbrella : :primary)
 

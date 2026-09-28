@@ -21,13 +21,18 @@ class SubmissionApply::V3Record
   def call
     record = @request.ddbj_record.open { Oj.load(it.read, mode: :strict) }
     tree   = DDBJRecord::Canonicalizer.canonical_tree(own_part(record))
+    bytes  = Oj.dump(tree, mode: :strict)
 
     Submission.transaction do
       submission = @request.create_submission!(db: @request.db, user: @request.user, canonical_version: DDBJRecord::Canonicalizer::NUMBER)
 
+      # Before the uploads: a failure here must not leave objects in
+      # storage that the rollback cannot take back.
+      build_rows submission, tree
+
       update = SubmissionUpdate.create_with_patch!(
         submission:,
-        patch_json:              Oj.dump([{'op' => 'add', 'path' => '', 'value' => tree}], mode: :strict),
+        patch_json:              %([{"op":"add","path":"","value":#{bytes}}]),
         db:                      @request.db,
         status:                  :applied,
         actor:                   "submitter:#{@request.user.uid}",
@@ -35,18 +40,24 @@ class SubmissionApply::V3Record
         patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
       )
 
-      submission.prime_cache!(bytes: Oj.dump(tree, mode: :strict), update_id: update.id)
-
-      build_rows submission, tree
+      submission.prime_cache!(bytes:, update_id: update.id)
     end
   end
 
   private
 
-  # The database's own objects, and the relations that start from them.
+  # The database's own objects, and the relations that start from them —
+  # or from the record as a whole (no `source`), which is each part's as
+  # much as the frame is.
   def own_part(record)
     part      = record.slice(*SHARED, self.class::OWN)
-    relations = Array(record['relations']).select { it.is_a?(Hash) && it.dig('source', 'type') == self.class::KIND }
+    relations = Array(record['relations']).select {|relation|
+      next false unless relation.is_a?(Hash)
+
+      source = relation['source']
+
+      source.nil? || (source.is_a?(Hash) && source['type'] == self.class::KIND)
+    }
 
     part['relations'] = relations if relations.any?
     part

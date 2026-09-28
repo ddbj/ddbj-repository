@@ -235,6 +235,13 @@ ST.26 (`SubmissionApply::St26`, v2 records) streams in two passes:
 1. Collect entry IDs and NA/AA classification → allocate accessions
 2. Stream entries → write JSON (StreamingWriter) + flatfiles (StreamingRenderer) simultaneously
 
+BioProject and BioSample (`SubmissionApply::V3Record`, v3 records) start a
+chain instead: the record's own part — a record may carry projects and
+samples together, each registered by its own request — becomes the first
+patch, and the Project / Sample rows are made from it. What DDBJ holds is
+then the chain (`Submission#record_file`), not the file sent, which stays
+on the request unchanged; the web shows the two under different names.
+
 ### DDBJ Record v3 types
 
 The v3 types are the spec's (`vendor/ddbj-record-specifications`, pinned by

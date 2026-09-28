@@ -8,6 +8,7 @@
   ],
   "relations": [
     {"type": "part_of", "source": {"type": "sample", "alias": "sample-1"}, "target": {"db": "bioproject", "accession": "PRJDB9"}},
-    {"type": "child_of", "source": {"type": "project", "alias": "project-1"}, "target": {"db": "bioproject", "accession": "PRJDB1"}}
+    {"type": "child_of", "source": {"type": "project", "alias": "project-1"}, "target": {"db": "bioproject", "accession": "PRJDB1"}},
+    {"type": "xref", "target": {"db": "pubmed", "id": "12345678"}}
   ]
 }

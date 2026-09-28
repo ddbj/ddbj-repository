@@ -332,25 +332,36 @@ class Submission < ApplicationRecord
   end
 
   # The record as DDBJ holds it, as a file to hand over: the one Apply wrote
-  # (ST.26), or the chain's current state (BioProject, BioSample, DRA) —
-  # made current first if a curator's edit has left the cached copy behind.
-  # Not the file the submitter sent, which stays on the request.
+  # (ST.26), or the chain's current state (BioProject, BioSample, DRA). Not
+  # the file the submitter sent, which stays on the request.
   #
-  # None for a chain written under an older `ddbj-canon`: its cache holds
-  # the shape it was stored in, not the one it is read in, until the next
-  # write (or `rake ddbj_record:reshape_v3`) heals it.
+  # The chain's is its cached copy, made current first where a curator's
+  # edit has left it behind or the store has lost it. None for a chain
+  # written under an older `ddbj-canon`: its cache holds the shape it was
+  # stored in, not the one it is read in, until the next write (or
+  # `rake ddbj_record:reshape_v3`) heals it.
   def record_file
-    return ddbj_record if ddbj_record.attached?
+    return ddbj_record unless record_kept_as_chain?
     return nil unless record_file?
 
-    latest_record unless current_cache?
+    refresh_cache! unless current_cache? && cached_object_present?
 
     cached_materialised_record if current_cache?
   end
 
-  def record_file? = ddbj_record.attached? || (!legacy_chain? && updates.exists?)
+  def record_file?
+    record_kept_as_chain? ? !legacy_chain? && updates.exists? : ddbj_record.attached?
+  end
 
-  def record_filename = ddbj_record.attached? ? ddbj_record.filename.to_s : "#{source_id.presence || "submission-#{id}"}.json"
+  def record_kept_as_chain? = !st26_db?
+
+  # Named for what the submitter knows it by: the D-way id a migrated one
+  # carries, or the request it was sent as.
+  def record_filename
+    return ddbj_record.filename.to_s unless record_kept_as_chain?
+
+    "#{source_id.presence || "request-#{request&.id || id}"}.json"
+  end
 
   # Raw cached bytes for the latest snapshot, or nil when the cache is
   # cold. Lets callers (e.g. the admin `materialised` controller) ship
@@ -510,8 +521,14 @@ class Submission < ApplicationRecord
       content_type: 'application/json'
     )
 
+    # Kept only if it is of the newest update and no copy of that update is
+    # already in place. The stamp alone cannot say the first: an update
+    # appended since this snapshot was replayed has cleared it
+    # (SubmissionUpdate#invalidate_submission_cache!), and a stale snapshot
+    # would then be stamped as current. Nor the second: replacing an equal
+    # copy purges the one a download was just handed.
     with_lock do
-      if cached_at_update_id && cached_at_update_id > update_id
+      if (cached_at_update_id && cached_at_update_id >= update_id) || updates.where(id: update_id.succ..).exists?
         blob.purge_later
         next
       end
@@ -617,9 +634,35 @@ class Submission < ApplicationRecord
   def read_cached_object
     cached_materialised_record.download
   rescue ActiveStorage::FileNotFoundError, Aws::S3::Errors::NoSuchKey => e
-    Rails.error.report e, context: {submission_id: id, update_id: cached_at_update_id}
+    cache_lost! e
 
     nil
+  end
+
+  # Asked with a HEAD before a link to the cached copy is handed over — a
+  # download would read the whole record to answer.
+  def cached_object_present?
+    return true if cached_materialised_record.blob.service.exist?(cached_materialised_record.key)
+
+    cache_lost! ActiveStorage::FileNotFoundError.new("cached record #{cached_materialised_record.key} is gone")
+
+    false
+  end
+
+  # Unstamped as well as reported, so the replay that follows can put the
+  # copy back: `prime_cache!` keeps the copy in place for an update it
+  # already has one of.
+  def cache_lost!(error)
+    Rails.error.report error, context: {submission_id: id, update_id: cached_at_update_id}
+
+    update_columns cached_at_update_id: nil
+  end
+
+  def refresh_cache!
+    latest_id = updates.maximum(:id)
+    fresh     = materialise_at(update_id: latest_id)
+
+    write_through_cache fresh, latest_id if fresh
   end
 
   def write_through_cache(record, update_id)

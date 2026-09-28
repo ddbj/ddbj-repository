@@ -28,6 +28,11 @@ class ApplySubmissionRequestJob < ApplicationJob
     # status を永久にポーリングし続ける。シグナル等は記録だけして上位へ流す。
     Rails.error.report e
 
+    # What the apply left on the request goes with its rolled-back
+    # transaction — above all the submission it linked, which no longer
+    # exists and would fail this write too.
+    request.reload
+
     request.update!(
       status:        :application_failed,
       error_code:    error_code_for(e),

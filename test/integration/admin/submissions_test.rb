@@ -290,6 +290,8 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # for ?as_of=<latest_id> the response will reflect the tampered cache;
     # if it always replays (the correct behaviour) the response reflects
     # the chain.
+    # Unstamped first: prime_cache! keeps the copy it already has of an update.
+    submission.update_columns(cached_at_update_id: nil)
     submission.prime_cache!(bytes: Oj.dump({'tampered' => true}, mode: :strict), update_id: latest.id)
 
     get materialised_admin_submission_path(submission, as_of: latest.id)
@@ -310,6 +312,8 @@ class AdminSubmissionsTest < ActionDispatch::IntegrationTest
     # the blob round-trips byte-for-byte. (Sibling test pins the OPPOSITE
     # behaviour for the ?as_of= path.)
     sentinel = Oj.dump({'cached_marker' => 'served-from-cache'}, mode: :strict)
+    # Unstamped first: prime_cache! keeps the copy it already has of an update.
+    submission.update_columns(cached_at_update_id: nil)
     submission.prime_cache!(bytes: sentinel, update_id: latest.id)
 
     get materialised_admin_submission_path(submission)

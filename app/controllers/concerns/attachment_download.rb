@@ -25,7 +25,9 @@ module AttachmentDownload
   # `filename` names the download where the blob's own name is not the one
   # to give it (a cached copy's).
   def redirect_to_attachment(attachment, filename: nil)
-    blob = attachment.respond_to?(:blob) ? attachment.blob : attachment
+    # Asked, not probed with `respond_to?`: a proxy with nothing attached
+    # says it has no `blob`, and was then taken for the blob itself.
+    blob = attachment&.blob
 
     raise ActiveRecord::RecordNotFound unless blob
 
@@ -48,6 +50,25 @@ module AttachmentDownload
     return render json: {url:} if params[:as] == 'url'
 
     redirect_to url, allow_other_host: true
+  end
+
+  # What came out of applying a submission: the record as DDBJ holds it
+  # (Submission#record_file) and the flatfiles rendered from it.
+  #
+  # `current_record` and `cached_materialised_record` are deliberately
+  # absent. Nothing renders a link to them, and this is the list that
+  # decides whether one could exist; the cached copy is reached only as
+  # the record DDBJ holds.
+  SUBMISSION_FILES = %w[ddbj_record flatfile_na flatfile_aa].freeze
+
+  def redirect_to_submission_file(submission, name)
+    raise ActiveRecord::RecordNotFound unless SUBMISSION_FILES.include?(name)
+
+    if name == 'ddbj_record'
+      redirect_to_attachment submission.record_file, filename: submission.record_filename
+    else
+      redirect_to_attachment submission.public_send(name)
+    end
   end
 
   # `inline` unless asked otherwise, matching Active Storage's own
