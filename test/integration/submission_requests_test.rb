@@ -321,30 +321,46 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_conform_schema 404
   end
 
-  # Only ST.26 can be applied. A BioProject or BioSample record used to pass
-  # validation — which checks ST.26 rules alone — and then fail to apply;
-  # DRA submissions come from D-way.
-  test 'create refuses a database whose record cannot be applied yet' do
+  def create_request(db)
     blob = ActiveStorage::Blob.create_and_upload!(
-      io:           file_fixture('ddbj_record/example.json').open,
-      filename:     'example.json',
+      io:           file_fixture('ddbj_record/bioproject_v3.json').open,
+      filename:     'record.json',
       content_type: 'application/json'
     )
 
-    %w[bioproject biosample dra].each do |db|
-      with_exceptions_app do
-        post submission_requests_path, params: {
-          submission_request: {
-            db:,
-            ddbj_record: blob.signed_id
-          }
-        }, as: :json
-      end
+    with_exceptions_app do
+      post submission_requests_path, params: {
+        submission_request: {
+          db:,
+          ddbj_record: blob.signed_id
+        }
+      }, as: :json
+    end
+  end
 
-      assert_response :unprocessable_content, db
+  # BioProject and BioSample are checked by ddbj-validator alone, so they
+  # are taken where one is configured and refused where none is. DRA
+  # submissions come from D-way.
+  test 'create takes BioProject and BioSample only where a validator can check them' do
+    %w[bioproject biosample].each do |db|
+      create_request db
+
+      assert_response :accepted, db
     end
 
-    assert_no_enqueued_jobs only: ValidateDDBJRecordJob
+    DDBJValidatorClient.stub(:configured?, false) do
+      %w[bioproject biosample dra].each do |db|
+        assert_no_enqueued_jobs only: ValidateDDBJRecordJob do
+          create_request db
+        end
+
+        assert_response :unprocessable_content, db
+      end
+    end
+
+    create_request 'dra'
+
+    assert_response :unprocessable_content
   end
 
   private

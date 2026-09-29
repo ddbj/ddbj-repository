@@ -54,7 +54,7 @@ paths:
               schema:
                 type: object
                 additionalProperties: false
-                required: [uid, api_key, admin]
+                required: [uid, api_key, admin, submittable_dbs]
 
                 properties:
                   uid:
@@ -65,6 +65,13 @@ paths:
 
                   admin:
                     type: boolean
+
+                  submittable_dbs:
+                    description: The databases a submission request can be created for here.
+                    type: array
+
+                    items:
+                      $ref: '#/components/schemas/SubmittableDb'
 
         '401':
           $ref: '#/components/responses/Unauthorized'
@@ -3141,14 +3148,16 @@ components:
 
     SubmittableDb:
       description: >
-        The databases a submission request can be created for. BioProject and
-        BioSample submissions are not accepted yet — their records cannot be
-        applied until v3 records are validated and applied here. DRA submissions
-        are migrated from D-way and cannot be created here yet.
+        The databases a submission request can be created for. ST.26 always;
+        BioProject and BioSample where their records can be checked here, which
+        `GET /me` says (`submittable_dbs`) — elsewhere they are refused. DRA
+        submissions are migrated from D-way and cannot be created here yet.
       type: string
 
       enum:
         - st26
+        - bioproject
+        - biosample
 
     SubmissionRequestSummary:
       type: object

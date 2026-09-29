@@ -278,3 +278,17 @@ bin/dev
 bin/kamal deploy -d staging
 bin/kamal deploy -d production
 ```
+
+BioProject and BioSample take submissions only where ddbj-validator is
+configured — their records are checked there and nowhere else. To open them
+on a destination, give it the validator's URL in `config/deploy.<destination>.yml`
+and deploy:
+
+```yaml
+env:
+  clear:
+    DDBJ_VALIDATOR_URL: https://validator.example.org
+```
+
+The web client offers what the server says (`GET /me`, `submittable_dbs`), so
+the two open together.

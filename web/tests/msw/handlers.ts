@@ -26,6 +26,7 @@ export const handlers = [
       uid: 'test-user',
       api_key: 'test-api-key',
       admin: false,
+      submittable_dbs: ['st26'],
     });
   }),
 
