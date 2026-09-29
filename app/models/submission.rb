@@ -468,6 +468,8 @@ class Submission < ApplicationRecord
         patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
       )
 
+      republish_changed!(base, new_record)
+
       # The chain is canonical from here on, whether it already was or was
       # just healed above. The cache was invalidated in the database
       # (SubmissionUpdate#after_create); forgetting the stamp here too keeps
@@ -677,6 +679,74 @@ class Submission < ApplicationRecord
     fresh     = materialise_at(update_id: latest_id)
 
     write_through_cache fresh, latest_id if fresh
+  end
+
+  # A public object whose public view changed has been published again
+  # (DB-2096). Its view is what its public XML says of it, as the renderer
+  # defines it: a BioProject's project and submitters, a BioSample's sample
+  # and owner. So the hold date, which is over once the object is public,
+  # moves nothing, nor does an edit to a sample not yet public.
+  #
+  # `before` is the chain's stored state, read here in the shape the record
+  # is read in, so a write that only reshapes it (`rake
+  # ddbj_record:reshape_v3`) republishes nothing. DRA's timestamps are
+  # D-way's until submissions come here; ST.26 entries keep none.
+  def republish_changed!(before, after)
+    return unless bioproject_db? || biosample_db?
+
+    rows = curation_rows&.status_public
+
+    return unless rows&.exists?
+
+    before = legacy_chain? ? DDBJRecord::ReshapeV3.call!(before) : before
+
+    if bioproject_db?
+      view = ->(record) { published(PublicXML::Bp::PackageRenderer.published_view(record, project)) }
+
+      rows.republished! unless same_published?(view.(before), view.(after))
+    else
+      owner = ->(record) { published('submission' => {'submitters' => [{'organizations' => [PublicXML::Bs::BioSampleRenderer.owner(record)].compact}]}) }
+
+      return rows.republished! unless same_published?(owner.(before), owner.(after))
+
+      changed_samples(before, after, rows.pluck(:sample_name)).each_slice(10_000) do |names|
+        rows.where(sample_name: names).republished!
+      end
+    end
+  rescue DDBJRecord::ReshapeV3::Error
+    rows.republished!
+  end
+
+  # The public samples, by name, whose sample the write changed.
+  def changed_samples(before, after, names)
+    index = ->(record) {
+      Array(record['samples']).select { it.is_a?(Hash) }.index_by { Sample.normalise_name(it['alias']) }
+    }
+
+    was = index.(before)
+    now = index.(after)
+
+    names.reject {|name|
+      key = Sample.normalise_name(name)
+
+      same_published?(was[key]&.then { published('samples' => [it]) }, now[key]&.then { published('samples' => [it]) })
+    }
+  end
+
+  # A part of a record, where it sits in one: its canonical form is decided
+  # by its path.
+  def published(part) = {'schema_version' => 'v3', **part.compact}
+
+  # Equal as kept: the cheap comparison settles most, and only what it
+  # calls different is put in its canonical form, where an order the
+  # record does not keep no longer counts.
+  def same_published?(a, b)
+    return true if a == b
+    return false if a.nil? || b.nil?
+
+    DDBJRecord::Canonicalizer.canonical_tree(a) == DDBJRecord::Canonicalizer.canonical_tree(b)
+  rescue DDBJRecord::Canonicalizer::Error
+    false
   end
 
   def write_through_cache(record, update_id)

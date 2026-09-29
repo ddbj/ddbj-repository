@@ -11,9 +11,9 @@ class PublishBsLiveListJobTest < ActiveSupport::TestCase
 
   test 'writes the three BS livelist files partitioned by status' do
     submission = Submission.create!(db: :biosample, source_id: 'SSUB-livelist', user: users(:alice))
-    submission.samples.create!(accession: 'SAMD00099992', sample_name: 'DRS2', status: :public,    modified_date: Date.new(2022, 4, 5))
-    submission.samples.create!(accession: 'SAMD00099991', sample_name: 'DRS1', status: :public,    modified_date: Date.new(2022, 4, 5))
-    submission.samples.create!(accession: 'SAMD00099993', sample_name: 'DRS3', status: :withdrawn, modified_date: Date.new(2025, 10, 9))
+    submission.samples.create!(accession: 'SAMD00099992', sample_name: 'DRS2', status: :public,    last_published_at: Time.zone.local(2022, 4, 5))
+    submission.samples.create!(accession: 'SAMD00099991', sample_name: 'DRS1', status: :public,    last_published_at: Time.zone.local(2022, 4, 5))
+    submission.samples.create!(accession: 'SAMD00099993', sample_name: 'DRS3', status: :withdrawn, last_published_at: Time.zone.local(2025, 10, 9))
     submission.samples.create!(accession: 'SAMD00099994', sample_name: 'DRS4', status: :curating) # excluded
 
     PublishBsLiveListJob.perform_now

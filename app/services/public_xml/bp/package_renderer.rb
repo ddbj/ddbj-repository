@@ -17,6 +17,18 @@ module PublicXML
     # the Exporter, not here — Nokogiri serialises a Builder fragment
     # without an XML declaration.
     class PackageRenderer
+      # What a record publishes of its project `row`: the project, and who
+      # submitted it — and the hold date, for a project with no moment of
+      # publication to put in ProjectReleaseDate instead (render_release_date).
+      # A change to anything else it says is no change to a published
+      # project (Submission#republish_changed!).
+      def self.published_view(record, row)
+        submission = record['submission'].is_a?(Hash) ? record['submission'] : {}
+        published  = row.first_published_at ? %w[submitters] : %w[submitters hold_date]
+
+        {'projects' => record['projects'], 'submission' => submission.slice(*published)}
+      end
+
       # Forward map shared with BioProject::Converter — keys are the
       # XPath (relative to Organism) and values are the v3 attribute
       # name. We use it in the reverse direction here: element xpath →
@@ -70,11 +82,9 @@ module PublicXML
         }
       end
 
-      # `accession` is in the canonicalizer's volatile-paths list, so it
-      # never survives a SubmissionUpdate diff/replay cycle into the
-      # materialised v3 record. The AR Project column is authoritative;
-      # we fall back to the v3 hash only so unit tests can drive the
-      # renderer without spinning up an AR row.
+      # The AR Project column is authoritative, as it is for the project's
+      # type; the record's accession only stands in when the renderer runs
+      # without a row.
       def render_project_id(xml)
         accession = @row&.accession.presence || project_block['accession'].to_s
 
@@ -160,10 +170,13 @@ module PublicXML
         end
       end
 
-      # The forward Converter sources hold_date from
-      # ProjectDescr/ProjectReleaseDate. We restore the same slot.
+      # When the project was made public, once it has been: a project made
+      # public before its hold date was released then, not on the date it
+      # was held until. D-way wrote the moment of publication here where
+      # the element was empty. Until then the hold date, which is where the
+      # forward Converter read ProjectDescr/ProjectReleaseDate from.
       def render_release_date(xml)
-        date = submission_block['hold_date']
+        date = @row&.first_published_at&.iso8601(3) || submission_block['hold_date']
         xml.ProjectReleaseDate date if date.present?
       end
 

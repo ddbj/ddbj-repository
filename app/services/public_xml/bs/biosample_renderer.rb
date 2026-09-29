@@ -29,6 +29,17 @@ module PublicXML
     # gap is at import, and closing it is what would let this renderer
     # emit them.
     class BioSampleRenderer
+      # What every sample of a record publishes besides itself: the
+      # organisation it is owned by. A change to anything else the
+      # submission says is no change to a published sample
+      # (Submission#republish_changed!).
+      def self.owner(record)
+        submission = record['submission']
+        submitters = submission.is_a?(Hash) ? Array(submission['submitters']) : []
+
+        submitters.lazy.filter_map { it['organizations']&.first if it.is_a?(Hash) }.first
+      end
+
       # The names `Db2Jaxb` lifts out of the attribute bag into
       # <Description>, in the order it lifts them. `sample_name` is here
       # too: D-way pops it like the rest and then puts it back at the
@@ -67,36 +78,21 @@ module PublicXML
 
       private
 
-      # `publication_date` is the first-publish date; `last_update` is
-      # the most recent re-publish, and falls back to `modified_date`
-      # rather than to the release — a record corrected but never
-      # re-distributed was last updated on the day it was corrected, and
-      # that is the value a consumer polls to decide whether to re-fetch
-      # (BioSampleConverter.java:29-36).
+      # `publication_date` is when the sample was first made public and
+      # `last_update` when what is public about it last changed
+      # (Lifecycleable.move_to_status!) — the value a consumer polls to
+      # decide whether to re-fetch (BioSampleConverter.java:29-36).
       #
       # `access` is a constant: BioSample takes no controlled-access
       # data, so D-way stamps every record public. The accession is NOT
       # an attribute here — it goes in `Ids/Id[@namespace="BioSample"]`,
       # which is where the schema puts it and where readers look.
-      #
-      # NOTE: both dates are `xs:dateTime` and D-way emitted real
-      # timestamps, because its columns are timestamps. Ours are `date`
-      # — `BioSample::StagingClient` casts `release_date::date` on the
-      # way in — so the time of day is not lost here, it was dropped at
-      # import and is still in D-way. Midnight is a placeholder for a
-      # time we do not have; a date alone is not a `dateTime` at all and
-      # would fail the schema on every record in the file. Recovering it
-      # means widening the columns and re-importing.
       def biosample_attrs
         {
           access:           'public',
-          publication_date: as_datetime(@sample.release_date),
-          last_update:      as_datetime(@sample.dist_date || @sample.modified_date)
+          publication_date: @sample.first_published_at&.iso8601(3),
+          last_update:      @sample.last_published_at&.iso8601(3)
         }.compact
-      end
-
-      def as_datetime(date)
-        date&.to_date&.in_time_zone&.iso8601
       end
 
       # Match on `alias` (== sample_name). ddbj-canon/v2 would also allow
@@ -230,10 +226,7 @@ module PublicXML
         }
       end
 
-      def first_organization
-        submitters = Array(@record.dig('submission', 'submitters'))
-        submitters.lazy.filter_map { it['organizations']&.first }.first
-      end
+      def first_organization = self.class.owner(@record)
 
       # <Models><Model>, not <Package>: the composed package name is what
       # D-way writes here (ModelConverter, from the same

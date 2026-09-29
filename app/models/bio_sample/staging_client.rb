@@ -26,8 +26,7 @@ module BioSample
     def initialize(**overrides)
       DataMigration::DwayDefaults.ensure_enabled!
 
-      @conn = PG.connect(**DEFAULT_OPTIONS.merge(overrides))
-      @conn.exec('SET search_path TO mass')
+      @conn = DataMigration::DwayDefaults.connect(DEFAULT_OPTIONS.merge(overrides))
     end
 
     def close
@@ -106,7 +105,7 @@ module BioSample
 
       sample_rows = @conn.exec_params(<<~SQL, [ssub_id]).to_a
         SELECT s.smp_id, a.accession_id, s.sample_name, s.package, s.package_group, s.env_package, s.status_id,
-               s.release_date::date AS release_date, s.dist_date::date AS dist_date, s.modified_date::date AS modified_date
+               s.release_date, s.dist_date, s.modified_date
         FROM   sample s
         LEFT JOIN accession a USING (smp_id)
         WHERE  s.submission_id = $1
@@ -142,9 +141,9 @@ module BioSample
             package_group: s['package_group'],
             env_package:   s['env_package'],
             status_id:     s['status_id']&.to_i,
-            release_date:  s['release_date'],
-            dist_date:     s['dist_date'],
-            modified_date: s['modified_date'],
+            release_date:  DataMigration::DwayDefaults.time(s['release_date']),
+            dist_date:     DataMigration::DwayDefaults.time(s['dist_date']),
+            modified_date: DataMigration::DwayDefaults.time(s['modified_date']),
             attributes:    (attrs_by_smp[s['smp_id'].to_i] || []).map {|a|
               {'name' => a['attribute_name'], 'value' => a['attribute_value']}
             }

@@ -628,4 +628,112 @@ class SubmissionTest < ActiveSupport::TestCase
 
     assert_nil submission.reload.cached_at_update_id
   end
+
+  # --- republication (DB-2096) -----------------------------------------
+
+  def record_with(samples, submission: {})
+    {'schema_version' => 'v3', 'submission' => submission, 'samples' => samples}
+  end
+
+  # A change to what is public about a sample publishes it again; the
+  # samples the change does not touch, and those not yet public, keep
+  # their dates.
+  test 'an edit republishes the public samples it changes, and only those' do
+    submission = submissions(:biosample)
+    submission.samples.update_all(status: Lifecycleable::STATUSES.fetch('private'))
+    changed    = submission.samples.create!(sample_name: 'changed',   status: :public,  last_published_at: 1.year.ago)
+    untouched  = submission.samples.create!(sample_name: 'untouched', status: :public,  last_published_at: 1.year.ago)
+    unreleased = submission.samples.create!(sample_name: 'private',   status: :private)
+
+    submission.append_update!(record_with([{'alias' => 'changed', 'title' => 'A'}, {'alias' => 'untouched'}, {'alias' => 'private', 'title' => 'A'}]), actor: 'test')
+
+    before = [changed, untouched].map { it.reload.last_published_at }
+
+    freeze_time do
+      submission.append_update!(record_with([{'alias' => 'changed', 'title' => 'B'}, {'alias' => 'untouched'}, {'alias' => 'private', 'title' => 'B'}]), actor: 'test')
+
+      assert_equal Time.current, changed.reload.last_published_at
+    end
+
+    assert_equal before[1], untouched.reload.last_published_at
+    assert_nil              unreleased.reload.last_published_at
+  end
+
+  # A sample publishes its owner besides itself. Who submitted it, and the
+  # hold date — over once the samples are public — it does not.
+  test 'a change to the owner republishes every public sample, and nothing else in the submission does' do
+    submission = submissions(:biosample)
+    submission.samples.update_all(status: Lifecycleable::STATUSES.fetch('private'))
+    sample     = submission.samples.create!(sample_name: 's', status: :public, last_published_at: 1.year.ago)
+    samples    = [{'alias' => 's'}]
+    frame      = ->(org, **more) { {'submitters' => [{'first_name' => 'Ada', 'organizations' => [{'name' => org}]}], **more} }
+
+    submission.append_update!(record_with(samples, submission: frame.('DDBJ', 'hold_date' => '2027-01-01')), actor: 'test')
+    before = sample.reload.last_published_at
+
+    submission.append_update!(record_with(samples, submission: frame.('DDBJ', 'hold_date' => '2028-01-01', 'comments' => ['x'])), actor: 'test')
+
+    assert_equal before, sample.reload.last_published_at
+
+    freeze_time do
+      submission.append_update!(record_with(samples, submission: frame.('NIG')), actor: 'test')
+
+      assert_equal Time.current, sample.reload.last_published_at
+    end
+  end
+
+  # Reshaping a chain written under an older shape changes how the record
+  # is stored, not what it says.
+  test 'a write that only reshapes the record republishes nothing' do
+    submission = submissions(:biosample)
+    submission.samples.update_all(status: Lifecycleable::STATUSES.fetch('private'))
+    sample     = submission.samples.create!(sample_name: 's', status: :public, last_published_at: 1.year.ago)
+
+    # Stored as it was before the spec made taxonomy_id a string.
+    seed_v1_chain(submission, record_with([{'alias' => 's', 'organism' => {'taxonomy_id' => 9606}}]))
+    before = sample.reload.last_published_at
+
+    submission.append_update!(submission.materialised_record, actor: 'ddbj_record:reshape_v3', source: :batch)
+
+    assert_equal before, sample.reload.last_published_at
+  end
+
+  test 'an edit to a public project republishes it' do
+    submission = submissions(:bioproject)
+    project    = submission.project
+    project.update_columns(status: Lifecycleable::STATUSES.fetch('public'), last_published_at: 1.year.ago)
+
+    submission.append_update!({'schema_version' => 'v3', 'projects' => [{'title' => 'Before'}]}, actor: 'test')
+
+    freeze_time do
+      submission.append_update!({'schema_version' => 'v3', 'projects' => [{'title' => 'After'}]}, actor: 'test')
+
+      assert_equal Time.current, project.reload.last_published_at
+    end
+  end
+
+  # With no moment of publication to print, the public XML's
+  # ProjectReleaseDate is the hold date — so then, and only then, a change
+  # to it is a change to what is public.
+  test 'a hold date republishes a public project only where it is what the XML prints' do
+    submission = submissions(:bioproject)
+    project    = submission.project
+    record     = ->(hold) { {'schema_version' => 'v3', 'submission' => {'hold_date' => hold}, 'projects' => [{'title' => 'T'}]} }
+
+    project.update_columns(status: Lifecycleable::STATUSES.fetch('public'), first_published_at: nil, last_published_at: 1.year.ago)
+    submission.append_update!(record.('2027-01-01'), actor: 'test')
+
+    freeze_time do
+      submission.append_update!(record.('2028-01-01'), actor: 'test')
+
+      assert_equal Time.current, project.reload.last_published_at
+    end
+
+    project.update_columns(first_published_at: 1.year.ago, last_published_at: 1.year.ago)
+    before = project.reload.last_published_at
+
+    submission.append_update!(record.('2029-01-01'), actor: 'test')
+
+    assert_equal before, project.reload.last_published_at
+  end
 end

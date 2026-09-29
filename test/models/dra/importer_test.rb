@@ -14,14 +14,15 @@ class DRA::ImporterTest < ActiveSupport::TestCase
 
   def row(**overrides)
     DRA::StagingClient::Submission.new(
-      sub_id:       72,
-      submitter_id: 'dra-submitter',
-      status:       700,
-      accession:    'DRA000072',
-      hold_date:    Date.new(2027, 1, 1),
-      dist_date:    nil,
-      release_date: nil,
-      versions:     [version('2010-01-01 10:00'), version('2010-02-01 10:00', retitled('A later title'))],
+      sub_id:            72,
+      submitter_id:      'dra-submitter',
+      status:            700,
+      status_changed_at: Time.zone.local(2010, 3, 1),
+      accession:         'DRA000072',
+      hold_date:         Date.new(2027, 1, 1),
+      dist_date:         nil,
+      release_date:      nil,
+      versions:          [version('2010-01-01 10:00'), version('2010-02-01 10:00', retitled('A later title'))],
       **overrides
     )
   end
@@ -59,7 +60,17 @@ class DRA::ImporterTest < ActiveSupport::TestCase
     assert_equal :skipped, result.outcome
     assert_equal 2, submission.updates.count
     assert_equal 'public', submission.dra_submission.reload.status
-    assert_equal Date.new(2026, 9, 1), submission.dra_submission.release_date
+    assert_equal Time.zone.local(2026, 9, 1), submission.dra_submission.first_published_at
+  end
+
+  # drmdb's dist_date does not move on the way out of public; the change of
+  # status it records is when the submission left.
+  test 'a submission out of public was last published when it left' do
+    left = Time.zone.local(2026, 9, 20, 15)
+
+    import(row(status: 1100, release_date: Date.new(2020, 1, 1), dist_date: Date.new(2021, 1, 1), status_changed_at: left))
+
+    assert_equal left, Submission.dra_db.find_by!(source_id: 'DRA000072').dra_submission.last_published_at
   end
 
   test 'a version saved since the last run is appended' do

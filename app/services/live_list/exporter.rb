@@ -63,12 +63,12 @@ module LiveList
 
     def row(fields) = "#{fields.join("\t")}\n"
 
-    # D-way's `Updated` is project/sample.modified_date. Migrated rows carry
-    # it (see the importers); rows created/edited after migration have no
-    # modified_date yet, so fall back to updated_at — the row's real last
-    # touch, which is what modified_date means.
+    # When what is public about the row last changed, its leaving public
+    # included (DB-2096) — which is what a list of what is public, suppressed
+    # and withdrawn is updated by. A row withdrawn before it was ever public
+    # has no such date; `updated_at` stands in.
     def updated(record)
-      (record.modified_date || record.updated_at&.to_date)&.iso8601
+      (record.last_published_at || record.updated_at)&.to_date&.iso8601
     end
 
     # Keyset pagination on `accession` — index-backed (accession is

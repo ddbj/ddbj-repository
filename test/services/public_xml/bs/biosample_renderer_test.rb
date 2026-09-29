@@ -22,11 +22,8 @@ class PublicXML::Bs::BioSampleRendererTest < ActiveSupport::TestCase
 
     assert_equal stored.element_children.map { canonical(it) }, node.element_children.map { canonical(it) }
 
-    # 日付だけは一致しない。D-way の列は timestamp で、こちらは import の
-    # 時点で ::date に落としてあるため。
-    assert_equal 'public', node['access']
-    assert_equal '2014-03-20T10:32:03.806+09:00', stored['last_update']
-    assert_equal '2014-03-20T00:00:00+09:00',     node['last_update']
+    assert_equal stored.attributes.transform_values(&:value).slice('access', 'publication_date', 'last_update'),
+                 node.attributes.transform_values(&:value).slice('access', 'publication_date', 'last_update')
   end
 
   test 'the rendered element validates against the published schema' do
@@ -34,12 +31,12 @@ class PublicXML::Bs::BioSampleRendererTest < ActiveSupport::TestCase
   end
 
   test 'emits the BioSample shape D-way publishes; suppresses Owner Contacts' do
-    node = render(sample(release_date: Date.new(2026, 3, 1), dist_date: Date.new(2026, 6, 1)))
+    node = render(sample(first_published_at: Time.zone.local(2026, 3, 1, 10, 30), last_published_at: Time.zone.local(2026, 6, 1, 9)))
 
     assert_equal 'BioSample', node.name
     assert_equal 'public',    node['access']
-    assert_equal '2026-03-01T00:00:00+09:00', node['publication_date']
-    assert_equal '2026-06-01T00:00:00+09:00', node['last_update']
+    assert_equal '2026-03-01T10:30:00.000+09:00', node['publication_date']
+    assert_equal '2026-06-01T09:00:00.000+09:00', node['last_update']
     assert_nil   node['accession'], 'the accession is an Id, not an attribute of BioSample'
 
     id = node.at_xpath('./Ids/Id')
@@ -151,15 +148,6 @@ class PublicXML::Bs::BioSampleRendererTest < ActiveSupport::TestCase
     assert_empty SCHEMA.validate(document_of(node))
   end
 
-  # 再配布されていない sample の last_update は「最後に直した日」。
-  # release_date に落とすと、直したのに更新を通知しないことになる。
-  test 'last_update falls back to modified_date, not to the release' do
-    node = render(sample(release_date: Date.new(2014, 3, 1), dist_date: nil, modified_date: Date.new(2019, 7, 20)))
-
-    assert_equal '2014-03-01T00:00:00+09:00', node['publication_date']
-    assert_equal '2019-07-20T00:00:00+09:00', node['last_update']
-  end
-
   test 'returns nil when the v3 record has no sample with a matching alias' do
     record = {'samples' => [{'alias' => 'no-such-alias'}]}
 
@@ -170,11 +158,10 @@ class PublicXML::Bs::BioSampleRendererTest < ActiveSupport::TestCase
 
   def sample(**overrides)
     Sample.new({
-      accession:     'SAMD00000777',
-      sample_name:   'a-sample',
-      release_date:  Date.new(2026, 3, 1),
-      dist_date:     Date.new(2026, 6, 1),
-      modified_date: Date.new(2026, 6, 1)
+      accession:          'SAMD00000777',
+      sample_name:        'a-sample',
+      first_published_at: Time.zone.local(2026, 3, 1),
+      last_published_at:  Time.zone.local(2026, 6, 1)
     }.merge(overrides))
   end
 
@@ -253,9 +240,10 @@ class PublicXML::Bs::BioSampleRendererTest < ActiveSupport::TestCase
     ].filter_map {|name, value| {'name' => name, 'value' => value} if value.present? }
 
     row = Sample.new(
-      accession:     stored.at_xpath('./Ids/Id[@namespace="BioSample"]').text,
-      sample_name:   desc.at_xpath('./SampleName').text,
-      modified_date: Date.new(2014, 3, 20)
+      accession:          stored.at_xpath('./Ids/Id[@namespace="BioSample"]').text,
+      sample_name:        desc.at_xpath('./SampleName').text,
+      first_published_at: stored['publication_date']&.then { Time.zone.parse(it) },
+      last_published_at:  Time.zone.parse(stored['last_update'])
     )
 
     record = {

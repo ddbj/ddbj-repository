@@ -12,13 +12,13 @@ module BioSample
   #     migration_run_id.
   #   - Sample typed-column sync (accession / sample_name / package /
   #     package_group / env_package / taxonomy_id / organism / status /
-  #     title / release_date / dist_date / modified_date): ALWAYS runs.
-  #     Some of those columns (package_group, env_package, release_date,
-  #     dist_date, modified_date) live only on the staging row and never
-  #     reach the canonical patch, so gating sync on patch-difference would
-  #     permanently strand any staging-side updates to them. (release_date /
-  #     dist_date feed the public / three-pole exchange XML; modified_date
-  #     is the livelist's `Updated`.) The trade-
+  #     title / first_published_at / last_published_at): ALWAYS runs.
+  #     Some of those columns (package_group, env_package, and the
+  #     publication timestamps — D-way's release_date and dist_date) live
+  #     only on the staging row and never reach the canonical patch, so
+  #     gating sync on patch-difference would permanently strand any
+  #     staging-side updates to them. (The timestamps feed the public XML
+  #     and the livelist's `Updated`.) The trade-
   #     off is that curator edits to typed columns survive only until
   #     the next re-import — Phase 6 needs explicit curator-edit-vs-
   #     staging diff handling.
@@ -37,7 +37,7 @@ module BioSample
     class CrossUserError < StandardError; end
 
     # The Sample columns staging alone knows; the rest project the record.
-    STAGING_ONLY_COLUMNS = %i[status package_group env_package release_date dist_date modified_date].freeze
+    STAGING_ONLY_COLUMNS = %i[status package_group env_package first_published_at last_published_at].freeze
 
     Result = Data.define(:submission, :outcome) # :created | :updated | :skipped | :no_samples
 
@@ -222,18 +222,22 @@ module BioSample
       v3_samples.zip(staging_samples).each_with_index do |(converted, staging), idx|
         v3    = by_name[name.(converted)] || canonical_sample(converted)
         attrs = Sample.record_columns(v3).merge(
-          accession:     v3['accession'] || converted['accession'],
-          sample_name:   v3['alias'].presence || converted['alias'],
-          status:        map_status(staging.status_id),
+          accession:          v3['accession'] || converted['accession'],
+          sample_name:        v3['alias'].presence || converted['alias'],
+          status:             map_status(staging.status_id),
           # NOTE(phase 6 deferral): :package_group is derivable from :package
           # against a versioned catalog snapshot — see staging_client.rb Sample
           # Data class comment. Persisting staging's value as-is for now so we
           # have an audit anchor when the derivation lands.
-          package_group: staging.package_group,
-          env_package:   staging.env_package,
-          release_date:  staging.release_date,
-          dist_date:     staging.dist_date,
-          modified_date: staging.modified_date
+          package_group:      staging.package_group,
+          env_package:        staging.env_package,
+          first_published_at: staging.release_date,
+          last_published_at:  DataMigration::DwayDefaults.last_published_at(
+            public:   map_status(staging.status_id) == :public,
+            release:  staging.release_date,
+            dist:     staging.dist_date,
+            modified: staging.modified_date
+          )
         )
 
         if (existing = existing_samples[idx])

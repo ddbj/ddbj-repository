@@ -23,7 +23,7 @@ class PublishBsXMLJobTest < ActiveSupport::TestCase
       }]
     }, actor: 'test')
 
-    samples(:second).update!(accession: 'SAMD00000222', status: 'public', release_date: Date.new(2026, 6, 1))
+    samples(:second).update!(accession: 'SAMD00000222', status: 'public', first_published_at: Time.zone.local(2026, 6, 1))
 
     assert_difference 'PublicXMLRun.where(db: "biosample", kind: "public").count', 1 do
       PublishBsXMLJob.perform_now

@@ -25,8 +25,7 @@ module BioProject
     def initialize(**overrides)
       DataMigration::DwayDefaults.ensure_enabled!
 
-      @conn = PG.connect(**DEFAULT_OPTIONS.merge(overrides))
-      @conn.exec('SET search_path TO mass')
+      @conn = DataMigration::DwayDefaults.connect(DEFAULT_OPTIONS.merge(overrides))
     end
 
     def close
@@ -148,9 +147,9 @@ module BioProject
                s.status_id,
                p.project_id_prefix || p.project_id_counter AS accession,
                p.project_type,
-               p.release_date::date  AS release_date,
-               p.dist_date::date     AS dist_date,
-               p.modified_date::date AS modified_date,
+               p.release_date,
+               p.dist_date,
+               p.modified_date,
                x.content AS xml
         FROM   submission s
         JOIN   project p USING (submission_id)
@@ -169,9 +168,9 @@ module BioProject
         accession:     row['accession'],
         project_type:  row['project_type'],
         xml:           row['xml'],
-        release_date:  row['release_date'],
-        dist_date:     row['dist_date'],
-        modified_date: row['modified_date']
+        release_date:  DataMigration::DwayDefaults.time(row['release_date']),
+        dist_date:     DataMigration::DwayDefaults.time(row['dist_date']),
+        modified_date: DataMigration::DwayDefaults.time(row['modified_date'])
       )
     end
   end

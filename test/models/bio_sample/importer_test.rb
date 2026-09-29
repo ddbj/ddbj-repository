@@ -404,7 +404,7 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     assert_equal 'soil',         sample.env_package, '合成前の値は provenance として残す'
   end
 
-  test 'syncs staging release_date / dist_date / modified_date onto Sample typed columns and backfills on a byte-identical re-run' do
+  test 'syncs when D-way published the sample onto its row, to the moment, and backfills on a byte-identical re-run' do
     # First import: staging carries no lifecycle dates yet.
     row = SC::Submission.new(
       ssub_id: 'SSUB-dates', submitter_id: 'u', organization: nil, organization_url: nil,
@@ -417,9 +417,8 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
     BioSample::Importer.new(staging_submission: row, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
 
     sample = Submission.find_by(source_id: 'SSUB-dates').samples.first
-    assert_nil sample.release_date
-    assert_nil sample.dist_date
-    assert_nil sample.modified_date
+    assert_nil sample.first_published_at
+    assert_nil sample.last_published_at
 
     # Re-run after D-way fills the dates. They never reach the canonical
     # patch, so the fast path returns :skipped — but sync_samples! must
@@ -430,16 +429,15 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
       samples: [staging_sample(
         smp_id: 1, accession: 'SAMD00099991', sample_name: 'DRS001',
         package: 'Generic', package_group: nil, env_package: nil, status_id: 5500,
-        release_date: '2020-01-15', dist_date: '2021-02-20', modified_date: '2022-03-25', attributes: []
+        release_date: Time.zone.parse('2020-01-15 10:32:03.806'), dist_date: Time.zone.local(2021, 2, 20, 9), attributes: []
       )]
     )
     result = BioSample::Importer.new(staging_submission: row_dated, user_uid: 'u', migration_run_id: SecureRandom.uuid).call
 
     assert_equal :skipped, result.outcome
     sample.reload
-    assert_equal Date.new(2020, 1, 15), sample.release_date
-    assert_equal Date.new(2021, 2, 20), sample.dist_date
-    assert_equal Date.new(2022, 3, 25), sample.modified_date
+    assert_equal Time.zone.parse('2020-01-15 10:32:03.806'), sample.first_published_at
+    assert_equal Time.zone.local(2021, 2, 20, 9),            sample.last_published_at
   end
 
   test 'maps unknown status_id to :curating' do

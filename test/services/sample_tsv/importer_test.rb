@@ -290,4 +290,15 @@ class SampleTSV::ImporterTest < ActiveSupport::TestCase
     assert_equal 1, result.processed
     assert_nil   result.fatal_error
   end
+
+  # The status column changes status as the screens do, so a sample made
+  # public by a TSV is dated like one made public from the Samples tab —
+  # and the edit that comes with it does not date it twice.
+  test 'a status column that makes a sample public dates it' do
+    freeze_time do
+      run_importer("sample_name\tstatus\tsample_title\nsample-A\tpublic\tAnother title\n")
+
+      assert_equal [Time.current, Time.current], @sample.reload.values_at(:first_published_at, :last_published_at)
+    end
+  end
 end

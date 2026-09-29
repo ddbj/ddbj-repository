@@ -67,11 +67,20 @@ class DRA::Importer
       row = submission.dra_submission || submission.build_dra_submission
 
       row.assign_attributes(
-        accession:    @row.accession,
-        status:       STATUSES.fetch(@row.status) { raise ArgumentError, "unknown DRA status #{@row.status.inspect}" },
-        hold_date:    @row.hold_date,
-        dist_date:    @row.dist_date,
-        release_date: @row.release_date
+        accession:          @row.accession,
+        status:             STATUSES.fetch(@row.status) { raise ArgumentError, "unknown DRA status #{@row.status.inspect}" },
+        hold_date:          @row.hold_date,
+        first_published_at: @row.release_date,
+
+        # drmdb dates the change of status, so the moment a submission left
+        # public is known here, where BioProject and BioSample have only the
+        # row's last change.
+        last_published_at: DataMigration::DwayDefaults.last_published_at(
+          public:   STATUSES[@row.status] == :public,
+          release:  @row.release_date,
+          dist:     @row.dist_date&.in_time_zone,
+          modified: @row.status_changed_at
+        )
       )
 
       # Checked before the patches are stored: a row refused after them

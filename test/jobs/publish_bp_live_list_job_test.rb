@@ -9,15 +9,15 @@ class PublishBpLiveListJobTest < ActiveSupport::TestCase
     @output_dir.glob('bioproject.*.txt*').each(&:delete)
   end
 
-  def project(source_id:, accession:, status:, modified_date: nil)
+  def project(source_id:, accession:, status:, last_published_at: nil)
     submission = Submission.create!(db: :bioproject, source_id:, user: users(:alice))
 
-    Project.create!(submission:, project_type: :primary, status:, accession:, modified_date:)
+    Project.create!(submission:, project_type: :primary, status:, accession:, last_published_at:)
   end
 
   test 'writes the three BP livelist files to the collab dir' do
-    project(source_id: 'PSUB-a', accession: 'PRJDB2',  status: :public,                 modified_date: Date.new(2020, 3, 30))
-    project(source_id: 'PSUB-b', accession: 'PRJDB51', status: :temporarily_suppressed, modified_date: Date.new(2025, 7, 23))
+    project(source_id: 'PSUB-a', accession: 'PRJDB2',  status: :public,                 last_published_at: Time.zone.local(2020, 3, 30))
+    project(source_id: 'PSUB-b', accession: 'PRJDB51', status: :temporarily_suppressed, last_published_at: Time.zone.local(2025, 7, 23))
     project(source_id: 'PSUB-c', accession: 'PRJDB80', status: :private) # excluded
 
     PublishBpLiveListJob.perform_now

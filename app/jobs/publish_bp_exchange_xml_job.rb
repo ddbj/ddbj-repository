@@ -27,6 +27,7 @@ class PublishBpExchangeXMLJob < ApplicationJob
       filename:         FILENAME,
       renderer_class:   PublicXML::Bp::ExchangePackageRenderer,
       renderer_options: {last_run:, exec_date:},
+      started_at:       exec_date,
       scope:            Project.status_public.includes(:submission).order(:id)
     ).call
   end
