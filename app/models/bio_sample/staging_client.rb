@@ -26,8 +26,7 @@ module BioSample
     def initialize(**overrides)
       DataMigration::DwayDefaults.ensure_enabled!
 
-      @conn = PG.connect(**DEFAULT_OPTIONS.merge(overrides))
-      @conn.exec('SET search_path TO mass')
+      @conn = DataMigration::DwayDefaults.connect(DEFAULT_OPTIONS.merge(overrides))
     end
 
     def close

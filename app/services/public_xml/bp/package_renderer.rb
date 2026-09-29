@@ -17,16 +17,16 @@ module PublicXML
     # the Exporter, not here — Nokogiri serialises a Builder fragment
     # without an XML declaration.
     class PackageRenderer
-      # What a record publishes: the project, and who submitted it. A
-      # change to anything else it says — the hold date among them — is no
-      # change to a published project (Submission#republish_changed!).
-      def self.published_view(record)
-        submission = record['submission']
+      # What a record publishes of its project `row`: the project, and who
+      # submitted it — and the hold date, for a project with no moment of
+      # publication to put in ProjectReleaseDate instead (render_release_date).
+      # A change to anything else it says is no change to a published
+      # project (Submission#republish_changed!).
+      def self.published_view(record, row)
+        submission = record['submission'].is_a?(Hash) ? record['submission'] : {}
+        published  = row.first_published_at ? %w[submitters] : %w[submitters hold_date]
 
-        {
-          'projects'   => record['projects'],
-          'submission' => {'submitters' => submission.is_a?(Hash) ? submission['submitters'] : nil}.compact
-        }
+        {'projects' => record['projects'], 'submission' => submission.slice(*published)}
       end
 
       # Forward map shared with BioProject::Converter — keys are the

@@ -10,12 +10,11 @@ module BioProject
   #   - Re-running with the same psub_id + identical XML is a true no-op:
   #     find_or_create_by! reuses the existing row and no further writes
   #     happen. updated_at / migration_run_id / most Project columns are
-  #     untouched on the :skipped path. The exception is the publication
-  #     timestamps (D-way lifecycle facts consumed by the three-pole
-  #     exchange XML and the livelist): they are non-curator,
-  #     non-chain metadata and sync on every run so a re-import backfills
-  #     them onto already-imported rows — see the sync just below
-  #     ensure_migration_request!.
+  #     untouched on the :skipped path. The exception is where D-way has
+  #     the project — its status and publication timestamps, which D-way
+  #     owns while it is where BioProject is curated: they sync on every
+  #     run, so a re-import backfills them onto already-imported rows — see
+  #     the sync just below ensure_migration_request!.
   #   - Re-running with a different user_uid against an existing Submission
   #     raises CrossUserError; we never silently re-attribute.
   #   - When a new patch IS appended (XML actually changed), Submission and
@@ -48,9 +47,9 @@ module BioProject
         project_type:       row.project_type,
         accession:          row.accession,
         status:             row.status_id,
-        release_date:     row.release_date,
-        dist_date:        row.dist_date,
-        modified_date:    row.modified_date,
+        release_date:       row.release_date,
+        dist_date:          row.dist_date,
+        modified_date:      row.modified_date,
         migration_run_id:
       )
     end
@@ -104,12 +103,12 @@ module BioProject
         # published (DataMigration::DwayDefaults.last_published_at), which
         # feed the three-pole exchange XML's eAdded/eUpdated action and the
         # livelist's `Updated` column — together, since which timestamps a
-        # row has follows from its status. They are neither curator-edited
-        # nor part of the
-        # XML-diffed materialised chain, so — unlike status / title below —
-        # sync them on EVERY run, including the fast-skip path, or a
-        # re-import would never backfill an already-imported row. Ensured
-        # here (not on the change path) precisely so the skip path sees it.
+        # row has follows from its status. D-way owns them while BioProject
+        # is curated there, and they are not part of the XML-diffed
+        # materialised chain, so — unlike title below — sync them on EVERY
+        # run, including the fast-skip path, or a re-import would never
+        # backfill an already-imported row. Ensured here (not on the change
+        # path) precisely so the skip path sees it.
         project = submission.project || Project.create!(submission:, accession:, project_type: @project_type)
         project.update_columns(
           status:             map_status(@status),

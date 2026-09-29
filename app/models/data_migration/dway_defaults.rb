@@ -34,6 +34,17 @@ module DataMigration
       raise Disabled, "Importing from D-way is switched off in #{Rails.env}."
     end
 
+    # A connection to D-way's schema, its timestamps coming back as text in
+    # the ISO order `time` reads whatever the server's own DateStyle. Set
+    # once connected rather than as a startup option, which a pooler in
+    # front of the server may refuse.
+    def connect(options)
+      PG.connect(**options).tap {|conn|
+        conn.exec('SET search_path TO mass')
+        conn.exec('SET DateStyle TO ISO')
+      }
+    end
+
     # D-way's timestamps are without a zone, and are Tokyo's wall clock.
     # Read as such here, where they come in: a column written with
     # `update_columns` is not converted on the way, and would take the
@@ -71,11 +82,7 @@ module DataMigration
         port:     ENV['DWAY_PGPORT']&.to_i || xsmdb&.port     || 54301,
         user:     ENV['DWAY_PGUSER']       || xsmdb&.user     || 'const',
         dbname:   dbname,
-        password: ENV['DWAY_DB_PASSWORD']  || xsmdb&.password,
-
-        # Timestamps come back as text in the ISO order `time` reads,
-        # whatever the server's own DateStyle.
-        options: '-c DateStyle=ISO'
+        password: ENV['DWAY_DB_PASSWORD']  || xsmdb&.password
       }
     end
 

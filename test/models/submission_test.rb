@@ -711,4 +711,29 @@ class SubmissionTest < ActiveSupport::TestCase
       assert_equal Time.current, project.reload.last_published_at
     end
   end
+
+  # With no moment of publication to print, the public XML's
+  # ProjectReleaseDate is the hold date — so then, and only then, a change
+  # to it is a change to what is public.
+  test 'a hold date republishes a public project only where it is what the XML prints' do
+    submission = submissions(:bioproject)
+    project    = submission.project
+    record     = ->(hold) { {'schema_version' => 'v3', 'submission' => {'hold_date' => hold}, 'projects' => [{'title' => 'T'}]} }
+
+    project.update_columns(status: Lifecycleable::STATUSES.fetch('public'), first_published_at: nil, last_published_at: 1.year.ago)
+    submission.append_update!(record.('2027-01-01'), actor: 'test')
+
+    freeze_time do
+      submission.append_update!(record.('2028-01-01'), actor: 'test')
+
+      assert_equal Time.current, project.reload.last_published_at
+    end
+
+    project.update_columns(first_published_at: 1.year.ago, last_published_at: 1.year.ago)
+    before = project.reload.last_published_at
+
+    submission.append_update!(record.('2029-01-01'), actor: 'test')
+
+    assert_equal before, project.reload.last_published_at
+  end
 end

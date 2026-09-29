@@ -701,9 +701,9 @@ class Submission < ApplicationRecord
     before = legacy_chain? ? DDBJRecord::ReshapeV3.call!(before) : before
 
     if bioproject_db?
-      view = PublicXML::Bp::PackageRenderer.method(:published_view)
+      view = ->(record) { published(PublicXML::Bp::PackageRenderer.published_view(record, project)) }
 
-      rows.republished! unless same_published?(published(view.(before)), published(view.(after)))
+      rows.republished! unless same_published?(view.(before), view.(after))
     else
       owner = ->(record) { published('submission' => {'submitters' => [{'organizations' => [PublicXML::Bs::BioSampleRenderer.owner(record)].compact}]}) }
 

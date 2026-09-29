@@ -44,8 +44,7 @@ class DRA::StagingClient
   def initialize(**overrides)
     DataMigration::DwayDefaults.ensure_enabled!
 
-    @conn = PG.connect(**DEFAULT_OPTIONS.merge(overrides))
-    @conn.exec('SET search_path TO mass')
+    @conn = DataMigration::DwayDefaults.connect(DEFAULT_OPTIONS.merge(overrides))
 
     # Timestamps compared as times, not as their text: a save's moment and
     # the group after it differ by seconds, and the text's fractional part
@@ -116,8 +115,7 @@ class DRA::StagingClient
         sub_id:       row['sub_id'],
         reason:       row['reason'],
         submitter_id: row['submitter_id'],
-        status:            row['status'],
-      status_changed_at: row['status_changed_at']&.in_time_zone,
+        status:       row['status'],
         create_date:  row['create_date']
       )
     }
