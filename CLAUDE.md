@@ -242,6 +242,28 @@ patch, and the Project / Sample rows are made from it. What DDBJ holds is
 then the chain (`Submission#record_file`), not the file sent, which stays
 on the request unchanged; the web shows the two under different names.
 
+### Publication timestamps
+
+`first_published_at` and `last_published_at` on the curation rows (Project,
+Sample, DRASubmission) say when an object was first made public and when
+what is public about it last changed — DB-2096's `last_published_at`, the
+same for every database. They date the exchange XML's eAdded / eUpdated,
+the BioSample public XML and the livelists.
+
+- **Status** moves them only through `Lifecycleable.move_to_status!`, which
+  every screen and the TSV import use: into public sets both (the first
+  once), out of public sets the last. A status that stays put moves
+  neither. Not a callback, because the screens write with `update_all`.
+- **Content** moves the last in `Submission#append_update!`, for public
+  objects whose public view changed: the object, the submission's frame
+  (not its hold date) and the relations, compared in the shape the record
+  is read in — so a reshape republishes nothing.
+- **The importers** write D-way's `release_date` / `dist_date` into them,
+  read as Tokyo time (`DwayDefaults.time`).
+
+They are columns, not record fields: DDBJ's processing state, like status,
+not something the submitter wrote.
+
 ### DDBJ Record v3 types
 
 The v3 types are the spec's (`vendor/ddbj-record-specifications`, pinned by

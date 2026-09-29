@@ -20,9 +20,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_120000) do
   end
 
   create_table "names", force: :cascade do |t|
-    t.string "name_class", null: false
-    t.string "name_txt", null: false
     t.bigint "tax_id", null: false
+    t.string "name_txt", null: false
+    t.string "name_class", null: false
     t.index "lower((name_txt)::text), name_class", name: "index_names_on_LOWER_name_txt_name_class"
     t.index ["tax_id", "name_class"], name: "index_names_on_tax_id_and_name_class"
     t.index ["tax_id", "name_txt"], name: "index_names_on_tax_id_and_name_txt_common", where: "((name_class)::text = 'common name'::text)"
@@ -30,10 +30,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_120000) do
   end
 
   create_table "nodes", force: :cascade do |t|
-    t.boolean "hidden_flag", null: false
+    t.bigint "tax_id", null: false
     t.bigint "parent_tax_id", null: false
     t.string "rank"
-    t.bigint "tax_id", null: false
+    t.boolean "hidden_flag", null: false
     t.index ["parent_tax_id"], name: "index_nodes_on_parent_tax_id"
     t.index ["tax_id"], name: "index_nodes_on_tax_id"
   end

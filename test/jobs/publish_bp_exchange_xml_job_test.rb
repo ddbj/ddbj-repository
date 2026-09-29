@@ -12,7 +12,7 @@ class PublishBpExchangeXMLJobTest < ActiveSupport::TestCase
 
   test 'emits a PackageSet whose Packages carry a Processing element and records an exchange run' do
     submissions(:bioproject).append_update!({'projects' => [{'accession' => 'PRJDB000123', 'title' => 'Exchange job test'}]}, actor: 'test')
-    projects(:primary).update!(accession: 'PRJDB000123', status: 'public', release_date: Date.current)
+    projects(:primary).update!(accession: 'PRJDB000123', status: 'public', first_published_at: Time.current)
 
     # A completed EXCHANGE run in the past puts today's release inside the
     # delta window → the record should come out as eAdded. (A public run

@@ -22,18 +22,17 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
   test '.from_staging_row carries every field the source has' do
     row = Struct.new(
       :psub_id, :xml, :submitter_id, :project_type, :accession,
-      :status_id, :release_date, :dist_date, :modified_date,
+      :status_id, :release_date, :dist_date,
       keyword_init: true
     ).new(
-      psub_id:       'PSUB000604',
-      xml:           File.read(XML_FIXTURE),
-      submitter_id:  'from-the-source',
-      project_type:  'primary',
-      accession:     'PRJDB502',
-      status_id:     5100,
-      release_date:  Date.new(2026, 1, 2),
-      dist_date:     Date.new(2026, 1, 3),
-      modified_date: Date.new(2026, 1, 4)
+      psub_id:      'PSUB000604',
+      xml:          File.read(XML_FIXTURE),
+      submitter_id: 'from-the-source',
+      project_type: 'primary',
+      accession:    'PRJDB502',
+      status_id:    5100,
+      release_date: Time.zone.local(2026, 1, 2, 10),
+      dist_date:    Time.zone.local(2026, 1, 3, 11)
     )
 
     result = BioProject::Importer.from_staging_row(row, migration_run_id: SecureRandom.uuid).call
@@ -43,9 +42,8 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal 'PRJDB502',         project.accession
     assert_equal 'primary',          project.project_type
     assert_equal 'from-the-source',  result.submission.user.uid
-    assert_equal Date.new(2026, 1, 2), project.release_date
-    assert_equal Date.new(2026, 1, 3), project.dist_date
-    assert_equal Date.new(2026, 1, 4), project.modified_date
+    assert_equal Time.zone.local(2026, 1, 2, 10), project.first_published_at
+    assert_equal Time.zone.local(2026, 1, 3, 11), project.last_published_at
   end
 
   # The source wins where it has an answer. `user_uid` is for a row whose
@@ -53,7 +51,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
   # a change of owner outright, so a caller who thinks otherwise gets a
   # CrossUserError naming the mismatch they thought they were resolving.
   test '.from_staging_row takes the given uid only where the source has none' do
-    row = Struct.new(:psub_id, :xml, :submitter_id, :project_type, :accession, :status_id, :release_date, :dist_date, :modified_date, keyword_init: true)
+    row = Struct.new(:psub_id, :xml, :submitter_id, :project_type, :accession, :status_id, :release_date, :dist_date, keyword_init: true)
 
     with_submitter = row.new(psub_id: 'PSUB000604', xml: File.read(XML_FIXTURE), submitter_id: 'theirs', project_type: 'primary', accession: 'PRJDB502')
     without        = row.new(psub_id: 'PSUB000605', xml: File.read(XML_FIXTURE), submitter_id: nil,      project_type: 'primary', accession: 'PRJDB503')
@@ -223,25 +221,22 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     assert_equal 'Curator title', submission.reload.materialised_record.dig('projects', 0, 'title')
   end
 
-  test 'syncs staging release_date / dist_date / modified_date onto Project and backfills on a byte-identical re-run' do
+  test 'syncs when D-way published the project onto its row and backfills on a byte-identical re-run' do
     # First import with no lifecycle dates yet.
     project = build.call.submission.project
-    assert_nil project.release_date
-    assert_nil project.dist_date
-    assert_nil project.modified_date
+    assert_nil project.first_published_at
+    assert_nil project.last_published_at
 
     # Re-run with the SAME XML but dates now populated in D-way. The XML
     # is byte-identical so the importer takes the :skipped path — but
-    # these D-way facts sit outside the diffed chain (release_date /
-    # dist_date feed the exchange XML, modified_date is the livelist's
-    # Updated) and must still backfill.
-    result = build(release_date: '2020-03-10', dist_date: '2021-04-05', modified_date: '2022-05-06').call
+    # these D-way facts sit outside the diffed chain (they feed the
+    # exchange XML and the livelist's Updated) and must still backfill.
+    result = build(first_published_at: Time.zone.local(2020, 3, 10, 10), last_published_at: Time.zone.local(2021, 4, 5, 11)).call
 
     assert_equal :skipped, result.outcome
     project.reload
-    assert_equal Date.new(2020, 3, 10), project.release_date
-    assert_equal Date.new(2021, 4, 5),  project.dist_date
-    assert_equal Date.new(2022, 5, 6),  project.modified_date
+    assert_equal Time.zone.local(2020, 3, 10, 10), project.first_published_at
+    assert_equal Time.zone.local(2021, 4, 5, 11),  project.last_published_at
   end
 
   # DistributionNotifier filters on projects.hold_date, so the record's

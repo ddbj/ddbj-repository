@@ -58,22 +58,22 @@ module PublicXML
       end
 
       # Mirror bpbatch BpMakeXml.getXmlStatus:
-      #   eAdded    when release_date falls in (last_run, exec_date]
-      #   eUpdated  when dist_date    falls in (last_run, exec_date]  (ADD wins)
-      #   eUnchanged otherwise (including last_run nil or both dates nil)
+      #   eAdded    when first_published_at falls in (last_run, exec_date]
+      #   eUpdated  when last_published_at  falls in (last_run, exec_date]  (ADD wins)
+      #   eUnchanged otherwise (including last_run nil or neither set)
       def action
         return UNCHANGED unless @last_run
 
-        return ADDED   if in_window?(@row&.release_date)
-        return UPDATED if in_window?(@row&.dist_date)
+        return ADDED   if in_window?(@row&.first_published_at)
+        return UPDATED if in_window?(@row&.last_published_at)
 
         UNCHANGED
       end
 
-      def in_window?(date)
-        return false unless date
+      def in_window?(time)
+        return false unless time
 
-        date > @last_run.to_date && (@exec_date.nil? || date <= @exec_date.to_date)
+        time > @last_run && (@exec_date.nil? || time <= @exec_date)
       end
     end
   end

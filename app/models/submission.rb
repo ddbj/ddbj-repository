@@ -468,6 +468,8 @@ class Submission < ApplicationRecord
         patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
       )
 
+      republish_changed!(legacy_chain? ? DDBJRecord::ReshapeV3.call!(base) : base, new_record)
+
       # The chain is canonical from here on, whether it already was or was
       # just healed above. The cache was invalidated in the database
       # (SubmissionUpdate#after_create); forgetting the stamp here too keeps
@@ -677,6 +679,62 @@ class Submission < ApplicationRecord
     fresh     = materialise_at(update_id: latest_id)
 
     write_through_cache fresh, latest_id if fresh
+  end
+
+  # The objects whose public view a record written here changes, by the
+  # list they are kept in. DRA's is D-way's to date until submissions come
+  # here; ST.26 entries keep no publication timestamps.
+  PUBLISHED_LISTS = {'bioproject' => 'projects', 'biosample' => 'samples'}.freeze
+
+  # A public object whose public view changed has been published again
+  # (DB-2096). Its view is the object and what the whole record says about
+  # it — the submission's submitters and organisation, the relations — but
+  # not the hold date, which is over once the object is public. Compared
+  # in the shape the record is read in, so a write that only reshapes it
+  # (`rake ddbj_record:reshape_v3`) republishes nothing.
+  def republish_changed!(before, after)
+    list = PUBLISHED_LISTS[db] or return
+    rows = curation_rows&.status_public
+
+    return unless rows&.exists?
+
+    frame = ->(record) { published({'submission' => record.fetch('submission', {}).except('hold_date'), 'relations' => record['relations']}) }
+
+    return rows.republished! unless same_published?(frame.(before), frame.(after))
+
+    if bioproject_db?
+      rows.republished! unless same_published?(published(list => before[list]), published(list => after[list]))
+    else
+      changed = changed_aliases(before[list], after[list])
+
+      rows.where(sample_name: changed).republished! if changed.any?
+    end
+  end
+
+  # By alias, both spellings of one that was renamed.
+  def changed_aliases(before, after)
+    was = Array(before).index_by { it['alias'] }
+    now = Array(after).index_by { it['alias'] }
+
+    (was.keys | now.keys).reject {|name|
+      same_published?(was[name]&.then { published('samples' => [it]) }, now[name]&.then { published('samples' => [it]) })
+    }.compact
+  end
+
+  # A part of a record, where it sits in one: its canonical form is decided
+  # by its path.
+  def published(part) = {'schema_version' => 'v3', **part.compact}
+
+  # Equal as kept: the cheap comparison settles most, and only what it
+  # calls different is put in its canonical form, where an order the
+  # record does not keep no longer counts.
+  def same_published?(a, b)
+    return true if a == b
+    return false if a.nil? || b.nil?
+
+    DDBJRecord::Canonicalizer.canonical_tree(a) == DDBJRecord::Canonicalizer.canonical_tree(b)
+  rescue DDBJRecord::Canonicalizer::Error
+    false
   end
 
   def write_through_cache(record, update_id)

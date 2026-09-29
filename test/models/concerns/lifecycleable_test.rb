@@ -53,4 +53,31 @@ class LifecycleableTest < ActiveSupport::TestCase
       assert_equal 0, Project.curator_visible.count, "Expected #{status} NOT to be curator-visible"
     end
   end
+
+  # One statement over rows in different states, each judged by the status
+  # it had: only a row crossing into or out of public is dated.
+  test 'move_to_status! dates only the rows that cross public' do
+    submission = submissions(:biosample)
+    was_public = submission.samples.create!(sample_name: 'was-public', status: :public, first_published_at: 1.year.ago, last_published_at: 1.year.ago)
+    never      = submission.samples.create!(sample_name: 'never', status: :private)
+    now        = Time.zone.local(2026, 10, 1, 10)
+
+    Sample.where(id: [was_public, never]).move_to_status!('temporarily_suppressed', at: now)
+
+    assert_equal now, was_public.reload.last_published_at
+    assert_nil        never.reload.last_published_at
+    assert_equal %w[temporarily_suppressed temporarily_suppressed], [was_public.status, never.status]
+  end
+
+  # ST.26 entries keep no publication timestamps; their status moves all
+  # the same.
+  test 'move_to_status! on rows that keep no timestamps moves the status alone' do
+    entries = submissions(:st26).entries
+
+    assert_not Entry.publication_tracked?
+
+    entries.move_to_status!('withdrawn')
+
+    assert entries.reload.all?(&:status_withdrawn?)
+  end
 end

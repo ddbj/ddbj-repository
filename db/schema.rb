@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_28_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_29_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -104,9 +104,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000003) do
   create_table "dra_submissions", force: :cascade do |t|
     t.string "accession"
     t.datetime "created_at", null: false
-    t.date "dist_date"
+    t.datetime "first_published_at"
     t.date "hold_date"
-    t.date "release_date"
+    t.datetime "last_published_at"
     t.integer "status", default: 5100, null: false
     t.bigint "submission_id", null: false
     t.datetime "updated_at", null: false
@@ -175,13 +175,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000003) do
   create_table "projects", force: :cascade do |t|
     t.string "accession"
     t.datetime "created_at", null: false
-    t.date "dist_date"
     t.datetime "distribution_notified_at"
+    t.datetime "first_published_at"
     t.date "hold_date"
-    t.date "issued_date"
-    t.date "modified_date"
+    t.datetime "last_published_at"
     t.integer "project_type", null: false
-    t.date "release_date"
     t.integer "status", default: 5100, null: false
     t.bigint "submission_id", null: false
     t.string "title"
@@ -294,13 +292,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_28_000003) do
   create_table "samples", force: :cascade do |t|
     t.string "accession"
     t.datetime "created_at", null: false
-    t.date "dist_date"
     t.string "env_package"
-    t.date "modified_date"
+    t.datetime "first_published_at"
+    t.datetime "last_published_at"
     t.string "organism"
     t.string "package"
     t.string "package_group"
-    t.date "release_date"
     t.integer "release_type"
     t.string "sample_name", null: false
     t.integer "status", default: 5100, null: false

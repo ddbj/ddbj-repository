@@ -266,14 +266,20 @@ module SampleTSV
     # on migration. The TSV importer is the curator-driven equivalent
     # and must keep the same projection up to date — bulk_update_samples
     # / admin show queries these columns directly without parsing v3.
+    #
+    # A status that moves goes through `move_to_status!`, as it does from
+    # the screens, so that crossing into or out of public is dated.
     def sync_ar_columns!(valid)
       valid.each do |row|
         row[:sample].update_columns(
-          status:      row[:status],
           title:       row[:attrs]['sample_title'],
           organism:    row[:attrs]['organism'],
           taxonomy_id: DDBJRecord.taxonomy_id_number(row[:attrs]['taxonomy_id'])
         )
+      end
+
+      valid.reject { it[:status] == it[:sample].status }.group_by { it[:status] }.each do |status, rows|
+        Sample.where(id: rows.map { it[:sample].id }).move_to_status!(status)
       end
     end
 

@@ -59,7 +59,7 @@ class DRA::ImporterTest < ActiveSupport::TestCase
     assert_equal :skipped, result.outcome
     assert_equal 2, submission.updates.count
     assert_equal 'public', submission.dra_submission.reload.status
-    assert_equal Date.new(2026, 9, 1), submission.dra_submission.release_date
+    assert_equal Time.zone.local(2026, 9, 1), submission.dra_submission.first_published_at
   end
 
   test 'a version saved since the last run is appended' do

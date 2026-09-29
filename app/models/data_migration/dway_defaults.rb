@@ -34,6 +34,12 @@ module DataMigration
       raise Disabled, "Importing from D-way is switched off in #{Rails.env}."
     end
 
+    # D-way's timestamps are without a zone, and are Tokyo's wall clock.
+    # Read as such here, where they come in: a column written with
+    # `update_columns` is not converted on the way, and would take the
+    # text for UTC.
+    def time(text) = text && Time.find_zone!('Asia/Tokyo').parse(text)
+
     def options(dbname:)
       xsmdb = parse_xsmdb_credential
 

@@ -11,11 +11,11 @@ class LiveList::ExporterTest < ActiveSupport::TestCase
   end
 
   # One Project per Submission (has_one), so each needs its own source_id.
-  def project(accession:, status:, modified_date: nil)
+  def project(accession:, status:, last_published_at: nil)
     submission = Submission.create!(db: :bioproject, source_id: "PSUB-#{accession}", user: users(:alice))
     @submission_ids << submission.id
 
-    Project.create!(submission:, project_type: :primary, status:, accession:, modified_date:)
+    Project.create!(submission:, project_type: :primary, status:, accession:, last_published_at:)
   end
 
   # Scoped to this test's own rows so the exact-content assertions are not
@@ -33,10 +33,10 @@ class LiveList::ExporterTest < ActiveSupport::TestCase
   end
 
   test 'partitions records into public / suppressed / withdrawn files with a header' do
-    project(accession: 'PRJDB2',  status: :public,                 modified_date: Date.new(2020, 3, 30))
-    project(accession: 'PRJDB51', status: :temporarily_suppressed, modified_date: Date.new(2025, 7, 23))
-    project(accession: 'PRJDB60', status: :permanently_suppressed, modified_date: Date.new(2024, 1, 2))
-    project(accession: 'PRJDB70', status: :withdrawn,              modified_date: Date.new(2016, 7, 4))
+    project(accession: 'PRJDB2',  status: :public,                 last_published_at: Time.zone.local(2020, 3, 30))
+    project(accession: 'PRJDB51', status: :temporarily_suppressed, last_published_at: Time.zone.local(2025, 7, 23))
+    project(accession: 'PRJDB60', status: :permanently_suppressed, last_published_at: Time.zone.local(2024, 1, 2))
+    project(accession: 'PRJDB70', status: :withdrawn,              last_published_at: Time.zone.local(2016, 7, 4))
 
     # Excluded statuses must not appear anywhere.
     project(accession: 'PRJDB80', status: :private)
@@ -69,8 +69,8 @@ class LiveList::ExporterTest < ActiveSupport::TestCase
     assert_equal %w[PRJDB000771 PRJDB000772 PRJDB000773], rows('public')[1..].map(&:first)
   end
 
-  test 'Updated falls back to updated_at when modified_date is absent' do
-    project(accession: 'PRJDB2', status: :public, modified_date: nil)
+  test 'Updated falls back to updated_at when last_published_at is absent' do
+    project(accession: 'PRJDB2', status: :public, last_published_at: nil)
 
     run_exporter
 

@@ -10,9 +10,9 @@ module BioProject
   #   - Re-running with the same psub_id + identical XML is a true no-op:
   #     find_or_create_by! reuses the existing row and no further writes
   #     happen. updated_at / migration_run_id / most Project columns are
-  #     untouched on the :skipped path. The exception is release_date /
-  #     dist_date / modified_date (D-way lifecycle facts consumed by the
-  #     three-pole exchange XML and the livelist): they are non-curator,
+  #     untouched on the :skipped path. The exception is the publication
+  #     timestamps (D-way lifecycle facts consumed by the three-pole
+  #     exchange XML and the livelist): they are non-curator,
   #     non-chain metadata and sync on every run so a re-import backfills
   #     them onto already-imported rows — see the sync just below
   #     ensure_migration_request!.
@@ -42,30 +42,28 @@ module BioProject
     # fields flat.
     def self.from_staging_row(row, user_uid: nil, migration_run_id:)
       new(
-        psub_id:          row.psub_id,
-        xml:              row.xml,
-        user_uid:         row.submitter_id || user_uid || 'migration',
-        project_type:     row.project_type,
-        accession:        row.accession,
-        status:           row.status_id,
-        release_date:     row.release_date,
-        dist_date:        row.dist_date,
-        modified_date:    row.modified_date,
+        psub_id:            row.psub_id,
+        xml:                row.xml,
+        user_uid:           row.submitter_id || user_uid || 'migration',
+        project_type:       row.project_type,
+        accession:          row.accession,
+        status:             row.status_id,
+        first_published_at: row.release_date,
+        last_published_at:  row.dist_date,
         migration_run_id:
       )
     end
 
-    def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, accession: nil, status: nil, release_date: nil, dist_date: nil, modified_date: nil)
-      @psub_id          = psub_id
-      @xml              = xml
-      @user_uid         = user_uid
-      @project_type     = project_type
-      @accession        = accession
-      @migration_run_id = migration_run_id
-      @status           = status
-      @release_date     = release_date
-      @dist_date        = dist_date
-      @modified_date    = modified_date
+    def initialize(psub_id:, xml:, user_uid:, project_type:, migration_run_id:, accession: nil, status: nil, first_published_at: nil, last_published_at: nil)
+      @psub_id            = psub_id
+      @xml                = xml
+      @user_uid           = user_uid
+      @project_type       = project_type
+      @accession          = accession
+      @migration_run_id   = migration_run_id
+      @status             = status
+      @first_published_at = first_published_at
+      @last_published_at  = last_published_at
     end
 
     def call
@@ -100,16 +98,16 @@ module BioProject
 
         submission.ensure_migration_request!(migration_run_id: @migration_run_id)
 
-        # Project row + its D-way lifecycle dates. release_date (初回公開)
-        # and dist_date (再公開) feed the three-pole exchange XML's
-        # eAdded/eUpdated action; modified_date (最終更新日) is the livelist's
-        # `Updated` column. They are neither curator-edited nor part of the
+        # Project row + when D-way published it (release_date, first, and
+        # dist_date, last), which feed the three-pole exchange XML's
+        # eAdded/eUpdated action and the livelist's `Updated` column. They
+        # are neither curator-edited nor part of the
         # XML-diffed materialised chain, so — unlike status / title below —
         # sync them on EVERY run, including the fast-skip path, or a
         # re-import would never backfill an already-imported row. Ensured
         # here (not on the change path) precisely so the skip path sees it.
         project = submission.project || Project.create!(submission:, accession:, project_type: @project_type)
-        project.update_columns(release_date: @release_date, dist_date: @dist_date, modified_date: @modified_date)
+        project.update_columns(first_published_at: @first_published_at, last_published_at: @last_published_at)
 
         # Fast :skipped path: a checksum of the raw converter output. If
         # the source XML hasn't changed meaningfully we short-circuit
@@ -180,7 +178,7 @@ module BioProject
         # D-way's columns, refreshed only on real updates: status and
         # project_type, and the accession re-affirmed. Phase 6 needs explicit
         # curator-edit-vs-import diff to handle the case where XML diverges
-        # AFTER a curator touched the row. (release_date / dist_date are
+        # AFTER a curator touched the row. (The publication timestamps are
         # handled above, unconditionally, on purpose.) The record's own
         # columns come from the record the chain now holds, which is not the
         # conversion when the import kept edits made here (record_to_write).

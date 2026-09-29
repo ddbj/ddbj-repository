@@ -43,5 +43,38 @@ module Lifecycleable
     # What a curator may put this kind of row into from a screen. Every
     # status, unless the model says otherwise (Entry).
     def settable_statuses = STATUSES.keys
+
+    # Whether this kind of row keeps when it was published (DB-2096): when
+    # it was first made public, and when what is public about it last
+    # changed — on the way into public, while public, and on the way out.
+    def publication_tracked? = column_names.include?('last_published_at')
+
+    # Every change of status goes through here, so that crossing into or
+    # out of public carries the publication timestamps with it: into
+    # public, `first_published_at` if there is none yet and
+    # `last_published_at`; out of it, `last_published_at`. One statement,
+    # each row judged by the status it had — a row already where it is
+    # going moves nothing but `updated_at`.
+    #
+    # Not by callback: the screens that change status change many rows at
+    # once, and `update_all` runs none.
+    def move_to_status!(status, at: Time.current)
+      code  = STATUSES.fetch(status.to_s)
+      attrs = {status: code, updated_at: at}
+
+      if publication_tracked?
+        public   = STATUSES.fetch('public')
+        crossing = code == public ? "status <> #{public}" : "status = #{public}"
+
+        attrs[:last_published_at]  = Arel.sql(sanitize_sql(["CASE WHEN #{crossing} THEN ? ELSE last_published_at END", at]))
+        attrs[:first_published_at] = Arel.sql(sanitize_sql(['COALESCE(first_published_at, ?)', at])) if code == public
+      end
+
+      update_all(attrs)
+    end
+
+    # What is public about these rows has changed: the public ones among
+    # them are published again, as they stand now.
+    def republished!(at: Time.current) = status_public.update_all(last_published_at: at)
   end
 end

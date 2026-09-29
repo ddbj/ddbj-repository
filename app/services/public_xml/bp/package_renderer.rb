@@ -160,10 +160,13 @@ module PublicXML
         end
       end
 
-      # The forward Converter sources hold_date from
-      # ProjectDescr/ProjectReleaseDate. We restore the same slot.
+      # When the project was made public, once it has been — D-way wrote
+      # the moment of publication over the planned date, and a project made
+      # public before its hold date was released then, not on the date it
+      # was held until. Until then the hold date, which is where the
+      # forward Converter read ProjectDescr/ProjectReleaseDate from.
       def render_release_date(xml)
-        date = submission_block['hold_date']
+        date = @row&.first_published_at&.iso8601(3) || submission_block['hold_date']
         xml.ProjectReleaseDate date if date.present?
       end
 

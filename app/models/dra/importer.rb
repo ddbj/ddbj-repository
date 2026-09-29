@@ -67,11 +67,11 @@ class DRA::Importer
       row = submission.dra_submission || submission.build_dra_submission
 
       row.assign_attributes(
-        accession:    @row.accession,
-        status:       STATUSES.fetch(@row.status) { raise ArgumentError, "unknown DRA status #{@row.status.inspect}" },
-        hold_date:    @row.hold_date,
-        dist_date:    @row.dist_date,
-        release_date: @row.release_date
+        accession:          @row.accession,
+        status:             STATUSES.fetch(@row.status) { raise ArgumentError, "unknown DRA status #{@row.status.inspect}" },
+        hold_date:          @row.hold_date,
+        first_published_at: @row.release_date,
+        last_published_at:  @row.dist_date
       )
 
       # Checked before the patches are stored: a row refused after them

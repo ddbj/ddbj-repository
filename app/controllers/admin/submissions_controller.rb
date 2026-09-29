@@ -77,24 +77,17 @@ module Admin
       submission = Submission.find(params[:id])
       return head :not_found unless submission.biosample_db?
 
-      back    = submission_return_path(submission)
-      attrs   = {}
-      raw     = bulk_row_params
+      back = submission_return_path(submission)
+      raw  = bulk_row_params
 
       return redirect_to back, alert: 'No samples selected.' if empty_selection?
+      return redirect_to back, alert: 'No changes specified (status left as-is).' if raw[:status].blank?
 
-      if raw[:status].present?
-        unless Sample.statuses.key?(raw[:status])
-          return redirect_to back, alert: "Unknown status: #{raw[:status].inspect}."
-        end
-
-        attrs[:status] = Sample.statuses.fetch(raw[:status])
+      unless Sample.statuses.key?(raw[:status])
+        return redirect_to back, alert: "Unknown status: #{raw[:status].inspect}."
       end
 
-      return redirect_to back, alert: 'No changes specified (status left as-is).' if attrs.empty?
-
-      attrs[:updated_at] = Time.current
-      affected = (target_rows(submission) || submission.samples).update_all(attrs)
+      affected = (target_rows(submission) || submission.samples).move_to_status!(raw[:status])
 
       record_curation_event(submission, affected, raw)
       participate!(submission.request)
@@ -122,8 +115,7 @@ module Admin
         return redirect_to back, alert: "Unknown status: #{raw[:status].inspect}."
       end
 
-      affected = (target_rows(submission) || submission.entries)
-                 .update_all(status: Entry.statuses.fetch(raw[:status]), updated_at: Time.current)
+      affected = (target_rows(submission) || submission.entries).move_to_status!(raw[:status])
 
       # Withdrawing entries is what takes them out of what goes out, so it
       # is the last thing that should happen without a name against it.
@@ -147,16 +139,12 @@ module Admin
                            alert: 'No submissions selected.'
       end
 
-      raw   = bulk_cross_params
-      attrs = {}
+      raw    = bulk_cross_params
+      status = raw[:status].presence
 
-      if raw[:status].present?
-        unless Lifecycleable::STATUSES.key?(raw[:status])
-          return redirect_to bulk_return_path,
-                             alert: "Unknown status: #{raw[:status].inspect}."
-        end
-
-        attrs[:status] = Lifecycleable::STATUSES.fetch(raw[:status])
+      if status && !Lifecycleable::STATUSES.key?(status)
+        return redirect_to bulk_return_path,
+                           alert: "Unknown status: #{status.inspect}."
       end
 
       assign = raw.key?(:assignee_id) && raw[:assignee_id] != ''
@@ -167,7 +155,7 @@ module Admin
         end
       end
 
-      if attrs.empty? && !assign
+      if !status && !assign
         return redirect_to bulk_return_path,
                            alert: 'No changes specified (both fields left as-is).'
       end
@@ -180,21 +168,17 @@ module Admin
       # The same rule each rows screen keeps: an ST.26 entry cannot be put
       # back to `submission_accepted`. A selection that includes such rows
       # is refused whole, rather than set for some and not others.
-      if attrs.any? && (refused = rows.reject { _2.klass.settable_statuses.include?(raw[:status]) }.keys).any?
+      if status && (refused = rows.reject { _2.klass.settable_statuses.include?(status) }.keys).any?
         nouns = refused.map { Submission::CURATION_ROW_NOUNS.fetch(it).pluralize.upcase_first }
 
-        return redirect_to bulk_return_path, alert: "#{nouns.to_sentence} cannot be set to #{raw[:status].tr('_', ' ')}."
+        return redirect_to bulk_return_path, alert: "#{nouns.to_sentence} cannot be set to #{status.tr('_', ' ')}."
       end
 
       # Every database's rows, each named in the notice by its own noun.
       # ST.26 was once missing here — the selection reported "no curation
       # rows" and filed an event saying 0 rows changed, while the same
       # status applied fine from the Entries tab.
-      if attrs.any?
-        attrs[:updated_at] = Time.current
-
-        applied = rows.transform_values { apply_status(it, attrs) }
-      end
+      applied = rows.transform_values { apply_status(it, status) } if status
 
       if assign
         assignee_id = raw[:assignee_id] == '0' ? nil : raw[:assignee_id].to_i
@@ -318,9 +302,9 @@ module Admin
     # Counted before the write, because afterwards the two are
     # indistinguishable. Still writes the whole scope, so `updated_at`
     # moves exactly where it did before.
-    def apply_status(scope, attrs)
-      already = scope.where(status: attrs[:status]).count
-      matched = scope.update_all(attrs)
+    def apply_status(scope, status)
+      already = scope.where(status:).count
+      matched = scope.move_to_status!(status)
 
       Applied.new(changed: matched - already, unchanged: already)
     end

@@ -97,7 +97,7 @@ class CurationUpdate
 
     return {} if rows.distinct.pluck(:status) == [status]
 
-    @row_count = rows.update_all(status: Lifecycleable::STATUSES.fetch(status), updated_at: Time.current)
+    @row_count = rows.move_to_status!(status)
 
     {'status' => status}
   end
