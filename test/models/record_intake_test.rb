@@ -58,4 +58,16 @@ class RecordIntakeTest < ActiveSupport::TestCase
 
     assert_equal [['TRD_R0020', 'a b']], repeated.map { it.values_at(:code, :entry_id) }
   end
+
+  # Read whole in the process that serves the API; a record too large for
+  # that is refused before it is downloaded.
+  test 'a record too large to read here is refused unread' do
+    request = SubmissionRequest.new(db: 'biosample')
+    request.ddbj_record.attach ActiveStorage::Blob.create_and_upload!(io: StringIO.new(RECORD.to_json), filename: 'record.json', content_type: 'application/json')
+    request.ddbj_record.blob.update_columns(byte_size: RecordIntake::MAX_BYTES + 1)
+
+    request.ddbj_record.blob.stub(:download, -> { flunk 'read before its size was asked' }) do
+      assert_equal %w[TRD_R0021], RecordIntake.findings(request).map { it[:code] }
+    end
+  end
 end

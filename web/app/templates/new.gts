@@ -49,6 +49,10 @@ export default class extends Component {
             </div>
           </LinkTo>
         </div>
+      {{else}}
+        <p class="text-body-secondary" data-test-no-databases>
+          The databases you can submit to could not be loaded. Reload the page to try again.
+        </p>
       {{/each}}
     </div>
   </template>

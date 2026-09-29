@@ -259,8 +259,6 @@ module('Acceptance | submission request', function (hooks) {
     assert.strictEqual(currentURL(), '/st26/requests/new', 'nothing was submitted');
   });
 
-  // DRA submissions are migrated from D-way; the server would refuse one
-  // sent here, after the person had chosen a file for it.
   // BioProject and BioSample open where the server can check them, and the
   // picker offers what the server says — not a list of its own.
   test('the picker offers the databases the server takes', async function (assert) {
@@ -285,6 +283,10 @@ module('Acceptance | submission request', function (hooks) {
     assert.strictEqual(currentURL(), '/biosample/requests/new');
   });
 
+  // The server would refuse one sent here, after the person had chosen a
+  // file for it: DRA is migrated from D-way, and BioProject and BioSample
+  // are not taken where the default `/me` of these tests stands (ST.26
+  // only).
   test('a database that takes no submissions here goes back to the picker', async function (assert) {
     for (const db of ['dra', 'bioproject', 'biosample']) {
       await visit(`/${db}/requests/new`);

@@ -321,23 +321,6 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_conform_schema 404
   end
 
-  def create_request(db)
-    blob = ActiveStorage::Blob.create_and_upload!(
-      io:           file_fixture('ddbj_record/bioproject_v3.json').open,
-      filename:     'record.json',
-      content_type: 'application/json'
-    )
-
-    with_exceptions_app do
-      post submission_requests_path, params: {
-        submission_request: {
-          db:,
-          ddbj_record: blob.signed_id
-        }
-      }, as: :json
-    end
-  end
-
   # BioProject and BioSample are checked by ddbj-validator alone, so they
   # are taken where one is configured and refused where none is. DRA
   # submissions come from D-way.
@@ -364,6 +347,23 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def create_request(db)
+    blob = ActiveStorage::Blob.create_and_upload!(
+      io:           file_fixture('ddbj_record/bioproject_v3.json').open,
+      filename:     'record.json',
+      content_type: 'application/json'
+    )
+
+    with_exceptions_app do
+      post submission_requests_path, params: {
+        submission_request: {
+          db:,
+          ddbj_record: blob.signed_id
+        }
+      }, as: :json
+    end
+  end
 
   def sign_in_as_user(user)
     default_headers['Authorization'] = "Bearer #{user.api_key}"
