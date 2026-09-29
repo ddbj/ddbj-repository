@@ -113,7 +113,7 @@ class DRA::Importer
     legacy  = submission.legacy_chain?
     record  = nil
     patches = pending.filter_map {|version|
-      record = DRA::Converter.new(documents: version.documents).call
+      record = convert(version, latest: version.equal?(pending.last)) or next
       ops    = compute_patch_ops(prior, record, legacy:)
 
       next if ops.empty?
@@ -154,6 +154,25 @@ class DRA::Importer
     submission.prime_cache!(bytes: Oj.dump(prior, mode: :strict), update_id: update.id)
 
     first ? :created : :updated
+  end
+
+  # A version whose XML does not parse is no state SRA XML can describe,
+  # and so none the record can: it is left out of the chain, and the next
+  # version that parses is taken as following the one before. Reported,
+  # since the chain is then shorter than D-way's history. Seen once in the
+  # archive (DRA015605, a sample saved twice with a tag missing and put
+  # right before it was sent on).
+  #
+  # Not the latest: that is what the record is, and a record that cannot be
+  # read is a failure of the import rather than a gap in the history.
+  def convert(version, latest:)
+    DRA::Converter.new(documents: version.documents).call
+  rescue Nokogiri::XML::SyntaxError => e
+    raise if latest
+
+    Rails.error.report e, handled: true, severity: :warning, context: {accession: @row.accession, saved_at: version.saved_at}
+
+    nil
   end
 
   # What D-way has saved since the last run: the versions saved after the

@@ -105,6 +105,25 @@ class DRA::ImporterTest < ActiveSupport::TestCase
     assert_not Submission.dra_db.where(source_id: 'DRA000072').exists?
   end
 
+  # A version saved with a tag missing is no state the record can hold. It
+  # is left out of the history, not the whole submission with it — unless
+  # it is the latest, which is what the record would be.
+  test 'an earlier version that is not XML is left out, and a latest one fails the import' do
+    malformed = documents.map { it.sub('</TITLE>', '') }
+
+    assert_error_reported Nokogiri::XML::SyntaxError do
+      result = import(row(versions: [version('2009-12-01 10:00', malformed), version('2010-01-01 10:00'), version('2010-02-01 10:00', retitled('A later title'))]))
+
+      assert_equal :created, result.outcome
+      assert_equal [Time.zone.parse('2010-01-01 10:00'), Time.zone.parse('2010-02-01 10:00')], result.submission.updates.order(:id).pluck(:created_at)
+    end
+
+    Submission.dra_db.where(source_id: 'DRA000072').destroy_all
+
+    assert_raises(Nokogiri::XML::SyntaxError) { import(row(versions: [version('2010-01-01 10:00'), version('2010-02-01 10:00', malformed)])) }
+    assert_not Submission.dra_db.where(source_id: 'DRA000072').exists?
+  end
+
   # A version that changes nothing the record says is still read. Were it
   # not, every run would read it again — and once a curator had edited the
   # record, diff it against the edit and write the edit away.
