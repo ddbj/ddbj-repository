@@ -38,7 +38,30 @@ module DataMigration
     # Read as such here, where they come in: a column written with
     # `update_columns` is not converted on the way, and would take the
     # text for UTC.
-    def time(text) = text && Time.find_zone!('Asia/Tokyo').parse(text)
+    #
+    # What does not read as a time (`infinity`) is refused rather than
+    # taken for none.
+    def time(text)
+      return nil if text.nil?
+
+      Time.find_zone!('Asia/Tokyo').parse(text) or raise ArgumentError, "not a D-way timestamp: #{text.inspect}"
+    end
+
+    # When what is public about a row last changed, as far as D-way can say
+    # (DB-2096's `last_published_at`):
+    #
+    #   - public: its dist_date — or, for one made public before D-way kept
+    #     that (status 700), its last change
+    #   - out of public: D-way kept no moment for the leaving, and dist_date
+    #     does not move then, so the row's last change stands in, which is
+    #     no earlier than it (DB-2096 dates the same retrofit by the
+    #     suppress list's date)
+    #   - never public: none
+    def last_published_at(public:, release:, dist:, modified:)
+      return dist || modified if public
+
+      [dist, modified].compact.max if release || dist
+    end
 
     def options(dbname:)
       xsmdb = parse_xsmdb_credential
@@ -48,7 +71,11 @@ module DataMigration
         port:     ENV['DWAY_PGPORT']&.to_i || xsmdb&.port     || 54301,
         user:     ENV['DWAY_PGUSER']       || xsmdb&.user     || 'const',
         dbname:   dbname,
-        password: ENV['DWAY_DB_PASSWORD']  || xsmdb&.password
+        password: ENV['DWAY_DB_PASSWORD']  || xsmdb&.password,
+
+        # Timestamps come back as text in the ISO order `time` reads,
+        # whatever the server's own DateStyle.
+        options: '-c DateStyle=ISO'
       }
     end
 

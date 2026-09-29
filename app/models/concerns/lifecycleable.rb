@@ -64,10 +64,11 @@ module Lifecycleable
 
       if publication_tracked?
         public   = STATUSES.fetch('public')
-        crossing = code == public ? "status <> #{public}" : "status = #{public}"
+        column   = ->(name) { "#{quoted_table_name}.#{connection.quote_column_name(name)}" }
+        crossing = "#{column.('status')} #{code == public ? '<>' : '='} #{public}"
 
-        attrs[:last_published_at]  = Arel.sql(sanitize_sql(["CASE WHEN #{crossing} THEN ? ELSE last_published_at END", at]))
-        attrs[:first_published_at] = Arel.sql(sanitize_sql(['COALESCE(first_published_at, ?)', at])) if code == public
+        attrs[:last_published_at]  = Arel.sql(sanitize_sql(["CASE WHEN #{crossing} THEN ? ELSE #{column.('last_published_at')} END", at]))
+        attrs[:first_published_at] = Arel.sql(sanitize_sql(["COALESCE(#{column.('first_published_at')}, ?)", at])) if code == public
       end
 
       update_all(attrs)

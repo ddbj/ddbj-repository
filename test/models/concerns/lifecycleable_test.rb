@@ -80,4 +80,14 @@ class LifecycleableTest < ActiveSupport::TestCase
 
     assert entries.reload.all?(&:status_withdrawn?)
   end
+
+  # `update_all` over a join writes through an alias of the same table, where
+  # a bare column name is ambiguous.
+  test 'move_to_status! works over a joined relation' do
+    sample = submissions(:biosample).samples.create!(sample_name: 'joined', status: :private)
+
+    Sample.where(id: sample).joins(:submission).move_to_status!('public')
+
+    assert sample.reload.first_published_at
+  end
 end

@@ -10,4 +10,21 @@ class DataMigration::DwayDefaultsTest < ActiveSupport::TestCase
 
     assert_nil DataMigration::DwayDefaults.time(nil)
   end
+
+  test 'what does not read as a time is refused, not taken for none' do
+    assert_raises(ArgumentError) { DataMigration::DwayDefaults.time('infinity') }
+  end
+
+  # D-way's dist_date does not move on the way out of public, and a row made
+  # public before D-way kept dates has none; its last change stands in.
+  test 'when D-way last published a row, as far as it can say' do
+    dist     = Time.zone.local(2020, 1, 1)
+    modified = Time.zone.local(2024, 1, 1)
+    at       = ->(**kw) { DataMigration::DwayDefaults.last_published_at(release: dist, dist:, modified:, **kw) }
+
+    assert_equal dist,     at.(public: true)
+    assert_equal modified, at.(public: false), 'left public after its last distribution'
+    assert_equal modified, DataMigration::DwayDefaults.last_published_at(public: true, release: nil, dist: nil, modified:), 'public before D-way kept dates'
+    assert_nil DataMigration::DwayDefaults.last_published_at(public: false, release: nil, dist: nil, modified:), 'never public'
+  end
 end

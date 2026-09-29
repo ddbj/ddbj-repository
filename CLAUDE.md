@@ -255,11 +255,16 @@ the BioSample public XML and the livelists.
   once), out of public sets the last. A status that stays put moves
   neither. Not a callback, because the screens write with `update_all`.
 - **Content** moves the last in `Submission#append_update!`, for public
-  objects whose public view changed: the object, the submission's frame
-  (not its hold date) and the relations, compared in the shape the record
-  is read in — so a reshape republishes nothing.
-- **The importers** write D-way's `release_date` / `dist_date` into them,
-  read as Tokyo time (`DwayDefaults.time`).
+  objects whose public view changed — what the public XML says of them, as
+  the renderers define it (`PackageRenderer.published_view`,
+  `BioSampleRenderer.owner`), so not the hold date — compared in the shape
+  the record is read in, so a reshape republishes nothing.
+- **The importers** write D-way's `release_date` as the first and derive
+  the last (`DwayDefaults.last_published_at`: `dist_date` while public, the
+  row's last change once out of it, since `dist_date` does not move on the
+  way out), together with the status, on every run. BioProject and
+  BioSample read D-way's timestamps as Tokyo time (`DwayDefaults.time`);
+  drmdb keeps DRA's as dates, so those stay at midnight.
 
 They are columns, not record fields: DDBJ's processing state, like status,
 not something the submitter wrote.

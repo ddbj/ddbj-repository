@@ -232,7 +232,12 @@ module BioSample
           package_group:      staging.package_group,
           env_package:        staging.env_package,
           first_published_at: staging.release_date,
-          last_published_at:  staging.dist_date
+          last_published_at:  DataMigration::DwayDefaults.last_published_at(
+            public:   map_status(staging.status_id) == :public,
+            release:  staging.release_date,
+            dist:     staging.dist_date,
+            modified: staging.modified_date
+          )
         )
 
         if (existing = existing_samples[idx])

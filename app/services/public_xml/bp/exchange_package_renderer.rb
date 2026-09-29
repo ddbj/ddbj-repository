@@ -19,12 +19,11 @@ module PublicXML
       UPDATED   = 'eUpdated'
       UNCHANGED = 'eUnchanged'
 
-      # `last_run`: the previous public run's `started_at`. nil on the
+      # `last_run`: the previous exchange run's `started_at`. nil on the
       # first-ever run → every record is eUnchanged, matching bpbatch's
-      # null-lastRun behaviour. `exec_date`: this run's cut-off (its
-      # started_at). Comparison is at date granularity because Project only
-      # stores release_date / dist_date as `date` columns (D-way compared
-      # full timestamps; a same-day boundary can therefore differ by a day).
+      # null-lastRun behaviour. `exec_date`: this run's cut-off, which is
+      # also its `started_at`, so the next run's window starts where this
+      # one ended. Compared to the moment, as D-way did.
       def initialize(record:, row: nil, cache: {}, last_run: nil, exec_date: nil)
         super(record:, row:, cache:)
 

@@ -22,12 +22,13 @@ class DataMigration::SyncDRAJobTest < ActiveJob::TestCase
 
     DRA::StagingClient::Submission.new(
       sub_id:, accession:,
-      submitter_id: 'dra-submitter',
-      status:       800,
-      hold_date:    nil,
-      dist_date:    nil,
-      release_date: nil,
-      versions:     versions || [DRA::StagingClient::Version.new(saved_at: Time.zone.parse('2010-01-01'), documents:, digest: 'd')]
+      submitter_id:      'dra-submitter',
+      status:            800,
+      status_changed_at: nil,
+      hold_date:         nil,
+      dist_date:         nil,
+      release_date:      nil,
+      versions:          versions || [DRA::StagingClient::Version.new(saved_at: Time.zone.parse('2010-01-01'), documents:, digest: 'd')]
     )
   end
 

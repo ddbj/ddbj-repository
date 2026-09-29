@@ -328,7 +328,7 @@ module Admin
     def status_notice(applied, raw)
       return nil unless applied.values.any?(&:any?)
 
-      status = raw[:status]
+      status = raw[:status].tr('_', ' ')
 
       # Named by what each kind of row is called. A mixed selection reads
       # "Set 1 project and 40 entries to public" — "40 rows" would be

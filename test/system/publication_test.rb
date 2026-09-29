@@ -50,4 +50,32 @@ class PublicationSystemTest < ApplicationSystemTestCase
 
     assert_equal before, @project.reload.values_at(:first_published_at, :last_published_at)
   end
+
+  test 'the Samples tab dates the samples it makes public, and only those' do
+    req = submission_requests(:biosample)
+    one, other = samples(:first), samples(:second)
+
+    visit samples_admin_submission_request_path(req)
+
+    check "Select #{one.sample_name}"
+    select 'Public', from: 'bulk_row[status]'
+    click_button 'Apply'
+
+    assert_text 'Bulk-updated 1'
+    assert one.reload.first_published_at
+    assert_nil other.reload.first_published_at
+  end
+
+  test 'the ledger dates a project taken out of public' do
+    @project.update_columns(status: Lifecycleable::STATUSES.fetch('public'), first_published_at: 1.year.ago, last_published_at: 1.year.ago)
+
+    visit admin_submission_requests_path
+
+    check "Select ##{@req.id}"
+    select 'Temporarily suppressed', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_text 'Set 1 project to temporarily suppressed'
+    assert_in_delta Time.current, @project.reload.last_published_at, 1.minute
+  end
 end

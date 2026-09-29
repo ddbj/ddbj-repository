@@ -659,24 +659,24 @@ class SubmissionTest < ActiveSupport::TestCase
     assert_nil              unreleased.reload.last_published_at
   end
 
-  # What the whole record says about every sample — who submitted it — is
-  # part of each one's public view. The hold date is not: it is over once
-  # the samples are public.
-  test 'a change to the submission republishes every public sample, but its hold date does not' do
+  # A sample publishes its owner besides itself. Who submitted it, and the
+  # hold date — over once the samples are public — it does not.
+  test 'a change to the owner republishes every public sample, and nothing else in the submission does' do
     submission = submissions(:biosample)
     submission.samples.update_all(status: Lifecycleable::STATUSES.fetch('private'))
     sample     = submission.samples.create!(sample_name: 's', status: :public, last_published_at: 1.year.ago)
     samples    = [{'alias' => 's'}]
+    frame      = ->(org, **more) { {'submitters' => [{'first_name' => 'Ada', 'organizations' => [{'name' => org}]}], **more} }
 
-    submission.append_update!(record_with(samples, submission: {'hold_date' => '2027-01-01'}), actor: 'test')
+    submission.append_update!(record_with(samples, submission: frame.('DDBJ', 'hold_date' => '2027-01-01')), actor: 'test')
     before = sample.reload.last_published_at
 
-    submission.append_update!(record_with(samples, submission: {'hold_date' => '2028-01-01'}), actor: 'test')
+    submission.append_update!(record_with(samples, submission: frame.('DDBJ', 'hold_date' => '2028-01-01', 'comments' => ['x'])), actor: 'test')
 
     assert_equal before, sample.reload.last_published_at
 
     freeze_time do
-      submission.append_update!(record_with(samples, submission: {'hold_date' => '2028-01-01', 'submitters' => [{'first_name' => 'Ada'}]}), actor: 'test')
+      submission.append_update!(record_with(samples, submission: frame.('NIG')), actor: 'test')
 
       assert_equal Time.current, sample.reload.last_published_at
     end

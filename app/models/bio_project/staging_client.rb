@@ -20,7 +20,7 @@ module BioProject
   class StagingClient
     DEFAULT_OPTIONS = DataMigration::DwayDefaults.options(dbname: 'bioproject').freeze
 
-    Submission = Data.define(:psub_id, :submitter_id, :status_id, :accession, :project_type, :xml, :release_date, :dist_date)
+    Submission = Data.define(:psub_id, :submitter_id, :status_id, :accession, :project_type, :xml, :release_date, :dist_date, :modified_date)
 
     def initialize(**overrides)
       DataMigration::DwayDefaults.ensure_enabled!
@@ -150,6 +150,7 @@ module BioProject
                p.project_type,
                p.release_date,
                p.dist_date,
+               p.modified_date,
                x.content AS xml
         FROM   submission s
         JOIN   project p USING (submission_id)
@@ -162,14 +163,15 @@ module BioProject
       return nil unless row
 
       Submission.new(
-        psub_id:      row['submission_id'],
-        submitter_id: row['submitter_id'],
-        status_id:    row['status_id'].to_i,
-        accession:    row['accession'],
-        project_type: row['project_type'],
-        xml:          row['xml'],
-        release_date: DataMigration::DwayDefaults.time(row['release_date']),
-        dist_date:    DataMigration::DwayDefaults.time(row['dist_date'])
+        psub_id:       row['submission_id'],
+        submitter_id:  row['submitter_id'],
+        status_id:     row['status_id'].to_i,
+        accession:     row['accession'],
+        project_type:  row['project_type'],
+        xml:           row['xml'],
+        release_date:  DataMigration::DwayDefaults.time(row['release_date']),
+        dist_date:     DataMigration::DwayDefaults.time(row['dist_date']),
+        modified_date: DataMigration::DwayDefaults.time(row['modified_date'])
       )
     end
   end

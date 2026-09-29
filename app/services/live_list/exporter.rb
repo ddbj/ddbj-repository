@@ -65,8 +65,8 @@ module LiveList
 
     # When what is public about the row last changed, its leaving public
     # included (DB-2096) — which is what a list of what is public, suppressed
-    # and withdrawn is updated by. A row never public has no such date and
-    # is in none of the lists; `updated_at` stands in should one be.
+    # and withdrawn is updated by. A row withdrawn before it was ever public
+    # has no such date; `updated_at` stands in.
     def updated(record)
       (record.last_published_at || record.updated_at)&.to_date&.iso8601
     end

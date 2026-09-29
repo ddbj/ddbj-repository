@@ -6,8 +6,8 @@ class BioSample::ImporterTest < ActiveSupport::TestCase
   # Staging Sample builder that defaults the D-way lifecycle dates
   # (release_date / dist_date) so tests only spell them out when they
   # assert on them.
-  def staging_sample(release_date: nil, dist_date: nil, **attrs)
-    SC::Sample.new(release_date:, dist_date:, **attrs)
+  def staging_sample(release_date: nil, dist_date: nil, modified_date: nil, **attrs)
+    SC::Sample.new(release_date:, dist_date:, modified_date:, **attrs)
   end
 
   def build(samples_count: 2, ssub_id: 'SSUB-test', user_uid: 'migration-test', migration_run_id: SecureRandom.uuid)

@@ -32,7 +32,7 @@ class DRA::StagingClient
   # submission first, and each kind before those that refer to it.
   KINDS = %w[submission study sample experiment run analysis].freeze
 
-  Submission = Data.define(:sub_id, :submitter_id, :status, :accession, :hold_date, :dist_date, :release_date, :versions)
+  Submission = Data.define(:sub_id, :submitter_id, :status, :status_changed_at, :accession, :hold_date, :dist_date, :release_date, :versions)
 
   # One saved state of the submission: when, its documents' XML, and a
   # digest of which versions of them these are — what tells this state
@@ -116,7 +116,8 @@ class DRA::StagingClient
         sub_id:       row['sub_id'],
         reason:       row['reason'],
         submitter_id: row['submitter_id'],
-        status:       row['status'],
+        status:            row['status'],
+      status_changed_at: row['status_changed_at']&.in_time_zone,
         create_date:  row['create_date']
       )
     }
@@ -126,9 +127,11 @@ class DRA::StagingClient
   # have. `versions` is empty for one that was never sent.
   def fetch(sub_id)
     row = @conn.exec_params(<<~SQL, [sub_id]).first or return nil
-      SELECT s.sub_id, s.submitter_id, s.hold_date, s.dist_date, s.release_date,
-             (SELECT status FROM status_history h WHERE h.sub_id = s.sub_id ORDER BY date DESC, id DESC LIMIT 1) AS status
+      SELECT s.sub_id, s.submitter_id, s.hold_date, s.dist_date, s.release_date, h.status, h.date AS status_changed_at
       FROM submission s
+      LEFT JOIN LATERAL (
+        SELECT status, date FROM status_history WHERE sub_id = s.sub_id ORDER BY date DESC, id DESC LIMIT 1
+      ) h ON true
       WHERE s.sub_id = $1::bigint
     SQL
 
@@ -139,14 +142,15 @@ class DRA::StagingClient
     members = members_of(groups.map { it['grp_id'] })
 
     Submission.new(
-      sub_id:       row['sub_id'],
-      submitter_id: row['submitter_id'],
-      status:       row['status'],
-      accession:    accession_of(members[groups.last&.fetch('grp_id')]),
-      hold_date:    row['hold_date'],
-      dist_date:    row['dist_date'],
-      release_date: row['release_date'],
-      versions:     versions(groups, members)
+      sub_id:            row['sub_id'],
+      submitter_id:      row['submitter_id'],
+      status:            row['status'],
+      status_changed_at: row['status_changed_at']&.in_time_zone,
+      accession:         accession_of(members[groups.last&.fetch('grp_id')]),
+      hold_date:         row['hold_date'],
+      dist_date:         row['dist_date'],
+      release_date:      row['release_date'],
+      versions:          versions(groups, members)
     )
   end
 

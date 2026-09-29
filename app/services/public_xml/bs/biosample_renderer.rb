@@ -29,6 +29,17 @@ module PublicXML
     # gap is at import, and closing it is what would let this renderer
     # emit them.
     class BioSampleRenderer
+      # What every sample of a record publishes besides itself: the
+      # organisation it is owned by. A change to anything else the
+      # submission says is no change to a published sample
+      # (Submission#republish_changed!).
+      def self.owner(record)
+        submission = record['submission']
+        submitters = submission.is_a?(Hash) ? Array(submission['submitters']) : []
+
+        submitters.lazy.filter_map { it['organizations']&.first if it.is_a?(Hash) }.first
+      end
+
       # The names `Db2Jaxb` lifts out of the attribute bag into
       # <Description>, in the order it lifts them. `sample_name` is here
       # too: D-way pops it like the rest and then puts it back at the
@@ -215,10 +226,7 @@ module PublicXML
         }
       end
 
-      def first_organization
-        submitters = Array(@record.dig('submission', 'submitters'))
-        submitters.lazy.filter_map { it['organizations']&.first }.first
-      end
+      def first_organization = self.class.owner(@record)
 
       # <Models><Model>, not <Package>: the composed package name is what
       # D-way writes here (ModelConverter, from the same

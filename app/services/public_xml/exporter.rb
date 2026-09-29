@@ -24,7 +24,12 @@ module PublicXML
     # `renderer_class.new` call — run-level context a renderer needs beyond
     # the per-record record/row/cache (the exchange renderer uses it for
     # the last_run / exec_date delta window). Empty for the public renderers.
-    def initialize(db:, kind:, output_dir:, filename:, renderer_class:, scope:, renderer_options: {})
+    #
+    # `started_at` is the run's moment. The exchange job hands over its
+    # window's end, which the next run's window starts from: taken twice,
+    # whatever was published between the two readings fell in neither.
+    def initialize(db:, kind:, output_dir:, filename:, renderer_class:, scope:, renderer_options: {}, started_at: Time.current)
+      @started_at       = started_at
       @db               = db
       @kind             = kind
       @output_dir       = Pathname.new(output_dir)
@@ -41,7 +46,7 @@ module PublicXML
         db:         @db,
         kind:       @kind,
         status:     'running',
-        started_at: Time.current
+        started_at: @started_at
       )
 
       partial = @output_dir.join("#{@filename}.partial")

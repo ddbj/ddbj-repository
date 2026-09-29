@@ -22,7 +22,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
   test '.from_staging_row carries every field the source has' do
     row = Struct.new(
       :psub_id, :xml, :submitter_id, :project_type, :accession,
-      :status_id, :release_date, :dist_date,
+      :status_id, :release_date, :dist_date, :modified_date,
       keyword_init: true
     ).new(
       psub_id:      'PSUB000604',
@@ -51,7 +51,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
   # a change of owner outright, so a caller who thinks otherwise gets a
   # CrossUserError naming the mismatch they thought they were resolving.
   test '.from_staging_row takes the given uid only where the source has none' do
-    row = Struct.new(:psub_id, :xml, :submitter_id, :project_type, :accession, :status_id, :release_date, :dist_date, keyword_init: true)
+    row = Struct.new(:psub_id, :xml, :submitter_id, :project_type, :accession, :status_id, :release_date, :dist_date, :modified_date, keyword_init: true)
 
     with_submitter = row.new(psub_id: 'PSUB000604', xml: File.read(XML_FIXTURE), submitter_id: 'theirs', project_type: 'primary', accession: 'PRJDB502')
     without        = row.new(psub_id: 'PSUB000605', xml: File.read(XML_FIXTURE), submitter_id: nil,      project_type: 'primary', accession: 'PRJDB503')
@@ -231,7 +231,7 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
     # is byte-identical so the importer takes the :skipped path — but
     # these D-way facts sit outside the diffed chain (they feed the
     # exchange XML and the livelist's Updated) and must still backfill.
-    result = build(first_published_at: Time.zone.local(2020, 3, 10, 10), last_published_at: Time.zone.local(2021, 4, 5, 11)).call
+    result = build(status: 5500, release_date: Time.zone.local(2020, 3, 10, 10), dist_date: Time.zone.local(2021, 4, 5, 11)).call
 
     assert_equal :skipped, result.outcome
     project.reload
@@ -243,6 +243,19 @@ class BioProject::ImporterTest < ActiveSupport::TestCase
   # submission.hold_date has to reach the column — including on the
   # fast-skip path, which is how rows imported before the projection
   # existed get backfilled.
+  # Which timestamps a row has follows from its status, so the two come
+  # from D-way together: a project made public here while D-way still
+  # holds it private is put back whole, not left public without the dates
+  # the exchange XML and the livelists read.
+  test 'a re-import brings D-way status and publication together, even when the XML is unchanged' do
+    project = build(status: 5400).call.submission.project
+
+    Project.where(id: project).move_to_status!('public')
+
+    assert_equal :skipped, build(status: 5400).call.outcome
+    assert_equal ['private', nil, nil], project.reload.then { [it.status, it.first_published_at, it.last_published_at] }
+  end
+
   test 'projects the record hold_date onto Project, on both the change and skip paths' do
     result = build.call
     assert_equal :created, result.outcome

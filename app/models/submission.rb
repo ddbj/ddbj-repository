@@ -468,7 +468,7 @@ class Submission < ApplicationRecord
         patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
       )
 
-      republish_changed!(legacy_chain? ? DDBJRecord::ReshapeV3.call!(base) : base, new_record)
+      republish_changed!(base, new_record)
 
       # The chain is canonical from here on, whether it already was or was
       # just healed above. The cache was invalidated in the database
@@ -681,44 +681,56 @@ class Submission < ApplicationRecord
     write_through_cache fresh, latest_id if fresh
   end
 
-  # The objects whose public view a record written here changes, by the
-  # list they are kept in. DRA's is D-way's to date until submissions come
-  # here; ST.26 entries keep no publication timestamps.
-  PUBLISHED_LISTS = {'bioproject' => 'projects', 'biosample' => 'samples'}.freeze
-
   # A public object whose public view changed has been published again
-  # (DB-2096). Its view is the object and what the whole record says about
-  # it — the submission's submitters and organisation, the relations — but
-  # not the hold date, which is over once the object is public. Compared
-  # in the shape the record is read in, so a write that only reshapes it
-  # (`rake ddbj_record:reshape_v3`) republishes nothing.
+  # (DB-2096). Its view is what its public XML says of it, as the renderer
+  # defines it: a BioProject's project and submitters, a BioSample's sample
+  # and owner. So the hold date, which is over once the object is public,
+  # moves nothing, nor does an edit to a sample not yet public.
+  #
+  # `before` is the chain's stored state, read here in the shape the record
+  # is read in, so a write that only reshapes it (`rake
+  # ddbj_record:reshape_v3`) republishes nothing. DRA's timestamps are
+  # D-way's until submissions come here; ST.26 entries keep none.
   def republish_changed!(before, after)
-    list = PUBLISHED_LISTS[db] or return
+    return unless bioproject_db? || biosample_db?
+
     rows = curation_rows&.status_public
 
     return unless rows&.exists?
 
-    frame = ->(record) { published({'submission' => record.fetch('submission', {}).except('hold_date'), 'relations' => record['relations']}) }
-
-    return rows.republished! unless same_published?(frame.(before), frame.(after))
+    before = legacy_chain? ? DDBJRecord::ReshapeV3.call!(before) : before
 
     if bioproject_db?
-      rows.republished! unless same_published?(published(list => before[list]), published(list => after[list]))
-    else
-      changed = changed_aliases(before[list], after[list])
+      view = PublicXML::Bp::PackageRenderer.method(:published_view)
 
-      rows.where(sample_name: changed).republished! if changed.any?
+      rows.republished! unless same_published?(published(view.(before)), published(view.(after)))
+    else
+      owner = ->(record) { published('submission' => {'submitters' => [{'organizations' => [PublicXML::Bs::BioSampleRenderer.owner(record)].compact}]}) }
+
+      return rows.republished! unless same_published?(owner.(before), owner.(after))
+
+      changed_samples(before, after, rows.pluck(:sample_name)).each_slice(10_000) do |names|
+        rows.where(sample_name: names).republished!
+      end
     end
+  rescue DDBJRecord::ReshapeV3::Error
+    rows.republished!
   end
 
-  # By alias, both spellings of one that was renamed.
-  def changed_aliases(before, after)
-    was = Array(before).index_by { it['alias'] }
-    now = Array(after).index_by { it['alias'] }
+  # The public samples, by name, whose sample the write changed.
+  def changed_samples(before, after, names)
+    index = ->(record) {
+      Array(record['samples']).select { it.is_a?(Hash) }.index_by { Sample.normalise_name(it['alias']) }
+    }
 
-    (was.keys | now.keys).reject {|name|
-      same_published?(was[name]&.then { published('samples' => [it]) }, now[name]&.then { published('samples' => [it]) })
-    }.compact
+    was = index.(before)
+    now = index.(after)
+
+    names.reject {|name|
+      key = Sample.normalise_name(name)
+
+      same_published?(was[key]&.then { published('samples' => [it]) }, now[key]&.then { published('samples' => [it]) })
+    }
   end
 
   # A part of a record, where it sits in one: its canonical form is decided
