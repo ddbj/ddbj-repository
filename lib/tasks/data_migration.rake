@@ -232,7 +232,7 @@ namespace :data_migration do
   # Run from PRODUCTION app container to scan the production D-way data
   # (the staging snapshot is a subset and misses ~half the rows):
   #
-  #   bin/kamal app exec -d production \
+  #   bin/kamal run -d production \
   #     'DWAY_PGHOST=172.19.15.11 DWAY_DB_PASSWORD=... \
   #      bin/rails data_migration:dump_excluded_bp[tmp/excluded-bp.csv]'
   #
