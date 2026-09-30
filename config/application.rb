@@ -45,6 +45,14 @@ module Repository
     config.active_storage.variant_processor = :disabled
     config.time_zone                        = 'Asia/Tokyo'
 
+    # How long a stopping job process lets its jobs finish, or checkpoint
+    # (ActiveJob::Continuable), before it kills them. Solid Queue's 5
+    # seconds killed them on every deploy, and a job killed that way runs
+    # none of its own rescue — an Apply stayed `applying`, an import
+    # `running`, for good. The job role's `stop_timeout` (config/deploy.yml)
+    # is longer, so this is the one that decides.
+    config.solid_queue.shutdown_timeout = 50.seconds
+
     # Active Storage's own blob routes are off. `/rails/active_storage/
     # blobs/redirect/:signed_id` takes a signed blob id and nothing else:
     # no session, no owner, and — since `urls_expire_in` is unset by

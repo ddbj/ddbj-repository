@@ -132,7 +132,7 @@ namespace :data_migration do
   # then runs the job inline (perform_now) — the operator sees live
   # progress through Rails.logger + the job's own checkpoint logging.
   # The admin UI path uses perform_later (queued via SolidQueue,
-  # picked up by the in-Puma worker — see SOLID_QUEUE_IN_PUMA).
+  # picked up by the job process, `bin/jobs`).
   #
   # Resume after a crash is automatic via ActiveJob::Continuation —
   # the job persists its cursor per row, so a re-perform picks up

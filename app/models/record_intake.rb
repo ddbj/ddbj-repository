@@ -31,9 +31,10 @@ module RecordIntake
   V3 = 'v3'
 
   # What is read whole here, and put in canonical form, before the
-  # validator sees it — in the process that serves the API, where jobs run
-  # (SOLID_QUEUE_IN_PUMA). A record takes several times its size in memory
-  # once parsed, so one of gigabytes would take the process down with it.
+  # validator sees it — in the job process, on the host that serves the
+  # API. A record takes several times its size in memory once parsed, so
+  # one of gigabytes would take the process down with it, and every other
+  # job in it.
   # A BioSample record of 100,000 samples is a few hundred megabytes at
   # most; a larger one is refused before it is read.
   MAX_BYTES = 512.megabytes
