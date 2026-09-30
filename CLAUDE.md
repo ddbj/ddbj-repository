@@ -228,12 +228,14 @@ upload, which is one PUT.
 ### DRA reads (SRA Toolkit)
 
 A DRA run's reads are read the way the archive will read them, by SRA
-Toolkit's loaders — NCBI's build, pinned in `bin/install-sratoolkit`, which
-the image and CI both run. `DRA::ReadCheck` is the check before accessions:
-it copies the reads into a directory of its own under `work_dir` (Lustre
-where deployed), gives them to `latf-load` as D-way did for fastq, and
-reports what the loader said — which, as for D-way, is a pass even when it
-dropped up to 5% of the records as unreadable (`Result#errors` names them).
+Toolkit — NCBI's build, pinned in `bin/install-sratoolkit`, which the image
+and CI both run. `DRA::ReadCheck` is the check before accessions: it copies
+the reads into a directory of its own under `work_dir` (Lustre where
+deployed) and reads them by filetype — fastq with `latf-load` as D-way did,
+which, as for D-way, is a pass even when it dropped up to 5% of the records
+as unreadable (`Result#errors` names them); `.sra` as the mirrors send it
+with `vdb-validate`, which exits 0 without a word on a file it does not
+recognise, so a file passes only when it was called consistent by name.
 Its test uses the real loader where it is on PATH. `rake dra:check_reads`
 tries it on a user's uploaded files. Scratch that need not be shared
 between hosts can go on each host's local SSD (/data1) should Lustre prove
