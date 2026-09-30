@@ -56,7 +56,13 @@ env:
   secret:
     - RAILS_MASTER_KEY
 
+# `app exec` without --interactive runs its command in every role's
+# container — the web's and the job's — so a rake task run that way runs
+# twice, at once. `run` runs it once, in the web's:
+#
+#   bin/kamal run -d dev "bin/rails 'dra:check_reads[…]'"
 aliases:
+  run: app exec --reuse --roles web
   console: app exec --interactive --reuse "bin/rails console"
   shell: app exec --interactive --reuse "bash"
   logs: app logs -f

@@ -6,7 +6,7 @@
 # Two run modes:
 #
 #   1) Rails-loaded (defaults come from config/seaweedfs.yml):
-#      bin/kamal app exec -d dev \
+#      bin/kamal run -d dev \
 #        "bin/rails runner script/seaweedfs_load.rb --concurrency 12 --op put"
 #
 #   2) Standalone (no Rails; pass endpoint + creds explicitly):
