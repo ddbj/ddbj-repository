@@ -10,6 +10,12 @@ development:
   # exchange XML), collab/ (BP/BS livelists).
   output_dir: <%= Rails.root.join('storage/output') %>
 
+  # Scratch space for jobs whose tools read files from disk rather than
+  # from the store (DRA::ReadCheck): a directory each, removed when done.
+  # Under storage/, which is Lustre where the app is deployed — a read set
+  # is tens of gigabytes, and the loader writes several times that.
+  work_dir: <%= Rails.root.join('storage/work') %>
+
   # Reading BioProject / BioSample out of the D-way Postgres. Only where
   # the migration is actually being worked on: the credentials for it are
   # present wherever the app is deployed, so without this the difference
@@ -25,6 +31,7 @@ test:
   web_url:                http://repository.example.com:4200
 
   output_dir:     <%= Rails.root.join('tmp/storage/output') %>
+  work_dir:       <%= Rails.root.join('tmp/storage/work') %>
   data_migration: true
 
 production: &production
@@ -46,6 +53,7 @@ production: &production
   web_url:                https://repository.ddbj.nig.ac.jp
 
   output_dir: <%= Rails.root.join('storage/output') %>
+  work_dir:   <%= Rails.root.join('storage/work') %>
 
 staging:
   <<: *production

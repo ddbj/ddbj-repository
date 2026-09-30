@@ -49,6 +49,13 @@ RUN bundle exec bootsnap precompile app/ lib/
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
 RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
 
+# SRA Toolkit, for reading DRA submissions' reads (DRA::ReadCheck). NCBI's
+# own build, at the version bin/install-sratoolkit pins.
+FROM base AS sratoolkit
+
+COPY bin/install-sratoolkit /tmp/
+RUN /tmp/install-sratoolkit /opt/sratoolkit
+
 FROM docker.io/library/node:24.18.0 AS web
 
 RUN npm install --global pnpm
@@ -74,6 +81,9 @@ ARG APP_GID
 COPY --from=build "${BUNDLE_PATH}" "${BUNDLE_PATH}"
 COPY --from=build /rails /rails
 COPY --from=web /web/dist /rails/public/web
+COPY --from=sratoolkit /opt/sratoolkit /opt/sratoolkit
+
+ENV PATH="/opt/sratoolkit/bin:${PATH}"
 
 # WebsController serves the SPA shell with the runtime config injected, so it must
 # not be served statically from public/. Move it out of the way.
