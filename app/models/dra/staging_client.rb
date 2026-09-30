@@ -39,7 +39,7 @@ class DRA::StagingClient
   # from another saved in the same instant.
   Version = Data.define(:saved_at, :documents, :digest)
 
-  Excluded = Data.define(:sub_id, :reason, :submitter_id, :status, :create_date)
+  Excluded = Data.define(:sub_id, :reason, :submitter_id, :status, :status_changed_at, :create_date)
 
   def initialize(**overrides)
     DataMigration::DwayDefaults.ensure_enabled!
@@ -77,17 +77,22 @@ class DRA::StagingClient
     @conn.exec_params(sql, params).column_values(0)
   end
 
-  # Submissions past the draft that have nothing to import:
+  # Submissions the import leaves out, other than drafts never sent:
   #
-  #   - no_versions: nothing was ever sent — no valid group, or none of its
-  #     objects saved past the draft. In practice cancelled while still
-  #     being written.
+  #   - no_versions: past the draft, but nothing was ever sent — no valid
+  #     group, or none of its objects saved past the draft. In practice
+  #     cancelled while still being written.
   #   - no_accession: sent, but cancelled before a curator issued the
   #     accessions — nothing in it was ever numbered.
+  #   - in_progress: sent, and not yet past ACC_ISSUED — waiting on a
+  #     curator, or on the submitter, in D-way. What becomes of these when
+  #     D-way stops is not decided; this is the list to decide it over.
+  #
+  # With when the status last changed: how long each has stood where it is.
   def enumerate_excluded
     @conn.exec(<<~SQL).map {|row|
       WITH classified AS (
-        SELECT s.sub_id, s.submitter_id, latest.status, s.create_date,
+        SELECT s.sub_id, s.submitter_id, latest.status, latest.date AS status_changed_at, s.create_date,
                NOT EXISTS (
                  SELECT 1 FROM submission_group g
                  JOIN accession_relation r USING (grp_id)
@@ -103,20 +108,25 @@ class DRA::StagingClient
         LEFT JOIN LATERAL (
           SELECT grp_id FROM submission_group g WHERE g.sub_id = s.sub_id AND g.valid ORDER BY serial_version DESC LIMIT 1
         ) last ON true
-        WHERE latest.status >= #{ACC_ISSUED}
       )
-      SELECT sub_id, submitter_id, status, create_date,
-             CASE WHEN unsent THEN 'no_versions' ELSE 'no_accession' END AS reason
+      SELECT sub_id, submitter_id, status, status_changed_at, create_date,
+             CASE
+               WHEN status < #{ACC_ISSUED} THEN 'in_progress'
+               WHEN unsent                 THEN 'no_versions'
+               ELSE                             'no_accession'
+             END AS reason
       FROM classified
-      WHERE unsent OR unnumbered
+      WHERE (status >= #{ACC_ISSUED} AND (unsent OR unnumbered))
+         OR (status <  #{ACC_ISSUED} AND NOT unsent)
       ORDER BY sub_id
     SQL
       Excluded.new(
-        sub_id:       row['sub_id'],
-        reason:       row['reason'],
-        submitter_id: row['submitter_id'],
-        status:       row['status'],
-        create_date:  row['create_date']
+        sub_id:            row['sub_id'],
+        reason:            row['reason'],
+        submitter_id:      row['submitter_id'],
+        status:            row['status'],
+        status_changed_at: row['status_changed_at']&.in_time_zone,
+        create_date:       row['create_date']
       )
     }
   end
@@ -196,7 +206,7 @@ class DRA::StagingClient
   # The id breaks a tie between two statuses written in one second, here and
   # in #fetch.
   LATEST_STATUS = <<~SQL.squish
-    SELECT DISTINCT ON (sub_id) sub_id, status FROM status_history ORDER BY sub_id, date DESC, id DESC
+    SELECT DISTINCT ON (sub_id) sub_id, status, date FROM status_history ORDER BY sub_id, date DESC, id DESC
   SQL
 
   SUBMISSION_TYPES = %w[DRA SRA].freeze

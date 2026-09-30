@@ -317,16 +317,17 @@ namespace :data_migration do
     puts "Done. status=#{run.status} " + run.counters.map {|k, v| "#{k}=#{v}" }.join(' ')
   end
 
-  # DRA submissions past the draft with nothing to import: never sent
-  # (`no_versions`), or cancelled before their accessions were issued
-  # (`no_accession`). See DRA::StagingClient#enumerate_excluded.
+  # DRA submissions the import leaves out: never sent (`no_versions`),
+  # cancelled before their accessions were issued (`no_accession`), or sent
+  # and still waiting in D-way (`in_progress`). See
+  # DRA::StagingClient#enumerate_excluded.
   desc 'Dump excluded DRA submissions to CSV for curator review'
   task :dump_excluded_dra, %i[output_path] => :environment do |_, args|
     DataMigration::DumpExcluded.call(
       client_class: DRA::StagingClient,
       default_stem: 'excluded-dra',
-      header:       %w[sub_id reason status submitter_id create_date],
-      row_mapper:   ->(r) { [r.sub_id, r.reason, r.status, r.submitter_id, r.create_date] },
+      header:       %w[sub_id reason status status_changed_at submitter_id create_date],
+      row_mapper:   ->(r) { [r.sub_id, r.reason, r.status, r.status_changed_at&.to_date, r.submitter_id, r.create_date] },
       output_path:  args[:output_path]
     )
   end
