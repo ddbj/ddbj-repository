@@ -225,6 +225,16 @@ upload, which is one PUT.
   a vacuum (seaweedfs/seaweedfs#10663). Abandoned uploads are not cleaned up
   for that reason; decide how before relying on it.
 
+### DRA reads (SRA Toolkit)
+
+A DRA run's reads are read the way the archive will read them, by SRA
+Toolkit's loaders — NCBI's build, pinned in `bin/install-sratoolkit`, which
+the image and CI both run. `DRA::ReadCheck` is the check before accessions:
+it copies the reads into a directory of its own under `work_dir` (Lustre
+where deployed), gives them to `latf-load` as D-way did for fastq, and
+reports what the loader said. Its test uses the real loader where it is on
+PATH. `rake dra:check_reads` tries it on a user's uploaded files.
+
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 
 The job owns what is the same for every database — the request's status

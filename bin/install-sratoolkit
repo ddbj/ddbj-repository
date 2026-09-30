@@ -1,0 +1,20 @@
+#!/bin/sh -e
+
+# Installs NCBI's build of SRA Toolkit into the given directory (its bin/
+# is what goes on PATH), checked against its checksum. The one place the
+# version is pinned: the image (Dockerfile) and CI both run this.
+#
+#   bin/install-sratoolkit /opt/sratoolkit
+
+VERSION=3.4.1
+SHA256=b950362c054765a4184af41947f022f040e94e964862017c0ecb0b0273db3596
+
+dest=${1:?usage: bin/install-sratoolkit DIR}
+archive=$(mktemp)
+
+curl -fsSLo "$archive" "https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/$VERSION/sratoolkit.$VERSION-ubuntu64.tar.gz"
+echo "$SHA256  $archive" | sha256sum -c - >/dev/null
+
+mkdir -p "$dest"
+tar xzf "$archive" -C "$dest" --strip-components 1
+rm "$archive"

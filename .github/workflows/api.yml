@@ -53,6 +53,13 @@ jobs:
       # of what is under test, and Disk has neither.
       - uses: ./.github/actions/seaweedfs
 
+      # What latf-load makes of reads is what DRA::ReadCheck is for, so its
+      # test reads them with the real thing, at the image's version.
+      - name: Install SRA Toolkit
+        run: |
+          bin/install-sratoolkit "$RUNNER_TEMP/sratoolkit"
+          echo "$RUNNER_TEMP/sratoolkit/bin" >> "$GITHUB_PATH"
+
       - run: bin/rails db:test:prepare
 
       # `test` alone skips test/system, which is where the
