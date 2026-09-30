@@ -17,8 +17,16 @@ proxy:
 # a container of their own gives is that a job process dying no longer
 # stops Puma with it (the plugin did), that the two restart apart, and
 # that some jobs taking hours — converting a DRA submission's reads, a
-# 100,000-sample TSV import — can be moved to another host by changing
-# the role's hosts, or given limits of their own.
+# 100,000-sample TSV import — can be given limits of their own, or moved
+# to another host.
+#
+# Moving is more than changing the role's hosts: Kamal's network does not
+# span hosts, and the postgres accessory publishes no port — the jobs
+# reach it over the `kamal` network of the host it runs on. Another host
+# needs the accessory's port published (and closed to all but that host)
+# and the job role pointed at it. SeaweedFS is reached by its public URL
+# and Lustre is mounted at the same paths everywhere, so those follow as
+# they are.
 servers:
   web:
     options:
