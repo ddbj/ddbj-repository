@@ -23,26 +23,31 @@ class DRA::ReadCheckTest < ActiveSupport::TestCase
 
   def gzip(body) = ActiveSupport::Gzip.compress(body)
 
+  TOOLS = %w[latf-load vdb-validate fastq-dump].freeze
+
   # A toolkit whose tools say what they were given and what they found,
-  # and end as `exit` says: what the check does around SRA Toolkit,
-  # without it.
-  def fake_toolkit(exit: 0, say: nil)
+  # then what `say` has for them, and end as `exit` has it (0 otherwise):
+  # what the check does around SRA Toolkit, without it.
+  def fake_toolkit(exit: {}, say: {}, tools: TOOLS)
     @work_dir.join("fake-toolkit-#{SecureRandom.hex(4)}").tap {|dir|
       dir.mkpath
 
-      %w[latf-load vdb-validate].each do |tool|
+      tools.each do |tool|
         dir.join(tool).write(<<~SH)
           #!/bin/sh
           echo "#{tool}: $*"
+          echo "settings: $NCBI_SETTINGS"
           for f in "$@"; do [ -f "$f" ] && echo "file: $(basename "$f") $(wc -c < "$f")"; done
-          #{"echo \"#{say}\"" if say}
-          exit #{exit}
+          #{"echo \"#{say[tool]}\"" if say[tool]}
+          exit #{exit.fetch(tool, 0)}
         SH
 
         dir.join(tool).chmod(0o755)
       end
     }
   end
+
+  def consistent(name) = "2026-09-30T00:00:00 vdb-validate.3.4.1 info: Database '#{name}' is consistent"
 
   def check(files, filetype: 'fastq', platform: 'ILLUMINA', toolkit: fake_toolkit)
     DRA::ReadCheck.call(files:, filetype:, platform:, toolkit:, work_dir: @work_dir)
@@ -65,7 +70,7 @@ class DRA::ReadCheckTest < ActiveSupport::TestCase
   end
 
   test 'what the loader refuses is reported with what it said, and nothing is left behind' do
-    result = check([blob(READ1, 'r.fastq')], toolkit: fake_toolkit(exit: 3, say: 'latf-load.3.4.1 err: load failed'))
+    result = check([blob(READ1, 'r.fastq')], toolkit: fake_toolkit(exit: {'latf-load' => 3}, say: {'latf-load' => 'latf-load.3.4.1 err: load failed'}))
 
     assert_not result.ok?
     assert_equal ['latf-load.3.4.1 err: load failed'], result.errors
@@ -74,12 +79,32 @@ class DRA::ReadCheckTest < ActiveSupport::TestCase
 
   # vdb-validate passes over a file it does not recognise, silently and
   # with 0: exiting well says nothing about a file it did not name.
-  test 'an sra file passes only when vdb-validate called it consistent, each by name' do
-    consistent = fake_toolkit(say: "vdb-validate.3.4.1 info: Database 'a.sra' is consistent")
+  test 'an sra file passes only when vdb-validate called it consistent, each by name, and exited well' do
+    says_a = fake_toolkit(say: {'vdb-validate' => consistent('a.sra')})
 
-    assert check([blob('x', 'a.sra')], filetype: 'sra', toolkit: consistent).ok?
-    assert_not check([blob('x', 'a.sra'), blob('y', 'b.sra')], filetype: 'sra', toolkit: consistent).ok?, 'b.sra was not called consistent'
-    assert_not check([blob('x', 'a.sra')], filetype: 'sra', toolkit: fake_toolkit).ok?, 'silent'
+    assert check([blob('x', 'a.sra')], filetype: 'sra', toolkit: says_a).ok?
+    assert_not check([blob('x', 'a.sra'), blob('y', 'b.sra')], filetype: 'sra', toolkit: says_a).ok?, 'b.sra was not called consistent'
+    assert_not check([blob('x', 'a.sra')], filetype: 'sra', toolkit: fake_toolkit(exit: {'vdb-validate' => 3}, say: {'vdb-validate' => consistent('a.sra')})).ok?, 'exited badly'
+
+    silent = check([blob('x', 'a.sra')], filetype: 'sra', toolkit: fake_toolkit)
+
+    assert_not silent.ok?
+    assert_equal ['read-check err: a.sra: vdb-validate did not find it consistent'], silent.errors, 'says why, where the tool said nothing'
+  end
+
+  # Intact is not readable: a file without its READ column is consistent.
+  test 'a consistent sra file must also give up a spot to fastq-dump' do
+    result = check([blob('x', 'a.sra')], filetype: 'sra', toolkit: fake_toolkit(exit: {'fastq-dump' => 3}, say: {'vdb-validate' => consistent('a.sra')}))
+
+    assert_not result.ok?
+    assert_includes result.errors, 'read-check err: a.sra: fastq-dump could not read a spot of it'
+  end
+
+  # An aligned file sent vdb-validate looking for its references online.
+  test 'the tools are told not to ask NCBI' do
+    output = check([blob('x', 'a.sra')], filetype: 'sra', toolkit: fake_toolkit(say: {'vdb-validate' => consistent('a.sra')})).output
+
+    assert_match %r{settings: \S+/ncbi\.mkfg}, output
   end
 
   test 'a filetype not read here yet is refused by name' do
@@ -99,8 +124,20 @@ class DRA::ReadCheckTest < ActiveSupport::TestCase
     end
   end
 
-  test 'a file named only dots is still copied out' do
+  test 'a file named only dots, or at great length, is still copied out' do
     assert_match 'file: file ', check([blob(READ1, '..')]).output
+    long = check([blob(READ1, "#{'配' * 100}.fastq.gz")]).output[/^file: (\S+) /, 1]
+
+    assert_match(/\A配+\.fastq\.gz\z/, long, 'cut, keeping its extension')
+    assert_operator long.bytesize, :<=, DRA::ReadCheck::NAME_BYTES
+  end
+
+  test 'every tool a filetype is read with is looked for' do
+    error = assert_raises(DRA::ReadCheck::ToolMissing) {
+      check([blob('x', 'a.sra')], filetype: 'sra', toolkit: fake_toolkit(tools: %w[vdb-validate]))
+    }
+
+    assert_match 'fastq-dump is not installed here', error.message
   end
 
   # Left by a check whose process was killed.

@@ -235,7 +235,11 @@ deployed) and reads them by filetype — fastq with `latf-load` as D-way did,
 which, as for D-way, is a pass even when it dropped up to 5% of the records
 as unreadable (`Result#errors` names them); `.sra` as the mirrors send it
 with `vdb-validate`, which exits 0 without a word on a file it does not
-recognise, so a file passes only when it was called consistent by name.
+recognise, so a file passes only when it was called consistent by name —
+and then `fastq-dump` must read a spot of it, consistent meaning intact
+rather than readable. The tools are told not to ask NCBI's servers
+(`/repository/remote/disabled`): an aligned file otherwise sends
+vdb-validate looking for its references online.
 Its test uses the real loader where it is on PATH. `rake dra:check_reads`
 tries it on a user's uploaded files. Scratch that need not be shared
 between hosts can go on each host's local SSD (/data1) should Lustre prove

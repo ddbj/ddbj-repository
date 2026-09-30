@@ -17,10 +17,17 @@ require 'open3'
 #     up to 5% of its records as bad; those it names in its output
 #     (Result#errors), so a pass can still carry them.
 #   - sra (runs sent already in SRA's format, as the mirrors send them):
-#     `vdb-validate`, a file at a time, which checks every column against
-#     its checksum. A file it does not recognise it passes over without a
-#     word and exits 0, so a file passes only when it said the file, by
-#     name, is consistent.
+#     `vdb-validate`, a file at a time, which checks the file is intact —
+#     each column against its md5, or its blobs' CRC where it has none. A
+#     file it does not recognise it passes over without a word and exits 0,
+#     so a file passes only when it said the file, by name, is consistent.
+#     Intact is not readable as reads (a file without its READ column is
+#     consistent), so `fastq-dump` then reads one spot of it, as the stage
+#     after accessions will read all of them.
+#
+# The tools are told to ask nothing of NCBI's servers: an aligned file sent
+# vdb-validate looking for its references online, a minute a file where
+# the host cannot reach them.
 #
 # BAM comes later. Which files make a run, of which filetype, in what
 # order, is the caller's: D-way ran a job only for a run whose files were
@@ -46,11 +53,19 @@ class DRA::ReadCheck
   class ToolMissing < StandardError; end
   class TimedOut < StandardError; end
 
+  Reader = Data.define(:method, :tools)
+
+  FASTQ = Reader.new(method: :load_fastq, tools: %w[latf-load])
+
   FILETYPES = {
-    'fastq'         => :load_fastq,
-    'generic_fastq' => :load_fastq,
-    'sra'           => :validate_sra
+    'fastq'         => FASTQ,
+    'generic_fastq' => FASTQ,
+    'sra'           => Reader.new(method: :validate_sra, tools: %w[vdb-validate fastq-dump])
   }.freeze
+
+  # Longer than this, a file's name is cut (keeping its extension) to fit
+  # a filesystem's 255.
+  NAME_BYTES = 200
 
   # The platforms `latf-load` is told by name, as D-way tells it
   # (dravalidationbatch Latf2sra.Platform). The rest it reads without one.
@@ -96,9 +111,9 @@ class DRA::ReadCheck
   end
 
   def call
-    tool = @reader == :load_fastq ? 'latf-load' : 'vdb-validate'
-
-    raise ToolMissing, "#{tool} is not installed here (SRA Toolkit)" unless tool_path(tool)
+    @reader.tools.each do |tool|
+      raise ToolMissing, "#{tool} is not installed here (SRA Toolkit)" unless tool_path(tool)
+    end
 
     @work_dir.mkpath
     sweep
@@ -107,7 +122,9 @@ class DRA::ReadCheck
       dir   = Pathname.new(dir)
       paths = @files.each_with_index.map {|blob, index| copy_out(blob, dir.join('in', index.to_s)) }
 
-      ok, output = send(@reader, paths, dir)
+      dir.join('ncbi.mkfg').write(%(/repository/remote/disabled = "true"\n))
+
+      ok, output = send(@reader.method, paths, dir)
 
       Result.new(ok:, output: output.byteslice([output.bytesize - OUTPUT_LIMIT, 0].max..).scrub)
     end
@@ -132,14 +149,30 @@ class DRA::ReadCheck
   end
 
   def validate_sra(paths, dir)
-    outputs = paths.map {|path|
-      output, status = run('vdb-validate', path.to_s, chdir: dir)
-
-      [status.success? && output.include?("'#{path.basename}' is consistent"), output]
-    }
+    outputs = paths.map {|path| validate_sra_file(path, dir) }
 
     [outputs.all?(&:first), outputs.map(&:last).join]
   end
+
+  # Said of a file by name, on a line of its own: nothing else vdb-validate
+  # prints for a file can match.
+  def validate_sra_file(path, dir)
+    name           = path.basename.to_s
+    output, status = run('vdb-validate', path.to_s, chdir: dir)
+    consistent     = /^\S+ vdb-validate\.[\d.]+ info: (?:Database|Table) '#{Regexp.escape(name)}' is consistent$/
+
+    # Silent, for a file that is not SRA at all.
+    return [false, output + note(name, 'vdb-validate did not find it consistent')] unless status.success? && output.match?(consistent)
+
+    read, status = run('fastq-dump', '-X', '1', '-O', dir.join('dump').to_s, path.to_s, chdir: dir)
+
+    return [false, output + read + note(name, 'fastq-dump could not read a spot of it')] unless status.success?
+
+    [true, output]
+  end
+
+  # In the form the tools write theirs, so that Result#errors has it too.
+  def note(name, text) = "read-check err: #{name}: #{text}\n"
 
   def platform_args
     name = PLATFORMS[@platform.to_s.upcase]
@@ -162,16 +195,27 @@ class DRA::ReadCheck
 
     name = blob.filename.sanitized
     name = 'file' if name.delete('.').empty?
+    name = shorten(name) if name.bytesize > NAME_BYTES
 
     dir.join(name).tap {|path|
       path.open('wb') {|file| blob.download { file.write it } }
     }
   end
 
+  def shorten(name)
+    extension = name[/(?:\.[^.]{1,10}){0,2}\z/]
+
+    name.byteslice(0, NAME_BYTES - extension.bytesize).scrub('') + extension
+  end
+
   # In a process group of its own, so that past TIMEOUT whatever the tool
-  # started goes with it.
+  # started goes with it. With the check's settings (no asking NCBI) and
+  # the check's directory for HOME, where fastq-dump leaves its error
+  # reports.
   def run(tool, *args, chdir:)
-    Open3.popen2e(tool_path(tool), *args, chdir: chdir.to_s, pgroup: true) do |stdin, out, wait|
+    env = {'NCBI_SETTINGS' => chdir.join('ncbi.mkfg').to_s, 'HOME' => chdir.to_s}
+
+    Open3.popen2e(env, tool_path(tool), *args, chdir: chdir.to_s, pgroup: true) do |stdin, out, wait|
       stdin.close
 
       reader = Thread.new { out.read }
