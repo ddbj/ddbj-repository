@@ -11,10 +11,10 @@ SHA256=b950362c054765a4184af41947f022f040e94e964862017c0ecb0b0273db3596
 
 dest=${1:?usage: bin/install-sratoolkit DIR}
 archive=$(mktemp)
+trap 'rm -f "$archive"' EXIT
 
-curl -fsSLo "$archive" "https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/$VERSION/sratoolkit.$VERSION-ubuntu64.tar.gz"
+curl -fsSL --retry 3 --retry-all-errors -o "$archive" "https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/$VERSION/sratoolkit.$VERSION-ubuntu64.tar.gz"
 echo "$SHA256  $archive" | sha256sum -c - >/dev/null
 
 mkdir -p "$dest"
 tar xzf "$archive" -C "$dest" --strip-components 1
-rm "$archive"

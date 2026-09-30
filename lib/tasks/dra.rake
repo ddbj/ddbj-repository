@@ -19,6 +19,18 @@ namespace :dra do
     result = DRA::ReadCheck.call(files: blobs, platform: args[:platform])
 
     puts result.output
-    puts result.ok? ? 'Read.' : 'Refused.'
+
+    # Taken, as D-way took it, can still have dropped records the loader
+    # could not read.
+    verdict =
+      if !result.ok?
+        'Refused.'
+      elsif result.errors.any?
+        "Read, with #{result.errors.size} error line(s) above: records may have been dropped."
+      else
+        'Read.'
+      end
+
+    puts verdict
   end
 end

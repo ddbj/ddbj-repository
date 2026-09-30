@@ -54,11 +54,19 @@ jobs:
       - uses: ./.github/actions/seaweedfs
 
       # What latf-load makes of reads is what DRA::ReadCheck is for, so its
-      # test reads them with the real thing, at the image's version.
+      # test reads them with the real thing, at the image's version — kept
+      # between runs, since it is 90 MB from NCBI on every push otherwise.
+      - uses: actions/cache@v6
+        id: sratoolkit
+        with:
+          path: ~/sratoolkit
+          key: sratoolkit-${{ hashFiles('bin/install-sratoolkit') }}
+
       - name: Install SRA Toolkit
-        run: |
-          bin/install-sratoolkit "$RUNNER_TEMP/sratoolkit"
-          echo "$RUNNER_TEMP/sratoolkit/bin" >> "$GITHUB_PATH"
+        if: steps.sratoolkit.outputs.cache-hit != 'true'
+        run: bin/install-sratoolkit ~/sratoolkit
+
+      - run: echo ~/sratoolkit/bin >> "$GITHUB_PATH"
 
       - run: bin/rails db:test:prepare
 
