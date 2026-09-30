@@ -1,8 +1,6 @@
 import Route from '@ember/routing/route';
 import { service } from '@ember/service';
 
-import { isSubmittableDb } from 'repository/helpers/db-label';
-
 import type CurrentUserService from 'repository/services/current-user';
 import type RouterService from '@ember/routing/router-service';
 import type Transition from '@ember/routing/transition';
@@ -19,9 +17,10 @@ export default class DbRoute extends Route {
     return { db };
   }
 
-  // Only what a request can be created for (SUBMITTABLE_DBS): anything else
-  // would be refused on upload, after the person had chosen a file for it.
+  // Only what a request can be created for (User#submittableDbs): anything
+  // else would be refused on upload, after the person had chosen a file for
+  // it.
   afterModel({ db }: { db: string }) {
-    if (!isSubmittableDb(db)) this.router.replaceWith('new');
+    if (!this.currentUser.user?.canSubmitTo(db)) this.router.replaceWith('new');
   }
 }

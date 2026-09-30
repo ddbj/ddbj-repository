@@ -1,5 +1,7 @@
 {
   uid:     @user.uid,
   api_key: @user.api_key,
-  admin:   @user.admin
+  admin:   @user.admin,
+
+  submittable_dbs: SubmissionRequest.submittable_dbs
 }

@@ -4,8 +4,7 @@ class SubmissionApplyTest < ActiveSupport::TestCase
   include ActiveJob::TestHelper
 
   # A request as the API would leave it, ready to apply. Saved past the
-  # creation rule: BioProject and BioSample are not taken yet (#2111), and
-  # this is what applying one will do once they are.
+  # creation rule, which refuses a DRA one.
   def request_for(db, fixture)
     SubmissionRequest.new(user: users(:alice), db:, status: :waiting_application).tap {|request|
       request.ddbj_record.attach(io: file_fixture("ddbj_record/#{fixture}").open, filename: fixture, content_type: 'application/json')

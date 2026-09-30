@@ -192,7 +192,7 @@ export default class CurrentUserService extends Service {
         options: { reportErrors: false },
       });
 
-      this.user = new User(content.uid, content.api_key, content.admin);
+      this.user = new User(content.uid, content.api_key, content.admin, content.submittable_dbs);
     } catch (e) {
       // Only the server saying the token is no good throws the token
       // away. Anything else — the API down, a proxy in front of it, a

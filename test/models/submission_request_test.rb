@@ -336,6 +336,22 @@ class SubmissionRequestTest < ActiveSupport::TestCase
     assert request.valid?
   end
 
+  # BioProject and BioSample are checked by ddbj-validator alone; where
+  # there is none to ask, they are not taken.
+  test 'BioProject and BioSample are taken where a validator is configured, and only there' do
+    %w[bioproject biosample].each do |db|
+      request = SubmissionRequest.new(user: users(:alice), db:)
+      attach_ddbj_record(request)
+
+      assert request.valid?, db
+
+      DDBJValidatorClient.stub(:configured?, false) do
+        refute request.valid?, db
+        assert_includes request.errors[:db], 'does not take submissions here yet'
+      end
+    end
+  end
+
   # The rule is about making requests. One made before BioProject stopped
   # taking them stays savable — closing it, attaching to it.
   test 'a request already made is not refused for its database' do

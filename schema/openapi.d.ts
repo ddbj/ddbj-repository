@@ -70,6 +70,8 @@ export interface paths {
                             uid: string;
                             api_key: string;
                             admin: boolean;
+                            /** @description The databases a submission request can be created for here. */
+                            submittable_dbs: components["schemas"]["SubmittableDb"][];
                         };
                     };
                 };
@@ -3189,10 +3191,10 @@ export interface components {
         /** @enum {string} */
         Db: "st26" | "bioproject" | "biosample" | "dra";
         /**
-         * @description The databases a submission request can be created for. BioProject and BioSample submissions are not accepted yet — their records cannot be applied until v3 records are validated and applied here. DRA submissions are migrated from D-way and cannot be created here yet.
+         * @description The databases a submission request can be created for. ST.26 always; BioProject and BioSample where their records can be checked here, which `GET /me` says (`submittable_dbs`) — elsewhere they are refused. DRA submissions are migrated from D-way and cannot be created here yet.
          * @enum {string}
          */
-        SubmittableDb: "st26";
+        SubmittableDb: "st26" | "bioproject" | "biosample";
         SubmissionRequestSummary: {
             id: number;
             db: components["schemas"]["Db"];

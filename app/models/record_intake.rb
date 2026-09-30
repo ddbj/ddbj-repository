@@ -6,6 +6,7 @@
 #   TRD_R0017  not DDBJ Record v3
 #   TRD_R0018  its own objects bring accessions: they are issued here
 #   TRD_R0019  cannot be put in its canonical form, which is how it is kept
+#   TRD_R0021  larger than can be read here (MAX_BYTES)
 #   TRD_R0020  nothing of its own to register, or samples that cannot be told
 #              apart: a sample is kept, found and issued its accession by its
 #              alias, as it is kept (canonical, so whitespace collapsed)
@@ -29,11 +30,24 @@ module RecordIntake
   # As the pinned spec writes it (docs/versioning.md): no minor.
   V3 = 'v3'
 
+  # What is read whole here, and put in canonical form, before the
+  # validator sees it — in the process that serves the API, where jobs run
+  # (SOLID_QUEUE_IN_PUMA). A record takes several times its size in memory
+  # once parsed, so one of gigabytes would take the process down with it.
+  # A BioSample record of 100,000 samples is a few hundred megabytes at
+  # most; a larger one is refused before it is read.
+  MAX_BYTES = 512.megabytes
+
   module_function
 
   # The findings, as validation details; empty for a record that may go on.
   def findings(subject)
     own  = OWN.fetch(subject.db) { raise ArgumentError, "no intake for #{subject.db} records" }
+
+    if (size = subject.ddbj_record.blob.byte_size) > MAX_BYTES
+      return [finding('TRD_R0021', "The record is #{ActiveSupport::NumberHelper.number_to_human_size(size)}; records of more than #{ActiveSupport::NumberHelper.number_to_human_size(MAX_BYTES)} cannot be checked here.")]
+    end
+
     json = subject.ddbj_record.download.force_encoding(Encoding::UTF_8)
 
     return [finding('TRD_R0013', 'The record is not UTF-8.')] unless json.valid_encoding?

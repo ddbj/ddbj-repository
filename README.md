@@ -175,6 +175,7 @@ added as failures are classified, so the set grows.
 | TRD_R0018 | validation | error | A project (on a BioProject request) or a sample (on a BioSample request) brings an accession of its own. Accessions are issued by DDBJ. A record may carry the other database's objects, accessions included |
 | TRD_R0019 | validation | error | The record cannot be put in its canonical form, which is how it is kept (`doc/canonical-json.md`). The message is the canonicaliser's |
 | TRD_R0020 | validation | error | A BioProject or BioSample record has none of its own objects to register, or a sample has no `alias` or shares one with another (whitespace aside). A sample is kept, found and issued its accession by its alias |
+| TRD_R0021 | validation | error | A BioProject or BioSample record is larger than can be read here (512 MB). It is refused before it is read |
 | TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack
@@ -278,3 +279,17 @@ bin/dev
 bin/kamal deploy -d staging
 bin/kamal deploy -d production
 ```
+
+BioProject and BioSample take submissions only where ddbj-validator is
+configured — their records are checked there and nowhere else. To open them
+on a destination, give it the validator's URL in `config/deploy.<destination>.yml`
+and deploy:
+
+```yaml
+env:
+  clear:
+    DDBJ_VALIDATOR_URL: https://validator.example.org
+```
+
+The web client offers what the server says (`GET /me`, `submittable_dbs`), so
+the two open together.

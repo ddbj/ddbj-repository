@@ -2,6 +2,12 @@ service: repository
 image: w3const/repository
 require_destination: true
 
+# How long a new container has to become healthy. It migrates before it
+# serves (bin/docker-entrypoint), and a migration that rewrites a large
+# table outlasts Kamal's 30 seconds: renaming the publication dates took 48
+# on dev's two million samples, and the container was stopped half-way.
+deploy_timeout: 120
+
 proxy:
   response_timeout: 600
 
