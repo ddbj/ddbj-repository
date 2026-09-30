@@ -24,7 +24,7 @@ doc/              Format specifications (canonical JSON)
 
 - Ruby (see `.ruby-version`)
 - Views: `.json.jb` templates (not Jbuilder)
-- Background jobs: SolidQueue (`SOLID_QUEUE_IN_PUMA=true`)
+- Background jobs: SolidQueue, in their own process (`bin/jobs`; Kamal's `job` role, on the web's host for now)
 - Object storage: SeaweedFS (S3-compatible, via ActiveStorage)
 - JSON parsing: Oj (SAJ for small files, ScHandler streaming for large files)
 - Deploy: Kamal (`bin/kamal deploy -d staging`)

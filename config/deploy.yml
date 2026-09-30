@@ -11,8 +11,20 @@ deploy_timeout: 120
 proxy:
   response_timeout: 600
 
+# The jobs run in their own container, on the same host as the web for now
+# (each destination's `job` role). Some take hours and all the CPU and
+# memory they are given — converting a DRA submission's reads, a 100,000-
+# sample TSV import — and inside Puma they slowed the API and the admin
+# screens down with them, and would have taken them down on the way out.
+# Moving them to another host is a change to the role's hosts.
 servers:
   web:
+    options:
+      group-add: 60000
+
+  job:
+    cmd: bin/jobs
+
     options:
       group-add: 60000
 
@@ -24,10 +36,9 @@ registry:
 
 env:
   clear:
-    JOB_CONCURRENCY:     4
-    SOLID_QUEUE_IN_PUMA: true
-    TZ:                  Asia/Tokyo
-    WEB_CONCURRENCY:     auto
+    JOB_CONCURRENCY: 4
+    TZ:              Asia/Tokyo
+    WEB_CONCURRENCY: auto
 
   secret:
     - RAILS_MASTER_KEY

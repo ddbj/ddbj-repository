@@ -1,5 +1,5 @@
 servers:
-  web:
+  web: &web
     hosts:
       - repository-dev
 
@@ -10,6 +10,11 @@ servers:
         - type=bind,source=/home/w3const/volumes/repository-dev/storage,target=/rails/storage
         - type=bind,source=/mnt/submission,target=/submission
         - type=bind,source=/lustre9/open/home/ddbjshare,target=/ddbjshare,readonly
+
+  # The same host and the same mounts: the jobs read and write what the web
+  # does.
+  job:
+    <<: *web
 
 proxy:
   host: repository-dev.ddbj.nig.ac.jp
