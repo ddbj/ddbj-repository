@@ -48,6 +48,29 @@ class PublicXMLRunTest < ActiveSupport::TestCase
     assert_equal exchange, PublicXMLRun.previous_run(db: 'bioproject', kind: 'exchange')
   end
 
+  # Nothing holds the lock, so whatever says it is running is not.
+  test 'exclusively ends a run its process left running, then runs' do
+    left = PublicXMLRun.create!(db: 'bioproject', kind: 'public', status: 'running', started_at: 1.hour.ago)
+    ran  = false
+
+    PublicXMLRun.exclusively(db: 'bioproject', kind: 'public') { ran = true }
+
+    assert ran
+    assert left.reload.failed_status?
+    assert_match 'Stopped before it finished', left.error_log
+  end
+
+  test 'exclusively does not run while another session holds the lock' do
+    ran = false
+
+    holding_advisory_lock 'public_xml_run:bioproject:public' do
+      PublicXMLRun.exclusively(db: 'bioproject', kind: 'public') { ran = true }
+      PublicXMLRun.exclusively(db: 'bioproject', kind: 'exchange') { ran = :exchange }
+    end
+
+    assert_equal :exchange, ran
+  end
+
   test 'previous_run returns nil when no completed run of that kind exists' do
     PublicXMLRun.create!(db: 'bioproject', kind: 'public', status: 'completed', started_at: 1.hour.ago, finished_at: Time.current)
 

@@ -26,23 +26,51 @@ class ImportSampleTSVJob < ApplicationJob
     Rails.error.report(error, handled: true, source: 'import_sample_tsv_job')
   end
 
+  # Another run of this import has it (AdvisoryLock): wait for it to end,
+  # since it may yet die without finishing. After `discard_on`, so it is
+  # this that a held lock meets. Five minutes rather than one, since each
+  # wait enqueues the TSV again — tens of MB.
+  retry_on AdvisoryLock::Held, wait: 5.minutes, attempts: :unlimited
+
+  # One run per import (AdvisoryLock): a job stopped part way is run again
+  # from the start (RecoverKilledJobsJob) — the import is one transaction,
+  # so nothing of it was written — and the run it replaces may be alive yet.
+  # One that has ended is not run again.
   def perform(import_id:, tsv_body:)
-    progress = SampleTSVImport.find(import_id)
+    AdvisoryLock.exclusively "import_sample_tsv:#{import_id}" do
+      progress = SampleTSVImport.find(import_id)
 
-    # Soft concurrency guard — same pattern as PublishBpXMLJob. A second
-    # running import on the same submission would race the chain; mark
-    # this attempt as failed and bail so the curator sees the conflict
-    # in the progress page instead of silently appending overlapping
-    # SubmissionUpdates.
-    if SampleTSVImport.where(submission_id: progress.submission_id, status: 'running').where.not(id: progress.id).exists?
-      progress.update!(
-        status:       'failed',
-        finished_at:  Time.current,
-        error_report: SampleTSVImport::CONFLICT_MESSAGE
-      )
-      return
+      import progress, tsv_body if progress.loading?
     end
+  end
 
+  private
+
+  # One import a submission at a time — a second would race the chain —
+  # and the curator who started it told so, rather than left to wonder.
+  # Said by a lock, not by rows saying `running`: an import stopped with
+  # its process leaves its row so, for good, and every later import would
+  # be refused. Whoever holds the lock ends those — `running` ones only,
+  # since a `queued` one is waiting for its job, not stopped.
+  def import(progress, tsv_body)
+    AdvisoryLock.exclusively "import_sample_tsv:submission:#{progress.submission_id}" do
+      SampleTSVImport.where(submission_id: progress.submission_id, status: 'running').where.not(id: progress.id).find_each do |stopped|
+        stopped.update!(status: 'failed', finished_at: Time.current, error_report: SampleTSVImport::STOPPED_MESSAGE)
+      end
+
+      progress.update! status: 'running'
+
+      run progress, tsv_body
+    end
+  rescue AdvisoryLock::Held
+    progress.update!(
+      status:       'failed',
+      finished_at:  Time.current,
+      error_report: SampleTSVImport::CONFLICT_MESSAGE
+    )
+  end
+
+  def run(progress, tsv_body)
     result = SampleTSV::Importer.new(
       submission: progress.submission,
       tsv_body:   tsv_body,

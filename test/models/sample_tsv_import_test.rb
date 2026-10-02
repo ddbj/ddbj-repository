@@ -19,7 +19,12 @@ class SampleTSVImportTest < ActiveSupport::TestCase
     assert_includes import.errors[:status], 'is not included in the list'
   end
 
-  test 'loading? matches the running enum value; completed? is its inverse' do
+  test 'loading? is queued or running; completed? is its inverse' do
+    queued = @submission.sample_tsv_imports.create!(actor: 'a', started_at: Time.current)
+
+    assert queued.queued_status?, 'waiting for its job until the job says otherwise'
+    assert queued.loading?
+
     running = @submission.sample_tsv_imports.create!(
       actor:      'a',
       status:     'running',

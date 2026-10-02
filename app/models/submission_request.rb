@@ -196,8 +196,12 @@ class SubmissionRequest < ApplicationRecord
   end
 
   # Whether the check can be run again. The way out of a stale one: the
-  # file is not in question, the answer about it has expired.
-  def recheckable? = !closed? && !processing? && ddbj_record.attached?
+  # file is not in question, the answer about it has expired. Not while one
+  # is running, and not once the request is applied — the check would take
+  # back the answer its submission was made on, and sending it again would
+  # apply it twice. A request that failed to apply is checked and sent
+  # again; the apply carries on from what it committed.
+  def recheckable? = !closed? && (validation_failed? || ready_to_apply? || application_failed?) && ddbj_record.attached?
 
   # Straight to the column, for the same reason `assign!` is: `validates
   # :ddbj_record, attached: true` guards the submitter's upload flow, and

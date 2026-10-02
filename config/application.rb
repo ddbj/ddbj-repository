@@ -46,11 +46,12 @@ module Repository
     config.time_zone                        = 'Asia/Tokyo'
 
     # How long a stopping job process lets its jobs finish, or checkpoint
-    # (ActiveJob::Continuable), before it kills them. Solid Queue's 5
-    # seconds killed them on every deploy, and a job killed that way runs
-    # none of its own rescue — an Apply stayed `applying`, an import
-    # `running`, for good. The job role's `stop_timeout` (config/deploy.yml)
-    # is longer, so this is the one that decides.
+    # (ActiveJob::Continuable), before it stops them and puts them back to
+    # run again from the start (CLAUDE.md, "Jobs stopped part way"). Solid
+    # Queue's 5 seconds stopped them on every deploy. The job role's
+    # `stop_timeout` (config/deploy.yml) is longer, so this is the one that
+    # decides — were it shorter, the container would be killed with its
+    # jobs, and those would wait for RecoverKilledJobsJob.
     config.solid_queue.shutdown_timeout = 50.seconds
 
     # Active Storage's own blob routes are off. `/rails/active_storage/

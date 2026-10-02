@@ -32,9 +32,24 @@ class IssueAccessionsJob < ApplicationJob
     Rails.error.report(error, handled: true, source: 'issue_accessions_job')
   end
 
-  def perform(issuance_id:)
-    issuance = AccessionIssuance.find(issuance_id)
+  # Another run of this issuance has it (AdvisoryLock): wait for it to end,
+  # since it may yet die without finishing. After `discard_on`, so it is
+  # this that a held lock meets.
+  retry_on AdvisoryLock::Held, wait: 1.minute, attempts: :unlimited
 
+  # One run per issuance (AdvisoryLock): a job stopped part way is run
+  # again from the start (RecoverKilledJobsJob), and the run it replaces
+  # may be alive yet. One that got as far as issuing is done — the issuance
+  # is completed in the same commit as the numbers — and one that was
+  # refused or failed is not run again.
+  def perform(issuance_id:)
+    AdvisoryLock.exclusively("issue_accessions:#{issuance_id}") { issue AccessionIssuance.find(issuance_id) }
+  end
+
+  private
+
+  def issue(issuance)
+    return unless issuance.queued_status? || issuance.running_status?
     return unless claim(issuance)
 
     result = AccessionIssue.call(
@@ -47,8 +62,14 @@ class IssueAccessionsJob < ApplicationJob
     # `mail_status` on a completed row is the answer to "was the
     # submitter told" — the accessions are the outcome, the notification
     # is a consequence of it, and one failing does not undo the other.
-    issuance.update!(status: 'completed', accessions: result.accessions, finished_at: Time.current,
-                     mail_status: result.mail_status, error_message: result.mail_error)
+    #
+    # Only over nothing: the delivery may already have run and settled it
+    # (MailDeliveryJob), and `queued` written after `sent` would stay.
+    AccessionIssuance.where(id: issuance.id, mail_status: nil).update_all(
+      mail_status:   result.mail_status,
+      error_message: result.mail_error,
+      updated_at:    Time.current
+    )
 
     # Issuing is editing, so it puts the curator in the request's
     # participants — but only now that it has happened. Pressing a button
@@ -62,8 +83,6 @@ class IssueAccessionsJob < ApplicationJob
   rescue AccessionIssue::Refused => e
     issuance.update!(status: 'refused', finished_at: Time.current, error_message: e.message)
   end
-
-  private
 
   # Take the submission, or say why not.
   #

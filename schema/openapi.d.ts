@@ -3512,7 +3512,9 @@ export interface components {
             /**
              * @description Whether the check can be run again. The way out of a check that has
              *     gone stale: nothing is wrong with the file, only the answer about it
-             *     has expired.
+             *     has expired — and of an apply that failed, which is checked and sent
+             *     again. Never once the request is applied, nor while a check or an
+             *     apply is running.
              */
             recheckable: boolean;
             /**

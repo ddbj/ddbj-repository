@@ -139,6 +139,64 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert_nil request.error_message
   end
 
+  # As a deploy runs again a job it had to stop after it finished.
+  test 'an ST.26 apply run again after it finished has nothing to do' do
+    request = build_request('ddbj_record/example.json')
+
+    ApplySubmissionRequestJob.perform_now request
+    request.update_columns(status: 'applying')
+
+    assert_no_difference -> { Entry.count } do
+      ApplySubmissionRequestJob.perform_now request
+    end
+
+    assert request.reload.applied?
+  end
+
+  # The numbers, the submission and its entries are one commit; the
+  # outputs the next. Stopped — or failed — between them, the apply
+  # carries on from the numbers it has rather than allocating more.
+  test 'an ST.26 apply whose outputs were not written writes them from the numbers it has' do
+    request = build_request('ddbj_record/example.json')
+
+    ActiveStorage::Blob.stub(:create_and_upload!, ->(**) { raise 'store down' }) do
+      ApplySubmissionRequestJob.perform_now request
+    end
+
+    assert request.reload.application_failed?
+
+    numbered = request.submission.entries.pluck(:entry_id, :accession).sort
+
+    assert_not_empty numbered
+    assert_not request.submission.ddbj_record.attached?
+
+    # Checked and sent again.
+    request.update_columns(status: 'waiting_application')
+
+    assert_no_difference -> { Entry.count } do
+      ApplySubmissionRequestJob.perform_now request
+    end
+
+    submission = request.reload.submission
+
+    assert request.applied?
+    assert_equal numbered, submission.entries.pluck(:entry_id, :accession).sort
+    assert_includes submission.flatfile_na.download, numbered.first.last
+  end
+
+  # A late run — the one it waited for applied it — must not flip it back.
+  test 'a run after the request was applied leaves it alone' do
+    request = build_request('ddbj_record/example.json')
+
+    ApplySubmissionRequestJob.perform_now request
+
+    assert_no_changes -> { request.reload.updated_at } do
+      ApplySubmissionRequestJob.perform_now request
+    end
+
+    assert request.applied?
+  end
+
   test 'refuses v3 records, transitions request to application_failed cleanly' do
     request = build_request('ddbj_record/v3_trad_gnm.json')
 
@@ -161,7 +219,7 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
 
     yield record if block_given?
 
-    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26', status: :waiting_application)
 
     request.ddbj_record.attach(
       io:           StringIO.new(JSON.generate(record)),

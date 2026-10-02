@@ -1,6 +1,6 @@
 require 'application_system_test_case'
 
-# The three ways an import can end, told apart in the first sentence.
+# The ways an import can end, told apart in the first sentence.
 # "1,824 applied / 18 failed" is a pair of numbers a curator cannot act
 # on: it does not answer the only question they have, which is whether
 # their submission is now half-changed.
@@ -121,6 +121,17 @@ class SampleTSVImportSystemTest < ApplicationSystemTestCase
     visit admin_submission_sample_tsv_import_path(@submission, record)
 
     assert_text    'Nothing is wrong with the file'
+    assert_no_text 'Fix the file'
+    assert_no_text 'Developers were notified'
+  end
+
+  test 'an import stopped by a restart does not blame the file' do
+    record = import(status: 'failed', total: 0, processed: 0, failed: 0,
+                    error_report: SampleTSVImport::STOPPED_MESSAGE)
+
+    visit admin_submission_sample_tsv_import_path(@submission, record)
+
+    assert_text    'stopped by a restart'
     assert_no_text 'Fix the file'
     assert_no_text 'Developers were notified'
   end

@@ -134,6 +134,7 @@ class AccessionIssue
 
       update = stamp_record! {|record| BioProject.record_project!(record)['accession'] = acc }
       record_event([acc], update)
+      complete_issuance! [acc]
 
       acc
     end
@@ -166,6 +167,7 @@ class AccessionIssue
       }
 
       record_event(acc_list, update)
+      complete_issuance! acc_list
 
       acc_list
     end
@@ -229,6 +231,13 @@ class AccessionIssue
       prefix:            PREFIXES.fetch(@submission.db),
       range:             AccessionRun.label(accessions)
     )
+  end
+
+  # In the commit that issues the numbers, so a run stopped after it is not
+  # taken for one that issued nothing: run again, it would be refused —
+  # every target has its accession — and say so over numbers that exist.
+  def complete_issuance!(accessions)
+    @issuance&.update!(status: 'completed', accessions:, finished_at: Time.current)
   end
 
   # Runs after the transaction has committed, so a failure here cannot

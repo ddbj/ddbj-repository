@@ -33,7 +33,10 @@ class SubmissionsController < ApplicationController
 
       refuse! blocked if blocked
 
-      request.waiting_application!
+      # Straight to the column, as the apply writes its own: a request
+      # whose validations no longer pass (its assignee stopped being a
+      # curator) is still sent.
+      request.update_columns status: 'waiting_application', updated_at: Time.current
     end
 
     ApplySubmissionRequestJob.perform_later request

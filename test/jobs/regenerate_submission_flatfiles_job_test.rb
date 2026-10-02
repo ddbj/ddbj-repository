@@ -18,7 +18,7 @@ class RegenerateSubmissionFlatfilesJobTest < ActiveSupport::TestCase
 
     record['sequences']['entries'].each { it['locus_date'] = '2026-06-15' }
 
-    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26', status: :waiting_application)
 
     request.ddbj_record.attach(
       io:           StringIO.new(JSON.generate(record)),

@@ -256,6 +256,59 @@ tries it on a user's uploaded files. Scratch that need not be shared
 between hosts can go on each host's local SSD (/data1) should Lustre prove
 slow for it.
 
+### Jobs stopped part way
+
+**Every job must be one that can be run again from the start, wherever it
+was stopped.** A deploy gives the job process
+`config.solid_queue.shutdown_timeout` to finish, then stops its workers and
+puts back what they were running; the new container runs each of those from
+the start. Nothing of the job's own runs in between — no rescue, no
+`ensure` worth relying on.
+
+So a job carries on from what it committed, or finds it has nothing left
+to do — never from a row saying how far it got, since a stopped run cannot
+update one:
+
+- `ApplySubmissionRequestJob` — BioProject / BioSample commit whole, so a
+  request that has its submission is done. ST.26 commits its numbers,
+  submission and entries together, then its outputs: a submission without
+  its record has its outputs written again from the numbers it has.
+- `IssueAccessionsJob` — the issuance is completed in the commit that
+  issues the numbers.
+- `ImportSampleTSVJob` — one transaction; an import is run only while
+  queued or running, and one left `running` by a stopped run is ended by
+  the next import that gets the submission's lock.
+- `ValidateDDBJRecordJob` — runs only while its subject waits for a check,
+  so a late re-run cannot take back an answer.
+- Public XML — a row left `running` is ended by the next run that gets the
+  lock (`PublicXMLRun.exclusively`).
+
+What a deploy does not put back is a job whose whole process went — the
+container killed before its workers stopped, the host down. Solid Queue
+records those failed and never runs them; `RecoverKilledJobsJob` (every ten
+minutes) runs them again, as a deploy would have. "Went" is a guess from a
+heartbeat, and the original may still be running, so the jobs that would do
+harm run twice at once take an `AdvisoryLock` on what they work on — a
+session lock, which Postgres lets go of with a dead connection, where a row
+saying `running` stays. A run that finds the lock held waits and tries
+again (`retry_on AdvisoryLock::Held`) rather than ending: the holder may yet
+die without finishing, and a run after a finished one has nothing to do.
+Postgres lets go of a lock only when it sees the connection gone — after the
+statement in flight, or, for a host that vanished without closing it, when
+TCP keepalive gives up (two hours by default); fine while Postgres shares the
+jobs' host, worth revisiting if the job role moves.
+
+A worker that died while its supervisor lived (`ProcessExitError`) is left
+for a person: likeliest the job's own doing, it would die again.
+
+Some effects are at least once, not exactly once: a mail sent just before a
+stop is sent again, a validator run started again, a regeneration counted
+twice in its run's progress.
+
+A job of hours is better made continuable (`ActiveJob::Continuable`), so a
+deploy stops it at a checkpoint and it carries on from there — the sync
+jobs are.
+
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 
 The job owns what is the same for every database — the request's status

@@ -20,6 +20,12 @@ class LoadTaxdumpJob < ApplicationJob
       conn.execute 'DROP TABLE IF EXISTS new_names'
       conn.execute 'DROP TABLE IF EXISTS new_nodes'
 
+      # Left by a run killed between swapping the tables in and dropping the
+      # ones swapped out: renaming the current ones to these would fail, and
+      # taxonomy would never be loaded again.
+      conn.execute 'DROP TABLE IF EXISTS old_names'
+      conn.execute 'DROP TABLE IF EXISTS old_nodes'
+
       conn.execute <<~SQL
         CREATE TABLE new_names (
           id         bigserial PRIMARY KEY,
