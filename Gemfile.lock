@@ -450,11 +450,9 @@ GEM
     ruby-vips (2.3.0)
       ffi (~> 1.12)
       logger
-    rusty_racer (0.2.3)
+    rusty_racer (0.2.4-arm64-darwin)
       rb_sys (~> 0.9)
-    rusty_racer (0.2.3-arm64-darwin)
-      rb_sys (~> 0.9)
-    rusty_racer (0.2.3-x86_64-linux)
+    rusty_racer (0.2.4-x86_64-linux)
       rb_sys (~> 0.9)
     sass-embedded (1.99.0)
       google-protobuf (~> 4.31)
