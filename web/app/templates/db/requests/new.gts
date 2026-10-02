@@ -5,6 +5,7 @@ import { tracked } from '@glimmer/tracking';
 import { uniqueId } from '@ember/helper';
 
 import Breadcrumb from 'repository/components/breadcrumb';
+import DataFiles from 'repository/components/data-files';
 import SubmissionSteps from 'repository/components/submission-steps';
 import dbLabel from 'repository/helpers/db-label';
 import uploadFile from 'repository/utils/multipart-upload';
@@ -12,6 +13,7 @@ import { errorMessage } from 'repository/utils/error-message';
 
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
+import type DataFilesService from 'repository/services/data-files';
 import type { Progress } from 'repository/utils/multipart-upload';
 import type { paths } from 'schema/openapi';
 
@@ -26,10 +28,16 @@ interface Signature {
 export default class extends Component<Signature> {
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
+  @service('data-files') declare dataFiles: DataFilesService;
 
   @tracked file?: File;
   @tracked progress?: Progress;
   @tracked error?: string;
+
+  // The record as it went up, kept until its request is made: a request that
+  // could not be made is tried again on the same blob, rather than the file
+  // being sent again in full (and left twice in the uploads list).
+  #sent?: { file: File; signedBlobId: string };
 
   // Leaving the page stops the upload: the parts in the air would otherwise go
   // on being sent for a screen nobody is looking at, and the poll would go on
@@ -57,6 +65,12 @@ export default class extends Component<Signature> {
     return this.progress !== undefined;
   }
 
+  // A DRA record checked while the files it names are still going up would
+  // be refused for each of them (TRD_R0022).
+  get waitingForDataFiles() {
+    return this.args.model.db === 'dra' && this.dataFiles.pending;
+  }
+
   get verifying() {
     return this.progress?.state === 'verifying';
   }
@@ -71,7 +85,7 @@ export default class extends Component<Signature> {
   async submit(e: Event) {
     e.preventDefault();
 
-    if (!this.file || this.uploading) return;
+    if (!this.file || this.uploading || this.waitingForDataFiles) return;
 
     const { db } = this.args.model;
 
@@ -80,11 +94,18 @@ export default class extends Component<Signature> {
     this.#upload = new AbortController();
 
     try {
-      const signedBlobId = await uploadFile(this.file, {
-        requestManager: this.requestManager,
-        signal: this.#upload.signal,
-        onProgress: (progress) => (this.progress = progress),
-      });
+      const file = this.file;
+
+      const signedBlobId =
+        this.#sent?.file === file
+          ? this.#sent.signedBlobId
+          : await uploadFile(file, {
+              requestManager: this.requestManager,
+              signal: this.#upload.signal,
+              onProgress: (progress) => (this.progress = progress),
+            });
+
+      this.#sent = { file, signedBlobId };
 
       const { content } = await this.requestManager.request<CreateRequestResponse>({
         url: '/submission_requests',
@@ -117,6 +138,12 @@ export default class extends Component<Signature> {
 
     <SubmissionSteps @current={{2}} />
 
+    {{! The files go up first: the record names them, and checking it
+    looks for each among these. }}
+    {{#if (eq @model.db "dra")}}
+      <DataFiles />
+    {{/if}}
+
     <form {{on "submit" this.submit}}>
       <div class="mb-3">
         {{#let (uniqueId) as |id|}}
@@ -141,7 +168,9 @@ export default class extends Component<Signature> {
             {{this.percent}}%
           </progress>
 
-          <p class="small text-body-secondary mt-1 mb-0" role="status">
+          {{! Not a live region: it would read every tick aloud. The bar
+          carries the value. }}
+          <p class="small text-body-secondary mt-1 mb-0">
             {{#if this.verifying}}
               Checking the file we received. This can take a few minutes for a large file.
             {{else}}
@@ -159,7 +188,14 @@ export default class extends Component<Signature> {
       {{! "Check", not "Validate": what it does is tell you whether
       this would be accepted, and it can be done as often as you like.
       Nothing leaves for DDBJ until Send, on the step after this one. }}
-      <button type="submit" class="btn btn-primary" disabled={{this.uploading}}>Check my data</button>
+      <button type="submit" class="btn btn-primary" disabled={{if this.uploading true this.waitingForDataFiles}}>Check
+        my data</button>
+
+      {{#if this.waitingForDataFiles}}
+        <p class="small text-body-secondary mt-2 mb-0" data-test-waiting-for-data-files>
+          Waiting for the data files to finish uploading: the check looks for the files your record names among them.
+        </p>
+      {{/if}}
 
       <p class="small text-body-secondary mt-2 mb-0">Nothing is sent to DDBJ yet.</p>
     </form>

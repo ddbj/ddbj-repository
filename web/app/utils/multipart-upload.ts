@@ -94,9 +94,19 @@ class MultipartUpload {
 
   #cachedKey?: string;
 
+  // The caller's signal, and this upload's own: a part that has given up
+  // stops the parts in the air with it, which would otherwise go on sending
+  // for a file that will not be completed — alongside whatever the caller
+  // sends next. Joined with `any`, which holds on to neither once this upload
+  // is done: a listener on the caller's signal would, and a caller that sends
+  // file after file under one signal would keep every one of them.
+  #stop = new AbortController();
+  #signal: AbortSignal;
+
   constructor(file: File, options: Options) {
     this.#file = file;
     this.#options = options;
+    this.#signal = options.signal ? AbortSignal.any([options.signal, this.#stop.signal]) : this.#stop.signal;
   }
 
   async perform() {
@@ -188,11 +198,22 @@ class MultipartUpload {
     this.#report();
 
     for (const batch of chunk(missing, URLS_PER_REQUEST)) {
-      const urls = await this.#partURLs(upload, batch);
+      // Not the end of the upload when the batch cannot be signed: each part
+      // then asks for its own URL, and tries again as it would for a PUT.
+      const urls = await this.#partURLs(upload, batch).catch((e: unknown) => {
+        if (isAborted(e) || isNotFound(e)) throw e;
 
-      await inParallel(batch, CONCURRENCY, async (number) => {
-        etags.set(number, await this.#sendPart(upload, number, urls.get(number)));
+        return new Map<number, string>();
       });
+
+      await inParallel(
+        batch,
+        CONCURRENCY,
+        async (number) => {
+          etags.set(number, await this.#sendPart(upload, number, urls.get(number)));
+        },
+        () => this.#stop.abort(),
+      );
     }
 
     return etags;
@@ -216,18 +237,24 @@ class MultipartUpload {
     let url = signed;
 
     for (let attempt = 1; ; attempt++) {
-      url ||= (await this.#partURLs(upload, [number])).get(number);
-
-      if (!url) throw new Error(`The server did not sign part ${number}.`);
-
-      const body = this.#part(upload, number);
-      const md5 = await md5Of(body);
-
       try {
+        // Asked inside the retry: a URL the server could not sign this
+        // moment — a 503, a laptop off the network — is asked for again,
+        // rather than ending an upload hours in. An upload the server no
+        // longer knows is not.
+        url ||= (await this.#partURLs(upload, [number])).get(number);
+
+        if (!url) throw new Error(`The server did not sign part ${number}.`);
+
+        const body = this.#part(upload, number);
+        const md5 = await md5Of(body);
+
+        this.#signal.throwIfAborted();
+
         const etag = unquote(
           await put(url, body, {
             md5,
-            signal: this.#options.signal,
+            signal: this.#signal,
             onProgress: (sent) => {
               this.#sent.set(number, sent);
               this.#report();
@@ -248,11 +275,11 @@ class MultipartUpload {
       } catch (e) {
         this.#sent.delete(number);
 
-        if (isAborted(e) || attempt === ATTEMPTS_PER_PART) throw e;
+        if (isAborted(e) || isNotFound(e) || attempt === ATTEMPTS_PER_PART) throw e;
 
         url = undefined;
 
-        await delay(Math.min(attempt * RETRY_WAIT, MAX_RETRY_WAIT), this.#options.signal);
+        await delay(Math.min(attempt * RETRY_WAIT, MAX_RETRY_WAIT), this.#signal);
       }
     }
   }
@@ -325,7 +352,7 @@ class MultipartUpload {
         if (e instanceof UploadRejected || isAborted(e) || ++failures > POLL_FAILURES) throw e;
       }
 
-      await delay(POLL_INTERVAL, this.#options.signal);
+      await delay(POLL_INTERVAL, this.#signal);
     }
   }
 
@@ -431,7 +458,18 @@ function put(
     xhr.addEventListener('error', () => reject(new Error('The store could not be reached.')));
     xhr.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
 
-    signal?.addEventListener('abort', () => xhr.abort(), { once: true });
+    // Stopped before it began: an abort listener added now would never hear
+    // of it, and the whole part would go.
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+
+      return;
+    }
+
+    const abort = () => xhr.abort();
+
+    signal?.addEventListener('abort', abort, { once: true });
+    xhr.addEventListener('loadend', () => signal?.removeEventListener('abort', abort));
 
     xhr.send(body);
   });
@@ -461,7 +499,8 @@ function chunk<T>(items: T[], size: number) {
 
 // Workers over one list, rather than a batch at a time: with batches the whole
 // group waits for its slowest part, which on a busy store is most of the time.
-async function inParallel<T>(items: T[], workers: number, work: (item: T) => Promise<void>) {
+// `stop` is told when one gives up, to stop the others mid-item.
+async function inParallel<T>(items: T[], workers: number, work: (item: T) => Promise<void>, stop: () => void) {
   const queue = [...items];
   let failed = false;
 
@@ -475,7 +514,10 @@ async function inParallel<T>(items: T[], workers: number, work: (item: T) => Pro
         try {
           await work(item);
         } catch (e) {
-          failed = true;
+          if (!failed) {
+            failed = true;
+            stop();
+          }
 
           throw e;
         }
@@ -486,16 +528,23 @@ async function inParallel<T>(items: T[], workers: number, work: (item: T) => Pro
 
 function delay(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
 
-    signal?.addEventListener(
-      'abort',
-      () => {
-        clearTimeout(timer);
-        reject(new DOMException('Aborted', 'AbortError'));
-      },
-      { once: true },
-    );
+      return;
+    }
+
+    const abort = () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, ms);
+
+    signal?.addEventListener('abort', abort, { once: true });
   });
 }
 
