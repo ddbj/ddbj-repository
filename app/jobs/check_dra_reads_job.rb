@@ -21,7 +21,15 @@
 # a stopped job reads again only the run it was in; the tool running then
 # is stopped with it (DRA::ReadCheck's `interrupt`), and the files it had
 # copied out are kept for the next attempt, in a directory of the check's
-# own, removed once the check is concluded.
+# own: a run's part of it once the run is read, the rest once the check is
+# concluded.
+#
+# Taken up again ahead of the readings that have not started (a lower
+# priority number; Solid Queue lets the waiting ones in by priority, then
+# age), so a half-read check does not wait days behind the queue with its
+# copies on disk. And not for ever: a run longer than the time between
+# deploys would start again at every one — past MAX_RESUMPTIONS the job
+# fails, and give_up_stopped_readings ends the check as not carried out.
 #
 #   TRD_R0022  a file the record names is no longer among the uploads (taken
 #              out, or let go of, since the record was taken in)
@@ -35,6 +43,13 @@
 # not read here.
 class CheckDRAReadsJob < ApplicationJob
   include ActiveJob::Continuable
+
+  MAX_RESUMPTIONS = 20
+
+  queue_with_priority 10
+
+  self.max_resumptions = MAX_RESUMPTIONS
+  self.resume_options  = {wait: 5.seconds, priority: 0}
   limits_concurrency to: 1, key: 'dra_reads', duration: 7.days
 
   # The check it was for is gone (its request deleted).
@@ -60,6 +75,7 @@ class CheckDRAReadsJob < ApplicationJob
         found = read(record, run, index, entries, dir: kept_dir(validation).join("run-#{index}"), interrupt: -> { step.checkpoint! })
 
         DDBJValidatorCheck.add_details validation, found
+        kept_dir(validation).join("run-#{index}").rmtree
 
         step.set! position + 1
       end
@@ -77,8 +93,18 @@ class CheckDRAReadsJob < ApplicationJob
     give_up validation, "the reads could not be read (#{e.class})"
   end
 
+  KEPT_PREFIX = 'dra-reads-'
+
   # Where a check's copies are kept between attempts.
-  def self.kept_dir(validation_id) = Pathname.new(Rails.application.config_for(:app).work_dir!).join("dra-reads-#{validation_id}")
+  def self.kept_dir(validation_id) = Pathname.new(Rails.application.config_for(:app).work_dir!).join("#{KEPT_PREFIX}#{validation_id}")
+
+  # The copies kept for checks that will not be taken up again: ended, or
+  # gone. Run after give_up_stopped_readings, which ends the dead ones.
+  def self.discard_abandoned_copies
+    kept_dir('*').dirname.glob("#{KEPT_PREFIX}*").each do |dir|
+      dir.rmtree unless Validation.running.exists?(id: dir.basename.to_s.delete_prefix(KEPT_PREFIX))
+    end
+  end
 
   private
 
@@ -95,7 +121,7 @@ class CheckDRAReadsJob < ApplicationJob
     discard_copies validation
   end
 
-  def discard_copies(validation) = kept_dir(validation).then { it.rmtree if it.exist? }
+  def discard_copies(validation) = kept_dir(validation).rmtree
 
   def kept_dir(validation) = self.class.kept_dir(validation.id)
 

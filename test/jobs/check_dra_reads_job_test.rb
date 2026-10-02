@@ -225,7 +225,8 @@ class CheckDRAReadsJobTest < ActiveJob::TestCase
       CheckDRAReadsJob.perform_now validation
 
       assert validation.reload.running?, 'stopped, not concluded'
-      assert CheckDRAReadsJob.kept_dir(validation.id).exist?, 'copies kept for the next attempt'
+      assert CheckDRAReadsJob.kept_dir(validation.id).join('run-1').exist?, 'copies kept for the next attempt'
+      assert_not CheckDRAReadsJob.kept_dir(validation.id).join('run-0').exist?, 'a run read is a run done with'
 
       perform_enqueued_jobs only: CheckDRAReadsJob
     end
@@ -234,5 +235,39 @@ class CheckDRAReadsJobTest < ActiveJob::TestCase
     assert_equal 2, validation.reload.details.where(code: 'TRD_R0024').count, 'one finding a run'
     assert @request.reload.ready_to_apply?
     assert_not CheckDRAReadsJob.kept_dir(validation.id).exist?, 'removed once concluded'
+  end
+
+  # What Solid Queue does on a deploy: says it is stopping, and the job,
+  # looking in from the tool it is running, stops and is taken up again —
+  # ahead of the readings that have not started.
+  test 'a stopping worker interrupts the reading through the tool, and it is taken up again first' do
+    validation = held
+    check      = lambda {|interrupt:, **|
+      interrupt.()
+      ok
+    }
+
+    CheckDRAReadsJob.queue_adapter.stub(:stopping?, true) do
+      DRA::ReadCheck.stub(:call, check) { CheckDRAReadsJob.perform_now validation }
+    end
+
+    assert validation.reload.running?
+    assert_enqueued_with job: CheckDRAReadsJob, priority: 0
+  end
+
+  test 'copies kept for a check no longer running are discarded, a running one\'s kept' do
+    running = held
+    ended   = submission_requests(:st26).validation.tap { it.update!(progress: :finished, finished_at: Time.current) }
+
+    [running, ended].each { CheckDRAReadsJob.kept_dir(it.id).join('run-0').mkpath }
+    CheckDRAReadsJob.kept_dir('gone').mkpath
+
+    CheckDRAReadsJob.discard_abandoned_copies
+
+    assert CheckDRAReadsJob.kept_dir(running.id).exist?
+    assert_not CheckDRAReadsJob.kept_dir(ended.id).exist?
+    assert_not CheckDRAReadsJob.kept_dir('gone').exist?
+  ensure
+    CheckDRAReadsJob.kept_dir(running.id).rmtree if running
   end
 end

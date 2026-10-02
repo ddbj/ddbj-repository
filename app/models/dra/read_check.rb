@@ -140,7 +140,7 @@ class DRA::ReadCheck
   # What a reading leaves besides the copies goes before the next: the
   # loader refuses an output directory that is already there.
   def check_in(dir)
-    %w[out tmp dump].each { dir.join(it).rmtree if dir.join(it).exist? }
+    %w[out tmp dump].each { dir.join(it).rmtree }
 
     paths = @files.each_with_index.map {|blob, index| copy_out(blob, dir.join('in', index.to_s)) }
 
@@ -150,7 +150,6 @@ class DRA::ReadCheck
 
     Result.new(ok:, output: output.byteslice([output.bytesize - OUTPUT_LIMIT, 0].max..).scrub)
   end
-
 
   def load_fastq(paths, dir)
     dir.join('tmp').mkpath
@@ -246,7 +245,8 @@ class DRA::ReadCheck
     Open3.popen2e(env, tool_path(tool), *args, chdir: chdir.to_s, pgroup: true) do |stdin, out, wait|
       stdin.close
 
-      reader   = Thread.new { out.read }
+      # Stopped early, the tool's output is closed under it; that is no news.
+      reader   = Thread.new { out.read }.tap { it.report_on_exception = false }
       deadline = TIMEOUT.from_now
 
       until wait.join(INTERRUPT_EVERY)

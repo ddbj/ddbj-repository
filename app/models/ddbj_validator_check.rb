@@ -227,11 +227,7 @@ module DDBJValidatorCheck
       give_up validation, 'the reading of its reads stopped before it ended'
     end
 
-    # The copies a stopped reading kept for its next attempt, once there
-    # will be none.
-    Pathname.new(Rails.application.config_for(:app).work_dir!).glob('dra-reads-*').each do |dir|
-      dir.rmtree unless Validation.running.exists?(id: dir.basename.to_s.delete_prefix('dra-reads-'))
-    end
+    CheckDRAReadsJob.discard_abandoned_copies
   end
 
   # The checks every CheckDRAReadsJob not finished and not failed is for,
