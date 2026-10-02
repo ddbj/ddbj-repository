@@ -236,7 +236,8 @@ class SubmissionRequest < ApplicationRecord
 
   # The databases a submitter can send a record for here: ST.26, and those
   # the ddbj-validator configured here takes records for (BioProject,
-  # BioSample, and DRA once a version that reads its records is deployed) —
+  # BioSample, and DRA once a version that reads its records is deployed,
+  # and DRA is curated here) —
   # their rules are checked there and nowhere else, so an environment
   # without one has no way to check what it would be sent. Setting the
   # validator's URL, and its databases, is what opens them.

@@ -2,9 +2,6 @@
 # One project, as a BioProject XML carries (ddbj-validator refuses more,
 # BP_R0037).
 class SubmissionApply::BioProjectRecord < SubmissionApply::V3Record
-  OWN  = 'projects'
-  KIND = 'project'
-
   private
 
   def build_rows(submission, tree)

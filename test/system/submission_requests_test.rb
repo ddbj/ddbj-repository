@@ -264,13 +264,13 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     check "Select ##{submission_requests(:dra).id}"
     click_button 'Issue accessions'
 
-    assert_text 'DRA accessions are still issued in D-way, not here'
+    assert_text 'DRA accessions are not issued here yet'
 
     assert_enqueued_jobs 1, only: IssueAccessionsJob do
       click_button 'Issue 1 accession'
     end
 
-    assert_text 'DRA accessions are still issued in D-way, not here.'
+    assert_text 'DRA accessions are not issued here yet.'
     assert_equal %w[refused], submissions(:dra).accession_issuances.pluck(:status)
   end
 

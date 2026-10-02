@@ -2,9 +2,6 @@
 # stored record holds them. Inserted in batches — a submission can hold a
 # hundred thousand samples.
 class SubmissionApply::BioSampleRecord < SubmissionApply::V3Record
-  OWN  = 'samples'
-  KIND = 'sample'
-
   BATCH = 5_000
 
   private

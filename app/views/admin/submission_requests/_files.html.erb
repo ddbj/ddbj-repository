@@ -27,6 +27,15 @@
           <%= link_to 'Materialised record (JSON)', materialised_admin_submission_path(submission) %>
         </li>
 
+        <%# Named and sized, not linked: reads run to tens of GB, and a %>
+        <%# curator checks that they are here rather than downloads them. %>
+        <% submission.data_files.includes(:blob).sort_by { it.filename.to_s }.each do |file| %>
+          <li data-test-data-file>
+            <%= file.filename %>
+            <span class="text-body-tertiary"><%= number_to_human_size(file.byte_size) %> · data file</span>
+          </li>
+        <% end %>
+
         <% [['Flatfile (NA)', :flatfile_na], ['Flatfile (AA)', :flatfile_aa]].each do |label, name| %>
           <% file = submission.public_send(name) %>
           <li>

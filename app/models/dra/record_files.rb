@@ -12,7 +12,9 @@
 # single-line class: NFC, whitespace collapsed), on both sides.
 #
 # One upload is one run's or analysis's file: named twice, it would be
-# assigned twice.
+# assigned twice. The same file uploaded twice is two uploads, each of which
+# can be named once. One already assigned to a submission is not among the
+# uploads at all: applying takes it out of the list (SubmissionApply::DRARecord).
 class DRA::RecordFiles
   # One FILE of the record: where it is (`runs[0]`), what it says, and the
   # upload it names — or why there is none.
@@ -40,19 +42,19 @@ class DRA::RecordFiles
 
   def entries
     @entries ||= begin
-      uploaded = @user.unassigned_files.blobs.group_by { self.class.normalise(it.filename.to_s) }
+      uploaded = @user.unassigned_files.blobs.order(:id).group_by { self.class.normalise(it.filename.to_s) }
       claimed  = {}
 
       named_files.map {|named|
-        blob, problem = match(named[:file], uploaded)
-        entry         = Entry.new(**named, blob:, problem:)
+        blobs, problem = match(named[:file], uploaded)
+        entry          = Entry.new(**named, blob: nil, problem:)
 
-        next entry unless blob
+        next entry unless blobs
 
-        if (first = claimed[blob.id])
-          entry.with(blob: nil, problem: "#{entry.filename.inspect} is the same upload as #{first.where} names")
+        if (blob = blobs.find { !claimed.key?(it.id) })
+          claimed[blob.id] = entry.with(blob:)
         else
-          claimed[blob.id] = entry
+          entry.with(problem: "#{entry.filename.inspect} is the same upload as #{claimed.fetch(blobs.first.id).where} names")
         end
       }
     end
@@ -88,9 +90,9 @@ class DRA::RecordFiles
 
     return [nil, "#{name.inspect} states no MD5"] unless method.casecmp?('MD5') && hex.match?(/\A\h{32}\z/)
 
-    md5  = Base64.strict_encode64([hex].pack('H*'))
-    blob = blobs.find { it.checksum == md5 }
+    md5     = Base64.strict_encode64([hex].pack('H*'))
+    matched = blobs.select { it.checksum == md5 }
 
-    blob ? [blob, nil] : [nil, "#{name.inspect} was uploaded, but its MD5 is not #{hex.downcase}"]
+    matched.any? ? [matched, nil] : [nil, "#{name.inspect} was uploaded, but its MD5 is not #{hex.downcase}"]
   end
 end

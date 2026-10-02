@@ -105,12 +105,117 @@ class SubmissionApplyTest < ActiveSupport::TestCase
   end
 
   test 'a database with no Apply is refused by name' do
-    request = request_for('dra', 'bioproject_v3.json')
+    assert_raises ArgumentError, match: 'gea records are not applied yet' do
+      SubmissionApply.for('gea')
+    end
+  end
+
+  # --- DRA ---------------------------------------------------------------
+
+  READS = "@r1\nACGT\n+\nIIII\n"
+
+  def upload(name, user: users(:alice))
+    ActiveStorage::Blob.create_and_upload!(io: StringIO.new(READS), filename: name, content_type: 'application/octet-stream').tap {|blob|
+      user.unassigned_files_attachments.create! blob:
+    }
+  end
+
+  def dra_request(files, analysis_files: [], runs: [{'alias' => 'run1', 'data_blocks' => [{'files' => files}]}])
+    record = {
+      'schema_version' => 'v3',
+      'submission'     => {'alias' => 'sub1', 'hold_date' => '2027-01-31'},
+      'projects'       => [{'alias' => 'study1', 'title' => 'Not this part'}],
+      'experiments'    => [{'alias' => 'exp1'}],
+      'runs'           => runs,
+      'analyses'       => (analysis_files.any? ? [{'alias' => 'an1', 'data_blocks' => [{'files' => analysis_files}]}] : nil),
+
+      'relations' => [
+        {'type' => 'part_of', 'source' => {'type' => 'run', 'alias' => 'run1'}, 'target' => {'type' => 'experiment', 'alias' => 'exp1'}},
+        {'type' => 'part_of', 'source' => {'type' => 'project', 'alias' => 'study1'}, 'target' => {'db' => 'bioproject', 'id' => 'PRJDB1'}},
+        {'type' => 'references', 'source' => {'type' => 'submission', 'alias' => 'sub1'}, 'target' => {'db' => 'pubmed', 'id' => '1'}}
+      ]
+    }.compact
+
+    SubmissionRequest.new(user: users(:alice), db: 'dra', status: :waiting_application).tap {|request|
+      request.ddbj_record.attach(io: StringIO.new(record.to_json), filename: 'dra.json', content_type: 'application/json')
+      request.save!(validate: false)
+    }
+  end
+
+  def fastq(name) = {'filename' => name, 'filetype' => 'fastq', 'checksum_method' => 'MD5', 'checksum' => Digest::MD5.hexdigest(READS)}
+
+  # The reads stay where they were uploaded; the submission holds the same
+  # blobs, and its own part of the record. Assigned, they leave the list.
+  test 'a DRA record becomes a DRASubmission, assigned the files its runs and analyses name' do
+    reads    = [upload('r_1.fastq'), upload('r_2.fastq')]
+    analysis = upload('a.bam')
+    request  = dra_request([fastq('r_1.fastq'), fastq('r_2.fastq')], analysis_files: [fastq('a.bam')])
 
     ApplySubmissionRequestJob.perform_now request
 
-    assert_equal 'application_failed', request.reload.status
-    assert_match 'dra records are not applied yet', request.error_message
+    submission = request.reload.submission
+
+    assert request.applied?
+    assert submission.dra_db?
+    assert_equal ['submission_accepted', nil, Date.new(2027, 1, 31)], submission.dra_submission.values_at(:status, :accession, :hold_date)
+    assert_equal [*reads, analysis].sort_by(&:id), submission.data_files.blobs.order(:id).to_a
+    assert_empty users(:alice).reload.unassigned_files, 'what is listed is what is still waiting'
+
+    record = submission.materialised_record
+
+    assert_equal %w[analyses experiments relations runs schema_version submission], record.keys.sort, 'its own part, not the study the record carries'
+    assert_equal %w[run submission], record['relations'].map { it.dig('source', 'type') }.sort, 'with what starts from its submission, which is every part\'s'
+  end
+
+  # Uploaded twice, a file is two uploads, and two runs can each name one.
+  test 'the same file uploaded twice can be named by two runs' do
+    first, second = Array.new(2) { upload('r_1.fastq') }
+    runs          = %w[run1 run2].map { {'alias' => it, 'data_blocks' => [{'files' => [fastq('r_1.fastq')]}]} }
+
+    request = dra_request(nil, runs:)
+
+    ApplySubmissionRequestJob.perform_now request
+
+    assert request.reload.applied?
+    assert_equal [first, second].sort_by(&:id), request.submission.data_files.blobs.order(:id).to_a
+  end
+
+  # Taken out of the list, let go of, or assigned elsewhere since the check.
+  test 'a DRA record whose file has gone since its check is not applied' do
+    request = dra_request([fastq('r_1.fastq')])
+
+    assert_no_difference -> { Submission.count } do
+      ApplySubmissionRequestJob.perform_now request
+    end
+
+    assert_equal %w[application_failed TRD_R0025], request.reload.values_at(:status, :error_code)
+    assert_match 'runs[0] "r_1.fastq" is not among the files uploaded for it', request.error_message
+  end
+
+  # Kept in canonical order — by alias — but told where the submitter put it.
+  test 'a file that has gone is named where the record as sent has it' do
+    upload 'r_1.fastq'
+
+    runs    = [{'alias' => 'zz', 'data_blocks' => [{'files' => [fastq('gone.fastq')]}]}, {'alias' => 'aa', 'data_blocks' => [{'files' => [fastq('r_1.fastq')]}]}]
+    request = dra_request(nil, runs:)
+
+    ApplySubmissionRequestJob.perform_now request
+
+    assert_match 'runs[0] "gone.fastq"', request.reload.error_message
+  end
+
+  # Still in the list until ReleaseAssignedFilesJob takes it out, but the
+  # bytes are another submission's.
+  test 'an upload assigned to one submission is not assigned to another' do
+    upload 'r_1.fastq'
+
+    first, second = Array.new(2) { dra_request([fastq('r_1.fastq')]) }
+
+    ApplySubmissionRequestJob.perform_now first
+    ApplySubmissionRequestJob.perform_now second
+
+    assert first.reload.applied?
+    assert_equal %w[application_failed TRD_R0025], second.reload.values_at(:status, :error_code)
   end
 
   # The submission it linked went with the rolled-back transaction; writing
