@@ -18,13 +18,22 @@ class SubmissionApply::V3Record
     @request = request
   end
 
+  # One commit, so a request that has its submission was applied — by a
+  # run stopped before it said so — and running it again (RecoverKilledJobsJob)
+  # has nothing to do.
   def call
+    return if @request.submission
+
     record = @request.ddbj_record.open { Oj.load(it.read, mode: :strict) }
     tree   = DDBJRecord::Canonicalizer.canonical_tree(own_part(record))
     bytes  = Oj.dump(tree, mode: :strict)
 
     Submission.transaction do
-      submission = @request.create_submission!(db: @request.db, user: @request.user, canonical_version: DDBJRecord::Canonicalizer::NUMBER)
+      submission = Submission.create!(db: @request.db, user: @request.user, canonical_version: DDBJRecord::Canonicalizer::NUMBER)
+
+      # Said outright, as St26 says it: through autosave, a request whose
+      # own validations fail would be left without it, and applied again.
+      @request.update_columns submission_id: submission.id
 
       # Before the uploads: a failure here must not leave objects in
       # storage that the rollback cannot take back.

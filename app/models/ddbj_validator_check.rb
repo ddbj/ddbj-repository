@@ -209,19 +209,22 @@ module DDBJValidatorCheck
     nil
   end
 
-  # A check held for its reads whose reading was stopped — a deploy that
-  # outlasted the job's time to stop, the host restarting — has nothing left
-  # to finish it: its job is gone, or failed without running its own rescue.
-  # It is ended as not carried out, for the submitter to run again.
+  # A check held for its reads whose reading has nothing left to finish it:
+  # its job is gone, or failed and stayed failed. It is ended as not carried
+  # out, for the submitter to run again.
   #
   # Not by age alone: the readings run one at a time, so one can wait its
   # turn for as long as those ahead of it take. Only a check whose job is
   # no longer there, or no longer alive, is given up on. (A held check is
   # running with the validator's report already written; nothing else is.)
+  #
+  # And not within the hour: a job whose process went is failed when Solid
+  # Queue notices — minutes after — and run again by RecoverKilledJobsJob
+  # within ten more, until when it looks no longer alive.
   def give_up_stopped_readings
     alive = live_readings
 
-    Validation.running.where.not(raw_result: nil).where(updated_at: ...10.minutes.ago).find_each do |validation|
+    Validation.running.where.not(raw_result: nil).where(updated_at: ...1.hour.ago).find_each do |validation|
       next if alive.include?(validation.to_global_id.to_s)
 
       give_up validation, 'the reading of its reads stopped before it ended'

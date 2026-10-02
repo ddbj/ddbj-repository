@@ -321,6 +321,17 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
     assert CurationState.new(@request).unchecked?
   end
 
+  # As a deploy runs again a job it had to stop: the check it was had
+  # already concluded, and the request been sent since.
+  test 'a check run again after the request moved on does nothing' do
+    @request.update_columns(status: 'waiting_application')
+
+    ValidateDDBJRecordJob.perform_now @request
+
+    assert @request.reload.waiting_application?
+    assert_not_requested :post, "#{VALIDATOR}/validation"
+  end
+
   test 'ST.26 is checked here, BioProject, BioSample and DRA by the validator' do
     st26 = submission_requests(:st26)
     attach_ddbj_record st26
@@ -387,7 +398,7 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
     stopped = dra_started
     waiting = dra_started
 
-    [stopped, waiting].each { it.update_columns(raw_result: {'validity' => true}, updated_at: 1.hour.ago) }
+    [stopped, waiting].each { it.update_columns(raw_result: {'validity' => true}, updated_at: 2.hours.ago) }
 
     # As Solid Queue keeps them: the serialised job, decoded.
     alive = [CheckDRAReadsJob.new(waiting).serialize]

@@ -23,7 +23,7 @@
   <div class="card mb-3" data-controller="auto-refresh">
     <div class="card-body">
       <div class="d-flex align-items-baseline gap-2 mb-3">
-        <span class="h6 mb-0">Importing…</span>
+        <span class="h6 mb-0"><%= @import.queued_status? ? 'Waiting to start…' : 'Importing…' %></span>
         <span class="text-body-secondary small">
           <%= number_with_delimiter(@import.total) %> rows in the file
         </span>
@@ -36,15 +36,19 @@
             <% if @import.checking? %>
               <%= number_with_delimiter(@import.processed) %> checked ·
               <%= number_with_delimiter(@import.failed) %> rejected
+            <% elsif @import.queued_status? %>
+              not started
             <% else %>
               done
             <% end %>
           </span>
         </div>
 
-        <% pct = @import.checking? && @import.total.positive? ? (@import.processed * 100 / @import.total) : 100 %>
+        <%# Not started is an empty bar, not a full green one: until the job %>
+        <%# picks it up there is no phase, which read as checking done. %>
+        <% pct = if @import.queued_status? then 0 elsif @import.checking? && @import.total.positive? then @import.processed * 100 / @import.total else 100 end %>
         <div class="progress" role="progressbar">
-          <div class="progress-bar<%= ' bg-success' unless @import.checking? %>" style="width: <%= pct %>%;"></div>
+          <div class="progress-bar<%= ' bg-success' unless @import.checking? || @import.queued_status? %>" style="width: <%= pct %>%;"></div>
         </div>
       </div>
 

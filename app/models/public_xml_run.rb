@@ -1,6 +1,6 @@
-# One row per public-XML output run. Owned by PublishBpXmlJob /
-# PublishBsXmlJob, which create the row at the start of a run and stamp
-# `finished_at` / counters on completion.
+# One row per public-XML output run. PublicXML::Exporter creates it at the
+# start of a run and stamps `finished_at` / counters on completion, for
+# PublishBpXMLJob, PublishBsXMLJob and PublishBpExchangeXMLJob.
 #
 # `kind = 'exchange'` is BP-only — the BS pipeline has no 三極交換用 XML
 # in the legacy bsbatch implementation, so we refuse it at the model
@@ -30,6 +30,29 @@ class PublicXMLRun < ApplicationRecord
   validate :exchange_is_bioproject_only
 
   scope :recent, -> { order(started_at: :desc) }
+
+  # Runs the block as the only run of its db and kind, or not at all while
+  # another is running. A row left `running` cannot say which: a live run
+  # and one whose process was stopped under it (by a deploy, or with its
+  # host) leave the same row. The lock can (AdvisoryLock), so what holds it
+  # ends what a stopped run left.
+  #
+  # Not run at all rather than waited for: the next scheduled run writes
+  # the file anyway.
+  def self.exclusively(db:, kind:)
+    AdvisoryLock.exclusively "public_xml_run:#{db}:#{kind}" do
+      where(db:, kind:, status: 'running').find_each do |run|
+        run.update!(status: 'failed', finished_at: Time.current)
+        run.append_error!('Stopped before it finished.')
+      end
+
+      yield
+    end
+  rescue AdvisoryLock::Held => e
+    Rails.logger.info "Not writing #{db} #{kind} XML: #{e.message}"
+
+    nil
+  end
 
   # Most recent completed run of a given kind — the delta anchor for the
   # next run of that same kind (see the class comment).

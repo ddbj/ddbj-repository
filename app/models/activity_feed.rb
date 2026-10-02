@@ -131,6 +131,7 @@ class ActivityFeed
 
   def issuance_summary(issuance)
     case issuance.status
+    when 'queued'  then 'asked for accessions to be issued'
     when 'running' then 'started issuing accessions'
     when 'refused' then "could not issue accessions — #{issuance.error_message}"
     else                "failed to issue accessions — #{issuance.error_message}"

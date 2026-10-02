@@ -27,11 +27,13 @@ class PublishBpXMLJobTest < ActiveSupport::TestCase
     assert_includes xml.root.xpath('./Package/Project/Project/ProjectID/ArchiveID/@accession').map(&:value), 'PRJDB000123'
   end
 
-  test 'skips when a previous run is still in flight (concurrency guard)' do
-    PublicXMLRun.create!(db: 'bioproject', kind: 'public', status: 'running', started_at: 1.minute.ago)
+  # A run left running is not one in flight: nothing holds its lock (PublicXMLRun.exclusively).
+  test 'ends a run its process left running, and runs' do
+    left = PublicXMLRun.create!(db: 'bioproject', kind: 'public', status: 'running', started_at: 1.hour.ago)
 
-    assert_no_difference 'PublicXMLRun.count' do
-      PublishBpXMLJob.perform_now
-    end
+    PublishBpXMLJob.perform_now
+
+    assert left.reload.failed_status?
+    assert PublicXMLRun.where(db: 'bioproject', kind: 'public').recent.first.completed_status?
   end
 end

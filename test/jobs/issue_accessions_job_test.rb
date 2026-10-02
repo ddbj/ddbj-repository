@@ -86,6 +86,33 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
     assert_empty issuance.accessions
   end
 
+  # Another run of this issuance holds it, and may yet die: wait, rather
+  # than end as failed through `discard_on StandardError`.
+  test 'a run that finds the issuance held waits for it' do
+    issuance = issuance_for(submissions(:bioproject))
+
+    holding_advisory_lock "issue_accessions:#{issuance.id}" do
+      assert_enqueued_with job: IssueAccessionsJob do
+        IssueAccessionsJob.perform_now(issuance_id: issuance.id)
+      end
+    end
+
+    assert issuance.reload.queued_status?
+  end
+
+  # Run again late, it would issue what the refusal said it would not.
+  test 'a refused issuance run again stays refused' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    issuance = issuance_for(submission).tap { it.update!(status: 'refused', finished_at: Time.current) }
+
+    IssueAccessionsJob.perform_now(issuance_id: issuance.id)
+
+    assert issuance.reload.refused_status?
+    assert_nil projects(:primary).reload.accession
+  end
+
   # The distinction the run page reads: Skipped is grey and means a rule
   # said no; Failed is red and means somebody has to look. A chain that
   # cannot replay used to arrive as the first, so a corrupt submission
@@ -175,6 +202,24 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
 
     assert     issuance.completed_status?
     assert_not issuance.accessions.empty?
+  end
+
+  # As a deploy runs again a job it had to stop after the numbers were
+  # issued: refused for every target having its accession, it would have
+  # said nothing was issued.
+  test 'an issuance run again after it issued has nothing to do' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    issuance = issuance_for(submission)
+
+    IssueAccessionsJob.perform_now(issuance_id: issuance.id)
+    IssueAccessionsJob.perform_now(issuance_id: issuance.id)
+
+    issuance.reload
+
+    assert issuance.completed_status?
+    assert_equal [projects(:primary).reload.accession], issuance.accessions
   end
 
   test 'a second issuance is refused while another is actually running' do

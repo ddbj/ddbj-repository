@@ -4,9 +4,9 @@
 #
 # Read-only from the curator's perspective: the show page polls this
 # row to render progress, and offers the error_report (if any) as a
-# download once status flips off `running`.
+# download once status leaves `queued` / `running`.
 class SampleTSVImport < ApplicationRecord
-  STATUSES = %w[running completed failed].freeze
+  STATUSES = %w[queued running completed failed].freeze
 
   belongs_to :submission
 
@@ -21,11 +21,11 @@ class SampleTSVImport < ApplicationRecord
   # "completed" so the progress bar doesn't hang on a totally broken
   # input.
   def loading?
-    running_status?
+    queued_status? || running_status?
   end
 
   def completed?
-    !running_status?
+    !loading?
   end
 
   # Which half of the work is running. Checking is row by row and
@@ -48,12 +48,19 @@ class SampleTSVImport < ApplicationRecord
   CONFLICT_MESSAGE = 'Another sample TSV import is already running for this submission. ' \
                      'Try again once it finishes.'.freeze
 
+  # An import whose process was stopped under it — the import is one
+  # transaction, so nothing of it was written.
+  STOPPED_MESSAGE = 'The import was stopped before it finished, and nothing of it was written. ' \
+                    'Import the TSV again.'.freeze
+
   # A crash we reported, as opposed to a file the curator can fix. The
   # screen promises a notification only for the first, and only because
   # ImportSampleTSVJob actually sends one.
   def reported? = failed_status? && error_report.to_s.start_with?(ABORT_PREFIX)
 
   def conflicted? = failed_status? && error_report == CONFLICT_MESSAGE
+
+  def stopped? = failed_status? && error_report == STOPPED_MESSAGE
 
   # Three terminal readings, and the difference between them is the
   # question a curator actually has: is my submission half-changed?

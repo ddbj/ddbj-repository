@@ -18,7 +18,17 @@ class ValidationsController < ApplicationController
     # Not while one is already running, and not on a request that has been
     # put down or already handed over — `recheckable?` is the screen's
     # rule and this one, said once.
-    refuse! 'This request cannot be checked again.' unless request.recheckable?
+    #
+    # Under a lock, so two presses cannot both find it checkable and check
+    # it twice — the second finds it already waiting.
+    request.with_lock do
+      refuse! 'This request cannot be checked again.' unless request.recheckable?
+
+      # Straight to the column, as the apply's own status is written: a
+      # request whose validations no longer pass (its assignee stopped
+      # being a curator) is still checked.
+      request.update_columns status: 'waiting_validation', updated_at: Time.current
+    end
 
     ValidateDDBJRecordJob.perform_later request
 

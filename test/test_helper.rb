@@ -76,6 +76,19 @@ class ActiveSupport::TestCase
     )
   end
 
+  # Holds the advisory lock `name` from a session of its own, as a run in
+  # another process would (AdvisoryLock).
+  def holding_advisory_lock(name)
+    config = ActiveRecord::Base.connection_pool.db_config.configuration_hash
+    other  = PG.connect(dbname: config[:database], **config.slice(:host, :port, :user, :password).compact)
+
+    other.exec_params 'SELECT pg_advisory_lock(hashtext($1))', [name]
+
+    yield
+  ensure
+    other&.close
+  end
+
   # The rate limiters count in `Rails.cache`, which is the null store here
   # — `increment` returns nil and every limit passes. A test that means to
   # see one puts a real store in front of it.

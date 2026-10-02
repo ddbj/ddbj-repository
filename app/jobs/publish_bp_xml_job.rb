@@ -8,22 +8,17 @@ class PublishBpXMLJob < ApplicationJob
   FILENAME = 'bioproject.xml'
 
   def perform
-    # Soft concurrency guard — if an operator triggers `perform_now`
-    # while the recurring fire is mid-run we'd otherwise race the file
-    # rename and leave the loser stuck in `running`. Race-free coverage
-    # would need an advisory lock; this guard catches the common case
-    # without dragging Postgres locks in.
-    return if PublicXMLRun.where(db: 'bioproject', kind: 'public', status: 'running').exists?
+    PublicXMLRun.exclusively db: 'bioproject', kind: 'public' do
+      output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('public')
 
-    output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('public')
-
-    PublicXML::Exporter.new(
-      db:             'bioproject',
-      kind:           'public',
-      output_dir:     output_dir,
-      filename:       FILENAME,
-      renderer_class: PublicXML::Bp::PackageRenderer,
-      scope:          Project.status_public.includes(:submission).order(:id)
-    ).call
+      PublicXML::Exporter.new(
+        db:             'bioproject',
+        kind:           'public',
+        output_dir:     output_dir,
+        filename:       FILENAME,
+        renderer_class: PublicXML::Bp::PackageRenderer,
+        scope:          Project.status_public.includes(:submission).order(:id)
+      ).call
+    end
   end
 end

@@ -7,7 +7,7 @@ class EntriesSystemTest < ApplicationSystemTestCase
   setup do
     sign_in_as users(:bob)
 
-    request = SubmissionRequest.new(user: users(:alice), db: 'st26')
+    request = SubmissionRequest.new(user: users(:alice), db: 'st26', status: :waiting_application)
 
     request.ddbj_record.attach(
       io:           file_fixture('ddbj_record/example.json').open,

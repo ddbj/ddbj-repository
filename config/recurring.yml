@@ -7,6 +7,13 @@ production: &production
     class: StorageHealthcheckJob
     schedule: every hour
 
+  # Jobs whose whole process went — the container killed, the host down —
+  # run again from the start, as a deploy runs the jobs it stops
+  # (RecoverKilledJobsJob).
+  recover_killed_jobs:
+    class: RecoverKilledJobsJob
+    schedule: every 10 minutes
+
   # A DRA check whose reading of its reads was stopped (a deploy, a restart)
   # would otherwise stay "checking" with nothing to finish it.
   give_up_stopped_dra_readings:

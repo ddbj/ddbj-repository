@@ -122,6 +122,7 @@ class SubmissionSendingTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :no_content
+    assert @req.reload.waiting_validation?
   end
 
   # A check replaces its predecessor. `has_one` and `create_validation!`
@@ -156,6 +157,17 @@ class SubmissionSendingTest < ActionDispatch::IntegrationTest
 
     assert_conform_schema 422
     assert_includes response.parsed_body['error'], 'cannot be checked again'
+  end
+
+  # The check would take back the answer the submission was made on, and
+  # sending it again would apply it twice.
+  test 'an applied request is not checked again' do
+    @req.update_columns(status: 'applied')
+
+    with_exceptions_app { post submission_request_validation_path(@req) }
+
+    assert_response :unprocessable_content
+    assert @req.reload.applied?
   end
 
   # Nothing on the page is pressable for a reader who does not own it, so

@@ -34,10 +34,9 @@ class SequenceTest < ActiveSupport::TestCase
     end
   end
 
-  # 足りないときは 1 件も払い出さない。ApplySubmissionRequestJob は allocate! と
-  # create_submission! を同一トランザクションに置いているので、部分的な消費が
-  # 起きると「番号が消費された ⟺ submission が存在する」が崩れる。
-  # （entries の COPY はそのトランザクションの外なので、そこから先は別の話）
+  # 足りないときは 1 件も払い出さない。SubmissionApply::St26 は allocate! と
+  # submission・entries の作成を同一トランザクションに置いているので、部分的な
+  # 消費が起きると「番号が消費された ⟺ entries が存在する」が崩れる。
   test 'allocate! consumes nothing when the remaining capacity is short' do
     Sequence.ensure_records!
     Sequence.find_by!(scope: 'jpo_na').update! prefix: LAST_JPO_NA, next: 999998

@@ -38,6 +38,35 @@ class SubmissionApplyTest < ActiveSupport::TestCase
     assert_equal 'A project title long enough to read', project.title, 'projected from the record'
   end
 
+  # As a deploy runs again a job it had to stop after the apply committed.
+  test 'a BioProject apply run again after it committed is said applied, not done twice' do
+    request = request_for('bioproject', 'bioproject_v3.json')
+
+    ApplySubmissionRequestJob.perform_now request
+    request.update_columns(status: 'applying')
+
+    assert_no_difference -> { Submission.count } do
+      ApplySubmissionRequestJob.perform_now request
+    end
+
+    assert request.reload.applied?
+  end
+
+  # Solid Queue ran it again on a guess that the first run was dead, and
+  # the first is still applying: it waits, since the first may yet die.
+  test 'an apply does nothing while another run of the same request holds it' do
+    request = request_for('bioproject', 'bioproject_v3.json')
+
+    holding_advisory_lock "apply_submission_request:#{request.id}" do
+      assert_enqueued_with job: ApplySubmissionRequestJob, args: [request] do
+        ApplySubmissionRequestJob.perform_now request
+      end
+    end
+
+    assert_nil request.reload.submission
+    assert request.waiting_application?
+  end
+
   test 'a BioSample record becomes Sample rows, one per sample' do
     request = request_for('biosample', 'biosample_v3.json')
 
