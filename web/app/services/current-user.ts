@@ -7,6 +7,7 @@ import User from 'repository/models/user';
 import type { RequestManager } from '@warp-drive/core';
 import type RouterService from '@ember/routing/router-service';
 import type Transition from '@ember/routing/transition';
+import type DataFilesService from 'repository/services/data-files';
 import type ToastService from 'repository/services/toast';
 import type { paths } from 'schema/openapi';
 
@@ -22,6 +23,7 @@ export default class CurrentUserService extends Service {
   @service declare requestManager: RequestManager;
   @service declare router: RouterService;
   @service declare toast: ToastService;
+  @service('data-files') declare dataFiles: DataFilesService;
 
   @tracked token?: string;
   @tracked user?: User;
@@ -58,6 +60,7 @@ export default class CurrentUserService extends Service {
   @action
   startProxy(uid: string) {
     this.proxyUid = uid;
+    this.dataFiles.reset();
 
     this.toast.show(`Proxy login as ${uid}.`, 'success');
   }
@@ -65,6 +68,7 @@ export default class CurrentUserService extends Service {
   @action
   stopProxy() {
     this.proxyUid = undefined;
+    this.dataFiles.reset();
 
     this.toast.show('Proxy login deactivated.', 'success');
   }
@@ -213,8 +217,11 @@ export default class CurrentUserService extends Service {
     }
   }
 
+  // Whatever was the last identity's goes with it: its files going up would
+  // otherwise be sent as nobody, or as the next one.
   clear() {
     this.token = this.user = this.proxyUid = undefined;
+    this.dataFiles.reset();
   }
 }
 

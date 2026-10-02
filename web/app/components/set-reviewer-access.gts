@@ -6,6 +6,7 @@ import { on } from '@ember/modifier';
 import { service } from '@ember/service';
 import { tracked } from '@glimmer/tracking';
 
+import Pager from 'repository/components/pager';
 import dbLabel from 'repository/helpers/db-label';
 import formatDatetime from 'repository/helpers/format-datetime';
 import { errorMessage } from 'repository/utils/error-message';
@@ -40,92 +41,6 @@ const NO_LINK: AccessState = {
   count: 0,
   others: 0,
 };
-
-// Prev/Next rather than the routed pager: these lists live inside a
-// component on the set's own screen, so a page of one of them is not a
-// place the browser goes.
-class Pager extends Component<{
-  Args: { page: number; pages: number; busy: boolean; label: string; go: (page: number) => void };
-}> {
-  get atStart() {
-    return this.args.page <= 1;
-  }
-
-  get atEnd() {
-    return this.args.page >= this.args.pages;
-  }
-
-  @action
-  first() {
-    this.args.go(1);
-  }
-
-  @action
-  previous() {
-    this.args.go(this.args.page - 1);
-  }
-
-  @action
-  next() {
-    this.args.go(this.args.page + 1);
-  }
-
-  @action
-  last() {
-    this.args.go(this.args.pages);
-  }
-
-  <template>
-    {{#if (gt @pages 1)}}
-      <nav class="d-flex align-items-center gap-2 mb-3" aria-label="Pages of {{@label}}">
-        {{! Both ends, not only the neighbours. These lists are as long as
-        what the members submitted, and stepping to page 5,000 one press
-        at a time is not a way back to the end of a list. }}
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          disabled={{if this.atStart true @busy}}
-          aria-label="First page of {{@label}}"
-          {{on "click" this.first}}
-        >
-          «
-        </button>
-
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          disabled={{if this.atStart true @busy}}
-          aria-label="Previous page of {{@label}}"
-          {{on "click" this.previous}}
-        >
-          Previous
-        </button>
-
-        <span class="small text-body-secondary">Page {{@page}} of {{@pages}}</span>
-
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          disabled={{if this.atEnd true @busy}}
-          aria-label="Next page of {{@label}}"
-          {{on "click" this.next}}
-        >
-          Next
-        </button>
-
-        <button
-          type="button"
-          class="btn btn-outline-secondary btn-sm"
-          disabled={{if this.atEnd true @busy}}
-          aria-label="Last page of {{@label}}"
-          {{on "click" this.last}}
-        >
-          »
-        </button>
-      </nav>
-    {{/if}}
-  </template>
-}
 
 // The set's review link: one URL, and the accessions the members have put
 // on it.
