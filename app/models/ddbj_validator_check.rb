@@ -195,6 +195,20 @@ module DDBJValidatorCheck
     nil
   end
 
+  # A held check's findings as its reads are read, a run at a time, so a
+  # reading taken up again does not lose those of the runs read before.
+  def add_details(validation, details)
+    return if details.empty?
+
+    ActiveRecord::Base.transaction do
+      validation.lock!
+
+      details.each { validation.details.create!(it) } if validation.running?
+    end
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
   # A check held for its reads whose reading was stopped — a deploy that
   # outlasted the job's time to stop, the host restarting — has nothing left
   # to finish it: its job is gone, or failed without running its own rescue.
@@ -211,6 +225,12 @@ module DDBJValidatorCheck
       next if alive.include?(validation.to_global_id.to_s)
 
       give_up validation, 'the reading of its reads stopped before it ended'
+    end
+
+    # The copies a stopped reading kept for its next attempt, once there
+    # will be none.
+    Pathname.new(Rails.application.config_for(:app).work_dir!).glob('dra-reads-*').each do |dir|
+      dir.rmtree unless Validation.running.exists?(id: dir.basename.to_s.delete_prefix('dra-reads-'))
     end
   end
 

@@ -149,6 +149,38 @@ class DRA::ReadCheckTest < ActiveSupport::TestCase
 
     assert_not stale.exist?
   end
+
+  # Taken up again after it was stopped: what was copied out is not copied
+  # again, and what the reading left is not in the way of the next.
+  test 'a directory of the caller\'s keeps the copies between attempts' do
+    dir   = @work_dir.join('kept')
+    files = [blob(READ1, 'r.fastq')]
+
+    check_kept = -> { DRA::ReadCheck.call(files:, filetype: 'fastq', toolkit: fake_toolkit, work_dir: @work_dir, dir:) }
+
+    check_kept.()
+    dir.join('out').mkpath
+
+    files.first.stub(:download, ->(*) { flunk 'copied again' }) do
+      assert check_kept.().ok?
+    end
+
+    assert dir.join('in/0/r.fastq').exist?, 'kept for the caller to remove'
+    assert_not dir.join('out').exist?, 'cleared before the next reading'
+  end
+
+  # A deploy stops the job: the tool goes with it, not hours later.
+  test 'an interrupt stops the running tool' do
+    toolkit = fake_toolkit.tap { it.join('latf-load').write("#!/bin/sh\nsleep 60\n") }
+    stopped = Class.new(StandardError)
+    started = Time.current
+
+    assert_raises(stopped) {
+      DRA::ReadCheck.call(files: [blob(READ1, 'r.fastq')], filetype: 'fastq', toolkit:, work_dir: @work_dir, interrupt: -> { raise stopped })
+    }
+
+    assert_operator Time.current - started, :<, 30, 'the tool did not run its minute'
+  end
 end
 
 # SRA Toolkit itself, where it is installed (the image, and CI): what the

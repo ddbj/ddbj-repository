@@ -196,4 +196,43 @@ class CheckDRAReadsJobTest < ActiveJob::TestCase
 
     assert_equal({'validity' => true, 'messages' => []}, validation.reload.raw_result)
   end
+
+  # A deploy gives the job under a minute; a run takes hours. Taken up again,
+  # it reads only the run it was stopped in, and the findings of those before
+  # are there once.
+  test 'a reading stopped part way is taken up again at the run it was in' do
+    two = record([fastq('r_1.fastq')]).tap {
+      it['runs'] << {'alias' => 'run2', 'data_blocks' => [{'files' => [fastq('r_2.fastq')]}]}
+    }
+
+    validation = held(two)
+    read       = []
+    stopped    = false
+
+    check = lambda {|files:, dir:, interrupt:, **|
+      read << files.map { it.filename.to_s }
+      dir.mkpath
+
+      if files.first.filename.to_s == 'r_2.fastq' && !stopped
+        stopped = true
+        raise ActiveJob::Continuation::Interrupt, 'stopping'
+      end
+
+      ok("latf-load err: one bad record in #{files.first.filename}\n")
+    }
+
+    DRA::ReadCheck.stub(:call, check) do
+      CheckDRAReadsJob.perform_now validation
+
+      assert validation.reload.running?, 'stopped, not concluded'
+      assert CheckDRAReadsJob.kept_dir(validation.id).exist?, 'copies kept for the next attempt'
+
+      perform_enqueued_jobs only: CheckDRAReadsJob
+    end
+
+    assert_equal [%w[r_1.fastq], %w[r_2.fastq], %w[r_2.fastq]], read
+    assert_equal 2, validation.reload.details.where(code: 'TRD_R0024').count, 'one finding a run'
+    assert @request.reload.ready_to_apply?
+    assert_not CheckDRAReadsJob.kept_dir(validation.id).exist?, 'removed once concluded'
+  end
 end

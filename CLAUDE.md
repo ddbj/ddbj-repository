@@ -258,8 +258,11 @@ then concluded; one whose metadata failed is not worth the hours. A held
 check whose job was stopped (a deploy outlasting its time to stop) is ended
 as not carried out by `give_up_stopped_readings`, hourly — by whether its
 job is still alive in Solid Queue, not by age, since one may wait its turn.
-A deploy puts a reading back to start again from the beginning, which for a
-large run is hours lost each deploy. A run's experiment is found through the
+The job is continuable: a deploy gives it under a minute and a run takes
+hours, so each run's findings are written as it is read and the cursor moved
+past it; a stopped job stops its tool with it (`interrupt`), keeps the files
+it had copied out (`dra-reads-<validation id>` under `work_dir`), and reads
+again only the run it was in. A run's experiment is found through the
 record's relations by `DDBJRecord::References`, which reads references the
 way `DRA::Converter` writes them.
 Its test uses the real loader where it is on PATH. `rake dra:check_reads`
