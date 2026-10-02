@@ -5,7 +5,8 @@ module SubmissionApply
   APPLIERS = {
     'st26'       => 'St26',
     'bioproject' => 'BioProjectRecord',
-    'biosample'  => 'BioSampleRecord'
+    'biosample'  => 'BioSampleRecord',
+    'dra'        => 'DRARecord'
   }.freeze
 
   # The databases whose records can be applied here: a request for any

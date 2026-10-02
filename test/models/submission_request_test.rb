@@ -324,26 +324,28 @@ class SubmissionRequestTest < ActiveSupport::TestCase
   # --- databases ---------------------------------------------------------
 
   # DRA's records are checked by a version of ddbj-validator that came
-  # later, and applied by what comes after this: until the one configured
-  # here takes them and they can be applied, DRA arrives only from D-way.
+  # later: until the one configured here takes them, DRA arrives only from
+  # D-way. And a database is taken only where its records can be applied.
   test 'a DRA request is taken where its records are both checked and applied, and otherwise only from the migration' do
     request = SubmissionRequest.new(user: users(:alice), db: 'dra')
     attach_ddbj_record(request)
 
-    refute request.valid?, 'checked, not applied'
-    assert_includes request.errors[:db], 'does not take submissions here yet'
+    assert request.valid?
 
-    SubmissionApply.stub(:dbs, [*SubmissionApply.dbs, 'dra']) do
-      assert request.valid?
-
-      DDBJValidatorClient.stub(:record_dbs, %w[bioproject biosample]) do
-        refute request.valid?, 'applied, not checked'
-      end
+    DDBJValidatorClient.stub(:record_dbs, %w[bioproject biosample]) do
+      refute request.valid?, 'applied, not checked'
+      assert_includes request.errors[:db], 'does not take submissions here yet'
     end
 
-    request.migration_run_id = SecureRandom.uuid
+    SubmissionApply.stub(:dbs, SubmissionApply.dbs - %w[dra]) do
+      refute request.valid?, 'checked, not applied'
+    end
 
-    assert request.valid?
+    DDBJValidatorClient.stub(:record_dbs, %w[bioproject biosample]) do
+      request.migration_run_id = SecureRandom.uuid
+
+      assert request.valid?
+    end
   end
 
   # A comma-separated list read as one name, or a database the validator

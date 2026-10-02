@@ -10,6 +10,8 @@ biosample:
   user: alice
   db: biosample
 
+# Imported from D-way, as every DRA submission so far is.
 dra:
   user: alice
   db: dra
+  source_id: DRA000001

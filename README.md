@@ -179,6 +179,7 @@ added as failures are classified, so the set grows.
 | TRD_R0022 | validation | error | A DRA run or analysis names a file that is not among its submitter's uploads, or states an MD5 that none of them has, or none at all. Reads are uploaded before the record is sent |
 | TRD_R0023 | validation | error | A DRA run's reads could not be read by SRA Toolkit (the message carries what it said), or mix filetypes that are read apart. Checked once the record's metadata has passed |
 | TRD_R0024 | validation | warning | A DRA run's reads were read with records dropped as unreadable (up to 5%, as D-way took them), or are of a filetype not read here yet |
+| TRD_R0025 | application | error | A file a DRA record's run or analysis names was no longer among its submitter's uploads when the request was applied — taken out of the list, let go of once nothing was assigned it in time, or assigned to another submission since the check. Nothing was applied; upload the file again and send a new request |
 | TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack

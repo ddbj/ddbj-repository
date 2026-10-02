@@ -11,8 +11,8 @@
 # latest state again, if its documents are no longer the ones last read
 # (#version_digest): an object deleted after the last send, or a version
 # dated before the one it follows, changes it without a later save.
-# Nothing else is written to the chain. D-way is where DRA is edited until the repository
-# takes submissions itself, so a version saved there after a curator's edit
+# Nothing else is written to the chain. D-way is where DRA is edited until it is curated
+# here, so a version saved there after a curator's edit
 # here is written over that edit, as the BioProject and BioSample imports
 # do.
 #

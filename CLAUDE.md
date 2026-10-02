@@ -233,10 +233,18 @@ unassigned files by name and then by the MD5 the record states (the store
 computed the blob's when the upload was verified, so nothing is read), names
 compared as the record keeps them (canonical, so NFC and whitespace
 collapsed) since checking reads the record as sent and applying as kept.
-Checking the record (`RecordIntake`, TRD_R0022) and applying it both ask it.
+Checking the record (`RecordIntake`, TRD_R0022) and applying it both ask it;
+applying assigns the matched blobs to the submission (`Submission#data_files`
+— the same blobs, nothing copied) and fails with TRD_R0025 if one has gone
+since the check. A blob assigned to a submission is not matched again, though
+it stays in the uploader's list until `ReleaseAssignedFilesJob` takes it out.
 A database takes submissions only where the configured ddbj-validator takes
 its records (`record_dbs` in config/ddbj_validator.yml) *and* its records can
-be applied here (`SubmissionApply.dbs`) — DRA's cannot yet.
+be applied here (`SubmissionApply.dbs`) — so DRA opens where `record_dbs`
+names it. **Do not name it yet:** DRA is not curated here — an applied DRA
+submission takes no status and is issued no accession (`DRASubmission.
+settable_statuses`, `AccessionIssue`), so it would wait at Submission accepted
+for good. The validator there must read DRA records too (ddbj-validator#10).
 
 A DRA run's reads are read the way the archive will read them, by SRA
 Toolkit — NCBI's build, pinned in `bin/install-sratoolkit`, which the image
@@ -333,10 +341,11 @@ ST.26 (`SubmissionApply::St26`, v2 records) streams in two passes:
 1. Collect entry IDs and NA/AA classification → allocate accessions
 2. Stream entries → write JSON (StreamingWriter) + flatfiles (StreamingRenderer) simultaneously
 
-BioProject and BioSample (`SubmissionApply::V3Record`, v3 records) start a
-chain instead: the record's own part — a record may carry projects and
-samples together, each registered by its own request — becomes the first
-patch, and the Project / Sample rows are made from it. What DDBJ holds is
+BioProject, BioSample and DRA (`SubmissionApply::V3Record`, v3 records)
+start a chain instead: the record's own part (`RecordIntake::OWN`) — a
+record may carry projects and samples together, each registered by its own
+request — becomes the first patch, and the Project / Sample / DRASubmission
+rows are made from it. What DDBJ holds is
 then the chain (`Submission#record_file`), not the file sent, which stays
 on the request unchanged; the web shows the two under different names.
 

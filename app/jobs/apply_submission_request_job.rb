@@ -7,7 +7,8 @@ class ApplySubmissionRequestJob < ApplicationJob
   # 行うこと。**
   ERROR_CODES = {
     Sequence::Exhausted                       => 'TRD_R0012',
-    SubmissionApply::St26::MalformedLocusDate => 'TRD_R0014'
+    SubmissionApply::St26::MalformedLocusDate => 'TRD_R0014',
+    SubmissionApply::DRARecord::FilesGone     => 'TRD_R0025'
   }.freeze
 
   UNEXPECTED_ERROR_CODE = 'TRD_R9999'

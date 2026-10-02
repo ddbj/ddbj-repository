@@ -49,6 +49,14 @@ class Submission < ApplicationRecord
   has_one_attached :flatfile_na
   has_one_attached :flatfile_aa
 
+  # The files a DRA submission's runs and analyses name — reads, mostly —
+  # assigned it from its submitter's uploads when it was applied
+  # (SubmissionApply::DRARecord). The same blobs the uploads were: assigning
+  # copies nothing. And no `dependent`, as the uploads list has none: the
+  # bytes go once nothing refers to them, which is PurgeUnattachedUploadsJob's
+  # to decide (CLAUDE.md, "Data file uploads").
+  has_many_attached :data_files, dependent: false
+
   # Latest-materialised snapshot, blob-backed so the cumulative size
   # follows the same ceiling story as SubmissionUpdate#patch (see
   # [[project-submission-update-patch-size-ceiling]]).
@@ -690,7 +698,7 @@ class Submission < ApplicationRecord
   # `before` is the chain's stored state, read here in the shape the record
   # is read in, so a write that only reshapes it (`rake
   # ddbj_record:reshape_v3`) republishes nothing. DRA's timestamps are
-  # D-way's until submissions come here; ST.26 entries keep none.
+  # D-way's until DRA is curated here; ST.26 entries keep none.
   def republish_changed!(before, after)
     return unless bioproject_db? || biosample_db?
 

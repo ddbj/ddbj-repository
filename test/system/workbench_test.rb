@@ -53,6 +53,25 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_no_selector "form[action$='/curation']"
   end
 
+  # A curator checks that the reads are here, by name and size.
+  test 'a DRA request shows the data files its submission was assigned' do
+    request    = submission_requests(:dra)
+    submission = Submission.create!(db: 'dra', user: request.user)
+
+    request.update_columns(submission_id: submission.id, status: 'applied')
+    DRASubmission.create!(submission:, status: :submission_accepted)
+
+    submission.data_files_attachments.create! blob: ActiveStorage::Blob.create_and_upload!(io: StringIO.new('ACGT'), filename: 'r_1.fastq')
+
+    visit admin_submission_request_path(request)
+
+    assert_selector '[data-test-data-file]', text: 'r_1.fastq'
+    assert_selector '[data-test-data-file]', text: '4 Bytes'
+
+    # Sent here, not imported: its status is nobody's yet, not D-way's.
+    assert_selector '[data-test-status-source]', text: 'DRA is not curated here yet'
+  end
+
   test 'the samples tab narrows to the group being worked on' do
     visit samples_admin_submission_request_path(@req)
 

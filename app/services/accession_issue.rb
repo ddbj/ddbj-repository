@@ -69,7 +69,7 @@ class AccessionIssue
   # on the confirmation, as the refusal of a press, and on the run page.
   REFUSALS = {
     'st26' => 'ST.26 accessions are allocated when the file is applied, not issued here.',
-    'dra'  => 'DRA accessions are still issued in D-way, not here.'
+    'dra'  => 'DRA accessions are not issued here yet.'
   }.freeze
 
   def self.supported?(submission) = PREFIXES.key?(submission.db)

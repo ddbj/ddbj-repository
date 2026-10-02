@@ -17,7 +17,11 @@ class MeTest < ActionDispatch::IntegrationTest
     get '/api/me'
 
     assert_conform_schema 200
-    assert_equal %w[st26 bioproject biosample], response.parsed_body['submittable_dbs'], 'DRA is checked, but not yet applied'
+    assert_equal %w[st26 bioproject biosample dra], response.parsed_body['submittable_dbs']
+
+    DDBJValidatorClient.stub(:record_dbs, %w[bioproject biosample]) { get '/api/me' }
+
+    assert_equal %w[st26 bioproject biosample], response.parsed_body['submittable_dbs'], 'DRA where the validator does not read its records'
 
     DDBJValidatorClient.stub(:configured?, false) { get '/api/me' }
 
