@@ -17,7 +17,7 @@ class MeTest < ActionDispatch::IntegrationTest
     get '/api/me'
 
     assert_conform_schema 200
-    assert_equal %w[st26 bioproject biosample], response.parsed_body['submittable_dbs']
+    assert_equal %w[st26 bioproject biosample dra], response.parsed_body['submittable_dbs']
 
     DDBJValidatorClient.stub(:configured?, false) { get '/api/me' }
 

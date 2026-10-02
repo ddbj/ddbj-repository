@@ -1,18 +1,27 @@
-# ddbj-validator (ddbj/ddbj-validator), which checks BioProject / BioSample
-# (and later DRA) records for us over HTTP. Operated by others; a blank url
-# is an environment that does not use it yet, and there BioProject and
-# BioSample take no submissions (SubmissionRequest.submittable_dbs).
+# ddbj-validator (ddbj/ddbj-validator), which checks BioProject, BioSample
+# and DRA records for us over HTTP. Operated by others; a blank url is an
+# environment that does not use it yet, and there none of those databases
+# takes submissions (SubmissionRequest.submittable_dbs).
+#
+# `record_dbs` are the databases the validator at that url takes records
+# for — which depends on the version deployed there, not on this side:
+# DRA's came later (ddbj/ddbj-validator#10), and is added once it is.
 development:
-  url: <%= ENV['DDBJ_VALIDATOR_URL'] %>
+  url:        <%= ENV['DDBJ_VALIDATOR_URL'] %>
+  record_dbs: <%= ENV.fetch('DDBJ_VALIDATOR_RECORD_DBS', 'bioproject biosample').split.to_json %>
 
 test:
-  url: http://validator.example.com
+  url:        http://validator.example.com
+  record_dbs: [bioproject, biosample, dra]
 
 production:
-  url: <%= ENV['DDBJ_VALIDATOR_URL'] %>
+  url:        <%= ENV['DDBJ_VALIDATOR_URL'] %>
+  record_dbs: <%= ENV.fetch('DDBJ_VALIDATOR_RECORD_DBS', 'bioproject biosample').split.to_json %>
 
 staging:
-  url: <%= ENV['DDBJ_VALIDATOR_URL'] %>
+  url:        <%= ENV['DDBJ_VALIDATOR_URL'] %>
+  record_dbs: <%= ENV.fetch('DDBJ_VALIDATOR_RECORD_DBS', 'bioproject biosample').split.to_json %>
 
 dev:
-  url: <%= ENV['DDBJ_VALIDATOR_URL'] %>
+  url:        <%= ENV['DDBJ_VALIDATOR_URL'] %>
+  record_dbs: <%= ENV.fetch('DDBJ_VALIDATOR_RECORD_DBS', 'bioproject biosample').split.to_json %>

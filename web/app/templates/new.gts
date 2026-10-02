@@ -19,6 +19,7 @@ const DESCRIPTIONS: Record<components['schemas']['SubmittableDb'], string> = {
   st26: 'Patent sequence listings (ST.26 XML).',
   bioproject: 'Biological project metadata.',
   biosample: 'Biological sample metadata.',
+  dra: 'Sequence reads and their metadata. Upload the read files first.',
 };
 
 export default class extends Component {

@@ -29,6 +29,9 @@ class DDBJValidatorClient
 
   def self.configured? = Rails.application.config_for(:ddbj_validator).url.present?
 
+  # The databases the validator here takes records for (config/ddbj_validator.yml).
+  def self.record_dbs = configured? ? Array(Rails.application.config_for(:ddbj_validator).record_dbs) : []
+
   def initialize(config: Rails.application.config_for(:ddbj_validator))
     @config = config
   end

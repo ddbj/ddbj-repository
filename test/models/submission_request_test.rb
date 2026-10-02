@@ -323,17 +323,23 @@ class SubmissionRequestTest < ActiveSupport::TestCase
 
   # --- databases ---------------------------------------------------------
 
-  # DRA submissions come from D-way until the repository takes reads.
-  test 'a DRA request is refused unless the migration made it' do
+  # DRA's records are checked by a version of ddbj-validator that came
+  # later; until the one configured here takes them, DRA arrives only from
+  # D-way.
+  test 'a DRA request is taken where the validator takes DRA records, and otherwise only from the migration' do
     request = SubmissionRequest.new(user: users(:alice), db: 'dra')
     attach_ddbj_record(request)
 
-    refute request.valid?
-    assert_includes request.errors[:db], 'does not take submissions here yet'
-
-    request.migration_run_id = SecureRandom.uuid
-
     assert request.valid?
+
+    DDBJValidatorClient.stub(:record_dbs, %w[bioproject biosample]) do
+      refute request.valid?
+      assert_includes request.errors[:db], 'does not take submissions here yet'
+
+      request.migration_run_id = SecureRandom.uuid
+
+      assert request.valid?
+    end
   end
 
   # BioProject and BioSample are checked by ddbj-validator alone; where

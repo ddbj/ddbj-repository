@@ -227,6 +227,14 @@ upload, which is one PUT.
 
 ### DRA reads (SRA Toolkit)
 
+A DRA record names its runs' and analyses' read files, which the submitter
+uploads first; `DRA::RecordFiles` matches each to one of the uploader's
+unassigned files by name and then by the MD5 the record states (the store
+computed the blob's when the upload was verified, so nothing is read).
+Checking the record (`RecordIntake`, TRD_R0022) and applying it both ask it.
+DRA takes submissions only where the configured ddbj-validator takes DRA
+records (`record_dbs` in config/ddbj_validator.yml).
+
 A DRA run's reads are read the way the archive will read them, by SRA
 Toolkit — NCBI's build, pinned in `bin/install-sratoolkit`, which the image
 and CI both run. `DRA::ReadCheck` is the check before accessions: it copies

@@ -1,6 +1,7 @@
 # What only the repository can say about a record sent for a database whose
-# rules live in ddbj-validator (BioProject, BioSample): the validator checks
-# the record's content, and knows nothing of how the repository keeps it.
+# rules live in ddbj-validator (BioProject, BioSample, DRA): the validator
+# checks the record's content, and knows nothing of how the repository
+# keeps it, or of what its submitter uploaded.
 #
 #   TRD_R0013  not JSON (or not UTF-8, or nested past reading)
 #   TRD_R0017  not DDBJ Record v3
@@ -10,6 +11,9 @@
 #   TRD_R0020  nothing of its own to register, or samples that cannot be told
 #              apart: a sample is kept, found and issued its accession by its
 #              alias, as it is kept (canonical, so whitespace collapsed)
+#   TRD_R0022  a DRA run or analysis names a file that is not among its
+#              submitter's uploads, or not with the MD5 the record states
+#              (DRA::RecordFiles)
 #
 # A record may carry more than its request's database — projects and samples
 # together, the accession of the one registered first written into it
@@ -23,8 +27,9 @@ module RecordIntake
   # Each database's own objects — the rows it will be curated as, and so
   # the ones whose accessions the repository issues.
   OWN = {
-    'bioproject' => 'projects',
-    'biosample'  => 'samples'
+    'bioproject' => %w[projects],
+    'biosample'  => %w[samples],
+    'dra'        => %w[experiments runs analyses]
   }.freeze
 
   # As the pinned spec writes it (docs/versioning.md): no minor.
@@ -57,7 +62,7 @@ module RecordIntake
 
     return [finding('TRD_R0017', 'The record is not a DDBJ Record v3 document (schema_version "v3").')] unless record.is_a?(Hash) && record['schema_version'] == V3
 
-    objects(record, own).presence || accessions(record, own).presence || canonical_form(record)
+    objects(record, own).presence || accessions(record, own).presence || files(record, subject).presence || canonical_form(record)
   rescue Oj::ParseError => e
     [finding('TRD_R0013', "The record is not JSON#{e.message[/ at (line \d+, column \d+)/, 1]&.then { " (#{it})" }}.")]
   rescue SystemStackError
@@ -65,12 +70,13 @@ module RecordIntake
   end
 
   def objects(record, own)
-    objects = record[own]
+    unless own.any? { record[it].is_a?(Array) && record[it].any? }
+      return [finding('TRD_R0020', "The record has no #{own.to_sentence(two_words_connector: ' or ', last_word_connector: ', or ')} to register.")]
+    end
 
-    return [finding('TRD_R0020', "The record has no #{own} to register.")] unless objects.is_a?(Array) && objects.any?
-    return [] unless own == 'samples'
+    return [] unless own == %w[samples]
 
-    aliases = objects.map { Sample.normalise_name(it['alias'].presence) if it.is_a?(Hash) && it['alias'].is_a?(String) }
+    aliases = record['samples'].map { Sample.normalise_name(it['alias'].presence) if it.is_a?(Hash) && it['alias'].is_a?(String) }
 
     missing = aliases.each_index.select { aliases[it].blank? }.map {|index|
       finding('TRD_R0020', "samples[#{index}] has no alias; a sample is known by it.")
@@ -84,10 +90,21 @@ module RecordIntake
   end
 
   def accessions(record, own)
-    Array(record[own]).each_with_index.filter_map {|object, index|
-      next unless object.is_a?(Hash) && object['accession'].present?
+    own.flat_map {|list|
+      Array(record[list]).each_with_index.filter_map {|object, index|
+        next unless object.is_a?(Hash) && object['accession'].present?
 
-      finding('TRD_R0018', "#{own}[#{index}] carries the accession #{object['accession']}; accessions are issued by DDBJ.", entry_id: object['alias'].presence)
+        finding('TRD_R0018', "#{list}[#{index}] carries the accession #{object['accession']}; accessions are issued by DDBJ.", entry_id: object['alias'].presence)
+      }
+    }
+  end
+
+  # A DRA record's reads are uploaded before it is sent, and named in it.
+  def files(record, subject)
+    return [] unless subject.db == 'dra'
+
+    DRA::RecordFiles.new(record, subject.user).unmatched.map {|entry|
+      finding('TRD_R0022', "#{entry.where} #{entry.problem}.", entry_id: entry.object['alias'].presence)
     }
   end
 

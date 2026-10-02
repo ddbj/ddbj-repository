@@ -3191,10 +3191,10 @@ export interface components {
         /** @enum {string} */
         Db: "st26" | "bioproject" | "biosample" | "dra";
         /**
-         * @description The databases a submission request can be created for. ST.26 always; BioProject and BioSample where their records can be checked here, which `GET /me` says (`submittable_dbs`) — elsewhere they are refused. DRA submissions are migrated from D-way and cannot be created here yet.
+         * @description The databases a submission request can be created for. ST.26 always; BioProject, BioSample and DRA where their records can be checked here, which `GET /me` says (`submittable_dbs`) — elsewhere they are refused. A DRA record names the read files of its runs and analyses, which are uploaded first (`/uploads`) and matched by name and MD5.
          * @enum {string}
          */
-        SubmittableDb: "st26" | "bioproject" | "biosample";
+        SubmittableDb: "st26" | "bioproject" | "biosample" | "dra";
         SubmissionRequestSummary: {
             id: number;
             db: components["schemas"]["Db"];

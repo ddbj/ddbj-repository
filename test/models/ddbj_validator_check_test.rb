@@ -321,7 +321,7 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
     assert CurationState.new(@request).unchecked?
   end
 
-  test 'ST.26 is checked here, BioProject and BioSample by the validator, anything else by nobody' do
+  test 'ST.26 is checked here, BioProject, BioSample and DRA by the validator' do
     st26 = submission_requests(:st26)
     attach_ddbj_record st26
 
@@ -335,6 +335,12 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
 
     assert_equal UUID, @request.reload.validation.external_id
 
-    assert_raises(ArgumentError) { ValidateDDBJRecordJob.perform_now submission_requests(:dra) }
+    dra = submission_requests(:dra).tap { it.update_columns(status: 'waiting_validation') }
+    dra.ddbj_record.attach(io: StringIO.new({schema_version: 'v3', experiments: [{alias: 'e'}]}.to_json), filename: 'dra.json', content_type: 'application/json')
+
+    ValidateDDBJRecordJob.perform_now dra
+
+    assert_equal UUID, dra.reload.validation.external_id
+    assert_requested(:post, "#{VALIDATOR}/validation") { it.body.match?(/name="record_db"\r\n\r\ndra\r\n/) }
   end
 end
