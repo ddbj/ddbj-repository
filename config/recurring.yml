@@ -7,6 +7,12 @@ production: &production
     class: StorageHealthcheckJob
     schedule: every hour
 
+  # A DRA check whose reading of its reads was stopped (a deploy, a restart)
+  # would otherwise stay "checking" with nothing to finish it.
+  give_up_stopped_dra_readings:
+    class: GiveUpStoppedDRAReadingsJob
+    schedule: every hour
+
   # Blobs nothing attached — a direct upload whose request was never made, or
   # the outputs of a write that rolled back (SubmissionOutputWriter keeps
   # those rather than risk purging a committed row's bytes). Registered here

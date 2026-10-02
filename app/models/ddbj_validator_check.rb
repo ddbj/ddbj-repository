@@ -11,7 +11,10 @@
 #
 #   - what only the repository can
 #     say (RecordIntake, once)      → its findings, before anything is sent
-#   - the report                    → its findings
+#   - the report                    → its findings; for DRA, with nothing
+#                                     wrong in it, those and then what its
+#                                     runs' reads are found to be
+#                                     (CheckDRAReadsJob)
 #   - the record refused when sent  → TRD_R0015, with the validator's reason
 #   - no answer in time, a run that
 #     ended without checking, or no
@@ -167,7 +170,52 @@ module DDBJValidatorCheck
       return give_up(validation, 'ddbj-validator reported the record invalid without saying why')
     end
 
+    return hold(validation, details, report) if validation.subject.db == 'dra' && details.none? { it[:severity] == :error }
+
     conclude validation, details, report:
+  end
+
+  # A DRA record whose metadata passed has its reads to be read yet, which
+  # takes hours: the validator's findings are written, and the check stays
+  # running until CheckDRAReadsJob adds its own and concludes it. One whose
+  # metadata failed is not worth the hours.
+  def hold(validation, details, report)
+    held = ActiveRecord::Base.transaction {
+      validation.lock!
+
+      next false unless validation.running?
+
+      details.each { validation.details.create!(it) }
+      validation.update!(raw_result: report)
+    }
+
+    CheckDRAReadsJob.perform_later validation if held
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
+  # A check held for its reads whose reading was stopped — a deploy that
+  # outlasted the job's time to stop, the host restarting — has nothing left
+  # to finish it: its job is gone, or failed without running its own rescue.
+  # It is ended as not carried out, for the submitter to run again.
+  #
+  # Not by age alone: the readings run one at a time, so one can wait its
+  # turn for as long as those ahead of it take. Only a check whose job is
+  # no longer there, or no longer alive, is given up on. (A held check is
+  # running with the validator's report already written; nothing else is.)
+  def give_up_stopped_readings
+    alive = live_reading_arguments
+
+    Validation.running.where.not(raw_result: nil).where(updated_at: ...10.minutes.ago).find_each do |validation|
+      next if alive.any? { it.include?(%("#{validation.to_global_id}")) }
+
+      give_up validation, 'the reading of its reads stopped before it ended'
+    end
+  end
+
+  # The arguments of every CheckDRAReadsJob not finished and not failed.
+  def live_reading_arguments
+    SolidQueue::Job.where(class_name: 'CheckDRAReadsJob', finished_at: nil).where.missing(:failed_execution).pluck(:arguments)
   end
 
   # Reported once, here: every ask before it that found the validator out of

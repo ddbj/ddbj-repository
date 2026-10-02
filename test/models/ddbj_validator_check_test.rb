@@ -343,4 +343,60 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
     assert_equal UUID, dra.reload.validation.external_id
     assert_requested(:post, "#{VALIDATOR}/validation") { it.body.match?(/name="record_db"\r\n\r\ndra\r\n/) }
   end
+
+  # --- DRA: the reads, after the metadata ---------------------------------
+
+  def dra_started
+    @request = SubmissionRequest.new(user: users(:alice), db: 'dra', status: :waiting_validation).tap { it.save!(validate: false) }
+    @request.ddbj_record.attach(io: StringIO.new({schema_version: 'v3', experiments: [{alias: 'e'}]}.to_json), filename: 'dra.json', content_type: 'application/json')
+
+    stub_start
+    DDBJValidatorCheck.send_record @request.create_validation!
+
+    @request.validation
+  end
+
+  # Hours of reading are worth it only for metadata that passed.
+  test 'a DRA record whose metadata passed is held for its reads; one that failed is not' do
+    validation = dra_started
+
+    stub_report [{id: 'DRA_R0099', level: 'warning', message: 'A warning.'}]
+
+    assert_enqueued_with job: CheckDRAReadsJob, args: [validation] do
+      DDBJValidatorCheck.poll validation, 0
+    end
+
+    assert validation.reload.running?, 'held'
+    assert_equal [%w[DRA_R0099 warning]], details(validation)
+
+    failed = dra_started
+
+    stub_report [{id: 'DRA_R0002', level: 'error', message: 'Wrong.'}]
+
+    assert_no_enqueued_jobs only: CheckDRAReadsJob do
+      DDBJValidatorCheck.poll failed, 0
+    end
+
+    assert failed.reload.finished?
+    assert @request.reload.validation_failed?
+  end
+
+  # Readings run one at a time, so age alone says nothing: only a check
+  # whose job is gone is given up on.
+  test 'a held check whose reading stopped is ended as not carried out, one still waiting its turn is not' do
+    stopped = dra_started
+    waiting = dra_started
+
+    [stopped, waiting].each { it.update_columns(raw_result: {'validity' => true}, updated_at: 1.hour.ago) }
+
+    alive = [%([{"_aj_globalid":"#{waiting.to_global_id}"}])]
+
+    DDBJValidatorCheck.stub(:live_reading_arguments, alive) do
+      DDBJValidatorCheck.give_up_stopped_readings
+    end
+
+    assert stopped.reload.finished?
+    assert_match 'the reading of its reads stopped before it ended', stopped.details.sole.message
+    assert waiting.reload.running?
+  end
 end
