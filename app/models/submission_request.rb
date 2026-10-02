@@ -230,13 +230,17 @@ class SubmissionRequest < ApplicationRecord
   # attachment rule is waived for them.
   validates :ddbj_record, attached: true, content_type: 'application/json', unless: :migration_origin?
 
-  # The databases a submitter can send a record for here: ST.26, and
-  # BioProject and BioSample wherever ddbj-validator is configured — their
-  # rules are checked there and nowhere else, so an environment without one
-  # has no way to check what it would be sent. Setting the validator's URL
-  # is what opens them. DRA arrives only from D-way until the repository
-  # takes its reads itself.
-  def self.submittable_dbs = DDBJValidatorClient.configured? ? %w[st26 bioproject biosample] : %w[st26]
+  # The databases a submitter can send a record for here: ST.26, and those
+  # the ddbj-validator configured here takes records for (BioProject,
+  # BioSample, and DRA once a version that reads its records is deployed) —
+  # their rules are checked there and nowhere else, so an environment
+  # without one has no way to check what it would be sent. Setting the
+  # validator's URL, and its databases, is what opens them.
+  #
+  # Of those, only what can be applied here (SubmissionApply.dbs): a request
+  # that could be checked and not applied would be offered "Send to DDBJ"
+  # only to fail.
+  def self.submittable_dbs = ['st26', *DDBJValidatorClient.record_dbs] & SubmissionApply.dbs
 
   # On create only: a request already made stays readable and closable
   # whatever its database.

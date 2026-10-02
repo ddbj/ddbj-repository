@@ -29,6 +29,14 @@ class DDBJValidatorClient
 
   def self.configured? = Rails.application.config_for(:ddbj_validator).url.present?
 
+  # What ddbj-validator checks records for at all.
+  RECORD_DBS = %w[bioproject biosample dra].freeze
+
+  # The databases the validator here takes records for (config/ddbj_validator.yml),
+  # of those it can: a name it cannot (a comma-separated list read as one
+  # name, a database it does not check) is no database.
+  def self.record_dbs = configured? ? Array(Rails.application.config_for(:ddbj_validator).record_dbs).map(&:to_s) & RECORD_DBS : []
+
   def initialize(config: Rails.application.config_for(:ddbj_validator))
     @config = config
   end

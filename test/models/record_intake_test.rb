@@ -4,7 +4,7 @@ class RecordIntakeTest < ActiveSupport::TestCase
   RECORD = {'schema_version' => 'v3', 'projects' => [{'alias' => 'p', 'title' => 'A project', 'project_type' => 'primary'}]}.freeze
 
   def findings(record, db: 'bioproject')
-    request = SubmissionRequest.new(db:)
+    request = SubmissionRequest.new(db:, user: users(:alice))
     request.ddbj_record.attach ActiveStorage::Blob.create_and_upload!(io: StringIO.new(record.is_a?(String) ? record : record.to_json), filename: 'record.json', content_type: 'application/json')
 
     RecordIntake.findings(request)
@@ -69,5 +69,86 @@ class RecordIntakeTest < ActiveSupport::TestCase
     request.ddbj_record.blob.stub(:download, -> { flunk 'read before its size was asked' }) do
       assert_equal %w[TRD_R0021], RecordIntake.findings(request).map { it[:code] }
     end
+  end
+
+  # --- DRA ---------------------------------------------------------------
+
+  READS = "@r1\nACGT\n+\nIIII\n"
+
+  def upload(name, body = READS, user: users(:alice))
+    user.unassigned_files.attach(io: StringIO.new(body), filename: name, content_type: 'application/octet-stream')
+  end
+
+  def dra_record(files)
+    {
+      'schema_version' => 'v3',
+      'experiments'    => [{'alias' => 'exp1'}],
+      'runs'           => [{'alias' => 'run1', 'data_blocks' => [{'files' => files}]}]
+    }
+  end
+
+  def fastq(name, md5 = Digest::MD5.hexdigest(READS)) = {'filename' => name, 'filetype' => 'fastq', 'checksum_method' => 'MD5', 'checksum' => md5}
+
+  test 'a DRA record needs objects of its own, and brings no accessions for them' do
+    assert_equal %w[TRD_R0020], codes({'schema_version' => 'v3', 'samples' => [{'alias' => 's'}]}, db: 'dra')
+    assert_match 'experiments, runs, or analyses', findings({'schema_version' => 'v3'}, db: 'dra').sole[:message]
+
+    assert_equal %w[TRD_R0018], codes({'schema_version' => 'v3', 'runs' => [{'alias' => 'r', 'accession' => 'DRR000001'}]}, db: 'dra')
+    assert_equal %w[TRD_R0018], codes({'schema_version' => 'v3', 'submission' => {'accession' => 'DRA000001'}, 'runs' => [{'alias' => 'r'}]}, db: 'dra'), 'a DRA submission is numbered here too'
+  end
+
+  # The reads go up first; the record names them, and its MD5 says which.
+  test 'the files a DRA record names are its submitter\'s uploads, with the MD5 it states' do
+    upload 'r_1.fastq'
+
+    assert_empty codes(dra_record([fastq('r_1.fastq')]), db: 'dra')
+
+    missing   = findings(dra_record([fastq('r_2.fastq')]), db: 'dra').sole
+    different = findings(dra_record([fastq('r_1.fastq', 'f' * 32)]), db: 'dra').sole
+    unstated  = findings(dra_record([fastq('r_1.fastq').except('checksum')]), db: 'dra').sole
+
+    assert_equal ['TRD_R0022', 'run1'], missing.values_at(:code, :entry_id)
+    assert_match 'runs[0] "r_2.fastq" is not among the files uploaded for it', missing[:message]
+    assert_match 'its MD5 is not ffff', different[:message]
+    assert_match 'states no MD5', unstated[:message]
+
+    assert_match 'names a file without a name', findings(dra_record([fastq('r_1.fastq').merge('filename' => {'x' => 1})]), db: 'dra').sole[:message]
+  end
+
+  # The record is kept canonical, and Apply reads it kept: intake and Apply
+  # have to find the same upload for the same name.
+  test 'names are compared as the record keeps them' do
+    upload "r\u0301_1.fastq" # NFD, as macOS writes it
+
+    assert_empty codes(dra_record([fastq('ŕ_1.fastq')]), db: 'dra')
+    assert_empty codes(dra_record([fastq('  ŕ_1.fastq ')]), db: 'dra')
+  end
+
+  test 'of two uploads of one name, the MD5 picks the one' do
+    upload 'r_1.fastq', 'other'
+    upload 'r_1.fastq'
+
+    assert_empty codes(dra_record([fastq('r_1.fastq')]), db: 'dra')
+  end
+
+  # It would be assigned to both.
+  test 'one upload named twice is refused the second time' do
+    upload 'r_1.fastq'
+
+    record = dra_record([fastq('r_1.fastq')]).merge(
+      'analyses' => [{'alias' => 'an1', 'data_blocks' => [{'files' => [fastq('r_1.fastq')]}]}]
+    )
+
+    twice = findings(record, db: 'dra').sole
+
+    assert_equal 'an1', twice[:entry_id]
+    assert_match 'analyses[0] "r_1.fastq" is the same upload as runs[0] names', twice[:message]
+  end
+
+  # Somebody else's upload of the same file is not this submitter's.
+  test 'another account\'s upload of the file does not count' do
+    upload 'r_1.fastq', user: users(:carol)
+
+    assert_equal %w[TRD_R0022], codes(dra_record([fastq('r_1.fastq')]), db: 'dra')
   end
 end

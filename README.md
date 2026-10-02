@@ -176,6 +176,7 @@ added as failures are classified, so the set grows.
 | TRD_R0019 | validation | error | The record cannot be put in its canonical form, which is how it is kept (`doc/canonical-json.md`). The message is the canonicaliser's |
 | TRD_R0020 | validation | error | A BioProject or BioSample record has none of its own objects to register, or a sample has no `alias` or shares one with another (whitespace aside). A sample is kept, found and issued its accession by its alias |
 | TRD_R0021 | validation | error | A BioProject or BioSample record is larger than can be read here (512 MB). It is refused before it is read |
+| TRD_R0022 | validation | error | A DRA run or analysis names a file that is not among its submitter's uploads, or states an MD5 that none of them has, or none at all. Reads are uploaded before the record is sent |
 | TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack
