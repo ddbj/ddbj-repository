@@ -88,6 +88,18 @@
         <% end %>
       <% end %>
 
+      <%# Weighed by what it does, which the screen knows: amber where it %>
+      <%# allocates numbers that cannot be taken back, plain where it %>
+      <%# writes what can be written again. The confirmation says which. %>
+      <% if @state.reapplicable? %>
+        <%= button_to 'Apply again',
+                      admin_submission_request_reapplication_path(@request),
+                      method: :post,
+                      class:  "btn btn-sm #{@state.reapply_allocates? ? 'btn-warning' : 'btn-primary'}",
+                      form:   {data: {turbo_confirm: "Apply request ##{@request.id} again? #{@state.reapply_effect}"}},
+                      data:   {turbo_submits_with: 'Applying…'} %>
+      <% end %>
+
       <%# Gated on "would this succeed", not on whether issuance happens to %>
       <%# be the most urgent thing to say — an unread message must not hide %>
       <%# the only PRJDB button a BP request has. %>

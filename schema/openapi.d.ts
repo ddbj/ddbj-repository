@@ -3492,9 +3492,12 @@ export interface components {
              */
             closed_at: string | null;
             /**
-             * @description Whether you may close it now. True only while the request is asking
-             *     its owner for something (validation failed, or ready to apply) —
-             *     and never for somebody reading it through a shared set.
+             * @description Whether you may close it now. True while the request is asking its
+             *     owner for something (validation failed, or ready to apply), and
+             *     for an application that failed for good — on its file, or where
+             *     DDBJ cannot apply it again — so it does not wait for ever beside
+             *     the corrected request sent in its place. Never for somebody
+             *     reading it through a shared set.
              */
             closable: boolean;
             /**
@@ -3512,9 +3515,8 @@ export interface components {
             /**
              * @description Whether the check can be run again. The way out of a check that has
              *     gone stale: nothing is wrong with the file, only the answer about it
-             *     has expired — and of an apply that failed, which is checked and sent
-             *     again. Never once the request is applied, nor while a check or an
-             *     apply is running.
+             *     has expired. Only before the request is sent: an application that
+             *     failed is DDBJ's to apply again.
              */
             recheckable: boolean;
             /**

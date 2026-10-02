@@ -189,6 +189,28 @@ class CurationState
 
   def failed? = request.status.in?(%w[validation_failed application_failed])
 
+  # Failed to apply on something other than its file — the store, numbers
+  # run out — so applying it again is the way on once that is put right
+  # (SubmissionRequest#reapply_blocked_reason).
+  def reapplicable? = request.reapplicable?
+
+  # What applying it again does, said plainly since the screen knows:
+  # an ST.26 request numbered before it failed keeps its numbers, one that
+  # was not is numbered now — which is what cannot be taken back.
+  def reapply_allocates? = request.st26_db? && !request.submission
+
+  def reapply_effect
+    if reapply_allocates?
+      'This allocates an accession number for each of its entries, which cannot be taken back.'
+    elsif request.st26_db?
+      count = ActiveSupport::NumberHelper.number_to_delimited(request.submission.entries.count)
+
+      "Its #{count} entries keep the numbers they were given; only its record and flatfiles are written again."
+    else
+      'This makes its submission from the record it was sent with.'
+    end
+  end
+
   # Failed only because the check could not be carried out (TRD_R0016):
   # nothing is known to be wrong with the file, and the way on is to check
   # it again. Asked of the details only for a failed check, which is rare.
@@ -251,7 +273,15 @@ class CurationState
   # the request is not waiting on us. Ordered by who is blocked: a broken
   # pipeline first, then a submitter waiting for a reply, then issuance.
   def next_action
-    if failed?
+    if request.application_failed?
+      # Why it cannot be applied again, where it cannot: the button is gone,
+      # and a curator should not have to guess at the reason.
+      NextAction.new(
+        title:  reapplicable? ? 'Application failed — apply it again once what it failed on is put right' : 'Application failed',
+        detail: [request.error_message.presence || 'It failed without saying why.', request.reapply_blocked_reason].compact.join(' '),
+        label:  nil
+      )
+    elsif failed?
       NextAction.new(
         title:  "#{request.status.tr('_', ' ').capitalize} — the submitter cannot move this forward",
         detail: request.error_message.presence || 'See the validation report for the failing entries.',

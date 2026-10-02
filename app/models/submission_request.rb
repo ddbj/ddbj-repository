@@ -153,7 +153,11 @@ class SubmissionRequest < ApplicationRecord
   # a submission whose end is the curator's to declare (withdrawn,
   # canceled) — a second notion of "closed" on the request would put the
   # same fact in two places.
-  def closable? = !closed? && ACTION_STATUSES.include?(status)
+  #
+  # And an application that failed for good — on its file, or leaving what
+  # cannot be applied again (`reapply_blocked_reason`): otherwise it waits
+  # for ever, beside the corrected request sent in its place.
+  def closable? = !closed? && (ACTION_STATUSES.include?(status) || (application_failed? && !reapplicable?))
 
   # Sentences rather than codes: each is the whole of what the screen has
   # to say, and there is nothing here for a client to branch on. Each of
@@ -195,13 +199,50 @@ class SubmissionRequest < ApplicationRecord
     nil
   end
 
+  # The submitter's "Send to DDBJ": hands the request to the apply, or
+  # returns why it cannot be.
+  def send_to_ddbj = hand_to_apply { send_blocked_reason }
+
+  REAPPLY_CLOSED     = 'It is closed.'.freeze
+  REAPPLY_NOT_FAILED = 'Only a request whose application failed can be applied again — this one may already be being applied.'.freeze
+  REAPPLY_FILE       = 'It failed on something in its file, which applying it again would not change. The submitter has to send a corrected file.'.freeze
+  REAPPLY_DB         = 'Records of its database are not applied here.'.freeze
+  REAPPLY_NO_RECORD  = 'Its record is gone, so there is nothing to apply.'.freeze
+  REAPPLY_UNLINKED   = 'It failed before 2026-10, when a failure after numbering lost the link to its numbers, so it may have been numbered; ' \
+                       'applying it again could number it twice.'.freeze
+
+  # Whether a curator can apply it again (`apply_again`), and if not, why.
+  #
+  # A curator's, not the submitter's: what an application fails on — the
+  # store, numbers run out — is DDBJ's to put right, and a submitter told
+  # to send again would go on doing so over a fault only DDBJ can fix, or
+  # long after sending a new request instead.
+  #
+  # Sent as it was, on the check it was sent on, not checked again first:
+  # a check now could answer differently and leave an ST.26 request that
+  # kept its numbers with no way on. The apply carries on from what it
+  # committed (SubmissionApply::St26).
+  def reapply_blocked_reason
+    return REAPPLY_CLOSED     if closed?
+    return REAPPLY_NOT_FAILED unless application_failed?
+    return REAPPLY_FILE       if ApplySubmissionRequestJob::FILE_AT_FAULT.include?(error_code)
+    return REAPPLY_UNLINKED   if error_code == ApplySubmissionRequestJob::UNLINKED_CODE
+    return REAPPLY_DB         unless db.in?(SubmissionApply.dbs)
+    return REAPPLY_NO_RECORD  unless ddbj_record.attached?
+
+    nil
+  end
+
+  def reapplicable? = reapply_blocked_reason.nil?
+
+  def apply_again = hand_to_apply { reapply_blocked_reason }
+
   # Whether the check can be run again. The way out of a stale one: the
-  # file is not in question, the answer about it has expired. Not while one
-  # is running, and not once the request is applied — the check would take
-  # back the answer its submission was made on, and sending it again would
-  # apply it twice. A request that failed to apply is checked and sent
-  # again; the apply carries on from what it committed.
-  def recheckable? = !closed? && (validation_failed? || ready_to_apply? || application_failed?) && ddbj_record.attached?
+  # file is not in question, the answer about it has expired. Only before
+  # the request is sent: once applied the check would take back the answer
+  # its submission was made on, and one that failed to apply is a
+  # curator's to apply again (`reapply_blocked_reason`).
+  def recheckable? = !closed? && (validation_failed? || ready_to_apply?) && ddbj_record.attached?
 
   # Straight to the column, for the same reason `assign!` is: `validates
   # :ddbj_record, attached: true` guards the submitter's upload flow, and
@@ -374,6 +415,24 @@ class SubmissionRequest < ApplicationRecord
   end
 
   private
+
+  # Hands the request to the apply (ApplySubmissionRequestJob), unless the
+  # block names a reason it cannot be — asked under a lock, so two presses
+  # cannot both find it ready and send it twice: the second finds it
+  # already waiting. Returns the reason, or nil.
+  #
+  # Straight to the column, as the apply writes its own: a request whose
+  # validations no longer pass (its assignee stopped being a curator) is
+  # still sent.
+  def hand_to_apply
+    blocked = with_lock {
+      yield.tap { update_columns(status: 'waiting_application', updated_at: Time.current) unless it }
+    }
+
+    ApplySubmissionRequestJob.perform_later self unless blocked
+
+    blocked
+  end
 
   def assignee_must_be_admin
     return if assignee.nil? || assignee.admin?

@@ -170,8 +170,8 @@ class ApplySubmissionRequestJobTest < ActiveSupport::TestCase
     assert_not_empty numbered
     assert_not request.submission.ddbj_record.attached?
 
-    # Checked and sent again.
-    request.update_columns(status: 'waiting_application')
+    # Applied again by a curator.
+    assert_nil request.apply_again
 
     assert_no_difference -> { Entry.count } do
       ApplySubmissionRequestJob.perform_now request

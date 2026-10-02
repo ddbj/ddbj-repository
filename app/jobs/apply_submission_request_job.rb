@@ -12,6 +12,17 @@ class ApplySubmissionRequestJob < ApplicationJob
 
   UNEXPECTED_ERROR_CODE = 'TRD_R9999'
 
+  # Failures that were the file's: applying the request again would fail
+  # the same way (SubmissionRequest#reapply_blocked_reason).
+  FILE_AT_FAULT = [
+    ERROR_CODES.fetch(SubmissionApply::St26::MalformedLocusDate)
+  ].freeze
+
+  # Not raised: written once, by a migration, over ST.26 failures from
+  # before an apply committed its link with its numbers — what they left
+  # cannot be told (db/migrate/20261002000002).
+  UNLINKED_CODE = 'TRD_R0025'
+
   # Another run of this request has it (AdvisoryLock): wait for it to end,
   # since it may yet die without finishing.
   retry_on AdvisoryLock::Held, wait: 1.minute, attempts: :unlimited
@@ -57,7 +68,7 @@ class ApplySubmissionRequestJob < ApplicationJob
     # What the apply left on the request goes with its rolled-back
     # transaction — above all the submission it linked, which no longer
     # exists. (ST.26's numbers, submission and entries are a commit of their
-    # own, so those stay, and sending the request again carries on from
+    # own, so those stay, and a curator applying it again carries on from
     # them.)
     request.reload
 

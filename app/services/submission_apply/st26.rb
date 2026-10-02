@@ -17,8 +17,8 @@ class SubmissionApply::St26
   # carries on from what it committed: the numbers, the submission and its
   # entries are one commit, and the outputs the next. A submission with its
   # record written is done; one without keeps its numbers, and only the
-  # outputs are written again — as they are for a request sent again after
-  # writing them failed.
+  # outputs are written again — as they are for a request a curator applies
+  # again after writing them failed.
   def call
     return if @request.submission&.ddbj_record&.attached?
 

@@ -206,6 +206,11 @@ Rails.application.routes.draw do
       # are exactly the ones nobody has claimed.
       resource :assignment, only: %i[create]
 
+      # Applying a request again after its application failed, once what
+      # it failed on — the store, numbers run out — is put right. A
+      # curator's: those causes are DDBJ's to fix.
+      resource :reapplication, only: %i[create]
+
       member do
         # One tab, two kinds of row: a BioSample submission's samples, an
         # ST.26 submission's entries. Separate paths because the URL

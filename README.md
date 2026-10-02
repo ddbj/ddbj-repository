@@ -166,9 +166,9 @@ added as failures are classified, so the set grows.
 | TRD_R0009 | validation | error | ST.26 fields (applicant/inventor names, invention titles) contain non-ASCII characters |
 | TRD_R0010 | validation | error | No source feature with mol_type found |
 | TRD_R0011 | validation | warning | ApplicationNumberText is not in the expected format of yyyy-nnnnnn |
-| TRD_R0012 | application | error | No accession numbers left in the scope; extend its prefix list in `config/sequence.yml`. Nothing was consumed — no accession was burned and no submission created — so once it is extended the file can be submitted afresh |
+| TRD_R0012 | application | error | No accession numbers left in the scope; extend its prefix list in `config/sequence.yml`. Nothing was consumed — no accession was burned and no submission created — so once it is extended a curator applies the request again (Apply again, on its workbench) |
 | TRD_R0013 | validation | error | The uploaded record could not be parsed: malformed JSON, or a node whose container type is wrong for the schema (`"sequences": []` where an object belongs). The message is the parser's |
-| TRD_R0014 | application | error | The record's `locus_date` is not written as `YYYY-MM-DD`. Refused rather than guessed: `Date.parse` reads `8/13` as this year's 13 August, and the value is printed on the LOCUS line of a published flatfile. Nothing was consumed — no accession was allocated |
+| TRD_R0014 | application | error | The record's `locus_date` is not written as `YYYY-MM-DD`. Refused rather than guessed: `Date.parse` reads `8/13` as this year's 13 August, and the value is printed on the LOCUS line of a published flatfile. Nothing was consumed — no accession was allocated. The request can be closed; a corrected file is a new request |
 | TRD_R0015 | validation | error | ddbj-validator refused the record when it was sent (too large, or a request it cannot take). The message carries its reason |
 | TRD_R0016 | validation | error | The record could not be checked: ddbj-validator was out of reach or had not finished within two hours, its run ended without a report, or none is configured. Nothing is known to be wrong with the file; check it again later |
 | TRD_R0017 | validation | error | A BioProject or BioSample record is not DDBJ Record v3 (`schema_version` `"v3"`) |
@@ -179,6 +179,7 @@ added as failures are classified, so the set grows.
 | TRD_R0022 | validation | error | A DRA run or analysis names a file that is not among its submitter's uploads, or states an MD5 that none of them has, or none at all. Reads are uploaded before the record is sent |
 | TRD_R0023 | validation | error | A DRA run's reads could not be read by SRA Toolkit (the message carries what it said), or mix filetypes that are read apart. Checked once the record's metadata has passed |
 | TRD_R0024 | validation | warning | A DRA run's reads were read with records dropped as unreadable (up to 5%, as D-way took them), or are of a filetype not read here yet |
+| TRD_R0025 | application | error | An ST.26 apply that failed before 2026-10, when a failure after numbering lost the request's link to its numbers. It may have been numbered, so it is not applied again; the request can be closed |
 | TRD_R9999 | both | error | Unexpected internal error |
 
 ## Tech Stack

@@ -53,6 +53,114 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_no_selector "form[action$='/curation']"
   end
 
+  def failed_request(error_code, submission: nil, db: 'st26')
+    SubmissionRequest.new(user: users(:alice), db:).tap {|request|
+      attach_ddbj_record request
+      request.save!(validate: false)
+      request.update_columns(status: 'application_failed', error_code:, error_message: 'it went wrong', submission_id: submission&.id)
+    }
+  end
+
+  # Numbers run out — DDBJ's to put right, before any were taken — so the
+  # curator who did applies it again, and is told it numbers it now.
+  test 'a request that failed before it was numbered can be applied again' do
+    request = failed_request('TRD_R0012')
+
+    visit admin_submission_request_path(request)
+
+    assert_text 'apply it again once what it failed on is put right'
+    assert_selector :button, 'Apply again', class: 'btn-warning'
+    assert_selector 'form[data-turbo-confirm*="allocates an accession number for each of its entries"]'
+
+    assert_enqueued_with job: ApplySubmissionRequestJob, args: [request] do
+      click_button 'Apply again'
+    end
+
+    assert_text "Applying request ##{request.id} again."
+    assert request.reload.waiting_application?
+
+    # Pressed twice: the second finds it already waiting.
+    page.driver.submit :post, admin_submission_request_reapplication_path(request), {}
+
+    assert_text 'may already be being applied'
+  end
+
+  # Numbered, then failed writing its files: it keeps its numbers.
+  test 'a request numbered before it failed is applied again on its numbers' do
+    submission = Submission.create!(db: 'st26', user: users(:alice))
+    request    = failed_request('TRD_R9999', submission:)
+
+    visit admin_submission_request_path(request)
+
+    assert_selector :button, 'Apply again', class: 'btn-primary'
+    assert_selector 'form[data-turbo-confirm*="keep the numbers they were given"]'
+  end
+
+  # From 2026-10 the link is committed with the numbers, so a failure
+  # without a submission came before numbering — the store not answering
+  # when the record was read, say.
+  test 'an ST.26 request that failed before it was numbered can be applied again' do
+    request = failed_request('TRD_R9999')
+
+    visit admin_submission_request_path(request)
+
+    assert_selector :button, 'Apply again', class: 'btn-warning'
+  end
+
+  # Failed after numbering under the code before 2026-10, which kept the
+  # numbers and lost the link: marked so, since applying it again could
+  # number it twice.
+  test 'an ST.26 request that may have lost its numbers is not offered again' do
+    request = failed_request('TRD_R0025')
+
+    visit admin_submission_request_path(request)
+
+    assert_text 'applying it again could number it twice'
+    assert_no_button 'Apply again'
+  end
+
+  # One transaction, so nothing of it was kept; nothing is numbered either.
+  test 'a BioProject request is applied again plainly' do
+    request = failed_request('TRD_R9999', db: 'bioproject')
+
+    visit admin_submission_request_path(request)
+
+    assert_selector :button, 'Apply again', class: 'btn-primary'
+    assert_selector 'form[data-turbo-confirm*="makes its submission"]'
+  end
+
+  test 'a request of a database not applied here is not offered again' do
+    request = failed_request('TRD_R9999', db: 'dra')
+
+    visit admin_submission_request_path(request)
+
+    assert_text 'not applied here'
+    assert_no_button 'Apply again'
+  end
+
+  test 'only a curator applies a request again' do
+    request = failed_request('TRD_R0012')
+
+    Capybara.reset_sessions!
+    sign_in_as users(:carol), at: admin_submission_request_path(request)
+
+    assert_no_enqueued_jobs only: ApplySubmissionRequestJob do
+      page.driver.submit :post, admin_submission_request_reapplication_path(request), {}
+    end
+
+    assert request.reload.application_failed?
+  end
+
+  # The file was at fault: applying it again would fail the same way.
+  test 'a request that failed to apply on its file is not offered again' do
+    request = failed_request('TRD_R0014')
+
+    visit admin_submission_request_path(request)
+
+    assert_text 'The submitter has to send a corrected file'
+    assert_no_button 'Apply again'
+  end
+
   test 'the samples tab narrows to the group being worked on' do
     visit samples_admin_submission_request_path(@req)
 

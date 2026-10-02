@@ -26,20 +26,9 @@ class SubmissionsController < ApplicationController
     # still offering a button for.
     request = current_user.submission_requests.find(params[:submission_request_id])
 
-    # Under a lock, so two presses cannot both find it sendable and send
-    # it twice — the second finds it already waiting.
-    request.with_lock do
-      blocked = request.send_blocked_reason
-
-      refuse! blocked if blocked
-
-      # Straight to the column, as the apply writes its own: a request
-      # whose validations no longer pass (its assignee stopped being a
-      # curator) is still sent.
-      request.update_columns status: 'waiting_application', updated_at: Time.current
+    if (blocked = request.send_to_ddbj)
+      refuse! blocked
     end
-
-    ApplySubmissionRequestJob.perform_later request
 
     head :no_content
   end

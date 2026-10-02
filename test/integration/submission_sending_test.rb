@@ -170,6 +170,42 @@ class SubmissionSendingTest < ActionDispatch::IntegrationTest
     assert @req.reload.applied?
   end
 
+  # What an application fails on is DDBJ's to put right, so applying it
+  # again is a curator's (Admin::ReapplicationsController) — and a request
+  # that failed is not checked again, which could answer differently.
+  test 'a request that failed to apply is neither sent nor checked again by the submitter' do
+    @req.update_columns(status: SubmissionRequest.statuses[:application_failed], error_code: 'TRD_R9999', error_message: 'store down')
+
+    get submission_request_path(@req)
+
+    assert_conform_schema 200
+    assert_equal false, response.parsed_body['sendable']
+    assert_equal false, response.parsed_body['recheckable']
+
+    assert_no_enqueued_jobs only: ApplySubmissionRequestJob do
+      with_exceptions_app { post submission_request_submission_path(@req) }
+    end
+
+    assert_response :unprocessable_content
+  end
+
+  # Failed for good — on its file — so it can be put down, rather than wait
+  # for ever beside the corrected request sent in its place.
+  test 'a request that failed to apply on its file can be closed' do
+    @req.update_columns(status: SubmissionRequest.statuses[:application_failed], error_code: 'TRD_R0014', error_message: 'bad date')
+
+    get submission_request_path(@req)
+
+    assert_conform_schema 200
+    assert_equal true, response.parsed_body['closable']
+
+    @req.update_columns(error_code: 'TRD_R9999')
+
+    get submission_request_path(@req)
+
+    assert_equal false, response.parsed_body['closable'], 'DDBJ can apply it again'
+  end
+
   # Nothing on the page is pressable for a reader who does not own it, so
   # there is no reason to explain a button they are not being offered.
   test 'a reader who does not own it is told neither' do
