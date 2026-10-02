@@ -251,6 +251,20 @@ and then `fastq-dump` must read a spot of it, consistent meaning intact
 rather than readable. The tools are told not to ask NCBI's servers
 (`/repository/remote/disabled`): an aligned file otherwise sends
 vdb-validate looking for its references online.
+A DRA record whose metadata passes ddbj-validator is held running
+(`DDBJValidatorCheck.hold`) while `CheckDRAReadsJob` reads each run's reads
+— one at a time (`limits_concurrency`), hours for a large run — and only
+then concluded; one whose metadata failed is not worth the hours. A held
+check whose job was stopped (a deploy outlasting its time to stop) is ended
+as not carried out by `give_up_stopped_readings`, hourly — by whether its
+job is still alive in Solid Queue, not by age, since one may wait its turn.
+The job is continuable: a deploy gives it under a minute and a run takes
+hours, so each run's findings are written as it is read and the cursor moved
+past it; a stopped job stops its tool with it (`interrupt`), keeps the files
+it had copied out (`dra-reads-<validation id>` under `work_dir`), and reads
+again only the run it was in. A run's experiment is found through the
+record's relations by `DDBJRecord::References`, which reads references the
+way `DRA::Converter` writes them.
 Its test uses the real loader where it is on PATH. `rake dra:check_reads`
 tries it on a user's uploaded files. Scratch that need not be shared
 between hosts can go on each host's local SSD (/data1) should Lustre prove
@@ -307,7 +321,7 @@ twice in its run's progress.
 
 A job of hours is better made continuable (`ActiveJob::Continuable`), so a
 deploy stops it at a checkpoint and it carries on from there — the sync
-jobs are.
+jobs and CheckDRAReadsJob are.
 
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 

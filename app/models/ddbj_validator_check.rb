@@ -11,7 +11,10 @@
 #
 #   - what only the repository can
 #     say (RecordIntake, once)      → its findings, before anything is sent
-#   - the report                    → its findings
+#   - the report                    → its findings; for DRA, with nothing
+#                                     wrong in it, those and then what its
+#                                     runs' reads are found to be
+#                                     (CheckDRAReadsJob)
 #   - the record refused when sent  → TRD_R0015, with the validator's reason
 #   - no answer in time, a run that
 #     ended without checking, or no
@@ -167,7 +170,79 @@ module DDBJValidatorCheck
       return give_up(validation, 'ddbj-validator reported the record invalid without saying why')
     end
 
+    return hold(validation, details, report) if validation.subject.db == 'dra' && details.none? { it[:severity] == :error }
+
     conclude validation, details, report:
+  end
+
+  # A DRA record whose metadata passed has its reads to be read yet, which
+  # takes hours: the validator's findings are written, and the check stays
+  # running until CheckDRAReadsJob adds its own and concludes it. One whose
+  # metadata failed is not worth the hours.
+  def hold(validation, details, report)
+    held = ActiveRecord::Base.transaction {
+      validation.lock!
+
+      # Held already (a second answer to the same run): its findings are in.
+      next false unless validation.running? && validation.raw_result.nil?
+
+      details.each { validation.details.create!(it) }
+      validation.update!(raw_result: report)
+    }
+
+    CheckDRAReadsJob.perform_later validation if held
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
+  # A held check's findings as its reads are read, a run at a time, so a
+  # reading taken up again does not lose those of the runs read before.
+  def add_details(validation, details)
+    return if details.empty?
+
+    ActiveRecord::Base.transaction do
+      validation.lock!
+
+      details.each { validation.details.create!(it) } if validation.running?
+    end
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
+  # A check held for its reads whose reading has nothing left to finish it:
+  # its job is gone, or failed and stayed failed. It is ended as not carried
+  # out, for the submitter to run again.
+  #
+  # Not by age alone: the readings run one at a time, so one can wait its
+  # turn for as long as those ahead of it take. Only a check whose job is
+  # no longer there, or no longer alive, is given up on. (A held check is
+  # running with the validator's report already written; nothing else is.)
+  #
+  # And not within the hour: a job whose process went is failed when Solid
+  # Queue notices — minutes after — and run again by RecoverKilledJobsJob
+  # within ten more, until when it looks no longer alive.
+  def give_up_stopped_readings
+    alive = live_readings
+
+    Validation.running.where.not(raw_result: nil).where(updated_at: ...1.hour.ago).find_each do |validation|
+      next if alive.include?(validation.to_global_id.to_s)
+
+      give_up validation, 'the reading of its reads stopped before it ended'
+    end
+
+    CheckDRAReadsJob.discard_abandoned_copies
+  end
+
+  # The checks every CheckDRAReadsJob not finished and not failed is for,
+  # as global ids. Solid Queue keeps a job's arguments as the serialised
+  # job, decoded — a Hash, not its JSON — and the check is its first
+  # argument.
+  def live_readings
+    live_reading_jobs.filter_map { it.dig('arguments', 0, '_aj_globalid') if it.is_a?(Hash) }
+  end
+
+  def live_reading_jobs
+    SolidQueue::Job.where(class_name: 'CheckDRAReadsJob', finished_at: nil).where.missing(:failed_execution).pluck(:arguments)
   end
 
   # Reported once, here: every ask before it that found the validator out of
@@ -191,7 +266,11 @@ module DDBJValidatorCheck
 
       if validation.running?
         details.each { validation.details.create!(it) }
-        validation.update!(raw_result: report, progress: :finished, finished_at: Time.current)
+
+        # A held check's report was written when it was held; what concludes
+        # it after the reads brings none to write over it.
+        validation.raw_result = report if report
+        validation.update!(progress: :finished, finished_at: Time.current)
 
         # Straight to the column, as `close!` and `assign!` do: a request
         # whose own validations no longer pass (its assignee stopped being

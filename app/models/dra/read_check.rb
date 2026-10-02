@@ -96,18 +96,30 @@ class DRA::ReadCheck
   # once per bad record, and the last of it says how the reading ended.
   OUTPUT_LIMIT = 64.kilobytes
 
+  # How often a running tool is looked in on, to be stopped if `interrupt`
+  # says so.
+  INTERRUPT_EVERY = 5.seconds
+
   def self.call(...) = new(...).call
 
   # `files` are the run's blobs, in the record's order; `filetype` and
   # `platform` are the record's, as SRA spells them (fastq, sra; ILLUMINA,
   # ABI_SOLID, …). `toolkit` is where SRA Toolkit's binaries are, or nil
   # for PATH.
-  def initialize(files:, filetype:, platform: nil, toolkit: nil, work_dir: Rails.application.config_for(:app).work_dir!)
-    @files    = files
-    @reader   = FILETYPES.fetch(filetype) { raise ArgumentError, "#{filetype} files are not read here yet" }
-    @platform = platform
-    @toolkit  = toolkit
-    @work_dir = Pathname.new(work_dir)
+  #
+  # For a check that may be stopped and taken up again (CheckDRAReadsJob):
+  # `dir` is a directory of the caller's, kept between attempts and removed
+  # by the caller, so the files copied out before are not copied again; and
+  # `interrupt` is called while copying and while a tool runs, and stops the
+  # tool if it raises.
+  def initialize(files:, filetype:, platform: nil, toolkit: nil, work_dir: Rails.application.config_for(:app).work_dir!, dir: nil, interrupt: nil)
+    @files     = files
+    @reader    = FILETYPES.fetch(filetype) { raise ArgumentError, "#{filetype} files are not read here yet" }
+    @platform  = platform
+    @toolkit   = toolkit
+    @work_dir  = Pathname.new(work_dir)
+    @dir       = dir && Pathname.new(dir)
+    @interrupt = interrupt
   end
 
   def call
@@ -118,19 +130,26 @@ class DRA::ReadCheck
     @work_dir.mkpath
     sweep
 
-    Dir.mktmpdir('dra-read-check-', @work_dir) do |dir|
-      dir   = Pathname.new(dir)
-      paths = @files.each_with_index.map {|blob, index| copy_out(blob, dir.join('in', index.to_s)) }
+    return check_in(@dir.tap(&:mkpath)) if @dir
 
-      dir.join('ncbi.mkfg').write(%(/repository/remote/disabled = "true"\n))
-
-      ok, output = send(@reader.method, paths, dir)
-
-      Result.new(ok:, output: output.byteslice([output.bytesize - OUTPUT_LIMIT, 0].max..).scrub)
-    end
+    Dir.mktmpdir('dra-read-check-', @work_dir) { check_in Pathname.new(it) }
   end
 
   private
+
+  # What a reading leaves besides the copies goes before the next: the
+  # loader refuses an output directory that is already there.
+  def check_in(dir)
+    %w[out tmp dump].each { dir.join(it).rmtree }
+
+    paths = @files.each_with_index.map {|blob, index| copy_out(blob, dir.join('in', index.to_s)) }
+
+    dir.join('ncbi.mkfg').write(%(/repository/remote/disabled = "true"\n))
+
+    ok, output = send(@reader.method, paths, dir)
+
+    Result.new(ok:, output: output.byteslice([output.bytesize - OUTPUT_LIMIT, 0].max..).scrub)
+  end
 
   def load_fastq(paths, dir)
     dir.join('tmp').mkpath
@@ -198,7 +217,15 @@ class DRA::ReadCheck
     name = shorten(name) if name.bytesize > NAME_BYTES
 
     dir.join(name).tap {|path|
-      path.open('wb') {|file| blob.download { file.write it } }
+      # Copied before, by an attempt that was stopped later.
+      next if path.exist? && path.size == blob.byte_size
+
+      path.open('wb') {|file|
+        blob.download do |chunk|
+          file.write chunk
+          @interrupt&.call
+        end
+      }
     }
   end
 
@@ -218,22 +245,36 @@ class DRA::ReadCheck
     Open3.popen2e(env, tool_path(tool), *args, chdir: chdir.to_s, pgroup: true) do |stdin, out, wait|
       stdin.close
 
-      reader = Thread.new { out.read }
+      # Stopped early, the tool's output is closed under it; that is no news.
+      reader   = Thread.new { out.read }.tap { it.report_on_exception = false }
+      deadline = TIMEOUT.from_now
 
-      unless wait.join(TIMEOUT)
-        begin
-          Process.kill('KILL', -wait.pid)
-        rescue Errno::ESRCH
-          nil
+      until wait.join(INTERRUPT_EVERY)
+        if Time.current > deadline
+          stop wait
+
+          raise TimedOut, "#{tool} had not finished within #{TIMEOUT.inspect}"
         end
 
-        wait.join
+        begin
+          @interrupt&.call
+        rescue Exception # rubocop:disable Lint/RescueException
+          stop wait
 
-        raise TimedOut, "#{tool} had not finished within #{TIMEOUT.inspect}"
+          raise
+        end
       end
 
       [reader.value, wait.value]
     end
+  end
+
+  def stop(wait)
+    Process.kill('KILL', -wait.pid)
+  rescue Errno::ESRCH
+    nil
+  ensure
+    wait.join
   end
 
   def sweep

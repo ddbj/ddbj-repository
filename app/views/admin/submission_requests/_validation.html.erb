@@ -18,10 +18,13 @@
       <%# A check that runs elsewhere (ddbj-validator) can wait; how long %>
       <%# is the question, so it is said — in amber once it has waited half %>
       <%# of what it will before giving up, since it might be stuck or %>
-      <%# might be a big record, and the screen cannot tell which. %>
-      <% slow = validation.running? && stale?(validation.created_at, threshold: DDBJValidatorCheck::GIVE_UP_AFTER / 2) %>
-      <span class="small <%= slow ? 'text-warning-emphasis' : 'text-body-secondary' %>">
-        <span class="badge text-bg-secondary text-capitalize"><%= validation.progress %></span>
+      <%# might be a big record, and the screen cannot tell which. A DRA %>
+      <%# check held for its reads is past the validator, and reading takes %>
+      <%# hours by design; that one says so rather than look stuck. %>
+      <% reading = validation.running? && validation.raw_result.present? %>
+      <% slow    = validation.running? && !reading && stale?(validation.created_at, threshold: DDBJValidatorCheck::GIVE_UP_AFTER / 2) %>
+      <span class="small <%= slow ? 'text-warning-emphasis' : 'text-body-secondary' %>" data-test-validation-progress>
+        <span class="badge text-bg-secondary text-capitalize"><%= reading ? 'reading the reads' : validation.progress %></span>
         <% if validation.running? %>started <%= elapsed_time(validation.created_at) %><% end %>
       </span>
     <% end %>

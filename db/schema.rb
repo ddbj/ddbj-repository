@@ -10,56 +10,56 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_02_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "accession_issuance_runs", force: :cascade do |t|
     t.string "actor", null: false
-    t.datetime "created_at", null: false
-    t.datetime "dismissed_at"
     t.string "origin", null: false
     t.datetime "started_at", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "dismissed_at"
     t.index ["actor", "started_at"], name: "index_accession_issuance_runs_undismissed", where: "(dismissed_at IS NULL)"
   end
 
   create_table "accession_issuances", force: :cascade do |t|
-    t.jsonb "accessions", default: [], null: false
-    t.string "actor", null: false
-    t.datetime "created_at", null: false
-    t.text "error_message"
-    t.datetime "finished_at"
-    t.string "mail_status"
-    t.bigint "run_id"
-    t.datetime "started_at", null: false
-    t.string "status", default: "queued", null: false
     t.bigint "submission_id", null: false
+    t.string "actor", null: false
+    t.string "status", default: "queued", null: false
     t.jsonb "targeting", default: {}, null: false
+    t.jsonb "accessions", default: [], null: false
+    t.text "error_message"
+    t.datetime "started_at", null: false
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "run_id"
+    t.string "mail_status"
     t.index ["run_id"], name: "index_accession_issuances_on_run_id"
     t.index ["submission_id", "started_at"], name: "index_accession_issuances_on_submission_id_and_started_at"
   end
 
   create_table "active_storage_attachments", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "record_type", null: false
+    t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
-    t.string "name", null: false
-    t.bigint "record_id", null: false
-    t.string "record_type", null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
-    t.bigint "byte_size", null: false
-    t.string "checksum"
-    t.string "content_type"
-    t.datetime "created_at", null: false
-    t.string "filename", null: false
     t.string "key", null: false
+    t.string "filename", null: false
+    t.string "content_type"
     t.text "metadata"
     t.string "service_name", null: false
+    t.bigint "byte_size", null: false
+    t.string "checksum"
+    t.datetime "created_at", null: false
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
@@ -70,12 +70,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "curation_events", force: :cascade do |t|
+    t.bigint "submission_id", null: false
     t.string "action", null: false
     t.string "actor", null: false
-    t.datetime "created_at", null: false
-    t.jsonb "details", default: {}, null: false
     t.integer "row_count", default: 0, null: false
-    t.bigint "submission_id", null: false
+    t.jsonb "details", default: {}, null: false
+    t.datetime "created_at", null: false
     t.bigint "submission_update_id"
     t.index ["submission_id", "created_at"], name: "index_curation_events_on_submission_id_and_created_at"
     t.index ["submission_id"], name: "index_curation_events_on_submission_id"
@@ -83,49 +83,49 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "distribution_notices", force: :cascade do |t|
-    t.jsonb "accessions", default: [], null: false
+    t.bigint "user_id", null: false
+    t.datetime "sent_at", null: false
+    t.string "trigger", null: false
     t.string "actor"
     t.string "result", null: false
-    t.datetime "sent_at", null: false
     t.string "skip_reason"
-    t.string "trigger", null: false
-    t.bigint "user_id", null: false
+    t.jsonb "accessions", default: [], null: false
     t.index ["sent_at"], name: "index_distribution_notices_on_sent_at", order: :desc
     t.index ["user_id", "sent_at"], name: "index_distribution_notices_on_user_id_and_sent_at"
   end
 
   create_table "distribution_notifier_templates", force: :cascade do |t|
+    t.string "subject", null: false
     t.text "body", null: false
     t.datetime "created_at", null: false
-    t.string "subject", null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "dra_submissions", force: :cascade do |t|
+    t.bigint "submission_id", null: false
     t.string "accession"
-    t.datetime "created_at", null: false
-    t.datetime "first_published_at"
+    t.integer "status", default: 5100, null: false
     t.date "hold_date"
     t.datetime "last_published_at"
-    t.integer "status", default: 5100, null: false
-    t.bigint "submission_id", null: false
+    t.datetime "first_published_at"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string "version_digest"
     t.datetime "version_saved_at"
+    t.string "version_digest"
     t.index ["accession"], name: "index_dra_submissions_on_accession", unique: true, where: "(accession IS NOT NULL)"
     t.index ["status"], name: "index_dra_submissions_on_status"
     t.index ["submission_id"], name: "index_dra_submissions_on_submission_id", unique: true
   end
 
   create_table "entries", force: :cascade do |t|
-    t.string "accession", null: false
-    t.datetime "created_at", null: false
-    t.string "entry_id", null: false
-    t.date "locus_date", null: false
-    t.integer "status", default: 5300, null: false
     t.bigint "submission_id", null: false
-    t.datetime "updated_at", null: false
+    t.string "accession", null: false
+    t.string "entry_id", null: false
     t.integer "version", default: 1, null: false
+    t.date "locus_date", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "status", default: 5300, null: false
     t.index ["accession", "entry_id", "version"], name: "index_entries_on_accession_and_entry_id_and_version", unique: true
     t.index ["accession"], name: "index_entries_on_accession", unique: true
     t.index ["status", "id"], name: "index_entries_on_status_and_id"
@@ -134,26 +134,26 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "entry_histories", force: :cascade do |t|
-    t.string "action", null: false
-    t.datetime "created_at", null: false
     t.bigint "entry_id", null: false
     t.bigint "user_id", null: false
+    t.string "action", null: false
+    t.datetime "created_at", null: false
     t.index ["entry_id"], name: "index_entry_histories_on_entry_id"
     t.index ["user_id"], name: "index_entry_histories_on_user_id"
   end
 
   create_table "migration_runs", force: :cascade do |t|
-    t.jsonb "counters", default: {}, null: false
-    t.datetime "created_at", null: false
     t.string "db", null: false
-    t.text "error_log"
-    t.datetime "finished_at"
-    t.jsonb "source", default: {}, null: false
-    t.datetime "started_at"
     t.string "status", default: "queued", null: false
-    t.integer "total"
-    t.datetime "updated_at", null: false
     t.uuid "uuid", null: false
+    t.integer "total"
+    t.jsonb "counters", default: {}, null: false
+    t.text "error_log"
+    t.datetime "started_at"
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.jsonb "source", default: {}, null: false
     t.index ["created_at"], name: "index_migration_runs_on_created_at"
     t.index ["db", "status"], name: "index_migration_runs_on_db_and_status"
     t.index ["uuid"], name: "index_migration_runs_on_uuid", unique: true
@@ -161,9 +161,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
 
   create_table "project_links", force: :cascade do |t|
     t.bigint "child_project_id", null: false
-    t.datetime "created_at", null: false
-    t.string "external_accession"
     t.bigint "parent_project_id"
+    t.string "external_accession"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["child_project_id", "external_accession"], name: "index_project_links_on_child_and_external", unique: true, where: "(external_accession IS NOT NULL)"
     t.index ["child_project_id", "parent_project_id"], name: "index_project_links_on_child_and_parent", unique: true, where: "(parent_project_id IS NOT NULL)"
@@ -173,17 +173,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "projects", force: :cascade do |t|
+    t.bigint "submission_id", null: false
     t.string "accession"
-    t.datetime "created_at", null: false
-    t.datetime "distribution_notified_at"
+    t.integer "project_type", null: false
+    t.integer "status", default: 5100, null: false
+    t.string "title"
     t.datetime "first_published_at"
     t.date "hold_date"
     t.datetime "last_published_at"
-    t.integer "project_type", null: false
-    t.integer "status", default: 5100, null: false
-    t.bigint "submission_id", null: false
-    t.string "title"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "distribution_notified_at"
     t.index ["accession"], name: "index_projects_on_accession", unique: true, where: "(accession IS NOT NULL)"
     t.index ["status"], name: "index_projects_on_status"
     t.index ["submission_id", "status"], name: "index_projects_awaiting_accession", where: "(accession IS NULL)"
@@ -191,58 +191,58 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "public_xml_runs", force: :cascade do |t|
-    t.integer "added", default: 0, null: false
-    t.datetime "created_at", null: false
     t.string "db", null: false
-    t.integer "emitted", default: 0, null: false
-    t.text "error_log"
-    t.datetime "finished_at"
     t.string "kind", null: false
-    t.datetime "started_at", null: false
     t.string "status", default: "running", null: false
-    t.integer "unchanged", default: 0, null: false
+    t.integer "emitted", default: 0, null: false
+    t.integer "added", default: 0, null: false
     t.integer "updated", default: 0, null: false
+    t.integer "unchanged", default: 0, null: false
+    t.datetime "started_at", null: false
+    t.datetime "finished_at"
+    t.text "error_log"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["db", "kind", "finished_at"], name: "index_public_xml_runs_on_db_and_kind_and_finished_at"
     t.index ["db", "kind", "status"], name: "index_public_xml_runs_on_db_and_kind_and_status"
   end
 
   create_table "regenerate_flatfiles_failures", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "label", null: false
-    t.text "message", null: false
     t.bigint "run_id", null: false
     t.bigint "submission_id"
+    t.string "label", null: false
+    t.text "message", null: false
+    t.datetime "created_at", null: false
     t.index ["run_id"], name: "index_regenerate_flatfiles_failures_on_run_id"
     t.index ["submission_id"], name: "index_regenerate_flatfiles_failures_on_submission_id"
   end
 
   create_table "regenerate_flatfiles_runs", force: :cascade do |t|
-    t.integer "accession_count", default: 0, null: false
     t.string "actor", null: false
-    t.datetime "created_at", null: false
-    t.integer "failed", default: 0, null: false
-    t.datetime "finished_at"
-    t.date "locus_date"
-    t.text "numbers"
-    t.integer "regenerated", default: 0, null: false
-    t.bigint "retry_of_id"
-    t.integer "skipped", default: 0, null: false
-    t.datetime "started_at", null: false
-    t.bigint "submission_id"
     t.string "target", null: false
+    t.text "numbers"
+    t.date "locus_date"
     t.integer "total", null: false
+    t.integer "regenerated", default: 0, null: false
+    t.integer "skipped", default: 0, null: false
+    t.integer "failed", default: 0, null: false
+    t.datetime "started_at", null: false
+    t.datetime "finished_at"
+    t.bigint "retry_of_id"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "accession_count", default: 0, null: false
+    t.bigint "submission_id"
     t.index ["retry_of_id"], name: "index_regenerate_flatfiles_runs_on_retry_of_id"
     t.index ["started_at"], name: "index_regenerate_flatfiles_runs_on_started_at"
     t.index ["submission_id"], name: "index_regenerate_flatfiles_runs_on_submission_id"
   end
 
   create_table "reviewer_access_accessions", force: :cascade do |t|
-    t.string "accession", null: false
-    t.bigint "added_by_id", null: false
-    t.datetime "created_at", null: false
     t.bigint "reviewer_access_id", null: false
+    t.bigint "added_by_id", null: false
+    t.string "accession", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["added_by_id"], name: "index_reviewer_access_accessions_on_added_by_id"
     t.index ["reviewer_access_id", "accession"], name: "index_reviewer_access_accessions_uniqueness", unique: true
@@ -250,11 +250,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "reviewer_accesses", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.bigint "created_by_id", null: false
-    t.datetime "expires_at", null: false
     t.bigint "submission_set_id", null: false
+    t.bigint "created_by_id", null: false
     t.string "token", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["created_by_id"], name: "index_reviewer_accesses_on_created_by_id"
     t.index ["submission_set_id"], name: "index_reviewer_accesses_on_submission_set_id", unique: true
@@ -262,10 +262,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "sample_references", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "ref_accession", null: false
-    t.string "ref_db", null: false
     t.bigint "sample_id", null: false
+    t.string "ref_db", null: false
+    t.string "ref_accession", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["ref_db", "ref_accession"], name: "index_sample_references_on_ref_db_and_ref_accession"
     t.index ["sample_id", "ref_db", "ref_accession"], name: "index_sample_references_on_sample_db_accession", unique: true
@@ -273,37 +273,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "sample_tsv_imports", force: :cascade do |t|
-    t.string "actor", null: false
-    t.datetime "created_at", null: false
-    t.text "error_report"
-    t.integer "failed", default: 0, null: false
-    t.datetime "finished_at"
-    t.string "phase"
-    t.integer "processed", default: 0, null: false
-    t.jsonb "rejections", default: [], null: false
-    t.datetime "started_at", null: false
-    t.string "status", default: "queued", null: false
     t.bigint "submission_id", null: false
+    t.string "status", default: "queued", null: false
+    t.string "actor", null: false
     t.integer "total", default: 0, null: false
+    t.integer "processed", default: 0, null: false
+    t.integer "failed", default: 0, null: false
+    t.text "error_report"
+    t.datetime "started_at", null: false
+    t.datetime "finished_at"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "phase"
+    t.jsonb "rejections", default: [], null: false
     t.index ["submission_id"], name: "index_sample_tsv_imports_on_submission_id"
   end
 
   create_table "samples", force: :cascade do |t|
+    t.bigint "submission_id", null: false
     t.string "accession"
-    t.datetime "created_at", null: false
-    t.string "env_package"
-    t.datetime "first_published_at"
-    t.datetime "last_published_at"
-    t.string "organism"
-    t.string "package"
-    t.string "package_group"
-    t.integer "release_type"
     t.string "sample_name", null: false
     t.integer "status", default: 5100, null: false
-    t.bigint "submission_id", null: false
-    t.integer "taxonomy_id"
     t.string "title"
+    t.string "package_group"
+    t.string "package"
+    t.string "env_package"
+    t.integer "taxonomy_id"
+    t.string "organism"
+    t.integer "release_type"
+    t.datetime "first_published_at"
+    t.datetime "last_published_at"
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["accession"], name: "index_samples_on_accession", unique: true, where: "(accession IS NOT NULL)"
     t.index ["package"], name: "index_samples_on_package"
@@ -315,33 +315,33 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "saved_views", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.jsonb "filters", default: {}, null: false
-    t.string "name", null: false
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.string "name", null: false
+    t.jsonb "filters", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index "user_id, lower((name)::text)", name: "index_saved_views_on_user_id_and_lower_name", unique: true
     t.index ["user_id"], name: "index_saved_views_on_user_id"
   end
 
   create_table "sequences", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.bigint "next", default: 1, null: false
-    t.string "prefix", null: false
     t.string "scope", null: false
+    t.string "prefix", null: false
+    t.bigint "next", default: 1, null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["scope"], name: "index_sequences_on_scope", unique: true
   end
 
   create_table "submission_messages", force: :cascade do |t|
+    t.bigint "user_id", null: false
     t.string "author_role", null: false
     t.text "body", null: false
-    t.jsonb "cc_user_ids", default: [], null: false
-    t.datetime "created_at", null: false
     t.datetime "read_at"
-    t.bigint "submission_request_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.bigint "submission_request_id", null: false
+    t.jsonb "cc_user_ids", default: [], null: false
     t.index ["submission_request_id", "author_role", "read_at"], name: "idx_on_submission_request_id_author_role_read_at_0b8f32e48f"
     t.index ["submission_request_id", "created_at"], name: "idx_on_submission_request_id_created_at_cf469d0ffd"
     t.index ["submission_request_id"], name: "index_submission_messages_on_submission_request_id"
@@ -349,27 +349,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "submission_request_participants", force: :cascade do |t|
+    t.bigint "submission_request_id", null: false
+    t.bigint "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "last_read_at"
-    t.bigint "submission_request_id", null: false
     t.datetime "unsubscribed_at"
-    t.bigint "user_id", null: false
     t.index ["submission_request_id", "user_id"], name: "index_participants_on_request_and_user", unique: true
     t.index ["user_id"], name: "index_submission_request_participants_on_user_id"
   end
 
   create_table "submission_requests", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "submission_id"
+    t.integer "status", default: 0, null: false
+    t.string "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "db", null: false
+    t.uuid "migration_run_id"
     t.bigint "assignee_id"
     t.datetime "closed_at"
-    t.datetime "created_at", null: false
-    t.string "db", null: false
     t.string "error_code"
-    t.string "error_message"
-    t.uuid "migration_run_id"
-    t.integer "status", default: 0, null: false
-    t.bigint "submission_id"
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
     t.index ["assignee_id"], name: "index_submission_requests_on_assignee_id"
     t.index ["db"], name: "index_submission_requests_on_db"
     t.index ["migration_run_id"], name: "index_submission_requests_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
@@ -378,10 +378,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "submission_set_inclusions", force: :cascade do |t|
+    t.bigint "submission_set_id", null: false
+    t.bigint "submission_request_id", null: false
     t.bigint "added_by_id", null: false
     t.datetime "created_at", null: false
-    t.bigint "submission_request_id", null: false
-    t.bigint "submission_set_id", null: false
     t.datetime "updated_at", null: false
     t.index ["added_by_id"], name: "index_submission_set_inclusions_on_added_by_id"
     t.index ["submission_request_id"], name: "index_submission_set_inclusions_on_submission_request_id"
@@ -390,16 +390,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "submission_set_members", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "email"
-    t.datetime "invitation_expires_at"
-    t.string "invitation_token"
-    t.bigint "invited_by_id", null: false
-    t.datetime "joined_at"
-    t.datetime "last_read_at"
     t.bigint "submission_set_id", null: false
-    t.datetime "updated_at", null: false
+    t.string "email"
     t.bigint "user_id"
+    t.bigint "invited_by_id", null: false
+    t.string "invitation_token"
+    t.datetime "invitation_expires_at"
+    t.datetime "joined_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "last_read_at"
     t.index "submission_set_id, lower((email)::text)", name: "index_submission_set_members_on_set_and_lower_email", unique: true
     t.index ["invitation_token"], name: "index_submission_set_members_on_invitation_token", unique: true, where: "(invitation_token IS NOT NULL)"
     t.index ["invited_by_id"], name: "index_submission_set_members_on_invited_by_id"
@@ -410,51 +410,51 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "submission_set_messages", force: :cascade do |t|
+    t.bigint "submission_set_id", null: false
+    t.bigint "user_id", null: false
     t.string "author_role", null: false
     t.text "body", null: false
-    t.jsonb "cc_user_ids", default: [], null: false
     t.datetime "created_at", null: false
-    t.bigint "submission_set_id", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.jsonb "cc_user_ids", default: [], null: false
     t.index ["submission_set_id", "created_at", "id"], name: "idx_on_submission_set_id_created_at_id_070ddeb119"
     t.index ["submission_set_id"], name: "index_submission_set_messages_on_submission_set_id"
     t.index ["user_id"], name: "index_submission_set_messages_on_user_id"
   end
 
   create_table "submission_set_participants", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.datetime "last_read_at"
     t.bigint "submission_set_id", null: false
-    t.datetime "unsubscribed_at"
-    t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.datetime "last_read_at"
+    t.datetime "unsubscribed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
     t.index ["submission_set_id", "user_id"], name: "index_set_participants_on_set_and_user", unique: true
     t.index ["submission_set_id"], name: "index_submission_set_participants_on_submission_set_id"
     t.index ["user_id"], name: "index_submission_set_participants_on_user_id"
   end
 
   create_table "submission_sets", force: :cascade do |t|
-    t.bigint "assignee_id"
-    t.datetime "created_at", null: false
     t.string "name", null: false
     t.bigint "owner_id", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "assignee_id"
     t.index ["assignee_id"], name: "index_submission_sets_on_assignee_id"
     t.index ["owner_id"], name: "index_submission_sets_on_owner_id"
   end
 
   create_table "submission_updates", force: :cascade do |t|
-    t.string "actor"
-    t.datetime "created_at", null: false
-    t.string "db", null: false
+    t.bigint "submission_id", null: false
+    t.integer "status", default: 0, null: false
     t.string "error_message"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "db", null: false
+    t.string "actor"
+    t.integer "source", default: 0, null: false
     t.integer "patch_canonical_version", default: 1, null: false
     t.boolean "root_snapshot", default: false, null: false
-    t.integer "source", default: 0, null: false
-    t.integer "status", default: 0, null: false
-    t.bigint "submission_id", null: false
-    t.datetime "updated_at", null: false
     t.index ["actor"], name: "index_submission_updates_on_actor", where: "(actor IS NOT NULL)"
     t.index ["db"], name: "index_submission_updates_on_db"
     t.index ["submission_id", "created_at"], name: "index_submission_updates_on_submission_id_and_created_at"
@@ -463,18 +463,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   end
 
   create_table "submissions", force: :cascade do |t|
-    t.bigint "cached_at_update_id"
-    t.integer "canonical_version", default: 1, null: false
-    t.string "converter_version"
     t.datetime "created_at", null: false
-    t.text "curator_comment"
-    t.string "db", null: false
-    t.string "flatfile_omits", array: true
-    t.uuid "migration_run_id"
-    t.string "source_checksum"
-    t.string "source_id"
     t.datetime "updated_at", null: false
+    t.string "db", null: false
+    t.string "source_id"
     t.bigint "user_id", null: false
+    t.string "converter_version"
+    t.integer "canonical_version", default: 1, null: false
+    t.uuid "migration_run_id"
+    t.bigint "cached_at_update_id"
+    t.text "curator_comment"
+    t.string "source_checksum"
+    t.string "flatfile_omits", array: true
     t.index ["cached_at_update_id"], name: "index_submissions_on_cached_at_update_id", where: "(cached_at_update_id IS NOT NULL)"
     t.index ["db"], name: "index_submissions_on_db"
     t.index ["migration_run_id"], name: "index_submissions_on_migration_run_id", where: "(migration_run_id IS NOT NULL)"
@@ -485,47 +485,47 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000001) do
   create_table "unassigned_file_notices", force: :cascade do |t|
     t.bigint "attachment_id", null: false
     t.string "result", null: false
-    t.datetime "sent_at", null: false
     t.string "skip_reason"
+    t.datetime "sent_at", null: false
     t.index ["attachment_id"], name: "index_unassigned_file_notices_on_attachment_id", unique: true
   end
 
   create_table "users", force: :cascade do |t|
-    t.boolean "admin", default: false, null: false
-    t.string "api_key", null: false
+    t.string "uid", null: false
     t.datetime "created_at", null: false
-    t.string "email"
-    t.datetime "last_signed_in_at"
+    t.datetime "updated_at", null: false
+    t.string "api_key", null: false
+    t.boolean "admin", default: false, null: false
     t.text "notes", default: "", null: false
+    t.string "email"
     t.datetime "notes_updated_at"
     t.bigint "notes_updated_by_id"
-    t.string "uid", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "last_signed_in_at"
     t.index ["api_key"], name: "index_users_on_api_key", unique: true
     t.index ["uid"], name: "index_users_on_uid", unique: true
   end
 
   create_table "validation_details", force: :cascade do |t|
     t.string "code", null: false
-    t.datetime "created_at", null: false
-    t.string "entry_id"
-    t.string "message", null: false
     t.string "severity", null: false
+    t.string "message", null: false
+    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "entry_id"
     t.bigint "validation_id", null: false
     t.index ["validation_id"], name: "index_validation_details_on_validation_id"
   end
 
   create_table "validations", force: :cascade do |t|
+    t.string "progress", default: "running", null: false
     t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.datetime "finished_at"
+    t.jsonb "raw_result"
+    t.string "subject_type", null: false
+    t.bigint "subject_id", null: false
     t.string "external_id"
     t.integer "external_sends", default: 0, null: false
-    t.datetime "finished_at"
-    t.string "progress", default: "running", null: false
-    t.jsonb "raw_result"
-    t.bigint "subject_id", null: false
-    t.string "subject_type", null: false
-    t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_validations_on_created_at"
     t.index ["progress"], name: "index_validations_on_progress"
     t.index ["subject_type", "subject_id"], name: "index_validations_on_subject_type_and_subject_id", unique: true
