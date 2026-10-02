@@ -1,5 +1,5 @@
-# A record checked by ddbj-validator: BioProject and BioSample, whose rules
-# live there (ST.26 is checked here, DDBJRecordValidator).
+# A record checked by ddbj-validator: BioProject, BioSample and DRA, whose
+# rules live there (ST.26 is checked here, DDBJRecordValidator).
 #
 # The check runs on the validator's side, so this starts it and then asks
 # after it (PollDDBJValidatorJob) until it ends, waiting longer between asks

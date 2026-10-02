@@ -323,9 +323,9 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
 
   # BioProject, BioSample and DRA are checked by ddbj-validator alone, so
   # they are taken where one is configured and refused where none is — and
-  # DRA only where the one configured reads DRA records.
-  test 'create takes BioProject, BioSample and DRA only where a validator can check them' do
-    %w[bioproject biosample dra].each do |db|
+  # DRA only where it can also be applied, which it cannot yet.
+  test 'create takes BioProject and BioSample only where a validator can check them' do
+    %w[bioproject biosample].each do |db|
       create_request db
 
       assert_response :accepted, db
@@ -341,7 +341,7 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
       end
     end
 
-    DDBJValidatorClient.stub(:record_dbs, %w[bioproject biosample]) { create_request 'dra' }
+    create_request 'dra'
 
     assert_response :unprocessable_content
   end

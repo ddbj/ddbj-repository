@@ -13,8 +13,8 @@ import type CurrentUserService from 'repository/services/current-user';
 import type { components } from 'schema/openapi';
 
 // What each database takes. Only those a request can be created for here
-// are offered (User#submittableDbs): BioProject and BioSample only where
-// their records can be checked.
+// are offered (User#submittableDbs): BioProject, BioSample and DRA only where
+// their records can be checked and applied.
 const DESCRIPTIONS: Record<components['schemas']['SubmittableDb'], string> = {
   st26: 'Patent sequence listings (ST.26 XML).',
   bioproject: 'Biological project metadata.',

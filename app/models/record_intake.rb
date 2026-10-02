@@ -62,7 +62,7 @@ module RecordIntake
 
     return [finding('TRD_R0017', 'The record is not a DDBJ Record v3 document (schema_version "v3").')] unless record.is_a?(Hash) && record['schema_version'] == V3
 
-    objects(record, own).presence || accessions(record, own).presence || files(record, subject).presence || canonical_form(record)
+    objects(record, own).presence || accessions(record, own, subject.db).presence || files(record, subject).presence || canonical_form(record)
   rescue Oj::ParseError => e
     [finding('TRD_R0013', "The record is not JSON#{e.message[/ at (line \d+, column \d+)/, 1]&.then { " (#{it})" }}.")]
   rescue SystemStackError
@@ -89,13 +89,16 @@ module RecordIntake
     missing + repeated
   end
 
-  def accessions(record, own)
-    own.flat_map {|list|
-      Array(record[list]).each_with_index.filter_map {|object, index|
-        next unless object.is_a?(Hash) && object['accession'].present?
+  # A DRA submission is numbered too (DRA000001), where a BioProject's or
+  # BioSample's is not.
+  def accessions(record, own, db)
+    objects  = own.flat_map {|list| Array(record[list]).each_with_index.map {|object, index| ["#{list}[#{index}]", object] } }
+    objects << ['submission', record['submission']] if db == 'dra'
 
-        finding('TRD_R0018', "#{list}[#{index}] carries the accession #{object['accession']}; accessions are issued by DDBJ.", entry_id: object['alias'].presence)
-      }
+    objects.filter_map {|where, object|
+      next unless object.is_a?(Hash) && object['accession'].present?
+
+      finding('TRD_R0018', "#{where} carries the accession #{object['accession']}; accessions are issued by DDBJ.", entry_id: object['alias'].presence)
     }
   end
 

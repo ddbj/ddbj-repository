@@ -324,21 +324,35 @@ class SubmissionRequestTest < ActiveSupport::TestCase
   # --- databases ---------------------------------------------------------
 
   # DRA's records are checked by a version of ddbj-validator that came
-  # later; until the one configured here takes them, DRA arrives only from
-  # D-way.
-  test 'a DRA request is taken where the validator takes DRA records, and otherwise only from the migration' do
+  # later, and applied by what comes after this: until the one configured
+  # here takes them and they can be applied, DRA arrives only from D-way.
+  test 'a DRA request is taken where its records are both checked and applied, and otherwise only from the migration' do
     request = SubmissionRequest.new(user: users(:alice), db: 'dra')
     attach_ddbj_record(request)
 
-    assert request.valid?
+    refute request.valid?, 'checked, not applied'
+    assert_includes request.errors[:db], 'does not take submissions here yet'
 
-    DDBJValidatorClient.stub(:record_dbs, %w[bioproject biosample]) do
-      refute request.valid?
-      assert_includes request.errors[:db], 'does not take submissions here yet'
-
-      request.migration_run_id = SecureRandom.uuid
-
+    SubmissionApply.stub(:dbs, [*SubmissionApply.dbs, 'dra']) do
       assert request.valid?
+
+      DDBJValidatorClient.stub(:record_dbs, %w[bioproject biosample]) do
+        refute request.valid?, 'applied, not checked'
+      end
+    end
+
+    request.migration_run_id = SecureRandom.uuid
+
+    assert request.valid?
+  end
+
+  # A comma-separated list read as one name, or a database the validator
+  # does not check, opens nothing.
+  test 'only the databases the validator checks are taken from its configuration' do
+    config = Rails.application.config_for(:ddbj_validator).dup.tap { it.record_dbs = %w[bioproject,biosample trad biosample] }
+
+    Rails.application.stub(:config_for, ->(*) { config }) do
+      assert_equal %w[biosample], DDBJValidatorClient.record_dbs
     end
   end
 

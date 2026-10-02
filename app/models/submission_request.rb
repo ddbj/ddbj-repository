@@ -236,7 +236,11 @@ class SubmissionRequest < ApplicationRecord
   # their rules are checked there and nowhere else, so an environment
   # without one has no way to check what it would be sent. Setting the
   # validator's URL, and its databases, is what opens them.
-  def self.submittable_dbs = ['st26', *DDBJValidatorClient.record_dbs]
+  #
+  # Of those, only what can be applied here (SubmissionApply.dbs): a request
+  # that could be checked and not applied would be offered "Send to DDBJ"
+  # only to fail.
+  def self.submittable_dbs = ['st26', *DDBJValidatorClient.record_dbs] & SubmissionApply.dbs
 
   # On create only: a request already made stays readable and closable
   # whatever its database.

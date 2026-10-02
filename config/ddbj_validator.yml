@@ -4,8 +4,10 @@
 # takes submissions (SubmissionRequest.submittable_dbs).
 #
 # `record_dbs` are the databases the validator at that url takes records
-# for — which depends on the version deployed there, not on this side:
-# DRA's came later (ddbj/ddbj-validator#10), and is added once it is.
+# for, space-separated — which depends on the version deployed there, not
+# on this side: DRA's came later (ddbj/ddbj-validator#10), and is added once
+# it is. A database is opened only once its records can also be applied
+# here (SubmissionApply.dbs).
 development:
   url:        <%= ENV['DDBJ_VALIDATOR_URL'] %>
   record_dbs: <%= ENV.fetch('DDBJ_VALIDATOR_RECORD_DBS', 'bioproject biosample').split.to_json %>

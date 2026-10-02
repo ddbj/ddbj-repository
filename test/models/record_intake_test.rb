@@ -94,6 +94,7 @@ class RecordIntakeTest < ActiveSupport::TestCase
     assert_match 'experiments, runs, or analyses', findings({'schema_version' => 'v3'}, db: 'dra').sole[:message]
 
     assert_equal %w[TRD_R0018], codes({'schema_version' => 'v3', 'runs' => [{'alias' => 'r', 'accession' => 'DRR000001'}]}, db: 'dra')
+    assert_equal %w[TRD_R0018], codes({'schema_version' => 'v3', 'submission' => {'accession' => 'DRA000001'}, 'runs' => [{'alias' => 'r'}]}, db: 'dra'), 'a DRA submission is numbered here too'
   end
 
   # The reads go up first; the record names them, and its MD5 says which.
@@ -107,9 +108,41 @@ class RecordIntakeTest < ActiveSupport::TestCase
     unstated  = findings(dra_record([fastq('r_1.fastq').except('checksum')]), db: 'dra').sole
 
     assert_equal ['TRD_R0022', 'run1'], missing.values_at(:code, :entry_id)
-    assert_match 'runs[0] r_2.fastq has not been uploaded', missing[:message]
+    assert_match 'runs[0] "r_2.fastq" is not among the files uploaded for it', missing[:message]
     assert_match 'its MD5 is not ffff', different[:message]
     assert_match 'states no MD5', unstated[:message]
+
+    assert_match 'names a file without a name', findings(dra_record([fastq('r_1.fastq').merge('filename' => {'x' => 1})]), db: 'dra').sole[:message]
+  end
+
+  # The record is kept canonical, and Apply reads it kept: intake and Apply
+  # have to find the same upload for the same name.
+  test 'names are compared as the record keeps them' do
+    upload "r\u0301_1.fastq" # NFD, as macOS writes it
+
+    assert_empty codes(dra_record([fastq('ŕ_1.fastq')]), db: 'dra')
+    assert_empty codes(dra_record([fastq('  ŕ_1.fastq ')]), db: 'dra')
+  end
+
+  test 'of two uploads of one name, the MD5 picks the one' do
+    upload 'r_1.fastq', 'other'
+    upload 'r_1.fastq'
+
+    assert_empty codes(dra_record([fastq('r_1.fastq')]), db: 'dra')
+  end
+
+  # It would be assigned to both.
+  test 'one upload named twice is refused the second time' do
+    upload 'r_1.fastq'
+
+    record = dra_record([fastq('r_1.fastq')]).merge(
+      'analyses' => [{'alias' => 'an1', 'data_blocks' => [{'files' => [fastq('r_1.fastq')]}]}]
+    )
+
+    twice = findings(record, db: 'dra').sole
+
+    assert_equal 'an1', twice[:entry_id]
+    assert_match 'analyses[0] "r_1.fastq" is the same upload as runs[0] names', twice[:message]
   end
 
   # Somebody else's upload of the same file is not this submitter's.

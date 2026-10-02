@@ -5,7 +5,7 @@
 class ValidateDDBJRecordJob < ApplicationJob
   def perform(subject)
     case subject.db
-    when 'st26'                    then DDBJRecordValidator.validate subject
+    when 'st26'                           then DDBJRecordValidator.validate subject
     when 'bioproject', 'biosample', 'dra' then DDBJValidatorCheck.start subject
     else raise ArgumentError, "no check for #{subject.db} records"
     end
