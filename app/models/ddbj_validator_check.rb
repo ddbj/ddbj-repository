@@ -183,7 +183,8 @@ module DDBJValidatorCheck
     held = ActiveRecord::Base.transaction {
       validation.lock!
 
-      next false unless validation.running?
+      # Held already (a second answer to the same run): its findings are in.
+      next false unless validation.running? && validation.raw_result.nil?
 
       details.each { validation.details.create!(it) }
       validation.update!(raw_result: report)
@@ -204,17 +205,24 @@ module DDBJValidatorCheck
   # no longer there, or no longer alive, is given up on. (A held check is
   # running with the validator's report already written; nothing else is.)
   def give_up_stopped_readings
-    alive = live_reading_arguments
+    alive = live_readings
 
     Validation.running.where.not(raw_result: nil).where(updated_at: ...10.minutes.ago).find_each do |validation|
-      next if alive.any? { it.include?(%("#{validation.to_global_id}")) }
+      next if alive.include?(validation.to_global_id.to_s)
 
       give_up validation, 'the reading of its reads stopped before it ended'
     end
   end
 
-  # The arguments of every CheckDRAReadsJob not finished and not failed.
-  def live_reading_arguments
+  # The checks every CheckDRAReadsJob not finished and not failed is for,
+  # as global ids. Solid Queue keeps a job's arguments as the serialised
+  # job, decoded — a Hash, not its JSON — and the check is its first
+  # argument.
+  def live_readings
+    live_reading_jobs.filter_map { it.dig('arguments', 0, '_aj_globalid') if it.is_a?(Hash) }
+  end
+
+  def live_reading_jobs
     SolidQueue::Job.where(class_name: 'CheckDRAReadsJob', finished_at: nil).where.missing(:failed_execution).pluck(:arguments)
   end
 
@@ -239,7 +247,11 @@ module DDBJValidatorCheck
 
       if validation.running?
         details.each { validation.details.create!(it) }
-        validation.update!(raw_result: report, progress: :finished, finished_at: Time.current)
+
+        # A held check's report was written when it was held; what concludes
+        # it after the reads brings none to write over it.
+        validation.raw_result = report if report
+        validation.update!(progress: :finished, finished_at: Time.current)
 
         # Straight to the column, as `close!` and `assign!` do: a request
         # whose own validations no longer pass (its assignee stopped being

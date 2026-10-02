@@ -122,4 +122,78 @@ class CheckDRAReadsJobTest < ActiveJob::TestCase
 
     assert_empty read(validation) { flunk 'read' }
   end
+
+  test 'a run without files, or with a file of no filetype, fails without reading' do
+    validation = held(record.merge('runs' => [{'alias' => 'run1'}]))
+
+    assert_empty read(validation) { flunk 'read' }
+    assert_match 'runs[0] names no files', validation.details.find_by!(code: 'TRD_R0023').message
+
+    @request.validation.destroy
+    validation = held(record([fastq('r_1.fastq').except('filetype')]))
+
+    assert_empty read(validation) { flunk 'read' }
+    assert_match 'states no filetype', validation.details.find_by!(code: 'TRD_R0023').message
+  end
+
+  # Each run on its own, in the record's order.
+  test 'every run is read, with its own files' do
+    two = record([fastq('r_1.fastq')]).tap {
+      it['runs'] << {'alias' => 'run2', 'data_blocks' => [{'files' => [fastq('r_2.fastq')]}]}
+    }
+
+    calls = read(held(two), ok)
+
+    assert_equal [%w[r_1.fastq], %w[r_2.fastq]], calls.map { it[:files].map { it.filename.to_s } }
+  end
+
+  # A run's own platform first; else its experiment's, named as the
+  # converter names it — by accession, or by alias and position among
+  # namesakes.
+  test 'the platform is the run\'s own, or its experiment\'s however the relation names it' do
+    own = record.tap { it['runs'][0]['platform'] = {'type' => 'ILLUMINA'} }
+
+    assert_equal 'ILLUMINA', read(held(own), ok).sole[:platform]
+
+    by_accession = record.tap {
+      it['experiments'] = [{'alias' => 'x', 'accession' => 'DRX000001', 'platform' => {'type' => 'ION_TORRENT'}}]
+      it['relations'][0]['target'] = {'db' => 'experiment', 'accession' => 'DRX000001'}
+    }
+
+    @request.validation.destroy
+    assert_equal 'ION_TORRENT', read(held(by_accession), ok).sole[:platform]
+
+    namesakes = record([fastq('r_1.fastq')]).tap {
+      it['runs'] << {'alias' => 'run1', 'data_blocks' => [{'files' => [fastq('r_2.fastq')]}]}
+      it['experiments'] << {'alias' => 'exp1', 'platform' => {'type' => 'LS454'}}
+      it['relations'] = [
+        {'type' => 'part_of', 'source' => {'type' => 'run', 'alias' => 'run1', 'index' => 0}, 'target' => {'db' => 'experiment', 'id' => 'exp1', 'index' => 0}},
+        {'type' => 'part_of', 'source' => {'type' => 'run', 'alias' => 'run1', 'index' => 1}, 'target' => {'db' => 'experiment', 'id' => 'exp1', 'index' => 1}}
+      ]
+    }
+
+    @request.validation.destroy
+    assert_equal %w[ABI_SOLID LS454], read(held(namesakes), ok).map { it[:platform] }
+  end
+
+  test 'a reading past its time, or failing for any other reason, ends the check as not carried out' do
+    [DRA::ReadCheck::TimedOut.new('latf-load had not finished within 12 hours'), Aws::S3::Errors::ServiceError.new(nil, 'down')].each do |error|
+      @request.validation&.destroy
+      validation = held
+
+      read(validation) { raise error }
+
+      assert CurationState.new(@request.reload).unchecked?, error.class.name
+      assert validation.reload.finished?
+    end
+  end
+
+  # The validator's report was written when the check was held.
+  test 'concluding after the reads keeps the validator\'s report' do
+    validation = held
+
+    read validation, ok
+
+    assert_equal({'validity' => true, 'messages' => []}, validation.reload.raw_result)
+  end
 end

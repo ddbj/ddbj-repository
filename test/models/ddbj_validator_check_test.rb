@@ -389,9 +389,10 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
 
     [stopped, waiting].each { it.update_columns(raw_result: {'validity' => true}, updated_at: 1.hour.ago) }
 
-    alive = [%([{"_aj_globalid":"#{waiting.to_global_id}"}])]
+    # As Solid Queue keeps them: the serialised job, decoded.
+    alive = [CheckDRAReadsJob.new(waiting).serialize]
 
-    DDBJValidatorCheck.stub(:live_reading_arguments, alive) do
+    DDBJValidatorCheck.stub(:live_reading_jobs, alive) do
       DDBJValidatorCheck.give_up_stopped_readings
     end
 
