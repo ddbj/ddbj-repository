@@ -1,21 +1,37 @@
 shared:
   jpo_na:
-    <% ('QP'..'RD').without('QR', 'QV', 'RA').each do |prefix| %>
-    - prefix: '<%= prefix %>'
+    - prefix: QP
       digits: 6
-    <% end %>
+    - prefix: QQ
+      digits: 6
+    - prefix: QS
+      digits: 6
+    - prefix: QT
+      digits: 6
+    - prefix: QU
+      digits: 6
+    - prefix: QW
+      digits: 6
+    - prefix: QX
+      digits: 6
+    - prefix: RB
+      digits: 6
+    - prefix: RC
+      digits: 6
+    - prefix: RD
+      digits: 6
 
   jpo_aa:
     <% ('ZAA'..'ZZZ').each do |prefix| %>
-    - prefix: '<%= prefix %>'
+    - prefix: <%= prefix %>
       digits: 7
     <% end %>
 
   bp:
-    - prefix: 'PRJDB'
+    - prefix: PRJDB
       digits: 9
       pad:    false
 
   bs:
-    - prefix: 'SAMD'
+    - prefix: SAMD
       digits: 8
