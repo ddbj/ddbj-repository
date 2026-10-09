@@ -99,6 +99,23 @@ class MyQueueTest < ActiveSupport::TestCase
     assert_equal 1, MyQueue.new(users(:bob)).count, 'assigned + involved must not double-count'
   end
 
+  # A DRA submission sent here waits on a curator for its numbers; one
+  # imported from D-way is numbered there, and does not.
+  test 'a DRA submission sent here and not yet numbered is curator work' do
+    req = submission_requests(:dra)
+    dra_submissions(:dra).update!(accession: nil, status: 'curating')
+
+    assert_not_includes MyQueue.needing_curator(users(:bob)), req, 'imported'
+
+    submissions(:dra).update_columns(source_id: nil)
+
+    assert_not_includes MyQueue.needing_curator(users(:bob)), req, 'not issuable before the numbering is taken over'
+
+    take_over_dra_numbering
+
+    assert_includes MyQueue.needing_curator(users(:bob)), req
+  end
+
   # A request the submitter has closed is nobody's work: they have said
   # they are not taking it further. Left in, the queue would go on
   # demanding a reply to an abandoned attempt.

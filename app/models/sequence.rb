@@ -44,6 +44,45 @@ class Sequence < ApplicationRecord
 
   def remaining = total - used
 
+  class Collision < StandardError; end
+
+  # D-way の最後が引き継いだ点より手前にある: 読んだのが引き継いだときと別の
+  # データベース（古い複製など）だということ。そこから引き継いだのなら番号が
+  # 重なっているし、確かめとしても何も言えない。
+  class WrongSource < StandardError; end
+
+  # D-way が最後に出した番号 number を受け取り、その次から払い出すようにする
+  # （rake dra:take_over_numbering）。prefix を 1 つしか持たない scope のための
+  # もので、送りは考えない。
+  #
+  # 引き継いだ点を taken_over_after に残す。もう一度流すと、それが確かめになる:
+  # D-way の最後がその点より先にあれば、引き継いだ後に D-way が番号を出した
+  # ということで、こちらと同じ番号が両方から出ている（Collision）。
+  #
+  # 戻り値は :taken_over（引き継いだ）か :unchanged（引き継ぎ済みで、D-way も
+  # 動いていない）。
+  def continue_after!(number)
+    raise ArgumentError, "#{scope}: takes over a single prefix only" unless prefixes.one?
+
+    with_lock do
+      if taken_over_after
+        raise Collision,   "#{scope}: D-way has issued up to #{number} since it was taken over after #{taken_over_after}" if number > taken_over_after
+        raise WrongSource, "#{scope}: D-way's last is #{number}, before #{taken_over_after} where it was taken over" if number < taken_over_after
+
+        next :unchanged
+      end
+
+      raise Collision, "#{scope}: numbers were issued here before it was taken over from D-way" if self.next > 1
+
+      update! next: number + 1, taken_over_after: number
+
+      :taken_over
+    end
+  end
+
+  # 引き継ぎで始点が決まっているか。決まるまでは払い出さない（AccessionIssue）。
+  def taken_over? = taken_over_after.present?
+
   # count 個を払い出して番号の配列を返す。足りなければ 1 個も払い出さない
   # （呼び出し側がトランザクションを張っているので、raise でここの update! も巻き戻る）。
   def allocate!(count)
@@ -107,7 +146,13 @@ class Sequence < ApplicationRecord
 
   def max_value(entry) = (10 ** entry[:digits]) - 1
 
+  # `pad` is the width the number is padded to: all of `digits` (true, the
+  # default), none (false), or a width of its own (DRA's six, which a number
+  # past 999999 simply outgrows).
   def format_number(entry, value)
-    entry.fetch(:pad, true) ? "#{entry[:prefix]}#{value.to_s.rjust(entry[:digits], '0')}" : "#{entry[:prefix]}#{value}"
+    width = entry.fetch(:pad, true)
+    width = entry[:digits] if width == true
+
+    "#{entry[:prefix]}#{width ? value.to_s.rjust(width, '0') : value}"
   end
 end

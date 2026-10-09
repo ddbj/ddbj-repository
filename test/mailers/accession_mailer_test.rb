@@ -1,15 +1,18 @@
 require 'test_helper'
 
 class AccessionMailerTest < ActionMailer::TestCase
-  test 'issued — goes to the submitter address' do
-    mail = AccessionMailer.with(submission: submissions(:bioproject), accessions: ['PRJDB1']).issued
+  def issued(submission, accessions, names: {})
+    notice = SubmissionNotice.accession_issued!(submission, accessions, names:)
 
-    assert_equal ['alice@example.com'], mail.to
+    AccessionMailer.with(notice:, first: accessions.first, count: accessions.size).issued
+  end
+
+  test 'issued — goes to the submitter address' do
+    assert_equal ['alice@example.com'], issued(submissions(:bioproject), ['PRJDB1']).to
   end
 
   test 'issued — BP, single accession, subject + body lists the value' do
-    submission = submissions(:bioproject)
-    mail = AccessionMailer.with(submission:, accessions: ['PRJDB123456']).issued
+    mail = issued(submissions(:bioproject), ['PRJDB123456'])
 
     assert_match(/BioProject accession issued: PRJDB123456/, mail.subject)
     assert_includes mail.from, 'repo@ddbj.nig.ac.jp'
@@ -17,9 +20,8 @@ class AccessionMailerTest < ActionMailer::TestCase
   end
 
   test 'issued — BS, multiple accessions, subject indicates "+N more"' do
-    submission = submissions(:biosample)
-    accs       = (1..5).map {|i| "SAMD0000000#{i}" }
-    mail = AccessionMailer.with(submission:, accessions: accs).issued
+    accs = (1..5).map {|i| "SAMD0000000#{i}" }
+    mail = issued(submissions(:biosample), accs)
 
     assert_match(/BioSample accessions issued: SAMD00000001 \(\+4 more\)/, mail.subject)
 
@@ -27,19 +29,33 @@ class AccessionMailerTest < ActionMailer::TestCase
     accs.each {|a| assert_match a, mail.body.encoded }
   end
 
-  test 'issued — staging environment prepends [Staging] to subject' do
+  # Nothing reads replies to this mail; the thread is where it is answered.
+  test 'issued — says what the notice says, and points at the thread to answer it' do
     submission = submissions(:bioproject)
+    text       = issued(submission, ['PRJDB1']).text_part.body.to_s
+
+    assert_includes text, submission.request.messages.system_role.sole.body
+    assert_includes text, WebApp.url_for("/requests/#{submission.request.id}")
+    assert_not_includes text, 'reply to this email'
+  end
+
+  # The names are the submitter's, and `simple_format` only sanitises.
+  test 'issued — the HTML part shows a name as written' do
+    html = issued(submissions(:biosample), ['SAMD00000001'], names: {'SAMD00000001' => 'x <y> <a href="https://example.com">z</a>'}).html_part.body.to_s
+
+    assert_includes html, 'x &lt;y&gt; &lt;a href='
+    assert_not_includes html, '<a href="https://example.com">'
+  end
+
+  test 'issued — staging environment prepends [Staging] to subject' do
     Rails.stub(:env, ActiveSupport::StringInquirer.new('staging')) do
-      mail = AccessionMailer.with(submission:, accessions: ['PRJDB1']).issued
-      assert_match(/\A\[Staging\] /, mail.subject)
+      assert_match(/\A\[Staging\] /, issued(submissions(:bioproject), ['PRJDB1']).subject)
     end
   end
 
   test 'issued — dev environment prepends [Dev] to subject' do
-    submission = submissions(:bioproject)
     Rails.stub(:env, ActiveSupport::StringInquirer.new('dev')) do
-      mail = AccessionMailer.with(submission:, accessions: ['PRJDB1']).issued
-      assert_match(/\A\[Dev\] /, mail.subject)
+      assert_match(/\A\[Dev\] /, issued(submissions(:bioproject), ['PRJDB1']).subject)
     end
   end
 
@@ -49,7 +65,7 @@ class AccessionMailerTest < ActionMailer::TestCase
     submission = submissions(:bioproject)
     submission.user.update!(email: nil)
 
-    mail = AccessionMailer.with(submission:, accessions: ['PRJDB1']).issued
+    mail = issued(submission, ['PRJDB1'])
 
     assert_empty mail.to.to_a
 

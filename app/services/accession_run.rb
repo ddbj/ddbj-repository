@@ -18,10 +18,17 @@ module AccessionRun
   # "–936" does not.
   MIN_DIGITS = 3
 
+  # One run a prefix, in the order they were issued — a DRA submission is
+  # issued its DRA and its DRX, DRR and DRZ together.
   def self.label(accessions)
     accessions = Array(accessions)
 
-    return nil              if accessions.empty?
+    return nil if accessions.empty?
+
+    accessions.group_by { it[/\A\D+/] }.values.map { run(it) }.join(', ')
+  end
+
+  private_class_method def self.run(accessions)
     return accessions.first if accessions.one?
 
     first, last = accessions.minmax_by { AccessionRange.sort_key(it) }

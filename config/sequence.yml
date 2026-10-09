@@ -35,3 +35,28 @@ shared:
   bs:
     - prefix: SAMD
       digits: 8
+
+  # DRA's numbers, as D-way writes them: at least six digits, more once six
+  # run out (DRR1000000) — so the capacity is `digits`, and `pad` the width
+  # a smaller one is padded to. D-way issues them by kind from one counter
+  # each (`max(acc_no) + 1`), and so do these; `next` starts where D-way's
+  # stopped, set when DRA is taken over from it.
+  dra:
+    - prefix: DRA
+      digits: 9
+      pad:    6
+
+  drx:
+    - prefix: DRX
+      digits: 9
+      pad:    6
+
+  drr:
+    - prefix: DRR
+      digits: 9
+      pad:    6
+
+  drz:
+    - prefix: DRZ
+      digits: 9
+      pad:    6

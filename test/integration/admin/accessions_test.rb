@@ -155,8 +155,8 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     assert_response :forbidden
   end
 
-  # DRA's numbers are still D-way's: nothing is enqueued to be refused.
-  test 'a DRA submission is turned away before anything is enqueued' do
+  # An imported DRA submission is numbered in D-way: nothing is enqueued to be refused.
+  test 'an imported DRA submission is turned away before anything is enqueued' do
     submission = submissions(:dra)
     dra_submissions(:dra).update!(accession: nil, status: 'curating')
 
@@ -165,6 +165,6 @@ class AdminAccessionsTest < ActionDispatch::IntegrationTest
     end
 
     assert_empty submission.accession_issuances
-    assert_equal 'DRA accessions are not issued here yet.', flash[:alert]
+    assert_equal 'DRA submissions imported from D-way are numbered there.', flash[:alert]
   end
 end

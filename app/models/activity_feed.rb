@@ -45,8 +45,11 @@ class ActivityFeed
   # Bounded and eager-loaded for the same reason as update_entries: a long
   # thread would otherwise be loaded whole and then dereference `user` once
   # per row.
+  #
+  # A notice is left out: what it announces — accessions issued — is an
+  # event of its own in this feed already.
   def message_entries
-    request.messages.includes(:user).last(20).map {|message|
+    request.messages.not_system_role.includes(:user).last(20).map {|message|
       Entry.new(
         at:        message.created_at,
         actor:     message.user.uid,

@@ -14,7 +14,7 @@
     <div class="card-body p-4">
       <h1 class="h4 mb-2">
         <% if @plan.items.one? %>
-          Issue <%= @plan.items.first.prefix %> accessions for #<%= @plan.items.first.request&.id %>?
+          Issue <%= @plan.items.first.prefixes.to_sentence %> accessions for #<%= @plan.items.first.request&.id %>?
         <% else %>
           Issue accessions for <%= pluralize(@plan.items.size, 'selected submission') %>?
         <% end %>
@@ -30,7 +30,7 @@
             <tr>
               <td>
                 <span class="badge text-bg-warning me-1"><%= prefix %></span>
-                to <%= prefix == 'PRJDB' ? 'projects' : 'samples with no accession' %>
+                to <%= AccessionIssue::TARGETS.fetch(prefix) %>
               </td>
               <td class="text-end fw-semibold"><%= number_with_delimiter(count) %></td>
             </tr>

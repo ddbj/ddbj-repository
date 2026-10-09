@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_02_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_09_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -330,11 +330,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000002) do
     t.bigint "next", default: 1, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "taken_over_after"
     t.index ["scope"], name: "index_sequences_on_scope", unique: true
   end
 
   create_table "submission_messages", force: :cascade do |t|
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.string "author_role", null: false
     t.text "body", null: false
     t.datetime "read_at"
@@ -346,6 +347,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_000002) do
     t.index ["submission_request_id", "created_at"], name: "idx_on_submission_request_id_created_at_cf469d0ffd"
     t.index ["submission_request_id"], name: "index_submission_messages_on_submission_request_id"
     t.index ["user_id"], name: "index_submission_messages_on_user_id"
+    t.check_constraint "user_id IS NOT NULL OR author_role::text = 'system'::text", name: "submission_messages_author"
   end
 
   create_table "submission_request_participants", force: :cascade do |t|

@@ -1,18 +1,12 @@
 <p>Dear submitter,</p>
 
+<%# Escaped first: the names in it are the submitter's, and `simple_format` %>
+<%# only sanitises. %>
+<%= simple_format h(@notice.body) %>
+
 <p>
-  We have issued <%= @accessions.size %> accession<%= 's' if @accessions.size != 1 %>
-  for your <%= Submission.db_label(@submission.db) %> submission
-  (<%= @submission.source_id.presence || "##{@submission.id}" %>).
+  <a href="<%= WebApp.url_for("/requests/#{@request.id}") %>">If you have any questions, please reply on the web.</a>
 </p>
-
-<ul>
-  <% @accessions.each do |a| %>
-    <li><code><%= a %></code></li>
-  <% end %>
-</ul>
-
-<p>If you have any questions, please reply to this email.</p>
 
 <p>
   Regards,<br>

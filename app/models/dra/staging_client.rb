@@ -60,6 +60,19 @@ class DRA::StagingClient
     DataMigration::DwayDefaults.fingerprint(@conn, tables: %w[mass.submission mass.meta_entity])
   end
 
+  # The last number D-way has issued of each prefix the repository issues
+  # once DRA is taken over (AccessionIssue::DRA_OBJECTS, and DRA itself).
+  # D-way takes `max(acc_no) + 1` of a prefix for each new one, so its last
+  # is its maximum.
+  def last_accession_numbers
+    @conn.exec(<<~SQL).to_h { [it['acc_type'], it['last']] }
+      SELECT acc_type, max(acc_no) AS last
+      FROM mass.accession_entity
+      WHERE acc_type IN ('DRA', 'DRX', 'DRR', 'DRZ')
+      GROUP BY acc_type
+    SQL
+  end
+
   # The sub_ids of every submission past the draft, ordered for a resumable
   # sweep. `after` is the last one a previous pass finished.
   def submission_ids(limit: nil, after: nil)

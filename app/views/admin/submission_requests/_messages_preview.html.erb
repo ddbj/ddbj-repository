@@ -18,7 +18,7 @@
         <%= truncate(last.body, length: 160) %>
       </blockquote>
       <p class="small text-body-tertiary mb-3">
-        <%= last.user.uid %> · <%= format_datetime(last.created_at) %>
+        <%= message_author(last) %> · <%= format_datetime(last.created_at) %>
       </p>
     <% else %>
       <p class="small text-body-secondary fst-italic">No messages yet.</p>

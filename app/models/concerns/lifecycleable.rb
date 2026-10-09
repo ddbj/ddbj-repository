@@ -44,6 +44,10 @@ module Lifecycleable
     # status, unless the model says otherwise (Entry).
     def settable_statuses = STATUSES.keys
 
+    # What these rows may be put into: the kind's, unless some of them are
+    # not curated here at all (DRASubmission).
+    def settable_statuses_for(_rows) = settable_statuses
+
     # Whether this kind of row keeps when it was published (DB-2096): when
     # it was first made public, and when what is public about it last
     # changed — on the way into public, while public, and on the way out.

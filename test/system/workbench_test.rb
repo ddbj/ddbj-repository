@@ -68,8 +68,46 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_selector '[data-test-data-file]', text: 'r_1.fastq'
     assert_selector '[data-test-data-file]', text: '4 Bytes'
 
-    # Sent here, not imported: its status is nobody's yet, not D-way's.
-    assert_selector '[data-test-status-source]', text: 'DRA is not curated here yet'
+    # Sent here, not imported: curated here.
+    assert_no_selector '[data-test-status-source]'
+
+    select 'Curating', from: 'Status'
+    click_button 'Save changes'
+
+    assert_equal 'curating', submission.dra_submission.reload.status
+  end
+
+  # Numbered whole, as D-way numbers it: the dialog says how many of each
+  # kind before anything is allocated.
+  test 'a DRA submission sent here is issued its numbers, by kind' do
+    request    = submission_requests(:dra)
+    submission = Submission.create!(db: 'dra', user: request.user)
+
+    request.update_columns(submission_id: submission.id, status: 'applied')
+    DRASubmission.create!(submission:, status: :curating)
+
+    submission.append_update!({
+      'schema_version' => 'v3',
+      'experiments'    => [{'alias' => 'exp'}],
+      'runs'           => [{'alias' => 'run-1'}, {'alias' => 'run-2'}]
+    }, actor: 'test')
+
+    take_over_dra_numbering
+
+    visit admin_submission_request_path(request)
+    click_link 'Issue 4 accessions (DRA, DRX, DRR)'
+
+    within '[data-test-confirm]' do
+      assert_text 'DRA submissions'
+      assert_text 'experiments'
+      assert_text 'runs'
+    end
+
+    perform_enqueued_jobs { click_button 'Issue 4 accessions' }
+
+    assert_equal ['DRA001000', 'accession_issued'], submission.dra_submission.reload.values_at(:accession, :status)
+    assert_equal %w[DRR001000 DRR001001], submission.reload.materialised_record['runs'].pluck('accession')
+    assert_equal 'DRA001000, DRX001000, DRR001000–001', submission.curation_events.sole.details['range']
   end
 
   test 'the samples tab narrows to the group being worked on' do
@@ -173,6 +211,24 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     visit messages_admin_submission_request_path(@req)
 
     assert_link 'samples.tsv'
+  end
+
+  # A notice is DDBJ's, but nobody's: it must not be taken for the
+  # submitter's words, which is where a message without a curator lands.
+  test 'a notice reads as sent automatically, beside the conversation' do
+    SubmissionNotice.accession_issued!(@req.submission, %w[SAMD00000001])
+
+    visit messages_admin_submission_request_path(@req)
+
+    within '[data-test-notice]' do
+      assert_text 'Sent automatically'
+      assert_text 'SAMD00000001'
+    end
+
+    # Overview previews the last thing said, which is now the notice.
+    visit admin_submission_request_path(@req)
+
+    assert_text 'Sent automatically'
   end
 
   # Everyone following is told, not everyone who has posted. A curator

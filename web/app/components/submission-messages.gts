@@ -143,7 +143,7 @@ export default class SubmissionMessages extends MessageThread<Signature, Message
       </div>
 
       <p class="text-body-secondary small">
-        New messages from the curator are also sent to you by email.
+        New messages from the curator, and notices such as accessions issued, are also sent to you by email.
       </p>
 
       {{! Speaker is carried by side and colour rather than by a label the
@@ -166,36 +166,49 @@ export default class SubmissionMessages extends MessageThread<Signature, Message
 
         <ul class="list-unstyled mb-3 d-flex flex-column gap-3">
           {{#each this.messages as |m|}}
-            <li class="d-flex gap-3 {{unless (isCurator m) 'ps-5'}}">
-              {{#if (isCurator m)}}
-                <span
-                  class="message-avatar badge rounded-circle text-bg-dark d-flex align-items-center justify-content-center"
-                  aria-hidden="true"
-                >DC</span>
-              {{/if}}
-
-              <div
-                class="flex-fill border rounded p-3
-                  {{if (isCurator m) 'bg-body-tertiary' 'bg-primary-subtle border-primary-subtle'}}"
-              >
-                <div class="d-flex justify-content-between small text-body-secondary mb-1">
-                  <strong class="text-body">{{if (isCurator m) "DDBJ curator" "You"}}</strong>
+            {{! A notice is DDBJ speaking, as the curator does, but nobody
+            wrote it: it sits on DDBJ's side without the avatar, and says
+            where it came from instead of whose it is. }}
+            {{#if (isNotice m)}}
+              <li class="border rounded p-3 small text-body-secondary" data-test-notice>
+                <div class="d-flex justify-content-between mb-1">
+                  <strong>Sent automatically</strong>
                   <span>{{formatDatetime m.created_at}}</span>
                 </div>
                 <div class="text-pre-wrap">{{m.body}}</div>
-
-                {{#if m.files.length}}
-                  <ul class="list-unstyled mb-0 mt-2 small">
-                    {{#each m.files as |file|}}
-                      <li>
-                        <DownloadLink @url={{file.url}} @filename={{file.filename}} />
-                        <span class="text-body-secondary">{{humanSize file.byte_size}}</span>
-                      </li>
-                    {{/each}}
-                  </ul>
+              </li>
+            {{else}}
+              <li class="d-flex gap-3 {{unless (isCurator m) 'ps-5'}}">
+                {{#if (isCurator m)}}
+                  <span
+                    class="message-avatar badge rounded-circle text-bg-dark d-flex align-items-center justify-content-center"
+                    aria-hidden="true"
+                  >DC</span>
                 {{/if}}
-              </div>
-            </li>
+
+                <div
+                  class="flex-fill border rounded p-3
+                    {{if (isCurator m) 'bg-body-tertiary' 'bg-primary-subtle border-primary-subtle'}}"
+                >
+                  <div class="d-flex justify-content-between small text-body-secondary mb-1">
+                    <strong class="text-body">{{if (isCurator m) "DDBJ curator" "You"}}</strong>
+                    <span>{{formatDatetime m.created_at}}</span>
+                  </div>
+                  <div class="text-pre-wrap">{{m.body}}</div>
+
+                  {{#if m.files.length}}
+                    <ul class="list-unstyled mb-0 mt-2 small">
+                      {{#each m.files as |file|}}
+                        <li>
+                          <DownloadLink @url={{file.url}} @filename={{file.filename}} />
+                          <span class="text-body-secondary">{{humanSize file.byte_size}}</span>
+                        </li>
+                      {{/each}}
+                    </ul>
+                  {{/if}}
+                </div>
+              </li>
+            {{/if}}
           {{/each}}
         </ul>
       {{else}}
@@ -237,4 +250,8 @@ export default class SubmissionMessages extends MessageThread<Signature, Message
 
 function isCurator(m: Message): boolean {
   return m.author_role === 'curator';
+}
+
+function isNotice(m: Message): boolean {
+  return m.author_role === 'system';
 }

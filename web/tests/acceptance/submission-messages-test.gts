@@ -109,6 +109,34 @@ module('Acceptance | submission messages', function (hooks) {
     assert.dom('[data-test-mark-read]').doesNotExist();
   });
 
+  // Nobody wrote a notice, and a message that is not the curator's must
+  // not land on the reader's side as their own words.
+  test('a notice reads as sent automatically, not as the reader', async function (assert) {
+    const notice: Message[] = [
+      {
+        id: 1,
+        body: 'We have issued 1 accession for your BioProject submission (#10).',
+        author_role: 'system',
+        author_uid: null,
+        created_at: now,
+        read_at: null,
+        files: [],
+      },
+    ];
+
+    worker.use(
+      http.get('/submission_requests/{id}', ({ response }) => response(200).json(request)),
+
+      http.get('/submission_requests/{submission_request_id}/messages', ({ response }) => response(200).json(notice)),
+    );
+
+    await visit(`/requests/${request.id}`);
+
+    assert.dom('[data-test-notice]').includesText('Sent automatically');
+    assert.dom('[data-test-notice]').includesText('We have issued 1 accession');
+    assert.dom('[data-test-messages]').doesNotIncludeText('You');
+  });
+
   // "Here is the corrected file" is most of what this conversation is
   // for, and it was the one thing the thread could not carry.
   test('an attachment is listed on the message that brought it', async function (assert) {
