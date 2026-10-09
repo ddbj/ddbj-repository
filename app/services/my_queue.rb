@@ -160,9 +160,10 @@ class MyQueue
     base = SubmissionRequest.where(closed_at: nil)
 
     base.where(id: unread_request_ids(user))
-        .or(base.where(<<~SQL.squish, sids: ISSUABLE_STATUS_IDS.call))
+        .or(base.where(<<~SQL.squish, sids: ISSUABLE_STATUS_IDS.call, dra: AccessionIssue.dra_taken_over?))
           EXISTS (SELECT 1 FROM projects WHERE projects.submission_id = submission_requests.submission_id AND projects.accession IS NULL AND projects.status IN (:sids)) OR
-          EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id AND samples.accession  IS NULL AND samples.status  IN (:sids))
+          EXISTS (SELECT 1 FROM samples  WHERE samples.submission_id  = submission_requests.submission_id AND samples.accession  IS NULL AND samples.status  IN (:sids)) OR
+          (:dra AND EXISTS (SELECT 1 FROM dra_submissions JOIN submissions ON submissions.id = dra_submissions.submission_id WHERE dra_submissions.submission_id = submission_requests.submission_id AND submissions.source_id IS NULL AND dra_submissions.accession IS NULL AND dra_submissions.status IN (:sids)))
         SQL
   end
 

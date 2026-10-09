@@ -57,7 +57,7 @@
               <% if issuance.accessions.one? %>
                 <code><%= issuance.accessions.first %></code> issued
               <% else %>
-                <%= pluralize(issuance.accessions.size, issuance.submission.curation_row_noun) %>
+                <%= pluralize(issuance.rows_issued, issuance.submission.curation_row_noun) %>
                 now <code>accession_issued</code>
                 (<code><%= issuance.accession_range %></code>)
               <% end %>

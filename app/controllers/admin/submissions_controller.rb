@@ -166,12 +166,19 @@ module Admin
       assigned = Applied.none
 
       # The same rule each rows screen keeps: an ST.26 entry cannot be put
-      # back to `submission_accepted`. A selection that includes such rows
-      # is refused whole, rather than set for some and not others.
-      if status && (refused = rows.reject { _2.klass.settable_statuses.include?(status) }.keys).any?
-        nouns = refused.map { Submission::CURATION_ROW_NOUNS.fetch(it).pluralize.upcase_first }
+      # back to `submission_accepted`, and a DRA submission imported from
+      # D-way takes its status from there. A selection that includes such
+      # rows is refused whole, rather than set for some and not others —
+      # saying which rule, since "cannot be set" alone sends a curator
+      # looking at the status rather than the selection.
+      if status && (refused = rows.reject { _2.klass.settable_statuses_for(_2).include?(status) }).any?
+        reasons = refused.map {|db, of|
+          noun = Submission::CURATION_ROW_NOUNS.fetch(db).pluralize.upcase_first
 
-        return redirect_to bulk_return_path, alert: "#{nouns.to_sentence} cannot be set to #{status.tr('_', ' ')}."
+          of.klass.settable_statuses_for(of).empty? ? "#{noun} imported from D-way take their status from there" : "#{noun} cannot be set to #{status.tr('_', ' ')}"
+        }
+
+        return redirect_to bulk_return_path, alert: "#{reasons.to_sentence}."
       end
 
       # Every database's rows, each named in the notice by its own noun.
@@ -212,7 +219,7 @@ module Admin
 
     # Cross-submission bulk accession issuance from the ledger: one job
     # per selected submission (BP → 1 PRJDB, BS → all un-accessioned
-    # samples).
+    # samples, DRA → the submission and every object of its record).
     #
     # It used to run them here, in series, each holding the Sequence row
     # lock through a chain replay — so a curator who ticked ten BioSample
@@ -238,9 +245,11 @@ module Admin
       # to make — deciding it here from the preview would mean a
       # submission that became issuable in between is turned away by a
       # stale reading, and the run page would be missing the line that
-      # says what happened to it. A database that issues nothing here is
-      # the exception: no reading changes that, so its row is written
-      # refused and nothing is queued for it.
+      # says what happened to it. A submission whose accessions are not
+      # issued here is the exception (`refusal_for`: a database that issues
+      # none, a DRA submission imported from D-way, or DRA's numbering not
+      # yet taken over) — nothing this press could wait for changes that,
+      # so its row is written refused and nothing is queued for it.
       Submission.where(id: ids).find_each do |submission|
         attrs = {run:, actor: run.actor, started_at: Time.current}
 

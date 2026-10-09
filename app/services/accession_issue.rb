@@ -1,8 +1,9 @@
 # Allocate one or more accessions from the project Sequence and stamp them
-# onto the target rows (BP Project / BS Samples) plus the patch chain. One
-# call per submission — for BS we batch all un-accessioned samples in a
-# single Sequence.allocate! so the sequence advances exactly N times for
-# N samples, not 2N.
+# onto the target rows (BP Project / BS Samples / DRA's DRASubmission) plus
+# the patch chain. One call per submission — for BS we batch all
+# un-accessioned samples in a single Sequence.allocate! so the sequence
+# advances exactly N times for N samples, not 2N. A DRA submission is
+# numbered whole: see `issue_dra`.
 #
 # Transaction shape:
 #   - Sequence allocation + typed column stamp + chain append all happen
@@ -31,8 +32,10 @@
 #
 # Refuses to operate when:
 #   - submission already has all-accessioned rows (BS)
-#   - the BP project already has an accession
+#   - the BP project or the DRA submission already has an accession
 #   - status is not in {curating, submission_accepted}
+#   - the DRA submission was imported from D-way, or DRA's numbering has not
+#     been taken over from D-way yet (`refusal_for`)
 #
 # Returns a Result with the list of newly-issued accessions, or raises
 # one of two errors that mean opposite things — see Refused and
@@ -59,24 +62,80 @@ class AccessionIssue
 
   ISSUABLE_FROM = %w[submission_accepted curating].freeze
 
-  # What each database's issuance allocates.
+  # What each database's issuance allocates — for DRA, the submission's.
   PREFIXES = {
     'bioproject' => 'PRJDB',
-    'biosample'  => 'SAMD'
+    'biosample'  => 'SAMD',
+    'dra'        => 'DRA'
+  }.freeze
+
+  # The rest of a DRA submission's numbers: one for each object of these
+  # lists in its record that has none, of the kind's prefix (whose Sequence
+  # scope is the prefix's lower case). Study and sample have none of their
+  # own — D-way has issued no DRP or DRS since 2022; they are the BioProject
+  # and BioSample the record refers to.
+  DRA_OBJECTS = {
+    'experiments' => 'DRX',
+    'runs'        => 'DRR',
+    'analyses'    => 'DRZ'
+  }.freeze
+
+  # What each prefix numbers, as the confirmation names it.
+  TARGETS = {
+    'PRJDB' => 'projects',
+    'SAMD'  => 'samples with no accession',
+    'DRA'   => 'DRA submissions',
+    'DRX'   => 'experiments',
+    'DRR'   => 'runs',
+    'DRZ'   => 'analyses'
   }.freeze
 
   # Why each of the others has none here, in the words a curator reads —
   # on the confirmation, as the refusal of a press, and on the run page.
   REFUSALS = {
-    'st26' => 'ST.26 accessions are allocated when the file is applied, not issued here.',
-    'dra'  => 'DRA accessions are not issued here yet.'
+    'st26' => 'ST.26 accessions are allocated when the file is applied, not issued here.'
   }.freeze
+
+  IMPORTED_DRA = 'DRA submissions imported from D-way are numbered there.'
+
+  # Until it is, D-way issues the same numbers.
+  DRA_NOT_TAKEN_OVER = "DRA numbering has not been taken over from D-way yet (rake dra:take_over_numbering), so it would issue D-way's numbers again.".freeze
+
+  def self.dra_scopes = ['DRA', *DRA_OBJECTS.values].map(&:downcase)
+
+  def self.dra_taken_over? = Sequence.where(scope: dra_scopes).where.not(taken_over_after: nil).count == dra_scopes.size
 
   def self.supported?(submission) = PREFIXES.key?(submission.db)
 
-  # Nil for a database that issues here.
+  # What issuing would allocate, by prefix — the rows that would be
+  # numbered, and for DRA the objects of its record with them. Empty where
+  # nothing would be, a DRA submission with no record among them, as
+  # `issue_dra` refuses one. Reads a DRA submission's record, so raises
+  # Submission::MaterialisationFailed where that cannot be read.
+  def self.allocation(submission, rows = submission.curation_rows)
+    return {} if rows.nil? || refusal_for(submission)
+
+    count = issuable(rows).count
+
+    return count.positive? ? {PREFIXES.fetch(submission.db) => count} : {} unless submission.dra_db?
+    return {} if count.zero?
+
+    record = submission.materialised_record or return {}
+
+    {'DRA' => 1, **DRA_OBJECTS.to_h {|list, prefix| [prefix, unnumbered(record, list).size] }}.select { _2.positive? }
+  end
+
+  def self.unnumbered(record, list)
+    Array(record[list]).select { it.is_a?(Hash) && it['accession'].blank? }
+  end
+
+  # Nil for a submission whose accessions are issued here.
   def self.refusal_for(submission)
-    REFUSALS.fetch(submission.db) unless supported?(submission)
+    return REFUSALS.fetch(submission.db) unless supported?(submission)
+    return unless submission.dra_db?
+    return IMPORTED_DRA if submission.source_id
+
+    DRA_NOT_TAKEN_OVER unless dra_taken_over?
   end
 
   def self.call(submission:, actor:, samples: nil, issuance: nil)
@@ -111,11 +170,14 @@ class AccessionIssue
   end
 
   def call
+    if (refusal = self.class.refusal_for(@submission))
+      raise Refused, refusal
+    end
+
     case @submission.db
     when 'bioproject' then issue_bp
     when 'biosample'  then issue_bs
-    else
-      raise Refused, self.class.refusal_for(@submission)
+    when 'dra'        then issue_dra
     end
   end
 
@@ -175,6 +237,61 @@ class AccessionIssue
     Result.new(submission: @submission, accessions:, **enqueue_mail(@submission, accessions))
   end
 
+  # A DRA submission is numbered whole, as D-way numbers it: one DRA for the
+  # submission, and one of its kind's for each experiment, run and analysis
+  # of its record that has none — in alias order within a kind, as D-way
+  # orders them, which is the order the record is kept in (canonical-json.md:
+  # these lists are keyed by alias). The numbers go into the record, the
+  # submission's onto its row.
+  #
+  # One imported from D-way is numbered there; one numbered already is not
+  # numbered again, here or by a second press.
+  def issue_dra
+    row = @submission.dra_submission or raise Refused, 'Submission has no DRA submission row.'
+
+    raise Refused, "DRA submission already has accession #{row.accession}." if row.accession.present?
+    raise Refused, "DRA submission status #{row.status} is not issuable." unless ISSUABLE_FROM.include?(row.status)
+
+    # What each number is the submitter's name for, for the mail: thousands
+    # of DRR in a list say nothing without it.
+    names = {}
+
+    accessions = Submission.transaction do
+      issued = []
+
+      update = stamp_record! {|record|
+        dra = Sequence.allocate!(:dra, 1).first
+
+        (record['submission'] ||= {})['accession'] = dra
+        issued << dra
+        names[dra] = ['submission', record.dig('submission', 'alias')].compact.join(' ')
+
+        DRA_OBJECTS.each do |list, prefix|
+          objects = self.class.unnumbered(record, list)
+
+          next if objects.empty?
+
+          Sequence.allocate!(prefix.downcase.to_sym, objects.size).zip(objects).each do |acc, object|
+            object['accession'] = acc
+            issued << acc
+            names[acc] = [list.singularize, object['alias']].compact.join(' ')
+          end
+        end
+      }
+
+      raise Refused, 'Submission has no record to number.' unless update
+
+      row.update!(accession: issued.first, status: :accession_issued)
+
+      record_event(issued, update)
+      complete_issuance! issued
+
+      issued
+    end
+
+    Result.new(submission: @submission, accessions:, **enqueue_mail(@submission, accessions, names:))
+  end
+
   # Write the freshly-issued accessions into the record as a patch.
   #
   # Accession is ordinary record content (canonical-json.md §4.4, v2), so
@@ -228,7 +345,8 @@ class AccessionIssue
       action:            :accession_issued,
       row_count:         accessions.size,
       submission_update: update,
-      prefix:            PREFIXES.fetch(@submission.db),
+      # None where the numbers are of several (DRA): the range names each.
+      prefix:            (PREFIXES.fetch(@submission.db) unless @submission.dra_db?),
       range:             AccessionRun.label(accessions)
     )
   end
@@ -251,13 +369,13 @@ class AccessionIssue
   # Both used to reach the run page as "sent". The third — a delivery
   # that fails after its retries — is settled by the delivery job, which
   # is the only place that knows.
-  def enqueue_mail(submission, accessions)
+  def enqueue_mail(submission, accessions, names: {})
     address = submission.user&.email
 
     return {mail_status: 'no_address', mail_error: nil} if address.blank?
     return {mail_status: 'restricted', mail_error: nil} unless MailDomainAllowlistInterceptor.delivers_to?(address)
 
-    AccessionMailer.with(submission:, accessions:, issuance: @issuance).issued.deliver_later
+    AccessionMailer.with(submission:, accessions:, names:, issuance: @issuance).issued.deliver_later
 
     # Queued, not sent. `deliver_later` has promised nothing yet — the
     # delivery job settles this either way (MailDeliveryJob#settle).

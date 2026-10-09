@@ -101,8 +101,13 @@ module Admin
       ids.index_with { [pending[it].to_i, total[it].to_i] }
     end
 
+    # A DRA submission imported from D-way is numbered there (AccessionIssue.
+    # refusal_for): only those sent here are issued here, and only once DRA's
+    # numbering is taken over from D-way.
     def tally(ids)
-      [Project.where(submission_id: ids), Sample.where(submission_id: ids)]
+      dra = AccessionIssue.dra_taken_over? ? DRASubmission.joins(:submission).where(submission_id: ids, submissions: {source_id: nil}) : DRASubmission.none
+
+      [Project.where(submission_id: ids), Sample.where(submission_id: ids), dra]
         .map { yield(it).group(:submission_id).count }
         .reduce {|a, b| a.merge(b) {|_, x, y| x + y } }
     end

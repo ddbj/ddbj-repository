@@ -241,10 +241,28 @@ it stays in the uploader's list until `ReleaseAssignedFilesJob` takes it out.
 A database takes submissions only where the configured ddbj-validator takes
 its records (`record_dbs` in config/ddbj_validator.yml) *and* its records can
 be applied here (`SubmissionApply.dbs`) — so DRA opens where `record_dbs`
-names it. **Do not name it yet:** DRA is not curated here — an applied DRA
-submission takes no status and is issued no accession (`DRASubmission.
-settable_statuses`, `AccessionIssue`), so it would wait at Submission accepted
-for good. The validator there must read DRA records too (ddbj-validator#10).
+names it. **Not before D-way issues no DRA number of any kind** — not for
+new submissions, and not for those still in it below accession issued, which
+a curator there would go on numbering: D-way takes `max(acc_no) + 1` of its
+own and never sees ours, and DRX/DRR/DRZ have no index here to catch a
+duplicate. Then `DWAY_DRA_STOPPED=yes rake dra:take_over_numbering`
+continues each prefix from D-way's last and records where
+(`sequences.taken_over_after`); issuing refuses until it has (`AccessionIssue.
+refusal_for`). It names the drmdb it read: a stale copy would start the
+numbers below what D-way has issued, so check it is production's. Run again
+later — after the first DRA issuance, and while D-way still runs — the rake
+is the check that D-way has issued nothing since, and stops on a collision,
+or on a drmdb behind where it was taken over. The validator there must read
+DRA records too (ddbj-validator#10).
+
+A DRA submission sent here is curated here; one imported from D-way
+(`source_id`) is D-way's, its status set by the next import
+(`DRASubmission.settable_statuses_for`) and its numbers D-way's
+(`AccessionIssue.refusal_for`). Issuing numbers one sent here whole, as
+D-way does: one DRA for the submission and a DRX, DRR or DRZ for each
+experiment, run and analysis of its record — by alias within a kind, from
+one sequence a prefix. No DRP or DRS: D-way has issued none since 2022, its
+studies and samples being the BioProject and BioSample referred to.
 
 A DRA run's reads are read the way the archive will read them, by SRA
 Toolkit — NCBI's build, pinned in `bin/install-sratoolkit`, which the image

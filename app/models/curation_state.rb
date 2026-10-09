@@ -145,7 +145,7 @@ class CurationState
     @first_accession ||= rows && rows.where.not(accession: nil).minimum(:accession)
   end
 
-  def issuable_count = @issuable_count ||= rows && AccessionIssue.supported?(submission) ? AccessionIssue.issuable(rows).count : 0
+  def issuable_count = @issuable_count ||= rows && !AccessionIssue.refusal_for(submission) ? AccessionIssue.issuable(rows).count : 0
 
   def issuable? = issuable_count.positive?
 
@@ -164,12 +164,37 @@ class CurationState
     @issuing = submission.present? && AccessionIssuance.in_flight.where(submission_id: submission.id).exists?
   end
 
+  # Asked twice a render (the bar and next_action), and for DRA it reads
+  # the record: worked out once.
   def issue_label
+    return @issue_label if defined?(@issue_label)
+
+    @issue_label = compute_issue_label
+  end
+
+  def compute_issue_label
     return nil if issuing?
     return nil unless issuable?
 
+    allocation = AccessionIssue.allocation(submission, rows)
+
+    return nil if allocation.empty?
+
+    # A DRA submission is numbered whole, its objects with it: counted in
+    # numbers, of the kinds named, rather than in rows.
+    if allocation.many?
+      count = allocation.values.sum
+
+      return "Issue #{ActiveSupport::NumberHelper.number_to_delimited(count)} #{'accession'.pluralize(count)} (#{allocation.keys.join(', ')})"
+    end
+
     "Issue #{accession_prefix} for #{ActiveSupport::NumberHelper.number_to_delimited(issuable_count)} #{row_noun(issuable_count)}"
+  rescue Submission::MaterialisationFailed
+    # Nothing to number from; the workbench says the record is unreadable
+    # where it shows the record.
+    nil
   end
+  private :compute_issue_label
 
   # The hold date on the submission's row, where it has one. BP projects
   # the record's onto it (Submission#sync_projections!). DRA's is D-way's

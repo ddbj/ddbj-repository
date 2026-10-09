@@ -76,6 +76,13 @@ class ActiveSupport::TestCase
     )
   end
 
+  # DRA's numbering, taken over from a D-way whose last number of each kind
+  # was `after` (rake dra:take_over_numbering).
+  def take_over_dra_numbering(after: 999)
+    Sequence.ensure_records!
+    Sequence.where(scope: AccessionIssue.dra_scopes).update_all(next: after + 1, taken_over_after: after)
+  end
+
   # Holds the advisory lock `name` from a session of its own, as a run in
   # another process would (AdvisoryLock).
   def holding_advisory_lock(name)

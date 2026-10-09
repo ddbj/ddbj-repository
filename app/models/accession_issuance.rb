@@ -73,6 +73,10 @@ class AccessionIssuance < ApplicationRecord
 
   def accession_range = AccessionRun.label(accessions)
 
+  # The rows numbered: one a number, but for a DRA submission, numbered
+  # whole with its objects — one row, however many numbers.
+  def rows_issued = submission.dra_db? ? 1 : accessions.size
+
   # The curator who pressed the button, for the things that need a User
   # rather than an audit string. Nil if the account has since gone.
   def curator = User.find_by(uid: actor_label)

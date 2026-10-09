@@ -422,16 +422,107 @@ class AccessionIssueTest < ActiveSupport::TestCase
 
   # --- DRA ---
 
-  # Its numbers are still D-way's. A row the importer left without one is
-  # not something to allocate for here.
-  test 'refuses DRA submissions, and does not call their row issuable' do
+  # Imported from D-way, it is numbered there: a row the importer left
+  # without one is not something to allocate for here.
+  test 'refuses a DRA submission imported from D-way, and does not call its row issuable' do
     dra_submissions(:dra).update!(accession: nil, status: 'curating')
 
-    refute AccessionIssue.supported?(submissions(:dra))
+    assert_equal AccessionIssue::IMPORTED_DRA, AccessionIssue.refusal_for(submissions(:dra))
     assert_equal 0, CurationState.new(submission_requests(:dra)).issuable_count
 
-    assert_raises AccessionIssue::Refused do
+    error = assert_raises(AccessionIssue::Refused) {
       AccessionIssue.call(submission: submissions(:dra), actor: 'test')
+    }
+
+    assert_equal AccessionIssue::IMPORTED_DRA, error.message
+  end
+
+  # A DRA submission sent here, as Apply leaves it, with DRA's numbering
+  # taken over from D-way.
+  def sent_dra(record)
+    take_over_dra_numbering
+
+    Submission.create!(db: 'dra', user: users(:alice)).tap {|submission|
+      DRASubmission.create!(submission:, status: :submission_accepted)
+      submission.append_update!(record, actor: 'test-seed')
+    }
+  end
+
+  DRA_RECORD = {
+    'schema_version' => 'v3',
+    'submission'     => {'alias' => 'sub1'},
+    'experiments'    => [{'alias' => 'exp-b'}, {'alias' => 'exp-a'}],
+    'runs'           => [{'alias' => 'run-2'}, {'alias' => 'run-1'}, {'alias' => 'run-3'}],
+    'analyses'       => [{'alias' => 'an'}]
+  }.freeze
+
+  # Numbered whole, as D-way numbers it: the submission one DRA, each
+  # experiment, run and analysis one of its kind's, by alias within a kind.
+  test 'DRA: numbers the submission and every object of its record, by alias within a kind' do
+    submission = sent_dra(DRA_RECORD)
+    first      = Sequence.find_by!(scope: 'drr').peek
+
+    assert_equal({'DRA' => 1, 'DRX' => 2, 'DRR' => 3, 'DRZ' => 1}, AccessionIssue.allocation(submission))
+
+    result = AccessionIssue.call(submission:, actor: 'test-curator')
+
+    assert_equal 7, result.accessions.size
+
+    record = submission.reload.materialised_record
+    row    = submission.dra_submission
+
+    assert_equal [record.dig('submission', 'accession'), 'accession_issued'], [row.accession, row.status]
+    assert_match(/\ADRA\d{6,}\z/, row.accession)
+
+    runs = record['runs'].to_h { [it['alias'], it['accession']] }
+
+    assert_equal first, runs['run-1'], 'from where the sequence stood, in alias order'
+    assert_equal runs.values.sort, runs.values_at('run-1', 'run-2', 'run-3')
+    assert(record['experiments'].all? { it['accession'].start_with?('DRX') })
+    assert_match(/\ADRZ/, record.dig('analyses', 0, 'accession'))
+
+    event = submission.curation_events.sole
+
+    assert_equal 7, event.row_count
+    assert_match(/\Aissued 7 accessions \(DRA\d+, DRX\d+–\d+, DRR\d+–\d+, DRZ\d+\)\z/, event.summary, 'the range names each kind; no one prefix for all')
+  end
+
+  # Thousands of DRR in a list say nothing without whose each is.
+  test 'DRA: the mail says what each number is for' do
+    users(:alice).update!(email: 'alice@example.com')
+    submission = sent_dra(DRA_RECORD)
+
+    assert_emails 1 do
+      perform_enqueued_jobs { AccessionIssue.call(submission:, actor: 'test-curator') }
+    end
+
+    run = submission.reload.materialised_record['runs'].find { it['alias'] == 'run-2' }
+
+    assert_includes ActionMailer::Base.deliveries.last.text_part.body.to_s, "#{run['accession']}  run run-2"
+  end
+
+  # Until then D-way issues the same numbers.
+  test 'DRA: nothing is issued before the numbering is taken over from D-way' do
+    submission = sent_dra(DRA_RECORD)
+
+    Sequence.where(scope: 'drz').update_all(taken_over_after: nil)
+
+    assert_empty AccessionIssue.allocation(submission)
+
+    assert_raises AccessionIssue::Refused, match: 'not been taken over' do
+      AccessionIssue.call(submission:, actor: 'test-curator')
+    end
+  end
+
+  test 'DRA: a submission numbered already is not numbered again' do
+    submission = sent_dra(DRA_RECORD)
+
+    AccessionIssue.call(submission:, actor: 'test-curator')
+
+    assert_empty AccessionIssue.allocation(submission.reload)
+
+    assert_raises AccessionIssue::Refused, match: 'already has accession' do
+      AccessionIssue.call(submission:, actor: 'test-curator')
     end
   end
 end

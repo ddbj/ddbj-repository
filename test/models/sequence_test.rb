@@ -110,4 +110,42 @@ class SequenceTest < ActiveSupport::TestCase
 
     assert_equal %w[SAMD01921307 SAMD01921308], Sequence.allocate!(:bs, 2)
   end
+
+  # As D-way writes them: six digits at least, more once six run out.
+  test 'DRA scopes pad to six digits and outgrow them' do
+    Sequence.ensure_records!
+    Sequence.find_by!(scope: 'drr').update! next: 999_999
+
+    assert_equal %w[DRR999999 DRR1000000], Sequence.allocate!(:drr, 2)
+    assert_equal 'DRA000001', Sequence.find_by!(scope: 'dra').peek
+  end
+
+  # Taking DRA's numbering over: from D-way's last, and run again, a check
+  # that D-way has issued nothing since.
+  test 'continue_after! takes over from a number, and then catches D-way issuing past it' do
+    Sequence.ensure_records!
+    sequence = Sequence.find_by!(scope: 'drx')
+
+    assert_not sequence.taken_over?
+    assert_equal :taken_over, sequence.continue_after!(1_234_567)
+    assert_equal 'DRX1234568', sequence.peek
+
+    Sequence.allocate!(:drx, 3)
+
+    assert_equal :unchanged, sequence.reload.continue_after!(1_234_567), 'ours issued past it is no collision'
+
+    assert_raises(Sequence::Collision) { sequence.continue_after!(1_234_568) }
+
+    # A D-way whose last is behind where it was taken over is another
+    # database than that one — a stale copy — and says nothing either way.
+    assert_raises(Sequence::WrongSource) { sequence.continue_after!(1_000) }
+  end
+
+  test 'continue_after! will not take over a sequence already issued from' do
+    Sequence.ensure_records!
+    Sequence.allocate!(:drr, 1)
+
+    assert_raises(Sequence::Collision) { Sequence.find_by!(scope: 'drr').continue_after!(5) }
+    assert_raises(ArgumentError) { Sequence.find_by!(scope: 'jpo_na').continue_after!(1) }
+  end
 end

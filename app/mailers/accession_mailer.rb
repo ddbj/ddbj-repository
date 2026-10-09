@@ -11,6 +11,11 @@ class AccessionMailer < ApplicationMailer
     @submission = params[:submission]
     @accessions = Array(params[:accessions]).compact
 
+    # What each is the submitter's name for, where there is one: a DRA
+    # submission's numbers are its runs', experiments' and analyses', and a
+    # list of thousands of DRR does not say which is whose.
+    @names = params[:names] || {}
+
     to = recipient_for(@submission.user) or return
 
     mail(to:, subject: subject_line(@submission, @accessions))

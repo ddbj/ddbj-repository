@@ -217,7 +217,7 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     select 'Public', from: 'bulk[status]'
     click_button 'Apply'
 
-    assert_text 'DRA submissions cannot be set to public.'
+    assert_text 'DRA submissions imported from D-way take their status from there.'
     assert_equal 'private', dra_submissions(:dra).reload.status
   end
 
@@ -247,11 +247,11 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     select 'Submission accepted', from: 'bulk[status]'
     click_button 'Apply'
 
-    assert_text 'DRA submissions and Entries cannot be set to submission accepted.'
+    assert_text 'DRA submissions imported from D-way take their status from there and Entries cannot be set to submission accepted.'
     assert_equal 'private', dra_submissions(:dra).reload.status
   end
 
-  # DRA's numbers are still D-way's. The confirmation says so, and the
+  # An imported DRA submission is numbered in D-way. The confirmation says so, and the
   # press queues nothing for it — its line on the run page is written
   # refused, in the same words.
   test 'issuing from the ledger skips a DRA submission, and says why' do
@@ -264,13 +264,13 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     check "Select ##{submission_requests(:dra).id}"
     click_button 'Issue accessions'
 
-    assert_text 'DRA accessions are not issued here yet'
+    assert_text 'DRA submissions imported from D-way are numbered there'
 
     assert_enqueued_jobs 1, only: IssueAccessionsJob do
       click_button 'Issue 1 accession'
     end
 
-    assert_text 'DRA accessions are not issued here yet.'
+    assert_text 'DRA submissions imported from D-way are numbered there.'
     assert_equal %w[refused], submissions(:dra).accession_issuances.pluck(:status)
   end
 

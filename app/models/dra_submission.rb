@@ -8,7 +8,9 @@ class DRASubmission < ApplicationRecord
 
   validates :accession, format: {with: ACCESSION_FORMAT}, allow_nil: true
 
-  # None: the status is D-way's until DRA is curated here, and the next
-  # import would put back a status set in the repository.
-  def self.settable_statuses = []
+  # None for one imported from D-way: its status is D-way's, and the next
+  # import would put back a status set here. One sent here is curated here.
+  def self.settable_statuses_for(rows)
+    rows.joins(:submission).where.not(submissions: {source_id: nil}).exists? ? [] : settable_statuses
+  end
 end

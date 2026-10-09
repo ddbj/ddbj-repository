@@ -34,4 +34,70 @@ namespace :dra do
 
     puts verdict
   end
+
+  # Takes DRA's numbering over from D-way: each prefix the repository issues
+  # (AccessionIssue) continues from the last D-way issued, read from drmdb.
+  #
+  # Only once D-way issues no DRA number of any kind — not for new
+  # submissions, and not for the ones still in it below accession issued,
+  # which a curator there would otherwise go on numbering: D-way takes
+  # `max(acc_no) + 1` of its own and never sees ours, so the same number
+  # would come from both. Said by whoever runs it (DWAY_DRA_STOPPED=yes),
+  # since drmdb cannot: it lists those still in it to be sure about.
+  # Run before DRA is opened here (`record_dbs`), which issuing waits for.
+  #
+  # Run again at any time, it checks: D-way having issued past where it was
+  # taken over is a collision, and it stops saying so.
+  #
+  #   DWAY_DRA_STOPPED=yes bin/rails dra:take_over_numbering
+  desc "Continue DRA's accession numbers from where D-way stopped"
+  task take_over_numbering: :environment do
+    client = DRA::StagingClient.new
+
+    # Which D-way this is: read from the wrong one — a stale copy — the
+    # numbers would start below what D-way has issued.
+    puts "Reading D-way's DRA numbers from #{client.source_fingerprint.slice('database', 'server_addr', 'server_port').values.join(' ')}"
+
+    last   = client.last_accession_numbers
+    scopes = AccessionIssue.dra_scopes
+
+    # All of them, before anything is written: one missing would leave the
+    # others taken over and it not, with nothing to take it over from.
+    missing = scopes.map(&:upcase) - last.keys
+
+    abort "drmdb has no #{missing.join(', ')} numbers; is this D-way's database?" if missing.any?
+
+    Sequence.ensure_records!
+
+    first = scopes.any? { !Sequence.find_by!(scope: it).taken_over? }
+
+    if first && ENV['DWAY_DRA_STOPPED'] != 'yes'
+      waiting = client.enumerate_excluded.count { it.reason == 'in_progress' }
+
+      abort <<~MESSAGE
+        D-way still has #{waiting} DRA submission(s) below accession issued. Once DRA's numbering is
+        taken over, D-way must issue no DRA number of any kind, theirs included. When it does not,
+        run again with DWAY_DRA_STOPPED=yes.
+      MESSAGE
+    end
+
+    Sequence.transaction do
+      scopes.each do |scope|
+        prefix   = scope.upcase
+        number   = last.fetch(prefix)
+        sequence = Sequence.find_by!(scope:)
+
+        case sequence.continue_after!(number)
+        when :taken_over then puts "#{prefix}: taken over after D-way's #{number}; continuing from #{sequence.peek}"
+        when :unchanged  then puts "#{prefix}: D-way has issued nothing since #{number}; next is #{sequence.peek}"
+        end
+      end
+    end
+  rescue Sequence::Collision => e
+    abort "COLLISION — #{e.message}. The same numbers have been issued by both; stop D-way issuing DRA numbers and find them."
+  rescue Sequence::WrongSource => e
+    abort "#{e.message}. This is not the database it was taken over from."
+  ensure
+    client&.close
+  end
 end

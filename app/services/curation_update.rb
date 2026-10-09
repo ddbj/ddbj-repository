@@ -90,7 +90,7 @@ class CurationUpdate
     # entry is never `submission_accepted` (Entry.settable_statuses), and
     # writing it here would put the entries in a state the Entries tab has
     # no way to set them out of.
-    settable = rows.klass.settable_statuses
+    settable = rows.klass.settable_statuses_for(rows)
 
     raise Refused, "The #{submission.curation_row_noun}'s status is not set here." if settable.empty?
     raise Refused, "Unknown status: #{status.inspect}." unless settable.include?(status)
