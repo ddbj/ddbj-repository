@@ -77,6 +77,25 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_equal 'curating', submission.dra_submission.reload.status
   end
 
+  # Making it public is the thing the submitter is waiting to hear, and
+  # the thread is where they hear it.
+  test 'publishing a submission tells its submitter in the thread' do
+    request = submission_requests(:bioproject)
+
+    visit admin_submission_request_path(request)
+
+    select 'Public', from: 'Status'
+    click_button 'Save changes'
+
+    click_link 'Messages'
+
+    within '[data-test-notice]' do
+      assert_text 'Your BioProject submission'
+      assert_text 'is now public.'
+      assert_text "#{projects(:primary).accession} #{projects(:primary).title}"
+    end
+  end
+
   # Numbered whole, as D-way numbers it: the dialog says how many of each
   # kind before anything is allocated.
   test 'a DRA submission sent here is issued its numbers, by kind' do

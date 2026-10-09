@@ -378,9 +378,7 @@ class AccessionIssue
     return {mail_status: 'no_address', mail_error: nil} if address.blank?
     return {mail_status: 'restricted', mail_error: nil} unless MailDomainAllowlistInterceptor.delivers_to?(address)
 
-    # Only what the subject needs: the job row carries its arguments, and
-    # the whole list can run to a hundred thousand.
-    AccessionMailer.with(notice: @notice, first: accessions.first, count: accessions.size, issuance: @issuance).issued.deliver_later
+    SubmissionNoticeMailer.with(notice: @notice, first: accessions.first, count: accessions.size, issuance: @issuance).accession_issued.deliver_later
 
     # Queued, not sent. `deliver_later` has promised nothing yet — the
     # delivery job settles this either way (MailDeliveryJob#settle).

@@ -128,7 +128,7 @@ class AccessionIssueTest < ActiveSupport::TestCase
     }
   end
 
-  test 'BP: enqueues an AccessionMailer delivery on success' do
+  test 'BP: enqueues the notice mail on success' do
     submission = submissions(:bioproject)
     projects(:primary).update!(accession: nil, status: 'curating')
 

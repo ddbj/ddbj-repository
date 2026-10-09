@@ -1,17 +1,17 @@
 require 'test_helper'
 
-class AccessionMailerTest < ActionMailer::TestCase
+class SubmissionNoticeMailerTest < ActionMailer::TestCase
   def issued(submission, accessions, names: {})
     notice = SubmissionNotice.accession_issued!(submission, accessions, names:)
 
-    AccessionMailer.with(notice:, first: accessions.first, count: accessions.size).issued
+    SubmissionNoticeMailer.with(notice:, first: accessions.first, count: accessions.size).accession_issued
   end
 
-  test 'issued — goes to the submitter address' do
+  test 'accession_issued — goes to the submitter address' do
     assert_equal ['alice@example.com'], issued(submissions(:bioproject), ['PRJDB1']).to
   end
 
-  test 'issued — BP, single accession, subject + body lists the value' do
+  test 'accession_issued — BP, single accession, subject + body lists the value' do
     mail = issued(submissions(:bioproject), ['PRJDB123456'])
 
     assert_match(/BioProject accession issued: PRJDB123456/, mail.subject)
@@ -19,7 +19,7 @@ class AccessionMailerTest < ActionMailer::TestCase
     assert_match 'PRJDB123456', mail.body.encoded
   end
 
-  test 'issued — BS, multiple accessions, subject indicates "+N more"' do
+  test 'accession_issued — BS, multiple accessions, subject indicates "+N more"' do
     accs = (1..5).map {|i| "SAMD0000000#{i}" }
     mail = issued(submissions(:biosample), accs)
 
@@ -30,7 +30,7 @@ class AccessionMailerTest < ActionMailer::TestCase
   end
 
   # Nothing reads replies to this mail; the thread is where it is answered.
-  test 'issued — says what the notice says, and points at the thread to answer it' do
+  test 'accession_issued — says what the notice says, and points at the thread to answer it' do
     submission = submissions(:bioproject)
     text       = issued(submission, ['PRJDB1']).text_part.body.to_s
 
@@ -40,20 +40,31 @@ class AccessionMailerTest < ActionMailer::TestCase
   end
 
   # The names are the submitter's, and `simple_format` only sanitises.
-  test 'issued — the HTML part shows a name as written' do
+  test 'accession_issued — the HTML part shows a name as written' do
     html = issued(submissions(:biosample), ['SAMD00000001'], names: {'SAMD00000001' => 'x <y> <a href="https://example.com">z</a>'}).html_part.body.to_s
 
     assert_includes html, 'x &lt;y&gt; &lt;a href='
     assert_not_includes html, '<a href="https://example.com">'
   end
 
-  test 'issued — staging environment prepends [Staging] to subject' do
+  test 'published — says what was made public' do
+    submission = submissions(:biosample)
+    notice     = SubmissionNotice.published!(submission, %w[SAMD00000001 SAMD00000002])
+    mail       = SubmissionNoticeMailer.with(notice:, first: 'SAMD00000001', count: 2).published
+
+    assert_includes notice.body, '2 samples of your BioSample submission'
+
+    assert_equal '[DDBJ Repository] BioSample made public: SAMD00000001 (+1 more)', mail.subject
+    assert_includes mail.text_part.body.to_s, notice.body
+  end
+
+  test 'accession_issued — staging environment prepends [Staging] to subject' do
     Rails.stub(:env, ActiveSupport::StringInquirer.new('staging')) do
       assert_match(/\A\[Staging\] /, issued(submissions(:bioproject), ['PRJDB1']).subject)
     end
   end
 
-  test 'issued — dev environment prepends [Dev] to subject' do
+  test 'accession_issued — dev environment prepends [Dev] to subject' do
     Rails.stub(:env, ActiveSupport::StringInquirer.new('dev')) do
       assert_match(/\A\[Dev\] /, issued(submissions(:bioproject), ['PRJDB1']).subject)
     end
@@ -61,7 +72,7 @@ class AccessionMailerTest < ActionMailer::TestCase
 
   # No address → no mail at all. A synthesised recipient would only turn
   # the missing address into a bounce.
-  test 'issued — sends nothing when the address is unknown' do
+  test 'accession_issued — sends nothing when the address is unknown' do
     submission = submissions(:bioproject)
     submission.user.update!(email: nil)
 

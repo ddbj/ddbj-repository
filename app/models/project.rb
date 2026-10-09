@@ -1,6 +1,8 @@
 class Project < ApplicationRecord
   include Lifecycleable
 
+  def self.notice_name_column = :title
+
   ACCESSION_FORMAT = /\APRJD[B-Z]\d+\z/
 
   enum :project_type, {

@@ -53,6 +53,10 @@ module Lifecycleable
     # changed — on the way into public, while public, and on the way out.
     def publication_tracked? = column_names.include?('last_published_at')
 
+    # What a row is the submitter's name for, to set beside its accession
+    # in a notice. None by default.
+    def notice_name_column = nil
+
     # Every change of status goes through here, so that crossing into or
     # out of public carries the publication timestamps with it: into
     # public, `first_published_at` if there is none yet and
@@ -60,26 +64,71 @@ module Lifecycleable
     # each row judged by the status it had — a row already where it is
     # going moves nothing but `updated_at`.
     #
+    # A row made public for the first time is announced to its submitter
+    # too (SubmissionNotice.published!), one notice a submission: that is
+    # the other thing crossing into public carries with it, and the reason
+    # it is here rather than on each screen is the same. In one
+    # transaction with the write, because several screens call this with
+    # none open, and a status committed without its notice would never be
+    # announced — the row is first-published from then on.
+    #
     # Not by callback: the screens that change status change many rows at
     # once, and `update_all` runs none.
     def move_to_status!(status, at: Time.current)
-      code  = STATUSES.fetch(status.to_s)
-      attrs = {status: code, updated_at: at}
+      code        = STATUSES.fetch(status.to_s)
+      public_code = STATUSES.fetch('public')
+      attrs       = {status: code, updated_at: at}
 
-      if publication_tracked?
-        public   = STATUSES.fetch('public')
-        column   = ->(name) { "#{quoted_table_name}.#{connection.quote_column_name(name)}" }
-        crossing = "#{column.('status')} #{code == public ? '<>' : '='} #{public}"
+      transaction do
+        # Read before the write, which makes them indistinguishable from
+        # the rows that were public already.
+        debuts = (code == public_code && publication_tracked?) ? first_publications : {}
 
-        attrs[:last_published_at]  = Arel.sql(sanitize_sql(["CASE WHEN #{crossing} THEN ? ELSE #{column.('last_published_at')} END", at]))
-        attrs[:first_published_at] = Arel.sql(sanitize_sql(["COALESCE(#{column.('first_published_at')}, ?)", at])) if code == public
+        if publication_tracked?
+          column   = ->(name) { "#{quoted_table_name}.#{connection.quote_column_name(name)}" }
+          crossing = "#{column.('status')} #{code == public_code ? '<>' : '='} #{public_code}"
+
+          attrs[:last_published_at]  = Arel.sql(sanitize_sql(["CASE WHEN #{crossing} THEN ? ELSE #{column.('last_published_at')} END", at]))
+          attrs[:first_published_at] = Arel.sql(sanitize_sql(["COALESCE(#{column.('first_published_at')}, ?)", at])) if code == public_code
+        end
+
+        count = update_all(attrs)
+
+        announce debuts
+
+        count
       end
-
-      update_all(attrs)
     end
 
     # What is public about these rows has changed: the public ones among
     # them are published again, as they stand now.
     def republished!(at: Time.current) = status_public.update_all(last_published_at: at)
+
+    private
+
+    # The rows about to be public for the first time, as {submission_id =>
+    # [accession, ...]}. Locked, so that a second publish of the same rows
+    # at the same moment waits for this one and then finds them published.
+    def first_publications
+      rows = where(first_published_at: nil).where.not(status: :public).where.not(accession: nil)
+
+      rows.lock.order(:accession).pluck(:submission_id, :accession).group_by(&:first).transform_values { it.map(&:last) }
+    end
+
+    # Names for only what a notice lists: a submission can make a hundred
+    # thousand samples public at once.
+    def announce(debuts)
+      Submission.where(id: debuts.keys).includes(:request).find_each do |submission|
+        # Nowhere to be told. Every submission is applied from a request,
+        # but nothing here depends on that.
+        next unless submission.request
+
+        accessions = debuts.fetch(submission.id)
+        listed     = accessions.first(SubmissionNotice::LIST_LIMIT)
+        names      = notice_name_column ? unscoped.where(accession: listed).pluck(:accession, notice_name_column).to_h : {}
+
+        SubmissionNotice.published!(submission, accessions, names:)
+      end
+    end
   end
 end
