@@ -1,12 +1,9 @@
 Dear submitter,
 
-We have issued <%= @accessions.size %> accession<%= 's' if @accessions.size != 1 %> for your <%= Submission.db_label(@submission.db) %> submission (<%= @submission.source_id.presence || "##{@submission.id}" %>).
+<%= @notice.body %>
 
-<% @accessions.each do |a| -%>
-  - <%= a %><%= "  #{@names[a]}" if @names[a] %>
-<% end -%>
-
-If you have any questions, please reply to this email.
+If you have any questions, please reply on the web:
+<%= WebApp.url_for("/requests/#{@request.id}") %>
 
 Regards,
 DDBJ Repository

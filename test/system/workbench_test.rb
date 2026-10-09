@@ -213,6 +213,24 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     assert_link 'samples.tsv'
   end
 
+  # A notice is DDBJ's, but nobody's: it must not be taken for the
+  # submitter's words, which is where a message without a curator lands.
+  test 'a notice reads as sent automatically, beside the conversation' do
+    SubmissionNotice.accession_issued!(@req.submission, %w[SAMD00000001])
+
+    visit messages_admin_submission_request_path(@req)
+
+    within '[data-test-notice]' do
+      assert_text 'Sent automatically'
+      assert_text 'SAMD00000001'
+    end
+
+    # Overview previews the last thing said, which is now the notice.
+    visit admin_submission_request_path(@req)
+
+    assert_text 'Sent automatically'
+  end
+
   # Everyone following is told, not everyone who has posted. A curator
   # copied in has not posted, and the mail that copied them in promises
   # replies will reach them.

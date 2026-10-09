@@ -5,7 +5,10 @@
 # thread hangs off the SubmissionRequest — not the Submission — so the
 # conversation can start before Apply, when no Submission exists yet.
 # `author_role` distinguishes who wrote it, NOT who can see it: both
-# curators and the request's owner can read every message.
+# curators and the request's owner can read every message. A `system`
+# message is a notice DDBJ posts of its own accord (SubmissionNotice) —
+# nobody wrote it, so it has no user, and it asks nothing of either side:
+# it is never unread for the submitter and never answers the submitter.
 #
 # `read_at` carries ONE direction now: a curator-authored message is
 # stamped when the submitter deals with it — by replying, or by saying
@@ -16,7 +19,7 @@
 # reading a thread is not this curator having read it.
 class SubmissionMessage < ApplicationRecord
   belongs_to :submission_request
-  belongs_to :user
+  belongs_to :user, optional: true
 
   # No size or type validation, deliberately. The files this conversation
   # is about are submission files, which are large by nature, and a limit
@@ -25,7 +28,7 @@ class SubmissionMessage < ApplicationRecord
   # nothing here is bounded by a request body — see config/importmap.rb.
   has_many_attached :files
 
-  AUTHOR_ROLES = %w[curator submitter].freeze
+  AUTHOR_ROLES = %w[curator submitter system].freeze
 
   # `suffix: :role` → `Model.curator_role` scope, `instance.curator_role?`
   # predicate. (Plain `suffix: true` would expand to `_author_role`,
@@ -40,6 +43,7 @@ class SubmissionMessage < ApplicationRecord
   # is the corrected file" needs no prose — but an empty one with nothing
   # at all is a misfire, and both sides refuse it before they get here.
   validates :body, presence: true, unless: -> { files.attached? }
+  validates :user, presence: true, unless: :system_role?
 
   scope :chronological, -> { order(:created_at, :id) }
   scope :unread,        -> { where(read_at: nil) }

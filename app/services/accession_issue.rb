@@ -196,13 +196,12 @@ class AccessionIssue
 
       update = stamp_record! {|record| BioProject.record_project!(record)['accession'] = acc }
       record_event([acc], update)
-      complete_issuance! [acc]
+      conclude! [acc]
 
       acc
     end
 
-    Result.new(submission: @submission, accessions: [accession],
-               **enqueue_mail(@submission, [accession]))
+    Result.new(submission: @submission, accessions: [accession], **enqueue_mail([accession]))
   end
 
   def issue_bs
@@ -229,12 +228,12 @@ class AccessionIssue
       }
 
       record_event(acc_list, update)
-      complete_issuance! acc_list
+      conclude! acc_list, names: acc_list.zip(targets.map(&:sample_name)).to_h
 
       acc_list
     end
 
-    Result.new(submission: @submission, accessions:, **enqueue_mail(@submission, accessions))
+    Result.new(submission: @submission, accessions:, **enqueue_mail(accessions))
   end
 
   # A DRA submission is numbered whole, as D-way numbers it: one DRA for the
@@ -252,8 +251,8 @@ class AccessionIssue
     raise Refused, "DRA submission already has accession #{row.accession}." if row.accession.present?
     raise Refused, "DRA submission status #{row.status} is not issuable." unless ISSUABLE_FROM.include?(row.status)
 
-    # What each number is the submitter's name for, for the mail: thousands
-    # of DRR in a list say nothing without it.
+    # What each number is the submitter's name for: thousands of DRR in a
+    # list say nothing without it.
     names = {}
 
     accessions = Submission.transaction do
@@ -284,12 +283,12 @@ class AccessionIssue
       row.update!(accession: issued.first, status: :accession_issued)
 
       record_event(issued, update)
-      complete_issuance! issued
+      conclude!(issued, names:)
 
       issued
     end
 
-    Result.new(submission: @submission, accessions:, **enqueue_mail(@submission, accessions, names:))
+    Result.new(submission: @submission, accessions:, **enqueue_mail(accessions))
   end
 
   # Write the freshly-issued accessions into the record as a patch.
@@ -354,8 +353,11 @@ class AccessionIssue
   # In the commit that issues the numbers, so a run stopped after it is not
   # taken for one that issued nothing: run again, it would be refused —
   # every target has its accession — and say so over numbers that exist.
-  def complete_issuance!(accessions)
+  # The notice to the submitter is in it for the same reason: a run that
+  # issued has told them so in the thread, and one that did not has not.
+  def conclude!(accessions, names: {})
     @issuance&.update!(status: 'completed', accessions:, finished_at: Time.current)
+    @notice = SubmissionNotice.accession_issued!(@submission, accessions, names:)
   end
 
   # Runs after the transaction has committed, so a failure here cannot
@@ -369,13 +371,16 @@ class AccessionIssue
   # Both used to reach the run page as "sent". The third — a delivery
   # that fails after its retries — is settled by the delivery job, which
   # is the only place that knows.
-  def enqueue_mail(submission, accessions, names: {})
-    address = submission.user&.email
+  def enqueue_mail(accessions)
+    # Whom the mail goes to: the thread's owner, read where the mailer reads it.
+    address = @notice.submission_request.user.email
 
     return {mail_status: 'no_address', mail_error: nil} if address.blank?
     return {mail_status: 'restricted', mail_error: nil} unless MailDomainAllowlistInterceptor.delivers_to?(address)
 
-    AccessionMailer.with(submission:, accessions:, names:, issuance: @issuance).issued.deliver_later
+    # Only what the subject needs: the job row carries its arguments, and
+    # the whole list can run to a hundred thousand.
+    AccessionMailer.with(notice: @notice, first: accessions.first, count: accessions.size, issuance: @issuance).issued.deliver_later
 
     # Queued, not sent. `deliver_later` has promised nothing yet — the
     # delivery job settles this either way (MailDeliveryJob#settle).

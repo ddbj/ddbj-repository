@@ -21,6 +21,15 @@ class MessagesTest < ActionDispatch::IntegrationTest
     assert_equal [older.id, newer.id], response.parsed_body.pluck('id')
   end
 
+  test 'a notice is in the thread, as nobody' do
+    SubmissionNotice.accession_issued!(@submission_request.submission, %w[PRJDB1])
+
+    get submission_request_messages_path(@submission_request)
+
+    assert_conform_schema 200
+    assert_equal [['system', nil]], response.parsed_body.map { it.values_at('author_role', 'author_uid') }
+  end
+
   # Reading is not dealing with it. Discharging the thread as a side
   # effect of rendering it took away the only reminder a submitter had
   # that they still owed an answer — and their curator saw nothing

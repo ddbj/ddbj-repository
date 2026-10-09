@@ -4638,12 +4638,20 @@ components:
         author_role:
           type: string
 
+          description: |
+            `system` is a notice DDBJ posted of its own accord — accessions
+            issued, for one. Nobody wrote it, so it has no `author_uid`, and
+            it is never unread: it asks nothing of the submitter.
+
           enum:
             - curator
             - submitter
+            - system
 
         author_uid:
-          type: string
+          type:
+            - string
+            - 'null'
 
         created_at:
           type: string

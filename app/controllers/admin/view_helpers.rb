@@ -412,6 +412,12 @@ module Admin::ViewHelpers
     end
   end
 
+  # Who wrote a request-thread message. A notice was written by nobody,
+  # and a screen that reached for its user would fall over on it.
+  def message_author(message)
+    message.system_role? ? 'Sent automatically' : message.user.uid
+  end
+
   # Compact timestamp for admin tables / detail — minute precision (drops
   # seconds), matching the web client's formatDatetime. Returns nil for a
   # nil time so callers can chain `|| '—'`.

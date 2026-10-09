@@ -6,10 +6,20 @@ class SubmissionMessageTest < ActiveSupport::TestCase
   end
 
   test 'rejects unknown author_role' do
-    msg = @request.messages.build(user: users(:bob), author_role: 'system', body: 'x')
+    msg = @request.messages.build(user: users(:bob), author_role: 'admin', body: 'x')
 
     assert_not msg.valid?
     assert_includes msg.errors[:author_role], 'is not included in the list'
+  end
+
+  # A notice has nobody behind it; anything else does.
+  test 'only a notice goes without an author' do
+    assert @request.messages.build(author_role: 'system', body: 'x').valid?
+
+    msg = @request.messages.build(author_role: 'curator', body: 'x')
+
+    assert_not msg.valid?
+    assert_includes msg.errors[:user], "can't be blank"
   end
 
   test 'requires a body' do

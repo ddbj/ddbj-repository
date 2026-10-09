@@ -142,6 +142,51 @@ class AccessionIssueTest < ActiveSupport::TestCase
     assert_equal 'queued', result.mail_status
   end
 
+  # The thread is where it is kept and answered; the mail only tells of it.
+  test 'BP: tells the submitter in the request thread' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    result = AccessionIssue.call(submission:, actor: 'test')
+    notice = submission.request.messages.system_role.sole
+
+    assert_includes notice.body, "  - #{result.accessions.sole}"
+  end
+
+  # Told in the commit that issues, so a stopped run neither tells of
+  # numbers it did not issue nor issues numbers it did not tell of.
+  test 'BP: a run that issues nothing tells nothing' do
+    submission = submissions(:bioproject)
+    projects(:primary).update!(accession: nil, status: 'curating')
+
+    # Fails after the notice is posted, so a notice posted outside the
+    # transaction would be left behind.
+    post = SubmissionNotice.method(:accession_issued!)
+    fail = ->(*args, **kwargs) {
+      post.call(*args, **kwargs)
+      raise 'simulated failure'
+    }
+
+    SubmissionNotice.stub(:accession_issued!, fail) do
+      assert_raises(RuntimeError) { AccessionIssue.call(submission:, actor: 'test') }
+    end
+
+    assert_nil projects(:primary).reload.accession
+    assert_not submission.request.messages.exists?
+  end
+
+  test 'BS: the notice names each sample its accession is for' do
+    submission = submissions(:biosample)
+    samples(:first).update!(accession: nil, status: 'curating')
+    samples(:second).update!(accession: nil, status: 'private')
+
+    AccessionIssue.call(submission:, actor: 'test')
+
+    body = submission.request.messages.system_role.sole.body
+
+    assert_includes body, "  - #{samples(:first).reload.accession}  #{samples(:first).sample_name}"
+  end
+
   # The two ways a notification goes nowhere without anything going
   # wrong. Both used to be indistinguishable from a delivery: nothing
   # raised, so `mail_error` was nil, and every screen read that as sent.
@@ -443,6 +488,14 @@ class AccessionIssueTest < ActiveSupport::TestCase
     take_over_dra_numbering
 
     Submission.create!(db: 'dra', user: users(:alice)).tap {|submission|
+      SubmissionRequest.create!(
+        submission:,
+        db:          'dra',
+        user:        users(:alice),
+        status:      :applied,
+        ddbj_record: {io: StringIO.new(record.to_json), filename: 'record.json'}
+      )
+
       DRASubmission.create!(submission:, status: :submission_accepted)
       submission.append_update!(record, actor: 'test-seed')
     }

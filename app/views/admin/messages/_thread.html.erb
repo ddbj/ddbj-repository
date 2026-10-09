@@ -46,6 +46,21 @@
 
     <ul class="list-unstyled mb-4 d-flex flex-column gap-3">
       <% messages.each do |m| %>
+        <%# A notice is DDBJ speaking, as a curator's message is, but nobody %>
+        <%# wrote it: it sits on DDBJ's side without the avatar, and says %>
+        <%# where it came from instead of whose it is. %>
+        <% if m.system_role? %>
+          <li class="border rounded p-3 small text-body-secondary" data-test-notice>
+            <div class="d-flex justify-content-between mb-1">
+              <strong><%= message_author(m) %></strong>
+              <span><%= format_datetime(m.created_at) %></span>
+            </div>
+            <div style="white-space: pre-wrap;"><%= m.body %></div>
+          </li>
+
+          <% next %>
+        <% end %>
+
         <li class="d-flex gap-3 <%= 'ps-5' unless m.curator_role? %>">
           <% if m.curator_role? %>
             <span class="badge rounded-circle text-bg-dark d-flex align-items-center justify-content-center"
@@ -54,7 +69,7 @@
 
           <div class="flex-fill border rounded p-3 <%= m.curator_role? ? 'bg-body-tertiary' : 'bg-primary-subtle border-primary-subtle' %>">
             <div class="d-flex justify-content-between small text-body-secondary mb-1">
-              <strong class="text-body"><%= m.curator_role? ? 'DDBJ curator' : m.user.uid %></strong>
+              <strong class="text-body"><%= m.curator_role? ? 'DDBJ curator' : message_author(m) %></strong>
               <span><%= format_datetime(m.created_at) %></span>
             </div>
             <div style="white-space: pre-wrap;"><%= m.body %></div>

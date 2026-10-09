@@ -3839,9 +3839,14 @@ export interface components {
         Message: {
             id: number;
             body: string;
-            /** @enum {string} */
-            author_role: "curator" | "submitter";
-            author_uid: string;
+            /**
+             * @description `system` is a notice DDBJ posted of its own accord — accessions
+             *     issued, for one. Nobody wrote it, so it has no `author_uid`, and
+             *     it is never unread: it asks nothing of the submitter.
+             * @enum {string}
+             */
+            author_role: "curator" | "submitter" | "system";
+            author_uid: string | null;
             /** Format: date-time */
             created_at: string;
             /** Format: date-time */
