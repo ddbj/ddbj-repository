@@ -86,7 +86,7 @@
     "ember-test-selectors": "^7.1.0",
     "eslint": "^10.11.0",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-ember": "^13.5.0",
+    "eslint-plugin-ember": "^13.6.0",
     "eslint-plugin-n": "^18.3.0",
     "eslint-plugin-qunit": "^8.2.6",
     "eslint-plugin-warp-drive": "^5.8.2",
