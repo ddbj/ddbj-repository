@@ -8,6 +8,9 @@ class Admin::DistributionNoticesTest < ActionDispatch::IntegrationTest
   include ActionMailer::TestHelper
 
   setup do
+    # Due only once D-way has handed over; see the test below for before.
+    DwayTakeover.record!(by: 'bob')
+
     sign_in_as users(:bob) # admin
 
     @project = projects(:primary) # bioproject submission owned by :alice

@@ -68,8 +68,8 @@
 
       <%# Where importing is switched off there is nothing to press, and %>
       <%# saying so beats an absent button. %>
-      <% if run.nil? && !DataMigration::DwayDefaults.enabled? %>
-        <p class="small text-body-secondary mb-0 mt-2">Importing from D-way is switched off here.</p>
+      <% if (run.nil? || run.stale?) && !DataMigration::DwayDefaults.enabled? %>
+        <p class="small text-body-secondary mb-0 mt-2"><%= DataMigration::DwayDefaults.refusal %></p>
       <% end %>
     </div>
   </div>

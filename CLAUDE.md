@@ -322,6 +322,9 @@ update one:
   so a late re-run cannot take back an answer.
 - Public XML — a row left `running` is ended by the next run that gets the
   lock (`PublicXMLRun.exclusively`).
+- `ReleaseOnHoldDateJob` — selects only what has not been public since
+  its hold date; a DRA submission and what it takes along are released in
+  one transaction.
 
 What a deploy does not put back is a job whose whole process went — the
 container killed before its workers stopped, the host down. Solid Queue
@@ -379,6 +382,20 @@ the BioSample public XML and the livelists.
   every screen and the TSV import use: into public sets both (the first
   once), out of public sets the last. A status that stays put moves
   neither. Not a callback, because the screens write with `update_all`.
+- **A first publication is announced** to the submitter from
+  `move_to_status!` too — a notice in the request's thread
+  (`SubmissionNotice`), mailed once committed, in the transaction of the
+  status it announces.
+- **The hold date** releases BioProject and DRA daily
+  (`HoldDateRelease`), once — a row public since its hold date is not
+  released by it again — once D-way has handed over (`DwayTakeover`,
+  recorded once for every database by `dway:take_over`), and not before,
+  since D-way releases what it still holds and the import brings its
+  status back. The same record stops the import. BioSample has no hold
+  date.
+- **A DRA submission published** — by its date or by a curator — takes
+  along its own submitter's projects and samples that its experiments are
+  part of (`DRA::LinkedRelease`), as D-way's did.
 - **Content** moves the last in `Submission#append_update!`, for public
   objects whose public view changed — what the public XML says of them, as
   the renderers define it (`PackageRenderer.published_view`,

@@ -6,6 +6,9 @@ class DistributionNotifierTest < ActiveSupport::TestCase
 
   # projects(:primary): a bioproject submission owned by :alice.
   setup do
+    # Due only once D-way has handed over; see the test below for before.
+    DwayTakeover.record!(by: 'bob')
+
     @project = projects(:primary)
     @project.update!(status: :private, hold_date: Date.current + 10, distribution_notified_at: nil)
   end
@@ -204,5 +207,20 @@ class DistributionNotifierTest < ActiveSupport::TestCase
     DistributionNotifier.new.notify([@project])
 
     assert_in_delta 3.days.ago, DistributionNotice.blocked_since([user.id]).fetch(user.id), 5
+  end
+
+  # Until then nothing releases a BioProject on its hold date, and the
+  # notice would promise what does not happen.
+  test 'nothing is due before D-way has handed over' do
+    DwayTakeover.delete_all
+
+    assert_empty DistributionNotifier.new.candidates
+  end
+
+  # What the hold date releases is what is announced.
+  test 'a temporarily suppressed project is due as well' do
+    @project.update!(status: :temporarily_suppressed)
+
+    assert_includes DistributionNotifier.new.candidates, @project
   end
 end

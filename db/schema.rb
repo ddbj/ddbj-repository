@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_09_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_10_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -115,6 +115,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_09_000002) do
     t.index ["accession"], name: "index_dra_submissions_on_accession", unique: true, where: "(accession IS NOT NULL)"
     t.index ["status"], name: "index_dra_submissions_on_status"
     t.index ["submission_id"], name: "index_dra_submissions_on_submission_id", unique: true
+  end
+
+  create_table "dway_takeovers", force: :cascade do |t|
+    t.datetime "taken_over_at", null: false
+    t.string "taken_over_by", null: false
+    t.boolean "singleton", default: true, null: false
+    t.index ["singleton"], name: "index_dway_takeovers_on_singleton", unique: true
+    t.check_constraint "singleton", name: "dway_takeovers_singleton"
   end
 
   create_table "entries", force: :cascade do |t|
