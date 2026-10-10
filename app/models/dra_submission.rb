@@ -13,4 +13,20 @@ class DRASubmission < ApplicationRecord
   def self.settable_statuses_for(rows)
     rows.joins(:submission).where.not(submissions: {source_id: nil}).exists? ? [] : settable_statuses
   end
+
+  # Published, a DRA submission takes along what its experiments are part
+  # of (DRA::LinkedRelease) — however it is published, by its hold date or
+  # by a curator.
+  def self.move_to_status!(status, **)
+    return super unless status.to_s == 'public'
+
+    transaction do
+      publishing = where.not(status: :public).lock.pluck(:submission_id)
+      count      = super
+
+      Submission.where(id: publishing).find_each { DRA::LinkedRelease.call(it) }
+
+      count
+    end
+  end
 end

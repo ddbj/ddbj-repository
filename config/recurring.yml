@@ -64,6 +64,13 @@ production: &production
     class: SyncUserEmailsJob
     schedule: at 1am every day
 
+  # Makes public what has reached its hold date (HoldDateRelease). After
+  # the addresses are synced, so its notices reach a real one, and before
+  # the night's public XML and livelists, so they carry it.
+  release_on_hold_date:
+    class: ReleaseOnHoldDateJob
+    schedule: at 1:15am every day
+
   publish_bp_xml:
     class: PublishBpXMLJob
     schedule: at 2am every day
