@@ -225,6 +225,76 @@ module('Unit | Utility | multipart-upload', function (hooks) {
     assert.deepEqual(asked, [[1], [1]], 'asked again rather than sending to the URL that just failed');
   });
 
+  // A part URL the server could not sign this moment is asked for again,
+  // rather than ending an upload hours in.
+  test('a part URL that could not be signed is asked for again', async function (assert) {
+    let asks = 0;
+
+    worker.use(
+      http.post('/uploads/{token}/part_urls', async ({ request, response }) => {
+        const { part_numbers } = await request.json();
+
+        if (++asks === 1) return response.untyped(new HttpResponse(null, { status: 503 }));
+
+        return response(200).json(part_numbers.map((part_number) => ({ part_number, url: partURL(part_number) })));
+      }),
+    );
+
+    assert.strictEqual(await uploadFile(file('ACGT'), { requestManager: requestManager(this) }), 'test-signed-id');
+    assert.strictEqual(asks, 2);
+  });
+
+  // One part that has given up ends the upload, and the parts in the air go
+  // with it rather than going on sending beside whatever is sent next.
+  test('a part that gives up stops the others', async function (assert) {
+    // Part 1 gives up only once the others are on their way.
+    let arrived!: () => void;
+    const inFlight = new Promise<void>((resolve) => (arrived = resolve));
+    let sending = 0;
+
+    worker.use(
+      http.post('/uploads', ({ response }) => response(201).json(uploading({ part_count: 3 }))),
+      http.post('/uploads/{token}/part_urls', async ({ request, response }) => {
+        const { part_numbers } = await request.json();
+
+        // Part 1 alone: the upload is gone, which is not asked again.
+        if (part_numbers.length === 1 && part_numbers[0] === 1) {
+          await inFlight;
+
+          return response(404).json({ error: 'Not Found' });
+        }
+
+        return response(200).json(
+          part_numbers.filter((n) => n !== 1).map((part_number) => ({ part_number, url: partURL(part_number) })),
+        );
+      }),
+      // Held: what ends them is being stopped.
+      mswHttp.put(`${storeURL}part/:number`, () => {
+        if (++sending === 2) arrived();
+
+        return new Promise<never>(() => {});
+      }),
+    );
+
+    // What the store would see: the requests for the other parts called off.
+    const descriptor = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'abort')!;
+    const abort = descriptor.value as (this: XMLHttpRequest) => void;
+    let aborted = 0;
+
+    XMLHttpRequest.prototype.abort = function (this: XMLHttpRequest) {
+      aborted++;
+      abort.call(this);
+    };
+
+    try {
+      await assert.rejects(uploadFile(file('A'.repeat(PART_SIZE * 3)), { requestManager: requestManager(this) }));
+    } finally {
+      Object.defineProperty(XMLHttpRequest.prototype, 'abort', descriptor);
+    }
+
+    assert.strictEqual(aborted, 2);
+  });
+
   // Rejected means this token cannot go anywhere. Starting over is what the
   // reader asked for by choosing the file again.
   test('a remembered upload the server has rejected is started over', async function (assert) {

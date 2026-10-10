@@ -311,6 +311,22 @@ class SubmissionRequestsTest < ActionDispatch::IntegrationTest
     assert_nil               body['submission']
   end
 
+  # Sent through /uploads, the record waited in the uploader's list; once it
+  # is the request's, it is not still waiting there.
+  test 'create takes the record out of its uploader\'s list' do
+    blob = ActiveStorage::Blob.create_and_upload!(io: file_fixture('ddbj_record/example.json').open, filename: 'example.json', content_type: 'application/json')
+
+    reads = ActiveStorage::Blob.create_and_upload!(io: StringIO.new('ACGT'), filename: 'r_1.fastq')
+
+    users(:alice).unassigned_files_attachments.create!(blob:)
+    users(:alice).unassigned_files_attachments.create!(blob: reads)
+
+    post submission_requests_path, params: {submission_request: {db: 'st26', ddbj_record: blob.signed_id}}, as: :json
+
+    assert_response :accepted
+    assert_equal [reads], users(:alice).reload.unassigned_files.blobs.to_a, 'only the record leaves; what is still waiting stays'
+  end
+
   test 'show returns 404 for another user' do
     sign_in_as_user(users(:bob))
 

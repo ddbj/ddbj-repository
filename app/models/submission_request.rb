@@ -41,6 +41,15 @@ class SubmissionRequest < ApplicationRecord
 
   has_one_attached :ddbj_record
 
+  # A record sent through `/uploads` waits in its uploader's list like any
+  # upload; made this request's, it leaves the list in the same commit, as
+  # an applied DRA submission's files do — what is listed is what is still
+  # waiting, which a submitter choosing the files for their runs reads.
+  # ReleaseAssignedFilesJob would take it out overnight anyway.
+  after_create do
+    user.unassigned_files_attachments.where(blob_id: ddbj_record.blob.id).destroy_all if ddbj_record.attached?
+  end
+
   # Everything this person may read: their own, plus whatever has been
   # shared into a set they have joined. Distinct from
   # `user.submission_requests`, which stays what it says — ownership,
