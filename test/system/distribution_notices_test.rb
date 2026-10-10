@@ -6,6 +6,9 @@ require 'application_system_test_case'
 # test/services/distribution_notifier_test.rb.
 class DistributionNoticesSystemTest < ApplicationSystemTestCase
   setup do
+    # Due only once D-way has handed over; see the test below for before.
+    DwayTakeover.record!(by: 'bob')
+
     sign_in_as users(:bob)
 
     @project = projects(:primary)
@@ -288,6 +291,8 @@ end
 class DistributionNoticesPreviewSystemTest < JavaScriptSystemTestCase
   setup do
     sign_in_as users(:bob)
+
+    DwayTakeover.record!(by: 'bob')
 
     projects(:primary).update!(status: :private, accession: 'PRJDB000001',
                                hold_date: Date.current + 5, distribution_notified_at: nil)

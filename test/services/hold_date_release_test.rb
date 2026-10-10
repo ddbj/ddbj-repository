@@ -5,6 +5,8 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
 
   setup do
     @today = Date.current
+
+    DwayTakeover.record!(by: 'test')
   end
 
   def dra_with(relations, row: dra_submissions(:dra), status: :private, hold_date: @today)
@@ -54,6 +56,34 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
     assert project.reload.status_public?
   end
 
+  # The date is Tokyo's and the timestamps are kept in UTC: published early
+  # on its hold date, Tokyo time, it has been public since.
+  test 'a hold date is a day in Tokyo' do
+    project = projects(:primary)
+    project.update!(status: :temporarily_suppressed, hold_date: @today, last_published_at: @today.in_time_zone('Asia/Tokyo') + 5.hours)
+
+    HoldDateRelease.call(today: @today)
+
+    assert project.reload.status_temporarily_suppressed?
+
+    project.update!(last_published_at: @today.in_time_zone('Asia/Tokyo') - 1.minute)
+
+    HoldDateRelease.call(today: @today)
+
+    assert project.reload.status_public?
+  end
+
+  # Nobody pressed anything, so the feed says what did.
+  test 'what it releases is in the activity of each submission' do
+    sample = samples(:first)
+    row    = dra_with([part_of('db' => 'sample', 'accession' => sample.accession)])
+
+    HoldDateRelease.call(today: @today)
+
+    assert_equal 'hold date set 1 DRA submission to public', row.submission.curation_events.sole.then { "#{it.actor_label} #{it.summary}" }
+    assert_equal "with #{row.accession} set 1 sample to public", sample.submission.curation_events.sole.then { "#{it.actor_label} #{it.summary}" }
+  end
+
   test 'leaves what is not due yet, or has no date' do
     project = projects(:primary)
     project.update!(hold_date: @today + 1)
@@ -84,16 +114,22 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
 
   # D-way releases what it still holds, and its import would bring the
   # status back.
-  test 'releases nothing of a database not taken over from D-way' do
-    projects(:primary).update!(hold_date: @today)
-    row = dra_with([])
+  test 'releases nothing until D-way has handed over' do
+    DwayTakeover.delete_all
 
-    DDBJValidatorClient.stub(:record_dbs, %w[biosample]) do
-      HoldDateRelease.call(today: @today)
-    end
+    projects(:primary).update!(hold_date: @today)
+    sample = samples(:first)
+    row    = dra_with([part_of('db' => 'sample', 'accession' => sample.accession)])
+
+    HoldDateRelease.call(today: @today)
 
     assert projects(:primary).reload.status_private?
     assert row.reload.status_private?
+
+    # Nor does a DRA submission published by hand take anything along.
+    DRASubmission.where(id: row).move_to_status!('public')
+
+    assert sample.reload.status_private?
   end
 
   # A sample held "until the release of linked data" is released by
@@ -123,31 +159,29 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
     assert samples(:first).reload.status_public?
   end
 
-  test 'what is out of the way, or not taken over, stays where it is' do
+  test 'what is out of the way stays there' do
     sample = samples(:first)
     sample.update!(status: :withdrawn)
 
-    dra_with([
-      part_of('db' => 'sample', 'accession' => sample.accession),
-      part_of('db' => 'project', 'accession' => projects(:primary).accession)
-    ])
+    row = dra_with([part_of('db' => 'sample', 'accession' => sample.accession)])
 
-    DDBJValidatorClient.stub(:record_dbs, %w[dra]) do
-      HoldDateRelease.call(today: @today)
-    end
+    HoldDateRelease.call(today: @today)
 
+    assert row.reload.status_public?
     assert sample.reload.status_withdrawn?
-    assert projects(:primary).reload.status_private?, 'BioProject is not taken over'
   end
 
   # An experiment naming someone else's accession must not publish it.
   test "another submitter's sample is not taken along" do
     theirs = Submission.create!(db: 'biosample', user: users(:carol)).samples.create!(sample_name: 'theirs', status: :private, accession: 'SAMD00000999')
 
-    dra_with([part_of('db' => 'sample', 'accession' => theirs.accession)])
+    row = dra_with([part_of('db' => 'sample', 'accession' => theirs.accession)])
 
-    HoldDateRelease.call(today: @today)
+    assert_error_reported(DRA::LinkedRelease::Withheld) do
+      HoldDateRelease.call(today: @today)
+    end
 
+    assert row.reload.status_public?
     assert theirs.reload.status_private?
   end
 

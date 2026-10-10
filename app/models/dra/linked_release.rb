@@ -3,14 +3,18 @@
 # the release of linked data" is released by nothing else.
 #
 # Only its own submitter's: an experiment that names someone else's
-# accession — mistyped, or not — must not publish their data. And only
-# for the databases taken over from D-way (HoldDateRelease.taken_over?):
-# D-way releases what it still holds, and its import would bring the
-# status back.
+# accession — mistyped, or not — must not publish their data. D-way did
+# not ask, and in its DRA about one in a hundred names another account's
+# project or sample, likeliest a colleague's; those are reported for a
+# curator to publish by hand rather than published here. And only
+# once D-way has handed over (DwayTakeover): until then D-way releases
+# what it holds, and its import would bring the status back.
 module DRA::LinkedRelease
   # One numbered, private, or temporarily suppressed — as D-way's, whose
   # "ID issued" the importers bring in as `curating`. One out of the way
-  # (withdrawn, canceled, permanently suppressed) stays there.
+  # (withdrawn, canceled, permanently suppressed) stays there. Every
+  # project named is taken along, where D-way took none when the
+  # experiments named more than one.
   TAKEN_ALONG_FROM = %w[curating accession_issued private temporarily_suppressed].freeze
 
   module_function
@@ -18,14 +22,40 @@ module DRA::LinkedRelease
   # Within the caller's transaction, so the DRA submission and what it
   # takes along are published together or not at all.
   def call(submission)
-    linked(submission.materialised_record).each do |model, accessions|
-      rows = model.joins(:submission).where(accession: accessions, status: TAKEN_ALONG_FROM)
+    return unless DwayTakeover.done?
 
+    linked(submission.materialised_record).each do |model, accessions|
+      rows     = model.joins(:submission).where(accession: accessions, status: TAKEN_ALONG_FROM)
       withheld = rows.where.not(submissions: {user_id: submission.user_id}).pluck(:accession)
 
-      Rails.logger.warn "[dra] #{submission.id}: not publishing #{withheld.join(', ')}, which another submitter owns" if withheld.any?
+      if withheld.any?
+        Rails.error.report(Withheld.new("#{submission.dra_submission.accession} names #{withheld.join(', ')}, which another submitter owns"),
+                           handled: true, source: 'dra.linked_release')
+      end
 
-      rows.where(submissions: {user_id: submission.user_id}).move_to_status!('public')
+      release rows.where(submissions: {user_id: submission.user_id}), along_with: submission
+    end
+  end
+
+  # Not an error of this run: something for a curator to look at.
+  class Withheld < StandardError; end
+
+  # Each submission whose rows go is told so in its own activity feed —
+  # nobody pressed anything on it.
+  def release(rows, along_with:)
+    counts = rows.group(:submission_id).count
+
+    rows.move_to_status!('public')
+
+    Submission.where(id: counts.keys).find_each do |taken|
+      CurationEvent.record!(
+        submission: taken,
+        actor:      "system:with #{along_with.dra_submission.accession}",
+        action:     :curation_updated,
+        row_count:  counts.fetch(taken.id),
+        noun:       taken.curation_row_noun,
+        status:     'public'
+      )
     end
   end
 
@@ -38,11 +68,9 @@ module DRA::LinkedRelease
     }
 
     {
-      Project => ['project', 'projects', 'bioproject'],
-      Sample  => ['sample',  'samples',  'biosample']
-    }.filter_map {|model, (kind, list, db)|
-      next unless HoldDateRelease.taken_over?(db)
-
+      Project => ['project', 'projects'],
+      Sample  => ['sample',  'samples']
+    }.filter_map {|model, (kind, list)|
       accessions = relations.select { it.dig('target', 'db') == kind }.filter_map {|relation|
         target = relation['target']
 
