@@ -1,6 +1,7 @@
 require 'test_helper'
 
 class LifecycleableTest < ActiveSupport::TestCase
+  include ActionMailer::TestHelper
   test 'status enum maps all 9 codes (5100..5900) with prefix' do
     expected = {
       'submission_accepted'    => 5100,
@@ -79,6 +80,80 @@ class LifecycleableTest < ActiveSupport::TestCase
     entries.move_to_status!('withdrawn')
 
     assert entries.reload.all?(&:status_withdrawn?)
+  end
+
+  # The first time a submission's rows are made public its submitter is
+  # told, in the thread and by mail — once a submission, however many rows.
+  test 'move_to_status! announces a first publication, one notice a submission' do
+    submission = submissions(:biosample)
+    first      = submission.samples.create!(sample_name: 'first', status: :private, accession: 'SAMD00000101')
+    second     = submission.samples.create!(sample_name: 'second', status: :private, accession: 'SAMD00000102')
+
+    Sample.where(id: [first, second]).joins(:submission).move_to_status!('public')
+
+    notice = submission.request.messages.system_role.sole
+
+    assert_enqueued_email_with SubmissionNoticeMailer, :published, params: {notice:, first: 'SAMD00000101', count: 2}
+
+    assert_includes notice.body, "2 samples of your BioSample submission (##{submission.request.id}) are now public."
+    assert_includes notice.body, '  - SAMD00000101  first'
+    assert_includes notice.body, '  - SAMD00000102  second'
+  end
+
+  # Only the first time: a row back out of suppression was announced when
+  # it first went out, and one public already is not news.
+  test 'move_to_status! does not announce a row published before' do
+    submission = submissions(:biosample)
+    again      = submission.samples.create!(sample_name: 'again', status: :temporarily_suppressed, accession: 'SAMD00000103', first_published_at: 1.year.ago)
+    already    = submission.samples.create!(sample_name: 'already', status: :public, accession: 'SAMD00000104', first_published_at: 1.year.ago)
+
+    # Public without the date, as rows written before it was kept are.
+    undated = submission.samples.create!(sample_name: 'undated', status: :public, accession: 'SAMD00000106')
+
+    assert_no_enqueued_emails do
+      Sample.where(id: [again, already, undated]).move_to_status!('public')
+    end
+
+    assert_not submission.request.messages.exists?
+  end
+
+  # The status and its notice are one: several screens call this with no
+  # transaction open, and a status committed without its notice would
+  # never be announced — the row is first-published from then on.
+  test 'move_to_status! takes the status back when its notice cannot be posted' do
+    sample = submissions(:biosample).samples.create!(sample_name: 'unannounced', status: :private, accession: 'SAMD00000107')
+
+    SubmissionNotice.stub(:published!, ->(*) { raise 'simulated failure' }) do
+      assert_raises(RuntimeError) { Sample.where(id: sample).move_to_status!('public') }
+    end
+
+    assert_equal ['private', nil], [sample.reload.status, sample.first_published_at]
+  end
+
+  # The notice in the thread is the record; a queue that is down must not
+  # turn a publication already committed into an error.
+  test 'move_to_status! publishes when the mail cannot be queued' do
+    sample = submissions(:biosample).samples.create!(sample_name: 'unmailed', status: :private, accession: 'SAMD00000108')
+
+    SubmissionNoticeMailer.stub(:with, ->(**) { raise ActiveRecord::ConnectionNotEstablished, 'queue is down' }) do
+      Sample.where(id: sample).move_to_status!('public')
+    end
+
+    assert sample.reload.status_public?
+    assert sample.submission.request.messages.system_role.exists?
+  end
+
+  # A notice rolled back with the status it announced was never mailed.
+  test 'move_to_status! mails the announcement only once it is committed' do
+    sample = submissions(:biosample).samples.create!(sample_name: 'rolled-back', status: :private, accession: 'SAMD00000105')
+
+    assert_no_enqueued_emails do
+      Sample.transaction do
+        Sample.where(id: sample).move_to_status!('public')
+
+        raise ActiveRecord::Rollback
+      end
+    end
   end
 
   # `update_all` over a join writes through an alias of the same table, where

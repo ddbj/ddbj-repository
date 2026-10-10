@@ -1,6 +1,8 @@
 class Sample < ApplicationRecord
   include Lifecycleable
 
+  def self.notice_name_column = :sample_name
+
   ACCESSION_FORMAT = /\ASAMD\d+\z/
 
   enum :release_type, {

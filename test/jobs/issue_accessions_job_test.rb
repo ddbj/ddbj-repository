@@ -168,7 +168,7 @@ class IssueAccessionsJobTest < ActiveJob::TestCase
 
     issuance = issuance_for(submission)
     reports  = capture_error_reports {
-      AccessionMailer.stub(:with, ->(**) { raise ActiveRecord::ConnectionNotEstablished, 'queue is down' }) do
+      SubmissionNoticeMailer.stub(:with, ->(**) { raise ActiveRecord::ConnectionNotEstablished, 'queue is down' }) do
         IssueAccessionsJob.perform_now(issuance_id: issuance.id)
       end
     }
