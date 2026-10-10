@@ -36,12 +36,19 @@ class DistributionNotifier
     notify(candidates.to_a)
   end
 
-  # Embargoed (private), hold_date from today through the notice window, not
-  # yet notified. Ordered so a submitter's mail lists earliest releases
-  # first. Public so the admin list view can show who is due.
+  # What the hold date will release (HoldDateRelease), hold_date from today
+  # through the notice window, not yet notified. Ordered so a submitter's
+  # mail lists earliest releases first. Public so the admin list view can
+  # show who is due.
+  #
+  # None until D-way has handed over: until then nothing releases a
+  # BioProject on its hold date, and the notice would promise what does
+  # not happen.
   def candidates
+    return Project.none unless DwayTakeover.done?
+
     Project
-      .status_private
+      .where(status: HoldDateRelease::RELEASABLE_FROM)
       .where(distribution_notified_at: nil, hold_date: Date.current..(Date.current + @notice_days.days))
       .includes(submission: %i[user request])
       .order(:hold_date, :id)

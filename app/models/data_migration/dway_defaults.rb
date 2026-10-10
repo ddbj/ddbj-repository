@@ -22,7 +22,13 @@ module DataMigration
 
     module_function
 
-    def enabled? = Rails.application.config_for(:app).data_migration.present?
+    # And never once D-way has handed over (DwayTakeover): what it would
+    # bring back is what this system now decides.
+    def enabled? = Rails.application.config_for(:app).data_migration.present? && !DwayTakeover.done?
+
+    def refusal
+      DwayTakeover.done? ? 'D-way has handed over; there is nothing to import from it.' : "Importing from D-way is switched off in #{Rails.env}."
+    end
 
     # Checked when a connection is opened rather than when the options
     # are built: the clients freeze their options into a constant at load
@@ -31,7 +37,7 @@ module DataMigration
     def ensure_enabled!
       return if enabled?
 
-      raise Disabled, "Importing from D-way is switched off in #{Rails.env}."
+      raise Disabled, refusal
     end
 
     # A connection to D-way's schema, its timestamps coming back as text in

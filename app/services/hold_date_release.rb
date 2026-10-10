@@ -1,8 +1,7 @@
 # Makes public what has reached its hold date — daily, as D-way's DRA
-# ReleaseData did — for the databases taken over from D-way
-# (`taken_over?`). Until a database is, D-way releases its data and the
-# importer brings the status back, and a release here would only be undone
-# by the next import.
+# ReleaseData did — once D-way has handed over (DwayTakeover). Until then
+# D-way releases its data and the import brings the status back, and a
+# release here would only be undone by the next import.
 #
 # - A BioProject is released on its hold date, which D-way never did — it
 #   had no date of its own. This system keeps one, and DistributionNotifier
@@ -35,31 +34,28 @@ class HoldDateRelease
 
   def self.call(...) = new(...).call
 
-  # Whether D-way has handed this database over: from then on its data is
-  # released here.
-  def self.taken_over?(db) = SubmissionRequest.submittable_dbs.include?(db)
-
   def initialize(today: Date.current)
     @today = today
   end
 
   def call
-    projects = self.class.taken_over?('bioproject') ? due(Project).move_to_status!('public') : 0
-    released = 0
+    return Result.new(projects: 0, dra_submissions: 0) unless DwayTakeover.done?
+
+    projects = released = 0
     failed   = []
 
-    if self.class.taken_over?('dra')
-      due(DRASubmission).find_each do |row|
-        # Due again at the write: a curator may have withdrawn it while
-        # the run was reading other records.
-        released += due(DRASubmission).where(id: row.id).move_to_status!('public')
-      rescue Submission::MaterialisationFailed => e
-        # A record that cannot be read holds back nothing else. Nothing of
-        # this one was released, and the next run tries it again.
-        Rails.error.report(e, handled: true, context: {dra_submission_id: row.id}, source: 'hold_date_release')
+    due(Project).find_each do |row|
+      projects += release(Project, row)
+    end
 
-        failed << row.accession
-      end
+    due(DRASubmission).find_each do |row|
+      released += release(DRASubmission, row)
+    rescue Submission::MaterialisationFailed => e
+      # A record that cannot be read holds back nothing else. Nothing of
+      # this one was released, and the next run tries it again.
+      Rails.error.report(e, handled: true, context: {dra_submission_id: row.id}, source: 'hold_date_release')
+
+      failed << row.accession
     end
 
     raise Incomplete, "Not released: #{failed.join(', ')}" if failed.any?
@@ -67,7 +63,33 @@ class HoldDateRelease
     Result.new(projects:, dra_submissions: released)
   end
 
+  # What a run today would release, before D-way has handed over — for
+  # whoever is about to record that it has.
+  def preview = Result.new(projects: due(Project).count, dra_submissions: due(DRASubmission).count)
+
   private
+
+  # Due again at the write: a curator may have withdrawn it while the run
+  # was reading other records. Its submission's activity feed says who
+  # released it, since nobody pressed anything.
+  def release(model, row)
+    Submission.transaction do
+      count = due(model).where(id: row.id).move_to_status!('public')
+
+      if count.positive?
+        CurationEvent.record!(
+          submission: row.submission,
+          actor:      'system:hold date',
+          action:     :curation_updated,
+          row_count:  count,
+          noun:       row.submission.curation_row_noun,
+          status:     'public'
+        )
+      end
+
+      count
+    end
+  end
 
   # Not public since the start of its hold date, here: the timestamps are
   # kept in UTC and the date is Tokyo's.

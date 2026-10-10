@@ -167,7 +167,7 @@ module Admin
 
       # The same rule each rows screen keeps: an ST.26 entry cannot be put
       # back to `submission_accepted`, and a DRA submission imported from
-      # D-way takes its status from there. A selection that includes such
+      # D-way takes its status from there until D-way hands over. A selection that includes such
       # rows is refused whole, rather than set for some and not others —
       # saying which rule, since "cannot be set" alone sends a curator
       # looking at the status rather than the selection.
@@ -200,6 +200,10 @@ module Admin
       SubmissionRequest.where(submission_id: ids).find_each { participate!(it) }
 
       redirect_to bulk_return_path, notice: bulk_notice(applied:, assigned:, raw:)
+    rescue Submission::MaterialisationFailed => e
+      # Publishing a DRA submission reads its record for what it takes
+      # along (DRA::LinkedRelease); none of the DRA submissions were set.
+      redirect_to bulk_return_path, alert: "Could not publish the DRA submissions: a record is unreadable (#{e.message})."
     end
 
     # The confirmation for the ledger's bulk. Same component the single

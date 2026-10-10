@@ -121,8 +121,7 @@ module Admin
     def ensure_enabled
       return if DataMigration::DwayDefaults.enabled?
 
-      redirect_to admin_migration_runs_path,
-                  alert: "Importing from D-way is switched off in #{Rails.env}."
+      redirect_to admin_migration_runs_path, alert: DataMigration::DwayDefaults.refusal
     end
 
     def supersede_stale(db)

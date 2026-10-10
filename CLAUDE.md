@@ -322,8 +322,9 @@ update one:
   so a late re-run cannot take back an answer.
 - Public XML — a row left `running` is ended by the next run that gets the
   lock (`PublicXMLRun.exclusively`).
-- `ReleaseOnHoldDateJob` — selects only what is not public yet; a DRA
-  submission and what it takes along are released in one transaction.
+- `ReleaseOnHoldDateJob` — selects only what has not been public since
+  its hold date; a DRA submission and what it takes along are released in
+  one transaction.
 
 What a deploy does not put back is a job whose whole process went — the
 container killed before its workers stopped, the host down. Solid Queue
@@ -387,10 +388,11 @@ the BioSample public XML and the livelists.
   status it announces.
 - **The hold date** releases BioProject and DRA daily
   (`HoldDateRelease`), once — a row public since its hold date is not
-  released by it again — for the databases taken over from D-way
-  (`HoldDateRelease.taken_over?`) and no other, since D-way releases what
-  it still holds and the import brings its status back. BioSample has no
-  hold date.
+  released by it again — once D-way has handed over (`DwayTakeover`,
+  recorded once for every database by `dway:take_over`), and not before,
+  since D-way releases what it still holds and the import brings its
+  status back. The same record stops the import. BioSample has no hold
+  date.
 - **A DRA submission published** — by its date or by a curator — takes
   along its own submitter's projects and samples that its experiments are
   part of (`DRA::LinkedRelease`), as D-way's did.
