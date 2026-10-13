@@ -83,6 +83,10 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
     DDBJValidatorCheck.poll validation, 0
 
     assert @request.reload.ready_to_apply?
+
+    # Only the end of a reading comes hours later (SubmissionNotice); this
+    # one ends while the submitter is looking at the screen.
+    assert_empty @request.messages.system_role
   end
 
   test 'a run still going is asked after again, waiting longer each time' do
@@ -390,6 +394,7 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
 
     assert failed.reload.finished?
     assert @request.reload.validation_failed?
+    assert_empty @request.messages.system_role, 'ended while the submitter looks at the screen'
   end
 
   # Readings run one at a time, so age alone says nothing: only a check
@@ -410,5 +415,7 @@ class DDBJValidatorCheckTest < ActiveSupport::TestCase
     assert stopped.reload.finished?
     assert_match 'the reading of its reads stopped before it ended', stopped.details.sole.message
     assert waiting.reload.running?
+
+    assert_includes stopped.subject.messages.system_role.sole.body, 'We could not finish checking'
   end
 end

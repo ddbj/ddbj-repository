@@ -215,8 +215,7 @@ module DDBJValidatorCheck
   #
   # Not by age alone: the readings run one at a time, so one can wait its
   # turn for as long as those ahead of it take. Only a check whose job is
-  # no longer there, or no longer alive, is given up on. (A held check is
-  # running with the validator's report already written; nothing else is.)
+  # no longer there, or no longer alive, is given up on.
   #
   # And not within the hour: a job whose process went is failed when Solid
   # Queue notices — minutes after — and run again by RecoverKilledJobsJob
@@ -224,7 +223,7 @@ module DDBJValidatorCheck
   def give_up_stopped_readings
     alive = live_readings
 
-    Validation.running.where.not(raw_result: nil).where(updated_at: ...1.hour.ago).find_each do |validation|
+    Validation.reading_reads.where(updated_at: ...1.hour.ago).find_each do |validation|
       next if alive.include?(validation.to_global_id.to_s)
 
       give_up validation, 'the reading of its reads stopped before it ended'
@@ -261,27 +260,47 @@ module DDBJValidatorCheck
   # a check run again destroys this one, and an ask already under way must
   # not then write into it or move the request on.
   def conclude(validation, details, report: nil)
-    ActiveRecord::Base.transaction do
+    held = ActiveRecord::Base.transaction {
       validation.lock!
 
-      if validation.running?
-        details.each { validation.details.create!(it) }
+      next false unless validation.running?
 
-        # A held check's report was written when it was held; what concludes
-        # it after the reads brings none to write over it.
-        validation.raw_result = report if report
-        validation.update!(progress: :finished, finished_at: Time.current)
+      reading = validation.reading_reads?
 
-        # Straight to the column, as `close!` and `assign!` do: a request
-        # whose own validations no longer pass (its assignee stopped being
-        # a curator) must still get its answer, or the check would be
-        # asked again for ever.
-        status = validation.details.error.exists? ? 'validation_failed' : 'ready_to_apply'
-        validation.subject.update_columns(status:, updated_at: Time.current)
-      end
-    end
+      details.each { validation.details.create!(it) }
+
+      # A held check's report was written when it was held; what concludes
+      # it after the reads brings none to write over it.
+      validation.raw_result = report if report
+      validation.update!(progress: :finished, finished_at: Time.current)
+
+      # Straight to the column, as `close!` and `assign!` do: a request
+      # whose own validations no longer pass (its assignee stopped being
+      # a curator) must still get its answer, or the check would be
+      # asked again for ever.
+      status = validation.details.error.exists? ? 'validation_failed' : 'ready_to_apply'
+      validation.subject.update_columns(status:, updated_at: Time.current)
+
+      reading
+    }
+
+    announce_reads_checked validation if held
   rescue ActiveRecord::RecordNotFound
     nil
+  end
+
+  # A check held for its reads ends hours after it was started, so its end
+  # is told to the submitter in the request's thread (SubmissionNotice);
+  # the rest end while the submitter is looking at the screen. Once the
+  # check is concluded, and only attempted: a notice that cannot be posted
+  # must not keep the check running, to be concluded — and fail to be
+  # announced — again every hour.
+  def announce_reads_checked(validation)
+    return if validation.subject.closed?
+
+    SubmissionNotice.reads_checked! validation
+  rescue StandardError => e
+    Rails.error.report e, handled: true, context: {validation_id: validation.id}
   end
 
   def client = DDBJValidatorClient.new
