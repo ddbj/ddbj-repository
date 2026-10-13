@@ -280,7 +280,9 @@ vdb-validate looking for its references online.
 A DRA record whose metadata passes ddbj-validator is held running
 (`DDBJValidatorCheck.hold`) while `CheckDRAReadsJob` reads each run's reads
 — one at a time (`limits_concurrency`), hours for a large run — and only
-then concluded; one whose metadata failed is not worth the hours. A held
+then concluded, which is told to the submitter in the request's thread and
+mailed (`SubmissionNotice.reads_checked!`), since nobody waits at the
+screen for hours; one whose metadata failed is not worth the hours. A held
 check whose job was stopped (a deploy outlasting its time to stop) is ended
 as not carried out by `give_up_stopped_readings`, hourly — by whether its
 job is still alive in Solid Queue, not by age, since one may wait its turn.

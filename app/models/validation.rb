@@ -30,6 +30,13 @@ class Validation < ApplicationRecord
 
   def fresh? = finished_at.present? && finished_at > FRESH_FOR.ago
 
+  # A DRA check past ddbj-validator, held while its reads are read
+  # (DDBJValidatorCheck.hold): still running, with the validator's report
+  # already written. Nothing else running has one.
+  scope :reading_reads, -> { running.where.not(raw_result: nil) }
+
+  def reading_reads? = running? && !raw_result.nil?
+
   scope :submitted, ->(submitted) {
     submitted ? where.associated(:submission) : where.missing(:submission)
   }

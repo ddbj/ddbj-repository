@@ -58,6 +58,19 @@ class SubmissionNoticeMailerTest < ActionMailer::TestCase
     assert_includes mail.text_part.body.to_s, notice.body
   end
 
+  # Before it is applied a DRA submission has no number of its own.
+  test 'reads_checked — named by its request' do
+    request = submission_requests(:dra)
+    request.update_column :submission_id, nil
+
+    validation = request.create_validation!(progress: :running, raw_result: {})
+    notice     = SubmissionNotice.reads_checked!(validation)
+    mail       = SubmissionNoticeMailer.with(notice:).reads_checked
+
+    assert_equal "[DDBJ Repository] DRA reads checked: ##{request.id}", mail.subject
+    assert_includes mail.text_part.body.to_s, notice.body
+  end
+
   test 'accession_issued — staging environment prepends [Staging] to subject' do
     Rails.stub(:env, ActiveSupport::StringInquirer.new('staging')) do
       assert_match(/\A\[Staging\] /, issued(submissions(:bioproject), ['PRJDB1']).subject)

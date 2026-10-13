@@ -95,6 +95,8 @@ class CheckDRAReadsJob < ApplicationJob
 
   KEPT_PREFIX = 'dra-reads-'
 
+  SAID_LINE_LIMIT = 500
+
   # Where a check's copies are kept between attempts.
   def self.kept_dir(validation_id) = Pathname.new(Rails.application.config_for(:app).work_dir!).join("#{KEPT_PREFIX}#{validation_id}")
 
@@ -146,9 +148,9 @@ class CheckDRAReadsJob < ApplicationJob
     result = DRA::ReadCheck.call(files: entries.map(&:blob), filetype: filetypes.first, platform: platform(record, run), dir:, interrupt:)
 
     if !result.ok?
-      [detail('TRD_R0023', :error, run, "runs[#{index}]: the reads could not be read. #{said(result)}")]
+      [detail('TRD_R0023', :error, run, "runs[#{index}]: the reads could not be read. #{said(result, dir)}")]
     elsif result.errors.any?
-      [detail('TRD_R0024', :warning, run, "runs[#{index}]: the reads were read, but some records could not be and were left out. #{said(result)}")]
+      [detail('TRD_R0024', :warning, run, "runs[#{index}]: the reads were read, but some records could not be and were left out. #{said(result, dir)}")]
     else
       []
     end
@@ -168,8 +170,16 @@ class CheckDRAReadsJob < ApplicationJob
 
   def platform_type(object) = (object['platform'] if object.is_a?(Hash)).then { it['type'] if it.is_a?(Hash) }
 
-  # What the tools said, the last of it: enough to know what is wrong.
-  def said(result) = result.errors.last(5).join("\n").presence || result.output.lines.last(5).join.strip
+  # What the tools said, the last of it: enough to know what is wrong. It
+  # is mailed and kept in the request's thread, so it names the files as
+  # the submitter does rather than where they were copied to here, and a
+  # line that runs on is cut short.
+  def said(result, dir)
+    lines  = result.errors.last(5).presence || result.output.lines.last(5)
+    copies = %r{#{Regexp.escape(dir.to_s)}/(?:in/\d+/)?}
+
+    lines.map { it.strip.gsub(copies, '').truncate(SAID_LINE_LIMIT) }.join("\n").strip
+  end
 
   def detail(code, severity, object, message) = {code:, severity:, entry_id: object['alias'].presence, message:}
 end

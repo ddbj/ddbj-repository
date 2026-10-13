@@ -1,6 +1,8 @@
 require 'test_helper'
 
 class CheckDRAReadsJobTest < ActiveJob::TestCase
+  include ActionMailer::TestHelper
+
   READS = "@r1\nACGT\n+\nIIII\n"
 
   setup do
@@ -186,6 +188,93 @@ class CheckDRAReadsJobTest < ActiveJob::TestCase
       assert CurationState.new(@request.reload).unchecked?, error.class.name
       assert validation.reload.finished?
     end
+  end
+
+  # Hours after it was started, with nobody watching the screen.
+  test 'the end of the reading is told in the request\'s thread, and mailed' do
+    validation = held
+
+    read validation, ok
+
+    notice = @request.messages.system_role.sole
+
+    assert_includes notice.body, "We have checked your DRA submission (##{@request.id}), its reads included. It can be sent to DDBJ on the web within 24 hours"
+    assert_includes notice.body, '  - Warning: From the validator.'
+
+    assert_enqueued_email_with SubmissionNoticeMailer, :reads_checked, params: {notice:}
+  end
+
+  # What the tools said is written out, since checking again replaces it.
+  test 'reads that fail are told with what was found' do
+    validation = held
+
+    read validation, DRA::ReadCheck::Result.new(ok: false, output: "latf-load err: bad spot\nlatf-load err: length of original quality does not match sequence\n")
+
+    body = @request.messages.system_role.sole.body
+
+    assert_includes body, ', and found 1 error. Please correct the record or its files, and check it again:'
+    assert_includes body, "  - Error (run1): runs[0]: the reads could not be read. latf-load err: bad spot\n    latf-load err: length of original quality"
+  end
+
+  test 'a reading not carried out is told as not finished' do
+    validation = held
+
+    read(validation) { raise DRA::ReadCheck::ToolMissing, 'latf-load is not installed here (SRA Toolkit)' }
+
+    body = @request.messages.system_role.sole.body
+
+    assert_includes body, "We could not finish checking your DRA submission (##{@request.id}). Please check it again later:"
+    assert_includes body, 'latf-load is not installed here'
+  end
+
+  # Concluded already, by another ask that got there first.
+  test 'a check concluded twice is told once' do
+    validation = held
+
+    Validation.where(id: validation.id).update_all(progress: 'finished', finished_at: Time.current)
+    DDBJValidatorCheck.conclude validation, []
+
+    assert_empty @request.messages
+    assert_no_enqueued_emails
+  end
+
+  # The notice is told, not part of the conclusion: one that cannot be
+  # posted would otherwise keep the check running, to fail again hourly.
+  test 'a notice that cannot be posted does not keep the check running' do
+    validation = held
+
+    SubmissionNotice.stub(:reads_checked!, ->(*) { raise 'no web_url' }) do
+      read validation, ok
+    end
+
+    assert validation.reload.finished?
+    assert @request.reload.ready_to_apply?
+  end
+
+  # Put down by the submitter while its reads were read.
+  test 'a closed request is told nothing' do
+    validation = held
+    @request.update_column :closed_at, Time.current
+
+    read validation, ok
+
+    assert validation.reload.finished?
+    assert_empty @request.messages
+  end
+
+  # Mailed and kept in the thread: the files by the submitter's names,
+  # not where they were copied to here.
+  test 'what the tools said names the files, not their copies' do
+    validation = held
+
+    check = ->(dir:, **) { DRA::ReadCheck::Result.new(ok: false, output: "latf-load err: #{dir}/in/0/r_1.fastq: bad quality\n") }
+
+    DRA::ReadCheck.stub(:call, check) { CheckDRAReadsJob.perform_now validation }
+
+    message = validation.details.find_by!(code: 'TRD_R0023').message
+
+    assert_includes message, 'latf-load err: r_1.fastq: bad quality'
+    assert_not_includes message, CheckDRAReadsJob::KEPT_PREFIX
   end
 
   # The validator's report was written when the check was held.

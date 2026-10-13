@@ -21,7 +21,7 @@
       <%# might be a big record, and the screen cannot tell which. A DRA %>
       <%# check held for its reads is past the validator, and reading takes %>
       <%# hours by design; that one says so rather than look stuck. %>
-      <% reading = validation.running? && validation.raw_result.present? %>
+      <% reading = validation.reading_reads? %>
       <% slow    = validation.running? && !reading && stale?(validation.created_at, threshold: DDBJValidatorCheck::GIVE_UP_AFTER / 2) %>
       <span class="small <%= slow ? 'text-warning-emphasis' : 'text-body-secondary' %>" data-test-validation-progress>
         <span class="badge text-bg-secondary text-capitalize"><%= reading ? 'reading the reads' : validation.progress %></span>
