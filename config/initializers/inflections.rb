@@ -8,4 +8,5 @@ ActiveSupport::Inflector.inflections :en do |inflect|
   inflect.acronym 'MetaboBank'
   inflect.acronym 'TSV'
   inflect.acronym 'XML'
+  inflect.acronym 'XSD'
 end

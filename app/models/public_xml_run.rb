@@ -1,6 +1,8 @@
 # One row per public-XML output run. PublicXML::Exporter creates it at the
 # start of a run and stamps `finished_at` / counters on completion, for
-# PublishBpXMLJob, PublishBsXMLJob and PublishBpExchangeXMLJob.
+# PublishBpXMLJob, PublishBsXMLJob and PublishBpExchangeXMLJob; for DRA,
+# PublicXML::DRA::Exporter (PublishDRAXMLJob), which lists in `error_log`
+# the submissions it could not publish.
 #
 # `kind = 'exchange'` is BP-only — the BS pipeline has no 三極交換用 XML
 # in the legacy bsbatch implementation, so we refuse it at the model
@@ -15,7 +17,7 @@
 # also matches bpbatch: a record released *during* a run still counts as
 # eAdded next time around.
 class PublicXMLRun < ApplicationRecord
-  DBS   = %w[bioproject biosample].freeze
+  DBS   = %w[bioproject biosample dra].freeze
   KINDS = %w[public exchange].freeze
 
   enum :status, {

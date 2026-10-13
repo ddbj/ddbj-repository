@@ -1,0 +1,43 @@
+{
+  "schema_version": "v3",
+  "submission": {
+    "accession": "DRA000001",
+    "alias": "liver-rna",
+    "title": "RNA-seq of liver tissue",
+    "hold_date": "2027-01-31",
+    "sra": {
+      "contacts": [{"name": "Yuki Sato"}],
+      "actions": [{"type": "HOLD", "hold_until_date": "2027-01-31"}]
+    }
+  },
+  "experiments": [
+    {
+      "alias": "tumor-exp",
+      "accession": "DRX000001",
+      "title": "RNA-seq of liver tumor tissue",
+      "description": "Tumor tissue, total RNA",
+      "library": {
+        "name": "tumor-lib",
+        "strategy": "RNA-Seq",
+        "source": "TRANSCRIPTOMIC",
+        "selection": "cDNA",
+        "layout": "paired",
+        "nominal_length": 300
+      },
+      "platform": {"type": "ILLUMINA", "instrument_model": "Illumina NovaSeq 6000"}
+    }
+  ],
+  "runs": [
+    {
+      "alias": "tumor-run",
+      "accession": "DRR000001",
+      "run_date": "2026-04-01",
+      "data_blocks": [{"files": [{"filename": "tumor_R1.fastq.gz", "filetype": "fastq", "checksum_method": "MD5", "checksum": "d41d8cd98f00b204e9800998ecf8427e"}]}]
+    }
+  ],
+  "relations": [
+    {"type": "part_of", "source": {"type": "experiment", "alias": "tumor-exp"}, "target": {"db": "project", "accession": "PRJDB000001"}},
+    {"type": "part_of", "source": {"type": "experiment", "alias": "tumor-exp"}, "target": {"db": "sample", "accession": "SAMD00000001"}},
+    {"type": "part_of", "source": {"type": "run", "alias": "tumor-run"}, "target": {"db": "experiment", "id": "tumor-exp"}}
+  ]
+}
