@@ -1,4 +1,4 @@
-import type { NextFn } from '@ember-data/request';
+import type { NextFn } from '@warp-drive/core/request';
 
 export default class JsonBodyHandler {
   request<T>(context: { request: { data?: Record<string, unknown> } }, next: NextFn<T>) {

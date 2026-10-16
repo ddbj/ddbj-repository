@@ -1,4 +1,4 @@
-import type { NextFn } from '@ember-data/request';
+import type { NextFn } from '@warp-drive/core/request';
 
 type ScalarParam = string | number | boolean | null | undefined;
 type ParamValue = ScalarParam | ScalarParam[];
