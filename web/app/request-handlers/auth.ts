@@ -1,6 +1,6 @@
 import { service } from '@ember/service';
 
-import type { NextFn } from '@ember-data/request';
+import type { NextFn } from '@warp-drive/core/request';
 import type CurrentUserService from 'repository/services/current-user';
 
 export default class AuthHandler {

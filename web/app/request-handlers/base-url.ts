@@ -1,6 +1,6 @@
 import ENV from 'repository/config/environment';
 
-import type { NextFn } from '@ember-data/request';
+import type { NextFn } from '@warp-drive/core/request';
 
 export default class BaseURLHandler {
   request<T>(context: { request: { url?: string } }, next: NextFn<T>) {
