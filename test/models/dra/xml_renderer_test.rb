@@ -81,6 +81,13 @@ class DRA::XMLRendererTest < ActiveSupport::TestCase
   UNSAID = {'DRA000161' => 'analysis'}.freeze
 
   test 'every submission of the spec\'s comes back valid where it was' do
+    # As in DDBJRecord::V3Test: the Canon workflow checks the submodule out.
+    unless SPEC.exist?
+      flunk 'the submodule is not checked out' if ENV['REQUIRE_SPEC_SUBMODULE']
+
+      skip 'the submodule is not checked out'
+    end
+
     SPEC.children.sort.each do |directory|
       files     = directory.glob('*.xml')
       documents = DRA::XMLRenderer.new(DRA::Converter.new(documents: files.map(&:read)).call).call

@@ -59,8 +59,10 @@ jobs:
 
       - run: bin/rails db:test:prepare
 
-      - name: Run canonicalizer test suite
-        run: bin/rails test test/models/ddbj_record/canonicalizer_test.rb test/models/ddbj_record/canon/ test/models/ddbj_record/v3_test.rb
+      # And the tests that read the pinned spec's records and SRA documents,
+      # which skip where the submodule is not checked out (the API workflow).
+      - name: Run canonicalizer test suite and the spec's fixtures
+        run: bin/rails test test/models/ddbj_record/canonicalizer_test.rb test/models/ddbj_record/canon/ test/models/ddbj_record/v3_test.rb test/models/dra/converter_test.rb test/models/dra/xml_renderer_test.rb
         env:
           REQUIRE_SPEC_SUBMODULE: '1'
 

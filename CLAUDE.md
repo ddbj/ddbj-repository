@@ -83,8 +83,10 @@ Three workflows on push:
 - **Canon** (`canon.yml`): the canonicalization gates — see below
 
 Canon overlaps `api.yml` on the Ruby tests by design; what only it does is
-run `canon:registry_completeness`, install Python `rfc8785` so
-`cross_lang_jcs_test.rb` actually runs instead of skipping, and regenerate
+run `canon:registry_completeness`, check the spec submodule out so the
+tests reading its records and SRA documents run instead of skipping
+(`REQUIRE_SPEC_SUBMODULE` fails them there if it is missing), install
+Python `rfc8785` so `cross_lang_jcs_test.rb` actually runs, and regenerate
 `schema/ddbj-record/v3.schema.json` from the pinned spec to fail if it
 differs (see [DDBJ Record v3 types](#ddbj-record-v3-types)). Keeping the
 Python toolchain out of the API test job is the reason it is a separate
@@ -328,9 +330,9 @@ row published since it was written, or written after the tree's last run
 — into a tree standing in for this one while it was not mounted — is
 written again, and a tree with no marker is written whole. What the tree
 is missing is cleared from the rows before its marker moves, so a run
-stopped part way is gone on from. What has left
-public is taken out. The tree is the metadata only; the
-reads (`.sra` and fastq) are still to come, and so is the DRA livelist.
+stopped part way is gone on from. What has left public is taken out. The
+tree is the metadata only; the reads (`.sra` and fastq) are still to come,
+and so is the DRA livelist.
 
 ### Jobs stopped part way
 
