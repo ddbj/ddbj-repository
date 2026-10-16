@@ -73,8 +73,11 @@ class DRA::ImporterTest < ActiveSupport::TestCase
     assert_equal left, Submission.dra_db.find_by!(source_id: 'DRA000072').dra_submission.last_published_at
   end
 
-  test 'a version saved since the last run is appended' do
+  # D-way dates its change by dist_date, which can be before the public
+  # documents were last written here: the new version says they are not.
+  test 'a version saved since the last run is appended, and its public documents written again' do
     submission = import(row).submission
+    submission.dra_submission.update_column :public_xml_written_at, Time.current
 
     later  = row.versions + [version('2010-03-01 10:00', retitled('The latest title'))]
     result = import(row(versions: later))
@@ -82,6 +85,7 @@ class DRA::ImporterTest < ActiveSupport::TestCase
     assert_equal :updated, result.outcome
     assert_equal 3, submission.updates.count
     assert_equal 'The latest title', submission.reload.materialised_record.dig('projects', 0, 'title')
+    assert_nil submission.dra_submission.reload.public_xml_written_at
   end
 
   test 'a version that says what the last one said adds no patch' do

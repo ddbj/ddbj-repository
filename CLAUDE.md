@@ -83,8 +83,10 @@ Three workflows on push:
 - **Canon** (`canon.yml`): the canonicalization gates — see below
 
 Canon overlaps `api.yml` on the Ruby tests by design; what only it does is
-run `canon:registry_completeness`, install Python `rfc8785` so
-`cross_lang_jcs_test.rb` actually runs instead of skipping, and regenerate
+run `canon:registry_completeness`, check the spec submodule out so the
+tests reading its records and SRA documents run instead of skipping
+(`REQUIRE_SPEC_SUBMODULE` fails them there if it is missing), install
+Python `rfc8785` so `cross_lang_jcs_test.rb` actually runs, and regenerate
 `schema/ddbj-record/v3.schema.json` from the pinned spec to fail if it
 differs (see [DDBJ Record v3 types](#ddbj-record-v3-types)). Keeping the
 Python toolchain out of the API test job is the reason it is a separate
@@ -298,6 +300,40 @@ tries it on a user's uploaded files. Scratch that need not be shared
 between hosts can go on each host's local SSD (/data1) should Lustre prove
 slow for it.
 
+### DRA public metadata (SRA XML)
+
+A public DRA submission's record is published as SRA XML, as D-way's
+release laid it out — a directory a submission, a document a kind
+(`output_dir/public/dra/DRA000/DRA000368/DRA000368.experiment.xml`),
+written nightly by `PublicXML::DRA::Exporter`. It is written in SRA XSD
+1.6.1 — the version D-way's JAXB beans are generated from, vendored in
+`schema/sra/1.6.1` — by `DRA::XMLRenderer`, which is `DRA::Converter` the
+other way: the XSD gives what is written and in what order (`DRA::XSD`),
+the mapping table where each value is in the record. What 1.6.1 has no
+place for (older versions' items, `legacy`) is not written, as D-way's
+beans did not write it; an element it requires and the record has
+nothing for (the converter reads an empty element as none) is written
+empty — but never a branch of a choice: an experiment with no library
+layout is not made single-end, and is refused. The public copy leaves out
+what D-way's left out (the submission's contacts and actions, a run's file
+names) and names everything by accession (`PublicXML::DRA::Documents`),
+dropping the submitter's alias where nothing with one is named, as D-way
+did. A document that is not valid by the XSD is not published; the run
+lists it and it is tried again the next night.
+`rake dra:check_public_xml` counts those without writing.
+
+The tree is tens of thousands of submissions, so a run writes only those
+not in it as they stand. Each row says when its documents were written
+(`public_xml_written_at`, cleared by D-way's import of a new version and
+on leaving public) and the tree when its last run began (`.last_run`): a
+row published since it was written, or written after the tree's last run
+— into a tree standing in for this one while it was not mounted — is
+written again, and a tree with no marker is written whole. What the tree
+is missing is cleared from the rows before its marker moves, so a run
+stopped part way is gone on from. What has left public is taken out. The
+tree is the metadata only; the reads (`.sra` and fastq) are still to come,
+and so is the DRA livelist.
+
 ### Jobs stopped part way
 
 **Every job must be one that can be run again from the start, wherever it
@@ -323,7 +359,8 @@ update one:
 - `ValidateDDBJRecordJob` — runs only while its subject waits for a check,
   so a late re-run cannot take back an answer.
 - Public XML — a row left `running` is ended by the next run that gets the
-  lock (`PublicXMLRun.exclusively`).
+  lock (`PublicXMLRun.exclusively`). DRA's tree is written a row at a
+  time, each marking itself written, so a stopped run is gone on from.
 
 What a deploy does not put back is a job whose whole process went — the
 container killed before its workers stopped, the host down. Solid Queue
@@ -384,8 +421,9 @@ the BioSample public XML and the livelists.
 - **Content** moves the last in `Submission#append_update!`, for public
   objects whose public view changed — what the public XML says of them, as
   the renderers define it (`PackageRenderer.published_view`,
-  `BioSampleRenderer.owner`), so not the hold date — compared in the shape
-  the record is read in, so a reshape republishes nothing.
+  `BioSampleRenderer.owner`, a DRA submission's public documents), so not
+  the hold date — compared in the shape the record is read in, so a
+  reshape republishes nothing.
 - **The importers** write D-way's `release_date` as the first and derive
   the last (`DwayDefaults.last_published_at`: `dist_date` while public, the
   row's last change once out of it, since `dist_date` does not move on the

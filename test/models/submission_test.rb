@@ -712,6 +712,46 @@ class SubmissionTest < ActiveSupport::TestCase
     end
   end
 
+  # A DRA submission's view is its public documents: what they leave out
+  # (its contacts, the hold date) moves nothing.
+  test 'an edit to a public DRA submission republishes it only where its public documents change' do
+    submission = submissions(:dra)
+    row        = submission.dra_submission
+    record     = JSON.parse(file_fixture('dra/record/DRA000001.json').read)
+
+    row.update_columns(status: Lifecycleable::STATUSES.fetch('public'), last_published_at: 1.year.ago)
+
+    submission.append_update!(record, actor: 'test')
+    before = row.reload.last_published_at
+
+    submission.append_update!(record.deep_merge('submission' => {'hold_date' => '2028-01-31', 'sra' => {'contacts' => [{'name' => 'Ada'}]}}), actor: 'test')
+
+    assert_equal before, row.reload.last_published_at
+
+    freeze_time do
+      submission.append_update!(record.deep_merge('submission' => {'title' => 'Retitled'}), actor: 'test')
+
+      assert_equal Time.current, row.reload.last_published_at
+    end
+  end
+
+  # Publishing again what did not change costs a rewrite; refusing the
+  # save would cost the edit.
+  test 'a DRA submission whose documents cannot be rendered is saved, and published again' do
+    submission = submissions(:dra)
+    row        = submission.dra_submission
+
+    row.update_columns(status: Lifecycleable::STATUSES.fetch('public'), last_published_at: 1.year.ago)
+
+    PublicXML::DRA::Documents.stub(:published_view, ->(*) { raise TypeError, 'no implicit conversion' }) do
+      freeze_time do
+        submission.append_update!(JSON.parse(file_fixture('dra/record/DRA000001.json').read), actor: 'test')
+
+        assert_equal Time.current, row.reload.last_published_at
+      end
+    end
+  end
+
   # With no moment of publication to print, the public XML's
   # ProjectReleaseDate is the hold date — so then, and only then, a change
   # to it is a change to what is public.

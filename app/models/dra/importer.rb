@@ -138,6 +138,10 @@ class DRA::Importer
 
     return :skipped if patches.empty?
 
+    # Its public documents are to be written again: what D-way dates its
+    # change by (`dist_date`) can be before they were last written here.
+    row.public_xml_written_at = nil
+
     since  = submission.updates.maximum(:created_at)
     update = patches.map {|saved_at, ops|
       SubmissionUpdate.create_with_patch!(

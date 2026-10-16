@@ -100,4 +100,30 @@ namespace :dra do
   ensure
     client&.close
   end
+
+  # Renders every public DRA submission's public XML and checks it against
+  # the version it is written in, writing nothing: how many PublishDRAXMLJob
+  # would refuse, and why. For the D-way records, before the tree is first
+  # written from here.
+  #
+  #   bin/rails dra:check_public_xml
+  desc 'Check that every public DRA submission renders as valid SRA XML'
+  task check_public_xml: :environment do
+    refused = Hash.new {|hash, key| hash[key] = [] }
+    checked = 0
+
+    DRASubmission.status_public.where.not(accession: nil).includes(:submission).find_each do |row|
+      checked += 1
+
+      PublicXML::DRA::Documents.call(row.submission.materialised_record)
+    rescue PublicXML::DRA::Documents::Invalid, Submission::MaterialisationFailed => e
+      refused[e.message.sub(/\A(\w+: [^.]*).*/m, '\1')] << row.accession
+    end
+
+    puts "#{checked} checked, #{refused.values.sum(&:size)} refused."
+
+    refused.sort_by { -_2.size }.each do |reason, accessions|
+      puts "#{accessions.size}\t#{reason}\t#{accessions.first(5).join(' ')}"
+    end
+  end
 end

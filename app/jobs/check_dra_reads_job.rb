@@ -62,6 +62,8 @@ class CheckDRAReadsJob < ApplicationJob
     record  = request.ddbj_record.open { Oj.load(it.read, mode: :strict) }
     files   = DRA::RecordFiles.new(record, request.user)
 
+    @references = DDBJRecord::References::Index.new(record)
+
     gone = files.unmatched.map {|entry|
       detail('TRD_R0022', :error, entry.object, "#{entry.where} #{entry.problem}.")
     }
@@ -162,9 +164,9 @@ class CheckDRAReadsJob < ApplicationJob
     platform_type(run) || Array(record['relations']).lazy.filter_map {|relation|
       next unless relation.is_a?(Hash) && relation['source'].is_a?(Hash) && relation['target'].is_a?(Hash)
       next unless relation['source']['type'] == 'run' && relation['target']['db'] == 'experiment'
-      next unless DDBJRecord::References.source(record, 'runs', relation['source']).equal?(run)
+      next unless @references.source('runs', relation['source']).equal?(run)
 
-      platform_type(DDBJRecord::References.target(record, 'experiments', relation['target']))
+      platform_type(@references.target('experiments', relation['target']))
     }.first
   end
 

@@ -692,15 +692,16 @@ class Submission < ApplicationRecord
   # A public object whose public view changed has been published again
   # (DB-2096). Its view is what its public XML says of it, as the renderer
   # defines it: a BioProject's project and submitters, a BioSample's sample
-  # and owner. So the hold date, which is over once the object is public,
-  # moves nothing, nor does an edit to a sample not yet public.
+  # and owner, a DRA submission's documents as written. So the hold date,
+  # which is over once the object is public, moves nothing, nor does an
+  # edit to a sample not yet public.
   #
   # `before` is the chain's stored state, read here in the shape the record
   # is read in, so a write that only reshapes it (`rake
-  # ddbj_record:reshape_v3`) republishes nothing. DRA's timestamps are
-  # D-way's until DRA is curated here; ST.26 entries keep none.
+  # ddbj_record:reshape_v3`) republishes nothing. ST.26 entries keep no
+  # timestamps.
   def republish_changed!(before, after)
-    return unless bioproject_db? || biosample_db?
+    return unless bioproject_db? || biosample_db? || dra_db?
 
     rows = curation_rows&.status_public
 
@@ -708,7 +709,9 @@ class Submission < ApplicationRecord
 
     before = legacy_chain? ? DDBJRecord::ReshapeV3.call!(before) : before
 
-    if bioproject_db?
+    if dra_db?
+      rows.republished! unless same_documents?(before, after)
+    elsif bioproject_db?
       view = ->(record) { published(PublicXML::Bp::PackageRenderer.published_view(record, project)) }
 
       rows.republished! unless same_published?(view.(before), view.(after))
@@ -723,6 +726,17 @@ class Submission < ApplicationRecord
     end
   rescue DDBJRecord::ReshapeV3::Error
     rows.republished!
+  end
+
+  # Taken for changed where the documents cannot be rendered: publishing
+  # again what did not change costs a rewrite, and a save refused for it
+  # would cost the edit.
+  def same_documents?(before, after)
+    PublicXML::DRA::Documents.published_view(before) == PublicXML::DRA::Documents.published_view(after)
+  rescue StandardError => e
+    Rails.error.report e, handled: true, context: {submission_id: id}
+
+    false
   end
 
   # The public samples, by name, whose sample the write changed.
