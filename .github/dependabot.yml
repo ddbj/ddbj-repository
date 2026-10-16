@@ -38,8 +38,11 @@ updates:
       interval: daily
 
     groups:
-      types:
+      glint:
         patterns:
           - '@glint/*'
-          - '@types/*'
+
+      warp-drive:
+        patterns:
           - '@warp-drive/*'
+          - 'eslint-plugin-warp-drive'
