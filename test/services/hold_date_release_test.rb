@@ -9,18 +9,25 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
     DwayTakeover.record!(by: 'test')
   end
 
+  # A record that publishes (PublicXML::DRA::Documents), its experiment
+  # part of what `relations` say.
   def dra_with(relations, row: dra_submissions(:dra), status: :private, hold_date: @today)
     row.update!(status:, hold_date:)
 
-    row.submission.append_update!({
-      'schema_version' => 'v3',
-      'submission'     => {'alias' => 'sub1', 'accession' => row.accession},
-      'experiments'    => [{'alias' => 'exp', 'accession' => 'DRX000001'}],
-      'projects'       => [{'alias' => 'own-project', 'accession' => projects(:primary).accession}],
-      'relations'      => relations
-    }, actor: 'test')
+    row.submission.append_update! publishable(row.accession).merge(
+      'projects'  => [{'alias' => 'own-project', 'accession' => projects(:primary).accession}],
+      'relations' => relations
+    ), actor: 'test'
 
     row
+  end
+
+  # Taking nothing along of its own: what it is part of is each test's.
+  def publishable(accession)
+    JSON.parse(file_fixture('dra/record/DRA000001.json').read).deep_merge('submission' => {'accession' => accession}).merge(
+      'runs'      => [],
+      'relations' => []
+    )
   end
 
   def part_of(target)
@@ -33,6 +40,8 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
 
   def another_dra
     submission = Submission.create!(db: 'dra', user: users(:alice))
+
+    submission.append_update! publishable('DRA000002'), actor: 'test'
 
     DRASubmission.create!(submission:, accession: 'DRA000002', status: :private)
   end
@@ -206,6 +215,20 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
     assert_includes error.message, broken.accession
     assert broken.reload.status_private?
     assert samples(:first).reload.status_private?
+    assert other.reload.status_public?
+  end
+
+  # As D-way's release kept it private until it was valid: tried again on
+  # the next run, and holding back nothing else.
+  test 'a DRA submission that would not publish is left for the next run' do
+    invalid = dra_with([])
+    invalid.submission.append_update! publishable(invalid.accession).tap { it['experiments'][0]['library']['strategy'] = 'Guesswork' }, actor: 'test'
+    other   = another_dra.tap { it.update!(hold_date: @today) }
+
+    error = assert_raises(HoldDateRelease::Incomplete) { HoldDateRelease.call(today: @today) }
+
+    assert_includes error.message, invalid.accession
+    assert invalid.reload.status_private?
     assert other.reload.status_public?
   end
 

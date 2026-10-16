@@ -434,7 +434,13 @@ the BioSample public XML and the livelists.
   date.
 - **A DRA submission published** — by its date or by a curator — takes
   along its own submitter's projects and samples that its experiments are
-  part of (`DRA::LinkedRelease`), as D-way's did.
+  part of (`DRA::LinkedRelease`), as D-way's did. It is made public only
+  if its public documents are valid (`DRASubmission::Unpublishable`):
+  D-way kept one private until they were, rather than call it public and
+  publish nothing. A refusal changes nothing — the rail's form and the
+  ledger's selection are refused whole, and the hold date tries it again
+  the next night. An edit to one already public is not checked; the
+  public tree's run reports it.
 - **Content** moves the last in `Submission#append_update!`, for public
   objects whose public view changed — what the public XML says of them, as
   the renderers define it (`PackageRenderer.published_view`,
