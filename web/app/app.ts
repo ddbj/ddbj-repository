@@ -18,7 +18,6 @@ if (macroCondition(isTesting())) {
     Sentry.init({
       dsn,
       environment: document.querySelector('meta[name="sentry-environment"]')?.getAttribute('content') ?? undefined,
-      sendDefaultPii: true,
     });
   }
 }
