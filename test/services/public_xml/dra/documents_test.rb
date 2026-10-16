@@ -54,6 +54,25 @@ class PublicXML::DRA::DocumentsTest < ActiveSupport::TestCase
     assert_equal [%w[DRR000001 DRR000001]], documents['analysis'].xpath('//TARGETS/TARGET').map { named(it, 'refname', 'accession') }, 'what names nothing dropped'
   end
 
+  # D-way's form took one Organization for the submission and wrote it
+  # into every object.
+  test 'the submission\'s center is that of its objects, unless they have their own' do
+    centered = record.deep_merge('submission' => {'center_name' => 'NIG'}).tap {
+      it['experiments'] << it['experiments'][0].merge('alias' => 'own-exp', 'accession' => 'DRX000002', 'center_name' => 'RIKEN')
+    }
+
+    documents = documents(centered)
+
+    assert_equal 'NIG', documents['submission'].root['center_name']
+    assert_equal %w[NIG RIKEN], documents['experiment'].xpath('//EXPERIMENT/@center_name').map(&:value)
+    assert_equal 'NIG', documents['run'].at_xpath('//RUN')['center_name']
+    assert_equal 'NIG', documents['run'].at_xpath('//EXPERIMENT_REF')['refcenter']
+  end
+
+  test 'a submission with no center gives its objects none' do
+    assert_nil documents()['experiment'].at_xpath('//EXPERIMENT')['center_name']
+  end
+
   test 'is written in UTF-8' do
     xml = PublicXML::DRA::Documents.call(record.deep_merge('submission' => {'title' => '肝臓の RNA-seq'}))['submission']
 

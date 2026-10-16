@@ -318,7 +318,9 @@ layout is not made single-end, and is refused. The public copy leaves out
 what D-way's left out (the submission's contacts and actions, a run's file
 names) and names everything by accession (`PublicXML::DRA::Documents`),
 dropping the submitter's alias where nothing with one is named, as D-way
-did. A document that is not valid by the XSD is not published; the run
+did; the submission's `center_name` goes on its experiments, runs and
+analyses that have none, as D-way's form put its one Organization on all
+of them. A document that is not valid by the XSD is not published; the run
 lists it and it is tried again the next night.
 `rake dra:check_public_xml` counts those without writing.
 

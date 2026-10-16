@@ -12,7 +12,9 @@ module PublicXML
     # — and with every object named by its accession: its alias, and both
     # the accession and the refname of what refers to it (an analysis's
     # targets too), which may have named it by an alias of the submitter's
-    # own. Written as D-way wrote them, indented four spaces.
+    # own; and with the submission's center on the objects in it, as
+    # D-way's form put it there. Written as D-way wrote them, indented four
+    # spaces.
     #
     # Each document is checked against the version it is written in, as
     # D-way's were; one that is not valid is refused (Invalid) rather than
@@ -29,6 +31,9 @@ module PublicXML
         'DEFAULT_MEMBER'    => 'samples',
         'EXPERIMENT_REF'    => 'experiments'
       }.freeze
+
+      # The documents whose objects take the submission's center.
+      CENTERED = %w[EXPERIMENT_SET RUN_SET ANALYSIS_SET].freeze
 
       # An analysis's TARGET names the list by its SRA object type.
       TARGETS = {
@@ -68,6 +73,8 @@ module PublicXML
           object['alias'] = object['accession'] if object['accession']
         end
 
+        center_of_submission document, roots, record
+
         references = ::DDBJRecord::References::Index.new(record)
 
         document.xpath([*REFERENCES.keys.map { "//#{it}" }, '//TARGETS/TARGET'].join(' | ')).each do |reference|
@@ -75,6 +82,24 @@ module PublicXML
         end
 
         document.xpath('//TARGETS[not(*)]').each(&:remove)
+      end
+
+      # The submission's center is its experiments', runs' and analyses' too,
+      # and the center a run names its experiment's: D-way's form took one
+      # Organization for the submission and wrote it into all of them. One
+      # with a center of its own keeps it.
+      def center_of_submission(document, roots, record)
+        center = record.dig('submission', 'center_name').presence if record['submission'].is_a?(Hash)
+
+        return unless center && CENTERED.include?(document.root.name)
+
+        roots.each do |object|
+          object['center_name'] ||= center
+        end
+
+        document.xpath('//RUN/EXPERIMENT_REF').each do |reference|
+          reference['refcenter'] ||= center
+        end
       end
 
       # D-way set the refname to the accession whatever it had been, and so
@@ -95,7 +120,7 @@ module PublicXML
         end
       end
 
-      private_class_method :documents, :trim, :name_by_accession
+      private_class_method :documents, :trim, :center_of_submission, :name_by_accession
     end
   end
 end
