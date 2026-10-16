@@ -181,29 +181,43 @@ module Admin
         return redirect_to bulk_return_path, alert: "#{reasons.to_sentence}."
       end
 
-      # Every database's rows, each named in the notice by its own noun.
-      # ST.26 was once missing here — the selection reported "no curation
-      # rows" and filed an event saying 0 rows changed, while the same
-      # status applied fine from the Entries tab.
-      applied = rows.transform_values { apply_status(it, status) } if status
+      # One write: a DRA submission refused publication (below) refuses the
+      # selection whole, as the rules above do, rather than leave the rows
+      # set before it.
+      Submission.transaction do
+        # Every database's rows, each named in the notice by its own noun.
+        # ST.26 was once missing here — the selection reported "no curation
+        # rows" and filed an event saying 0 rows changed, while the same
+        # status applied fine from the Entries tab.
+        #
+        # DRA's first: publishing it reads and checks each record, which is
+        # better done before the other rows are written and locked — and a
+        # refusal then costs nothing else.
+        if status
+          done    = rows.keys.partition { it == 'dra' }.flatten.to_h { [it, apply_status(rows[it], status)] }
+          applied = rows.keys.to_h { [it, done[it]] }
+        end
 
-      if assign
-        assignee_id = raw[:assignee_id] == '0' ? nil : raw[:assignee_id].to_i
-        scope       = SubmissionRequest.where(submission_id: ids)
-        already     = scope.where(assignee_id:).count
+        if assign
+          assignee_id = raw[:assignee_id] == '0' ? nil : raw[:assignee_id].to_i
+          scope       = SubmissionRequest.where(submission_id: ids)
+          already     = scope.where(assignee_id:).count
 
-        matched = scope.update_all(assignee_id:, updated_at: Time.current)
-        assigned = Applied.new(changed: matched - already, unchanged: already)
+          matched  = scope.update_all(assignee_id:, updated_at: Time.current)
+          assigned = Applied.new(changed: matched - already, unchanged: already)
+        end
+
+        record_cross_submission_events(subs, rows, raw)
+        SubmissionRequest.where(submission_id: ids).find_each { participate!(it) }
       end
-
-      record_cross_submission_events(subs, rows, raw)
-      SubmissionRequest.where(submission_id: ids).find_each { participate!(it) }
 
       redirect_to bulk_return_path, notice: bulk_notice(applied:, assigned:, raw:)
     rescue Submission::MaterialisationFailed => e
-      # Publishing a DRA submission reads its record for what it takes
-      # along (DRA::LinkedRelease); none of the DRA submissions were set.
-      redirect_to bulk_return_path, alert: "Could not publish the DRA submissions: a record is unreadable (#{e.message})."
+      # Publishing a DRA submission reads its record, for what it publishes
+      # and what it takes along (DRA::LinkedRelease).
+      redirect_to bulk_return_path, alert: "Nothing was changed: a DRA submission's record is unreadable (#{e.message})."
+    rescue DRASubmission::Unpublishable => e
+      redirect_to bulk_return_path, alert: "Nothing was changed: what these DRA submissions would publish is not valid SRA XML — #{e.summary}"
     end
 
     # The confirmation for the ledger's bulk. Same component the single

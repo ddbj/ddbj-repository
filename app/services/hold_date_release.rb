@@ -50,9 +50,11 @@ class HoldDateRelease
 
     due(DRASubmission).find_each do |row|
       released += release(DRASubmission, row)
-    rescue Submission::MaterialisationFailed => e
-      # A record that cannot be read holds back nothing else. Nothing of
-      # this one was released, and the next run tries it again.
+    rescue Submission::MaterialisationFailed, DRASubmission::Unpublishable => e
+      # A record that cannot be read, or that would not publish, holds back
+      # nothing else. Nothing of this one was released, and the next run
+      # tries it again — as D-way's release kept one private until it was
+      # valid.
       Rails.error.report(e, handled: true, context: {dra_submission_id: row.id}, source: 'hold_date_release')
 
       failed << row.accession

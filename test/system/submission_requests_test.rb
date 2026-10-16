@@ -251,6 +251,41 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     assert_equal 'private', dra_submissions(:dra).reload.status
   end
 
+  # Refused whole, like the rules above: the project ticked beside it is
+  # not made public on its own. Several of them, each with the XSD's list
+  # of every value it takes, still fit in the flash.
+  test 'DRA submissions that would not publish leave the selection as it was' do
+    DwayTakeover.record!(by: 'bob')
+
+    invalid = JSON.parse(file_fixture('dra/record/DRA000001.json').read).merge('relations' => [])
+    invalid['experiments'][0]['library'].merge!('strategy' => 'Guesswork', 'source' => 'Guesswork', 'selection' => 'Guesswork')
+
+    requests = [submission_requests(:dra)] + (2..4).map {|n|
+      submission = Submission.create!(db: 'dra', user: users(:alice))
+      submission.append_update! invalid.deep_merge('submission' => {'accession' => "DRA00000#{n}"}), actor: 'test'
+      DRASubmission.create!(submission:, accession: "DRA00000#{n}", status: :private)
+
+      SubmissionRequest.new(user: users(:alice), db: 'dra', status: :applied, submission:).tap { it.save!(validate: false) }
+    }
+
+    submissions(:dra).append_update! invalid, actor: 'test'
+    projects(:primary).update!(status: 'private')
+
+    visit admin_submission_requests_path
+
+    check "Select ##{@req.id}"
+    requests.each { check "Select ##{it.id}" }
+    select 'Public', from: 'bulk[status]'
+    click_button 'Apply'
+
+    assert_equal 200, page.status_code, 'the flash, not an error page quoting this test'
+    assert_text 'Nothing was changed: what these DRA submissions would publish is not valid SRA XML'
+    assert_text '(and 3 more)'
+    assert_equal 'private', projects(:primary).reload.status
+    assert_equal %w[private], DRASubmission.distinct.pluck(:status)
+    assert_empty CurationEvent.where(submission: @submission)
+  end
+
   # An imported DRA submission is numbered in D-way. The confirmation says so, and the
   # press queues nothing for it — its line on the run page is written
   # refused, in the same words.

@@ -101,29 +101,37 @@ namespace :dra do
     client&.close
   end
 
-  # Renders every public DRA submission's public XML and checks it against
+  # Renders the public XML of every DRA submission that is public, or that
+  # its hold date will make public (HoldDateRelease), and checks it against
   # the version it is written in, writing nothing: how many PublishDRAXMLJob
-  # would refuse, and why. For the D-way records, before the tree is first
-  # written from here.
+  # would refuse, and how many will be kept private, and why. For the
+  # D-way records — before the tree is first written from here, and before
+  # D-way hands over (`dway:take_over`), after which those it still holds
+  # are checked for the first time as their dates come.
   #
   #   bin/rails dra:check_public_xml
-  desc 'Check that every public DRA submission renders as valid SRA XML'
+  desc 'Check that every public or releasable DRA submission renders as valid SRA XML'
   task check_public_xml: :environment do
-    refused = Hash.new {|hash, key| hash[key] = [] }
-    checked = 0
+    {
+      'public'                => DRASubmission.status_public,
+      'released by hold date' => DRASubmission.where(status: HoldDateRelease::RELEASABLE_FROM).where.not(hold_date: nil)
+    }.each do |label, rows|
+      refused = Hash.new {|hash, key| hash[key] = [] }
+      checked = 0
 
-    DRASubmission.status_public.where.not(accession: nil).includes(:submission).find_each do |row|
-      checked += 1
+      rows.where.not(accession: nil).includes(:submission).find_each do |row|
+        checked += 1
 
-      PublicXML::DRA::Documents.call(row.submission.materialised_record)
-    rescue PublicXML::DRA::Documents::Invalid, Submission::MaterialisationFailed => e
-      refused[e.message.sub(/\A(\w+: [^.]*).*/m, '\1')] << row.accession
-    end
+        PublicXML::DRA::Documents.call(row.submission.materialised_record)
+      rescue PublicXML::DRA::Documents::Invalid, Submission::MaterialisationFailed => e
+        refused[e.message.sub(/\A(\w+: [^.]*).*/m, '\1')] << row.accession
+      end
 
-    puts "#{checked} checked, #{refused.values.sum(&:size)} refused."
+      puts "#{label}: #{checked} checked, #{refused.values.sum(&:size)} refused."
 
-    refused.sort_by { -_2.size }.each do |reason, accessions|
-      puts "#{accessions.size}\t#{reason}\t#{accessions.first(5).join(' ')}"
+      refused.sort_by { -_2.size }.each do |reason, accessions|
+        puts "  #{accessions.size}\t#{reason}\t#{accessions.first(5).join(' ')}"
+      end
     end
   end
 end
