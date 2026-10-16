@@ -7,6 +7,12 @@
   <%= DistributionNotifier::NOTICE_DAYS %> days of their hold date.
 </p>
 
+<% unless DwayTakeover.done? %>
+  <p class="text-body-secondary small" data-test-before-takeover>
+    None are due until D-way hands over: until then nothing releases a BioProject on its hold date.
+  </p>
+<% end %>
+
 <%# The automation is the mechanism, not a footnote to it. Promoted from a %>
 <%# sentence in the body copy to a standing strip, with the result of the %>
 <%# last run — "it is automatic" is not reassuring on its own, "it ran %>

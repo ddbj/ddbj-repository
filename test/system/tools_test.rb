@@ -223,6 +223,19 @@ class MigrationRunsSystemTest < ApplicationSystemTestCase
     end
   end
 
+  # Once D-way has handed over, what it would bring back is what this
+  # system decides — and the screen says that, not "switched off".
+  test 'once D-way has handed over, nothing starts, and the screen says why' do
+    DwayTakeover.record!(by: 'alice')
+
+    visit admin_migration_runs_path
+
+    within '[data-test-db-state="bioproject"]' do
+      assert_text    'D-way has handed over'
+      assert_no_link 'Start a run'
+    end
+  end
+
   # The rule, as opposed to the courtesy: every import path opens one of
   # these, including a rake task and a console.
   test 'the D-way connection itself is refused where importing is off' do

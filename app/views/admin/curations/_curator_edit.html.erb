@@ -37,7 +37,7 @@
     <%= form_with url: admin_submission_curation_path(submission), method: :patch, scope: :curation, local: true do |f| %>
       <%# What the rows accept, not every status there is (Lifecycleable. %>
       <%# settable_statuses_for). A DRA submission imported from D-way %>
-      <%# accepts none: its status is D-way's. %>
+      <%# accepts none until D-way hands over: its status is D-way's. %>
       <% settable = state.curated? ? state.rows.klass.settable_statuses_for(state.rows) : [] %>
 
       <% if settable.any? %>

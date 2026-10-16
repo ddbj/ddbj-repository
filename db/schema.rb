@@ -118,6 +118,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_000001) do
     t.index ["submission_id"], name: "index_dra_submissions_on_submission_id", unique: true
   end
 
+  create_table "dway_takeovers", force: :cascade do |t|
+    t.datetime "taken_over_at", null: false
+    t.string "taken_over_by", null: false
+    t.boolean "singleton", default: true, null: false
+    t.index ["singleton"], name: "index_dway_takeovers_on_singleton", unique: true
+    t.check_constraint "singleton", name: "dway_takeovers_singleton"
+  end
+
   create_table "entries", force: :cascade do |t|
     t.bigint "submission_id", null: false
     t.string "accession", null: false
