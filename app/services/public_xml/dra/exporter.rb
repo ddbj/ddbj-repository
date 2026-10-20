@@ -27,6 +27,11 @@ module PublicXML
     # again by the next run; the others are written all the same. A run
     # stopped part way leaves its rows written, so the next goes on from
     # there.
+    #
+    # The tree is not only ours: D-way's is where its SRA mirror put
+    # NCBI's and EBI's submissions too (SRA…, ERA…), and the reads beside
+    # them are petabytes. So a run touches only the directories of
+    # submissions it has rows for, and never walks the tree.
     class Exporter
       MARKER = '.last_run'
 
@@ -37,7 +42,6 @@ module PublicXML
 
       def call
         @output_dir.mkpath
-        @output_dir.glob('*/*/*.partial').each(&:delete)
 
         mark!
 
@@ -100,8 +104,16 @@ module PublicXML
       def write(row)
         return "not an accession of DRA's" unless row.accession.match?(DRASubmission::ACCESSION_FORMAT)
 
+        directory = self.class.directory(@output_dir, row.accession)
+
+        # What a run stopped between writing and renaming a document left
+        # of it: the row stayed due, so this is where it is cleared — refused
+        # this time or not.
+        partials = ::DRA::XMLRenderer::KINDS.map { directory.join("#{row.accession}.#{it}.xml.partial") }
+        FileUtils.rm_f partials
+
         documents = Documents.call(row.submission.materialised_record)
-        directory = self.class.directory(@output_dir, row.accession).tap(&:mkpath)
+        directory.mkpath
 
         documents.each do |kind, xml|
           partial = directory.join("#{row.accession}.#{kind}.xml.partial")
@@ -127,21 +139,38 @@ module PublicXML
       end
 
       # What has left public (suppressed, withdrawn) is taken out of the
-      # tree, as D-way's runbook took it out by hand. Only what is named as
-      # a DRA submission is: nothing else in the tree is this run's to take.
+      # tree, as D-way's runbook took it out by hand — by its row, whether
+      # this tree or D-way's wrote it: a directory of a submission there is
+      # no row for is the mirror's, not this run's to take. And only the
+      # documents: the reads beside them are not this run's either, and the
+      # directory goes only once nothing else is in it.
       #
-      # Its rows are no longer written, whenever they come back and however
-      # D-way's import dates that.
+      # A row is taken out if it was ever public, or written; never public,
+      # what is there is D-way's, whose status this may be behind. Its row
+      # is no longer written — whenever it comes back and however D-way's
+      # import dates that — once its documents are gone, so a run stopped
+      # part way takes them out again.
       def withdraw
-        DRASubmission.where.not(id: published.select(:id)).where.not(public_xml_written_at: nil).update_all(public_xml_written_at: nil)
+        withdrawn = DRASubmission.where.not(id: published.select(:id)).where.not(accession: nil).merge(
+          DRASubmission.where.not(first_published_at: nil).or(DRASubmission.where.not(public_xml_written_at: nil))
+        )
 
-        public = published.pluck(:accession).to_set
+        withdrawn.pluck(:accession).each do |accession|
+          next unless accession.match?(DRASubmission::ACCESSION_FORMAT)
 
-        @output_dir.glob('[DS]RA[0-9][0-9][0-9]/*').each do |directory|
-          name = directory.basename.to_s
+          directory = self.class.directory(@output_dir, accession)
+          documents = ::DRA::XMLRenderer::KINDS.flat_map { [directory.join("#{accession}.#{it}.xml"), directory.join("#{accession}.#{it}.xml.partial")] }
 
-          directory.rmtree if name.match?(DRASubmission::ACCESSION_FORMAT) && !public.include?(name)
+          FileUtils.rm_f documents
+
+          begin
+            directory.rmdir
+          rescue Errno::ENOENT, Errno::ENOTEMPTY, Errno::ENOTDIR
+            # Not there, or not only ours.
+          end
         end
+
+        withdrawn.where.not(public_xml_written_at: nil).update_all(public_xml_written_at: nil)
       end
     end
   end
