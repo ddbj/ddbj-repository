@@ -242,8 +242,8 @@ importers:
         specifier: ^2.19.14
         version: 2.19.14
       '@types/rails__activestorage':
-        specifier: ^8.0.1
-        version: 8.0.1
+        specifier: ^8.0.2
+        version: 8.0.2
       '@types/rsvp':
         specifier: ^4.0.9
         version: 4.0.9
@@ -1940,8 +1940,8 @@ packages:
   '@types/qunit@2.19.14':
     resolution: {integrity: sha512-ou2RMtwyDnW1btrMnDMZeL6V5/yRRbuHKrRC6y8IuzDljjVzw6wPCVFb8p4qJD0NkUkf3BdZeJJIBzjK1BUUDQ==}
 
-  '@types/rails__activestorage@8.0.1':
-    resolution: {integrity: sha512-gwUZjLHyllzSEmegCXfkL11PrpZ/3Z+vCXBbYWgIdtX0ChfjtZcKq7HGfXYO5v5UYGLYenjGH3u8U+PpnA3dhg==}
+  '@types/rails__activestorage@8.0.2':
+    resolution: {integrity: sha512-Yoapky5E5lbH/H0cy50iVZvUq2T+sxWeR/CPMzot8As3UKz5rkul5bFFzNWcWZtzDbEM+etbEMbXJDpsnkXWaQ==}
 
   '@types/rimraf@2.0.5':
     resolution: {integrity: sha512-YyP+VfeaqAyFmXoTh3HChxOQMyjByRMsHU7kc5KOJkSlXudhMhQIALbYV7rHh/l8d2lX3VUQzprrcAgWdRuU8g==}
@@ -8355,7 +8355,7 @@ snapshots:
 
   '@types/qunit@2.19.14': {}
 
-  '@types/rails__activestorage@8.0.1': {}
+  '@types/rails__activestorage@8.0.2': {}
 
   '@types/rimraf@2.0.5':
     dependencies:

@@ -52,7 +52,7 @@
     "@tsconfig/ember": "^3.0.12",
     "@types/bootstrap": "^5.2.11",
     "@types/qunit": "^2.19.14",
-    "@types/rails__activestorage": "^8.0.1",
+    "@types/rails__activestorage": "^8.0.2",
     "@types/rsvp": "^4.0.9",
     "@types/spark-md5": "^3.0.5",
     "@warp-drive/build-config": "5.9.1",
