@@ -304,7 +304,8 @@ slow for it.
 
 A public DRA submission's record is published as SRA XML, as D-way's
 release laid it out — a directory a submission, a document a kind
-(`output_dir/public/dra/DRA000/DRA000368/DRA000368.experiment.xml`),
+(`output_dir/public/dra/fastq/DRA000/DRA000368/DRA000368.experiment.xml`,
+`fastq/` because the reads go beside them, `.sra` in `sra/` beside it),
 written nightly by `PublicXML::DRA::Exporter`. It is written in SRA XSD
 1.6.1 — the version D-way's JAXB beans are generated from, vendored in
 `schema/sra/1.6.1` — by `DRA::XMLRenderer`, which is `DRA::Converter` the

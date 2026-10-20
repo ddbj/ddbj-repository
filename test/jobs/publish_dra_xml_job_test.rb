@@ -2,7 +2,7 @@ require 'test_helper'
 
 class PublishDRAXMLJobTest < ActiveSupport::TestCase
   setup do
-    @output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('public', 'dra')
+    @output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('public', 'dra', 'fastq')
   end
 
   teardown do
