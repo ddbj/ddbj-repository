@@ -107,7 +107,7 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
 
     request.update_columns(submission_id: submission.id, status: 'applied')
     submission.append_update! record, actor: 'test'
-    DRASubmission.create!(submission:, accession: 'DRA000009', status: :private)
+    DRASubmission.create!(submission:, accession: 'DRA000009', status: :private, reads_built_at: Time.current)
 
     visit admin_submission_request_path(request)
 
@@ -116,7 +116,7 @@ class WorkbenchSystemTest < ApplicationSystemTestCase
     click_button 'Save changes'
 
     assert_equal 200, page.status_code, 'the flash, not an error page quoting this test'
-    assert_text 'Nothing was saved: it cannot be made public, since what it would publish is not valid SRA XML'
+    assert_text 'Nothing was saved: it cannot be made public yet'
     assert_text 'LIBRARY_STRATEGY'
     assert_equal 'private', submission.dra_submission.reload.status
     assert_nil submission.reload.curator_comment, 'the form is saved whole or not at all'

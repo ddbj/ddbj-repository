@@ -22,7 +22,7 @@ module Admin
       redirect_to admin_submission_request_path(submission.request), alert: "Could not save: #{e.message}"
     rescue DRASubmission::Unpublishable => e
       # The status is saved with the rest of the form or not at all.
-      redirect_to admin_submission_request_path(submission.request), alert: "Nothing was saved: it cannot be made public, since what it would publish is not valid SRA XML — #{e.summary}"
+      redirect_to admin_submission_request_path(submission.request), alert: "Nothing was saved: it cannot be made public yet — #{e.summary}"
     rescue Submission::MaterialisationFailed => e
       redirect_to admin_submission_request_path(submission.request),
                   alert: "Cannot edit: existing patch chain is unreadable (#{e.class}: #{e.message})."
