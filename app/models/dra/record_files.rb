@@ -1,7 +1,8 @@
 # The files a DRA record's runs and analyses name, each matched to the file
-# its submitter uploaded for it: by name, among the uploader's unassigned
-# files, and then by MD5, which the record states and the store computed
-# when the upload was verified — so matching reads nothing.
+# its submitter uploaded for it: by name, among the blobs it is given — the
+# uploader's unassigned files, until a submission is assigned them, and
+# that submission's then — and by MD5, which the record states and the
+# store computed when the upload was verified, so matching reads nothing.
 #
 # The files are uploaded before the record is sent (CLAUDE.md, "Data file
 # uploads"), and wait among the uploader's unassigned files until a
@@ -14,7 +15,9 @@
 # One upload is one run's or analysis's file: named twice, it would be
 # assigned twice. The same file uploaded twice is two uploads, each of which
 # can be named once. One already assigned to a submission is not among the
-# uploads at all: applying takes it out of the list (SubmissionApply::DRARecord).
+# uploader's unassigned files: applying takes it out of the list
+# (SubmissionApply::DRARecord), and it is matched among the submission's
+# then (BuildDRAReadsJob).
 class DRA::RecordFiles
   # One FILE of the record: where it is (`runs[0]`), what it says, and the
   # upload it names — or why there is none.
@@ -35,14 +38,14 @@ class DRA::RecordFiles
     name
   end
 
-  def initialize(record, user)
+  def initialize(record, blobs)
     @record = record
-    @user   = user
+    @blobs  = blobs
   end
 
   def entries
     @entries ||= begin
-      uploaded = @user.unassigned_files.blobs.order(:id).group_by { self.class.normalise(it.filename.to_s) }
+      uploaded = @blobs.order(:id).group_by { self.class.normalise(it.filename.to_s) }
       claimed  = {}
 
       named_files.map {|named|

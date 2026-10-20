@@ -293,12 +293,35 @@ hours, so each run's findings are written as it is read and the cursor moved
 past it; a stopped job stops its tool with it (`interrupt`), keeps the files
 it had copied out (`dra-reads-<validation id>` under `work_dir`), and reads
 again only the run it was in. A run's experiment is found through the
-record's relations by `DDBJRecord::References`, which reads references the
-way `DRA::Converter` writes them.
+record's relations (`DRA::RecordRuns`), by `DDBJRecord::References`, which
+reads references the way `DRA::Converter` writes them.
 Its test uses the real loader where it is on PATH. `rake dra:check_reads`
 tries it on a user's uploaded files. Scratch that need not be shared
 between hosts can go on each host's local SSD (/data1) should Lustre prove
 slow for it.
+
+Once its accessions are issued, a submission sent here has its reads made
+into what the archive publishes (`BuildDRAReadsJob`, `DRA::ReadBuild`), as
+D-way's batch made them after issuing: each run's `<run>.sra` — fastq
+loaded by `latf-load` and packed by `kar`, or the `.sra` sent — and its
+fastq dumped from it by `fastq-dump --split-3 --skip-technical`, named by the
+run, compressed by `pbzip2` (in the image, as SRA Toolkit is). They go into
+the private tree, laid out as D-way's FTP site lays the public one out
+(`DRA::ReadsTree`: `output_dir/private/dra/fastq/DRA000/DRA…/DRX…/` and
+`…/sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/`), so publishing them is moving
+them across; then the row says so (`reads_built_at`) and an
+accession-issued one becomes private, as D-way's did. The submitted reads
+stay the originals, so what is built can be built again. The job is
+started by a sweep every ten minutes (`enqueue_due`) for each waiting with
+no job of its own — not by the issuance, whose enqueue a lost process would
+lose — and shares the checks' limit (`CheckDRAReadsJob::DRA_READS`: a
+limit's group is its class otherwise), one at a time, with an advisory lock
+on the submission besides. It is continuable as the check is, and a run
+whose `.sra` is in the tree is not built again. One that fails (reads the
+loader took at the check and not now, a file gone, a filetype not built
+here yet — BAM among them, which the check only warns of) is left failed in
+Mission Control for a person: retried there it goes on, discarded the sweep
+starts it again.
 
 ### DRA public metadata (SRA XML)
 
@@ -342,8 +365,9 @@ documents go, not the reads D-way put beside them, and only for a row
 that was public once or written here. Nothing is written before D-way has handed over
 (`DwayTakeover`): the tree is D-way's release's until then, and a status
 here behind D-way's would take out what it has just published. The tree
-is the metadata only; the reads (`.sra` and fastq) are still to come, and
-so is the DRA livelist.
+is the metadata only so far: the reads are built into the private tree
+(see DRA reads above) and not yet moved into this one, and the DRA
+livelist is still to come.
 
 ### Jobs stopped part way
 
@@ -369,6 +393,10 @@ update one:
   the next import that gets the submission's lock.
 - `ValidateDDBJRecordJob` — runs only while its subject waits for a check,
   so a late re-run cannot take back an answer.
+- `BuildDRAReadsJob` — runs only while its submission waits for its reads
+  (`reads_built_at`), and a run whose `.sra` is in the private tree — it
+  goes in last, after the fastq — is not built again; what a stopped one
+  left of a run's fastq there is cleared before the run goes in.
 - Public XML — a row left `running` is ended by the next run that gets the
   lock (`PublicXMLRun.exclusively`). DRA's tree is written a row at a
   time, each marking itself written, so a stopped run is gone on from.
@@ -400,7 +428,7 @@ twice in its run's progress.
 
 A job of hours is better made continuable (`ActiveJob::Continuable`), so a
 deploy stops it at a checkpoint and it carries on from there — the sync
-jobs and CheckDRAReadsJob are.
+jobs, CheckDRAReadsJob and BuildDRAReadsJob are.
 
 ### Submission Pipeline (`ApplySubmissionRequestJob`)
 
@@ -446,7 +474,8 @@ the BioSample public XML and the livelists.
 - **A DRA submission published** — by its date or by a curator — takes
   along its own submitter's projects and samples that its experiments are
   part of (`DRA::LinkedRelease`), as D-way's did. It is made public only
-  if its public documents are valid (`DRASubmission::Unpublishable`):
+  if its public documents are valid, and, sent here, its reads built
+  (`DRASubmission::Unpublishable`):
   D-way kept one private until they were, rather than call it public and
   publish nothing. A refusal changes nothing — the rail's form and the
   ledger's selection are refused whole, and the hold date tries it again
