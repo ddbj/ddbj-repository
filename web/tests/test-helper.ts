@@ -12,14 +12,17 @@ export async function start() {
   await worker.start({
     quiet: true,
 
-    onUnhandledRequest(request, print) {
-      const url = new URL(request.url);
+    onUnhandledFrame({ frame, defaults }) {
+      if (frame.protocol === 'http') {
+        const { request } = frame.data as { request: Request };
+        const url = new URL(request.url);
 
-      if (url.pathname.startsWith('/socket.io/') || url.pathname === '/favicon.ico') {
-        return;
+        if (url.pathname.startsWith('/socket.io/') || url.pathname === '/favicon.ico') {
+          return;
+        }
       }
 
-      print.warning();
+      defaults.warn();
     },
   });
 
