@@ -304,7 +304,8 @@ slow for it.
 
 A public DRA submission's record is published as SRA XML, as D-way's
 release laid it out — a directory a submission, a document a kind
-(`output_dir/public/dra/DRA000/DRA000368/DRA000368.experiment.xml`),
+(`output_dir/public/dra/fastq/DRA000/DRA000368/DRA000368.experiment.xml`,
+`fastq/` because the reads go beside them, `.sra` in `sra/` beside it),
 written nightly by `PublicXML::DRA::Exporter`. It is written in SRA XSD
 1.6.1 — the version D-way's JAXB beans are generated from, vendored in
 `schema/sra/1.6.1` — by `DRA::XMLRenderer`, which is `DRA::Converter` the
@@ -332,9 +333,17 @@ row published since it was written, or written after the tree's last run
 — into a tree standing in for this one while it was not mounted — is
 written again, and a tree with no marker is written whole. What the tree
 is missing is cleared from the rows before its marker moves, so a run
-stopped part way is gone on from. What has left public is taken out. The
-tree is the metadata only; the reads (`.sra` and fastq) are still to come,
-and so is the DRA livelist.
+stopped part way is gone on from. What has left public is taken out —
+by its row, never by walking the tree: D-way's tree is where its SRA
+mirror put NCBI's and EBI's submissions too (`SRA…`, `ERA…`), and a
+directory nothing here has a row for is not ours to take — which makes
+one whose row was destroyed a thing to take out by hand. Only its
+documents go, not the reads D-way put beside them, and only for a row
+that was public once or written here. Nothing is written before D-way has handed over
+(`DwayTakeover`): the tree is D-way's release's until then, and a status
+here behind D-way's would take out what it has just published. The tree
+is the metadata only; the reads (`.sra` and fastq) are still to come, and
+so is the DRA livelist.
 
 ### Jobs stopped part way
 

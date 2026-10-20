@@ -124,6 +124,88 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     assert @output_dir.join('DRA000', 'DRA000002', 'DRA000002.run.xml').exist?
   end
 
+  # The tree is the one the SRA mirror puts NCBI's and EBI's submissions
+  # in, and D-way's own that the import left out; one of D-way's it has a
+  # row for is taken out though nothing here wrote it.
+  test 'takes out only what it has rows for, whoever wrote it' do
+    others = [
+      @output_dir.join('SRA000', 'SRA000999'),
+      @output_dir.join('ERA000', 'ERA000999'),
+      @output_dir.join('DRA000', 'DRA000999')
+    ].each(&:mkpath)
+
+    dways = directory.tap(&:mkpath).join('DRA000001.run.xml').tap { it.write('<RUN_SET/>') }
+
+    @row.update! status: :temporarily_suppressed
+
+    export
+
+    assert others.all?(&:exist?)
+    assert_not dways.exist?
+  end
+
+  # In D-way's tree a submission's reads are in its directory.
+  test 'takes out the documents, and leaves the reads beside them' do
+    export
+
+    reads = directory.join('DRX000001', 'DRR000001.fastq.bz2').tap { it.dirname.mkpath }.tap { it.write('reads') }
+    directory.join('DRA000001.run.xml.partial').write('<RUN_SET>')
+
+    @row.update! status: :temporarily_suppressed
+
+    export
+
+    assert reads.exist?
+    assert_empty directory.glob('*.xml*')
+  end
+
+  # D-way's import dates the first publication by its release date, which
+  # it may not have.
+  test 'takes out what it wrote, though nothing dates its publication' do
+    @row.update_columns first_published_at: nil
+
+    export
+
+    @row.update! status: :temporarily_suppressed
+
+    export
+
+    assert_not directory.exist?
+    assert_nil @row.reload.public_xml_written_at
+  end
+
+  # Its row written, though nothing dates its publication: what says it is
+  # to be taken out is that it was written.
+  test 'a withdrawal stopped part way is taken up again' do
+    @row.update_columns first_published_at: nil
+
+    export
+
+    @row.update! status: :temporarily_suppressed
+
+    stopped = PublicXML::DRA::Exporter.new(output_dir: @output_dir)
+
+    FileUtils.stub(:rm_f, ->(*) { raise Interrupt }) do
+      assert_raises(Interrupt) { stopped.call }
+    end
+
+    export
+
+    assert_not directory.exist?
+  end
+
+  # Not this run's to take: one never public was put there by D-way, whose
+  # status for it this may be behind.
+  test 'leaves what was never public' do
+    @row.update! status: :private, first_published_at: nil, last_published_at: nil
+
+    dways = directory.tap(&:mkpath).join('DRA000001.run.xml').tap { it.write('<RUN_SET/>') }
+
+    export
+
+    assert dways.exist?
+  end
+
   # The 27 earliest DRA submissions are numbered SRA.
   test 'takes out an SRA-numbered submission no longer public' do
     @row.update_columns accession: 'SRA000001'
@@ -198,14 +280,16 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     assert directory.join('DRA000001.experiment.xml').exist?
   end
 
-  # A run stopped between writing and renaming.
+  # A run stopped between writing and renaming leaves the row due, of a
+  # kind the record may no longer have — or that it cannot publish now.
   test 'a document left half written is cleared away' do
     export
 
-    directory.join('DRA000001.run.xml.partial').write('<RUN_SET>')
+    directory.join('DRA000001.analysis.xml.partial').write('<ANALYSIS_SET>')
+    edit! record.tap { it['experiments'][0]['library']['strategy'] = 'Guesswork' }
 
     export
 
-    assert_not directory.join('DRA000001.run.xml.partial').exist?
+    assert_not directory.join('DRA000001.analysis.xml.partial').exist?
   end
 end

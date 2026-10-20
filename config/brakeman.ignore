@@ -112,6 +112,52 @@
         89
       ],
       "note": "Data source is NCBI taxdump file, not user input"
+    },
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "0bda641d7af2324cc802d6fb05942511103f106e4d8b85676bb24f110dba77cd",
+      "check_name": "FileAccess",
+      "message": "Model attribute used in file name",
+      "file": "app/services/public_xml/dra/exporter.rb",
+      "line": 113,
+      "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
+      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.map do\n self.class.directory(Pathname.new(output_dir), row.accession).join(\"#{row.accession}.#{it}.xml.partial\")\n end)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "PublicXML::DRA::Exporter",
+        "method": "write"
+      },
+      "user_input": "::DRA::XMLRenderer::KINDS.map",
+      "confidence": "Weak",
+      "cwe_id": [
+        22
+      ],
+      "note": "The accession is a DRA submission's, checked against DRASubmission::ACCESSION_FORMAT before it names a path."
+    },
+    {
+      "warning_type": "File Access",
+      "warning_code": 16,
+      "fingerprint": "2892e48513fcad82b04b034bf19f983fe0863fdd07a76f4c947f3bf1a0d86092",
+      "check_name": "FileAccess",
+      "message": "Model attribute used in file name",
+      "file": "app/services/public_xml/dra/exporter.rb",
+      "line": 164,
+      "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
+      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.flat_map do\n [self.class.directory(Pathname.new(output_dir), accession).join(\"#{accession}.#{it}.xml\"), self.class.directory(Pathname.new(output_dir), accession).join(\"#{accession}.#{it}.xml.partial\")]\n end)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "PublicXML::DRA::Exporter",
+        "method": "withdraw"
+      },
+      "user_input": "::DRA::XMLRenderer::KINDS.flat_map",
+      "confidence": "Weak",
+      "cwe_id": [
+        22
+      ],
+      "note": "The accession is a DRA submission's, checked against DRASubmission::ACCESSION_FORMAT before it names a path."
     }
   ],
   "brakeman_version": "8.0.4"
