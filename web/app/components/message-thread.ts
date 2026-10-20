@@ -64,7 +64,7 @@ export default class MessageThread<S, M extends { id: number }> extends Componen
     const upload = new DirectUpload(file, ENV.directUploadURL, undefined, this.currentUser.authorizationHeader);
 
     return new Promise<string>((resolve, reject) => {
-      upload.create((error, blob) => (error ? reject(error) : resolve(blob!.signed_id)));
+      upload.create((error, blob) => (error ? reject(new Error(error)) : resolve(blob!.signed_id)));
     });
   }
 
