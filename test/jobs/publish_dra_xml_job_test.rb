@@ -2,7 +2,7 @@ require 'test_helper'
 
 class PublishDRAXMLJobTest < ActiveSupport::TestCase
   setup do
-    @output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('public', 'dra', 'fastq')
+    @output_dir = Pathname.new(Rails.application.config_for(:app).output_dir!).join('public', 'dra')
   end
 
   teardown do
@@ -20,7 +20,7 @@ class PublishDRAXMLJobTest < ActiveSupport::TestCase
       PublishDRAXMLJob.perform_now
     end
 
-    assert @output_dir.join('DRA000', 'DRA000001', 'DRA000001.experiment.xml').exist?
+    assert @output_dir.join('fastq', 'DRA000', 'DRA000001', 'DRA000001.experiment.xml').exist?
   end
 
   # The tree is D-way's, which its release writes until then.

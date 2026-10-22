@@ -305,11 +305,12 @@ into what the archive publishes (`BuildDRAReadsJob`, `DRA::ReadBuild`), as
 D-way's batch made them after issuing: each run's `<run>.sra` — fastq
 loaded by `latf-load` and packed by `kar`, or the `.sra` sent — and its
 fastq dumped from it by `fastq-dump --split-3 --skip-technical`, named by the
-run, compressed by `pbzip2` (in the image, as SRA Toolkit is). They go into
-the private tree, laid out as D-way's FTP site lays the public one out
-(`DRA::ReadsTree`: `output_dir/private/dra/fastq/DRA000/DRA…/DRX…/` and
-`…/sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/`), so publishing them is moving
-them across; then the row says so (`reads_built_at`) and an
+run, compressed by `pbzip2` (in the image, as SRA Toolkit is) — and each
+analysis's files as sent, as D-way published them. They go into the
+private tree, laid out as D-way's FTP site lays the public one out
+(`DRA::ReadsTree`: `output_dir/private/dra/fastq/DRA000/DRA…/DRX…/`,
+`…/DRZ…/` and `…/sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/`), so publishing them
+is moving them across (see the public tree below); then the row says so (`reads_built_at`) and an
 accession-issued one becomes private, as D-way's did. The submitted reads
 stay the originals, so what is built can be built again. The job is
 started by a sweep every ten minutes (`enqueue_due`) for each waiting with
@@ -360,13 +361,23 @@ stopped part way is gone on from. What has left public is taken out —
 by its row, never by walking the tree: D-way's tree is where its SRA
 mirror put NCBI's and EBI's submissions too (`SRA…`, `ERA…`), and a
 directory nothing here has a row for is not ours to take — which makes
-one whose row was destroyed a thing to take out by hand. Only its
-documents go, not the reads D-way put beside them, and only for a row
-that was public once or written here. Nothing is written before D-way has handed over
+one whose row was destroyed a thing to take out by hand — and only for a
+row that was public once or written here. The files go with the documents
+(`DRA::SubmissionFiles`: what is in the submission's DRX…/ and DRZ…/, and
+its runs' .sra, found where they are): moved in from the private tree they
+were built into before its documents are written, and back out to it
+before they are taken out — D-way's too, which are in the public tree from
+the start — one file at a time, so a run stopped part way is gone on from,
+and never through a link or into a directory not named as an experiment
+or analysis: the mirror shares the tree. A move between two mounts is a
+copy, so the private tree belongs on the public one's mount: a submission
+withdrawn is otherwise its hundreds of gigabytes copied — and the first
+run after the handover takes out every D-way submission that left public
+with its reads still there, so count those before it. One sent here whose
+runs' .sra are not where its record files them (an experiment changed
+since they were built) is not published, and says so. Nothing is written before D-way has handed over
 (`DwayTakeover`): the tree is D-way's release's until then, and a status
-here behind D-way's would take out what it has just published. The tree
-is the metadata only so far: the reads are built into the private tree
-(see DRA reads above) and not yet moved into this one, and the DRA
+here behind D-way's would take out what it has just published. The DRA
 livelist is still to come.
 
 ### Jobs stopped part way

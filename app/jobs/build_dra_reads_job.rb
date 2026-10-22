@@ -1,7 +1,8 @@
 # A DRA submission's reads made into what the archive publishes, once its
-# accessions are issued (DRA::ReadBuild): each run's `.sra` and fastq, put
-# into the private tree (DRA::ReadsTree), from where its publication moves
-# them into the public one. Then it is built (`reads_built_at`), and an
+# accessions are issued (DRA::ReadBuild): each run's `.sra` and fastq, and
+# each analysis's files as sent, put into the private tree (DRA::ReadsTree),
+# from where its publication moves them into the public one
+# (PublicXML::DRA::Exporter). Then it is built (`reads_built_at`), and an
 # accession-issued one is private — as D-way's batch moved a submission
 # from accession issued to private once its fastq were made. One a curator
 # made private before is built all the same.
@@ -67,6 +68,8 @@ class BuildDRAReadsJob < ApplicationJob
     }.to_set
   end
 
+  def self.analysis_file_name(entry) = ActiveStorage::Filename.new(File.basename(entry.filename)).sanitized
+
   def self.kept_dir(submission_id) = Pathname.new(Rails.application.config_for(:app).work_dir!).join("#{KEPT_PREFIX}#{submission_id}")
 
   def perform(submission)
@@ -81,16 +84,27 @@ class BuildDRAReadsJob < ApplicationJob
     record = submission.materialised_record
     files  = DRA::RecordFiles.new(record, submission.data_files.blobs)
 
-    if (gone = files.unmatched.select { it.list == 'runs' }).any?
+    if (gone = files.unmatched).any?
       raise Failed, "#{row.accession}: #{gone.map { "#{it.where} #{it.problem}" }.join('; ')}"
     end
 
-    runs = DRA::RecordRuns.new(record, files).to_a
+    runs     = DRA::RecordRuns.new(record, files).to_a
+    analyses = files.entries.select { it.list == 'analyses' }
+
+    analyses.group_by { [it.index, self.class.analysis_file_name(it)] }.each do |(_, name), entries|
+      raise Failed, "#{row.accession}: #{entries.first.where} names two files #{name}" if entries.size > 1
+    end
 
     step :build do |step|
       runs.each do |run|
         build row, run, interrupt: -> { step.checkpoint! }
       end
+
+      analyses.each do |entry|
+        place row, entry, interrupt: -> { step.checkpoint! }
+      end
+
+      clear_analyses row, analyses
     end
 
     # Built, whatever its status has become meanwhile.
@@ -115,11 +129,13 @@ class BuildDRAReadsJob < ApplicationJob
   end
 
   def build(row, run, interrupt:)
-    raise Failed, "#{row.accession}: #{run.where} has no accession" unless run.accession
+    raise Failed, "#{row.accession}: #{run.where} has no accession" unless run.accession.to_s.match?(DRA::SubmissionFiles::OBJECT_FORMAT)
 
     raise Failed, "#{row.accession}: #{run.where} is part of #{run.experiments.size} experiments; a run is filed under one" unless run.experiments.size <= 1
 
-    experiment = run.experiment&.dig('accession') or raise Failed, "#{row.accession}: #{run.where} is part of no experiment with an accession"
+    experiment = run.experiment&.dig('accession').to_s
+
+    raise Failed, "#{row.accession}: #{run.where} is part of no experiment with an accession" unless experiment.match?(DRA::SubmissionFiles::OBJECT_FORMAT)
     tree       = DRA::ReadsTree.at(:private)
 
     # In the tree already, from an attempt stopped after it.
@@ -149,5 +165,43 @@ class BuildDRAReadsJob < ApplicationJob
     DRA::ReadsTree.move result.sra, tree.sra(experiment:, run: run.accession)
 
     dir.rmtree
+  end
+
+  # What an analysis's directory has that the record no longer names — an
+  # earlier attempt's, before an edit — would be published with it.
+  def clear_analyses(row, analyses)
+    tree = DRA::ReadsTree.at(:private)
+
+    analyses.group_by { it.object['accession'] }.each do |analysis, entries|
+      names = entries.map { self.class.analysis_file_name(it) }
+
+      tree.analysis_dir(submission: row.accession, analysis:).glob('*').each do |path|
+        path.delete unless names.include?(path.basename.to_s)
+      end
+    end
+  end
+
+  # An analysis's file is published as it was sent, as D-way published it,
+  # beside the submission's fastq; under its own name, as D-way's took the
+  # name the record gave it. One there whole already is not copied again.
+  def place(row, entry, interrupt:)
+    analysis = entry.object['accession'].to_s
+
+    raise Failed, "#{row.accession}: #{entry.where} has no accession" unless analysis.match?(DRA::SubmissionFiles::OBJECT_FORMAT)
+
+    path     = DRA::ReadsTree.at(:private).analysis_dir(submission: row.accession, analysis:).join(self.class.analysis_file_name(entry))
+
+    return if path.file? && path.size == entry.blob.byte_size
+
+    partial = path.sub_ext("#{path.extname}.partial").tap { it.dirname.mkpath }
+
+    partial.open('wb') {|file|
+      entry.blob.download do |chunk|
+        file.write chunk
+        interrupt.()
+      end
+    }
+
+    partial.rename path
   end
 end
