@@ -116,13 +116,13 @@
     {
       "warning_type": "File Access",
       "warning_code": 16,
-      "fingerprint": "0bda641d7af2324cc802d6fb05942511103f106e4d8b85676bb24f110dba77cd",
+      "fingerprint": "fec5f2d644bc7269ca6e1707d06372cf0e3a13e60944d0a3dbb268f3301c5b36",
       "check_name": "FileAccess",
       "message": "Model attribute used in file name",
       "file": "app/services/public_xml/dra/exporter.rb",
-      "line": 113,
+      "line": 122,
       "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
-      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.map do\n self.class.directory(Pathname.new(output_dir), row.accession).join(\"#{row.accession}.#{it}.xml.partial\")\n end)",
+      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.map do\n tree.submission_dir(row.accession).join(\"#{row.accession}.#{it}.xml.partial\")\n end)",
       "render_path": null,
       "location": {
         "type": "method",
@@ -139,13 +139,13 @@
     {
       "warning_type": "File Access",
       "warning_code": 16,
-      "fingerprint": "2892e48513fcad82b04b034bf19f983fe0863fdd07a76f4c947f3bf1a0d86092",
+      "fingerprint": "13139a1e0c392697284dff5bcba2ab668bea15dae4e9064fa4d9811e6dc27d69",
       "check_name": "FileAccess",
       "message": "Model attribute used in file name",
       "file": "app/services/public_xml/dra/exporter.rb",
-      "line": 164,
+      "line": 190,
       "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
-      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.flat_map do\n [self.class.directory(Pathname.new(output_dir), accession).join(\"#{accession}.#{it}.xml\"), self.class.directory(Pathname.new(output_dir), accession).join(\"#{accession}.#{it}.xml.partial\")]\n end)",
+      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.flat_map do\n [tree.submission_dir(row.accession).join(\"#{row.accession}.#{it}.xml\"), tree.submission_dir(row.accession).join(\"#{row.accession}.#{it}.xml.partial\")]\n end)",
       "render_path": null,
       "location": {
         "type": "method",

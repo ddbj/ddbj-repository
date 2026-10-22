@@ -1,8 +1,12 @@
 require 'test_helper'
 
 class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
+  # The documents are in the public tree's fastq/; @withheld is the
+  # private tree.
   setup do
-    @output_dir = Pathname.new(Dir.mktmpdir)
+    @root       = Pathname.new(Dir.mktmpdir)
+    @output_dir = @root.join('public', 'fastq')
+    @withheld   = DRA::ReadsTree.new(@root.join('private'))
     @row        = dra_submissions(:dra)
 
     @row.submission.append_update! record, actor: 'test'
@@ -10,12 +14,16 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
   end
 
   teardown do
-    @output_dir.rmtree if @output_dir&.exist?
+    @root.rmtree if @root&.exist?
   end
 
   def record = JSON.parse(file_fixture('dra/record/DRA000001.json').read)
 
-  def export(at: Time.current) = PublicXML::DRA::Exporter.new(output_dir: @output_dir, started_at: at).call
+  def exporter(at: Time.current) = PublicXML::DRA::Exporter.new(tree: tree, withheld: @withheld, started_at: at)
+
+  def export(...) = exporter(...).call
+
+  def tree = DRA::ReadsTree.new(@output_dir.dirname)
 
   def directory = @output_dir.join('DRA000', 'DRA000001')
 
@@ -89,7 +97,7 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
   # A deploy stops a run part way; the next goes on from there.
   test 'a run stopped part way is gone on from' do
-    stopped = PublicXML::DRA::Exporter.new(output_dir: @output_dir, started_at: 1.hour.ago)
+    stopped = exporter(at: 1.hour.ago)
 
     stopped.stub(:withdraw, -> { raise Interrupt }) do
       assert_raises(Interrupt) { stopped.call }
@@ -111,7 +119,7 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
     @output_dir.children.each(&:rmtree)
 
-    stopped = PublicXML::DRA::Exporter.new(output_dir: @output_dir, started_at: 1.hour.ago)
+    stopped = exporter(at: 1.hour.ago)
     written = 0
     write   = stopped.method(:write)
 
@@ -144,19 +152,147 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     assert_not dways.exist?
   end
 
-  # In D-way's tree a submission's reads are in its directory.
-  test 'takes out the documents, and leaves the reads beside them' do
+  def sra(tree) = tree.sra(experiment: 'DRX000001', run: 'DRR000001')
+
+  def fastq(tree) = tree.fastq_dir(submission: 'DRA000001', experiment: 'DRX000001').join('DRR000001_1.fastq.bz2')
+
+  def put(path, body = 'reads') = path.tap { it.dirname.mkpath }.tap { it.write(body) }
+
+  # Built into the private tree (BuildDRAReadsJob), as on the FTP site.
+  test 'what was built goes public with the documents, and the private tree is left with nothing of it' do
+    @row.update_columns status: Lifecycleable::STATUSES.fetch('private')
+
+    put fastq(@withheld)
+    put sra(@withheld)
+    put @withheld.analysis_dir(submission: 'DRA000001', analysis: 'DRZ000001').join('aln.bam')
+
+    @row.update! status: :public
+
     export
 
-    reads = directory.join('DRX000001', 'DRR000001.fastq.bz2').tap { it.dirname.mkpath }.tap { it.write('reads') }
-    directory.join('DRA000001.run.xml.partial').write('<RUN_SET>')
+    assert_equal 'reads', fastq(tree).read
+    assert_equal 'reads', sra(tree).read
+    assert tree.analysis_dir(submission: 'DRA000001', analysis: 'DRZ000001').join('aln.bam').exist?
+    assert directory.join('DRA000001.run.xml').exist?
+
+    assert_empty @withheld.root.glob('**/*').select(&:file?)
+    assert_not sra(@withheld).dirname.exist?, 'the directories the .sra leaves empty go'
+    assert_not @withheld.submission_dir('DRA000001').exist?
+  end
+
+  # The tree is shared, and a link in it leads anywhere.
+  test 'nothing is moved through a link, nor anything not named as an object' do
+    export
+
+    elsewhere = put(@root.join('elsewhere', 'DRR000001.fastq.bz2'))
+    directory.join('DRX000009').make_symlink(elsewhere.dirname)
+    put directory.join('notes', 'a.txt')
 
     @row.update! status: :temporarily_suppressed
 
     export
 
-    assert reads.exist?
-    assert_empty directory.glob('*.xml*')
+    assert elsewhere.exist?
+    assert directory.join('notes', 'a.txt').exist?
+    assert_empty @withheld.root.glob('**/*').select(&:file?)
+  end
+
+  # In the public tree it would be served.
+  test 'what a move stopped while copying left goes, from either tree' do
+    put fastq(tree)
+    export
+
+    partial = put(fastq(tree).sub_ext('.bz2.partial'))
+
+    @row.update! status: :temporarily_suppressed
+
+    export
+
+    assert_not partial.exist?
+    assert_not directory.exist?
+  end
+
+  # Its experiment changed since: the .sra is filed under the one it was
+  # built for.
+  test "one sent here whose run's .sra is not where its record files it is not published" do
+    @row.submission.update_columns source_id: nil
+    @row.update_columns public_xml_written_at: nil
+
+    put fastq(@withheld)
+
+    run = export
+
+    assert_match 'DRA000001: its reads are not where they were built: DRR000001', run.error_log
+    assert fastq(@withheld).exist?
+    assert_not directory.exist?
+  end
+
+  # In D-way's tree a submission's reads are in its directory; taken out,
+  # they are kept, to be published again.
+  test 'taken out, its files go back to the private tree and its documents go' do
+    put fastq(tree)
+    put sra(tree)
+    export
+
+    sras = sra(tree).dirname.dirname.dirname.join('DRX000002').tap(&:mkpath)
+
+    @row.update! status: :temporarily_suppressed
+
+    export
+
+    assert_equal 'reads', fastq(@withheld).read
+    assert_equal 'reads', sra(@withheld).read
+    assert_not directory.exist?
+    assert_not sra(tree).exist?
+    assert sras.exist?, "the mirror's beside it stay"
+
+    @row.update! status: :public
+
+    export
+
+    assert_equal 'reads', fastq(tree).read
+    assert_equal 'reads', sra(tree).read
+  end
+
+  # Moved one at a time; what went across is not there to move again.
+  test 'files moved part way are moved the rest of the way by the next run' do
+    put fastq(@withheld)
+    put sra(@withheld)
+    @row.update_columns public_xml_written_at: nil
+
+    moved = 0
+    move  = DRA::ReadsTree.method(:move)
+
+    DRA::ReadsTree.stub(:move, ->(*args) { (moved += 1) > 1 ? raise(Interrupt) : move.(*args) }) do
+      assert_raises(Interrupt) { export }
+    end
+
+    export
+
+    assert fastq(tree).exist?
+    assert sra(tree).exist?
+  end
+
+  test 'one whose files cannot be known is not taken out, and says so' do
+    export
+
+    @row.update! status: :temporarily_suppressed
+
+    SubmissionUpdate.create_with_patch!(
+      submission:              @row.submission,
+      patch_json:              'not-json',
+      db:                      'dra',
+      status:                  :applied,
+      actor:                   'test',
+      source:                  :manual,
+      patch_canonical_version: DDBJRecord::Canonicalizer::NUMBER
+    )
+
+    run = export
+
+    assert_match(/\ADRA000001: not taken out, its files not known/, run.error_log)
+    assert directory.join('DRA000001.run.xml').exist?
+    assert @row.reload.public_xml_written_at, 'tried again by the next run'
   end
 
   # D-way's import dates the first publication by its release date, which
@@ -183,7 +319,7 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
     @row.update! status: :temporarily_suppressed
 
-    stopped = PublicXML::DRA::Exporter.new(output_dir: @output_dir)
+    stopped = exporter
 
     FileUtils.stub(:rm_f, ->(*) { raise Interrupt }) do
       assert_raises(Interrupt) { stopped.call }
@@ -250,11 +386,10 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     export(at: 2.days.ago)
 
     real        = @output_dir
-    @output_dir = Pathname.new(Dir.mktmpdir)
+    @output_dir = @root.join('standing-in', 'fastq')
 
     export(at: 1.day.ago)
 
-    @output_dir.rmtree
     @output_dir = real
 
     assert_equal 1, export.emitted

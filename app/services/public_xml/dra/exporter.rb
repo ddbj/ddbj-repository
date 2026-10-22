@@ -1,11 +1,19 @@
 module PublicXML
   module DRA
-    # The public tree of DRA's metadata, as D-way's release laid it out on
-    # the FTP site: a directory a submission, under one named by the first
-    # six characters of its accession, holding a document a kind —
+    # The public tree of DRA, as D-way's release laid it out on the FTP
+    # site (DRA::ReadsTree): a directory a submission, under one named by
+    # the first six characters of its accession, holding a document a kind
+    # beside its reads —
     #
-    #   DRA000/DRA000368/DRA000368.submission.xml
-    #                    DRA000368.experiment.xml …
+    #   fastq/DRA000/DRA000368/DRA000368.submission.xml
+    #                          DRA000368.experiment.xml …
+    #                          DRX000001/DRR000001_1.fastq.bz2 …
+    #   sra/ByExp/sra/DRX/DRX000/DRX000001/DRR000001/DRR000001.sra
+    #
+    # The documents are written here; the files (DRA::SubmissionFiles) are
+    # moved in from the private tree they were built into, before them, and
+    # back out to it when it leaves public, after them — D-way's too, which
+    # are here from the start.
     #
     # BioProject and BioSample are one file each, written whole; DRA is a
     # tree of tens of thousands of submissions, so a run writes those whose
@@ -35,8 +43,11 @@ module PublicXML
     class Exporter
       MARKER = '.last_run'
 
-      def initialize(output_dir:, started_at: Time.current)
-        @output_dir = Pathname.new(output_dir)
+      # `tree` the public one, `withheld` where files wait to be published.
+      def initialize(tree: ::DRA::ReadsTree.at(:public), withheld: ::DRA::ReadsTree.at(:private), started_at: Time.current)
+        @tree       = tree
+        @withheld   = withheld
+        @output_dir = tree.root.join('fastq')
         @started_at = started_at
       end
 
@@ -57,7 +68,7 @@ module PublicXML
           end
         end
 
-        withdraw
+        refused.concat withdraw
 
         run.append_error!(refused.join("\n"))
         run.update!(status: 'completed', emitted:, finished_at: Time.current)
@@ -75,8 +86,6 @@ module PublicXML
       end
 
       class Refused < StandardError; end
-
-      def self.directory(output_dir, accession) = Pathname.new(output_dir).join(accession[0, 6], accession)
 
       private
 
@@ -104,7 +113,7 @@ module PublicXML
       def write(row)
         return "not an accession of DRA's" unless row.accession.match?(DRASubmission::ACCESSION_FORMAT)
 
-        directory = self.class.directory(@output_dir, row.accession)
+        directory = @tree.submission_dir(row.accession)
 
         # What a run stopped between writing and renaming a document left
         # of it: the row stayed due, so this is where it is cleared — refused
@@ -112,7 +121,17 @@ module PublicXML
         partials = ::DRA::XMLRenderer::KINDS.map { directory.join("#{row.accession}.#{it}.xml.partial") }
         FileUtils.rm_f partials
 
-        documents = Documents.call(row.submission.materialised_record)
+        record    = row.submission.materialised_record
+        documents = Documents.call(record)
+        files     = ::DRA::SubmissionFiles.new(row.accession, record)
+
+        # Built here, every run has its .sra: one with none is filed
+        # elsewhere than it was built (its experiment changed since).
+        if row.submission.source_id.nil? && (missing = files.missing_sras(@withheld, @tree)).any?
+          return "its reads are not where they were built: #{missing.join(', ')}"
+        end
+
+        files.move from: @withheld, to: @tree
         directory.mkpath
 
         documents.each do |kind, xml|
@@ -141,36 +160,53 @@ module PublicXML
       # What has left public (suppressed, withdrawn) is taken out of the
       # tree, as D-way's runbook took it out by hand — by its row, whether
       # this tree or D-way's wrote it: a directory of a submission there is
-      # no row for is the mirror's, not this run's to take. And only the
-      # documents: the reads beside them are not this run's either, and the
-      # directory goes only once nothing else is in it.
+      # no row for is the mirror's, not this run's to take. Its files go
+      # back to the private tree, kept to be published again, then its
+      # documents; the directory goes once nothing else is in it.
       #
       # A row is taken out if it was ever public, or written; never public,
       # what is there is D-way's, whose status this may be behind. Its row
       # is no longer written — whenever it comes back and however D-way's
       # import dates that — once its documents are gone, so a run stopped
-      # part way takes them out again.
+      # part way takes them out again. What could not be, its record
+      # unreadable, says why.
       def withdraw
         withdrawn = DRASubmission.where.not(id: published.select(:id)).where.not(accession: nil).merge(
           DRASubmission.where.not(first_published_at: nil).or(DRASubmission.where.not(public_xml_written_at: nil))
         )
 
-        withdrawn.pluck(:accession).each do |accession|
-          next unless accession.match?(DRASubmission::ACCESSION_FORMAT)
+        refused = {}
 
-          directory = self.class.directory(@output_dir, accession)
-          documents = ::DRA::XMLRenderer::KINDS.flat_map { [directory.join("#{accession}.#{it}.xml"), directory.join("#{accession}.#{it}.xml.partial")] }
+        withdrawn.includes(:submission).find_each do |row|
+          next unless row.accession.match?(DRASubmission::ACCESSION_FORMAT)
+
+          directory = @tree.submission_dir(row.accession)
+
+          next unless directory.directory?
+
+          begin
+            ::DRA::SubmissionFiles.new(row.accession, row.submission.materialised_record).move from: @tree, to: @withheld
+          rescue Submission::MaterialisationFailed => e
+            refused[row.id] = "#{row.accession}: not taken out, its files not known: #{e.message}"
+
+            next
+          end
+
+          documents = ::DRA::XMLRenderer::KINDS.flat_map { [directory.join("#{row.accession}.#{it}.xml"), directory.join("#{row.accession}.#{it}.xml.partial")] }
 
           FileUtils.rm_f documents
 
           begin
             directory.rmdir
           rescue Errno::ENOENT, Errno::ENOTEMPTY, Errno::ENOTDIR
-            # Not there, or not only ours.
+            # Not only ours.
           end
         end
 
-        withdrawn.where.not(public_xml_written_at: nil).update_all(public_xml_written_at: nil)
+        # Not one left in the tree, which the next run is to try again.
+        withdrawn.where.not(id: refused.keys).where.not(public_xml_written_at: nil).update_all(public_xml_written_at: nil)
+
+        refused.values
       end
     end
   end

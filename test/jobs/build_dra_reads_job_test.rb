@@ -107,6 +107,51 @@ class BuildDRAReadsJobTest < ActiveJob::TestCase
     assert_equal %w[DRR000002_1.fastq.bz2 DRR000002_2.fastq.bz2 DRR000003.fastq.bz2], dir.children.map { it.basename.to_s }.sort
   end
 
+  def with_analysis(*names)
+    names.each do |filename|
+      @submission.data_files_attachments.create! blob: ActiveStorage::Blob.create_and_upload!(io: StringIO.new('aln'), filename:, content_type: 'application/octet-stream')
+    end
+
+    files = names.map { {'filename' => it, 'filetype' => 'bam', 'checksum_method' => 'MD5', 'checksum' => Digest::MD5.hexdigest('aln')} }
+
+    @submission.append_update! record.merge('analyses' => [{'alias' => 'aln1', 'accession' => 'DRZ000002', 'data_blocks' => [{'files' => files}]}]), actor: 'test'
+  end
+
+  # As D-way published them, beside the submission's fastq.
+  test "an analysis's files are put in the private tree as sent" do
+    with_analysis 'aln.bam'
+
+    perform
+
+    assert_equal 'aln', @tree.analysis_dir(submission: 'DRA000002', analysis: 'DRZ000002').join('aln.bam').read
+    assert @row.reload.reads_built_at
+
+    @row.update! status: :accession_issued, reads_built_at: nil
+
+    assert_no_changes -> { @tree.analysis_dir(submission: 'DRA000002', analysis: 'DRZ000002').join('aln.bam').mtime } do
+      perform
+    end
+  end
+
+  # An earlier attempt's, before the record was edited.
+  test "what an analysis's directory has that its record does not name goes" do
+    stale = @tree.analysis_dir(submission: 'DRA000002', analysis: 'DRZ000002').join('old.bam').tap { it.dirname.mkpath }.tap { it.write('old') }
+
+    with_analysis 'aln.bam'
+    perform
+
+    assert_not stale.exist?
+    assert @tree.analysis_dir(submission: 'DRA000002', analysis: 'DRZ000002').join('aln.bam').exist?
+  end
+
+  test 'an analysis naming two files of one name fails the job' do
+    with_analysis 'aln.bam', 'aln.bam'
+
+    error = assert_raises(BuildDRAReadsJob::Failed) { perform }
+
+    assert_match 'analyses[0] names two files aln.bam', error.message
+  end
+
   test 'a run part of more than one experiment fails the job' do
     @submission.append_update! record.tap {|r|
       r['experiments'] << {'alias' => 'exp2', 'accession' => 'DRX000003'}
