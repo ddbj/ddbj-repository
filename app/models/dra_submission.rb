@@ -46,10 +46,11 @@ class DRASubmission < ApplicationRecord
   # of (DRA::LinkedRelease) — however it is published, by its hold date or
   # by a curator.
   #
-  # And only if what it publishes can be: its public documents valid as
-  # the version D-way published in (PublicXML::DRA::Documents). D-way kept
-  # one that was not private until it was, rather than call it public and
-  # publish nothing — or tell its submitter it was public.
+  # And only if what it publishes can be: its reads built, and its public
+  # documents valid as the version D-way published in (PublicXML::DRA::
+  # Documents). D-way kept one that was not private until it was, rather
+  # than call it public and publish nothing — or tell its submitter it was
+  # public.
   def self.move_to_status!(status, **)
     return super unless status.to_s == 'public'
 
@@ -70,10 +71,14 @@ class DRASubmission < ApplicationRecord
     raise Unpublishable, refusals if refusals.any?
   end
 
-  # [what the submission is called, why] where it cannot be published.
+  # [what the submission is called, why] where it cannot be published. One
+  # sent here publishes its reads too, which are built after its accessions
+  # are issued (BuildDRAReadsJob); D-way's built its own.
   def self.refusal(submission)
     name   = submission.dra_submission.accession || submission.source_id || "##{submission.id}"
     record = submission.materialised_record or return [name, 'it has no record to publish']
+
+    return [name, 'its reads are not built yet'] if submission.source_id.nil? && submission.dra_submission.reads_built_at.nil?
 
     PublicXML::DRA::Documents.call(record)
 

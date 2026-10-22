@@ -118,7 +118,7 @@ class DRA::ReadCheckTest < ActiveSupport::TestCase
     files = [blob(READ1, 'r.fastq')]
 
     files.first.stub(:download, ->(*) { flunk 'copied before the tool was looked for' }) do
-      error = assert_raises(DRA::ReadCheck::ToolMissing) { check(files, toolkit: @work_dir.join('nowhere')) }
+      error = assert_raises(DRA::SRAToolkit::ToolMissing) { check(files, toolkit: @work_dir.join('nowhere')) }
 
       assert_match 'latf-load is not installed here', error.message
     end
@@ -129,11 +129,11 @@ class DRA::ReadCheckTest < ActiveSupport::TestCase
     long = check([blob(READ1, "#{'配' * 100}.fastq.gz")]).output[/^file: (\S+) /, 1]
 
     assert_match(/\A配+\.fastq\.gz\z/, long, 'cut, keeping its extension')
-    assert_operator long.bytesize, :<=, DRA::ReadCheck::NAME_BYTES
+    assert_operator long.bytesize, :<=, DRA::SRAToolkit::NAME_BYTES
   end
 
   test 'every tool a filetype is read with is looked for' do
-    error = assert_raises(DRA::ReadCheck::ToolMissing) {
+    error = assert_raises(DRA::SRAToolkit::ToolMissing) {
       check([blob('x', 'a.sra')], filetype: 'sra', toolkit: fake_toolkit(tools: %w[vdb-validate]))
     }
 

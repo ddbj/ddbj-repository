@@ -39,8 +39,9 @@ jobs:
       SEAWEEDFS_TEST_SECRET_KEY: repository-test-secret
 
     steps:
-      - name: Install libvips
-        run: sudo apt-get install --update --assume-yes --no-install-recommends libvips42
+      # pbzip2 compresses the fastq DRA::ReadBuild dumps, as in the image.
+      - name: Install libvips and pbzip2
+        run: sudo apt-get install --update --assume-yes --no-install-recommends libvips42 pbzip2
 
       - uses: actions/checkout@v7
 
@@ -54,8 +55,9 @@ jobs:
       - uses: ./.github/actions/seaweedfs
 
       # What latf-load makes of reads is what DRA::ReadCheck is for, so its
-      # test reads them with the real thing, at the image's version — kept
-      # between runs, since it is 90 MB from NCBI on every push otherwise.
+      # test reads them with the real thing, as DRA::ReadBuild's builds them,
+      # at the image's version — kept between runs, since it is 90 MB from
+      # NCBI on every push otherwise.
       - uses: actions/cache@v6
         id: sratoolkit
         with:

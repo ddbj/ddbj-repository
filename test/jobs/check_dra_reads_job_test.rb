@@ -112,7 +112,7 @@ class CheckDRAReadsJobTest < ActiveJob::TestCase
   test 'a host that cannot read reads ends the check as not carried out' do
     validation = held
 
-    read(validation) { raise DRA::ReadCheck::ToolMissing, 'latf-load is not installed here (SRA Toolkit)' }
+    read(validation) { raise DRA::SRAToolkit::ToolMissing, 'latf-load is not installed here (SRA Toolkit)' }
 
     assert CurationState.new(@request.reload).unchecked?
   end
@@ -179,7 +179,7 @@ class CheckDRAReadsJobTest < ActiveJob::TestCase
   end
 
   test 'a reading past its time, or failing for any other reason, ends the check as not carried out' do
-    [DRA::ReadCheck::TimedOut.new('latf-load had not finished within 12 hours'), Aws::S3::Errors::ServiceError.new(nil, 'down')].each do |error|
+    [DRA::SRAToolkit::TimedOut.new('latf-load had not finished within 12 hours'), Aws::S3::Errors::ServiceError.new(nil, 'down')].each do |error|
       @request.validation&.destroy
       validation = held
 
@@ -219,7 +219,7 @@ class CheckDRAReadsJobTest < ActiveJob::TestCase
   test 'a reading not carried out is told as not finished' do
     validation = held
 
-    read(validation) { raise DRA::ReadCheck::ToolMissing, 'latf-load is not installed here (SRA Toolkit)' }
+    read(validation) { raise DRA::SRAToolkit::ToolMissing, 'latf-load is not installed here (SRA Toolkit)' }
 
     body = @request.messages.system_role.sole.body
 

@@ -20,7 +20,7 @@ class SubmissionApply::DRARecord < SubmissionApply::V3Record
   def build_rows(submission, tree)
     user = @request.user.lock!
 
-    files = DRA::RecordFiles.new(@sent, user)
+    files = DRA::RecordFiles.new(@sent, user.unassigned_files.blobs)
 
     if (gone = files.unmatched).any?
       raise FilesGone, gone.map { "#{it.where} #{it.problem}" }.join('; ')

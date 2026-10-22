@@ -263,7 +263,7 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     requests = [submission_requests(:dra)] + (2..4).map {|n|
       submission = Submission.create!(db: 'dra', user: users(:alice))
       submission.append_update! invalid.deep_merge('submission' => {'accession' => "DRA00000#{n}"}), actor: 'test'
-      DRASubmission.create!(submission:, accession: "DRA00000#{n}", status: :private)
+      DRASubmission.create!(submission:, accession: "DRA00000#{n}", status: :private, reads_built_at: Time.current)
 
       SubmissionRequest.new(user: users(:alice), db: 'dra', status: :applied, submission:).tap { it.save!(validate: false) }
     }
@@ -279,7 +279,7 @@ class SubmissionRequestsSystemTest < ApplicationSystemTestCase
     click_button 'Apply'
 
     assert_equal 200, page.status_code, 'the flash, not an error page quoting this test'
-    assert_text 'Nothing was changed: what these DRA submissions would publish is not valid SRA XML'
+    assert_text 'Nothing was changed: some of these DRA submissions cannot be made public yet'
     assert_text '(and 3 more)'
     assert_equal 'private', projects(:primary).reload.status
     assert_equal %w[private], DRASubmission.distinct.pluck(:status)

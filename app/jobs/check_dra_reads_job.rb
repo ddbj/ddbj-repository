@@ -11,7 +11,7 @@
 # The limit's `duration` is how long Solid Queue holds it before deciding
 # its holder is lost and letting the next one in — then two run, and the
 # count drifts from there. A record's runs are read one after another, each
-# file up to DRA::ReadCheck::TIMEOUT, so a reading has no bound short of
+# file up to DRA::SRAToolkit::TIMEOUT, so a reading has no bound short of
 # days; and every way a job ends — finished, failed, killed, its process
 # gone — releases the limit itself, so a long duration costs nothing.
 #
@@ -46,11 +46,15 @@ class CheckDRAReadsJob < ApplicationJob
 
   MAX_RESUMPTIONS = 20
 
+  # The limit the checks share with the builds (BuildDRAReadsJob): its
+  # group is the class's otherwise, and each class would have one of its own.
+  DRA_READS = {to: 1, key: 'dra_reads', group: 'dra_reads', duration: 7.days}.freeze
+
   queue_with_priority 10
 
   self.max_resumptions = MAX_RESUMPTIONS
   self.resume_options  = {wait: 5.seconds, priority: 0}
-  limits_concurrency to: 1, key: 'dra_reads', duration: 7.days
+  limits_concurrency(**DRA_READS)
 
   # The check it was for is gone (its request deleted).
   discard_on ActiveJob::DeserializationError
@@ -60,9 +64,7 @@ class CheckDRAReadsJob < ApplicationJob
 
     request = validation.subject
     record  = request.ddbj_record.open { Oj.load(it.read, mode: :strict) }
-    files   = DRA::RecordFiles.new(record, request.user)
-
-    @references = DDBJRecord::References::Index.new(record)
+    files   = DRA::RecordFiles.new(record, request.user.unassigned_files.blobs)
 
     gone = files.unmatched.map {|entry|
       detail('TRD_R0022', :error, entry.object, "#{entry.where} #{entry.problem}.")
@@ -70,21 +72,21 @@ class CheckDRAReadsJob < ApplicationJob
 
     return conclude(validation, gone) if gone.any?
 
-    runs = runs(record, files)
+    runs = DRA::RecordRuns.new(record, files).to_a
 
     step :read do |step|
-      runs.drop(step.cursor.to_i).each.with_index(step.cursor.to_i) do |(run, index, entries), position|
-        found = read(record, run, index, entries, dir: kept_dir(validation).join("run-#{index}"), interrupt: -> { step.checkpoint! })
+      runs.drop(step.cursor.to_i).each.with_index(step.cursor.to_i) do |run, position|
+        found = read(run, dir: kept_dir(validation).join("run-#{run.index}"), interrupt: -> { step.checkpoint! })
 
         DDBJValidatorCheck.add_details validation, found
-        kept_dir(validation).join("run-#{index}").rmtree
+        kept_dir(validation).join("run-#{run.index}").rmtree
 
         step.set! position + 1
       end
     end
 
     conclude validation, []
-  rescue DRA::ReadCheck::ToolMissing, DRA::ReadCheck::TimedOut => e
+  rescue DRA::SRAToolkit::ToolMissing, DRA::SRAToolkit::TimedOut => e
     give_up validation, "the reads could not be read here (#{e.message})"
   rescue StandardError => e
     # The store not answering, the disk full: not the reads' doing. Ended
@@ -129,48 +131,25 @@ class CheckDRAReadsJob < ApplicationJob
 
   def kept_dir(validation) = self.class.kept_dir(validation.id)
 
-  # Every run, with its files — none, for a run that names none.
-  def runs(record, files)
-    by_index = files.entries.select { it.list == 'runs' }.group_by(&:index)
+  def read(run, dir:, interrupt:)
+    object    = run.object
+    filetypes = run.filetypes
 
-    Array(record['runs']).each_with_index.filter_map {|run, index|
-      [run, index, by_index.fetch(index, [])] if run.is_a?(Hash)
-    }
-  end
+    return [detail('TRD_R0023', :error, object, "#{run.where} names no files; a run is its reads.")] if run.entries.empty?
+    return [detail('TRD_R0023', :error, object, "#{run.where} has a file that states no filetype.")] if filetypes.include?('')
+    return [detail('TRD_R0023', :error, object, "#{run.where} has files of more than one filetype (#{filetypes.join(', ')}); a run's reads are read together.")] if filetypes.size > 1
+    return [detail('TRD_R0024', :warning, object, "#{run.where}: #{filetypes.first} files are not read here yet; its reads were not checked.")] unless DRA::ReadCheck::FILETYPES.key?(filetypes.first)
 
-  def read(record, run, index, entries, dir:, interrupt:)
-    return [detail('TRD_R0023', :error, run, "runs[#{index}] names no files; a run is its reads.")] if entries.empty?
-
-    filetypes = entries.map { it.file['filetype'].to_s.strip.downcase }.uniq
-
-    return [detail('TRD_R0023', :error, run, "runs[#{index}] has a file that states no filetype.")] if filetypes.include?('')
-    return [detail('TRD_R0023', :error, run, "runs[#{index}] has files of more than one filetype (#{filetypes.join(', ')}); a run's reads are read together.")] if filetypes.size > 1
-    return [detail('TRD_R0024', :warning, run, "runs[#{index}]: #{filetypes.first} files are not read here yet; its reads were not checked.")] unless DRA::ReadCheck::FILETYPES.key?(filetypes.first)
-
-    result = DRA::ReadCheck.call(files: entries.map(&:blob), filetype: filetypes.first, platform: platform(record, run), dir:, interrupt:)
+    result = DRA::ReadCheck.call(files: run.entries.map(&:blob), filetype: filetypes.first, platform: run.platform, dir:, interrupt:)
 
     if !result.ok?
-      [detail('TRD_R0023', :error, run, "runs[#{index}]: the reads could not be read. #{said(result, dir)}")]
+      [detail('TRD_R0023', :error, object, "#{run.where}: the reads could not be read. #{said(result, dir)}")]
     elsif result.errors.any?
-      [detail('TRD_R0024', :warning, run, "runs[#{index}]: the reads were read, but some records could not be and were left out. #{said(result, dir)}")]
+      [detail('TRD_R0024', :warning, object, "#{run.where}: the reads were read, but some records could not be and were left out. #{said(result, dir)}")]
     else
       []
     end
   end
-
-  # The run's own platform, or else that of the experiment it is part of
-  # (a relation from the run to an experiment), as latf-load is told it.
-  def platform(record, run)
-    platform_type(run) || Array(record['relations']).lazy.filter_map {|relation|
-      next unless relation.is_a?(Hash) && relation['source'].is_a?(Hash) && relation['target'].is_a?(Hash)
-      next unless relation['source']['type'] == 'run' && relation['target']['db'] == 'experiment'
-      next unless @references.source('runs', relation['source']).equal?(run)
-
-      platform_type(@references.target('experiments', relation['target']))
-    }.first
-  end
-
-  def platform_type(object) = (object['platform'] if object.is_a?(Hash)).then { it['type'] if it.is_a?(Hash) }
 
   # What the tools said, the last of it: enough to know what is wrong. It
   # is mailed and kept in the request's thread, so it names the files as

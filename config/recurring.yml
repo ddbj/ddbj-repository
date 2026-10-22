@@ -20,6 +20,13 @@ production: &production
     class: GiveUpStoppedDRAReadingsJob
     schedule: every hour
 
+  # A DRA submission whose accessions are issued has its reads built
+  # (BuildDRAReadsJob) — started here, so that one whose job was lost is
+  # not left waiting.
+  enqueue_dra_read_builds:
+    class: EnqueueDRAReadBuildsJob
+    schedule: every 10 minutes
+
   # Blobs nothing attached — a direct upload whose request was never made, or
   # the outputs of a write that rolled back (SubmissionOutputWriter keeps
   # those rather than risk purging a committed row's bytes). Registered here

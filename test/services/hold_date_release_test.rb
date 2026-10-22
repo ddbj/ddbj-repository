@@ -38,12 +38,13 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
     }
   end
 
+  # Sent here, its reads built.
   def another_dra
     submission = Submission.create!(db: 'dra', user: users(:alice))
 
     submission.append_update! publishable('DRA000002'), actor: 'test'
 
-    DRASubmission.create!(submission:, accession: 'DRA000002', status: :private)
+    DRASubmission.create!(submission:, accession: 'DRA000002', status: :private, reads_built_at: Time.current)
   end
 
   test 'releases a BioProject on its hold date, and tells its submitter' do
@@ -230,6 +231,20 @@ class HoldDateReleaseTest < ActiveSupport::TestCase
     assert_includes error.message, invalid.accession
     assert invalid.reload.status_private?
     assert other.reload.status_public?
+  end
+
+  # Its reads go public with it (BuildDRAReadsJob).
+  test 'a DRA submission sent here whose reads are not built yet is left for the next run' do
+    unbuilt = another_dra.tap { it.update!(hold_date: @today, reads_built_at: nil) }
+
+    error = assert_raises(HoldDateRelease::Incomplete) { HoldDateRelease.call(today: @today) }
+
+    assert_includes error.message, unbuilt.accession
+    assert unbuilt.reload.status_private?
+
+    refused = assert_raises(DRASubmission::Unpublishable) { DRASubmission.where(id: unbuilt).move_to_status!('public') }
+
+    assert_equal [[unbuilt.accession, 'its reads are not built yet']], refused.refusals
   end
 
   test 'run again, it releases nothing more' do

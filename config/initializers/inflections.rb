@@ -6,6 +6,7 @@ ActiveSupport::Inflector.inflections :en do |inflect|
   inflect.acronym 'GEA'
   inflect.acronym 'JVar'
   inflect.acronym 'MetaboBank'
+  inflect.acronym 'SRA'
   inflect.acronym 'TSV'
   inflect.acronym 'XML'
   inflect.acronym 'XSD'

@@ -106,7 +106,7 @@ module RecordIntake
   def files(record, subject)
     return [] unless subject.db == 'dra'
 
-    DRA::RecordFiles.new(record, subject.user).unmatched.map {|entry|
+    DRA::RecordFiles.new(record, subject.user.unassigned_files.blobs).unmatched.map {|entry|
       finding('TRD_R0022', "#{entry.where} #{entry.problem}.", entry_id: entry.object['alias'].presence)
     }
   end

@@ -217,7 +217,7 @@ module Admin
       # and what it takes along (DRA::LinkedRelease).
       redirect_to bulk_return_path, alert: "Nothing was changed: a DRA submission's record is unreadable (#{e.message})."
     rescue DRASubmission::Unpublishable => e
-      redirect_to bulk_return_path, alert: "Nothing was changed: what these DRA submissions would publish is not valid SRA XML — #{e.summary}"
+      redirect_to bulk_return_path, alert: "Nothing was changed: some of these DRA submissions cannot be made public yet — #{e.summary}"
     end
 
     # The confirmation for the ledger's bulk. Same component the single
