@@ -254,6 +254,7 @@ GEM
     marcel (1.2.1)
     matrix (0.4.3)
     mini_mime (1.1.5)
+    mini_portile2 (2.8.9)
     minitest (6.0.6)
       drb (~> 2.0)
       prism (~> 1.5)
@@ -291,6 +292,9 @@ GEM
       net-protocol
     net-ssh (7.3.2)
     nio4r (2.7.5)
+    nokogiri (1.19.4)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
     nokogiri (1.19.4-arm64-darwin)
       racc (~> 1.4)
     nokogiri (1.19.4-x86_64-linux-gnu)
@@ -328,6 +332,7 @@ GEM
     parser (3.3.10.1)
       ast (~> 2.4.1)
       racc
+    pg (1.7.0)
     pg (1.7.0-arm64-darwin)
     pg (1.7.0-x86_64-linux)
     popper_js (2.11.8)
@@ -450,6 +455,8 @@ GEM
     ruby-vips (2.3.0)
       ffi (~> 1.12)
       logger
+    rusty_racer (0.2.4)
+      rb_sys (~> 0.9)
     rusty_racer (0.2.4-arm64-darwin)
       rb_sys (~> 0.9)
     rusty_racer (0.2.4-x86_64-linux)
@@ -496,6 +503,7 @@ GEM
       faraday (~> 2.0)
       faraday-follow_redirects
     thor (1.5.0)
+    thruster (0.1.27)
     thruster (0.1.27-arm64-darwin)
     thruster (0.1.27-x86_64-linux)
     timeout (0.6.1)
@@ -583,4 +591,4 @@ DEPENDENCIES
   webmock
 
 BUNDLED WITH
-  4.1.0.beta1
+  4.1.0.beta2
