@@ -15,7 +15,14 @@ class DRA::ReadsTree
 
   attr_reader :root
 
-  def fastq_dir(submission:, experiment:) = @root.join('fastq', submission[0, 6], submission, experiment)
+  # The submission's own directory, which its public documents are in
+  # too (PublicXML::DRA::Exporter).
+  def submission_dir(submission) = @root.join('fastq', submission[0, 6], submission)
+
+  def fastq_dir(submission:, experiment:) = submission_dir(submission).join(experiment)
+
+  # An analysis's files, under their own names.
+  def analysis_dir(submission:, analysis:) = submission_dir(submission).join(analysis)
 
   def sra_dir(experiment:, run:) = @root.join('sra', 'ByExp', 'sra', experiment[0, 3], experiment[0, 6], experiment, run)
 

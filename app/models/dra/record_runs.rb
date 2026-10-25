@@ -24,7 +24,8 @@ class DRA::RecordRuns
     def platform_of(object) = (object['platform'] if object.is_a?(Hash)).then { it['type'] if it.is_a?(Hash) }
   end
 
-  def initialize(record, files)
+  # Without `files`, the runs name none: for where they are filed.
+  def initialize(record, files = nil)
     @record     = record
     @files      = files
     @references = DDBJRecord::References::Index.new(record)
@@ -32,7 +33,7 @@ class DRA::RecordRuns
 
   # Every run, with its files — none, for a run that names none.
   def each(&)
-    by_index = @files.entries.select { it.list == 'runs' }.group_by(&:index)
+    by_index = @files ? @files.entries.select { it.list == 'runs' }.group_by(&:index) : {}
 
     Array(@record['runs']).each_with_index.filter_map {|object, index|
       Run.new(object:, index:, entries: by_index.fetch(index, []), experiments: experiments(object)) if object.is_a?(Hash)
