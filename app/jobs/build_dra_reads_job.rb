@@ -202,6 +202,7 @@ class BuildDRAReadsJob < ApplicationJob
       end
     }
 
+    partial.chmod DRA::ReadsTree::FILE_MODE
     partial.rename path
   end
 end

@@ -358,14 +358,19 @@ and moved across by `script/dra-mover`, run from cron as that account, on
 a request (`DRA::PublicationRequests`, a JSON file a submission naming
 each move): the files first, then the documents describing them. What has
 left public is moved back the same way, documents first, to be published
-again. The mover is a rename, so the private tree and its requests belong
-on the public tree's filesystem (lustre9 for this one), group-writable
-for both accounts (the job role's `umask 0002`, a set-group-ID directory);
-it refuses paths that are not plain, links, and trees on two filesystems.
+again. A move is a rename, so the private tree belongs on the public
+tree's filesystem (lustre9), and it and the requests are group-writable
+for both accounts (the job role's `umask 0002`, set-group-ID
+directories). Nothing the repository writes is trusted by the mover: it
+moves only paths laid out as the requesting submission's, replaces nothing
+public but its documents, opens every directory from the one above
+without following a link, and takes public only a file writable by its
+owner alone (which is why the repository writes them 0644) and linked
+nowhere else.
 
 The tree is tens of thousands of submissions, so a run asks only for
 those not in it as they stand: never published, published since (each row
-says when what it asked for was carried out, `public_xml_written_at`,
+says when it last asked for what was carried out, `public_xml_written_at`,
 cleared by D-way's import of a new version and on leaving public), or
 gone from it (its submission.xml missing — taken out by hand, or the tree
 restored from before). It records what came of the last run's requests

@@ -52,9 +52,13 @@ module PublicXML
 
       def call
         run     = PublicXMLRun.create!(db: 'dra', kind: 'public', status: 'running', started_at: @started_at)
-        refused = collect
+        settled = settle
         waiting = @requests.outstanding
+        refused = []
         emitted = 0
+
+        # Said at once: the requests they came of are gone.
+        run.append_error!(settled.join("\n"))
 
         published.find_each do |row|
           next if waiting.include?(row.accession) || !due?(row)
@@ -62,6 +66,7 @@ module PublicXML
           if (refusal = write(row))
             refused << "#{row.accession}: #{refusal}"
           else
+            waiting << row.accession
             emitted += 1
           end
         end
@@ -71,7 +76,9 @@ module PublicXML
         run.append_error!(refused.join("\n"))
         run.update!(status: 'completed', emitted:, finished_at: Time.current)
 
-        Rails.error.report(Refused.new("#{refused.size} DRA submissions could not be published; see public XML run #{run.id}"), handled: true) if refused.any?
+        if (count = settled.size + refused.size).positive?
+          Rails.error.report(Refused.new("#{count} DRA submissions could not be published or taken out; see public XML run #{run.id}"), handled: true)
+        end
 
         run
       rescue StandardError => e
@@ -94,11 +101,18 @@ module PublicXML
       # published again since is due again; a withdrawal leaves its row
       # unwritten. One that failed leaves the row as it was, so the run
       # asks again — what is to be done about it said on the run.
-      def collect
+      #
+      # D-way's import clears the date too, for a version of its own; one
+      # landing between a request and this would be lost under it. It does
+      # not: the import stops at the handover (DwayTakeover), before which
+      # nothing is asked for.
+      def settle
         refused = []
 
-        @requests.collect do |request|
-          if request.error
+        @requests.each_settled do |request|
+          if request.accession.nil?
+            refused << request.error
+          elsif request.error
             refused << "#{request.accession}: not #{request.action == :publish ? 'published' : 'taken out'}: #{request.error}"
           else
             DRASubmission.where(accession: request.accession).update_all public_xml_written_at: (request.requested_at if request.action == :publish)
@@ -110,11 +124,12 @@ module PublicXML
 
       # Its documents are not in the tree as they stand: never published,
       # published since, or gone — taken out by hand, or the tree restored
-      # from before.
+      # from before. Its submission's document says so, or for a record
+      # with none, any other.
       def due?(row)
         row.public_xml_written_at.nil? ||
           (row.last_published_at && row.last_published_at > row.public_xml_written_at) ||
-          !document(@tree, row.accession, 'submission').file?
+          ::DRA::XMLRenderer::KINDS.none? { document(@tree, row.accession, it).file? }
       end
 
       def document(tree, accession, kind) = tree.submission_dir(accession).join("#{accession}.#{kind}.xml")
@@ -146,7 +161,10 @@ module PublicXML
         documents.each do |kind, xml|
           partial = directory.join("#{row.accession}.#{kind}.xml.partial")
 
+          # Writable by its owner alone, as the mover takes only such a file
+          # public.
           partial.write xml
+          partial.chmod ::DRA::ReadsTree::FILE_MODE
           partial.rename document(@withheld, row.accession, kind)
         end
 
@@ -178,7 +196,9 @@ module PublicXML
       # this tree or D-way's wrote it: a directory of a submission there is
       # no row for is the mirror's, not this run's to take. Its documents
       # go back to the private tree first, then its files, kept to be
-      # published again.
+      # published again: its runs' .sra before what is in its directory,
+      # which goes last, so one stopped part way is still there to be taken
+      # out by the next run.
       #
       # A row is taken out if it was ever public, or written; never public,
       # what is there is D-way's, whose status this may be behind. One with
@@ -204,7 +224,7 @@ module PublicXML
             next
           end
 
-          documents =::DRA::XMLRenderer::KINDS.map { document(@tree, row.accession, it) }.select(&:file?)
+          documents = ::DRA::XMLRenderer::KINDS.map { document(@tree, row.accession, it) }.select(&:file?)
 
           begin
             files = ::DRA::SubmissionFiles.new(row.accession, row.submission.materialised_record).paths(@tree)

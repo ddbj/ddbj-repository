@@ -26,7 +26,7 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
   def export(...) = exporter(...).call
 
-  def move! = system('python3', MOVER, '--quiet', '--requests', @requests.root.to_s, '--tree', "dra=#{@tree.root}:#{@withheld.root}", exception: true)
+  def move! = system('python3', MOVER, '--quiet', '--requests', @requests.root.to_s, '--lock', @root.join('mover.lock').to_s, '--tree', "dra=#{@tree.root}:#{@withheld.root}", exception: true)
 
   # A run, and the mover after it: what a night does.
   def publish(...) = export(...).tap { move! }
@@ -396,6 +396,64 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     assert_not directory.join('DRA000001.submission.xml').exist?
     assert directory.join('DRA000001.experiment.xml').exist?
     assert_not @withheld.submission_dir('DRA000001').join('DRA000001.experiment.xml').exist?
+
+    assert_equal 0, publish.emitted, 'what it has is in the tree'
+  end
+
+  # Published when the run reached it, and suppressed before the run took
+  # out what had left.
+  test 'one is asked about once a run, whatever becomes of it meanwhile' do
+    publish
+    export
+    @row.class.where(id: @row.id).republished!
+
+    run = exporter
+    run.define_singleton_method(:write) {|row| super(row).tap { row.update_columns status: Lifecycleable::STATUSES.fetch('temporarily_suppressed') } }
+    run.call
+
+    assert_equal ['publish'], @requests.root.glob('*.json').map { it.basename('.json').to_s.split('-').last }
+  end
+
+  # A withdrawal failing part way is to be taken up by the next run, which
+  # goes by the submission's directory.
+  test "a submission's directory goes last" do
+    put fastq(@tree)
+    put sra(@tree)
+    publish
+    export
+
+    @row.update! status: :temporarily_suppressed
+
+    export
+
+    moves = JSON.parse(@requests.root.glob('*.json').sole.read)['moves'].map { it['path'] }
+
+    assert_equal %w[.xml .xml .xml .sra .bz2], moves.map { File.extname(it) }
+  end
+
+  test 'what is not a request is put aside, and said' do
+    put @requests.root.join('done', 'notes.json'), '{}'
+
+    run = export
+
+    assert_match 'done/notes.json is not a request; put aside in unreadable/notes.json', run.error_log
+    assert @requests.root.join('unreadable', 'notes.json').exist?
+    assert_equal 1, run.emitted
+  end
+
+  # What the mover said goes with the requests it came of.
+  test 'what the mover said is kept on a run that fails' do
+    export
+    @withheld.submission_dir('DRA000001').join('DRA000001.run.xml').delete
+    move!
+
+    stopped = exporter
+
+    stopped.stub(:withdraw, ->(*) { raise IOError, 'disk' }) do
+      assert_raises(IOError) { stopped.call }
+    end
+
+    assert_match 'DRA000001: not published: in neither tree', PublicXMLRun.order(:id).last.error_log
   end
 
   # A run stopped between writing and renaming leaves the row due, of a

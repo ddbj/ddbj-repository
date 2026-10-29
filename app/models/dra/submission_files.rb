@@ -18,7 +18,8 @@ class DRA::SubmissionFiles
     @record    = record
   end
 
-  # Relative to the tree's root.
+  # Relative to the tree's root: its runs' .sra first, then what is in its
+  # directory.
   def paths(tree) = files(tree).map { it.relative_path_from(tree.root) }
 
   # The runs whose .sra is in neither tree, or that are filed under no
@@ -43,7 +44,7 @@ class DRA::SubmissionFiles
       dir.children.select { regular_file?(it) } if dir && real_directory?(dir)
     }.flatten
 
-    (within + sras).reject { it.extname == '.partial' }
+    (sras + within).reject { it.extname == '.partial' }
   end
 
   # Not through a link.
