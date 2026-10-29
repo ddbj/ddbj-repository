@@ -361,12 +361,15 @@ left public is moved back the same way, documents first, to be published
 again. A move is a rename, so the private tree belongs on the public
 tree's filesystem (lustre9), and it and the requests are group-writable
 for both accounts (the job role's `umask 0002`, set-group-ID
-directories). Nothing the repository writes is trusted by the mover: it
-moves only paths laid out as the requesting submission's, replaces nothing
+directories) in a directory that is not. Nothing the repository writes is
+trusted by the mover: it moves only paths laid out as the requesting
+submission's, and only DRA-numbered ones — the 27 of D-way's numbered SRA
+sit beside NCBI's SRA… and are a person's to take out — replaces nothing
 public but its documents, opens every directory from the one above
-without following a link, and takes public only a file writable by its
-owner alone (which is why the repository writes them 0644) and linked
-nowhere else.
+without following a link, moves each file through a hold of its own
+account's alone before it goes on, and takes public only a file writable
+by its owner alone (which is why the repository writes them 0644) and
+linked nowhere else. Its docstring lays out the directories to make.
 
 The tree is tens of thousands of submissions, so a run asks only for
 those not in it as they stand: never published, published since (each row

@@ -19,8 +19,8 @@ class DRA::PublicationRequests
   # of a path relative to the named tree's root.
   Move = Data.define(:op, :tree, :path)
 
-  # As the mover reads them.
-  NAME = /\A(?<stamp>\d{8}T\d{12})-(?<accession>[DS]RA\d{6,})-(?<action>publish|withdraw)\.json\z/
+  # As the mover reads them: DRA's alone, which is all it moves.
+  NAME = /\A(?<stamp>\d{8}T\d{12})-(?<accession>DRA\d{6,})-(?<action>publish|withdraw)\.json\z/
 
   def self.default = new(Pathname.new(Rails.application.config_for(:app).output_dir!).join('private', 'requests'))
 

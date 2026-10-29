@@ -26,7 +26,9 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
   def export(...) = exporter(...).call
 
-  def move! = system('python3', MOVER, '--quiet', '--requests', @requests.root.to_s, '--lock', @root.join('mover.lock').to_s, '--tree', "dra=#{@tree.root}:#{@withheld.root}", exception: true)
+  def move! = system('python3', MOVER, '--quiet', '--requests', @requests.root.to_s, '--lock', @root.join('mover.lock').to_s, '--tree', "dra=#{@tree.root}:#{@withheld.root}:#{hold}", exception: true)
+
+  def hold = @root.join('hold').tap { it.mkpath }.tap { it.chmod(0o700) }
 
   # A run, and the mover after it: what a night does.
   def publish(...) = export(...).tap { move! }
@@ -346,21 +348,21 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     assert dways.exist?
   end
 
-  # The 27 earliest DRA submissions are numbered SRA.
-  test 'takes out an SRA-numbered submission no longer public' do
+  # The 27 earliest DRA submissions are numbered SRA, in a tree with
+  # NCBI's SRA… beside them: not the mover's to touch.
+  test "leaves an SRA-numbered submission as it is, and says when it is a person's to take out" do
     @row.update_columns accession: 'SRA000001'
     @row.submission.append_update! record.deep_merge('submission' => {'accession' => 'SRA000001'}), actor: 'test'
 
-    publish
-    export
+    dways = put(@tree.submission_dir('SRA000001').join('SRA000001.run.xml'), '<RUN_SET/>')
 
-    assert @tree.submission_dir('SRA000001').exist?
+    assert_equal 0, publish.emitted
 
     @row.update! status: :temporarily_suppressed
 
-    publish
-
-    assert_not @tree.submission_dir('SRA000001').exist?
+    assert_equal 'SRA000001: numbered SRA, which the mover does not take out; to be taken out by hand', publish.error_log
+    assert dways.exist?
+    assert_empty @requests.root.glob('**/*.json')
   end
 
   # One record that does not render as the version takes it leaves what

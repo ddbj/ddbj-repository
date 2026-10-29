@@ -40,6 +40,11 @@ module PublicXML
     class Exporter
       TREE = :dra
 
+      # What the mover moves. The 27 of D-way's numbered SRA, in a tree with
+      # NCBI's SRA… beside them, are left as they are, and one of them
+      # leaving public is said for a person to take out.
+      MOVED = /\ADRA\d{6,}\z/
+
       Move = ::DRA::PublicationRequests::Move
 
       # `tree` the public one, `withheld` the private one beside it.
@@ -61,7 +66,7 @@ module PublicXML
         run.append_error!(settled.join("\n"))
 
         published.find_each do |row|
-          next if waiting.include?(row.accession) || !due?(row)
+          next if waiting.include?(row.accession) || !row.accession.match?(MOVED) || !due?(row)
 
           if (refusal = write(row))
             refused << "#{row.accession}: #{refusal}"
@@ -220,6 +225,12 @@ module PublicXML
           # for each of the thousands already out.
           unless @tree.submission_dir(row.accession).directory?
             gone << row.id
+
+            next
+          end
+
+          unless row.accession.match?(MOVED)
+            refused << "#{row.accession}: numbered SRA, which the mover does not take out; to be taken out by hand"
 
             next
           end

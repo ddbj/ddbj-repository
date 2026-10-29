@@ -16,6 +16,7 @@ class DRAMoverTest < ActiveSupport::TestCase
     @public   = @root.join('public').tap(&:mkpath)
     @private  = @root.join('private').tap(&:mkpath)
     @requests = DRA::PublicationRequests.new(@root.join('requests').tap(&:mkpath))
+    @hold     = @root.join('hold').tap(&:mkpath).tap { it.chmod(0o700) }
   end
 
   teardown do
@@ -24,8 +25,8 @@ class DRAMoverTest < ActiveSupport::TestCase
 
   def put(path, body = 'reads') = path.tap { it.dirname.mkpath }.tap { it.write(body) }.tap { it.chmod(0o644) }
 
-  def mover(public: @public, private: @private)
-    Open3.capture2e('python3', MOVER, '--requests', @requests.root.to_s, '--lock', @root.join('mover.lock').to_s, '--tree', "dra=#{public}:#{private}")
+  def mover(*args, public: @public, private: @private)
+    Open3.capture2e('python3', MOVER, '--requests', @requests.root.to_s, '--lock', @root.join('mover.lock').to_s, '--tree', "dra=#{public}:#{private}:#{@hold}", *args)
   end
 
   def move!
@@ -57,6 +58,7 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert @private.join('sra/ByExp/sra/DRX/DRX000').exist?
 
     assert_equal [[:publish, nil]], settled.map { [it.action, it.error] }
+    assert_empty @hold.children, 'gone through'
   end
 
   # The repository goes on writing beside what is moved back.
@@ -190,22 +192,57 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert_empty elsewhere.children
   end
 
-  test 'refuses trees on two filesystems' do
-    output, status = mover(private: '/proc')
+  test 'refuses trees and a hold not on one filesystem' do
+    output, status = mover(private: '/proc/sys')
 
     assert_not status.success?
-    assert_match 'different filesystems', output
+    assert_match 'not on one filesystem', output
   end
 
-  test 'one run at a time' do
-    File.open(@root.join('mover.lock'), 'a') do |lock|
+  test 'refuses a hold others can reach' do
+    @hold.chmod 0o750
+
+    output, status = mover
+
+    assert_not status.success?
+    assert_match "the hold is to be this account's alone", output
+  end
+
+  # The repository's account would otherwise put another in its place.
+  test 'refuses a private tree or requests in a directory others can write' do
+    shared  = @root.join('shared').tap(&:mkpath).tap { it.chmod(0o775) }
+    private = shared.join('dra').tap(&:mkpath)
+
+    output, status = mover(private:)
+
+    assert_not status.success?
+    assert_match "#{shared} is writable by others than its owner", output
+  end
+
+  test 'one run at a time, and a run that does not end is said' do
+    File.open(@root.join('mover.lock'), 'a+') do |lock|
       lock.flock File::LOCK_EX
 
       ask 'DRA000001', [:publish, FASTQ]
 
       assert_match 'another run holds the lock', move!
+
+      lock.truncate 0
+      lock.write 1.day.ago.to_f.to_s
+      lock.flush
+
+      output, status = mover
+
+      assert_not status.success?
+      assert_match 'another run has held the lock since', output
     end
 
     assert_equal 1, @requests.root.glob('*.json').size
+  end
+
+  test 'says what is in the hold' do
+    put @hold.join('left')
+
+    assert_match 'the hold is not empty', move!
   end
 end

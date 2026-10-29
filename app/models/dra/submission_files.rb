@@ -10,8 +10,8 @@
 # Not what a copy stopped part way left either (`.partial`), which is not
 # a file of anyone's.
 class DRA::SubmissionFiles
-  # An experiment, run or analysis of DRA's — or of the 27 numbered SRA.
-  OBJECT_FORMAT = /\A[DS]R[XRZ]\d{6,}\z/
+  # An experiment, run or analysis of DRA's, as the mover takes them.
+  OBJECT_FORMAT = /\ADR[XRZ]\d{6,}\z/
 
   def initialize(accession, record)
     @accession = accession
