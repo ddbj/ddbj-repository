@@ -339,11 +339,24 @@ def move(trees, submission, entry, log):
                 # Said beside it first, so a run killed before it goes on
                 # leaves it to be found.
                 note_where(held, entry, hold)
-                os.rename(base, held, src_dir_fd=sources[-1], dst_dir_fd=hold)
+
+                try:
+                    os.rename(base, held, src_dir_fd=sources[-1], dst_dir_fd=hold)
+                except OSError:
+                    os.unlink(held + '.where', dir_fd=hold)
+
+                    if entry['op'] == 'withdraw':
+                        budget.refund(st.st_size)
+
+                    raise
 
                 there = lstat(held, hold)
 
+                # Its note says it is not the file asked for, lest a person
+                # put it back as that.
                 if there is None or (there.st_dev, there.st_ino) != (st.st_dev, st.st_ino):
+                    os.rename(held + '.where', held + '.swapped', src_dir_fd=hold, dst_dir_fd=hold)
+
                     raise Refused('changed while it was being moved: %s; what went in its place is in the hold as %s' % (entry['path'], held))
 
                 if entry['op'] == 'publish':
@@ -398,23 +411,31 @@ def note_where(held, entry, hold):
         json.dump({key: entry[key] for key in ('op', 'tree', 'path')}, f)
 
 
+# What is in the hold, by its note: (name, where it was going, and whether
+# it is what was asked for). A note whose file has gone is gone with it.
 def held_entries(hold):
     for name in sorted(os.listdir(hold)):
-        if not name.endswith('.where'):
+        held, dot, suffix = name.rpartition('.')
+
+        if suffix not in ('where', 'swapped'):
+            continue
+
+        if lstat(held, hold) is None:
+            os.unlink(name, dir_fd=hold)
             continue
 
         try:
             fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=hold)
 
             with os.fdopen(fd, 'r', encoding='utf-8') as f:
-                yield name[:-len('.where')], json.load(f)
+                yield held, json.load(f), suffix == 'where'
         except (OSError, ValueError):
             continue
 
 
 def in_hold(hold, entry):
-    for held, where in held_entries(hold):
-        if (where.get('tree'), where.get('path')) == (entry['tree'], entry['path']) and lstat(held, hold) is not None:
+    for held, where, asked in held_entries(hold):
+        if asked and (where.get('tree'), where.get('path')) == (entry['tree'], entry['path']):
             return held
 
     return None
@@ -430,6 +451,10 @@ class Budget(object):
         self.name  = time.strftime('withdrawn-%Y%m%d')
         self.taken = 0
 
+        for name in os.listdir(hold):
+            if name.startswith('withdrawn-') and name != self.name:
+                os.unlink(name, dir_fd=hold)
+
         try:
             fd = os.open(self.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=hold)
 
@@ -443,7 +468,13 @@ class Budget(object):
             raise Refused('would take out more than %d bytes today (--withdraw-limit-tb): %s' % (self.limit, path))
 
         self.taken += size
+        self.save()
 
+    def refund(self, size):
+        self.taken -= size
+        self.save()
+
+    def save(self):
         tmp = hold_name()
         fd  = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=self.hold)
 
@@ -578,7 +609,8 @@ def main(argv=None):
     os.ftruncate(lock, 0)
     os.pwrite(lock, str(time.time()).encode('ascii'), 0)
 
-    trees = {}
+    trees   = {}
+    budgets = {}
 
     for name, public, private, hold in args.tree:
         roots = open_root(public), open_strict(private), open_strict(hold)
@@ -593,10 +625,13 @@ def main(argv=None):
             parser.error('%s: the hold is to be this account\'s alone (rwx------)' % name)
 
         # Said whatever --quiet says: a person is to look.
-        for held, where in held_entries(roots[2]):
-            print(printable('%s: in the hold as %s: %s %s' % (name, held, where.get('op'), where.get('path'))), file=sys.stderr)
+        for held, where, asked in held_entries(roots[2]):
+            print(printable('%s: in the hold as %s%s: %s %s' % (name, held, '' if asked else ', put in place of what was asked for', where.get('op'), where.get('path'))), file=sys.stderr)
 
-        trees[name] = roots + (Budget(roots[2], int(args.withdraw_limit_tb * 10 ** 12)),)
+        # One a hold, should two trees share one.
+        hold        = os.fstat(roots[2])
+        budget      = budgets.setdefault((hold.st_dev, hold.st_ino), Budget(roots[2], int(args.withdraw_limit_tb * 10 ** 12)))
+        trees[name] = roots + (budget,)
 
     # One hold for what the requests' failures are written in: the first.
     carry_out(open_strict(args.requests), trees, trees[args.tree[0][0]][2], log)

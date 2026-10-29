@@ -251,6 +251,13 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert_equal "in neither tree: dra/#{FASTQ}; it is in the hold as 1-2-3", settled.sole.error
   end
 
+  test 'a note whose file has gone goes with it' do
+    put @hold.join('4-5-6.where'), JSON.generate(op: 'publish', tree: 'dra', path: FASTQ)
+
+    assert_no_match 'in the hold', move!
+    assert_empty @hold.children
+  end
+
   test 'takes out no more in a day than it is let' do
     put @public.join(FASTQ), 'x' * 600
     put @public.join(SRA), 'x' * 600
