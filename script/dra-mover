@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Carry out the moves ddbj-repository asks for between DRA's public trees
+and its staging trees.
+
+The repository does not write the public trees: they are D-way's FTP site,
+owned by the account that runs this, and shared with the SRA mirror. It
+writes what is to be published into a staging tree beside each — the same
+layout, on the same filesystem, so that a move is a rename — and asks for
+moves in request files; this carries them out, from cron, as that account.
+
+    dra-mover --requests DIR --tree NAME=PUBLIC:STAGING [--tree ...]
+
+    --tree dra=/lustre9/.../dra-public/dra:/lustre9/.../repository/dra
+    --tree sra=/lustre11/open/shared_data/sra:/lustre11/.../repository/sra
+
+A request is a JSON file in the requests directory, one for a submission:
+
+    {"submission": "DRA000123", "action": "publish", "requested_at": "...",
+     "moves": [{"op": "publish", "tree": "dra", "path": "fastq/DRA000/..."}]}
+
+`publish` moves the path from the staging tree into the public one,
+`withdraw` from the public tree back to staging, in the order listed. A
+move whose file is already where it was to go is done; one whose file is
+in neither place is a failure. So a request stopped part way is carried
+out again from the start.
+
+Done, a request goes into done/; failed, into failed/ with an "error" — and
+the requests after it are carried out all the same: the repository has
+one at a time for a submission, and reads both directories on its next
+run, asking again for what failed.
+
+What this refuses: a path that is not relative and plain (no "..", no
+empty or "." part), a tree it was not told of, and anything reached
+through a symbolic link — the public tree is shared, and a link in it
+leads anywhere. The directories a move leaves empty go, if named as a
+submission, experiment, run or analysis (DRA000123, DRX…, DRR…, DRZ…, or
+"submitted"); the ones above them (DRA000, DRX/DRX000, DRR/001/215) stay.
+
+Published files are made rw-r--r-- and the directories made for them
+rwxr-xr-x, as D-way's release made them. In the staging tree the
+directories are made group-writable and set-group-ID, so the repository
+(in the tree's group) can go on writing beside what is moved back.
+
+Python 3.6 or later, standard library only. One run at a time (a lock in
+the requests directory); a second exits at once.
+"""
+
+import argparse
+import errno
+import fcntl
+import json
+import os
+import re
+import stat
+import sys
+import tempfile
+
+PRUNABLE = re.compile(r'\A(?:[DS]R[AXRZ]\d{6,}|submitted)\Z')
+
+PUBLIC_DIR_MODE   = 0o755
+PUBLIC_FILE_MODE  = 0o644
+STAGING_DIR_MODE  = 0o2775
+
+
+class Refused(Exception):
+    pass
+
+
+def parse_tree(value):
+    name, sep, roots = value.partition('=')
+    public, sep2, staging = roots.partition(':')
+
+    if not (name and sep and sep2 and public and staging):
+        raise argparse.ArgumentTypeError('expected NAME=PUBLIC:STAGING, got %r' % value)
+
+    return name, os.path.realpath(public), os.path.realpath(staging)
+
+
+def plain_parts(path):
+    if not isinstance(path, str) or not path or path.startswith('/') or '\0' in path:
+        raise Refused('not a relative path: %r' % (path,))
+
+    parts = path.split('/')
+
+    if any(part in ('', '.', '..') for part in parts):
+        raise Refused('not a plain path: %r' % (path,))
+
+    return parts
+
+
+def check_no_links(root, parts):
+    """Each part of the path below root that exists is not a link."""
+    current = root
+
+    for part in parts:
+        current = os.path.join(current, part)
+
+        try:
+            mode = os.lstat(current).st_mode
+        except FileNotFoundError:
+            return
+
+        if stat.S_ISLNK(mode):
+            raise Refused('reached through a link: %s' % current)
+
+
+def is_file(path):
+    try:
+        return stat.S_ISREG(os.lstat(path).st_mode)
+    except FileNotFoundError:
+        return False
+
+
+def exists(path):
+    try:
+        os.lstat(path)
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def make_dirs(root, parts, mode):
+    current = root
+
+    for part in parts:
+        current = os.path.join(current, part)
+
+        try:
+            os.mkdir(current)
+        except FileExistsError:
+            if not stat.S_ISDIR(os.lstat(current).st_mode):
+                raise Refused('not a directory: %s' % current)
+        else:
+            os.chmod(current, mode)
+
+
+def prune(root, parts):
+    """The directories above a moved file, emptied by it, that are an object's."""
+    for depth in range(len(parts) - 1, 0, -1):
+        if not PRUNABLE.match(parts[depth - 1]):
+            return
+
+        try:
+            os.rmdir(os.path.join(root, *parts[:depth]))
+        except OSError as e:
+            if e.errno in (errno.ENOTEMPTY, errno.EEXIST, errno.ENOENT):
+                return
+
+            raise
+
+
+def move(trees, entry):
+    op   = entry.get('op')
+    name = entry.get('tree')
+
+    if name not in trees:
+        raise Refused('no tree %r' % (name,))
+
+    public, staging = trees[name]
+
+    if op == 'publish':
+        source, target, dir_mode = staging, public, PUBLIC_DIR_MODE
+    elif op == 'withdraw':
+        source, target, dir_mode = public, staging, STAGING_DIR_MODE
+    else:
+        raise Refused('no op %r' % (op,))
+
+    parts = plain_parts(entry.get('path'))
+
+    check_no_links(source, parts)
+    check_no_links(target, parts)
+
+    src = os.path.join(source, *parts)
+    dst = os.path.join(target, *parts)
+
+    if is_file(src):
+        make_dirs(target, parts[:-1], dir_mode)
+        os.rename(src, dst)
+
+        if op == 'publish':
+            os.chmod(dst, PUBLIC_FILE_MODE)
+
+        prune(source, parts)
+    elif exists(src):
+        raise Refused('not a file: %s' % src)
+    elif not is_file(dst):
+        raise Refused('in neither tree: %s/%s' % (name, entry.get('path')))
+
+
+def write_json(path, body):
+    directory = os.path.dirname(path)
+    fd, tmp   = tempfile.mkstemp(dir=directory, prefix='.', suffix='.tmp')
+
+    try:
+        with os.fdopen(fd, 'w') as f:
+            json.dump(body, f)
+
+        os.chmod(tmp, 0o664)
+        os.rename(tmp, path)
+    except BaseException:
+        if exists(tmp):
+            os.unlink(tmp)
+
+        raise
+
+
+def carry_out(requests, trees, log):
+    done   = os.path.join(requests, 'done')
+    failed = os.path.join(requests, 'failed')
+
+    for directory in (done, failed):
+        if not os.path.isdir(directory):
+            os.mkdir(directory)
+            os.chmod(directory, STAGING_DIR_MODE)
+
+    names = sorted(n for n in os.listdir(requests) if n.endswith('.json') and not n.startswith('.'))
+
+    for name in names:
+        path = os.path.join(requests, name)
+
+        if not is_file(path):
+            continue
+
+        try:
+            with open(path) as f:
+                request = json.load(f)
+        except (OSError, ValueError) as e:
+            request = {'unreadable': str(e)}
+
+        try:
+            if 'unreadable' in request:
+                raise Refused('unreadable: %s' % request['unreadable'])
+
+            for entry in request.get('moves', []):
+                move(trees, entry)
+        except (Refused, OSError) as e:
+            request['error'] = str(e)
+
+            write_json(os.path.join(failed, name), request)
+            os.unlink(path)
+
+            log('failed %s: %s' % (name, e))
+        else:
+            os.rename(path, os.path.join(done, name))
+
+            log('done %s (%d moves)' % (name, len(request.get('moves', []))))
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
+    parser.add_argument('--requests', required=True)
+    parser.add_argument('--tree', action='append', type=parse_tree, required=True)
+    parser.add_argument('--quiet', action='store_true')
+    args = parser.parse_args(argv)
+
+    trees = {name: (public, staging) for name, public, staging in args.tree}
+
+    for name, (public, staging) in trees.items():
+        if os.stat(public).st_dev != os.stat(staging).st_dev:
+            parser.error('%s: the public and staging trees are on different filesystems; a move would be a copy' % name)
+
+    log = (lambda _: None) if args.quiet else print
+
+    with open(os.path.join(args.requests, '.lock'), 'a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            log('another run holds the lock')
+            return 0
+
+        carry_out(args.requests, trees, log)
+
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

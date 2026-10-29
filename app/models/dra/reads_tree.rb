@@ -1,7 +1,7 @@
 # Where a DRA run's reads are, laid out as on D-way's FTP site — the same
-# under the public tree (`output_dir/public/dra`) and the private one
-# (`output_dir/private/dra`), so that publishing is moving one into the
-# other:
+# under the public tree (`output_dir/public/dra`, D-way's, read here) and
+# the private one beside it (`output_dir/private/dra`, written here), so
+# that publishing is moving one into the other (`script/dra-mover`):
 #
 #   fastq/DRA000/DRA000001/DRX000001/DRR000001_1.fastq.bz2
 #   sra/ByExp/sra/DRX/DRX000/DRX000001/DRR000001/DRR000001.sra
