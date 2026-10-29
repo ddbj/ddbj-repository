@@ -369,7 +369,10 @@ public but its documents, opens every directory from the one above
 without following a link, moves each file through a hold of its own
 account's alone before it goes on, and takes public only a file writable
 by its owner alone (which is why the repository writes them 0644) and
-linked nowhere else. Its docstring lays out the directories to make.
+linked nowhere else. It takes out no more than `--withdraw-limit-tb` a
+day, since it cannot tell which reads are the repository's own — the
+first run after the handover, with D-way's leftovers, wants a larger one.
+Its docstring lays out the directories to make.
 
 The tree is tens of thousands of submissions, so a run asks only for
 those not in it as they stand: never published, published since (each row

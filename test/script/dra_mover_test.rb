@@ -240,9 +240,37 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert_equal 1, @requests.root.glob('*.json').size
   end
 
-  test 'says what is in the hold' do
-    put @hold.join('left')
+  # Killed between going into the hold and on out of it.
+  test 'what a run left in the hold is found, and said' do
+    put @hold.join('1-2-3')
+    put @hold.join('1-2-3.where'), JSON.generate(op: 'publish', tree: 'dra', path: FASTQ)
 
-    assert_match 'the hold is not empty', move!
+    ask 'DRA000001', [:publish, FASTQ]
+
+    assert_match "dra: in the hold as 1-2-3: publish #{FASTQ}", move!
+    assert_equal "in neither tree: dra/#{FASTQ}; it is in the hold as 1-2-3", settled.sole.error
+  end
+
+  test 'takes out no more in a day than it is let' do
+    put @public.join(FASTQ), 'x' * 600
+    put @public.join(SRA), 'x' * 600
+
+    ask 'DRA000001', [:withdraw, FASTQ], [:withdraw, SRA], action: :withdraw
+
+    output, status = mover('--withdraw-limit-tb', '0.000000001')
+
+    assert status.success?, output
+    assert @private.join(FASTQ).exist?
+    assert @public.join(SRA).exist?
+    assert_equal "would take out more than 1000 bytes today (--withdraw-limit-tb): #{SRA}", settled.sole.error
+  end
+
+  test 'refuses a private tree under a link' do
+    @root.join('elsewhere').make_symlink(@root)
+
+    output, status = mover(private: @root.join('elsewhere', 'private'))
+
+    assert_not status.success?
+    assert_match "#{@root.join('elsewhere')} is a link", output
   end
 end
