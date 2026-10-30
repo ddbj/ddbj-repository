@@ -61,6 +61,51 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert_empty @hold.children, 'gone through'
   end
 
+  # The runs' files as sent, on a filesystem of their own.
+  test "publishes a run's files as sent into the sra tree, by its number" do
+    trees = %w[public private hold].to_h { [it, @root.join("sra-#{it}").tap(&:mkpath)] }
+    trees['hold'].chmod 0o700
+
+    submitted = 'DRR/000/000/001/DRR000001/submitted/reads_1.fq.gz'
+
+    put trees['private'].join(submitted)
+    put trees['private'].join('DRR/000/000/002/DRR000002/submitted/reads.fq.gz')
+
+    @requests.submit 'DRA000001', :publish, [Move.new(op: :publish, tree: :sra, path: submitted)], requested_at: Time.current
+    @requests.submit 'DRA000002', :publish, [Move.new(op: :publish, tree: :sra, path: 'DRR/000/000/001/DRR000002/submitted/reads.fq.gz')], requested_at: Time.current
+    @requests.submit 'DRA000003', :publish, [Move.new(op: :publish, tree: :sra, path: FASTQ)], requested_at: Time.current
+    @requests.submit 'DRA000004', :publish, [Move.new(op: :publish, tree: :dra, path: submitted)], requested_at: Time.current
+
+    output, status = mover('--tree', "sra=#{trees['public']}:#{trees['private']}:#{trees['hold']}")
+
+    assert status.success?, output
+    assert_equal 'reads', trees['public'].join(submitted).read
+    assert_not trees['private'].join('DRR/000/000/001/DRR000001').exist?, 'the directories it leaves empty go'
+    assert trees['private'].join('DRR/000/000/001').exist?, 'but not the ones above them'
+
+    assert_equal(
+      [
+        nil,
+        'not a path of DRA000002: sra/DRR/000/000/001/DRR000002/submitted/reads.fq.gz',
+        "not a path of DRA000003: sra/#{FASTQ}",
+        "not a path of DRA000004: dra/#{submitted}"
+      ],
+      settled.sort_by(&:accession).map(&:error)
+    )
+  end
+
+  test 'refuses a tree it does not know the layout of, or one given twice' do
+    output, status = mover('--tree', "ftp=#{@public}:#{@private}:#{@hold}")
+
+    assert_not status.success?
+    assert_match "no tree is laid out as 'ftp'", output
+
+    output, status = mover('--tree', "dra=#{@public}:#{@private}:#{@hold}")
+
+    assert_not status.success?
+    assert_match 'dra: given twice', output
+  end
+
   # The repository goes on writing beside what is moved back.
   test 'what is taken out goes back into group-writable directories' do
     put @public.join(FASTQ)
@@ -111,8 +156,8 @@ class DRAMoverTest < ActiveSupport::TestCase
         "not a plain path: '../secret'",
         "not a plain path: '/etc/passwd'",
         "not a plain path: 'fastq//x'",
-        'not a path of DRA000004: fastq/DRA000/DRA000001/DRX000001/a.bz2',
-        'not a path of DRA000005: sra/ByExp/sra/SRX/SRX000/SRX000001/SRR000001/SRR000001.sra',
+        'not a path of DRA000004: dra/fastq/DRA000/DRA000001/DRX000001/a.bz2',
+        'not a path of DRA000005: dra/sra/ByExp/sra/SRX/SRX000/SRX000001/SRR000001/SRR000001.sra',
         "no tree 'sra'",
         "no op 'delete'"
       ],

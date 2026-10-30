@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
-"""Carry out the moves ddbj-repository asks for between DRA's public tree
-and its private tree.
+"""Carry out the moves ddbj-repository asks for between DRA's public trees
+and its private trees.
 
-The repository does not write the public tree: it is D-way's FTP site,
+The repository does not write the public trees: they are D-way's FTP site,
 owned by the account that runs this, and shared with the SRA mirror. It
-writes what is to be published into a private tree beside it — the same
+writes what is to be published into a private tree beside each — the same
 layout, on the same filesystem, so that a move is a rename — and asks for
 moves in request files; this carries them out, from cron, as that account.
 
     dra-mover --requests DIR --lock FILE --tree dra=PUBLIC:PRIVATE:HOLD
+              --tree sra=PUBLIC:PRIVATE:HOLD
+
+Two trees, as the FTP site has them: `dra` (…/dra-public/dra, the
+submissions' documents, fastq, analyses' files and runs' .sra) and `sra`
+(…/sra, the runs' files as sent, under DRR/), each on a filesystem of its
+own.
 
     --requests     where the repository puts its requests
     --lock         a file of this account's own, outside anything the
                    repository can write: one run at a time, and a second
                    exits at once — non-zero, once the first has held it
                    longer than --stale-hours (12)
-    --tree         the public tree (…/dra-public/dra), the private one, and
+    --tree         a tree by name: the public tree, the private one, and
                    a hold: a directory of this account's alone (rwx------),
                    which every move goes through
     --withdraw-limit-tb
@@ -24,15 +30,19 @@ moves in request files; this carries them out, from cron, as that account.
                    limit — the repository cannot tell this which reads are
                    its own, D-way's among them
 
-All three on one filesystem. The private tree and the requests are
-group-writable for both accounts, in a directory that is not, nor is any
-above it, nor a link (and so for the hold and the lock): the repository
-writes what is in them, and is not to put another in their place —
+A tree's three on one filesystem, and the requests on that of one of the
+holds. The private trees and the requests are group-writable for both
+accounts, in a directory that is not, nor is any above it, nor a link (and
+so for the holds and the lock): the repository writes what is in them, and
+is not to put another in their place —
 
-    …/repository/            this account's, rwxr-xr-x
-                 dra/        group-writable, set-group-ID
-                 requests/   group-writable, set-group-ID
-    …/dra-mover/hold/        this account's alone
+    lustre9   …/dra-repository/            this account's, rwxr-xr-x
+                               dra/        group-writable, set-group-ID
+                               requests/   group-writable, set-group-ID
+              …/dra-mover/hold/            this account's alone
+    lustre11  …/sra-repository/            this account's, rwxr-xr-x
+                               sra/        group-writable, set-group-ID
+              …/sra-mover/hold/            this account's alone
 
 A request is a JSON file named <time>-<submission>-<publish|withdraw>.json,
 one for a submission:
@@ -56,8 +66,9 @@ so nothing in them is trusted:
 
   - A path is moved only if it is one of the requesting submission's, as
     the repository lays them out: its documents, the files under its
-    experiments and analyses (fastq/DRA000/DRA000123/DRX…/…), and its runs'
-    .sra (sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/…).
+    experiments and analyses (dra: fastq/DRA000/DRA000123/DRX…/…), its runs'
+    .sra (dra: sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/…), and their files as
+    sent (sra: DRR/000/000/150/DRR000150/submitted/…).
   - Nothing is reached through a link: every directory is opened from the
     one above it, never followed, and the file moved is the one opened —
     moved first into the hold, where the repository cannot reach, and
@@ -75,7 +86,8 @@ so nothing in them is trusted:
     and the 27 of D-way's numbered SRA are a person's to move.
 
 The directories a move leaves empty go, if named as a submission,
-experiment, run or analysis; the ones above them (DRA000, DRX/DRX000) stay.
+experiment, run or analysis, or a run's submitted/; the ones above them
+(DRA000, DRX/DRX000, DRR/000/000) stay.
 Directories made in the public tree are rwxr-xr-x, as D-way's release made
 them, and files of this account's made rw-r--r--; in the private tree they
 are group-writable and set-group-ID, so the repository can go on writing
@@ -102,6 +114,10 @@ OBJECT     = re.compile(r'\ADR[XRZ]\d{6,}\Z')
 EXPERIMENT = re.compile(r'\ADRX\d{6,}\Z')
 RUN        = re.compile(r'\ADRR\d{6,}\Z')
 PRUNABLE   = re.compile(r'\ADR[AXRZ]\d{6,}\Z')
+
+# The trees whose layout this knows: the FTP site's dra/ (…/dra-public/dra)
+# and sra/ (…/sra, the runs' files as sent).
+TREES = ('dra', 'sra')
 
 PUBLIC_DIR_MODE  = 0o755
 PUBLIC_FILE_MODE = 0o644
@@ -166,30 +182,47 @@ def parse_tree(value):
     if not (name and sep and len(roots) == 3 and all(roots)):
         raise argparse.ArgumentTypeError('expected NAME=PUBLIC:PRIVATE:HOLD, got %r' % value)
 
+    if name not in TREES:
+        raise argparse.ArgumentTypeError('no tree is laid out as %r; one of %s' % (name, ', '.join(TREES)))
+
     return [name] + roots
 
 
-# What a path of the submission's may be, as PublicXML::DRA::Exporter and
-# DRA::SubmissionFiles lay them out: 'document' (which may replace its
-# predecessor) or 'file' (which may not).
-def kind_of(parts, submission):
+# What a path of the submission's may be in the tree, as DRA::ReadsTree
+# lays them out: 'document' (which may replace its predecessor) or 'file'
+# (which may not).
+def kind_of(tree, parts, submission):
     if any(part in ('', '.', '..') or '\0' in part for part in parts):
         raise Refused('not a plain path: %r' % '/'.join(parts))
 
-    if parts[:3] == ['fastq', submission[:6], submission]:
+    if tree == 'dra' and parts[:3] == ['fastq', submission[:6], submission]:
         if len(parts) == 4 and parts[3] in ['%s.%s.xml' % (submission, kind) for kind in KINDS]:
             return 'document'
 
         if len(parts) >= 5 and OBJECT.match(parts[3]):
             return 'file'
 
-    if parts[:3] == ['sra', 'ByExp', 'sra'] and len(parts) == 8:
+    if tree == 'dra' and parts[:3] == ['sra', 'ByExp', 'sra'] and len(parts) == 8:
         experiment, run = parts[5], parts[6]
 
         if EXPERIMENT.match(experiment) and parts[3] == experiment[:3] and parts[4] == experiment[:6] and RUN.match(run):
             return 'file'
 
-    raise Refused('not a path of %s: %s' % (submission, '/'.join(parts)))
+    if tree == 'sra' and parts[:1] == ['DRR'] and len(parts) == 7 and parts[5] == 'submitted':
+        run = parts[4]
+
+        if RUN.match(run) and parts[1:4] == spread(run):
+            return 'file'
+
+    raise Refused('not a path of %s: %s/%s' % (submission, tree, '/'.join(parts)))
+
+
+# A run's number in nine digits, three a directory: DRR000150 is under
+# 000/000/150.
+def spread(run):
+    digits = '%09d' % int(run[3:])
+
+    return [digits[0:3], digits[3:6], digits[6:9]]
 
 
 def close_all(fds):
@@ -250,12 +283,13 @@ def lstat(name, dir_fd):
 
 
 # The directories above a file moved out of them, emptied by it, that are
-# an object's. Not being able to is not a failure of the move.
+# an object's, or a run's submitted/. Not being able to is not a failure of
+# the move.
 def prune(fds, names, log):
     for depth in range(len(fds) - 1, 0, -1):
         name = names[depth - 1]
 
-        if not PRUNABLE.match(name):
+        if not (PRUNABLE.match(name) or (name == 'submitted' and depth > 1 and RUN.match(names[depth - 2]))):
             return
 
         try:
@@ -276,7 +310,7 @@ def move(trees, submission, entry, log):
 
     public, private, hold, budget = trees[entry['tree']]
     parts                         = entry['path'].split('/')
-    kind                          = kind_of(parts, submission)
+    kind                          = kind_of(entry['tree'], parts, submission)
     names, base                   = parts[:-1], parts[-1]
 
     if entry['op'] == 'publish':
@@ -613,6 +647,9 @@ def main(argv=None):
     budgets = {}
 
     for name, public, private, hold in args.tree:
+        if name in trees:
+            parser.error('%s: given twice' % name)
+
         roots = open_root(public), open_strict(private), open_strict(hold)
 
         # A rename cannot cross filesystems; said now rather than by every move.
@@ -633,8 +670,16 @@ def main(argv=None):
         budget      = budgets.setdefault((hold.st_dev, hold.st_ino), Budget(roots[2], int(args.withdraw_limit_tb * 10 ** 12)))
         trees[name] = roots + (budget,)
 
-    # One hold for what the requests' failures are written in: the first.
-    carry_out(open_strict(args.requests), trees, trees[args.tree[0][0]][2], log)
+    requests = open_strict(args.requests)
+
+    # The requests' failures are written in a hold and renamed out of it,
+    # so one on the requests' filesystem.
+    holds = [roots[2] for roots in trees.values() if os.fstat(roots[2]).st_dev == os.fstat(requests).st_dev]
+
+    if not holds:
+        parser.error('the requests are on the filesystem of no tree\'s hold')
+
+    carry_out(requests, trees, holds[0], log)
 
     return 0
 

@@ -3,7 +3,7 @@ require 'test_helper'
 class DRA::ReadsTreeTest < ActiveSupport::TestCase
   setup do
     @dir  = Pathname.new(Dir.mktmpdir('reads-tree-test-'))
-    @tree = DRA::ReadsTree.new(@dir)
+    @tree = DRA::ReadsTree.new(dra: @dir.join('dra'), sra: @dir.join('sra'))
   end
 
   teardown do
@@ -11,8 +11,14 @@ class DRA::ReadsTreeTest < ActiveSupport::TestCase
   end
 
   test 'lays reads out as on the FTP site' do
-    assert_equal @dir.join('fastq/DRA000/DRA000001/DRX000001'), @tree.fastq_dir(submission: 'DRA000001', experiment: 'DRX000001')
-    assert_equal @dir.join('sra/ByExp/sra/DRX/DRX000/DRX000001/DRR000001/DRR000001.sra'), @tree.sra(experiment: 'DRX000001', run: 'DRR000001')
+    assert_equal @dir.join('dra/fastq/DRA000/DRA000001/DRX000001'), @tree.fastq_dir(submission: 'DRA000001', experiment: 'DRX000001')
+    assert_equal @dir.join('dra/sra/ByExp/sra/DRX/DRX000/DRX000001/DRR000001/DRR000001.sra'), @tree.sra(experiment: 'DRX000001', run: 'DRR000001')
+    assert_equal @dir.join('sra/DRR/000/123/456/DRR123456/submitted'), @tree.submitted_dir(run: 'DRR123456')
+  end
+
+  test 'a path is named by the tree it is in' do
+    assert_equal [:sra, Pathname.new('DRR/000/000/001/DRR000001/submitted/a.fq')], @tree.locate(@tree.submitted_dir(run: 'DRR000001').join('a.fq'))
+    assert_raises(ArgumentError) { @tree.locate(@dir.join('dra-other', 'x')) }
   end
 
   test "a run's fastq are its own, however many" do

@@ -16,7 +16,7 @@ class BuildDRAReadsJobTest < ActiveJob::TestCase
   end
 
   teardown do
-    @tree.root.rmtree if @tree.root.exist?
+    @tree.roots.each_value { it.rmtree if it.exist? }
     BuildDRAReadsJob.kept_dir(@submission.id).rmtree
   end
 
@@ -62,8 +62,12 @@ class BuildDRAReadsJobTest < ActiveJob::TestCase
 
     assert_equal 'sra', @tree.sra(experiment: 'DRX000002', run: 'DRR000002').read
     assert_equal %w[DRR000002_1.fastq.bz2 DRR000002_2.fastq.bz2], @tree.fastqs(submission: 'DRA000002', experiment: 'DRX000002', run: 'DRR000002').map { it.basename.to_s }
-    assert @tree.root.join('sra/ByExp/sra/DRX/DRX000/DRX000002/DRR000002/DRR000002.sra').exist?
-    assert @tree.root.join('fastq/DRA000/DRA000002/DRX000002/DRR000002_1.fastq.bz2').exist?
+    assert @tree.roots[:dra].join('sra/ByExp/sra/DRX/DRX000/DRX000002/DRR000002/DRR000002.sra').exist?
+    assert @tree.roots[:dra].join('fastq/DRA000/DRA000002/DRX000002/DRR000002_1.fastq.bz2').exist?
+
+    # As D-way publishes every run's, beside what was built of them.
+    assert_equal [READS, READS], %w[r_1.fastq r_2.fastq].map { @tree.roots[:sra].join('DRR/000/000/002/DRR000002/submitted', it).read }
+    assert_equal '100644', format('%o', @tree.submitted_dir(run: 'DRR000002').join('r_1.fastq').stat.mode)
 
     assert @row.reload.status_private?
     assert @row.reads_built_at
@@ -186,7 +190,7 @@ class BuildDRAReadsJobTest < ActiveJob::TestCase
 
     assert_match "DRA000002: runs[0] (DRR000002) could not be built:\nlatf-load err: bad", error.message
     assert @row.reload.status_accession_issued?
-    assert_not @tree.root.exist?
+    assert_not @tree.roots[:dra].exist?
   end
 
   test 'a run of a filetype not built here fails the job, by name' do

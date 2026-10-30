@@ -306,11 +306,14 @@ D-way's batch made them after issuing: each run's `<run>.sra` — fastq
 loaded by `latf-load` and packed by `kar`, or the `.sra` sent — and its
 fastq dumped from it by `fastq-dump --split-3 --skip-technical`, named by the
 run, compressed by `pbzip2` (in the image, as SRA Toolkit is) — and each
-analysis's files as sent, as D-way published them. They go into the
-private tree, laid out as D-way's FTP site lays the public one out
+run's and analysis's files as sent, as D-way published them (a run's for
+every run since its V3.26, whatever it was built into). They go into the
+private trees, laid out as D-way's FTP site lays the public ones out
 (`DRA::ReadsTree`: `output_dir/private/dra/fastq/DRA000/DRA…/DRX…/`,
-`…/DRZ…/` and `…/sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/`), so publishing them
-is moving them across (see the public tree below); then the row says so (`reads_built_at`) and an
+`…/DRZ…/` and `…/sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/`; a run's files as
+sent in another tree, `output_dir/private/sra/DRR/000/000/150/DRR000150/
+submitted/`), so publishing them is moving them across (see the public
+tree below); then the row says so (`reads_built_at`) and an
 accession-issued one becomes private, as D-way's did. The submitted reads
 stay the originals, so what is built can be built again. The job is
 started by a sweep every ten minutes (`enqueue_due`) for each waiting with
@@ -352,14 +355,17 @@ lists it and it is tried again the next night.
 **The public tree is not written here.** It is D-way's FTP site, owned
 by the account its release ran as (tracesys) and shared with its SRA
 mirror, which put NCBI's and EBI's submissions in it too (`SRA…`,
-`ERA…`); it is mounted read-only. What is to be published is written into
-the private tree beside it — the same layout, on the same filesystem —
+`ERA…`); it is mounted read-only — two trees, as the FTP site has them:
+`dra` (…/dra-public/dra, on lustre9) and `sra` (the runs' files as sent,
+/lustre11/open/shared_data/sra). What is to be published is written into
+the private tree beside each — the same layout, on the same filesystem —
 and moved across by `script/dra-mover`, run from cron as that account, on
 a request (`DRA::PublicationRequests`, a JSON file a submission naming
 each move): the files first, then the documents describing them. What has
 left public is moved back the same way, documents first, to be published
-again. A move is a rename, so the private tree belongs on the public
-tree's filesystem (lustre9), and it and the requests are group-writable
+again. A move is a rename, so each private tree belongs on its public
+tree's filesystem, with a hold of the mover's there, and they and the
+requests (beside `dra`'s) are group-writable
 for both accounts (the job role's `umask 0002`, set-group-ID
 directories) in a directory that is not. Nothing the repository writes is
 trusted by the mover: it moves only paths laid out as the requesting
@@ -387,7 +393,8 @@ never by walking the tree: a directory nothing here has a row for is not
 ours to take, which makes one whose row was destroyed a thing to take out
 by hand — and only for a row that was public once or written here. The
 files go with the documents (`DRA::SubmissionFiles`: what is in the
-submission's DRX…/ and DRZ…/, and its runs' .sra, found where they are),
+submission's DRX…/ and DRZ…/, its runs' .sra and their files as sent,
+found where they are),
 D-way's too, which are in the public tree from the start — never through a
 link, or out of a directory not named as an experiment or analysis. The
 first run after the handover takes out every D-way submission that left
