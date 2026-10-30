@@ -118,6 +118,20 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert_not @public.join('fastq/DRA000/DRA000001').exist?
   end
 
+  # D-way's are often group-writable, and the repository cannot change
+  # the mode of this account's.
+  test 'what is taken out writable by others can be published again' do
+    put(@public.join(FASTQ)).chmod(0o664)
+
+    ask 'DRA000001', [:withdraw, FASTQ], action: :withdraw, at: 1.minute.ago
+    move!
+    ask 'DRA000001', [:publish, FASTQ]
+    move!
+
+    assert_equal [nil, nil], settled.map(&:error)
+    assert_equal '100644', format('%o', @public.join(FASTQ).stat.mode)
+  end
+
   # Stopped part way, a request is carried out again from the start.
   test 'a move already made is done' do
     put @public.join(FASTQ)
@@ -293,7 +307,21 @@ class DRAMoverTest < ActiveSupport::TestCase
     ask 'DRA000001', [:publish, FASTQ]
 
     assert_match "dra: in the hold as 1-2-3: publish #{FASTQ}", move!
-    assert_equal "in neither tree: dra/#{FASTQ}; it is in the hold as 1-2-3", settled.sole.error
+    assert_equal "in the hold as 1-2-3: dra/#{FASTQ}", settled.sole.error
+  end
+
+  # A document of before is public yet: the one asked for is in the hold.
+  test 'a move whose file a run left in the hold is not done, though one is where it was to go' do
+    document = 'fastq/DRA000/DRA000001/DRA000001.run.xml'
+
+    put @public.join(document), 'old'
+    put @hold.join('1-2-3'), 'new'
+    put @hold.join('1-2-3.where'), JSON.generate(op: 'publish', tree: 'dra', path: document)
+
+    ask 'DRA000001', [:publish, document]
+    move!
+
+    assert_equal "in the hold as 1-2-3: dra/#{document}", settled.sole.error
   end
 
   test 'a note whose file has gone goes with it' do
@@ -303,18 +331,39 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert_empty @hold.children
   end
 
-  test 'takes out no more in a day than it is let' do
+  test 'takes out no more in a day than it is let, across the trees, and a request all or nothing' do
+    sra = %w[public private hold].to_h { [it, @root.join("sra-#{it}").tap(&:mkpath)] }.tap { it['hold'].chmod(0o700) }
+
     put @public.join(FASTQ), 'x' * 600
-    put @public.join(SRA), 'x' * 600
+    put sra['public'].join('DRR/000/000/001/DRR000001/submitted/a.fq'), 'x' * 600
 
-    ask 'DRA000001', [:withdraw, FASTQ], [:withdraw, SRA], action: :withdraw
+    @requests.submit 'DRA000001', :withdraw, [Move.new(op: :withdraw, tree: :dra, path: FASTQ)], requested_at: 1.minute.ago
+    @requests.submit 'DRA000002', :withdraw, [Move.new(op: :withdraw, tree: :sra, path: 'DRR/000/000/001/DRR000001/submitted/a.fq')], requested_at: Time.current
 
-    output, status = mover('--withdraw-limit-tb', '0.000000001')
+    output, status = mover('--withdraw-limit-tb', '0.000000001', '--tree', "sra=#{sra['public']}:#{sra['private']}:#{sra['hold']}")
 
     assert status.success?, output
     assert @private.join(FASTQ).exist?
-    assert @public.join(SRA).exist?
-    assert_equal "would take out more than 1000 bytes today (--withdraw-limit-tb): #{SRA}", settled.sole.error
+    assert sra['public'].join('DRR/000/000/001/DRR000001/submitted/a.fq').exist?
+    assert_match(/\Awould take out more than 1000 bytes today \(--withdraw-limit-tb\): \d{8}T\d{12}-DRA000002-withdraw\.json\z/, settled.last.error)
+
+    document = 'fastq/DRA000/DRA000001/DRA000001.run.xml'
+
+    put @public.join(document), '<RUN_SET/>'
+    put @public.join(SRA), 'x' * 2000
+
+    ask 'DRA000001', [:withdraw, document], [:withdraw, SRA], [:withdraw, '../secret'], action: :withdraw
+    mover '--withdraw-limit-tb', '0.000000001'
+
+    assert @public.join(document).exist?, 'nothing of a request too large is taken out'
+  end
+
+  # Python's \d is any script's digits.
+  test 'takes ASCII digits alone for numbers' do
+    ask 'DRA000001', [:publish, "sra/ByExp/sra/DRX/DRX000/DRX000001/DRR00000\u0661/a.sra"]
+    move!
+
+    assert_match 'not a path of DRA000001', settled.sole.error
   end
 
   test 'refuses a private tree under a link' do

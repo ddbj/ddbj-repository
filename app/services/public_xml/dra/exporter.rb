@@ -162,9 +162,10 @@ module PublicXML
         documents = Documents.call(record)
         files     = ::DRA::SubmissionFiles.new(row.accession, record)
 
-        # Built here, every run has its .sra: one with none is filed
-        # elsewhere than it was built (its experiment changed since).
-        if row.submission.source_id.nil? && (missing = files.missing_sras(@withheld, @tree)).any?
+        # Built here, every run has its .sra and its files as sent: one
+        # with none is filed elsewhere than it was built (its experiment
+        # changed since), or was built before they were kept.
+        if row.submission.source_id.nil? && (missing = files.unbuilt(@withheld, @tree)).any?
           return "its reads are not where they were built: #{missing.join(', ')}"
         end
 

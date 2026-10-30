@@ -199,6 +199,32 @@ class BuildDRAReadsJobTest < ActiveJob::TestCase
     error = assert_raises(BuildDRAReadsJob::Failed) { perform }
 
     assert_match 'runs[0] is of bam files, which are not built here yet', error.message
+    assert_not @tree.roots[:sra].exist?, 'nothing is copied of a run that cannot be built'
+  end
+
+  test "what a run's files as sent have that its record does not name goes, and one of another upload is copied again" do
+    stale = @tree.submitted_dir(run: 'DRR000002').join('old.fastq').tap { it.dirname.mkpath }.tap { it.write('old') }
+    kept  = @tree.submitted_dir(run: 'DRR000002').join('r_1.fastq').tap { it.write('x' * READS.size) }.tap { it.utime(1.hour.ago.to_time, 1.hour.ago.to_time) }
+
+    perform
+
+    assert_not stale.exist?
+    assert_equal READS, kept.read
+  end
+
+  test 'a run naming two files of one name, or one of the name copies are kept under, fails the job' do
+    other = "@r2\nTTTT\n+\nIIII\n"
+
+    @submission.data_files_attachments.create! blob: ActiveStorage::Blob.create_and_upload!(io: StringIO.new(other), filename: 'r_1.fastq', content_type: 'application/octet-stream')
+    @submission.data_files_attachments.create! blob: ActiveStorage::Blob.create_and_upload!(io: StringIO.new(READS), filename: 'r_1.fastq.partial', content_type: 'application/octet-stream')
+
+    @submission.append_update! record([fastq('r_1.fastq'), fastq('r_1.fastq').merge('checksum' => Digest::MD5.hexdigest(other))]), actor: 'test'
+
+    assert_match 'runs[0] names two files r_1.fastq', assert_raises(BuildDRAReadsJob::Failed) { perform }.message
+
+    @submission.append_update! record([fastq('r_1.fastq.partial')]), actor: 'test'
+
+    assert_match 'runs[0] names r_1.fastq.partial, a name kept for copies', assert_raises(BuildDRAReadsJob::Failed) { perform }.message
   end
 
   # Two would build into one directory.

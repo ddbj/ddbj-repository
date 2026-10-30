@@ -93,6 +93,9 @@ class BuildDRAReadsJob < ApplicationJob
 
     files.entries.group_by { [it.where, self.class.file_name(it)] }.each do |(where, name), entries|
       raise Failed, "#{row.accession}: #{where} names two files #{name}" if entries.size > 1
+
+      # Copies stopped part way are, and are never published.
+      raise Failed, "#{row.accession}: #{where} names #{name}, a name kept for copies" if name.end_with?('.partial')
     end
 
     step :build do |step|
@@ -136,6 +139,11 @@ class BuildDRAReadsJob < ApplicationJob
     raise Failed, "#{row.accession}: #{run.where} is part of no experiment with an accession" unless experiment.match?(DRA::SubmissionFiles::OBJECT_FORMAT)
     raise Failed, "#{row.accession}: #{run.where} names no files" if run.entries.empty?
 
+    filetypes = run.filetypes
+
+    raise Failed, "#{row.accession}: #{run.where} has files of #{filetypes.join(', ')}; a run is built from one filetype" unless filetypes.one?
+    raise Failed, "#{row.accession}: #{run.where} is of #{filetypes.first} files, which are not built here yet" unless DRA::ReadBuild::TOOLS.key?(filetypes.first)
+
     tree = DRA::ReadsTree.at(:private)
 
     # As sent, whatever they are built into, as D-way publishes every run's.
@@ -143,11 +151,6 @@ class BuildDRAReadsJob < ApplicationJob
 
     # In the tree already, from an attempt stopped after it.
     return if tree.sra(experiment:, run: run.accession).exist?
-
-    filetypes = run.filetypes
-
-    raise Failed, "#{row.accession}: #{run.where} has files of #{filetypes.join(', ')}; a run is built from one filetype" unless filetypes.one?
-    raise Failed, "#{row.accession}: #{run.where} is of #{filetypes.first} files, which are not built here yet" unless DRA::ReadBuild::TOOLS.key?(filetypes.first)
 
     dir    = self.class.kept_dir(row.submission_id).join("run-#{run.index}")
     result = DRA::ReadBuild.call(files: run.entries.map(&:blob), filetype: filetypes.first, accession: run.accession, platform: run.platform, dir:, interrupt:)
@@ -178,7 +181,9 @@ class BuildDRAReadsJob < ApplicationJob
   end
 
   # `entries`' files in `dir`, under their own names, as D-way's took the
-  # name the record gave it; one there whole already is not copied again.
+  # name the record gave it, and dated when they were sent, as D-way's
+  # keep their dates; one there whole already — of its size and date, to
+  # the second as Lustre keeps it, so of that upload — is not copied again.
   # What else is there — an earlier attempt's, before an edit — would be
   # published with them, and goes.
   def keep_as_sent(entries, dir, interrupt:)
@@ -191,7 +196,7 @@ class BuildDRAReadsJob < ApplicationJob
     entries.zip(names).each do |entry, name|
       path = dir.join(name)
 
-      next if path.file? && path.size == entry.blob.byte_size
+      next if path.file? && path.size == entry.blob.byte_size && path.mtime.to_i == entry.blob.created_at.to_i
 
       partial = path.sub_ext("#{path.extname}.partial").tap { it.dirname.mkpath }
 
@@ -203,6 +208,7 @@ class BuildDRAReadsJob < ApplicationJob
       }
 
       partial.chmod DRA::ReadsTree::FILE_MODE
+      partial.utime entry.blob.created_at.to_time, entry.blob.created_at.to_time
       partial.rename path
     end
   end

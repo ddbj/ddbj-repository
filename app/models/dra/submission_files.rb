@@ -34,17 +34,17 @@ class DRA::SubmissionFiles
     (sras + submitted + within).reject { it.extname == '.partial' }
   end
 
-  # The runs whose .sra is in neither tree, or that are filed under no
-  # experiment: built here, every run has one.
-  def missing_sras(*trees)
+  # The runs whose .sra or files as sent are in neither tree, or that are
+  # filed under no experiment: built here, every run has both.
+  def unbuilt(*trees)
     runs.filter_map {|run, experiment|
-      run unless experiment && trees.any? { it.sra(experiment:, run:).file? }
+      run unless experiment && trees.any? { it.sra(experiment:, run:).file? } && trees.any? { files_in(it.submitted_dir(run:)).any? }
     }
   end
 
   private
 
-  def files_in(dir) = real_directory?(dir) ? dir.children.select { regular_file?(it) } : []
+  def files_in(dir) = real_directory?(dir) ? dir.children.select { regular_file?(it) && it.extname != '.partial' } : []
 
   # Not through a link.
   def walk(dir) = dir.children.flat_map { real_directory?(it) ? walk(it) : (regular_file?(it) ? [it] : []) }

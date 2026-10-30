@@ -263,6 +263,24 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     assert_empty @withheld.roots[:dra].glob('**/*.fastq.bz2')
   end
 
+  test "one sent here whose run's files as sent are in neither tree is not published" do
+    @row.submission.update_columns source_id: nil
+
+    put sra(@withheld)
+
+    run = publish
+
+    assert_match 'DRA000001: its reads are not where they were built: DRR000001', run.error_log
+    assert_not directory.exist?
+
+    put submitted(@withheld)
+
+    publish
+
+    assert submitted(@tree).exist?
+    assert directory.exist?
+  end
+
   # Its experiment changed since: the .sra is filed under the one it was
   # built for.
   test "one sent here whose run's .sra is not where its record files it is not published" do

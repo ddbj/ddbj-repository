@@ -375,9 +375,15 @@ public but its documents, opens every directory from the one above
 without following a link, moves each file through a hold of its own
 account's alone before it goes on, and takes public only a file writable
 by its owner alone (which is why the repository writes them 0644) and
-linked nowhere else. It takes out no more than `--withdraw-limit-tb` a
-day, since it cannot tell which reads are the repository's own — the
-first run after the handover, with D-way's leftovers, wants a larger one.
+linked nowhere else. A run's paths name no submission, and nothing the
+mover can read that the repository's account cannot write says whose a
+run is — D-way's documents are writable by others, and not every public
+run has its files as sent — so any submission can ask for any DRA run's
+.sra and files as sent to be taken out. That is what the daily limit is
+for: no more than `--withdraw-limit-tb` over both trees, a request whole
+or not at all, since it cannot tell which reads are the repository's own
+— the first run after the handover, with D-way's leftovers, wants a
+larger one.
 Its docstring lays out the directories to make.
 
 The tree is tens of thousands of submissions, so a run asks only for
@@ -398,9 +404,13 @@ found where they are),
 D-way's too, which are in the public tree from the start — never through a
 link, or out of a directory not named as an experiment or analysis. The
 first run after the handover takes out every D-way submission that left
-public with its reads still there, so count those before it. One sent
-here whose runs' .sra are not where its record files them (an experiment
-changed since they were built) is not published, and says so. Nothing is
+public with its reads still there, so count those before it, the runs'
+files as sent on lustre11 among them. A submission is taken for gone by
+its directory in `dra` alone: one whose directory was taken out by hand
+and its runs' files as sent not is left public on lustre11, so look for
+those too. One sent here whose runs' .sra or files as sent are not where
+its record files them (an experiment changed since they were built) is
+not published, and says so. Nothing is
 asked for before D-way has handed over (`DwayTakeover`): the tree is
 D-way's release's until then, and a status here behind D-way's would take
 out what it has just published. The DRA livelist is still to come.
