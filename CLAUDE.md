@@ -349,36 +349,54 @@ of them. A document that is not valid by the XSD is not published; the run
 lists it and it is tried again the next night.
 `rake dra:check_public_xml` counts those without writing.
 
-The tree is tens of thousands of submissions, so a run writes only those
-not in it as they stand. Each row says when its documents were written
-(`public_xml_written_at`, cleared by D-way's import of a new version and
-on leaving public) and the tree when its last run began (`.last_run`): a
-row published since it was written, or written after the tree's last run
-— into a tree standing in for this one while it was not mounted — is
-written again, and a tree with no marker is written whole. What the tree
-is missing is cleared from the rows before its marker moves, so a run
-stopped part way is gone on from. What has left public is taken out —
-by its row, never by walking the tree: D-way's tree is where its SRA
-mirror put NCBI's and EBI's submissions too (`SRA…`, `ERA…`), and a
-directory nothing here has a row for is not ours to take — which makes
-one whose row was destroyed a thing to take out by hand — and only for a
-row that was public once or written here. The files go with the documents
-(`DRA::SubmissionFiles`: what is in the submission's DRX…/ and DRZ…/, and
-its runs' .sra, found where they are): moved in from the private tree they
-were built into before its documents are written, and back out to it
-before they are taken out — D-way's too, which are in the public tree from
-the start — one file at a time, so a run stopped part way is gone on from,
-and never through a link or into a directory not named as an experiment
-or analysis: the mirror shares the tree. A move between two mounts is a
-copy, so the private tree belongs on the public one's mount: a submission
-withdrawn is otherwise its hundreds of gigabytes copied — and the first
-run after the handover takes out every D-way submission that left public
-with its reads still there, so count those before it. One sent here whose
-runs' .sra are not where its record files them (an experiment changed
-since they were built) is not published, and says so. Nothing is written before D-way has handed over
-(`DwayTakeover`): the tree is D-way's release's until then, and a status
-here behind D-way's would take out what it has just published. The DRA
-livelist is still to come.
+**The public tree is not written here.** It is D-way's FTP site, owned
+by the account its release ran as (tracesys) and shared with its SRA
+mirror, which put NCBI's and EBI's submissions in it too (`SRA…`,
+`ERA…`); it is mounted read-only. What is to be published is written into
+the private tree beside it — the same layout, on the same filesystem —
+and moved across by `script/dra-mover`, run from cron as that account, on
+a request (`DRA::PublicationRequests`, a JSON file a submission naming
+each move): the files first, then the documents describing them. What has
+left public is moved back the same way, documents first, to be published
+again. A move is a rename, so the private tree belongs on the public
+tree's filesystem (lustre9), and it and the requests are group-writable
+for both accounts (the job role's `umask 0002`, set-group-ID
+directories) in a directory that is not. Nothing the repository writes is
+trusted by the mover: it moves only paths laid out as the requesting
+submission's, and only DRA-numbered ones — the 27 of D-way's numbered SRA
+sit beside NCBI's SRA… and are a person's to take out — replaces nothing
+public but its documents, opens every directory from the one above
+without following a link, moves each file through a hold of its own
+account's alone before it goes on, and takes public only a file writable
+by its owner alone (which is why the repository writes them 0644) and
+linked nowhere else. It takes out no more than `--withdraw-limit-tb` a
+day, since it cannot tell which reads are the repository's own — the
+first run after the handover, with D-way's leftovers, wants a larger one.
+Its docstring lays out the directories to make.
+
+The tree is tens of thousands of submissions, so a run asks only for
+those not in it as they stand: never published, published since (each row
+says when it last asked for what was carried out, `public_xml_written_at`,
+cleared by D-way's import of a new version and on leaving public), or
+gone from it (its submission.xml missing — taken out by hand, or the tree
+restored from before). It records what came of the last run's requests
+before it asks for more: one failed is on the run's log and asked again,
+and one not yet carried out keeps its submission out of the run, so two
+requests cannot cross. What has left public is taken out — by its row,
+never by walking the tree: a directory nothing here has a row for is not
+ours to take, which makes one whose row was destroyed a thing to take out
+by hand — and only for a row that was public once or written here. The
+files go with the documents (`DRA::SubmissionFiles`: what is in the
+submission's DRX…/ and DRZ…/, and its runs' .sra, found where they are),
+D-way's too, which are in the public tree from the start — never through a
+link, or out of a directory not named as an experiment or analysis. The
+first run after the handover takes out every D-way submission that left
+public with its reads still there, so count those before it. One sent
+here whose runs' .sra are not where its record files them (an experiment
+changed since they were built) is not published, and says so. Nothing is
+asked for before D-way has handed over (`DwayTakeover`): the tree is
+D-way's release's until then, and a status here behind D-way's would take
+out what it has just published. The DRA livelist is still to come.
 
 ### Jobs stopped part way
 
@@ -409,8 +427,9 @@ update one:
   goes in last, after the fastq — is not built again; what a stopped one
   left of a run's fastq there is cleared before the run goes in.
 - Public XML — a row left `running` is ended by the next run that gets the
-  lock (`PublicXMLRun.exclusively`). DRA's tree is written a row at a
-  time, each marking itself written, so a stopped run is gone on from.
+  lock (`PublicXMLRun.exclusively`). DRA's is asked for a submission at
+  a time, each request whole before it is seen, and the mover carries one
+  out again from the start, so a stopped run of either is gone on from.
 - `ReleaseOnHoldDateJob` — selects only what has not been public since
   its hold date; a DRA submission and what it takes along are released in
   one transaction.

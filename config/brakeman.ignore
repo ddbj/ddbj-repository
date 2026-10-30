@@ -116,13 +116,13 @@
     {
       "warning_type": "File Access",
       "warning_code": 16,
-      "fingerprint": "fec5f2d644bc7269ca6e1707d06372cf0e3a13e60944d0a3dbb268f3301c5b36",
+      "fingerprint": "56752ac838a421be53a2468f2e794bf1599c27aedc29e0c2fb93bb505b41b7a0",
       "check_name": "FileAccess",
       "message": "Model attribute used in file name",
       "file": "app/services/public_xml/dra/exporter.rb",
-      "line": 122,
+      "line": 132,
       "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
-      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.map do\n tree.submission_dir(row.accession).join(\"#{row.accession}.#{it}.xml.partial\")\n end)",
+      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.map do\n withheld.submission_dir(row.accession).join(\"#{row.accession}.#{it}.xml.partial\")\n end)",
       "render_path": null,
       "location": {
         "type": "method",
@@ -139,20 +139,20 @@
     {
       "warning_type": "File Access",
       "warning_code": 16,
-      "fingerprint": "13139a1e0c392697284dff5bcba2ab668bea15dae4e9064fa4d9811e6dc27d69",
+      "fingerprint": "74c3bf4b9f578554bfbf312794546d8e325a9fc01c83cdc49a04464eea575134",
       "check_name": "FileAccess",
       "message": "Model attribute used in file name",
       "file": "app/services/public_xml/dra/exporter.rb",
-      "line": 190,
+      "line": 157,
       "link": "https://brakemanscanner.org/docs/warning_types/file_access/",
-      "code": "FileUtils.rm_f(::DRA::XMLRenderer::KINDS.flat_map do\n [tree.submission_dir(row.accession).join(\"#{row.accession}.#{it}.xml\"), tree.submission_dir(row.accession).join(\"#{row.accession}.#{it}.xml.partial\")]\n end)",
+      "code": "FileUtils.rm_f((::DRA::XMLRenderer::KINDS - Documents.call(row.submission.materialised_record).keys).map do\n document(withheld, row.accession, it)\n end)",
       "render_path": null,
       "location": {
         "type": "method",
         "class": "PublicXML::DRA::Exporter",
-        "method": "withdraw"
+        "method": "write"
       },
-      "user_input": "::DRA::XMLRenderer::KINDS.flat_map",
+      "user_input": "(::DRA::XMLRenderer::KINDS - Documents.call(row.submission.materialised_record).keys)",
       "confidence": "Weak",
       "cwe_id": [
         22

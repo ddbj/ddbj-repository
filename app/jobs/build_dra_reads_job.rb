@@ -1,7 +1,7 @@
 # A DRA submission's reads made into what the archive publishes, once its
 # accessions are issued (DRA::ReadBuild): each run's `.sra` and fastq, and
 # each analysis's files as sent, put into the private tree (DRA::ReadsTree),
-# from where its publication moves them into the public one
+# from where its publication has them moved into the public one
 # (PublicXML::DRA::Exporter). Then it is built (`reads_built_at`), and an
 # accession-issued one is private — as D-way's batch moved a submission
 # from accession issued to private once its fastq were made. One a curator
@@ -202,6 +202,7 @@ class BuildDRAReadsJob < ApplicationJob
       end
     }
 
+    partial.chmod DRA::ReadsTree::FILE_MODE
     partial.rename path
   end
 end

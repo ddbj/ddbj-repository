@@ -2,7 +2,7 @@
 # only add another.
 #
 # The public tree, documents and files (PublicXML::DRA::Exporter), as on
-# D-way's FTP site.
+# D-way's FTP site — asked for here, and moved there by `script/dra-mover`.
 #
 # Not before D-way has handed over (DwayTakeover): the tree is D-way's,
 # which its release still writes until then, and a status here that lags
