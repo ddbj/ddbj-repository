@@ -61,6 +61,51 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert_empty @hold.children, 'gone through'
   end
 
+  # The runs' files as sent, on a filesystem of their own.
+  test "publishes a run's files as sent into the sra tree, by its number" do
+    trees = %w[public private hold].to_h { [it, @root.join("sra-#{it}").tap(&:mkpath)] }
+    trees['hold'].chmod 0o700
+
+    submitted = 'DRR/000/000/001/DRR000001/submitted/reads_1.fq.gz'
+
+    put trees['private'].join(submitted)
+    put trees['private'].join('DRR/000/000/002/DRR000002/submitted/reads.fq.gz')
+
+    @requests.submit 'DRA000001', :publish, [Move.new(op: :publish, tree: :sra, path: submitted)], requested_at: Time.current
+    @requests.submit 'DRA000002', :publish, [Move.new(op: :publish, tree: :sra, path: 'DRR/000/000/001/DRR000002/submitted/reads.fq.gz')], requested_at: Time.current
+    @requests.submit 'DRA000003', :publish, [Move.new(op: :publish, tree: :sra, path: FASTQ)], requested_at: Time.current
+    @requests.submit 'DRA000004', :publish, [Move.new(op: :publish, tree: :dra, path: submitted)], requested_at: Time.current
+
+    output, status = mover('--tree', "sra=#{trees['public']}:#{trees['private']}:#{trees['hold']}")
+
+    assert status.success?, output
+    assert_equal 'reads', trees['public'].join(submitted).read
+    assert_not trees['private'].join('DRR/000/000/001/DRR000001').exist?, 'the directories it leaves empty go'
+    assert trees['private'].join('DRR/000/000/001').exist?, 'but not the ones above them'
+
+    assert_equal(
+      [
+        nil,
+        'not a path of DRA000002: sra/DRR/000/000/001/DRR000002/submitted/reads.fq.gz',
+        "not a path of DRA000003: sra/#{FASTQ}",
+        "not a path of DRA000004: dra/#{submitted}"
+      ],
+      settled.sort_by(&:accession).map(&:error)
+    )
+  end
+
+  test 'refuses a tree it does not know the layout of, or one given twice' do
+    output, status = mover('--tree', "ftp=#{@public}:#{@private}:#{@hold}")
+
+    assert_not status.success?
+    assert_match "no tree is laid out as 'ftp'", output
+
+    output, status = mover('--tree', "dra=#{@public}:#{@private}:#{@hold}")
+
+    assert_not status.success?
+    assert_match 'dra: given twice', output
+  end
+
   # The repository goes on writing beside what is moved back.
   test 'what is taken out goes back into group-writable directories' do
     put @public.join(FASTQ)
@@ -71,6 +116,20 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert @private.join(FASTQ).exist?
     assert_equal '42775', format('%o', @private.join(FASTQ).dirname.stat.mode)
     assert_not @public.join('fastq/DRA000/DRA000001').exist?
+  end
+
+  # D-way's are often group-writable, and the repository cannot change
+  # the mode of this account's.
+  test 'what is taken out writable by others can be published again' do
+    put(@public.join(FASTQ)).chmod(0o664)
+
+    ask 'DRA000001', [:withdraw, FASTQ], action: :withdraw, at: 1.minute.ago
+    move!
+    ask 'DRA000001', [:publish, FASTQ]
+    move!
+
+    assert_equal [nil, nil], settled.map(&:error)
+    assert_equal '100644', format('%o', @public.join(FASTQ).stat.mode)
   end
 
   # Stopped part way, a request is carried out again from the start.
@@ -111,8 +170,8 @@ class DRAMoverTest < ActiveSupport::TestCase
         "not a plain path: '../secret'",
         "not a plain path: '/etc/passwd'",
         "not a plain path: 'fastq//x'",
-        'not a path of DRA000004: fastq/DRA000/DRA000001/DRX000001/a.bz2',
-        'not a path of DRA000005: sra/ByExp/sra/SRX/SRX000/SRX000001/SRR000001/SRR000001.sra',
+        'not a path of DRA000004: dra/fastq/DRA000/DRA000001/DRX000001/a.bz2',
+        'not a path of DRA000005: dra/sra/ByExp/sra/SRX/SRX000/SRX000001/SRR000001/SRR000001.sra',
         "no tree 'sra'",
         "no op 'delete'"
       ],
@@ -248,7 +307,21 @@ class DRAMoverTest < ActiveSupport::TestCase
     ask 'DRA000001', [:publish, FASTQ]
 
     assert_match "dra: in the hold as 1-2-3: publish #{FASTQ}", move!
-    assert_equal "in neither tree: dra/#{FASTQ}; it is in the hold as 1-2-3", settled.sole.error
+    assert_equal "in the hold as 1-2-3: dra/#{FASTQ}", settled.sole.error
+  end
+
+  # A document of before is public yet: the one asked for is in the hold.
+  test 'a move whose file a run left in the hold is not done, though one is where it was to go' do
+    document = 'fastq/DRA000/DRA000001/DRA000001.run.xml'
+
+    put @public.join(document), 'old'
+    put @hold.join('1-2-3'), 'new'
+    put @hold.join('1-2-3.where'), JSON.generate(op: 'publish', tree: 'dra', path: document)
+
+    ask 'DRA000001', [:publish, document]
+    move!
+
+    assert_equal "in the hold as 1-2-3: dra/#{document}", settled.sole.error
   end
 
   test 'a note whose file has gone goes with it' do
@@ -258,18 +331,39 @@ class DRAMoverTest < ActiveSupport::TestCase
     assert_empty @hold.children
   end
 
-  test 'takes out no more in a day than it is let' do
+  test 'takes out no more in a day than it is let, across the trees, and a request all or nothing' do
+    sra = %w[public private hold].to_h { [it, @root.join("sra-#{it}").tap(&:mkpath)] }.tap { it['hold'].chmod(0o700) }
+
     put @public.join(FASTQ), 'x' * 600
-    put @public.join(SRA), 'x' * 600
+    put sra['public'].join('DRR/000/000/001/DRR000001/submitted/a.fq'), 'x' * 600
 
-    ask 'DRA000001', [:withdraw, FASTQ], [:withdraw, SRA], action: :withdraw
+    @requests.submit 'DRA000001', :withdraw, [Move.new(op: :withdraw, tree: :dra, path: FASTQ)], requested_at: 1.minute.ago
+    @requests.submit 'DRA000002', :withdraw, [Move.new(op: :withdraw, tree: :sra, path: 'DRR/000/000/001/DRR000001/submitted/a.fq')], requested_at: Time.current
 
-    output, status = mover('--withdraw-limit-tb', '0.000000001')
+    output, status = mover('--withdraw-limit-tb', '0.000000001', '--tree', "sra=#{sra['public']}:#{sra['private']}:#{sra['hold']}")
 
     assert status.success?, output
     assert @private.join(FASTQ).exist?
-    assert @public.join(SRA).exist?
-    assert_equal "would take out more than 1000 bytes today (--withdraw-limit-tb): #{SRA}", settled.sole.error
+    assert sra['public'].join('DRR/000/000/001/DRR000001/submitted/a.fq').exist?
+    assert_match(/\Awould take out more than 1000 bytes today \(--withdraw-limit-tb\): \d{8}T\d{12}-DRA000002-withdraw\.json\z/, settled.last.error)
+
+    document = 'fastq/DRA000/DRA000001/DRA000001.run.xml'
+
+    put @public.join(document), '<RUN_SET/>'
+    put @public.join(SRA), 'x' * 2000
+
+    ask 'DRA000001', [:withdraw, document], [:withdraw, SRA], [:withdraw, '../secret'], action: :withdraw
+    mover '--withdraw-limit-tb', '0.000000001'
+
+    assert @public.join(document).exist?, 'nothing of a request too large is taken out'
+  end
+
+  # Python's \d is any script's digits.
+  test 'takes ASCII digits alone for numbers' do
+    ask 'DRA000001', [:publish, "sra/ByExp/sra/DRX/DRX000/DRX000001/DRR00000\u0661/a.sra"]
+    move!
+
+    assert_match 'not a path of DRA000001', settled.sole.error
   end
 
   test 'refuses a private tree under a link' do

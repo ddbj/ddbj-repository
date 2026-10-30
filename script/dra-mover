@@ -1,38 +1,51 @@
 #!/usr/bin/env python3
-"""Carry out the moves ddbj-repository asks for between DRA's public tree
-and its private tree.
+"""Carry out the moves ddbj-repository asks for between DRA's public trees
+and its private trees.
 
-The repository does not write the public tree: it is D-way's FTP site,
+The repository does not write the public trees: they are D-way's FTP site,
 owned by the account that runs this, and shared with the SRA mirror. It
-writes what is to be published into a private tree beside it — the same
+writes what is to be published into a private tree beside each — the same
 layout, on the same filesystem, so that a move is a rename — and asks for
 moves in request files; this carries them out, from cron, as that account.
 
     dra-mover --requests DIR --lock FILE --tree dra=PUBLIC:PRIVATE:HOLD
+              --tree sra=PUBLIC:PRIVATE:HOLD
+
+Two trees, as the FTP site has them: `dra` (…/dra-public/dra, the
+submissions' documents, fastq, analyses' files and runs' .sra) and `sra`
+(…/sra, the runs' files as sent, under DRR/), each on a filesystem of its
+own.
 
     --requests     where the repository puts its requests
     --lock         a file of this account's own, outside anything the
                    repository can write: one run at a time, and a second
                    exits at once — non-zero, once the first has held it
-                   longer than --stale-hours (12)
-    --tree         the public tree (…/dra-public/dra), the private one, and
+                   longer than --stale-hours (12). What has been taken out
+                   today is kept beside it (<lock>.withdrawn-<date>)
+    --tree         a tree by name: the public tree, the private one, and
                    a hold: a directory of this account's alone (rwx------),
                    which every move goes through
     --withdraw-limit-tb
-                   how much may be taken out of the public tree in a day (10):
-                   more is refused, for a person to carry out with a larger
-                   limit — the repository cannot tell this which reads are
-                   its own, D-way's among them
+                   how much may be taken out of the public trees in a day,
+                   all of them together (10): a request that would take out
+                   more is refused whole, before anything of it is moved,
+                   for a person to carry out with a larger limit — the
+                   repository cannot tell this which reads are its own,
+                   D-way's among them
 
-All three on one filesystem. The private tree and the requests are
-group-writable for both accounts, in a directory that is not, nor is any
-above it, nor a link (and so for the hold and the lock): the repository
-writes what is in them, and is not to put another in their place —
+A tree's three on one filesystem, and the requests on that of one of the
+holds. The private trees and the requests are group-writable for both
+accounts, in a directory that is not, nor is any above it, nor a link (and
+so for the holds and the lock): the repository writes what is in them, and
+is not to put another in their place —
 
-    …/repository/            this account's, rwxr-xr-x
-                 dra/        group-writable, set-group-ID
-                 requests/   group-writable, set-group-ID
-    …/dra-mover/hold/        this account's alone
+    lustre9   …/dra-repository/            this account's, rwxr-xr-x
+                               dra/        group-writable, set-group-ID
+                               requests/   group-writable, set-group-ID
+              …/dra-mover/hold/            this account's alone
+    lustre11  …/sra-repository/            this account's, rwxr-xr-x
+                               sra/        group-writable, set-group-ID
+              …/sra-mover/hold/            this account's alone
 
 A request is a JSON file named <time>-<submission>-<publish|withdraw>.json,
 one for a submission:
@@ -56,8 +69,13 @@ so nothing in them is trusted:
 
   - A path is moved only if it is one of the requesting submission's, as
     the repository lays them out: its documents, the files under its
-    experiments and analyses (fastq/DRA000/DRA000123/DRX…/…), and its runs'
-    .sra (sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/…).
+    experiments and analyses (dra: fastq/DRA000/DRA000123/DRX…/…), its runs'
+    .sra (dra: sra/ByExp/sra/DRX/DRX000/DRX…/DRR…/…), and their files as
+    sent (sra: DRR/000/000/150/DRR000150/submitted/…). A run's paths name
+    no submission, and nothing this can read and the repository's account
+    cannot write says whose a run is, so any DRA run's .sra and files as
+    sent can be asked to be taken out by any submission: that is what the
+    daily limit is for, and what is taken out goes back as it came.
   - Nothing is reached through a link: every directory is opened from the
     one above it, never followed, and the file moved is the one opened —
     moved first into the hold, where the repository cannot reach, and
@@ -75,11 +93,12 @@ so nothing in them is trusted:
     and the 27 of D-way's numbered SRA are a person's to move.
 
 The directories a move leaves empty go, if named as a submission,
-experiment, run or analysis; the ones above them (DRA000, DRX/DRX000) stay.
+experiment, run or analysis, or a run's submitted/; the ones above them
+(DRA000, DRX/DRX000, DRR/000/000) stay.
 Directories made in the public tree are rwxr-xr-x, as D-way's release made
-them, and files of this account's made rw-r--r--; in the private tree they
-are group-writable and set-group-ID, so the repository can go on writing
-beside what is moved back.
+them, and files of this account's made rw-r--r--, going either way; in the
+private tree they are group-writable and set-group-ID, so the repository
+can go on writing beside what is moved back.
 
 Python 3.6 or later, standard library only.
 """
@@ -97,11 +116,16 @@ import time
 
 KINDS = ('submission', 'study', 'sample', 'experiment', 'run', 'analysis')
 
-NAME       = re.compile(r'\A\d{8}T\d{12}-(DRA\d{6,})-(publish|withdraw)\.json\Z')
-OBJECT     = re.compile(r'\ADR[XRZ]\d{6,}\Z')
-EXPERIMENT = re.compile(r'\ADRX\d{6,}\Z')
-RUN        = re.compile(r'\ADRR\d{6,}\Z')
-PRUNABLE   = re.compile(r'\ADR[AXRZ]\d{6,}\Z')
+# ASCII digits alone: Python's \d takes any script's.
+NAME       = re.compile(r'\A\d{8}T\d{12}-(DRA\d{6,})-(publish|withdraw)\.json\Z', re.ASCII)
+OBJECT     = re.compile(r'\ADR[XRZ]\d{6,}\Z', re.ASCII)
+EXPERIMENT = re.compile(r'\ADRX\d{6,}\Z', re.ASCII)
+RUN        = re.compile(r'\ADRR\d{6,}\Z', re.ASCII)
+PRUNABLE   = re.compile(r'\ADR[AXRZ]\d{6,}\Z', re.ASCII)
+
+# The trees whose layout this knows: the FTP site's dra/ (…/dra-public/dra)
+# and sra/ (…/sra, the runs' files as sent).
+TREES = ('dra', 'sra')
 
 PUBLIC_DIR_MODE  = 0o755
 PUBLIC_FILE_MODE = 0o644
@@ -166,30 +190,47 @@ def parse_tree(value):
     if not (name and sep and len(roots) == 3 and all(roots)):
         raise argparse.ArgumentTypeError('expected NAME=PUBLIC:PRIVATE:HOLD, got %r' % value)
 
+    if name not in TREES:
+        raise argparse.ArgumentTypeError('no tree is laid out as %r; one of %s' % (name, ', '.join(TREES)))
+
     return [name] + roots
 
 
-# What a path of the submission's may be, as PublicXML::DRA::Exporter and
-# DRA::SubmissionFiles lay them out: 'document' (which may replace its
-# predecessor) or 'file' (which may not).
-def kind_of(parts, submission):
+# What a path of the submission's may be in the tree, as DRA::ReadsTree
+# lays them out: 'document' (which may replace its predecessor) or 'file'
+# (which may not).
+def kind_of(tree, parts, submission):
     if any(part in ('', '.', '..') or '\0' in part for part in parts):
         raise Refused('not a plain path: %r' % '/'.join(parts))
 
-    if parts[:3] == ['fastq', submission[:6], submission]:
+    if tree == 'dra' and parts[:3] == ['fastq', submission[:6], submission]:
         if len(parts) == 4 and parts[3] in ['%s.%s.xml' % (submission, kind) for kind in KINDS]:
             return 'document'
 
         if len(parts) >= 5 and OBJECT.match(parts[3]):
             return 'file'
 
-    if parts[:3] == ['sra', 'ByExp', 'sra'] and len(parts) == 8:
+    if tree == 'dra' and parts[:3] == ['sra', 'ByExp', 'sra'] and len(parts) == 8:
         experiment, run = parts[5], parts[6]
 
         if EXPERIMENT.match(experiment) and parts[3] == experiment[:3] and parts[4] == experiment[:6] and RUN.match(run):
             return 'file'
 
-    raise Refused('not a path of %s: %s' % (submission, '/'.join(parts)))
+    if tree == 'sra' and parts[:1] == ['DRR'] and len(parts) == 7 and parts[5] == 'submitted':
+        run = parts[4]
+
+        if RUN.match(run) and parts[1:4] == spread(run):
+            return 'file'
+
+    raise Refused('not a path of %s: %s/%s' % (submission, tree, '/'.join(parts)))
+
+
+# A run's number in nine digits, three a directory: DRR000150 is under
+# 000/000/150.
+def spread(run):
+    digits = '%09d' % int(run[3:])
+
+    return [digits[0:3], digits[3:6], digits[6:9]]
 
 
 def close_all(fds):
@@ -250,12 +291,13 @@ def lstat(name, dir_fd):
 
 
 # The directories above a file moved out of them, emptied by it, that are
-# an object's. Not being able to is not a failure of the move.
+# an object's, or a run's submitted/. Not being able to is not a failure of
+# the move.
 def prune(fds, names, log):
     for depth in range(len(fds) - 1, 0, -1):
         name = names[depth - 1]
 
-        if not PRUNABLE.match(name):
+        if not (PRUNABLE.match(name) or (name == 'submitted' and depth > 1 and RUN.match(names[depth - 2]))):
             return
 
         try:
@@ -267,17 +309,17 @@ def prune(fds, names, log):
             return
 
 
-def move(trees, submission, entry, log):
+def move(trees, submission, entry, budget, log):
     if not isinstance(entry, dict) or not all(isinstance(entry.get(key), str) for key in ('op', 'tree', 'path')):
         raise Refused('not a move: %r' % (entry,))
 
     if entry['tree'] not in trees:
         raise Refused('no tree %r' % entry['tree'])
 
-    public, private, hold, budget = trees[entry['tree']]
-    parts                         = entry['path'].split('/')
-    kind                          = kind_of(parts, submission)
-    names, base                   = parts[:-1], parts[-1]
+    public, private, hold = trees[entry['tree']]
+    parts                 = entry['path'].split('/')
+    kind                  = kind_of(entry['tree'], parts, submission)
+    names, base           = parts[:-1], parts[-1]
 
     if entry['op'] == 'publish':
         source, target, dir_mode = private, public, PUBLIC_DIR_MODE
@@ -292,6 +334,12 @@ def move(trees, submission, entry, log):
         found = lstat(base, sources[-1]) if len(sources) == len(names) + 1 else None
 
         if found is None:
+            # Killed between: what is there now is not what was asked for.
+            held = in_hold(hold, entry)
+
+            if held:
+                raise Refused('in the hold as %s: %s/%s' % (held, entry['tree'], entry['path']))
+
             targets = walk(target, names)
 
             try:
@@ -300,9 +348,7 @@ def move(trees, submission, entry, log):
                 close_all(targets)
 
             if there is None or not stat.S_ISREG(there.st_mode):
-                held = in_hold(hold, entry)
-
-                raise Refused('in neither tree: %s/%s%s' % (entry['tree'], entry['path'], '; it is in the hold as %s' % held if held else ''))
+                raise Refused('in neither tree: %s/%s' % (entry['tree'], entry['path']))
 
             # Moved by a run stopped before it was done with it.
             prune(sources, names, log)
@@ -371,7 +417,10 @@ def move(trees, submission, entry, log):
                 os.rename(held, base, src_dir_fd=hold, dst_dir_fd=targets[-1])
                 os.unlink(held + '.where', dir_fd=hold)
 
-                if entry['op'] == 'publish' and st.st_uid == os.geteuid():
+                # Of this account's, taken out writable by others (D-way's
+                # often are): it could not be published again, the
+                # repository not able to change its mode.
+                if st.st_uid == os.geteuid() and (entry['op'] == 'publish' or st.st_mode & 0o022):
                     os.fchmod(fd, PUBLIC_FILE_MODE)
             finally:
                 close_all(targets)
@@ -441,31 +490,40 @@ def in_hold(hold, entry):
     return None
 
 
-# How much may be taken out of the public tree in a day, kept in the hold:
-# what the repository asks to be taken out, D-way's reads among it, is
-# not the repository's to have taken out without limit.
+# How much may be taken out of the public trees in a day, all of them
+# together, kept beside the lock: what the repository asks to be taken
+# out, D-way's reads among it, is not the repository's to have taken out
+# without limit. The day is the one the run started on.
 class Budget(object):
-    def __init__(self, hold, limit):
-        self.hold  = hold
-        self.limit = limit
-        self.name  = time.strftime('withdrawn-%Y%m%d')
-        self.taken = 0
+    def __init__(self, directory, prefix, limit):
+        self.directory = directory
+        self.prefix    = prefix
+        self.limit     = limit
+        self.name      = prefix + time.strftime('%Y%m%d')
+        self.taken     = 0
 
-        for name in os.listdir(hold):
-            if name.startswith('withdrawn-') and name != self.name:
-                os.unlink(name, dir_fd=hold)
+        for name in os.listdir(directory):
+            if name.startswith(prefix) and name != self.name:
+                os.unlink(name, dir_fd=directory)
 
         try:
-            fd = os.open(self.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=hold)
+            fd = os.open(self.name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory)
 
             with os.fdopen(fd, 'r') as f:
                 self.taken = int(f.read().strip() or 0)
         except FileNotFoundError:
             pass
+        except ValueError:
+            raise SystemExit('%s: not a count of bytes; put it right, or take it out to start the day afresh' % self.name)
+
+    # A request is let take out all it asks for, or nothing: one refused
+    # part way would leave its documents out and its files public.
+    def check(self, size, what):
+        if self.taken + size > self.limit:
+            raise Refused('would take out more than %d bytes today (--withdraw-limit-tb): %s' % (self.limit, what))
 
     def take(self, size, path):
-        if self.taken + size > self.limit:
-            raise Refused('would take out more than %d bytes today (--withdraw-limit-tb): %s' % (self.limit, path))
+        self.check(size, path)
 
         self.taken += size
         self.save()
@@ -475,13 +533,36 @@ class Budget(object):
         self.save()
 
     def save(self):
-        tmp = hold_name()
-        fd  = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=self.hold)
+        tmp = '%s.%s' % (self.prefix, hold_name())
+        fd  = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=self.directory)
 
         with os.fdopen(fd, 'w') as f:
             f.write(str(self.taken))
 
-        os.rename(tmp, self.name, src_dir_fd=self.hold, dst_dir_fd=self.hold)
+        os.rename(tmp, self.name, src_dir_fd=self.directory, dst_dir_fd=self.directory)
+
+
+# The size of what `entry` would take out of its public tree: nothing for
+# one the move would refuse as not the submission's, and otherwise as far
+# as can be seen — the move refuses the rest.
+def withdrawn_size(trees, submission, entry):
+    try:
+        parts = entry['path'].split('/')
+
+        kind_of(entry['tree'], parts, submission)
+
+        fds = walk(trees[entry['tree']][0], parts[:-1])
+    except (Refused, OSError, KeyError, TypeError, AttributeError):
+        return 0
+
+    try:
+        found = lstat(parts[-1], fds[-1]) if len(fds) == len(parts) else None
+
+        return found.st_size if found and stat.S_ISREG(found.st_mode) else 0
+    except OSError:
+        return 0
+    finally:
+        close_all(fds)
 
 
 def read_request(name, requests):
@@ -528,7 +609,7 @@ def write_failed(name, body, failed, hold):
         raise
 
 
-def carry_out(requests, trees, hold, log):
+def carry_out(requests, trees, budget, hold, log):
     done, failed = walk(requests, ['done'], GROUP_DIR_MODE), walk(requests, ['failed'], GROUP_DIR_MODE)
 
     try:
@@ -547,8 +628,12 @@ def carry_out(requests, trees, hold, log):
                 if request.get('submission') != submission or request.get('action') != action:
                     raise Refused('names another submission or action than its name')
 
+                withdrawals = [entry for entry in request['moves'] if isinstance(entry, dict) and entry.get('op') == 'withdraw']
+
+                budget.check(sum(withdrawn_size(trees, submission, entry) for entry in withdrawals), name)
+
                 for entry in request['moves']:
-                    move(trees, submission, entry, log)
+                    move(trees, submission, entry, budget, log)
             except Exception as e:
                 try:
                     write_failed(name, dict(request, error=str(e)), failed[-1], hold)
@@ -580,11 +665,9 @@ def main(argv=None):
 
     log = (lambda _: None) if args.quiet else (lambda message: print(printable(message)))
 
-    directory, name = os.path.split(os.path.abspath(args.lock))
-    above           = open_strict(directory)
-    lock            = os.open(name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=above)
-
-    os.close(above)
+    directory, lock_name = os.path.split(os.path.abspath(args.lock))
+    above                = open_strict(directory)
+    lock                 = os.open(lock_name, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600, dir_fd=above)
 
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -609,10 +692,13 @@ def main(argv=None):
     os.ftruncate(lock, 0)
     os.pwrite(lock, str(time.time()).encode('ascii'), 0)
 
-    trees   = {}
-    budgets = {}
+    budget = Budget(above, lock_name + '.withdrawn-', int(args.withdraw_limit_tb * 10 ** 12))
+    trees  = {}
 
     for name, public, private, hold in args.tree:
+        if name in trees:
+            parser.error('%s: given twice' % name)
+
         roots = open_root(public), open_strict(private), open_strict(hold)
 
         # A rename cannot cross filesystems; said now rather than by every move.
@@ -628,13 +714,18 @@ def main(argv=None):
         for held, where, asked in held_entries(roots[2]):
             print(printable('%s: in the hold as %s%s: %s %s' % (name, held, '' if asked else ', put in place of what was asked for', where.get('op'), where.get('path'))), file=sys.stderr)
 
-        # One a hold, should two trees share one.
-        hold        = os.fstat(roots[2])
-        budget      = budgets.setdefault((hold.st_dev, hold.st_ino), Budget(roots[2], int(args.withdraw_limit_tb * 10 ** 12)))
-        trees[name] = roots + (budget,)
+        trees[name] = roots
 
-    # One hold for what the requests' failures are written in: the first.
-    carry_out(open_strict(args.requests), trees, trees[args.tree[0][0]][2], log)
+    requests = open_strict(args.requests)
+
+    # The requests' failures are written in a hold and renamed out of it,
+    # so one on the requests' filesystem.
+    holds = [roots[2] for roots in trees.values() if os.fstat(roots[2]).st_dev == os.fstat(requests).st_dev]
+
+    if not holds:
+        parser.error('the requests are on the filesystem of no tree\'s hold')
+
+    carry_out(requests, trees, budget, holds[0], log)
 
     return 0
 

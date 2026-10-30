@@ -10,6 +10,8 @@ module PublicXML
     #                          DRX000001/DRR000001_1.fastq.bz2 …
     #   sra/ByExp/sra/DRX/DRX000/DRX000001/DRR000001/DRR000001.sra
     #
+    # and the runs' files as sent in another tree (`…/DRR…/submitted/`).
+    #
     # The tree is not written here. It is D-way's, written by the account
     # its release ran as, and the SRA mirror puts NCBI's and EBI's
     # submissions in it too (SRA…, ERA…) — petabytes, which this reads
@@ -38,8 +40,6 @@ module PublicXML
     # left as it was, to be tried again by the next; the others are asked
     # for all the same.
     class Exporter
-      TREE = :dra
-
       # What the mover moves. The 27 of D-way's numbered SRA, in a tree with
       # NCBI's SRA… beside them, are left as they are, and one of them
       # leaving public is said for a person to take out.
@@ -47,7 +47,7 @@ module PublicXML
 
       Move = ::DRA::PublicationRequests::Move
 
-      # `tree` the public one, `withheld` the private one beside it.
+      # `tree` the public trees, `withheld` the private ones beside them.
       def initialize(tree: ::DRA::ReadsTree.at(:public), withheld: ::DRA::ReadsTree.at(:private), requests: ::DRA::PublicationRequests.default, started_at: Time.current)
         @tree       = tree
         @withheld   = withheld
@@ -139,6 +139,13 @@ module PublicXML
 
       def document(tree, accession, kind) = tree.submission_dir(accession).join("#{accession}.#{kind}.xml")
 
+      # Of `path`, out of `from`: named by the tree it is in.
+      def move(op, from, path)
+        tree, relative = from.locate(path)
+
+        Move.new(op:, tree:, path: relative)
+      end
+
       # Nil once asked for; what stood in the way otherwise. A fault of the
       # private tree's own (the disk) is the run's, and ends it.
       def write(row)
@@ -155,9 +162,10 @@ module PublicXML
         documents = Documents.call(record)
         files     = ::DRA::SubmissionFiles.new(row.accession, record)
 
-        # Built here, every run has its .sra: one with none is filed
-        # elsewhere than it was built (its experiment changed since).
-        if row.submission.source_id.nil? && (missing = files.missing_sras(@withheld, @tree)).any?
+        # Built here, every run has its .sra and its files as sent: one
+        # with none is filed elsewhere than it was built (its experiment
+        # changed since), or was built before they were kept.
+        if row.submission.source_id.nil? && (missing = files.unbuilt(@withheld, @tree)).any?
           return "its reads are not where they were built: #{missing.join(', ')}"
         end
 
@@ -180,9 +188,9 @@ module PublicXML
         FileUtils.rm_f stale.map { document(@withheld, row.accession, it) }
 
         moves = [
-          *files.paths(@withheld).map { Move.new(op: :publish, tree: TREE, path: it) },
-          *documents.keys.map { Move.new(op: :publish, tree: TREE, path: document(@withheld, row.accession, it).relative_path_from(@withheld.root)) },
-          *stale.map { document(@tree, row.accession, it) }.select(&:file?).map { Move.new(op: :withdraw, tree: TREE, path: it.relative_path_from(@tree.root)) }
+          *files.at(@withheld).map { move(:publish, @withheld, it) },
+          *documents.keys.map { move(:publish, @withheld, document(@withheld, row.accession, it)) },
+          *stale.map { document(@tree, row.accession, it) }.select(&:file?).map { move(:withdraw, @tree, it) }
         ]
 
         @requests.submit row.accession, :publish, moves, requested_at: @started_at
@@ -201,9 +209,9 @@ module PublicXML
       # this tree or D-way's wrote it: a directory of a submission there is
       # no row for is the mirror's, not this run's to take. Its documents
       # go back to the private tree first, then its files, kept to be
-      # published again: its runs' .sra before what is in its directory,
-      # which goes last, so one stopped part way is still there to be taken
-      # out by the next run.
+      # published again: its runs' .sra and their files as sent before what
+      # is in its directory, which goes last, so one stopped part way is
+      # still there to be taken out by the next run.
       #
       # A row is taken out if it was ever public, or written; never public,
       # what is there is D-way's, whose status this may be behind. One with
@@ -238,14 +246,14 @@ module PublicXML
           documents = ::DRA::XMLRenderer::KINDS.map { document(@tree, row.accession, it) }.select(&:file?)
 
           begin
-            files = ::DRA::SubmissionFiles.new(row.accession, row.submission.materialised_record).paths(@tree)
+            files = ::DRA::SubmissionFiles.new(row.accession, row.submission.materialised_record).at(@tree)
           rescue Submission::MaterialisationFailed => e
             refused << "#{row.accession}: not taken out, its files not known: #{e.message}"
 
             next
           end
 
-          moves = (documents.map { it.relative_path_from(@tree.root) } + files).map { Move.new(op: :withdraw, tree: TREE, path: it) }
+          moves = (documents + files).map { move(:withdraw, @tree, it) }
 
           if moves.empty?
             gone << row.id

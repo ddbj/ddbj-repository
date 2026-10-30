@@ -7,8 +7,8 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
   # host; the run writes the private one and asks.
   setup do
     @root     = Pathname.new(Dir.mktmpdir)
-    @tree     = DRA::ReadsTree.new(@root.join('public').tap(&:mkpath))
-    @withheld = DRA::ReadsTree.new(@root.join('private', 'dra').tap(&:mkpath))
+    @tree     = DRA::ReadsTree.new(dra: @root.join('public', 'dra').tap(&:mkpath), sra: @root.join('public', 'sra').tap(&:mkpath))
+    @withheld = DRA::ReadsTree.new(dra: @root.join('private', 'dra').tap(&:mkpath), sra: @root.join('private', 'sra').tap(&:mkpath))
     @requests = DRA::PublicationRequests.new(@root.join('private', 'requests').tap(&:mkpath))
     @row      = dra_submissions(:dra)
 
@@ -26,9 +26,13 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
   def export(...) = exporter(...).call
 
-  def move! = system('python3', MOVER, '--quiet', '--requests', @requests.root.to_s, '--lock', @root.join('mover.lock').to_s, '--tree', "dra=#{@tree.root}:#{@withheld.root}:#{hold}", exception: true)
+  def move!
+    trees = %i[dra sra].flat_map { ['--tree', "#{it}=#{@tree.roots[it]}:#{@withheld.roots[it]}:#{hold(it)}"] }
 
-  def hold = @root.join('hold').tap { it.mkpath }.tap { it.chmod(0o700) }
+    system 'python3', MOVER, '--quiet', '--requests', @requests.root.to_s, '--lock', @root.join('mover.lock').to_s, *trees, exception: true
+  end
+
+  def hold(tree) = @root.join("#{tree}-hold").tap { it.mkpath }.tap { it.chmod(0o700) }
 
   # A run, and the mover after it: what a night does.
   def publish(...) = export(...).tap { move! }
@@ -43,6 +47,8 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
   def sra(tree) = tree.sra(experiment: 'DRX000001', run: 'DRR000001')
 
   def fastq(tree) = tree.fastq_dir(submission: 'DRA000001', experiment: 'DRX000001').join('DRR000001_1.fastq.bz2')
+
+  def submitted(tree) = tree.submitted_dir(run: 'DRR000001').join('reads_1.fq.gz')
 
   def put(path, body = 'reads') = path.tap { it.dirname.mkpath }.tap { it.write(body) }
 
@@ -117,8 +123,8 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     publish
     export
 
-    put @tree.root.join('fastq', 'DRA000', 'README'), 'not ours'
-    @tree.root.join('fastq', 'notes').mkpath
+    put @tree.roots[:dra].join('fastq', 'DRA000', 'README'), 'not ours'
+    @tree.roots[:dra].join('fastq', 'notes').mkpath
 
     @row.update! status: :temporarily_suppressed
 
@@ -126,8 +132,8 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
     export
 
     assert_not directory.exist?
-    assert @tree.root.join('fastq', 'DRA000', 'README').exist?
-    assert @tree.root.join('fastq', 'notes').exist?
+    assert @tree.roots[:dra].join('fastq', 'DRA000', 'README').exist?
+    assert @tree.roots[:dra].join('fastq', 'notes').exist?
     assert_nil @row.reload.public_xml_written_at
   end
 
@@ -206,6 +212,7 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
     put fastq(@withheld)
     put sra(@withheld)
+    put submitted(@withheld)
     put @withheld.analysis_dir(submission: 'DRA000001', analysis: 'DRZ000001').join('aln.bam')
 
     @row.update! status: :public
@@ -214,12 +221,15 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
     assert_equal 'reads', fastq(@tree).read
     assert_equal 'reads', sra(@tree).read
+    assert_equal 'reads', @tree.roots[:sra].join('DRR/000/000/001/DRR000001/submitted/reads_1.fq.gz').read
     assert @tree.analysis_dir(submission: 'DRA000001', analysis: 'DRZ000001').join('aln.bam').exist?
     assert directory.join('DRA000001.run.xml').exist?
 
-    assert_empty @withheld.root.glob('**/*').select(&:file?)
+    assert_empty @withheld.roots.values.flat_map { it.glob('**/*') }.select(&:file?)
     assert_not sra(@withheld).dirname.exist?, 'the directories the .sra leaves empty go'
-    assert @withheld.root.join('sra/ByExp/sra/DRX/DRX000').exist?, 'but not the ones above them'
+    assert @withheld.roots[:dra].join('sra/ByExp/sra/DRX/DRX000').exist?, 'but not the ones above them'
+    assert_not @withheld.roots[:sra].join('DRR/000/000/001/DRR000001').exist?, 'nor those the files as sent leave'
+    assert @withheld.roots[:sra].join('DRR/000/000/001').exist?
     assert_not @withheld.submission_dir('DRA000001').exist?
   end
 
@@ -250,7 +260,25 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
     assert elsewhere.exist?
     assert directory.join('notes', 'a.txt').exist?
-    assert_empty @withheld.root.glob('**/*.fastq.bz2')
+    assert_empty @withheld.roots[:dra].glob('**/*.fastq.bz2')
+  end
+
+  test "one sent here whose run's files as sent are in neither tree is not published" do
+    @row.submission.update_columns source_id: nil
+
+    put sra(@withheld)
+
+    run = publish
+
+    assert_match 'DRA000001: its reads are not where they were built: DRR000001', run.error_log
+    assert_not directory.exist?
+
+    put submitted(@withheld)
+
+    publish
+
+    assert submitted(@tree).exist?
+    assert directory.exist?
   end
 
   # Its experiment changed since: the .sra is filed under the one it was
@@ -272,6 +300,7 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
   test 'taken out, its documents and files go back to the private tree' do
     put fastq(@tree)
     put sra(@tree)
+    put submitted(@tree)
     publish
     export
 
@@ -284,8 +313,10 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
     assert_equal 'reads', fastq(@withheld).read
     assert_equal 'reads', sra(@withheld).read
+    assert_equal 'reads', submitted(@withheld).read
     assert_not directory.exist?
     assert_not sra(@tree).exist?
+    assert_not submitted(@tree).dirname.dirname.exist?
     assert mirrors.exist?, "the mirror's beside it stay"
 
     @row.update! status: :public
@@ -294,6 +325,7 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
     assert_equal 'reads', fastq(@tree).read
     assert_equal 'reads', sra(@tree).read
+    assert_equal 'reads', submitted(@tree).read
   end
 
   test 'one whose files cannot be known is not taken out, and says so' do
@@ -421,6 +453,7 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
   test "a submission's directory goes last" do
     put fastq(@tree)
     put sra(@tree)
+    put submitted(@tree)
     publish
     export
 
@@ -428,9 +461,9 @@ class PublicXML::DRA::ExporterTest < ActiveSupport::TestCase
 
     export
 
-    moves = JSON.parse(@requests.root.glob('*.json').sole.read)['moves'].map { it['path'] }
+    moves = JSON.parse(@requests.root.glob('*.json').sole.read)['moves'].map { [it['tree'], File.extname(it['path'])] }
 
-    assert_equal %w[.xml .xml .xml .sra .bz2], moves.map { File.extname(it) }
+    assert_equal [%w[dra .xml], %w[dra .xml], %w[dra .xml], %w[dra .sra], %w[sra .gz], %w[dra .bz2]], moves
   end
 
   test 'what is not a request is put aside, and said' do
