@@ -83,7 +83,7 @@ jobs:
 
       # The spec's own locked toolchain, so a pydantic release that changes
       # how schemas are written does not fail this on an unrelated push.
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.2
 
       - name: Compare with the schema the pinned spec generates
         run: |
